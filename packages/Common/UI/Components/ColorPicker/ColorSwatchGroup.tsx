@@ -3,12 +3,12 @@ import Icon from "../Icon/Icon";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { ColorSwatchOption } from "./ColorPalette";
-import { findSwatch, normalizeColorValue, shouldUseDarkMark } from "./ColorValue";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useRef,
-} from "react";
+import {
+  findSwatch,
+  normalizeColorValue,
+  shouldUseDarkMark,
+} from "./ColorValue";
+import React, { FunctionComponent, ReactElement, useRef } from "react";
 
 /*
  * The swatches of a color field, as one radio group: one Tab stop, the arrow
@@ -22,8 +22,6 @@ import React, {
  */
 
 export interface ColorSwatchPickDetails {
-  // From the keyboard (Space, Enter or an arrow), not a pointer.
-  viaKeyboard: boolean;
   /*
    * An arrow key moved to this color. A popover stays open for that, so the
    * reader can keep arrowing; a click or Space/Enter is a choice and closes it.
@@ -40,7 +38,7 @@ export type ColorSwatchGroupLayout = "row" | "grid";
 
 export interface ComponentProps {
   swatches: ReadonlyArray<ColorSwatchOption>;
-  // The field's color, normalized; "" for none.
+  // The field's color; "" for none.
   value: string;
   onPick: (hex: string | null, details: ColorSwatchPickDetails) => void;
   clearOption?: ClearOption | undefined;
@@ -52,7 +50,6 @@ export interface ComponentProps {
   ariaRequired?: boolean | undefined;
   disabled?: boolean | undefined;
   dataTestId?: string | undefined;
-  onFocus?: (() => void) | undefined;
 }
 
 interface RadioItem {
@@ -63,6 +60,7 @@ interface RadioItem {
   title: string;
 }
 
+// One round swatch; a ring shows focus, set off from the swatch by a gap.
 export const COLOR_SWATCH_CLASS: string =
   "relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform duration-100 motion-reduce:transition-none focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[5px] focus-visible:outline-indigo-500";
 
@@ -73,22 +71,38 @@ export const COLOR_SWATCH_DISABLED_CLASS: string =
   "cursor-not-allowed opacity-50";
 
 /*
+ * The two worded choices beside the swatches - "No color" before them and
+ * "Custom color" after them - are pills of one shape, so the row reads as
+ * one set of choices.
+ */
+export const COLOR_PILL_CLASS: string =
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border text-xs font-medium transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+
+export const COLOR_PILL_PICKED_CLASS: string =
+  "border-indigo-500 bg-indigo-50 text-indigo-700";
+
+export const COLOR_PILL_UNPICKED_CLASS: string =
+  "border-gray-300 bg-white text-gray-700";
+
+export const COLOR_PILL_HOVER_CLASS: string = "cursor-pointer hover:bg-gray-50";
+
+// A thin inner edge, so a pale color does not melt into a white card.
+export const SWATCH_EDGE: string = "inset 0 0 0 1px rgb(0 0 0 / 0.12)";
+
+/*
  * The picked swatch's ring: a gap the color of the surface it sits on (so it
  * reads as a ring, in either theme, on a card or in a popover), then a ring
- * of the swatch's own color. A thin inner edge keeps a pale custom color
- * from melting into a white card.
+ * of the swatch's own color.
  */
 export const getSwatchShadow: (hex: string, isPicked: boolean) => string = (
   hex: string,
   isPicked: boolean,
 ): string => {
-  const edge: string = "inset 0 0 0 1px rgb(0 0 0 / 0.12)";
-
   if (!isPicked) {
-    return edge;
+    return SWATCH_EDGE;
   }
 
-  return `${edge}, 0 0 0 2px var(--ou-surface-primary, #ffffff), 0 0 0 4px ${hex}`;
+  return `${SWATCH_EDGE}, 0 0 0 2px var(--ou-surface-primary, #ffffff), 0 0 0 4px ${hex}`;
 };
 
 const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
@@ -131,13 +145,16 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
     props.value,
     props.swatches,
   );
+  const pickedHex: string | null = pickedSwatch
+    ? normalizeColorValue(pickedSwatch.hex)
+    : null;
 
   const checkedIndex: number = items.findIndex((item: RadioItem): boolean => {
     if (item.hex === null) {
       return !props.value;
     }
 
-    return Boolean(pickedSwatch) && item.hex === normalizeColorValue(pickedSwatch!.hex);
+    return item.hex === pickedHex;
   });
 
   // The one Tab stop: the checked color, or the first when none is.
@@ -194,7 +211,7 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
 
     event.preventDefault();
     itemRefs.current[nextIndex]?.focus();
-    pickAt(nextIndex, { viaKeyboard: true, isArrowKey: true });
+    pickAt(nextIndex, { isArrowKey: true });
   };
 
   const renderItem: (item: RadioItem, index: number) => ReactElement = (
@@ -209,42 +226,40 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
       type: "button",
       role: "radio",
       "aria-checked": isChecked,
+      "aria-label": item.label,
       tabIndex: index === tabStopIndex ? 0 : -1,
       disabled: props.disabled,
       title: item.title,
       onKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => {
         onKeyDown(event, index);
       },
-      onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
-        pickAt(index, {
-          // A click a key made (Space, Enter) has no pointer position.
-          viaKeyboard: event.detail === 0,
-          isArrowKey: false,
-        });
+      onClick: () => {
+        pickAt(index, { isArrowKey: false });
       },
       "data-testid":
         item.hex === null ? "color-picker-clear" : "color-picker-swatch",
+    };
+
+    const setRef: (element: HTMLButtonElement | null) => void = (
+      element: HTMLButtonElement | null,
+    ): void => {
+      itemRefs.current[index] = element;
     };
 
     if (item.hex === null) {
       return (
         <button
           key={item.key}
-          ref={(element: HTMLButtonElement | null) => {
-            itemRefs.current[index] = element;
-          }}
+          ref={setRef}
           {...commonProps}
-          aria-label={item.label}
-          className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-medium transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
-            isChecked
-              ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-              : "border-gray-300 bg-white text-gray-600"
+          className={`${COLOR_PILL_CLASS} px-2.5 ${
+            isChecked ? COLOR_PILL_PICKED_CLASS : COLOR_PILL_UNPICKED_CLASS
           } ${
             props.disabled
               ? COLOR_SWATCH_DISABLED_CLASS
               : isChecked
                 ? "cursor-pointer"
-                : "cursor-pointer hover:bg-gray-50"
+                : COLOR_PILL_HOVER_CLASS
           }`}
         >
           {isChecked ? (
@@ -260,14 +275,13 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
     return (
       <button
         key={item.key}
-        ref={(element: HTMLButtonElement | null) => {
-          itemRefs.current[index] = element;
-        }}
+        ref={setRef}
         {...commonProps}
-        aria-label={item.label}
         data-color={item.hex}
         className={`${COLOR_SWATCH_CLASS} ${
-          props.disabled ? COLOR_SWATCH_DISABLED_CLASS : COLOR_SWATCH_ENABLED_CLASS
+          props.disabled
+            ? COLOR_SWATCH_DISABLED_CLASS
+            : COLOR_SWATCH_ENABLED_CLASS
         }`}
         style={{
           backgroundColor: item.hex,
@@ -303,7 +317,6 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
       aria-required={props.ariaRequired ? true : undefined}
       aria-disabled={props.disabled ? true : undefined}
       data-testid={props.dataTestId || "color-picker-swatches"}
-      onFocus={props.onFocus}
       className={
         props.layout === "grid"
           ? "flex flex-col gap-3"

@@ -1,5 +1,5 @@
 import Color from "../../../Types/Color";
-import { DISTINCT_COLORS } from "../../../Utils/DistinctColor";
+import { DISTINCT_COLORS, getColorHue } from "../../../Utils/DistinctColor";
 import { translationKey } from "../../Utils/TranslateTemplate";
 
 /*
@@ -7,10 +7,9 @@ import { translationKey } from "../../Utils/TranslateTemplate";
  *
  * A color field used to open on a saturation square, a hue strip and a box for
  * a hex code - a tool for someone who already knows the code they want. Most
- * people want "a green one", so the field now leads with a row of swatches to
- * click, each with a name a screen reader can say and a colorblind reader can
- * hover, and keeps the fine picker behind "Custom color" for an exact brand
- * color.
+ * people want "a green one", so the field now leads with swatches to click,
+ * each with a name a screen reader can say and a colorblind reader can hover,
+ * and keeps the fine picker behind "Custom color" for an exact brand color.
  *
  * The swatches are Utils/DistinctColor's palette, the colors OneUptime picks
  * for a new record (CreateFormDefaults): no black, white or grey, every one
@@ -45,9 +44,18 @@ export const DISTINCT_COLOR_NAMES: Readonly<Record<string, string>> = {
   "#d946ef": translationKey("Magenta"),
 };
 
+type HueOfFunction = (hex: string) => number;
+
+// A swatch's place round the color wheel; the palette holds no greys.
+const hueOf: HueOfFunction = (hex: string): number => {
+  return getColorHue(hex) ?? 0;
+};
+
 /*
- * In the palette's own order - the order new records are given them - so the
- * colors next to each other in the row are far apart on the color wheel.
+ * Round the color wheel - red, orange, lime, green, teal, blue, indigo,
+ * purple, magenta, pink - the order people scan a row of colors in when they
+ * look for "a green one". DistinctColor keeps its own order, the one new
+ * records are given colors in; this is only the order they are shown in.
  */
 export const COLOR_PICKER_SWATCHES: ReadonlyArray<ColorSwatchOption> =
   DISTINCT_COLORS.map((color: Color): ColorSwatchOption => {
@@ -57,4 +65,6 @@ export const COLOR_PICKER_SWATCHES: ReadonlyArray<ColorSwatchOption> =
       name: DISTINCT_COLOR_NAMES[hex] || hex,
       hex: hex,
     };
+  }).sort((first: ColorSwatchOption, second: ColorSwatchOption): number => {
+    return hueOf(first.hex) - hueOf(second.hex);
   });

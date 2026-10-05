@@ -6,11 +6,13 @@ import {
   ColorSwatchOption,
 } from "../../ColorPicker/ColorPalette";
 import ColorSwatchGroup, {
-  COLOR_SWATCH_CLASS,
+  COLOR_PILL_CLASS,
+  COLOR_PILL_HOVER_CLASS,
+  COLOR_PILL_PICKED_CLASS,
+  COLOR_PILL_UNPICKED_CLASS,
   COLOR_SWATCH_DISABLED_CLASS,
-  COLOR_SWATCH_ENABLED_CLASS,
   ColorSwatchPickDetails,
-  getSwatchShadow,
+  SWATCH_EDGE,
 } from "../../ColorPicker/ColorSwatchGroup";
 import {
   findSwatch,
@@ -50,8 +52,8 @@ import { createPortal } from "react-dom";
  *   - "inline", in a form: the swatches are the field. One click picks a
  *     color; "Custom color" opens the fine picker under them, inside the
  *     form, so nothing floats over the dialog's buttons or out of the dialog
- *     - the popup in the report sat over Create Label's footer and past the
- *     dialog's edge.
+ *     - the old popup sat over Create Label's footer and past the dialog's
+ *     edge.
  *   - "compact", where a row has room for one control (a custom field's
  *     options, a workflow value): a field-like button showing the color and
  *     its name opens the same swatches in a popover. The popover stays inside
@@ -66,15 +68,14 @@ export const COLOR_PICKER_POPUP_WIDTH_PX: number = 232;
 export const COLOR_PICKER_POPUP_MAX_HEIGHT_PX: number = 480;
 
 export const NO_COLOR_LABEL: string = "No color";
+export const CUSTOM_COLOR_LABEL: string = "Custom color";
 
 /*
  * The custom color button, drawn as a color wheel so it reads as "any other
  * color" beside the swatches.
  */
-const COLOR_WHEEL: string =
+export const COLOR_WHEEL: string =
   "conic-gradient(from 0deg, #ef4444, #f59e0b, #eab308, #84cc16, #10b981, #06b6d4, #3b82f6, #6366f1, #a855f7, #d946ef, #ef4444)";
-
-const SWATCH_EDGE: string = "inset 0 0 0 1px rgb(0 0 0 / 0.12)";
 
 export interface ComponentProps {
   onChange: (value: Color | null) => void;
@@ -124,7 +125,6 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
   const panelId: string = `${generatedId}-color-picker-custom`;
   const valueTextId: string = `${generatedId}-color-picker-value`;
   const ownLabelId: string = `${generatedId}-color-picker-label`;
-  const customValueId: string = `${generatedId}-color-picker-custom-value`;
 
   const isControlled: boolean = props.value !== undefined;
   const [ownValue, setOwnValue] = useState<string>((): string => {
@@ -238,9 +238,9 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     props.onChange(hex ? new Color(hex) : null);
   };
 
-  type OpenCustomFunction = (viaKeyboard: boolean) => void;
+  type ToggleCustomFunction = (viaKeyboard: boolean) => void;
 
-  const toggleCustom: OpenCustomFunction = (viaKeyboard: boolean): void => {
+  const toggleCustom: ToggleCustomFunction = (viaKeyboard: boolean): void => {
     if (!isInteractive) {
       return;
     }
@@ -263,24 +263,20 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     details: ColorSwatchPickDetails,
   ) => void;
 
+  /*
+   * A swatch or "No color" picked. In the compact popover a click, Space or
+   * Enter is a choice and puts the popover away; an arrow key is still
+   * choosing. Inline, an open Custom color panel stays open and follows the
+   * swatch - "start from Teal and make it darker" is a reason to pick one.
+   */
   const onSwatchPick: PickFunction = (
     hex: string | null,
     details: ColorSwatchPickDetails,
   ): void => {
     commit(hex);
 
-    if (layout === "compact") {
-      // An arrow is still choosing; a click or Space/Enter has chosen.
-      if (!details.isArrowKey) {
-        closePopup(true);
-      }
-      return;
-    }
-
-    // A ready color picked: the exact-color picker has done its job.
-    if (isCustomOpen && !details.isArrowKey) {
-      setIsCustomOpen(false);
-      setShouldFocusCodeInput(false);
+    if (layout === "compact" && !details.isArrowKey) {
+      closePopup(true);
     }
   };
 
@@ -291,6 +287,12 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
   };
 
   const clearLabel: string = props.clearLabel || NO_COLOR_LABEL;
+  const customLabel: string =
+    translator.translateText(CUSTOM_COLOR_LABEL) || CUSTOM_COLOR_LABEL;
+  // "Custom color, #3e409a": the custom button names the color it holds.
+  const customButtonName: string = isCustom
+    ? translator.translateTemplate("Custom color, {{code}}", { code: value })
+    : customLabel;
 
   const isInsideField: (node: Node | null) => boolean = (
     node: Node | null,
@@ -317,14 +319,20 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     <></>
   );
 
-  const renderCustomMark: (sizeClass: string) => ReactElement = (
+  /*
+   * The dot inside the Custom color button: the color wheel while the field
+   * holds a ready color or none, the custom color itself, ticked, once it
+   * holds one of its own.
+   */
+  const renderCustomDot: (sizeClass: string) => ReactElement = (
     sizeClass: string,
   ): ReactElement => {
     if (isCustom) {
       return (
         <span
           aria-hidden="true"
-          className={`flex items-center justify-center rounded-full ${sizeClass}`}
+          data-testid="color-picker-custom-dot"
+          className={`flex shrink-0 items-center justify-center rounded-full ${sizeClass}`}
           style={{ backgroundColor: value, boxShadow: SWATCH_EDGE }}
         >
           <Icon
@@ -340,16 +348,12 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     return (
       <span
         aria-hidden="true"
-        className={`flex items-center justify-center rounded-full ${sizeClass}`}
-        style={{ backgroundColor: "#ffffff", boxShadow: SWATCH_EDGE }}
-      >
-        <Icon icon={IconProp.Add} className="h-3 w-3 text-gray-700" />
-      </span>
+        data-testid="color-picker-custom-dot"
+        className={`shrink-0 rounded-full ${sizeClass}`}
+        style={{ background: COLOR_WHEEL, boxShadow: SWATCH_EDGE }}
+      ></span>
     );
   };
-
-  const customLabel: string =
-    translator.translateText("Custom color") || "Custom color";
 
   const rootProps: React.HTMLAttributes<HTMLDivElement> & {
     "data-testid": string;
@@ -395,42 +399,29 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
           <button
             ref={customButtonRef}
             type="button"
-            aria-label={customLabel}
+            aria-label={customButtonName}
             title={customLabel}
             aria-expanded={isCustomOpen}
             aria-controls={isCustomOpen ? panelId : undefined}
-            aria-describedby={isCustom ? customValueId : undefined}
             data-testid="color-picker-custom"
             data-picked={isCustom ? "true" : "false"}
             disabled={!isInteractive}
-            className={`${COLOR_SWATCH_CLASS} ${
-              isInteractive
-                ? COLOR_SWATCH_ENABLED_CLASS
-                : COLOR_SWATCH_DISABLED_CLASS
-            }`}
-            style={{
-              background: COLOR_WHEEL,
-              boxShadow: isCustom
-                ? getSwatchShadow(value, true)
-                : getSwatchShadow("#ffffff", false),
-            }}
+            className={`${COLOR_PILL_CLASS} pl-1 pr-2.5 ${
+              isCustom ? COLOR_PILL_PICKED_CLASS : COLOR_PILL_UNPICKED_CLASS
+            } ${isInteractive ? COLOR_PILL_HOVER_CLASS : COLOR_SWATCH_DISABLED_CLASS}`}
             onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+              // A click a key made (Space, Enter) has no pointer position.
               toggleCustom(event.detail === 0);
             }}
           >
-            {renderCustomMark("h-[18px] w-[18px]")}
-          </button>
-          {isCustom ? (
+            {renderCustomDot("h-5 w-5")}
             <span
-              id={customValueId}
-              data-testid="color-picker-custom-value"
-              className="font-mono text-xs text-gray-500"
+              data-testid="color-picker-custom-label"
+              className={isCustom ? "font-mono" : ""}
             >
-              {value}
+              {isCustom ? value : customLabel}
             </span>
-          ) : (
-            <></>
-          )}
+          </button>
         </div>
         {isCustomOpen ? (
           <div ref={panelWrapperRef} className="mt-3 w-full max-w-xs">
@@ -490,7 +481,9 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             }
           }}
           onKeyDown={isInteractive ? onTriggerKeyDown : undefined}
-          className="flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white py-2 pl-3 pr-2 text-left text-sm text-gray-900 focus:outline-none focus-visible:border-indigo-500 focus-visible:ring-1 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
+          className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white py-2 pl-3 pr-2 text-left text-sm text-gray-900 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-500 ${
+            isInteractive ? "cursor-pointer" : COLOR_SWATCH_DISABLED_CLASS
+          }`}
         >
           <span
             aria-hidden="true"
@@ -506,6 +499,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
           ></span>
           <span
             id={valueTextId}
+            data-testid="color-picker-trigger-text"
             className={`min-w-0 flex-1 truncate ${
               value ? (isCustom ? "font-mono" : "") : "text-gray-500"
             }`}
@@ -558,26 +552,21 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 <button
                   ref={customButtonRef}
                   type="button"
+                  aria-label={customButtonName}
                   aria-expanded={isCustomOpen}
                   aria-controls={isCustomOpen ? panelId : undefined}
                   data-testid="color-picker-custom"
                   data-picked={isCustom ? "true" : "false"}
-                  className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
                   onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                     toggleCustom(event.detail === 0);
                   }}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: COLOR_WHEEL }}
-                  >
-                    {renderCustomMark("h-4 w-4")}
-                  </span>
+                  {renderCustomDot("h-5 w-5")}
                   <span className="min-w-0 flex-1">{customLabel}</span>
                   {isCustom ? (
                     <span
-                      data-testid="color-picker-custom-value"
+                      data-testid="color-picker-custom-label"
                       className="font-mono text-xs text-gray-500"
                     >
                       {value}

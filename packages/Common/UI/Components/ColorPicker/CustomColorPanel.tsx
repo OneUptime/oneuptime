@@ -60,6 +60,14 @@ const DEFAULT_HSV: Hsv = colorToHsv(COLOR_CODE_EXAMPLE)!;
 
 const POINTER_RING: string = "0 0 0 2px #ffffff, 0 0 0 3px rgb(0 0 0 / 0.35)";
 
+/*
+ * An outline, not a ring: a ring's offset is painted white, which shows as a
+ * white frame round the square in the dark theme; an outline's gap is the
+ * surface behind it.
+ */
+const SLIDER_FOCUS_CLASS: string =
+  "focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500";
+
 const HUE_GRADIENT: string =
   "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)";
 
@@ -351,7 +359,9 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
         )}
         aria-disabled={isDisabled ? true : undefined}
         data-testid="color-picker-saturation"
-        className="relative h-28 w-full cursor-crosshair touch-none rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        className={`relative h-28 w-full touch-none rounded-md ${SLIDER_FOCUS_CLASS} ${
+          isDisabled ? "cursor-not-allowed opacity-50" : "cursor-crosshair"
+        }`}
         style={{ backgroundColor: `hsl(${hsv.h}, 100%, 50%)` }}
         onMouseDown={squareDrag.onMouseDown}
         onTouchStart={squareDrag.onTouchStart}
@@ -412,7 +422,9 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
         aria-valuetext={`${hueDegrees}°`}
         aria-disabled={isDisabled ? true : undefined}
         data-testid="color-picker-hue"
-        className="relative mt-3 h-3 w-full cursor-pointer touch-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        className={`relative mt-3 h-3 w-full touch-none rounded-full ${SLIDER_FOCUS_CLASS} ${
+          isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+        }`}
         style={{ background: HUE_GRADIENT }}
         onMouseDown={hueDrag.onMouseDown}
         onTouchStart={hueDrag.onTouchStart}
@@ -502,7 +514,7 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
             }}
           />
           <Button
-            title={translator.translateText("Done") || "Done"}
+            title="Done"
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
             dataTestId="color-picker-done"

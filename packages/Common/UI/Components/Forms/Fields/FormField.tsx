@@ -85,11 +85,11 @@ export const TIMEZONE_DESCRIPTION_TEMPLATE: string =
  * Under a color field that says nothing of its own. The column's own
  * description ("Color of this resource in Hex (#32a852 for example)") is
  * written for API readers and is not shown on a form (BasicModelForm): the
- * swatches are the field, and the reader only needs to know they can also
- * choose a color of their own.
+ * swatches are the field, and the reader only needs to know there is more
+ * than the swatches.
  */
 export const COLOR_FIELD_DESCRIPTION: string = translationKey(
-  "Pick a color, or choose your own.",
+  "Pick a color, or choose a custom one.",
 );
 
 export interface ComponentProps<T extends GenericObject> {

@@ -88,6 +88,33 @@ export interface AnchoredPopupPlacementResult
 }
 
 /*
+ * Whether the anchor has been scrolled out of the boundary it sits in - the
+ * dialog body moved on and took the field out of sight. A popup that stays
+ * inside its surroundings closes then, as a browser's own select menu does,
+ * instead of floating over the dialog with nothing it belongs to. A boundary
+ * with no size (not laid out) never hides anything.
+ */
+export const isAnchorOutsideBoundary: (data: {
+  anchor: AnchoredPopupBox;
+  boundary: AnchoredPopupBox;
+}) => boolean = (data: {
+  anchor: AnchoredPopupBox;
+  boundary: AnchoredPopupBox;
+}): boolean => {
+  if (
+    data.boundary.right <= data.boundary.left ||
+    data.boundary.bottom <= data.boundary.top
+  ) {
+    return false;
+  }
+
+  return (
+    data.anchor.bottom < data.boundary.top ||
+    data.anchor.top > data.boundary.bottom
+  );
+};
+
+/*
  * Where a popup that stays inside its surroundings goes, worked out from
  * boxes alone so every rule can be tested (Tests/UI/Components/Forms/
  * AnchoredFieldPopupBoundary.test.ts).
@@ -101,7 +128,8 @@ export interface AnchoredPopupPlacementResult
  *     foot of the Create Label dialog, with the window's room below it, opened
  *     downwards across the dialog's buttons and out of the dialog.
  *   - A boundary with less than a useful height on either side (a short
- *     dialog) would leave a sliver, so the window is used instead.
+ *     dialog) would leave a sliver, so the window is used instead, and so is
+ *     a boundary with no size at all (one not laid out).
  *   - Across, it starts at the anchor's left edge and is moved left or
  *     narrowed until it fits.
  */
@@ -160,7 +188,11 @@ export const placeAnchoredPopupInBounds: (data: {
   let bounds: AnchoredPopupBox = viewportBounds;
   let isInsideBoundary: boolean = false;
 
-  if (data.boundary) {
+  if (
+    data.boundary &&
+    data.boundary.right > data.boundary.left &&
+    data.boundary.bottom > data.boundary.top
+  ) {
     const inside: AnchoredPopupBox = {
       top: Math.max(viewportBounds.top, data.boundary.top + POPUP_GAP_PX),
       left: Math.max(viewportBounds.left, data.boundary.left + POPUP_GAP_PX),
@@ -460,15 +492,31 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       const boundaryElement: Element | null = anchorRef.current.closest(
         `[${ANCHORED_POPUP_BOUNDARY_ATTRIBUTE}]`,
       );
-      // All of the content, even while a maxHeight is cutting it short.
-      const contentHeight: number = popupRef.current?.scrollHeight || 0;
+      const boundaryRect: DOMRect | null = boundaryElement
+        ? boundaryElement.getBoundingClientRect()
+        : null;
+
+      if (
+        boundaryRect &&
+        isAnchorOutsideBoundary({ anchor: anchorRect, boundary: boundaryRect })
+      ) {
+        closePopup(false);
+        return;
+      }
+
+      const popup: HTMLDivElement | null = popupRef.current;
+      /*
+       * All of the content, even while a maxHeight is cutting it short, and
+       * the popup's own border round it.
+       */
+      const contentHeight: number = popup
+        ? popup.scrollHeight + (popup.offsetHeight - popup.clientHeight)
+        : 0;
       const placed: AnchoredPopupPlacementResult = placeAnchoredPopupInBounds({
         anchor: anchorRect,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
-        boundary: boundaryElement
-          ? boundaryElement.getBoundingClientRect()
-          : null,
+        boundary: boundaryRect,
         popupWidth,
         popupHeight: contentHeight > 0 ? contentHeight : popupMaxHeight,
         popupMaxHeight,
@@ -525,7 +573,13 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       top: shouldOpenAbove ? undefined : anchorRect.bottom + POPUP_GAP_PX,
       width,
     });
-  }, [popupWidth, popupMaxHeight, preferredPlacement, stayInsideBoundary]);
+  }, [
+    popupWidth,
+    popupMaxHeight,
+    preferredPlacement,
+    stayInsideBoundary,
+    closePopup,
+  ]);
 
   useLayoutEffect(() => {
     if (!isPopupOpen) {
