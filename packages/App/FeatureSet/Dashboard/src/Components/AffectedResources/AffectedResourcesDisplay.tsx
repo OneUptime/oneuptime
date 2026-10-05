@@ -76,6 +76,11 @@ export interface ComponentProps {
   hideServiceLevelObjectives?: boolean | undefined;
   emptyMessage?: string | undefined;
   /*
+   * The hint under emptyMessage. Left out, it asks for monitors, hosts,
+   * clusters or services to be attached, as an incident's card should.
+   */
+  emptyDescription?: string | undefined;
+  /*
    * How many category sections sit side by side. Left out, the grid follows
    * the viewport: one column on phones, two from md up. That is right for a
    * full-width card but not for one in a narrow column (an overview page's
@@ -382,9 +387,11 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
           )}
         </p>
         <p className="mt-1 max-w-xs text-xs leading-5 text-gray-500">
-          {translator.translateText(
-            "Attach monitors, hosts, clusters, or services to track which parts of your infrastructure are impacted.",
-          )}
+          {props.emptyDescription
+            ? translator.translateText(props.emptyDescription)
+            : translator.translateText(
+                "Attach monitors, hosts, clusters, or services to track which parts of your infrastructure are impacted.",
+              )}
           {showsSlos
             ? ` ${translator.translateText(
                 "SLOs are linked automatically when their burn rate rules fire.",

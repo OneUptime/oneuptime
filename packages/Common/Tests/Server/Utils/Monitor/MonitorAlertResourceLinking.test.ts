@@ -211,6 +211,11 @@ describe("Alerts link the resources their series identifies", () => {
         return resourceContext;
       });
 
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
+
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
       .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] });

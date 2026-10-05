@@ -5,9 +5,11 @@ import logger from "../../../Server/Utils/Logger";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
- * OnCallDutyPolicyScheduleLayerUserService.onBeforeUpdate re-sequences the
- * `order` of the other rows in a schedule layer when a user is dragged to a new
- * position. Audit finding L3: the "moving down" branch (newOrder > currentOrder)
+ * OnCallDutyPolicyScheduleLayerUserService re-sequences the `order` of the
+ * other rows in a schedule layer when a user is dragged to a new position:
+ * onBeforeUpdate reads where the user is, and onUpdateSuccess - once the update
+ * has moved it, and only if it did - shifts the rows it passed (through
+ * ContiguousOrder). Audit finding L3: the "moving down" branch (newOrder > currentOrder)
  * decremented EVERY row with `order <= newOrder`, including rows ABOVE the moved
  * user. Dragging a user downward therefore drove the top row's order to 0 (and
  * negative after repeated down-drags) and opened a gap at 1, breaking the
@@ -18,11 +20,14 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  * rows strictly between the old and new position shift — mirroring the
  * double-bounded "moving up" branch (`order >= newOrder && order < currentOrder`).
  *
- * These tests stub the three persistence helpers onBeforeUpdate calls
+ * These tests stub the three persistence helpers the hooks call
  * (findOneBy -> moved row's current order + layer id; findBy -> every row in the
  * layer; updateOneBy -> the per-row shift) and CAPTURE each updateOneBy so we can
  * assert exactly which rows moved and to what order. No Postgres involved.
  */
+
+// The project every row in these scenarios belongs to.
+const PROJECT_ID: ObjectID = new ObjectID("project1");
 
 const service: any = OnCallDutyPolicyScheduleLayerUserService as any;
 
@@ -43,9 +48,32 @@ interface CapturedShift {
 function row(id: ObjectID, order: number): Model {
   return {
     _id: id,
+    id: id,
     order,
     onCallDutyPolicyScheduleLayerId: LAYER_ID,
+    projectId: PROJECT_ID,
   } as unknown as Model;
+}
+
+/*
+ * Move a user the way DatabaseService does: onBeforeUpdate, then (once the
+ * update has written the row) onUpdateSuccess with the ids it wrote. Returns
+ * the shifts captured before the update, which must be none.
+ */
+async function moveUser(
+  captured: Array<CapturedShift>,
+  movedId: ObjectID,
+  newOrder: number,
+  writtenIds: Array<ObjectID> = [movedId],
+): Promise<Array<CapturedShift>> {
+  const onUpdate: any = await service.onBeforeUpdate(
+    updateBy(movedId, newOrder),
+  );
+  const shiftedBeforeTheUpdate: Array<CapturedShift> = [...captured];
+
+  await service.onUpdateSuccess(onUpdate, writtenIds);
+
+  return shiftedBeforeTheUpdate;
 }
 
 // Build the UpdateBy passed to onBeforeUpdate for moving `movedId` to `newOrder`.
@@ -92,7 +120,7 @@ function stubService(
   return captured;
 }
 
-describe("OnCallDutyPolicyScheduleLayerUserService.onBeforeUpdate reorder", () => {
+describe("OnCallDutyPolicyScheduleLayerUserService reorder on update", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -109,7 +137,8 @@ describe("OnCallDutyPolicyScheduleLayerUserService.onBeforeUpdate reorder", () =
       row(USER_C, 3),
     ]);
 
-    await service.onBeforeUpdate(updateBy(USER_B, 3));
+    // Nothing moves before the update has moved B.
+    expect(await moveUser(captured, USER_B, 3)).toEqual([]);
 
     // Exactly one row shifted, and it was C going from 3 down to 2.
     expect(captured).toHaveLength(1);
@@ -149,7 +178,7 @@ describe("OnCallDutyPolicyScheduleLayerUserService.onBeforeUpdate reorder", () =
       row(USER_C, 3),
     ]);
 
-    await service.onBeforeUpdate(updateBy(USER_C, 1));
+    expect(await moveUser(captured, USER_C, 1)).toEqual([]);
 
     expect(captured).toHaveLength(2);
 
@@ -185,7 +214,7 @@ describe("OnCallDutyPolicyScheduleLayerUserService.onBeforeUpdate reorder", () =
       row(USER_C, 3),
     ]);
 
-    await service.onBeforeUpdate(updateBy(USER_A, 3));
+    expect(await moveUser(captured, USER_A, 3)).toEqual([]);
 
     expect(captured).toHaveLength(2);
 
@@ -219,11 +248,64 @@ describe("OnCallDutyPolicyScheduleLayerUserService.onBeforeUpdate reorder", () =
       row(USER_C, 3),
     ]);
 
-    await service.onBeforeUpdate(updateBy(USER_B, 3));
+    await moveUser(captured, USER_B, 3);
 
     for (const shift of captured) {
       expect(shift.order).toBeGreaterThan(0);
     }
+  });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * 5. An update that did not write the moved row (refused, or narrowed to
+   *    nothing) moves no other row either.
+   * -----------------------------------------------------------------------
+   */
+  test("no row shifts when the update did not write the moved user", async () => {
+    const captured: Array<CapturedShift> = stubService(row(USER_B, 2), [
+      row(USER_A, 1),
+      row(USER_B, 2),
+      row(USER_C, 3),
+    ]);
+
+    await moveUser(captured, USER_B, 3, []);
+
+    expect(captured).toEqual([]);
+  });
+
+  test("a root update of the order leaves the other rows to the caller", async () => {
+    const captured: Array<CapturedShift> = stubService(row(USER_B, 2), [
+      row(USER_A, 1),
+      row(USER_B, 2),
+      row(USER_C, 3),
+    ]);
+
+    const onUpdate: any = await service.onBeforeUpdate({
+      ...updateBy(USER_B, 3),
+      props: { isRoot: true },
+    });
+    await service.onUpdateSuccess(onUpdate, [USER_B]);
+
+    expect(captured).toEqual([]);
+  });
+
+  test("the rows that shift are looked up in the moved user's layer and project", async () => {
+    const captured: Array<CapturedShift> = stubService(row(USER_B, 2), [
+      row(USER_A, 1),
+      row(USER_B, 2),
+      row(USER_C, 3),
+    ]);
+
+    await moveUser(captured, USER_B, 3);
+
+    expect(service.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          onCallDutyPolicyScheduleLayerId: LAYER_ID,
+          projectId: PROJECT_ID,
+        }),
+      }),
+    );
   });
 });
 

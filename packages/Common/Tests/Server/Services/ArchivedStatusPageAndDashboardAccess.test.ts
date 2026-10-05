@@ -314,9 +314,7 @@ describe("an archived status page takes no new subscribers", () => {
       isSubscriptionUnpaid: false,
     } as CurrentPlan);
     // Not subscribed yet, and the page is not one that notifies.
-    jest
-      .spyOn(StatusPageSubscriberService, "findOneBy")
-      .mockResolvedValue(null);
+    jest.spyOn(StatusPageSubscriberService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
       .mockResolvedValue([]);

@@ -3152,14 +3152,15 @@ export class Service extends DatabaseService<Model> {
          * remediation planner always has the posted root cause analysis as
          * input instead of racing it. Without an investigation (opt-out,
          * gates, budget) remediation fires here immediately — it must
-         * never silently depend on the AI lane being enabled.
+         * never silently depend on the AI lane being enabled. Deferred, the
+         * Remediation card says it waits for the analysis
+         * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
         try {
-          if (!aiInvestigationEnqueued) {
-            await AutoRemediationRuleEngineService.applyRulesToIncident(
-              createdItem,
-            );
-          }
+          await AutoRemediationRuleEngineService.onIncidentCreated({
+            incident: createdItem,
+            isInvestigationQueued: aiInvestigationEnqueued,
+          });
         } catch (error) {
           logger.error(
             `Apply auto-remediation rules failed in IncidentService.onCreateSuccess: ${error}`,
