@@ -250,7 +250,7 @@ describe("label rule engines", () => {
       return [file];
     }),
   )(
-    "%s attaches nothing when the labels cannot be checked",
+    "%s attaches nothing, and says it failed, when the labels cannot be checked",
     async (file: string) => {
       const kind: string = file.replace(/LabelRuleEngineService\.ts$/, "");
       const resourceType: ModelType = modelTypeOf(kind);
@@ -277,12 +277,15 @@ describe("label rule engines", () => {
         }
       ).default;
 
-      await engine.applyRulesToExistingResource({
-        resource: resourceOf(resourceType),
-        rules: [rule],
-        allowOwnerNotification: false,
-      });
+      const result: RuleApplicationResult =
+        await engine.applyRulesToExistingResource({
+          resource: resourceOf(resourceType),
+          rules: [rule],
+          allowOwnerNotification: false,
+        });
 
+      // A failed run, not "nothing to add" or "already applied".
+      expect({ file, failed: result.failed }).toEqual({ file, failed: true });
       expect({ file, attached }).toEqual({ file, attached: [] });
     },
   );

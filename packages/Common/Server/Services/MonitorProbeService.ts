@@ -3,7 +3,9 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import { EntityManager } from "./DatabaseService";
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorProbe from "../../Models/DatabaseModels/MonitorProbe";
@@ -364,12 +366,17 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
   }
 
   /*
-   * The probe is checked below with ProbeService.isProbeAttachableToProject:
-   * the project's own probes and the global ones, in one answer for an id
-   * from another project and one that matches nothing.
+   * On a create the probe is checked below with
+   * ProbeService.isProbeAttachableToProject: the project's own probes and the
+   * global ones, in one answer for an id from another project and one that
+   * matches nothing. Nobody can change a monitor probe's probe (the column
+   * takes no update); an update naming one gets the generic check, which
+   * counts the global probes as the project's too.
    */
-  protected override getRelationsCheckedByService(): Array<string> {
-    return ["probe"];
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return write?.kind === "update" ? [] : ["probe"];
   }
 
   protected override async onBeforeCreate(

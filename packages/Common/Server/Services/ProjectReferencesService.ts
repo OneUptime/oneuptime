@@ -2,6 +2,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferenceCheck, {
   JsonReferenceColumn,
@@ -31,7 +32,24 @@ import DatabaseService from "./DatabaseService";
  * answer as an id that matches nothing. ProjectScopedReferencesEverywhere and
  * OwnerAndRuleServicesCheckReferences (Common Tests) hold every service to
  * this.
+ *
+ * The check only ever answers someone who may write the table in the
+ * project: DatabaseService refuses everyone else before any hook runs
+ * (checkCallerBeforeHooks), so its answer is never a way to learn which ids
+ * a project has.
  */
+
+/*
+ * The write a service is asked about in getRelationsCheckedByService and
+ * getListsCheckedByService: a service may check a reference itself on one
+ * kind of write only (a create), or for a person's write only, and leave the
+ * others to the generic check.
+ */
+export interface ProjectReferenceWrite {
+  kind: "create" | "update";
+  props: DatabaseCommonInteractionProps;
+}
+
 export default class ProjectReferencesService<
   TBaseModel extends BaseModel,
 > extends DatabaseService<TBaseModel> {
@@ -40,9 +58,12 @@ export default class ProjectReferencesService<
    * that is pinned to the project and answers an id from another project
    * exactly like one that matches nothing (a queue an owner row names, say).
    * They are left out of the generic check so the service's own words stay
-   * the answer.
+   * the answer - on the writes the service checks them on, which it can tell
+   * from `write`. Asked with no write, it names every relation it may check.
    */
-  protected getRelationsCheckedByService(): Array<string> {
+  protected getRelationsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
     return [];
   }
 
@@ -51,9 +72,11 @@ export default class ProjectReferencesService<
    * monitors and labels, which IncidentService checks with
    * ProjectScopedReferenceValidator and its own words. Rules and owner rows
    * never leave a list out: OwnerAndRuleServicesCheckReferences holds them to
-   * that.
+   * that. `write` as for getRelationsCheckedByService.
    */
-  protected getListsCheckedByService(): Array<string> {
+  protected getListsCheckedByService(
+    _write?: ProjectReferenceWrite,
+  ): Array<string> {
     return [];
   }
 
@@ -82,17 +105,51 @@ export default class ProjectReferencesService<
     return true;
   }
 
+  /*
+   * Whether a person's create must pass their whole create permission check
+   * - its columns as well as the table - before this check reads anything.
+   * DatabaseService refuses anyone who may not create in the table at all
+   * before any hook runs; a service whose own refusals describe the records
+   * it looks up (a database, a queue, a team's rules), or whose rows anyone
+   * signed in may create for themselves, asks for the rest of the check
+   * first as well, so no answer here comes before it. Asked only when the
+   * write names something to look up; root and master admin writes are not
+   * asked, as DatabaseService does not ask them.
+   */
+  protected checksCreatePermissionFirst(): boolean {
+    return false;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TBaseModel>,
   ): Promise<OnCreate<TBaseModel>> {
     if (this.isCheckedWrite(createBy.props)) {
+      const write: ProjectReferenceWrite = {
+        kind: "create",
+        props: createBy.props,
+      };
+
+      const asksPermissionFirst: boolean =
+        this.checksCreatePermissionFirst() &&
+        !createBy.props.isRoot &&
+        !createBy.props.isMasterAdmin;
+
       await ProjectReferenceCheck.validateCreate({
         service: this,
         createBy: createBy,
-        relationsCheckedByService: this.getRelationsCheckedByService(),
-        listsCheckedByService: this.getListsCheckedByService(),
+        relationsCheckedByService: this.getRelationsCheckedByService(write),
+        listsCheckedByService: this.getListsCheckedByService(write),
         jsonReferenceColumns: this.getJsonReferenceColumns(),
+        beforeReading: asksPermissionFirst
+          ? (): void => {
+              ModelPermission.checkCreatePermissions(
+                this.modelType,
+                createBy.data,
+                createBy.props,
+              );
+            }
+          : undefined,
       });
     }
 
@@ -104,11 +161,16 @@ export default class ProjectReferencesService<
     updateBy: UpdateBy<TBaseModel>,
   ): Promise<OnUpdate<TBaseModel>> {
     if (this.isCheckedWrite(updateBy.props)) {
+      const write: ProjectReferenceWrite = {
+        kind: "update",
+        props: updateBy.props,
+      };
+
       await ProjectReferenceCheck.validateUpdate({
         service: this,
         updateBy: updateBy,
-        relationsCheckedByService: this.getRelationsCheckedByService(),
-        listsCheckedByService: this.getListsCheckedByService(),
+        relationsCheckedByService: this.getRelationsCheckedByService(write),
+        listsCheckedByService: this.getListsCheckedByService(write),
         jsonReferenceColumns: this.getJsonReferenceColumns(),
       });
     }

@@ -352,6 +352,36 @@ describe("ProjectReferenceCheck.validateCreate", () => {
     }
   });
 
+  test("a root write that names its project by the relation is checked against that project", async () => {
+    // `project: { _id }` instead of projectId: TypeORM saves it to the same column.
+    const ofProject: (projectId: string) => HostOwnerRule = (
+      projectId: string,
+    ): HostOwnerRule => {
+      return ownerRule({
+        project: { _id: projectId },
+        ownerTeams: [stub(Team, OWN_TEAM)],
+      });
+    };
+
+    await expect(
+      ProjectReferenceCheck.validateCreate({
+        service: HostOwnerRuleService,
+        createBy: createOf(ofProject(PROJECT_ID.toString()), { isRoot: true }),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(
+      await refusalOf(
+        ProjectReferenceCheck.validateCreate({
+          service: HostOwnerRuleService,
+          createBy: createOf(ofProject(OTHER_PROJECT_ID.toString()), {
+            isRoot: true,
+          }),
+        }),
+      ),
+    ).toContain(`"${OWN_TEAM}"`);
+  });
+
   test("a write with no project to compare against, or no references, asks nothing", async () => {
     await ProjectReferenceCheck.validateCreate({
       service: HostOwnerRuleService,

@@ -7,7 +7,9 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
@@ -22,7 +24,6 @@ import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivac
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthorization";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
-import ProjectReferenceCheck from "../Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -397,14 +398,18 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The incident and the alert are checked by this service's own create
-   * hook: read as the caller, so a private one they cannot open, one of
+   * On a create, the incident and the alert are checked by this service's
+   * own hook: read as the caller, so a private one they cannot open, one of
    * another project and one that does not exist all get the same answer,
    * and pinned to the project for every write. A generic check first would
-   * answer the last two in other words than the first.
+   * answer the last two in other words than the first. Nobody can change a
+   * link's ends (their columns take no update), but a workflow writes as
+   * root: an update naming them gets the generic check.
    */
-  protected override getRelationsCheckedByService(): Array<string> {
-    return ["incident", "alert"];
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    return write?.kind === "update" ? [] : ["incident", "alert"];
   }
 
   /*
@@ -494,16 +499,6 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
-
-    /*
-     * Nobody can change a link's ends (their columns take no update), but a
-     * workflow writes as root: an incident or alert it names is held to the
-     * project like any other reference an update adds.
-     */
-    await ProjectReferenceCheck.validateUpdate({
-      service: this,
-      updateBy: updateBy,
-    });
 
     updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
     return { updateBy, carryForward: null };

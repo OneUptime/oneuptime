@@ -297,21 +297,30 @@ class NetworkDeviceLabelRuleEngineServiceClass
       );
     }
 
+    const namedLabelIds: Array<string> = (rule.labelsToAdd || [])
+      .map((label: Label) => {
+        return label.id?.toString() || "";
+      })
+      .filter((id: string) => {
+        return id !== "";
+      });
+
+    if (namedLabelIds.length === 0) {
+      throw new BadDataException(
+        "This label rule has no labels to add, so running it would do nothing.",
+      );
+    }
+
     /*
      * Only the project's own labels: a rule saved before its lists were
      * checked can still name another project's label, and the run attaches
-     * as root. A rule left with none says so, as one with no labels does.
+     * as root. A rule left with none says so; a read that fails is reported
+     * as the failure it is.
      */
     const labelIdsToAdd: Array<string> = await RuleRecordScope.keepIdsInProject(
       {
         projectId: data.projectId,
-        ids: (rule.labelsToAdd || [])
-          .map((label: Label) => {
-            return label.id?.toString() || "";
-          })
-          .filter((id: string) => {
-            return id !== "";
-          }),
+        ids: namedLabelIds,
         modelType: Label,
         description: `labels of network device label rule ${data.ruleId.toString()}`,
         logAttributes: {
@@ -322,7 +331,7 @@ class NetworkDeviceLabelRuleEngineServiceClass
 
     if (labelIdsToAdd.length === 0) {
       throw new BadDataException(
-        "This label rule has no labels to add, so running it would do nothing.",
+        "None of this label rule's labels are in this project, so running it would do nothing. Edit the rule and pick its labels again.",
       );
     }
 

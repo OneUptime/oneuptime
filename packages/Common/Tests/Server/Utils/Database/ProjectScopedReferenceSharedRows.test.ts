@@ -40,6 +40,8 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
 const OWN_PROBE: string = "9b0be000-0000-4000-8000-000000000001";
 const GLOBAL_PROBE: string = "9b0be000-0000-4000-8000-0000000000aa";
 const FOREIGN_PROBE: string = "9b0be000-0000-4000-8000-0000000000ff";
+// Flagged global, but it belongs to a project: it stays that project's.
+const OWNED_FLAGGED_PROBE: string = "9b0be000-0000-4000-8000-0000000000bb";
 const MISSING_PROBE: string = "9b0be000-0000-4000-8000-0000000000dd";
 
 interface ProbeRow {
@@ -52,7 +54,21 @@ const PROBES: Array<ProbeRow> = [
   { id: OWN_PROBE, projectId: PROJECT_ID, isGlobalProbe: false },
   { id: GLOBAL_PROBE, projectId: null, isGlobalProbe: true },
   { id: FOREIGN_PROBE, projectId: OTHER_PROJECT_ID, isGlobalProbe: false },
+  { id: OWNED_FLAGGED_PROBE, projectId: OTHER_PROJECT_ID, isGlobalProbe: true },
 ];
+
+// QueryHelper.isNull (a Raw "IS NULL"), as the shared read asks for "no project".
+function isNullOperator(value: unknown): boolean {
+  if (!(value instanceof FindOperator)) {
+    return false;
+  }
+
+  const getSql: ((alias: string) => string) | undefined = (
+    value as unknown as { getSql?: (alias: string) => string }
+  ).getSql;
+
+  return Boolean(getSql) && getSql!("column").includes("IS NULL");
+}
 
 type FindByInput = {
   query: Record<string, unknown>;
@@ -94,7 +110,10 @@ beforeEach(() => {
       }
 
       if (input.query["isGlobalProbe"] === true) {
-        return row.isGlobalProbe;
+        return (
+          row.isGlobalProbe &&
+          (!isNullOperator(input.query["projectId"]) || !row.projectId)
+        );
       }
 
       if (input.query["projectId"]) {
@@ -160,20 +179,39 @@ describe("rows every project shares", () => {
     ).toBeNull();
   });
 
-  test("are looked up by id and the shared flag, selecting only the id", async () => {
+  test("are looked up by id, the shared flag and no project, selecting only the id", async () => {
     const found: Set<string> =
       await ProjectScopedReferenceValidator.findSharedIds({
         service: ProjectScopedReferenceValidator.getLookupService(
           Probe,
         ) as unknown as DatabaseService<DatabaseBaseModel>,
-        ids: [GLOBAL_PROBE, FOREIGN_PROBE],
+        ids: [GLOBAL_PROBE, FOREIGN_PROBE, OWNED_FLAGGED_PROBE],
       });
 
     expect(Array.from(found)).toEqual([GLOBAL_PROBE]);
     expect(probeReads).toHaveLength(1);
     expect(probeReads[0]!.query["isGlobalProbe"]).toBe(true);
-    expect(probeReads[0]!.query["projectId"]).toBeUndefined();
+    expect(isNullOperator(probeReads[0]!.query["projectId"])).toBe(true);
     expect(probeReads[0]!.select).toEqual({ _id: true });
+  });
+
+  test("a flagged row that belongs to a project stays that project's", async () => {
+    const refusal: string = await refusalOf(
+      ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: PROJECT_ID,
+        subject: "monitor test",
+        references: [probeReference(OWNED_FLAGGED_PROBE)],
+      }),
+    );
+
+    expect(refusal).toContain(`Probe "${OWNED_FLAGGED_PROBE}"`);
+    expect(
+      await ProjectScopedReferenceValidator.keepIdsInProject({
+        modelType: Probe,
+        projectId: PROJECT_ID,
+        ids: [OWNED_FLAGGED_PROBE, GLOBAL_PROBE],
+      }),
+    ).toEqual([GLOBAL_PROBE]);
   });
 
   test("are not looked up for a model without them", async () => {

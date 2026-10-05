@@ -87,8 +87,10 @@ export default class RuleRecordScope {
    * keepRecordsInProject for engines that hold plain ids - a label rule's
    * labels, gathered from every rule that matched and from the resources the
    * rules inherit from. The ids that name the project's records, in the
-   * order given; the others are logged by id and left out. A failed read
-   * leaves them all out and is logged; it never throws.
+   * order given; the others are logged by id and left out. A failed read is
+   * thrown, not taken for "nothing to add": the engine reports it like any
+   * other failure of the run (a rule run says it failed; a resource's create
+   * logs it), rather than as a rule with no labels or one already applied.
    */
   public static async keepIdsInProject<TModel extends DatabaseBaseModel>(data: {
     projectId: ObjectID;
@@ -106,24 +108,13 @@ export default class RuleRecordScope {
       return [];
     }
 
-    let kept: Set<string>;
-
-    try {
-      kept = new Set<string>(
-        await ProjectScopedReferenceValidator.keepIdsInProject({
-          modelType: data.modelType,
-          projectId: data.projectId,
-          ids: ids,
-        }),
-      );
-    } catch (error) {
-      logger.error(
-        `Could not check the ${data.description}, so none were added: ${error}`,
-        data.logAttributes,
-      );
-
-      return [];
-    }
+    const kept: Set<string> = new Set<string>(
+      await ProjectScopedReferenceValidator.keepIdsInProject({
+        modelType: data.modelType,
+        projectId: data.projectId,
+        ids: ids,
+      }),
+    );
 
     const dropped: Array<string> = ids.filter((id: string): boolean => {
       return !kept.has(id);

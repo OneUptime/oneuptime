@@ -24,6 +24,7 @@ import ProjectScopedReferenceValidator, {
   ProjectScopedReference,
   resolveReferenceId,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertService from "./AlertService";
@@ -222,6 +223,12 @@ const normalizeId: NormalizeIdFunction = (id: string): string => {
   return id.trim().toLowerCase();
 };
 
+// The two severities a rule may name, as readSeverityIds reads them.
+interface SeverityIds {
+  alertSeverityId: ObjectID | undefined;
+  incidentSeverityId: ObjectID | undefined;
+}
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -395,8 +402,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     await this.validateSeverityReferences({
       projectId: projectId,
-      alertSeverityId: createBy.data.alertSeverityId,
-      incidentSeverityId: createBy.data.incidentSeverityId,
+      ...this.readSeverityIds(createBy.data as unknown as Dictionary<unknown>),
     });
 
     await this.validateRoutingReferences({
@@ -1346,6 +1352,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The severities a payload names. Each arrives as its id column or as the
+   * relation - the dashboard posts the relation, and TypeORM writes either to
+   * the same column - so both are read, and two that disagree are refused
+   * rather than one of them checked and the other saved.
+   */
+  private readSeverityIds(data: Dictionary<unknown>): SeverityIds {
+    return {
+      alertSeverityId:
+        RelationIdUtil.readConsistent(
+          data,
+          ["alertSeverityId", "alertSeverity"],
+          "alert severity",
+        ) || undefined,
+      incidentSeverityId:
+        RelationIdUtil.readConsistent(
+          data,
+          ["incidentSeverityId", "incidentSeverity"],
+          "incident severity",
+        ) || undefined,
+    };
+  }
+
+  /*
    * Both severity columns are plain foreign keys with no project scoping of
    * their own, so the public CRUD API will happily persist a severity that
    * belongs to a different project. Nothing notices until the worker fires:
@@ -1439,10 +1468,12 @@ export class Service extends ProjectReferencesService<Model> {
   private async validateSeverityReferencesOnUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const alertSeverityId: ObjectID | undefined = updateBy.data
-      .alertSeverityId as ObjectID | undefined;
-    const incidentSeverityId: ObjectID | undefined = updateBy.data
-      .incidentSeverityId as ObjectID | undefined;
+    const severityIds: SeverityIds = this.readSeverityIds(
+      (updateBy.data || {}) as unknown as Dictionary<unknown>,
+    );
+    const alertSeverityId: ObjectID | undefined = severityIds.alertSeverityId;
+    const incidentSeverityId: ObjectID | undefined =
+      severityIds.incidentSeverityId;
 
     if (!alertSeverityId && !incidentSeverityId) {
       return;

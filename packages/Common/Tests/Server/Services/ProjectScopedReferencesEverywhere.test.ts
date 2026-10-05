@@ -1,8 +1,14 @@
 import fs from "fs";
 import path from "path";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import DatabaseService from "../../../Server/Services/DatabaseService";
-import ProjectReferencesService from "../../../Server/Services/ProjectReferencesService";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "../../../Server/Services/ProjectReferencesService";
 import ProjectReferenceCheck, {
   ProjectReferenceColumn,
 } from "../../../Server/Utils/Database/ProjectReferenceCheck";
@@ -228,6 +234,42 @@ const SERVER_PROPS: DatabaseCommonInteractionProps = {
   isRoot: true,
 };
 
+// Someone signed in who holds no permission in the project.
+const STRANGER_PROPS: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userId: new ObjectID("06e40000-0000-4000-8000-0000000000ee"),
+  userGlobalAccessPermission: {
+    projectIds: [],
+    globalPermissions: [Permission.Public, Permission.User],
+    _type: "UserGlobalAccessPermission",
+  },
+  userTenantAccessPermission: {},
+};
+
+/*
+ * Services whose own refusals describe the records they look up (a
+ * database, a queue, a team's rules): they ask for the caller's whole create
+ * permission before the project check reads anything
+ * (checksCreatePermissionFirst).
+ */
+const SERVICES_CHECKING_CREATE_PERMISSION_FIRST: Array<string> = [
+  "DatabaseServerFeedService.ts",
+  "DatabaseServerService.ts",
+  "MessageQueueService.ts",
+  "TeamComplianceSettingService.ts",
+  // Anyone signed in may create their own row: it must be theirs first.
+  "ProjectUserProfileService.ts",
+];
+
+/*
+ * Services whose own hook answers a person before the permission check does,
+ * by design, with the reason.
+ */
+const SERVICES_ANSWERING_BEFORE_THE_PERMISSION_CHECK: Record<string, string> = {
+  "UserNotificationRuleService.ts":
+    "anyone signed in may create their own rule; the rule's owner must be a member of the project before anything else is decided (R1, UserNotificationRuleAdminGuards.test.ts)",
+};
+
 type ModelType = { new (): DatabaseBaseModel };
 
 interface ModelCase {
@@ -434,17 +476,22 @@ const CHECKED_CASES: Array<ServiceCase> = SERVICE_CASES.filter(
   },
 );
 
-type ListFunction = () => Array<string>;
+type ListFunction = (write?: ProjectReferenceWrite) => Array<string>;
 
+/*
+ * What a service checks itself on `write`; with no write, everything it may
+ * check itself on some write.
+ */
 function declared(
   service: DatabaseService<DatabaseBaseModel>,
   method: "getRelationsCheckedByService" | "getListsCheckedByService",
+  write?: ProjectReferenceWrite,
 ): Array<string> {
   const declaration: ListFunction | undefined = (
     service as unknown as Record<string, ListFunction | undefined>
   )[method];
 
-  return declaration ? declaration.call(service) : [];
+  return declaration ? declaration.call(service, write) : [];
 }
 
 function checksServerWrites(
@@ -457,15 +504,31 @@ function checksServerWrites(
   return declaration ? declaration.call(service) : true;
 }
 
-// The columns the generic check covers for this service.
+/*
+ * The columns the generic check covers for this service on `write`; with no
+ * write, those it covers on every write.
+ */
 function genericallyCheckedColumns(
   service: DatabaseService<DatabaseBaseModel>,
+  write?: ProjectReferenceWrite,
 ): Array<ProjectReferenceColumn> {
   return ProjectReferenceCheck.getCheckedColumns(
     service.getModel(),
-    declared(service, "getRelationsCheckedByService"),
-    declared(service, "getListsCheckedByService"),
+    declared(service, "getRelationsCheckedByService", write),
+    declared(service, "getListsCheckedByService", write),
   );
+}
+
+function createBy(
+  props: DatabaseCommonInteractionProps,
+): ProjectReferenceWrite {
+  return { kind: "create", props: props };
+}
+
+function updateBy(
+  props: DatabaseCommonInteractionProps,
+): ProjectReferenceWrite {
+  return { kind: "update", props: props };
 }
 
 // A distinct id per column, so each column is shown to be checked on its own.
@@ -522,6 +585,19 @@ function callHook(
   );
 }
 
+/*
+ * The person's create permission, which a few services ask for before the
+ * reference check (checksCreatePermissionFirst), lets them through: these
+ * tests are about the references.
+ */
+function allowCreatePermission(): void {
+  jest
+    .spyOn(ModelPermission, "checkCreatePermissions")
+    .mockImplementation((): void => {
+      // allowed
+    });
+}
+
 async function refusalOf(promise: Promise<unknown>): Promise<unknown> {
   try {
     await promise;
@@ -542,26 +618,43 @@ function servicesOf(file: string): DatabaseService<DatabaseBaseModel> {
  * ids in `elsewhere` are records of some other project.
  */
 function stubTheProject(elsewhere: Array<string> = []): void {
-  const records: Record<string, Array<string>> = {};
-  const members: Array<string> = [];
+  /*
+   * Whichever write a test makes, the column at position i is written the
+   * "own" id i: every table any reference points at holds them all.
+   */
+  const tables: Set<string> = new Set<string>();
+  let mostColumns: number = 0;
 
   for (const serviceCase of CHECKED_CASES) {
-    genericallyCheckedColumns(servicesOf(serviceCase.file)).forEach(
-      (column: ProjectReferenceColumn, index: number) => {
-        const table: string = column.service.getModel().tableName || "";
-        records[table] = [...(records[table] || []), ownIdFor(index)];
+    const columns: Array<ProjectReferenceColumn> =
+      ProjectReferenceCheck.getCheckedColumns(
+        servicesOf(serviceCase.file).getModel(),
+      );
 
-        if (table === "User") {
-          members.push(ownIdFor(index));
-        }
-      },
-    );
+    mostColumns = Math.max(mostColumns, columns.length);
+
+    for (const column of columns) {
+      tables.add(column.service.getModel().tableName || "");
+    }
+  }
+
+  const ownIds: Array<string> = Array.from(
+    { length: mostColumns },
+    (_value: unknown, index: number): string => {
+      return ownIdFor(index);
+    },
+  );
+
+  const records: Record<string, Array<string>> = {};
+
+  for (const table of tables) {
+    records[table] = ownIds;
   }
 
   stubProjectDirectory({
     projectId: PROJECT_ID,
     records: records,
-    members: members,
+    members: ownIds,
     elsewhere: elsewhere,
   });
 }
@@ -784,17 +877,7 @@ describe("services whose rows name the project's records", () => {
     "%s refuses another project's record in every list and relation it does not check itself",
     async (file: string) => {
       const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
-      const columns: Array<ProjectReferenceColumn> =
-        genericallyCheckedColumns(service);
-
-      if (columns.length === 0) {
-        // Every reference it has is one it checks itself (see the service).
-        expect(
-          declared(service, "getRelationsCheckedByService").length +
-            declared(service, "getListsCheckedByService").length,
-        ).toBeGreaterThan(0);
-        return;
-      }
+      allowCreatePermission();
 
       const propsToTry: Array<DatabaseCommonInteractionProps> = [
         USER_PROPS,
@@ -806,6 +889,18 @@ describe("services whose rows name the project's records", () => {
       }
 
       for (const props of propsToTry) {
+        const columns: Array<ProjectReferenceColumn> =
+          genericallyCheckedColumns(service, createBy(props));
+
+        if (columns.length === 0) {
+          // Every reference it has is one it checks itself (see the service).
+          expect(
+            declared(service, "getRelationsCheckedByService").length +
+              declared(service, "getListsCheckedByService").length,
+          ).toBeGreaterThan(0);
+          continue;
+        }
+
         const thrown: unknown = await refusalOf(
           callHook(service, "onBeforeCreate", {
             data: recordWith(service, payloadWith(columns, foreignIdFor)),
@@ -836,8 +931,11 @@ describe("services whose rows name the project's records", () => {
     }),
   )("%s accepts its project's own records", async (file: string) => {
     const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
-    const columns: Array<ProjectReferenceColumn> =
-      genericallyCheckedColumns(service);
+    const write: ProjectReferenceWrite = createBy(USER_PROPS);
+    const columns: Array<ProjectReferenceColumn> = genericallyCheckedColumns(
+      service,
+      write,
+    );
 
     await expect(
       ProjectReferenceCheck.validateCreate({
@@ -849,8 +947,13 @@ describe("services whose rows name the project's records", () => {
         relationsCheckedByService: declared(
           service,
           "getRelationsCheckedByService",
+          write,
         ),
-        listsCheckedByService: declared(service, "getListsCheckedByService"),
+        listsCheckedByService: declared(
+          service,
+          "getListsCheckedByService",
+          write,
+        ),
       }),
     ).resolves.toBeUndefined();
   });
@@ -863,8 +966,10 @@ describe("services whose rows name the project's records", () => {
     "%s refuses another project's record an update adds",
     async (file: string) => {
       const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
-      const columns: Array<ProjectReferenceColumn> =
-        genericallyCheckedColumns(service);
+      const columns: Array<ProjectReferenceColumn> = genericallyCheckedColumns(
+        service,
+        updateBy(USER_PROPS),
+      );
 
       if (columns.length === 0) {
         return;
@@ -895,12 +1000,16 @@ describe("services whose rows name the project's records", () => {
     "%s answers a record that does not exist exactly as one of another project",
     async (file: string) => {
       const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
-      const columns: Array<ProjectReferenceColumn> =
-        genericallyCheckedColumns(service);
+      const columns: Array<ProjectReferenceColumn> = genericallyCheckedColumns(
+        service,
+        createBy(USER_PROPS),
+      );
 
       if (columns.length === 0) {
         return;
       }
+
+      allowCreatePermission();
 
       // The "foreign" ids are another project's records; the missing ones are nobody's.
       stubTheProject(
@@ -940,8 +1049,10 @@ describe("services whose rows name the project's records", () => {
     "%s lets an update save back what its record already holds",
     async (file: string) => {
       const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
-      const columns: Array<ProjectReferenceColumn> =
-        genericallyCheckedColumns(service);
+      const columns: Array<ProjectReferenceColumn> = genericallyCheckedColumns(
+        service,
+        updateBy(USER_PROPS),
+      );
 
       if (columns.length === 0) {
         return;
@@ -991,6 +1102,132 @@ describe("services whose rows name the project's records", () => {
     },
   );
 
+  /*
+   * The check answers only someone who may write the table in the project:
+   * DatabaseService refuses everyone else before any hook runs, so the
+   * answer is never a way to learn which ids a project has. (A model anyone
+   * may create in - a status page subscription - names only what its public
+   * page shows.)
+   */
+  test.each(
+    CHECKED_CASES.filter((serviceCase: ServiceCase): boolean => {
+      return (
+        !SERVICES_ANSWERING_BEFORE_THE_PERMISSION_CHECK[serviceCase.file] &&
+        !servicesOf(serviceCase.file)
+          .getModel()
+          .createRecordPermissions.includes(Permission.Public)
+      );
+    }).map((serviceCase: ServiceCase) => {
+      return [serviceCase.file];
+    }),
+  )(
+    "%s refuses someone who may not create in it before reading anything",
+    async (file: string) => {
+      const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
+      const lookups: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ProjectScopedReferenceValidator,
+        "getUnavailableReferences",
+      );
+
+      // A few creates take a lock first; here it is always free.
+      jest
+        .spyOn(Semaphore, "lock")
+        .mockResolvedValue({} as unknown as SemaphoreMutex);
+      jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+
+      const thrown: unknown = await refusalOf(
+        service.create({
+          data: recordWith(
+            service,
+            payloadWith(
+              ProjectReferenceCheck.getCheckedColumns(service.getModel()),
+              foreignIdFor,
+            ),
+          ),
+          props: STRANGER_PROPS,
+        }),
+      );
+
+      /*
+       * Refused - for not holding the permission, or sooner (an id supplied
+       * on a create, a feature of another edition) - and never by the
+       * project check, which has read nothing.
+       */
+      expect({
+        file,
+        refused: thrown !== null,
+        byTheProjectCheck: thrown instanceof ProjectScopedReferenceException,
+      }).toEqual({ file, refused: true, byTheProjectCheck: false });
+      expect(lookups).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a service asks for the whole create permission first only where that is listed", () => {
+    const asking: Array<string> = CHECKED_CASES.filter(
+      (serviceCase: ServiceCase): boolean => {
+        const declaration: (() => boolean) | undefined = (
+          servicesOf(serviceCase.file) as unknown as {
+            checksCreatePermissionFirst?: () => boolean;
+          }
+        ).checksCreatePermissionFirst;
+
+        return Boolean(
+          declaration && declaration.call(servicesOf(serviceCase.file)),
+        );
+      },
+    ).map((serviceCase: ServiceCase): string => {
+      return serviceCase.file;
+    });
+
+    expect(asking.sort()).toEqual(
+      [...SERVICES_CHECKING_CREATE_PERMISSION_FIRST].sort(),
+    );
+  });
+
+  test.each(
+    SERVICES_CHECKING_CREATE_PERMISSION_FIRST.map((file: string) => {
+      return [file];
+    }),
+  )(
+    "%s refuses a caller without the create permission before the project check reads anything",
+    async (file: string) => {
+      const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
+      const lookups: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ProjectScopedReferenceValidator,
+        "getUnavailableReferences",
+      );
+
+      // The base class's hook, past DatabaseService's own check of the table.
+      const baseHook: HookFunction = (
+        ProjectReferencesService.prototype as unknown as Record<
+          string,
+          HookFunction
+        >
+      )["onBeforeCreate"]!;
+
+      const thrown: unknown = await refusalOf(
+        baseHook.call(service, {
+          data: recordWith(
+            service,
+            payloadWith(
+              ProjectReferenceCheck.getCheckedColumns(service.getModel()),
+              foreignIdFor,
+            ),
+          ),
+          props: STRANGER_PROPS,
+        }),
+      );
+
+      // Refused by the permission check (or its edition check), not by this one.
+      expect({
+        file,
+        refused: thrown !== null,
+        byTheProjectCheck: thrown instanceof ProjectScopedReferenceException,
+      }).toEqual({ file, refused: true, byTheProjectCheck: false });
+      expect(lookups).not.toHaveBeenCalled();
+    },
+  );
+
   test.each(
     SERVICES_TRUSTING_SERVER_WRITES.map((file: string) => {
       return [file];
@@ -1003,6 +1240,8 @@ describe("services whose rows name the project's records", () => {
         genericallyCheckedColumns(service);
 
       expect(columns.length).toBeGreaterThan(0);
+
+      allowCreatePermission();
 
       const lookups: ReturnType<typeof jest.spyOn> = jest.spyOn(
         ProjectScopedReferenceValidator,

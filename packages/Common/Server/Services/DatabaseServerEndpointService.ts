@@ -1,4 +1,6 @@
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerService from "./DatabaseServerService";
 import Model from "../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -9,7 +11,6 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
-import ProjectReferenceCheck from "../Utils/Database/ProjectReferenceCheck";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -97,17 +98,24 @@ export class Service extends ProjectReferencesService<Model> {
    * The database a person adds an alias to is checked by this service's own
    * create hook, pinned to the project and to what they may edit, with one
    * answer for a database of another project, one that does not exist and
-   * one they may not edit. A root write gets the project check below.
+   * one they may not edit. A root create (discovery, claimEndpoint) and every
+   * update get the generic check.
    */
-  protected override getRelationsCheckedByService(): Array<string> {
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    if (write && (write.kind === "update" || write.props.isRoot)) {
+      return [];
+    }
+
     return ["databaseServer"];
   }
 
   /*
    * A person adding an alias. Root writes (the discovery paths, through
-   * claimEndpoint) pass through once their database is checked to be the
-   * project's: they already hold a canonical endpoint and handle ownership
-   * themselves.
+   * claimEndpoint) pass through once the generic check has found their
+   * database to be the project's: they already hold a canonical endpoint
+   * and handle ownership themselves.
    *
    * Adding an endpoint is an EDIT of the database it is added to: it decides
    * which traffic that database's pages show and - one owner per endpoint -
@@ -125,12 +133,6 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     if (createBy.props.isRoot) {
-      // Discovery and workflows: the database is still the project's own.
-      await ProjectReferenceCheck.validateCreate({
-        service: this,
-        createBy: createBy,
-      });
-
       return { createBy: createBy, carryForward: null };
     }
 

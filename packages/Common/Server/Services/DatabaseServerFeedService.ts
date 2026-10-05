@@ -24,6 +24,11 @@ export class Service extends ProjectReferencesService<DatabaseServerFeed> {
     }
   }
 
+  // Its refusals name what it looks up: the create permission comes first.
+  protected override checksCreatePermissionFirst(): boolean {
+    return true;
+  }
+
   /*
    * Feed items are mostly written by OneUptime itself as things happen, naming
    * the record they are about and crediting whoever did it - someone who may

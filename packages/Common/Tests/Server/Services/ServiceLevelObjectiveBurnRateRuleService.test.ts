@@ -87,6 +87,10 @@ const ALERT_SEVERITY_ID: ObjectID = new ObjectID(
 const INCIDENT_SEVERITY_ID: ObjectID = new ObjectID(
   "88888888-8888-4888-8888-888888888888",
 );
+// Another severity, for an id column and a relation that disagree.
+const SECOND_SEVERITY_ID: ObjectID = new ObjectID(
+  "5ec0d000-0000-4000-8000-0000000000e2",
+);
 const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "99999999-9999-4999-8999-999999999999",
 );
@@ -778,6 +782,51 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
       });
     },
   );
+
+  /*
+   * The dashboard posts a severity as the relation, and TypeORM writes it to
+   * the same column as the id: both spellings are what gets checked.
+   */
+  it("validates severities sent as the relation, exactly like their id columns", async () => {
+    await expect(
+      callHook(
+        "onBeforeCreate",
+        makeValidCreateBy({
+          alertSeverity: { _id: ALERT_SEVERITY_ID.toString() },
+          incidentSeverity: { _id: INCIDENT_SEVERITY_ID.toString() },
+        } as unknown as RuleFields),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+
+    const validated: ValidatedReferences = validatedReferencesAt(
+      validatorSpy,
+      0,
+    );
+
+    expect(validated.references[0]!.id?.toString()).toBe(
+      ALERT_SEVERITY_ID.toString(),
+    );
+    expect(validated.references[1]!.id?.toString()).toBe(
+      INCIDENT_SEVERITY_ID.toString(),
+    );
+  });
+
+  it("refuses a severity whose id column and relation name different rows, before any lookup", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeValidCreateBy({
+          alertSeverityId: ALERT_SEVERITY_ID,
+          alertSeverity: { _id: SECOND_SEVERITY_ID.toString() },
+        } as unknown as RuleFields),
+      ),
+      "Conflicting alert severity references",
+    );
+
+    expect(validatorSpy).not.toHaveBeenCalled();
+  });
 
   it("falls back to the caller's tenant when the payload itself carries no project", async () => {
     await expect(
@@ -1509,6 +1558,43 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
       });
     },
   );
+
+  it("validates a severity an update sends as the relation", async () => {
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          {
+            incidentSeverity: { _id: INCIDENT_SEVERITY_ID.toString() },
+          } as unknown as RuleFields,
+          { isRoot: true, tenantId: PROJECT_ID },
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    expect(validatorSpy).toHaveBeenCalledTimes(1);
+    expect(
+      validatedReferencesAt(validatorSpy, 0).references[1]!.id?.toString(),
+    ).toBe(INCIDENT_SEVERITY_ID.toString());
+  });
+
+  it("refuses an update whose severity spellings disagree", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy(
+          {
+            incidentSeverityId: INCIDENT_SEVERITY_ID,
+            incidentSeverity: { _id: SECOND_SEVERITY_ID.toString() },
+          } as unknown as RuleFields,
+          { isRoot: true, tenantId: PROJECT_ID },
+        ),
+      ),
+      "Conflicting incident severity references",
+    );
+
+    expect(validatorSpy).not.toHaveBeenCalled();
+  });
 
   it("falls back to the projects of the matched rows, deduplicated, when the update carries no tenant", async () => {
     findBySpy.mockResolvedValue([

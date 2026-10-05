@@ -103,6 +103,11 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
     super(Model);
   }
 
+  // Its refusals name what it looks up: the create permission comes first.
+  protected override checksCreatePermissionFirst(): boolean {
+    return true;
+  }
+
   /*
    * The severities are checked by this service's own hooks
    * (assertSeveritiesBelongToProject), after the rule type has dropped the

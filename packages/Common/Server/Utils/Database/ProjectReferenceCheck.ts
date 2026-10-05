@@ -238,6 +238,12 @@ export default class ProjectReferenceCheck {
     listsCheckedByService?: Array<string> | undefined;
     // See ProjectReferencesService.getJsonReferenceColumns.
     jsonReferenceColumns?: Array<JsonReferenceColumn> | undefined;
+    /*
+     * Runs once the write is known to name something to look up, right
+     * before the first read (see ProjectReferencesService
+     * .checksCreatePermissionFirst). Not run when nothing is read.
+     */
+    beforeReading?: (() => void) | undefined;
   }): Promise<void> {
     const model: DatabaseBaseModel = data.service.getModel();
     const tenantColumn: string | null = model.getTenantColumn();
@@ -251,9 +257,7 @@ export default class ProjectReferenceCheck {
 
     const projectId: ObjectID | undefined =
       data.createBy.props.tenantId ||
-      ProjectReferenceCheck.toObjectID(
-        resolveReferenceId(record[tenantColumn]),
-      );
+      ProjectReferenceCheck.getRecordProjectId(model, record);
 
     const references: Array<ColumnReference> =
       ProjectReferenceCheck.getWrittenReferences({
@@ -264,8 +268,12 @@ export default class ProjectReferenceCheck {
         jsonReferenceColumns: data.jsonReferenceColumns,
       });
 
-    if (references.length === 0) {
+    if (references.length === 0 || !projectId) {
       return;
+    }
+
+    if (data.beforeReading) {
+      data.beforeReading();
     }
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
@@ -597,6 +605,43 @@ export default class ProjectReferenceCheck {
     }
 
     return heldIds;
+  }
+
+  /*
+   * The project a record being created names for itself: its tenant column,
+   * or - when a root write sends the relation instead (`project: { _id }`),
+   * which TypeORM saves to the same column - that relation.
+   */
+  private static getRecordProjectId(
+    model: DatabaseBaseModel,
+    record: Dictionary<unknown>,
+  ): ObjectID | undefined {
+    const tenantColumn: string = model.getTenantColumn()!;
+
+    const fromColumn: ObjectID | undefined = ProjectReferenceCheck.toObjectID(
+      resolveReferenceId(record[tenantColumn]),
+    );
+
+    if (fromColumn) {
+      return fromColumn;
+    }
+
+    for (const column of model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(column);
+
+      if (
+        metadata?.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn === tenantColumn &&
+        column !== tenantColumn
+      ) {
+        return ProjectReferenceCheck.toObjectID(
+          resolveReferenceId(record[column]),
+        );
+      }
+    }
+
+    return undefined;
   }
 
   private static toObjectID(

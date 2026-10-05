@@ -65,8 +65,11 @@ import User from "../../../Models/DatabaseModels/User";
  *   - A few models keep rows every project shares: a global probe, a global
  *     AI agent, a global LLM provider (SHARED_ROW_COLUMNS). Those count as
  *     the project's too, exactly as ProbeService.getProbesAttachableToProject
- *     lets any project's monitor use a global probe. They are looked up by id
- *     and the shared flag, selecting only the id.
+ *     lets any project's monitor use a global probe. They are looked up by
+ *     id, the shared flag and no project of their own (a flagged row that
+ *     carries a project stays that project's, as
+ *     LlmProviderService.isUnownedGlobalProvider reads it), selecting only
+ *     the id.
  *
  * The lookups go through plain DatabaseServices over the referenced models
  * (getLookupService) wherever a caller does not hand over a service of its
@@ -141,7 +144,8 @@ const MEMBERSHIP_LOOKUP_BATCH_SIZE: number = 50;
 /*
  * Models with rows every project shares, by table, and the column that marks
  * such a row: a global probe runs any project's monitors, a global AI agent
- * and a global LLM provider serve every project.
+ * and a global LLM provider serve every project. A shared row also has no
+ * project of its own.
  */
 const SHARED_ROW_COLUMNS: Record<string, string> = {
   Probe: "isGlobalProbe",
@@ -936,7 +940,8 @@ export default class ProjectScopedReferenceValidator {
   /*
    * The ids among `ids` (valid uuids) that name rows every project shares -
    * a global probe - normalized. Nothing for a model without such rows. One
-   * read, by id and the shared flag, selecting nothing but the id.
+   * read, by id, the shared flag and no project, selecting nothing but the
+   * id.
    */
   public static async findSharedIds(data: {
     service: DatabaseService<DatabaseBaseModel>;
@@ -952,11 +957,21 @@ export default class ProjectScopedReferenceValidator {
       return found;
     }
 
+    const query: Dictionary<unknown> = {
+      _id: QueryHelper.any(data.ids),
+      [sharedRowColumn]: true,
+    };
+
+    const tenantColumnName: string | null = data.service
+      .getModel()
+      .getTenantColumn();
+
+    if (tenantColumnName) {
+      query[tenantColumnName] = QueryHelper.isNull();
+    }
+
     const records: Array<DatabaseBaseModel> = await data.service.findBy({
-      query: {
-        _id: QueryHelper.any(data.ids),
-        [sharedRowColumn]: true,
-      } as Query<DatabaseBaseModel>,
+      query: query as Query<DatabaseBaseModel>,
       select: {
         _id: true,
       } as Select<DatabaseBaseModel>,

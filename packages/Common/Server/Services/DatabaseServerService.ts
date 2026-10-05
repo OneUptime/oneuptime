@@ -490,6 +490,11 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  // Its refusals name what it looks up: the create permission comes first.
+  protected override checksCreatePermissionFirst(): boolean {
+    return true;
+  }
+
   /*
    * A person adding a database from the dashboard or the API. Root creates -
    * every discovery path - pass through untouched: they compute identity and
