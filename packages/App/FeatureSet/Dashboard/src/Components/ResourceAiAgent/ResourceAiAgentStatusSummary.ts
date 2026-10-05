@@ -3,7 +3,7 @@ import {
   ResourceAiAgentCardState,
   ResourceAiAttention,
   getResourceAiAgentCardState,
-  getResourceAiAgentMetaParts,
+  getResourceAiAgentMeta,
   getResourceAiAttention,
   isResourceUnreachable,
 } from "./ResourceAiAgentStatus";
@@ -21,6 +21,7 @@ import {
 import {
   AiAgentStatusSummary,
   getAiAgentConnectionBadge,
+  getAiAgentConnectionDetails,
   getAiAgentConnectionSentence,
   getAiAgentUnreachableSentence,
 } from "../AiAccess/AiAgentStatusSummary";
@@ -65,7 +66,9 @@ export function getResourceAiAgentStatusSummary(
           state,
           agentName: descriptor.agentName,
         }),
-    connectionDetails: getResourceAiAgentMetaParts(status, descriptor),
+    connectionDetails: getAiAgentConnectionDetails(
+      getResourceAiAgentMeta(status, descriptor),
+    ),
     investigation: getAiInvestigationBadge(
       status.isAiInvestigationEnabled === true,
     ),

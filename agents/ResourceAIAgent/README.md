@@ -53,18 +53,22 @@ The shape of the service (the collector's compose file carries the complete, per
       - ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
       - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker
       - DOCKER_HOST_NAME=${DOCKER_HOST_NAME:-docker-host}
+      - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
       - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
       - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
       - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
     restart: unless-stopped
 ```
 
-Nothing else is needed for OneUptime AI to investigate with it. To let it apply fixes, set `ONEUPTIME_AI_ALLOW_WRITES=true` in the `.env` and run `docker compose up -d`; then choose on the resource's **AI → AI agent** page whether a person approves each fix.
+Nothing else is needed for OneUptime AI to investigate with it. To let it apply fixes, set `ONEUPTIME_AI_ALLOW_WRITES=true` and `ONEUPTIME_AI_FIXES=ask-for-approval` (or `automatic`, or `bypass-approval`) in the `.env` and run `docker compose up -d`.
+
+What OneUptime AI may do — `ONEUPTIME_AI_INVESTIGATION` and `ONEUPTIME_AI_FIXES` — is the agent's own setting. It reports both when it registers and with every heartbeat, OneUptime applies them to the resource, and the resource's **AI → AI agent** page shows them read-only, with the lines that change them. Left unset, the agent uses its defaults (investigation on; fixes `ask-for-approval` with writes allowed, else `off`), which OneUptime applies only where nobody chose the settings on the AI agent page.
 
 ## What it may do
 
 - **Read (default).** Commands that look and change nothing: `docker ps`, `docker logs`, `pvesh get …`, `govc vm.info`, `ceph health`, `db ping`, `systemctl status`, …. Investigations only ever run these.
-- **Change things (opt-in).** Only with `ONEUPTIME_AI_ALLOW_WRITES=true`, and then only on the targets `ONEUPTIME_AI_WRITE_TARGETS` allows (all of them when it is empty), never on the agent's own container, the collector beside it, or anything in `ONEUPTIME_AI_PROTECTED_TARGETS`. Whether AI proposes fixes at all, and whether a person must approve them, is set per resource in OneUptime.
+- **Change things (opt-in).** Only with `ONEUPTIME_AI_ALLOW_WRITES=true`, and then only on the targets `ONEUPTIME_AI_WRITE_TARGETS` allows (all of them when it is empty), never on the agent's own container, the collector beside it, or anything in `ONEUPTIME_AI_PROTECTED_TARGETS`. Whether AI proposes fixes at all, and whether a person must approve them, is `ONEUPTIME_AI_FIXES`, which OneUptime follows; `off` keeps the agent read-only even with the write switch on.
 - **Never.** A shell, pipes or redirects; `sudo`; anything that reads credentials; running a new container or VM image; deleting data; free-form SQL; anything the command policy does not know.
 
 Every command is sorted by one shared policy (`packages/Common/Utils/AiRemediation/Resource`) into **Read**, **SafeWrite**, **RiskyWrite** or **Denied**, and that policy is enforced three times: by OneUptime's AI tools, when OneUptime queues the command, and here, before anything runs. Before anything runs, the agent checks every command itself, whatever the server sent:
@@ -107,6 +111,8 @@ It needs the same OneUptime version as the image, or newer. With an older server
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` | — (required) | `docker`, `podman`, `docker-swarm`, `proxmox`, `vmware`, `ceph`, `database` or `host`. |
 | The collector's identity variable | — (required) | See [Supported resources](#supported-resources). |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | — | Overrides the identity read from the collector's variable. |
+| `ONEUPTIME_AI_INVESTIGATION` | on | `true` or `false`: whether OneUptime AI may run read-only commands while it investigates. A value it cannot read means off. |
+| `ONEUPTIME_AI_FIXES` | `ask-for-approval` with writes allowed, else `off` | How OneUptime AI may apply a fix: `off`, `ask-for-approval`, `automatic` or `bypass-approval`. Any mode but `off` also needs `ONEUPTIME_AI_ALLOW_WRITES=true`. A value it cannot read means off. Setting either of these two makes the AI agent page follow them, read-only. |
 | `ONEUPTIME_AI_ALLOW_WRITES` | off | `true` allows changes. Anything else means read-only. |
 | `ONEUPTIME_AI_WRITE_TARGETS` | all | Comma-separated globs (`*` matches any run of characters) of the targets changes may touch: container, service, VM, unit names, … Empty means any target except the protected ones. |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | — | Comma-separated globs of targets OneUptime AI must never change, on top of the agent's own container and its collector. |
@@ -124,7 +130,7 @@ A missing required value does not crash the agent: it stays up and healthy, logs
 
 ## Resource types
 
-Each type below lists the service that runs it, the settings it reads (all from the `.env` it shares with the collector, unless said otherwise), what it runs, and what it will never touch. `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_WRITE_TARGETS` and `ONEUPTIME_AI_PROTECTED_TARGETS` work the same way for every type (see [Configuration](#configuration)); each compose file passes all three.
+Each type below lists the service that runs it, the settings it reads (all from the `.env` it shares with the collector, unless said otherwise), what it runs, and what it will never touch. `ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_WRITE_TARGETS` and `ONEUPTIME_AI_PROTECTED_TARGETS` work the same way for every type (see [Configuration](#configuration)); each compose file passes all five.
 
 ### Docker host
 
@@ -215,7 +221,7 @@ docker compose exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/st
 | `Another AI agent has been online as this <resource> … for over 10 minutes` | Two agents register with the same identity (often the collector's default name). Give each resource its own name on the collector and the agent, or stop the other agent; until then this one asks every 5 minutes. |
 | `… the collector's default …` warning | Give the resource a unique name on the collector and the agent. |
 | `The agent cannot reach this <resource> right now` | Check the socket mount, address, credentials or keyring the error names. |
-| A fix is `Refused by the <agent>: … this agent is read-only` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` and restart the agent. |
+| A fix is `Refused by the <agent>: … this agent is read-only` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` and `ONEUPTIME_AI_FIXES` to a mode other than `off`, and restart the agent. |
 | A fix is refused as `outside the targets` or `protects` | Adjust `ONEUPTIME_AI_WRITE_TARGETS` / `ONEUPTIME_AI_PROTECTED_TARGETS`, or leave that change to a person. |
 | `Killed (timeout …): … produced no output at all` | The agent cannot reach the resource — check the network between them. |
 

@@ -1709,7 +1709,7 @@ tests:
           value: "true"
     asserts:
       - failedTemplate:
-          errorPattern: "aiAgent.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_WRITES: the chart sets it from aiAgent.remediation.enabled so it always matches the RBAC it grants; change that value instead. Remove it from aiAgent.extraEnv."
+          errorMessage: "aiAgent.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_WRITES: the chart sets it from aiAgent.fixes (or aiAgent.remediation.enabled) so it always matches the RBAC it grants; change that value instead. Remove it from aiAgent.extraEnv."
 
   - it: refuses an extraEnv that would override the agent's write namespaces
     set:
@@ -2507,3 +2507,325 @@ tests:
         equal:
           path: spec.template.spec.containers[0].image
           value: oneuptime/kubernetes-ai-agent:release
+
+  # ---- What AI may do: aiAgent.investigation and aiAgent.fixes ---------------
+  #
+  # "These options should depend on the agent itself." The two settings the
+  # cluster's AI → Agent page shows reach the agent as
+  # ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES, only when the release
+  # names one of them (then both, so the pod says exactly what it reports).
+  # A release that names neither renders neither: the agent reports its
+  # defaults, which OneUptime applies only where nobody chose the settings
+  # on the AI → Agent page. Fixes, when set, also decide the write RBAC:
+  # every level but off grants it, off grants none.
+
+  - it: names neither setting by default, so the agent reports its defaults and an operator's earlier choice stands
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_INVESTIGATION
+            value: "true"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: "off"
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 11
+
+  - it: turns fixes on with aiAgent.fixes alone, granting the write RBAC and telling the agent both settings
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: ask-for-approval
+    asserts:
+      # The same eight documents as aiAgent.remediation.enabled=true.
+      - hasDocuments:
+          count: 8
+      - documentIndex: 3
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-agent-remediation
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-agent-remediation
+      - documentIndex: 7
+        isKind:
+          of: Deployment
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+      # Investigation is named too, at its default, so the pod says exactly
+      # what the agent reports.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_INVESTIGATION
+            value: "true"
+          count: 1
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: ask-for-approval
+          count: 1
+
+  - it: passes every fixes level through, each one granting the write RBAC
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: bypass-approval
+      aiAgent.remediation.namespaces:
+        - web
+      aiAgent.remediation.nodeOperations: false
+    asserts:
+      # ServiceAccount, read role and binding, remediation role, its
+      # RoleBinding in web, Deployment.
+      - hasDocuments:
+          count: 6
+      - documentIndex: 4
+        isKind:
+          of: RoleBinding
+      - documentIndex: 4
+        equal:
+          path: metadata.namespace
+          value: web
+      - documentIndex: 5
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: bypass-approval
+      - documentIndex: 5
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: web
+
+  - it: passes automatic through
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: automatic
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: automatic
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+
+  - it: grants no write RBAC with fixes off, even over aiAgent.remediation.enabled=true
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: "off"
+      aiAgent.remediation.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 3
+        isKind:
+          of: Deployment
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: "off"
+
+  - it: reads a bare YAML off, which arrives as the boolean false, as off
+    values:
+      - values/ai-settings-bare-off.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: "off"
+
+  - it: turns investigation off with aiAgent.investigation=false, and names fixes too at the write switch's default
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.investigation: false
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_INVESTIGATION
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: "off"
+
+  - it: names ask-for-approval as the fixes default when only investigation is set and the deprecated write switch is on
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.investigation: true
+      aiAgent.remediation.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_AI_FIXES
+            value: ask-for-approval
+
+  - it: revokes a 14.0.x release's carried-over write access with fixes off
+    values:
+      - values/aiaccess-14.0.x-remediation-scoped.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: "off"
+    asserts:
+      # No remediation role and no RoleBinding in web or api any more.
+      - hasDocuments:
+          count: 4
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+
+  - it: renders nothing when aiAgent.enabled=false, whatever fixes say
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.enabled: false
+      aiAgent.fixes: bypass-approval
+      aiAgent.investigation: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: refuses a fixes value that is not a level
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.fixes: always
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses fixes true, which names no level
+    values:
+      - values/ai-settings-fixes-true.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a string where investigation expects a boolean
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.investigation: "yes"
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses an extraEnv that would set the investigation switch behind the chart's back
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.extraEnv:
+        - name: ONEUPTIME_AI_INVESTIGATION
+          value: "true"
+    asserts:
+      - failedTemplate:
+          errorMessage: "aiAgent.extraEnv must not set ONEUPTIME_AI_INVESTIGATION: the chart sets it from aiAgent.investigation; change that value instead. Remove it from aiAgent.extraEnv."
+
+  - it: refuses an extraEnv that would set fixes the RBAC does not match
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.extraEnv:
+        - name: ONEUPTIME_AI_FIXES
+          value: bypass-approval
+    asserts:
+      - failedTemplate:
+          errorMessage: "aiAgent.extraEnv must not set ONEUPTIME_AI_FIXES: the chart sets it from aiAgent.fixes so it always matches the RBAC it grants; change that value instead. Remove it from aiAgent.extraEnv."
+
+  - it: keeps a release from a chart before aiAccess, upgraded with --reuse-values, unconfigured
+    values:
+      - values/pre-ai-no-ai-values.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.containers[0].env
+          count: 11

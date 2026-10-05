@@ -352,7 +352,7 @@ ${
       markdown: `The agent's docker-compose.yml also runs the OneUptime AI agent, \`${DOCKER_SWARM_AI_AGENT_CONTAINER_NAME}\`. It runs the \`docker\` commands OneUptime AI asks for while it investigates an incident or alert on this cluster, and it appears on the cluster's **AI → AI agent** page. Like the inventory poller it must run on a manager node — on a worker it runs nothing.
 
 - **Read-only by default.** It runs commands such as \`docker node ls\`, \`docker service ls\`, \`docker service ps NAME\` and \`docker service logs --tail 200 NAME\` — never \`service create\`/\`rm\`, \`stack deploy\`/\`rm\`, secrets, configs or \`exec\`. Environment values in \`docker service inspect\` output are masked before anything leaves the node.
-- **Fixes are opt-in.** Set \`ONEUPTIME_AI_ALLOW_WRITES=true\` in ${envFile} and run \`docker compose up -d\` in ${getAgentFolderName(data)} to let it roll a named service (\`docker service update --force\`), roll it back or scale it, then choose on the cluster's AI agent page whether each fix needs approval. Draining a node always needs a person's approval. \`ONEUPTIME_AI_WRITE_TARGETS\` (comma-separated globs of service and node names) limits what fixes may touch; \`ONEUPTIME_AI_PROTECTED_TARGETS\` adds services it must never change. It never changes itself, the collector or the inventory poller.
+- **Fixes are opt-in.** Set \`ONEUPTIME_AI_ALLOW_WRITES=true\` in ${envFile} and run \`docker compose up -d\` in ${getAgentFolderName(data)} to let it roll a named service (\`docker service update --force\`), roll it back or scale it. \`ONEUPTIME_AI_FIXES\` in the same file says whether each fix needs approval (\`ask-for-approval\`, \`automatic\` or \`bypass-approval\`), and the cluster's **AI → AI agent** page shows it. Draining a node always needs a person's approval. \`ONEUPTIME_AI_WRITE_TARGETS\` (comma-separated globs of service and node names) limits what fixes may touch; \`ONEUPTIME_AI_PROTECTED_TARGETS\` adds services it must never change. It never changes itself, the collector or the inventory poller.
 - It runs as root because the Docker socket is root-owned. The socket's \`:ro\` mount does not make the Docker API read-only — the agent's command policy is the limit.
 - ${
         script
@@ -380,7 +380,7 @@ ${
 
 ${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand())}
 
-It rewrites \`.env\` from your answers and keeps only the AI agent's target lists: add back any variable you set yourself, such as \`DOCKER_API_VERSION\`. Turned on AI fixes? Run it as \`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh\` to keep them on. Left the AI agent out? Pass \`--no-ai-agent\` again.
+It rewrites \`.env\` from your answers and keeps only the AI agent's target lists and what AI may do (\`ONEUPTIME_AI_INVESTIGATION\`, \`ONEUPTIME_AI_FIXES\`): add back any variable you set yourself, such as \`DOCKER_API_VERSION\`. Turned on AI fixes? Run it as \`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh\` to keep them on. Left the AI agent out? Pass \`--no-ai-agent\` again.
 
 **Uninstall:**
 

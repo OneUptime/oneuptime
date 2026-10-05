@@ -16,8 +16,10 @@ import {
   AiAgentAttention,
   AiAgentAttentionStep,
   AiAgentCardState,
+  AiAgentMeta,
   AiAgentOfflineReason,
   CHOICE_GAP_CODES,
+  KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
   REFUSED_REGISTRATION_WARNING_WINDOW_MS,
   canSwitchToAiAgent,
   describeAiAgentNodeOperations,
@@ -28,6 +30,7 @@ import {
   getAiAgentCardCommand,
   getAiAgentCardState,
   getAiAgentGapAction,
+  getAiAgentMeta,
   getAiAgentMetaParts,
   getAiAgentOfflineReason,
   getAiAgentOverviewState,
@@ -40,9 +43,11 @@ import {
   getAutomaticInvestigationConfirmation,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
+  getKubernetesAiSettingsSource,
   getRefusedRegistrationWarning,
   isAdvancedRunnerTarget,
   isInClusterTarget,
+  isKubernetesAiSettingsSetByAgent,
   isLegacyRunnerTarget,
   parseStatus,
   shouldShowWriteAccessCommands,
@@ -806,13 +811,38 @@ describe("what the target may change", () => {
 });
 
 describe("the meta line", () => {
-  test("the agent: last seen, its version, kubectl's, and read-only", () => {
+  /*
+   * The agent's version is drawn by the page with AgentVersion (an outdated
+   * agent gets its sign and upgrade dialog), so the words leave it out and
+   * say where it goes: after "last seen", for the cluster's own agent.
+   */
+  test("the agent: last seen, then its version (drawn by the page), kubectl's, and read-only", () => {
     expect(getAiAgentMetaParts(agentStatus())).toEqual([
       "last seen a minute ago",
-      "agent v14.1.0",
       "kubectl v1.31.2",
       "Read-only",
     ]);
+
+    const meta: AiAgentMeta = getAiAgentMeta(agentStatus());
+    expect(meta.lastSeen).toBe("last seen a minute ago");
+    expect(meta.showsAgentVersion).toBe(true);
+    expect(meta.rest).toEqual(["kubectl v1.31.2", "Read-only"]);
+  });
+
+  test("the version is the agent's own: never shown for a Runner the cluster is reached through", () => {
+    expect(getAiAgentMeta(legacyStatus()).showsAgentVersion).toBe(false);
+    expect(getAiAgentMeta(advancedStatus()).showsAgentVersion).toBe(false);
+    expect(getAiAgentMeta(notInstalledStatus())).toEqual({
+      lastSeen: null,
+      showsAgentVersion: false,
+      rest: [],
+    });
+  });
+
+  test("an agent row with nothing resolved yet still shows its version", () => {
+    expect(
+      getAiAgentMeta(agentStatus({ runner: null })).showsAgentVersion,
+    ).toBe(true);
   });
 
   test("a writing agent names where it may change and whether nodes are included", () => {
@@ -834,7 +864,6 @@ describe("the meta line", () => {
       ),
     ).toEqual([
       "last seen a minute ago",
-      "agent v14.2.0",
       "kubectl v1.31.2",
       "Can change: web, api",
       "node operations on",
@@ -873,6 +902,77 @@ describe("the meta line", () => {
         ),
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * Where the cluster's investigation and fixes are set (status.
+ * aiSettingsSource): while its Kubernetes AI agent sets them, the
+ * "investigation off" step is changed on the chart, not with a Turn on
+ * button the server would refuse.
+ */
+describe("settings the agent sets", () => {
+  test.each([
+    ["agent_configuration", "agent_configuration", true],
+    ["agent_defaults", "agent_defaults", true],
+    ["oneuptime", "oneuptime", false],
+    // An older server sends nothing: the settings are edited here.
+    [undefined, "oneuptime", false],
+  ])(
+    "status.aiSettingsSource %j reads as %s",
+    (value: unknown, source: string, isSetByAgent: boolean) => {
+      const status: KubernetesClusterAiAccessStatus = agentStatus({
+        aiSettingsSource:
+          value as KubernetesClusterAiAccessStatus["aiSettingsSource"],
+      });
+
+      expect(getKubernetesAiSettingsSource(status)).toBe(source);
+      expect(isKubernetesAiSettingsSetByAgent(status)).toBe(isSetByAgent);
+    },
+  );
+
+  test("investigation off, set by the agent: the step points at the chart and offers its command", () => {
+    const investigationOff: KubernetesAiAccessGap = gap(
+      "investigation_disabled",
+      "investigation",
+    );
+
+    for (const source of ["agent_configuration", "agent_defaults"] as const) {
+      const status: KubernetesClusterAiAccessStatus = agentStatus({
+        aiSettingsSource: source,
+        isInvestigationEnabled: false,
+        gaps: [investigationOff],
+      });
+
+      expect(getAiAgentGapAction(investigationOff, status)).toBe(
+        "set_investigation_in_agent",
+      );
+      expect(getAiAgentAttentionStepText(investigationOff, status)).toBe(
+        KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
+      );
+      expect(KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT).toContain(
+        "Kubernetes agent chart",
+      );
+    }
+  });
+
+  test("negative control: investigation off, chosen here, keeps the Turn on button", () => {
+    const investigationOff: KubernetesAiAccessGap = gap(
+      "investigation_disabled",
+      "investigation",
+    );
+    const status: KubernetesClusterAiAccessStatus = agentStatus({
+      aiSettingsSource: "oneuptime",
+      isInvestigationEnabled: false,
+      gaps: [investigationOff],
+    });
+
+    expect(getAiAgentGapAction(investigationOff, status)).toBe(
+      "turn_on_investigation",
+    );
+    expect(getAiAgentAttentionStepText(investigationOff, status)).toBe(
+      "Turn on AI investigation with kubectl.",
+    );
   });
 });
 

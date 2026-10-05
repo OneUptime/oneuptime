@@ -11,9 +11,14 @@ import {
   parseResourceAiAccessStatus,
 } from "./ResourceAiAgentStatus";
 import { getResourceAiAgentStatusSummary } from "./ResourceAiAgentStatusSummary";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import { ResourceAiAccessStatus } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  ResourceAiAccessStatus,
+  ResourceAiAgentSummary,
+} from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -44,6 +49,18 @@ const ResourceAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
       parse: parseResourceAiAccessStatus,
       refreshToken: props.refreshToken,
     });
+  const agent: ResourceAiAgentSummary | null = read.status?.agent || null;
+  const hasAgentVersion: boolean =
+    Boolean(agent?.agentVersion) || Boolean(agent?.posture?.agentVersion);
+  const versionElement: ReactElement | undefined = hasAgentVersion ? (
+    <AgentVersion
+      kind={AgentKind.ResourceAiAgent}
+      version={agent?.agentVersion || agent?.posture?.agentVersion}
+      upgradeGuideContext={{
+        resourceType: props.descriptor.resourceType,
+      }}
+    />
+  ) : undefined;
 
   return (
     <AiAgentStatusSummaryCard
@@ -58,6 +75,7 @@ const ResourceAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
           : null
       }
       isLoading={read.isLoading}
+      versionElement={versionElement}
     />
   );
 };

@@ -10,10 +10,17 @@
  * AI agent and the dashboard so they never disagree about what a mode or a
  * tier means.
  *
- * This file has NO imports on purpose: the Kubernetes AI agent
- * (agents/KubernetesAIAgent) carries a byte-identical copy of it and must
- * compile without the rest of Common.
+ * This file imports only ../AI/AgentAiSettings, which imports nothing, on
+ * purpose: the Kubernetes AI agent (agents/KubernetesAIAgent) carries
+ * byte-identical copies of both and must compile without the rest of
+ * Common.
  */
+
+import {
+  AgentAiSettings,
+  AgentAiSettingsSource,
+  parseReportedAgentAiSettings,
+} from "../AI/AgentAiSettings";
 
 /*
  * How OneUptime AI may change a cluster once it has diagnosed a signal.
@@ -196,6 +203,15 @@ export interface KubernetesRunnerPosture {
    * say, which older Runners and Runners outside the chart never do.
    */
   allowNodeOperations?: boolean | undefined;
+  /*
+   * What the Kubernetes AI agent's configuration lets OneUptime AI do on
+   * the cluster (the chart's aiAgent.investigation and aiAgent.fixes; see
+   * Types/AI/AgentAiSettings). Present only when the configuration names
+   * them: OneUptime then applies them to the cluster, and the AI agent
+   * page shows them read-only. Never in a Runner's posture, and absent from
+   * an agent configured before these settings existed.
+   */
+  aiSettings?: AgentAiSettings | undefined;
 }
 
 /*
@@ -333,6 +349,17 @@ export interface KubernetesClusterAiAccessStatus {
    */
   kubectlAllowlist: Array<string>;
   isInvestigationEnabled: boolean;
+  /*
+   * Where isInvestigationEnabled and remediationMode are set (see
+   * AgentAiSettingsSource): "agent_configuration" when the cluster's
+   * Kubernetes AI agent reports them from its chart values
+   * (aiAgent.investigation, aiAgent.fixes), "agent_defaults" when it
+   * reports its defaults for a cluster nobody chose them for — OneUptime
+   * applies what the agent reports in both — and "oneuptime" otherwise.
+   * Absent from a server older than the setting, which reads as
+   * "oneuptime".
+   */
+  aiSettingsSource?: AgentAiSettingsSource | undefined;
   // True only when every gap that blocks investigation is absent.
   isInvestigationReady: boolean;
   remediationMode: KubernetesAiRemediationMode;
@@ -404,14 +431,30 @@ export function parseKubernetesRunnerPosture(
     return undefined;
   }
 
-  return parseKubernetesAgentPosture(
-    (hostInfo as Record<string, unknown>)["kubernetes"],
-  );
+  const posture: KubernetesRunnerPosture | undefined =
+    parseKubernetesAgentPosture(
+      (hostInfo as Record<string, unknown>)["kubernetes"],
+    );
+
+  /*
+   * Only the Kubernetes AI agent's configuration sets what AI may do on a
+   * cluster; a Runner never does, whatever its host info says.
+   */
+  if (posture) {
+    delete posture.aiSettings;
+  }
+
+  return posture;
 }
 
 function parsePostureFields(
   raw: Record<string, unknown>,
 ): KubernetesAgentPosture {
+  // Reported but unreadable fails closed (parseReportedAgentAiSettings).
+  const aiSettings: AgentAiSettings | undefined = parseReportedAgentAiSettings(
+    raw["aiSettings"],
+  );
+
   return {
     clusterIdentifier:
       typeof raw["clusterIdentifier"] === "string"
@@ -442,6 +485,8 @@ function parsePostureFields(
       typeof raw["allowNodeOperations"] === "boolean"
         ? raw["allowNodeOperations"]
         : undefined,
+    // Only when reported: an older agent's posture has no such key.
+    ...(aiSettings ? { aiSettings } : {}),
   };
 }
 

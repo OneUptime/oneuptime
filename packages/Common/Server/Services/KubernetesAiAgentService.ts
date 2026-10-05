@@ -3,7 +3,7 @@ import DatabaseService from "./DatabaseService";
 import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import KubernetesClusterService from "./KubernetesClusterService";
-import RunnerService from "./RunnerService";
+import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import UserService from "./UserService";
 import Model from "../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
@@ -31,6 +31,14 @@ import {
   parseKubernetesAgentPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../Types/ObjectID";
+import {
+  AGENT_AI_FIXES_LABELS,
+  AgentAiSettings,
+  AgentAiSettingsSource,
+  getAgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+  isSameAgentAiSettings,
+} from "../../Types/AI/AgentAiSettings";
 import crypto from "crypto";
 
 /*
@@ -178,6 +186,35 @@ export interface KubernetesAiAgentDefaultsApplied {
   remediationMode?: KubernetesAiRemediationMode | undefined;
 }
 
+/*
+ * What the agent's reported settings changed on its cluster: where the
+ * settings are set (see AgentAiSettingsSource), and each setting that
+ * moved, from and to. Nothing moved when neither is set — the cluster
+ * already had them, or they are set in OneUptime.
+ */
+export interface KubernetesAiAgentSettingsApplied {
+  source: AgentAiSettingsSource;
+  investigation?: { from: boolean; to: boolean } | undefined;
+  remediationMode?:
+    | {
+        from: KubernetesAiRemediationMode;
+        to: KubernetesAiRemediationMode;
+      }
+    | undefined;
+}
+
+/*
+ * How often a heartbeat re-checks that the cluster still holds the
+ * settings its agent reports (per agent, per process). The settings change
+ * only when the agent restarts with a new configuration, which registers
+ * again and applies them at once; this catches what moved them meanwhile —
+ * a Runner binding cleared by deleting the Runner, a write a server older
+ * than this check accepted during a rolling deploy.
+ */
+export const KUBERNETES_AI_AGENT_SETTINGS_CHECK_INTERVAL_MS: number =
+  10 * 60 * 1000;
+const MAX_AI_SETTINGS_CHECKS_REMEMBERED: number = 10_000;
+
 // What registration and heartbeat read off the agent's cluster.
 const CLUSTER_SELECT: Select<KubernetesCluster> = {
   _id: true,
@@ -186,6 +223,14 @@ const CLUSTER_SELECT: Select<KubernetesCluster> = {
   isAiInvestigationEnabled: true,
   aiRemediationMode: true,
   aiAccessConfiguredAt: true,
+  aiAccessRunnerId: true,
+};
+
+// What deciding "is this binding a Runner an operator chose?" reads.
+const BOUND_RUNNER_SELECT: Select<Runner> = {
+  _id: true,
+  name: true,
+  hostInfo: true,
 };
 
 /*
@@ -242,6 +287,9 @@ export class Service extends DatabaseService<Model> {
     string,
     number
   >();
+
+  // Agent id → when a heartbeat last re-checked its cluster's settings (ms).
+  private aiSettingsCheckedAt: Map<string, number> = new Map<string, number>();
 
   public constructor() {
     super(Model);
@@ -573,12 +621,25 @@ export class Service extends DatabaseService<Model> {
      * registration, or the agent never receives a key the row now demands
      * (see applyFirstConnectionDefaultsSafely). The feed items are safe
      * already — KubernetesClusterFeedService never throws.
+     *
+     * What AI may do: the agent's own settings when they decide here, else
+     * — an agent too old to report them, a cluster an operator configured
+     * or bound to a Runner — the first-connection defaults, which leave a
+     * configured cluster alone.
      */
-    const defaultsApplied: KubernetesAiAgentDefaultsApplied =
-      await this.applyFirstConnectionDefaultsSafely({
+    const settingsApplied: KubernetesAiAgentSettingsApplied | null =
+      await this.applyReportedAiSettingsSafely({
         cluster,
-        allowWrites: posture.allowWrites === true,
+        reported: posture.aiSettings,
       });
+
+    const defaultsApplied: KubernetesAiAgentDefaultsApplied =
+      settingsApplied && isAgentAiSettingsSourceAgent(settingsApplied.source)
+        ? { turnedOnInvestigation: false }
+        : await this.applyFirstConnectionDefaultsSafely({
+            cluster,
+            allowWrites: posture.allowWrites === true,
+          });
 
     if (admission === "created") {
       await this.writeConnectedFeedItem({
@@ -587,6 +648,12 @@ export class Service extends DatabaseService<Model> {
         posture,
         agentVersion,
         defaultsApplied,
+        settingsApplied,
+      });
+    } else if (Service.didApplyAiSettings(settingsApplied)) {
+      await this.writeAiSettingsFeedItem({
+        cluster,
+        applied: settingsApplied!,
       });
     } else if (Service.didApplyDefaults(defaultsApplied)) {
       await this.writeDefaultsFeedItem({ cluster, posture, defaultsApplied });
@@ -751,6 +818,427 @@ export class Service extends DatabaseService<Model> {
     defaults: KubernetesAiAgentDefaultsApplied,
   ): boolean {
     return defaults.turnedOnInvestigation || Boolean(defaults.remediationMode);
+  }
+
+  /*
+   * ------------------------------------------------------------------
+   * What AI may do, as the agent's configuration sets it
+   * ------------------------------------------------------------------
+   *
+   * The agent reports aiSettings (investigation, fixes, and whether its
+   * configuration names them) on registration and every heartbeat. When
+   * they decide (getAiSettingsSource), OneUptime writes them to the
+   * cluster's isAiInvestigationEnabled and aiRemediationMode — the columns
+   * every enforcement point already reads, from the enqueue chokepoint to
+   * the remediation toolkit — so what OneUptime allows is exactly what the
+   * agent's configuration allows, never more. KubernetesClusterService
+   * refuses an operator's change to either column while they decide.
+   */
+
+  /*
+   * Is the cluster bound to a Runner an operator chose — one that is not a
+   * kubernetes-agent row? AI then reaches the cluster through that Runner,
+   * not the agent, so the agent's configuration does not decide what AI may
+   * do there. A binding whose Runner is gone is none (the foreign key nulls
+   * it).
+   */
+  @CaptureSpan()
+  public async isBoundToAdvancedRunner(
+    cluster: Pick<KubernetesCluster, "aiAccessRunnerId" | "projectId">,
+  ): Promise<boolean> {
+    if (!cluster.aiAccessRunnerId) {
+      return false;
+    }
+
+    const runner: Runner | null = await RunnerService.findOneBy({
+      query: {
+        _id: cluster.aiAccessRunnerId.toString(),
+        ...(cluster.projectId ? { projectId: cluster.projectId } : {}),
+      },
+      select: BOUND_RUNNER_SELECT,
+      props: { isRoot: true },
+    });
+
+    return (
+      Boolean(runner) && !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
+    );
+  }
+
+  /*
+   * Where a cluster's investigation and fixes are set: by its agent's
+   * configuration, by its agent's defaults (only while nobody chose them on
+   * the AI agent page), or in OneUptime. See getAgentAiSettingsSource.
+   */
+  public getAiSettingsSource(data: {
+    // The agent's reported settings; undefined: no agent, or one too old.
+    reported: AgentAiSettings | undefined;
+    cluster: Pick<KubernetesCluster, "aiAccessConfiguredAt">;
+    isBoundToAdvancedRunner: boolean;
+  }): AgentAiSettingsSource {
+    return getAgentAiSettingsSource({
+      reported: data.reported,
+      isChosenInOneUptime: Boolean(data.cluster.aiAccessConfiguredAt),
+      isAgentTheExecutor: !data.isBoundToAdvancedRunner,
+    });
+  }
+
+  // What writing `reported` to the cluster would change, without writing it.
+  public getAiSettingsChanges(data: {
+    reported: AgentAiSettings;
+    cluster: Pick<
+      KubernetesCluster,
+      "isAiInvestigationEnabled" | "aiRemediationMode"
+    >;
+  }): Omit<KubernetesAiAgentSettingsApplied, "source"> {
+    const currentInvestigation: boolean =
+      data.cluster.isAiInvestigationEnabled === true;
+    const currentMode: KubernetesAiRemediationMode =
+      KubernetesClusterAiAccessService.normalizeRemediationMode(
+        data.cluster.aiRemediationMode,
+      );
+    const reportedMode: KubernetesAiRemediationMode =
+      KubernetesClusterAiAccessService.normalizeRemediationMode(
+        data.reported.fixes,
+      );
+
+    return {
+      ...(currentInvestigation !== data.reported.investigation
+        ? {
+            investigation: {
+              from: currentInvestigation,
+              to: data.reported.investigation,
+            },
+          }
+        : {}),
+      ...(currentMode !== reportedMode
+        ? { remediationMode: { from: currentMode, to: reportedMode } }
+        : {}),
+    };
+  }
+
+  public static didApplyAiSettings(
+    applied: KubernetesAiAgentSettingsApplied | null,
+  ): boolean {
+    return Boolean(applied?.investigation || applied?.remediationMode);
+  }
+
+  /*
+   * Write the agent's reported settings to its cluster when they decide
+   * there. A root write, so none of the operator gates or markers apply:
+   * aiAccessConfiguredAt stays as it is, because nobody chose these on the
+   * AI agent page. The agent's defaults are written only while the cluster
+   * is still unconfigured, in the same statement, so an operator's choice
+   * made a moment earlier is never overwritten. Returns null when the agent
+   * reported nothing.
+   */
+  @CaptureSpan()
+  public async applyReportedAiSettings(data: {
+    cluster: KubernetesCluster;
+    reported: AgentAiSettings | undefined;
+    // Read here when the caller has not.
+    isBoundToAdvancedRunner?: boolean | undefined;
+  }): Promise<KubernetesAiAgentSettingsApplied | null> {
+    const { cluster, reported } = data;
+
+    if (!reported || !cluster.id) {
+      return null;
+    }
+
+    const isBoundToAdvancedRunner: boolean =
+      data.isBoundToAdvancedRunner ??
+      (await this.isBoundToAdvancedRunner(cluster));
+
+    const source: AgentAiSettingsSource = this.getAiSettingsSource({
+      reported,
+      cluster,
+      isBoundToAdvancedRunner,
+    });
+
+    if (!isAgentAiSettingsSourceAgent(source)) {
+      return { source };
+    }
+
+    const changes: Omit<KubernetesAiAgentSettingsApplied, "source"> =
+      this.getAiSettingsChanges({ reported, cluster });
+
+    if (!changes.investigation && !changes.remediationMode) {
+      return { source };
+    }
+
+    const updated: number = await KubernetesClusterService.updateOneBy({
+      query: {
+        _id: cluster.id.toString(),
+        ...(cluster.projectId ? { projectId: cluster.projectId } : {}),
+        ...(source === "agent_defaults"
+          ? { aiAccessConfiguredAt: QueryHelper.isNull() }
+          : {}),
+      },
+      data: {
+        ...(changes.investigation
+          ? { isAiInvestigationEnabled: changes.investigation.to }
+          : {}),
+        ...(changes.remediationMode
+          ? { aiRemediationMode: changes.remediationMode.to }
+          : {}),
+      } as never,
+      props: { isRoot: true },
+    });
+
+    /*
+     * Nothing landed. For the defaults, the condition failed: an operator
+     * chose the settings a moment ago, so they are OneUptime's now. For a
+     * configuration, the cluster row is gone.
+     */
+    if (updated === 0) {
+      return { source: source === "agent_defaults" ? "oneuptime" : source };
+    }
+
+    // The cluster row now holds them; later reads see the new values.
+    if (changes.investigation) {
+      cluster.isAiInvestigationEnabled = changes.investigation.to;
+    }
+    if (changes.remediationMode) {
+      cluster.aiRemediationMode = changes.remediationMode.to;
+    }
+
+    logger.info(
+      `KubernetesAiAgent: applied the ${
+        source === "agent_configuration" ? "configured" : "default"
+      } AI settings of the Kubernetes AI agent to cluster ${cluster.id.toString()} (${[
+        changes.investigation
+          ? `investigation ${changes.investigation.to ? "on" : "off"}`
+          : "",
+        changes.remediationMode ? `fixes ${changes.remediationMode.to}` : "",
+      ]
+        .filter(Boolean)
+        .join(", ")}).`,
+    );
+
+    return { source, ...changes };
+  }
+
+  /*
+   * applyReportedAiSettings for a request whose real work is already
+   * written (see applyFirstConnectionDefaultsSafely for why it must never
+   * fail that request). A failure is logged and reported as "nothing
+   * applied", so no feed item claims a change that did not happen; the
+   * next registration, or the heartbeat's periodic check, applies them.
+   */
+  private async applyReportedAiSettingsSafely(data: {
+    cluster: KubernetesCluster;
+    reported: AgentAiSettings | undefined;
+  }): Promise<KubernetesAiAgentSettingsApplied | null> {
+    try {
+      return await this.applyReportedAiSettings(data);
+    } catch (error) {
+      logger.error(
+        `KubernetesAiAgent: could not apply the Kubernetes AI agent's AI settings to cluster ${data.cluster.id?.toString()}; the next registration or check tries again: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Apply the settings a cluster's agent last reported, now — for a cluster
+   * whose Runner binding was just cleared, which hands it back to its agent.
+   * Never throws.
+   */
+  @CaptureSpan()
+  public async applyStoredAiSettingsToCluster(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+  }): Promise<KubernetesAiAgentSettingsApplied | null> {
+    try {
+      const agent: Model | null = await this.findForCluster(data);
+
+      if (!agent) {
+        return null;
+      }
+
+      const reported: AgentAiSettings | undefined = parseKubernetesAgentPosture(
+        agent.posture,
+      )?.aiSettings;
+
+      if (!reported) {
+        return null;
+      }
+
+      const cluster: KubernetesCluster | null =
+        await this.findAgentCluster(agent);
+
+      if (!cluster) {
+        return null;
+      }
+
+      const applied: KubernetesAiAgentSettingsApplied | null =
+        await this.applyReportedAiSettings({ cluster, reported });
+
+      if (applied && Service.didApplyAiSettings(applied)) {
+        await this.writeAiSettingsFeedItem({ cluster, applied });
+      }
+
+      return applied;
+    } catch (error) {
+      logger.error(
+        `KubernetesAiAgent: could not apply the Kubernetes AI agent's AI settings to cluster ${data.kubernetesClusterId.toString()}: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Where each of these clusters' settings are set, for the update hook
+   * that refuses an operator's change while the agent decides. The agent
+   * rows are read here unless the caller already read them (one query per
+   * project), and a bound Runner only for a cluster whose agent reports
+   * settings at all — every other cluster reads "oneuptime" whatever it is
+   * bound to. Keyed by cluster id.
+   */
+  @CaptureSpan()
+  public async getAiSettingsSourcesForClusters(data: {
+    projectId: ObjectID;
+    clusters: Array<
+      Pick<
+        KubernetesCluster,
+        "id" | "_id" | "aiAccessRunnerId" | "aiAccessConfiguredAt"
+      >
+    >;
+    // The clusters' agent rows, keyed by cluster id, when already read.
+    agents?: Map<string, Model> | undefined;
+  }): Promise<Map<string, AgentAiSettingsSource>> {
+    const sources: Map<string, AgentAiSettingsSource> = new Map<
+      string,
+      AgentAiSettingsSource
+    >();
+
+    const clusterIds: Array<ObjectID> = data.clusters
+      .map(
+        (
+          cluster: Pick<KubernetesCluster, "id" | "_id">,
+        ): string | undefined => {
+          return cluster.id?.toString() || cluster._id?.toString();
+        },
+      )
+      .filter((id: string | undefined): id is string => {
+        return Boolean(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+
+    const agents: Map<string, Model> =
+      data.agents ||
+      (await this.findForClusters({
+        projectId: data.projectId,
+        kubernetesClusterIds: clusterIds,
+      }));
+
+    const runnerIds: Array<string> = Array.from(
+      new Set(
+        data.clusters
+          .filter(
+            (
+              cluster: Pick<
+                KubernetesCluster,
+                "id" | "_id" | "aiAccessRunnerId"
+              >,
+            ): boolean => {
+              const agent: Model | undefined = agents.get(
+                cluster.id?.toString() || cluster._id?.toString() || "",
+              );
+
+              return Boolean(
+                cluster.aiAccessRunnerId &&
+                  agent &&
+                  parseKubernetesAgentPosture(agent.posture)?.aiSettings,
+              );
+            },
+          )
+          .map(
+            (cluster: Pick<KubernetesCluster, "aiAccessRunnerId">): string => {
+              return cluster.aiAccessRunnerId?.toString() || "";
+            },
+          )
+          .filter(Boolean),
+      ),
+    );
+
+    const runners: Array<Runner> =
+      runnerIds.length > 0
+        ? await RunnerService.findBy({
+            query: {
+              _id: QueryHelper.any(runnerIds),
+              projectId: data.projectId,
+            },
+            select: BOUND_RUNNER_SELECT,
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: { isRoot: true },
+          })
+        : [];
+
+    const advancedRunnerIds: Set<string> = new Set<string>(
+      runners
+        .filter((runner: Runner): boolean => {
+          return !RunnerServiceClass.isKubernetesAgentRunnerRow(runner);
+        })
+        .map((runner: Runner): string => {
+          return runner.id?.toString() || runner._id?.toString() || "";
+        }),
+    );
+
+    for (const cluster of data.clusters) {
+      const clusterId: string =
+        cluster.id?.toString() || cluster._id?.toString() || "";
+
+      if (!clusterId) {
+        continue;
+      }
+
+      const agent: Model | undefined = agents.get(clusterId);
+
+      sources.set(
+        clusterId,
+        this.getAiSettingsSource({
+          reported: agent
+            ? parseKubernetesAgentPosture(agent.posture)?.aiSettings
+            : undefined,
+          cluster,
+          isBoundToAdvancedRunner: Boolean(
+            cluster.aiAccessRunnerId &&
+              advancedRunnerIds.has(cluster.aiAccessRunnerId.toString()),
+          ),
+        }),
+      );
+    }
+
+    return sources;
+  }
+
+  /*
+   * Whether a heartbeat should re-check its cluster's settings: at most once
+   * per KUBERNETES_AI_AGENT_SETTINGS_CHECK_INTERVAL_MS per agent in this
+   * process, stamped before the check runs.
+   */
+  private isAiSettingsCheckDue(agentId: string, now: Date): boolean {
+    const lastCheckedAt: number | undefined =
+      this.aiSettingsCheckedAt.get(agentId);
+
+    if (
+      lastCheckedAt !== undefined &&
+      now.getTime() - lastCheckedAt <
+        KUBERNETES_AI_AGENT_SETTINGS_CHECK_INTERVAL_MS
+    ) {
+      return false;
+    }
+
+    if (this.aiSettingsCheckedAt.size >= MAX_AI_SETTINGS_CHECKS_REMEMBERED) {
+      this.aiSettingsCheckedAt.clear();
+    }
+
+    this.aiSettingsCheckedAt.set(agentId, now.getTime());
+
+    return true;
   }
 
   /*
@@ -1177,6 +1665,50 @@ export class Service extends DatabaseService<Model> {
       );
     });
 
+    /*
+     * What AI may do, as the agent reports it: applied when it differs from
+     * what the agent reported last (an agent upgraded under a running
+     * server, a report this server could not store before), and re-checked
+     * every KUBERNETES_AI_AGENT_SETTINGS_CHECK_INTERVAL_MS in case something
+     * else moved the cluster's settings. A new configuration restarts the
+     * agent, which registers again and applies it at once.
+     */
+    const reportedSettings: AgentAiSettings | undefined = posture?.aiSettings;
+
+    if (
+      reportedSettings &&
+      (!isSameAgentAiSettings(reportedSettings, storedPosture?.aiSettings) ||
+        this.isAiSettingsCheckDue(
+          agentId.toString(),
+          OneUptimeDate.getCurrentDate(),
+        ))
+    ) {
+      cluster = cluster || (await this.findAgentClusterSafely(data.agent));
+
+      if (cluster) {
+        const settingsApplied: KubernetesAiAgentSettingsApplied | null =
+          await this.applyReportedAiSettingsSafely({
+            cluster,
+            reported: reportedSettings,
+          });
+
+        if (Service.didApplyAiSettings(settingsApplied)) {
+          await this.writeAiSettingsFeedItem({
+            cluster,
+            applied: settingsApplied!,
+          });
+        }
+
+        // The agent decides; the first-connection defaults never apply.
+        if (
+          settingsApplied &&
+          isAgentAiSettingsSourceAgent(settingsApplied.source)
+        ) {
+          return;
+        }
+      }
+    }
+
     const writesAppeared: boolean =
       posture?.allowWrites === true && storedPosture?.allowWrites !== true;
 
@@ -1200,6 +1732,24 @@ export class Service extends DatabaseService<Model> {
 
     if (Service.didApplyDefaults(defaultsApplied)) {
       await this.writeDefaultsFeedItem({ cluster, posture, defaultsApplied });
+    }
+  }
+
+  /*
+   * findAgentCluster for the heartbeat's settings check, whose liveness is
+   * already written: a failed read is logged and reads as "no cluster", so
+   * the check is skipped this time rather than failing the heartbeat.
+   */
+  private async findAgentClusterSafely(
+    agent: Pick<Model, "kubernetesClusterId" | "projectId">,
+  ): Promise<KubernetesCluster | null> {
+    try {
+      return await this.findAgentCluster(agent);
+    } catch (error) {
+      logger.error(
+        `KubernetesAiAgent: could not read the cluster of a Kubernetes AI agent to check its AI settings: ${error}`,
+      );
+      return null;
     }
   }
 
@@ -1553,7 +2103,17 @@ export class Service extends DatabaseService<Model> {
     posture: KubernetesAgentPosture;
     agentVersion?: string | undefined;
     defaultsApplied: KubernetesAiAgentDefaultsApplied;
+    settingsApplied?: KubernetesAiAgentSettingsApplied | null | undefined;
   }): Promise<void> {
+    const isSetByAgent: boolean = Boolean(
+      data.settingsApplied &&
+        isAgentAiSettingsSourceAgent(data.settingsApplied.source),
+    );
+
+    /*
+     * applyReportedAiSettings already wrote the agent's settings to the
+     * cluster object it was given, so this reads what is in effect now.
+     */
     const isInvestigationOn: boolean =
       data.cluster.isAiInvestigationEnabled === true ||
       data.defaultsApplied.turnedOnInvestigation;
@@ -1562,10 +2122,29 @@ export class Service extends DatabaseService<Model> {
       `🤖 The ${KUBERNETES_AI_AGENT_DISPLAY_NAME} connected (${Service.describeWriteAccess(
         data.posture,
       )}).`,
-      isInvestigationOn
-        ? "AI can now use it to investigate this cluster."
-        : "Investigating with kubectl is off for this cluster; turn it on on the cluster's AI agent page.",
     ];
+
+    if (isSetByAgent) {
+      sentences.push(
+        `What AI may do here follows the agent's ${
+          data.settingsApplied!.source === "agent_configuration"
+            ? "configuration"
+            : "defaults"
+        }: investigation ${isInvestigationOn ? "on" : "off"}, fixes ${
+          AGENT_AI_FIXES_LABELS[
+            KubernetesClusterAiAccessService.normalizeRemediationMode(
+              data.cluster.aiRemediationMode,
+            )
+          ]
+        }. Change it with aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart; the cluster's AI agent page shows the command.`,
+      );
+    } else {
+      sentences.push(
+        isInvestigationOn
+          ? "AI can now use it to investigate this cluster."
+          : "Investigating with kubectl is off for this cluster; turn it on on the cluster's AI agent page.",
+      );
+    }
 
     if (data.defaultsApplied.remediationMode) {
       sentences.push(
@@ -1587,6 +2166,56 @@ export class Service extends DatabaseService<Model> {
         `**kubectl**: ${data.posture.kubectlVersion || "not detected"}`,
         `**Agent chart**: ${data.posture.agentChartVersion || "unknown"}`,
       ].join("\n\n"),
+    });
+  }
+
+  /*
+   * The agent's settings changed what AI may do on the cluster — after an
+   * upgrade of the chart with new aiAgent.investigation / aiAgent.fixes, or
+   * when its Runner binding was cleared. A setting never changes silently:
+   * the item says what moved, from what to what, and where it is set.
+   */
+  public async writeAiSettingsFeedItem(data: {
+    cluster: KubernetesCluster;
+    applied: KubernetesAiAgentSettingsApplied;
+  }): Promise<void> {
+    const changes: Array<string> = [];
+
+    if (data.applied.investigation) {
+      changes.push(
+        `investigation ${data.applied.investigation.from ? "on" : "off"} → ${
+          data.applied.investigation.to ? "on" : "off"
+        }`,
+      );
+    }
+
+    if (data.applied.remediationMode) {
+      changes.push(
+        `fixes ${AGENT_AI_FIXES_LABELS[data.applied.remediationMode.from]} → ${
+          AGENT_AI_FIXES_LABELS[data.applied.remediationMode.to]
+        }`,
+      );
+    }
+
+    if (changes.length === 0 || !data.cluster.id || !data.cluster.projectId) {
+      return;
+    }
+
+    await KubernetesClusterFeedService.createKubernetesClusterFeedItem({
+      kubernetesClusterId: data.cluster.id,
+      projectId: data.cluster.projectId,
+      kubernetesClusterFeedEventType:
+        KubernetesClusterFeedEventType.KubernetesClusterUpdated,
+      displayColor: Blue500,
+      feedInfoInMarkdown: `🤖 The ${KUBERNETES_AI_AGENT_DISPLAY_NAME}'s ${
+        data.applied.source === "agent_configuration"
+          ? "configuration"
+          : "defaults"
+      } changed what AI may do on this cluster: ${changes.join("; ")}.`,
+      moreInformationInMarkdown:
+        data.applied.source === "agent_configuration"
+          ? "Set with **aiAgent.investigation** and **aiAgent.fixes** on the Kubernetes agent chart. The cluster's AI agent page shows them, with the command that changes them."
+          : "The Kubernetes agent chart sets neither **aiAgent.investigation** nor **aiAgent.fixes**, so the agent's defaults apply: investigation on, and fixes Ask for approval when the chart allows changes, else Off. Set them on the chart to choose; the cluster's AI agent page shows the command.",
     });
   }
 

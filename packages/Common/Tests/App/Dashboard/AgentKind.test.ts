@@ -53,6 +53,7 @@ const RELEASED_WITH_ONEUPTIME: Array<AgentKind> = [
   AgentKind.DockerAgent,
   AgentKind.PodmanAgent,
   AgentKind.Runner,
+  AgentKind.ResourceAiAgent,
 ];
 
 const PINNED_COLLECTOR: Array<AgentKind> = [
@@ -259,6 +260,36 @@ describe("the Docker and Podman agents report the OneUptime version their image 
       expect(dockerfile).toContain("ENV APP_VERSION=${APP_VERSION}");
     },
   );
+});
+
+/*
+ * The resource AI agent (oneuptime/resource-ai-agent, every resource's AI
+ * agent page) reports the APP_VERSION its image is built with, and nothing
+ * without one — so it has no placeholder to read as "not reported".
+ */
+describe("the resource AI agent reports the OneUptime version its image was built from", () => {
+  test("its image sets APP_VERSION, and the agent reports it", () => {
+    const dockerfile: string = readRepoFile(
+      "agents",
+      "ResourceAIAgent",
+      "Dockerfile.tpl",
+    );
+    expect(dockerfile).toContain("ARG APP_VERSION");
+    expect(dockerfile).toContain("ENV APP_VERSION=${APP_VERSION}");
+    expect(readRepoFile("agents", "ResourceAIAgent", "Config.ts")).toContain(
+      'readTrimmed(env, "APP_VERSION")',
+    );
+  });
+
+  test("an older one is outdated, and has no placeholder version", () => {
+    expect(stateOf(AgentKind.ResourceAiAgent, "14.0.10")).toEqual({
+      status: AgentVersionStatus.Outdated,
+      latestVersion: SERVER_VERSION,
+    });
+    expect(
+      AGENT_KINDS[AgentKind.ResourceAiAgent].placeholderVersions,
+    ).toBeUndefined();
+  });
 });
 
 describe("pinned-collector agents report exactly the pin this release ships", () => {

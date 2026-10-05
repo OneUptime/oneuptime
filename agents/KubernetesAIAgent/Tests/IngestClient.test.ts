@@ -29,6 +29,7 @@ const POSTURE: AgentPosture = {
   podNamespace: "oneuptime-agent",
   kubectlVersion: "v1.36.4",
   agentChartVersion: "14.0.8",
+  aiSettings: { investigation: true, fixes: "Disabled", isConfigured: false },
 };
 
 const CREDENTIALS: { agentId: string; agentKey: string } = {

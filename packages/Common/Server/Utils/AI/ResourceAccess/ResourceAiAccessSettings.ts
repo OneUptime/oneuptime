@@ -1,4 +1,5 @@
 import DatabaseService from "../../../Services/DatabaseService";
+import ResourceAiAgentService from "../../../Services/ResourceAiAgentService";
 import UserService from "../../../Services/UserService";
 import CreateBy from "../../../Types/Database/CreateBy";
 import { OnUpdate } from "../../../Types/Database/Hooks";
@@ -31,6 +32,12 @@ import { ResourceAiRemediationMode } from "../../../../Types/ResourceAiAgent/Res
 import ResourceCommandPolicy, {
   RESOURCE_ALLOWLIST_MAX_PATTERNS,
 } from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import {
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "../../../../Types/AI/AgentAiSettings";
 
 /*
  * The rules for an operator's write of a resource's OneUptime AI access
@@ -108,6 +115,46 @@ export interface ResourceAiAccessSettingsSnapshot {
   isAiInvestigationEnabled: boolean;
   aiRemediationMode: ResourceAiRemediationMode;
   aiCommandAllowlist: Array<string>;
+  /*
+   * When an operator first chose AI settings for the resource (null:
+   * never). The agent's defaults decide only while it is null.
+   */
+  aiAccessConfiguredAt?: Date | null | undefined;
+  /*
+   * Where investigation and fixes are set, as the write found it: while the
+   * agent sets them, an operator's change to either is refused, and the
+   * write marks nothing configured (it chose neither).
+   */
+  aiSettingsSource?: AgentAiSettingsSource | undefined;
+}
+
+/*
+ * The two settings a resource's AI agent sets once its configuration (or,
+ * on a resource nobody configured, its defaults) decides them. The
+ * allowlist stays OneUptime's.
+ */
+export const AGENT_SET_RESOURCE_AI_ACCESS_KEYS: ReadonlyArray<string> = [
+  "isAiInvestigationEnabled",
+  "aiRemediationMode",
+];
+
+/*
+ * The refusal for a change to a setting a resource's AI agent sets: where
+ * it is set instead, and where the instructions are.
+ */
+export function getAgentSetResourceAiAccessRefusal(data: {
+  resourceType: AiResourceType;
+  source: AgentAiSettingsSource;
+}): string {
+  const name: string = getResourceSentenceName(data.resourceType);
+  const agentName: string =
+    AI_RESOURCE_TYPE_INFO[data.resourceType]?.agentDisplayName || "AI agent";
+
+  return `What OneUptime AI may do on this ${name} is set by its ${agentName}${
+    data.source === "agent_defaults"
+      ? ` (its defaults: neither ${AI_INVESTIGATION_ENV} nor ${AI_FIXES_ENV} is set where it runs)`
+      : "'s configuration"
+  }, so AI investigation and fixes cannot be changed here. Set ${AI_INVESTIGATION_ENV} and ${AI_FIXES_ENV} where the agent runs instead; the ${name}'s AI agent page shows how for each option.`;
 }
 
 /*
@@ -159,6 +206,7 @@ const SETTINGS_SELECT: Record<string, boolean> = {
   isAiInvestigationEnabled: true,
   aiRemediationMode: true,
   aiCommandAllowlist: true,
+  aiAccessConfiguredAt: true,
 };
 
 // Undefined is an omitted property; null is an explicit clear, so a write.
@@ -544,6 +592,28 @@ export default class ResourceAiAccessSettings {
       updateBy: data.updateBy,
     });
 
+    /*
+     * Investigation and fixes are the agent's while it sets them: a change
+     * to either is refused for everyone but the server itself, master
+     * admins included — it is where the setting lives, not who may change
+     * it. Re-posting the value the resource has is no change and passes.
+     */
+    await ResourceAiAccessSettings.readAiSettingsSources({
+      resourceType: data.resourceType,
+      settings: previousResourceAiAccessSettings,
+    });
+
+    const agentSetRefusal: string | null =
+      ResourceAiAccessSettings.getAgentSetSettingsRefusal({
+        resourceType: data.resourceType,
+        data: updateData,
+        current: Object.values(previousResourceAiAccessSettings),
+      });
+
+    if (agentSetRefusal) {
+      throw new BadDataException(agentSetRefusal);
+    }
+
     if (!data.updateBy.props.isMasterAdmin) {
       const refusal: string | null =
         ResourceAiAccessSettings.getLooseningRefusal({
@@ -562,6 +632,105 @@ export default class ResourceAiAccessSettings {
       resourceType: data.resourceType,
       previousResourceAiAccessSettings,
     };
+  }
+
+  /*
+   * Fill in aiSettingsSource on each snapshot: one read of the resources'
+   * agent rows per project. Fails closed: when the sources cannot be read,
+   * every resource is treated as set by its agent's configuration, so a
+   * change to investigation or fixes is refused rather than slipping past
+   * the agent.
+   */
+  public static async readAiSettingsSources(data: {
+    resourceType: AiResourceType;
+    settings: Record<string, ResourceAiAccessSettingsSnapshot>;
+  }): Promise<void> {
+    const byProject: Map<string, Array<string>> = new Map<
+      string,
+      Array<string>
+    >();
+
+    for (const [resourceId, snapshot] of Object.entries(data.settings)) {
+      const projectId: string = snapshot.projectId?.toString() || "";
+      const ids: Array<string> = byProject.get(projectId) || [];
+      ids.push(resourceId);
+      byProject.set(projectId, ids);
+    }
+
+    for (const [projectId, resourceIds] of byProject.entries()) {
+      let sources: Map<string, AgentAiSettingsSource> | null = null;
+
+      if (projectId) {
+        try {
+          sources =
+            await ResourceAiAgentService.getAiSettingsSourcesForResources({
+              projectId: new ObjectID(projectId),
+              resourceType: data.resourceType,
+              resources: resourceIds.map(
+                (
+                  resourceId: string,
+                ): {
+                  id: ObjectID;
+                  aiAccessConfiguredAt: Date | null | undefined;
+                } => {
+                  return {
+                    id: new ObjectID(resourceId),
+                    aiAccessConfiguredAt:
+                      data.settings[resourceId]!.aiAccessConfiguredAt,
+                  };
+                },
+              ),
+            });
+        } catch (error) {
+          logger.error(
+            `ResourceAiAccessSettings: could not read where the AI settings of project ${projectId}'s resources are set; treating them as set by their agents: ${error}`,
+          );
+        }
+      }
+
+      for (const resourceId of resourceIds) {
+        data.settings[resourceId]!.aiSettingsSource = sources
+          ? sources.get(resourceId.toLowerCase()) || "oneuptime"
+          : "agent_configuration";
+      }
+    }
+  }
+
+  /*
+   * Why a write may not change investigation or fixes on one of these
+   * resources (their agent sets them), or null. A write that posts the
+   * value a resource already has changes nothing and passes.
+   */
+  public static getAgentSetSettingsRefusal(data: {
+    resourceType: AiResourceType;
+    data: JSONObject;
+    current: Array<ResourceAiAccessSettingsSnapshot>;
+  }): string | null {
+    const investigation: unknown = data.data["isAiInvestigationEnabled"];
+    const mode: unknown = data.data["aiRemediationMode"];
+
+    for (const snapshot of data.current) {
+      if (!isAgentAiSettingsSourceAgent(snapshot.aiSettingsSource)) {
+        continue;
+      }
+
+      const changesInvestigation: boolean =
+        investigation !== undefined &&
+        (investigation === true) !== snapshot.isAiInvestigationEnabled;
+      const changesMode: boolean =
+        mode !== undefined &&
+        ResourceAiAccessSettings.readStoredMode(mode) !==
+          snapshot.aiRemediationMode;
+
+      if (changesInvestigation || changesMode) {
+        return getAgentSetResourceAiAccessRefusal({
+          resourceType: data.resourceType,
+          source: snapshot.aiSettingsSource!,
+        });
+      }
+    }
+
+    return null;
   }
 
   /*
@@ -677,6 +846,8 @@ export default class ResourceAiAccessSettings {
         aiCommandAllowlist: ResourceAiAccessSettings.readStoredAllowlist(
           record["aiCommandAllowlist"],
         ),
+        aiAccessConfiguredAt:
+          (record["aiAccessConfiguredAt"] as Date | null | undefined) || null,
       };
     }
 
@@ -739,9 +910,21 @@ export default class ResourceAiAccessSettings {
       logger.error(error);
     });
 
+    /*
+     * A resource whose agent set investigation and fixes when the write came
+     * in had neither chosen by it (they are refused), so the write does not
+     * mark it configured: the agent's defaults keep deciding.
+     */
     await ResourceAiAccessSettings.markConfigured({
       service: data.service,
-      resourceIds: data.updatedItemIds,
+      resourceIds: data.updatedItemIds.filter(
+        (resourceId: ObjectID): boolean => {
+          return !isAgentAiSettingsSourceAgent(
+            carryForward.previousResourceAiAccessSettings[resourceId.toString()]
+              ?.aiSettingsSource,
+          );
+        },
+      ),
     });
   }
 

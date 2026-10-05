@@ -1,6 +1,8 @@
 {{- /*
 Kubernetes AI agent: one small pod that runs kubectl on behalf of OneUptime
-AI, read-only unless aiAgent.remediation.enabled. On by default. It is not a
+AI, read-only unless aiAgent.fixes is a level other than off (or, on a
+release that does not set it, aiAgent.remediation.enabled). On by default.
+It is not a
 OneUptime Runner: it registers through the server's
 /kubernetes-ai-agent-ingest API and shows on the cluster's AI → Agent page,
 never on the Runners page. It replaces the in-cluster Runner that
@@ -55,7 +57,9 @@ to take, so they are not on the list.
 {{- $_ := set $reservedEnv "ONEUPTIME_API_KEY" "the chart sets it from oneuptime.apiKey" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_CLUSTER_NAME" "the chart sets it from clusterName" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION" "the chart sets it to its own version" -}}
-{{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_WRITES" "the chart sets it from aiAgent.remediation.enabled so it always matches the RBAC it grants; change that value instead" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_WRITES" "the chart sets it from aiAgent.fixes (or aiAgent.remediation.enabled) so it always matches the RBAC it grants; change that value instead" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_AI_INVESTIGATION" "the chart sets it from aiAgent.investigation; change that value instead" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_AI_FIXES" "the chart sets it from aiAgent.fixes so it always matches the RBAC it grants; change that value instead" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_WRITE_NAMESPACES" "the chart sets it from aiAgent.remediation.namespaces so it always matches the RoleBindings it renders; change that value instead" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS" "the chart sets it from aiAgent.remediation.nodeOperations (false whenever aiAgent.remediation.enabled is off) so it always matches the node role it renders; change those values instead" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_AI_AGENT_POD_NAMESPACE" "the chart sets it to the agent pod's own namespace through the downward API" -}}
@@ -479,10 +483,20 @@ spec:
               value: {{ .Chart.Version | quote }}
             # Matches the RBAC above. The agent refuses any write locally when
             # this is false, before kubectl runs, with a reason that names
-            # aiAgent.remediation.enabled rather than the API server's
-            # Forbidden.
+            # aiAgent.fixes rather than the API server's Forbidden.
             - name: ONEUPTIME_KUBECTL_ALLOW_WRITES
               value: {{ $allowWrites | quote }}
+            {{- if $settings.aiSettingsConfigured }}
+            # What OneUptime AI may do on this cluster (aiAgent.investigation,
+            # aiAgent.fixes). The agent reports them, OneUptime applies them,
+            # and the cluster's AI → Agent page shows them without a way to
+            # change them there. Left out when the release names neither, so
+            # the settings chosen on that page stay as they are.
+            - name: ONEUPTIME_AI_INVESTIGATION
+              value: {{ $settings.investigation | quote }}
+            - name: ONEUPTIME_AI_FIXES
+              value: {{ $settings.fixes | quote }}
+            {{- end }}
             # The namespaces the write role is bound in (comma-separated;
             # empty = cluster-wide). The agent refuses a write outside them
             # before it spawns kubectl: still after a human approved it, but

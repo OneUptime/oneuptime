@@ -8,6 +8,7 @@ import ResourceAiAccessSettings, {
   ResourceAiAccessWriteCarryForward,
 } from "../../../../../Server/Utils/AI/ResourceAccess/ResourceAiAccessSettings";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import ResourceAiAgentService from "../../../../../Server/Services/ResourceAiAgentService";
 import UserService from "../../../../../Server/Services/UserService";
 import { OnUpdate } from "../../../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../../../Server/Types/Database/UpdateBy";
@@ -772,6 +773,19 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
 
   beforeEach(() => {
     service = fakeService([row()]);
+    /*
+     * Investigation and fixes chosen in OneUptime: no agent reports them
+     * (one older than these settings, or none yet). What happens while an
+     * agent sets them is ResourceAiSettingsSetByAgent.test.ts's business;
+     * the last tests here pin only that it comes before who may loosen.
+     */
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockResolvedValue(new Map());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   function check(
@@ -842,6 +856,9 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
           isAiInvestigationEnabled: true,
           aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
           aiCommandAllowlist: ["docker stop web"],
+          // Where they are set, read with them: chosen in OneUptime here.
+          aiAccessConfiguredAt: null,
+          aiSettingsSource: "oneuptime",
         },
       },
     });
@@ -974,6 +991,70 @@ describe("ResourceAiAccessSettings.checkUpdate", () => {
         propsWith(Permission.SettingsMember),
       ),
     ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  it("set by the agent: a change is refused for everyone, master admins too, before who may loosen", async () => {
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockResolvedValue(
+        new Map([
+          [RESOURCE_ID.toString().toLowerCase(), "agent_configuration"],
+        ]),
+      );
+
+    for (const props of [
+      propsWith(Permission.SettingsMember),
+      propsWith(Permission.ProjectOwner),
+      { isMasterAdmin: true, userId: ObjectID.generate() },
+    ]) {
+      await expect(
+        check(
+          { aiRemediationMode: ResourceAiRemediationMode.Automatic },
+          props,
+        ),
+      ).rejects.toThrow(BadDataException);
+    }
+    await expect(
+      check(
+        { aiRemediationMode: ResourceAiRemediationMode.Automatic },
+        propsWith(Permission.SettingsMember),
+      ),
+    ).rejects.toThrow(/ONEUPTIME_AI_FIXES/);
+    expect(service.updateBy).not.toHaveBeenCalled();
+  });
+
+  it("set by the agent: re-posting what the resource has passes", async () => {
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockResolvedValue(
+        new Map([[RESOURCE_ID.toString().toLowerCase(), "agent_defaults"]]),
+      );
+
+    await expect(
+      check(
+        {
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: ResourceAiRemediationMode.Disabled,
+        },
+        propsWith(Permission.SettingsMember),
+      ),
+    ).resolves.not.toBeNull();
+  });
+
+  it("where the settings come from cannot be read: a change is refused, not let past the agent", async () => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      // expected: the read failed
+    });
+    jest
+      .spyOn(ResourceAiAgentService, "getAiSettingsSourcesForResources")
+      .mockRejectedValue(new Error("connection refused"));
+
+    await expect(
+      check(
+        { isAiInvestigationEnabled: true },
+        { isMasterAdmin: true, userId: ObjectID.generate() },
+      ),
+    ).rejects.toThrow(BadDataException);
   });
 });
 

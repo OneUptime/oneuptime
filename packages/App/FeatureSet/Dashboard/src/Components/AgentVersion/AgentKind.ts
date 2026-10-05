@@ -56,6 +56,13 @@ export enum AgentKind {
   ServerlessSdk = "serverless-sdk",
   // The OpenTelemetry browser or mobile SDK in the customer's app: RUM.
   RumSdk = "rum-sdk",
+  /*
+   * agents/ResourceAIAgent, run as oneuptime/resource-ai-agent beside a
+   * resource's collector: the AI agent of a Docker or Podman host, a Swarm,
+   * a Proxmox cluster, a vCenter, a Ceph cluster, a database server or a
+   * host (its AI agent page).
+   */
+  ResourceAiAgent = "resource-ai-agent",
 }
 
 export enum AgentLatestVersionSource {
@@ -178,6 +185,14 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   [AgentKind.RumSdk]: {
     name: "OpenTelemetry SDK",
     latestVersionSource: AgentLatestVersionSource.None,
+  },
+  /*
+   * Built and released with OneUptime: it reports the APP_VERSION baked into
+   * its image, and nothing when it has none.
+   */
+  [AgentKind.ResourceAiAgent]: {
+    name: "OneUptime AI Agent",
+    latestVersionSource: AgentLatestVersionSource.OneUptimeRelease,
   },
 };
 

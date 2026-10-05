@@ -188,6 +188,59 @@ describe("the cluster Overview's AI agent card", () => {
     ).toHaveTextContent("AI may run read-only kubectl on this cluster");
   });
 
+  /*
+   * The Kubernetes AI agent's version, drawn with the shared AgentVersion
+   * (the chart's kind of agent, so an outdated one gets the chart upgrade),
+   * where the AI agent page draws it: right after when it was last seen.
+   */
+  test("draws the agent's version with AgentVersion, after when it was last seen", async () => {
+    serveStatus(
+      makeStatus({
+        aiAgent: {
+          id: "99999999-0000-4000-8000-000000000009",
+          isOnline: true,
+          connectionStatus: "connected",
+          lastAliveAt: new Date().toISOString(),
+          agentVersion: "14.1.0",
+        },
+      }),
+    );
+    renderCard();
+    await findBadge("connection");
+
+    const details: HTMLElement = screen.getByTestId(
+      `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`,
+    );
+    expect(details.textContent).toMatch(/^last seen .+ · agent 14\.1\.0$/);
+    expect(
+      screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`),
+    ).toHaveTextContent("agent 14.1.0");
+  });
+
+  test("an agent that never said its version: no version, and no empty place", async () => {
+    serveStatus(
+      makeStatus({
+        aiAgent: {
+          id: "99999999-0000-4000-8000-000000000009",
+          isOnline: true,
+          connectionStatus: "connected",
+          lastAliveAt: new Date().toISOString(),
+        },
+      }),
+    );
+    renderCard();
+    await findBadge("connection");
+
+    expect(
+      screen.queryByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`,
+      ).textContent,
+    ).toMatch(/^last seen [^·]+$/);
+  });
+
   test("is described as the cluster's AI agent page is", async () => {
     serveStatus(makeStatus());
     renderCard();

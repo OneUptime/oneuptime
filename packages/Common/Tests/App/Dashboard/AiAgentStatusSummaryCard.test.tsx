@@ -6,6 +6,7 @@ import AiAgentStatusSummaryCard, {
   AI_AGENT_STATUS_SUMMARY_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentStatusSummaryCard";
 import {
+  AI_AGENT_VERSION_DETAIL,
   AiAgentStatusSummary,
   getAiAgentConnectionBadge,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentStatusSummary";
@@ -29,7 +30,11 @@ function makeSummary(
   return {
     connection: getAiAgentConnectionBadge("connected"),
     connectionSentence: "The Docker AI agent is connected.",
-    connectionDetails: ["last seen a minute ago", "agent v14.1.0", "Read-only"],
+    connectionDetails: [
+      "last seen a minute ago",
+      AI_AGENT_VERSION_DETAIL,
+      "Read-only",
+    ],
     investigation: { text: "On", tone: "on" },
     investigationSentence:
       "AI may run read-only docker commands on this Docker host: ps, inspect, logs, stats, events. They never change anything.",
@@ -44,6 +49,7 @@ function makeSummary(
 function renderCard(props: {
   summary: AiAgentStatusSummary | null;
   isLoading?: boolean;
+  versionElement?: React.ReactElement | undefined;
 }): void {
   render(
     <AiAgentStatusSummaryCard
@@ -51,9 +57,15 @@ function renderCard(props: {
       agentPageRoute={ROUTE}
       summary={props.summary}
       isLoading={props.isLoading ?? false}
+      versionElement={props.versionElement}
     />,
   );
 }
+
+// What the callers hand in: the shared AgentVersion, here a stand-in.
+const AGENT_VERSION: React.ReactElement = (
+  <span data-testid="the-agent-version">14.1.0</span>
+);
 
 function card(): HTMLElement {
   return screen.getByTestId(AI_AGENT_STATUS_SUMMARY_TEST_ID);
@@ -176,17 +188,50 @@ describe("the three rows", () => {
     expect(sentence("fixes")).toBe(makeSummary().fixesSentence);
   });
 
-  test("the agent's meta line under the Connection row, joined like the AI agent page's", () => {
-    renderCard({ summary: makeSummary() });
+  test("the agent's meta line under the Connection row, joined like the AI agent page's, the version drawn where the summary keeps it", () => {
+    renderCard({ summary: makeSummary(), versionElement: AGENT_VERSION });
 
     const details: HTMLElement = screen.getByTestId(
       `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`,
     );
 
     expect(details).toHaveTextContent(
-      "last seen a minute ago · agent v14.1.0 · Read-only",
+      "last seen a minute ago · agent 14.1.0 · Read-only",
     );
     expect(row("connection")).toContainElement(details);
+    // The caller's element itself, in its place.
+    const version: HTMLElement = within(details).getByTestId(
+      `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`,
+    );
+    expect(version).toContainElement(screen.getByTestId("the-agent-version"));
+    expect(details.textContent).not.toContain(AI_AGENT_VERSION_DETAIL);
+    // A div: AgentVersion's upgrade dialog cannot sit inside a <p>.
+    expect(details.tagName).toBe("DIV");
+  });
+
+  test("no version to draw: its place is left out, with no stray separator", () => {
+    renderCard({ summary: makeSummary() });
+
+    const details: HTMLElement = screen.getByTestId(
+      `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`,
+    );
+
+    expect(details.textContent).toBe("last seen a minute ago · Read-only");
+    expect(
+      screen.queryByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`),
+    ).not.toBeInTheDocument();
+  });
+
+  test("only the version's place: no meta line without a version to draw", () => {
+    renderCard({
+      summary: makeSummary({ connectionDetails: [AI_AGENT_VERSION_DETAIL] }),
+    });
+
+    expect(
+      screen.queryByTestId(
+        `${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`,
+      ),
+    ).not.toBeInTheDocument();
   });
 
   test("no meta line before an agent ever registered", () => {
@@ -219,18 +264,21 @@ describe("the three rows", () => {
     expect(badge("connection").className).toContain("bg-red-50");
   });
 
-  test.each<[string, "off" | "on" | "automatic" | "bypass"]>([
-    ["Off", "off"],
-    ["Ask for approval", "on"],
-    ["Automatic", "automatic"],
-    ["Bypass approval", "bypass"],
+  // Every on mode reads on, in green: what a mode does is in its name.
+  test.each<[string, "off" | "on", string]>([
+    ["Off", "off", "bg-gray-50"],
+    ["Ask for approval", "on", "bg-emerald-50"],
+    ["Automatic", "on", "bg-emerald-50"],
+    ["Bypass approval", "on", "bg-emerald-50"],
   ])(
     "fixes %s in the %s tone",
-    (text: string, tone: "off" | "on" | "automatic" | "bypass") => {
+    (text: string, tone: "off" | "on", background: string) => {
       renderCard({ summary: makeSummary({ fixes: { text, tone } }) });
 
       expect(badge("fixes")).toHaveTextContent(text);
       expect(badge("fixes")).toHaveAttribute("data-tone", tone);
+      expect(badge("fixes").className).toContain(background);
+      expect(badge("fixes").className).not.toMatch(/amber|indigo|red-/);
     },
   );
 

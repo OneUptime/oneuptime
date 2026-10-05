@@ -202,9 +202,9 @@ sudo chmod 600 ceph/ceph.client.oneuptime-ai.keyring
 docker compose up -d
 ```
 
-- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cluster with it, and the cluster's **Overview** shows the agent's status. To stop, turn investigation off under **What AI may do** on the AI agent page, or leave the agent out.
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cluster with it, and the cluster's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or leave the agent out.
 - Never put the admin keyring there. `install.sh` offers to create the client for you.
-- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true` and give the client the caps for the fixes (the agent's README lists them); `ONEUPTIME_AI_WRITE_TARGETS` (for example `osd.*,cluster`) limits what a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true` and give the client the caps for the fixes (the agent's README lists them); `ONEUPTIME_AI_WRITE_TARGETS` (for example `osd.*,cluster`) limits what a fix may touch. `ONEUPTIME_AI_FIXES` in the same `.env` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - It connects out to the monitors (TCP 3300 and 6789) and the mgr and OSD daemons (TCP 6800–7300), runs as UID 1000 with no capabilities, and never runs `auth`, `config-key`, `tell` or anything that deletes data. Delete the `oneuptime-ceph-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
 
 What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#ceph-clusters).

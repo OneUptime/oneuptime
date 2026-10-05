@@ -62,6 +62,29 @@ export function getAiAgentConnectionBadge(
   return AI_AGENT_CONNECTION_BADGES[state];
 }
 
+/*
+ * Where the agent's version goes among connectionDetails. The card puts the
+ * caller's AgentVersion element there, or leaves the place out when it has
+ * none (a version the agent never reported).
+ */
+export const AI_AGENT_VERSION_DETAIL: string = "{{agent version}}";
+
+/*
+ * The Connection row's details from an AI agent page's meta line — last
+ * seen, the version's place, then the rest — in the page's order.
+ */
+export function getAiAgentConnectionDetails(meta: {
+  lastSeen: string | null;
+  showsAgentVersion: boolean;
+  rest: Array<string>;
+}): Array<string> {
+  return [
+    ...(meta.lastSeen ? [meta.lastSeen] : []),
+    ...(meta.showsAgentVersion ? [AI_AGENT_VERSION_DETAIL] : []),
+    ...meta.rest,
+  ];
+}
+
 export interface AiAgentStatusSummary {
   connection: AiAccessBadge;
   // One plain sentence under the Connection badge.
@@ -69,7 +92,10 @@ export interface AiAgentStatusSummary {
   /*
    * The AI agent page's meta line, part by part — when the agent was last
    * seen, its version, what it may change. Empty before an agent ever
-   * registered.
+   * registered. The version is AI_AGENT_VERSION_DETAIL, a place the card
+   * fills with the agent's version drawn by the shared AgentVersion (an
+   * outdated agent shows its sign and upgrade dialog there, as on the AI
+   * agent page), never words.
    */
   connectionDetails: Array<string>;
   investigation: AiAccessBadge;

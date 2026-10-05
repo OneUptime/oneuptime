@@ -4,6 +4,7 @@
     "Utils/AiRemediation/Resource"
   ],
   "commonPolicyFiles": [
+    "Types/AI/AgentAiSettings.ts",
     "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
     "Types/Runbook/RunnerJobOrigin.ts"
   ],
