@@ -606,9 +606,21 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
 
     render(badgeRow({ initialValue: true }));
 
-    expect(theSwitch()).toHaveAccessibleDescription(
-      expect.stringContaining(OFF_NOTE),
-    );
+    // The switch's description, as a screen reader is handed it.
+    const describedBy: Array<string> = (
+      theSwitch().getAttribute("aria-describedby") || ""
+    )
+      .split(" ")
+      .filter((id: string): boolean => {
+        return id.length > 0;
+      });
+    const description: string = describedBy
+      .map((id: string): string => {
+        return document.getElementById(id)?.textContent || "";
+      })
+      .join(" ");
+
+    expect(description).toContain(OFF_NOTE);
   });
 
   test("turning it off saves the column's default, says Saved, and the sentence goes", async () => {
