@@ -10,6 +10,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SourceMapResolver, {
   MAX_FRAMES_TO_RESOLVE,
   MAX_SOURCE_MAP_SIZE_IN_BYTES,
@@ -49,6 +50,9 @@ export const SOURCE_MAP_RETENTION_DAYS: number = SourceMapRetentionInDays;
  * that fits this ceiling always resolves in full.
  */
 export const MAX_SOURCE_MAPS_PER_RELEASE: number = SourceMapMaxMapsPerRelease;
+
+// The service's two names, ID column first: a write may use either.
+const SERVICE_KEYS: Array<string> = ["serviceId", "service"];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -117,10 +121,20 @@ export class Service extends ProjectReferencesService<Model> {
   private async assertReleaseHasRoomFor(
     createBy: CreateBy<Model>,
   ): Promise<void> {
+    /*
+     * The release the map is saved in: the request's project, which
+     * DatabaseService stamps on the row after this hook (else the one a
+     * write without a project on the request names), and the service under
+     * either of its names - kept in the ID column for the saved row.
+     */
     const projectId: ObjectID | undefined =
-      createBy.data.projectId || createBy.props.tenantId || undefined;
+      createBy.props.tenantId || createBy.data.projectId || undefined;
     const serviceId: ObjectID | undefined =
-      createBy.data.serviceId || undefined;
+      RelationIdUtil.readIntoIdColumn(
+        createBy.data as unknown as Record<string, unknown>,
+        SERVICE_KEYS,
+        "Service",
+      ) || undefined;
     const serviceVersion: string | undefined = createBy.data.serviceVersion;
 
     /*

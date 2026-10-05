@@ -20,6 +20,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import AcmeCertificate from "../../Models/DatabaseModels/AcmeCertificate";
 import DomainModel from "../../Models/DatabaseModels/Domain";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
@@ -136,10 +137,19 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
   ): Promise<OnCreate<StatusPageDomain>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * The domain under either of its names (the two must agree), kept in
+     * the ID column for the saved row.
+     */
+    const domainId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["domainId", "domain"],
+      "Domain",
+    );
+
     const domain: DomainModel | null = await DomainService.findOneBy({
       query: {
-        _id:
-          createBy.data.domainId?.toString() || createBy.data.domain?._id || "",
+        _id: domainId?.toString() || "",
       },
       select: { domain: true, isVerified: true },
       props: {

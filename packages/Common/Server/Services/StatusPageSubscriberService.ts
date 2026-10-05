@@ -28,6 +28,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
@@ -233,6 +234,16 @@ export class Service extends ProjectReferencesService<Model> {
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(data);
+
+    /*
+     * The status page under either of its names (the two must agree), kept
+     * in the ID column for everything below and for the saved row.
+     */
+    RelationIdUtil.readIntoIdColumn(
+      data.data as unknown as Record<string, unknown>,
+      ["statusPageId", "statusPage"],
+      "Status Page",
+    );
 
     logger.debug("onBeforeCreate called with data:", {
       projectId: data.data.projectId?.toString(),

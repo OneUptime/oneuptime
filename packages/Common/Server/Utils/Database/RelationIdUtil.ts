@@ -22,8 +22,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
  * no object (RelationNamePrecedence.test.ts pins this). So a hook that checks
  * or decides on one of the keys must read both, through readConsistent, which
  * refuses a payload whose keys disagree (ReferenceNamesReadTogether holds the
- * server code to it); and a hook that writes a value of its own writes it
- * with stamp, which leaves no other key to win over it
+ * server code to it) - or through readIntoIdColumn, which also leaves the id
+ * in the ID column for the code after it; and a hook that writes a value of
+ * its own writes it with stamp, which leaves no other key to win over it
  * (HookReferenceWritesUseStamp holds every service to it).
  *
  * Give these helpers both spellings, FK column first.
@@ -160,6 +161,41 @@ export default class RelationIdUtil {
     }
 
     return firstId;
+  }
+
+  /*
+   * Read a reference the way readConsistent does - every name, two that
+   * disagree refused - and, when the write named it only by the relation,
+   * write the id into the ID column (the first key) as well.
+   *
+   * For a rule that checks or decides on a reference of a write and for the
+   * code that runs after it: a hook that reads the ID column, a success hook
+   * that reads the saved row's ID column. TypeORM stores the relation's id
+   * without setting the ID column on the row it hands back, so a write that
+   * named the reference only by the relation would otherwise reach them as
+   * a write that names nothing - the rule skipped, the list ordered without
+   * it. The relation stays: the two names now hold the same id, which is
+   * what TypeORM stores, and each is still held to its own permission list.
+   *
+   * A write that names nothing, or clears the reference, is left as it was.
+   */
+  public static readIntoIdColumn(
+    data: Record<string, unknown> | undefined | null,
+    keys: Array<string>,
+    relationTitle: string,
+  ): ObjectID | null {
+    const id: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      keys,
+      relationTitle,
+    );
+    const idColumn: string | undefined = keys[0];
+
+    if (id && data && idColumn && data[idColumn] === undefined) {
+      data[idColumn] = id;
+    }
+
+    return id;
   }
 
   /*

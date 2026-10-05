@@ -89,10 +89,14 @@ export class Service extends ProjectReferencesService<Model> {
       startStateId: MeasurementStateReference.getStateIdForCreate({
         stateId: createBy.data.startScheduledMaintenanceStateId,
         state: createBy.data.startScheduledMaintenanceState,
+        stateIdKey: "startScheduledMaintenanceStateId",
+        stateKey: "startScheduledMaintenanceState",
       }),
       endStateId: MeasurementStateReference.getStateIdForCreate({
         stateId: createBy.data.endScheduledMaintenanceStateId,
         state: createBy.data.endScheduledMaintenanceState,
+        stateIdKey: "endScheduledMaintenanceStateId",
+        stateKey: "endScheduledMaintenanceState",
       }),
       startStateRole: createBy.data.startScheduledMaintenanceStateRole,
       endStateRole: createBy.data.endScheduledMaintenanceStateRole,

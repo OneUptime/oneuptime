@@ -102,7 +102,7 @@ import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import RelationNames from "../Utils/Database/RelationNames";
+import RelationNames, { RelationName } from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
   ListOrderCreatePlan,
   ListOrderScope,
@@ -2796,16 +2796,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const errorMessage: string | null =
       this.model.getTotalItemsByErrorMessage();
 
-    if (
-      totalItemsColumnName &&
-      totalItemsNumber &&
-      errorMessage &&
-      createdBy.data.getColumnValue(totalItemsColumnName)
-    ) {
+    if (!totalItemsColumnName || !totalItemsNumber || !errorMessage) {
+      return;
+    }
+
+    /*
+     * The record the limit counts rows for (a status page's links), under
+     * either name the write used for it: a write that sent only the relation
+     * counts against the same limit.
+     */
+    const totalItemsColumnValue: unknown = this.getWrittenColumnValue(
+      createdBy.data,
+      totalItemsColumnName,
+    );
+
+    if (totalItemsColumnValue) {
       const count: PositiveNumber = await this.countBy({
         query: {
-          [totalItemsColumnName]:
-            createdBy.data.getColumnValue(totalItemsColumnName),
+          [totalItemsColumnName]: totalItemsColumnValue,
         } as FindWhere<TBaseModel>,
         skip: 0,
         limit: LIMIT_MAX,
@@ -2840,9 +2848,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const query: Query<TBaseModel> = {};
 
       for (const uniqueByColumnName of uniqueColumnsBy[key] as Array<string>) {
-        const columnValue: JSONValue = (createBy.data as any)[
-          uniqueByColumnName as string
-        ];
+        /*
+         * A reference the name is unique within (a status page, a network
+         * device) is read under either of its names: a write that sent only
+         * the relation is checked against its own list, not the rows with
+         * none.
+         */
+        const columnValue: unknown = this.getWrittenColumnValue(
+          createBy.data,
+          uniqueByColumnName as string,
+        );
         if (columnValue === null || columnValue === undefined) {
           (query as any)[uniqueByColumnName] = QueryHelper.isNull();
         } else {
@@ -2937,29 +2952,52 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return value === undefined || value === null ? null : value;
     }
 
-    let id: string | null = RelationValueUtil.getRelationId(
-      (data as any)[columnName],
-    );
+    const value: unknown = this.getWrittenColumnValue(data, columnName);
 
-    if (!id) {
-      const relationColumnName: string | undefined = this.model
-        .getTableColumns()
-        .columns.find((column: string): boolean => {
-          const relationMetadata: TableColumnMetadata =
-            this.model.getTableColumnMetadata(column);
-
-          return (
-            relationMetadata.type === TableColumnType.Entity &&
-            relationMetadata.manyToOneRelationColumn === columnName
-          );
-        });
-
-      if (relationColumnName) {
-        id = RelationValueUtil.getRelationId((data as any)[relationColumnName]);
-      }
+    if (value instanceof ObjectID) {
+      return value;
     }
 
+    const id: string | null = RelationValueUtil.getRelationId(value);
+
     return id ? new ObjectID(id) : null;
+  }
+
+  /*
+   * What a write gives one column, for a check that runs before it is saved.
+   * A reference's ID column is one database column with its relation, and
+   * a write may name the reference under either (the dashboard's forms send
+   * the relation), so for an ID column this is the id the write names under
+   * either name - two that disagree are refused, as everywhere
+   * (RelationIdUtil.readConsistent) - or the column's own value when the
+   * write names the reference by neither. Any other column is read as it is.
+   */
+  private getWrittenColumnValue(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    columnName: string,
+  ): unknown {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const reference: RelationName | undefined = RelationNames.getSingleRelations(
+      this.model,
+    ).find((candidate: RelationName): boolean => {
+      return candidate.idColumn === columnName;
+    });
+
+    if (!reference) {
+      return record[columnName];
+    }
+
+    const id: ObjectID | null = RelationIdUtil.readConsistent(
+      record,
+      [reference.idColumn, reference.relation],
+      reference.title,
+    );
+
+    return id || record[columnName];
   }
 
   @CaptureSpan()
