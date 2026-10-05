@@ -4227,6 +4227,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
               select: {
                 postmortemNote: true,
                 showPostmortemOnStatusPage: true,
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -4237,6 +4238,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
               await setIsPublicForMarkdownImages(
                 incidentForSync.postmortemNote || "",
                 Boolean(incidentForSync.showPostmortemOnStatusPage),
+                incidentForSync.projectId,
               );
             }
           } catch (syncError) {

@@ -688,12 +688,23 @@ describe("GET/POST /workflow/manual/run/:workflowId requires an authorized membe
       },
     );
 
+    /*
+     * Creating or deleting workflows is not editing one: neither runs one
+     * by hand.
+     */
     const deniedPermissions: Array<Permission> = [
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadWorkflow,
       Permission.WorkflowViewer,
+      Permission.CreateWorkflow,
+      Permission.DeleteWorkflow,
     ];
+
+    test("Delete Workflow is not on the list a manual run is gated on", () => {
+      expect(allowedPermissions).not.toContain(Permission.DeleteWorkflow);
+      expect(allowedPermissions).toContain(Permission.EditWorkflow);
+    });
 
     test.each(deniedPermissions)(
       "rejects a project member holding only %s",

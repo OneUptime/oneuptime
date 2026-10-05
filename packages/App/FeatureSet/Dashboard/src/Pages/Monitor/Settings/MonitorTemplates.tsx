@@ -12,7 +12,8 @@ import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
-import MonitorTypeUtil from "../../../Utils/MonitorType";
+import getMonitorTypeFormField from "../../../Utils/Form/Monitor/MonitorTypeFormField";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -21,11 +22,20 @@ import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import { getMonitoringIntervalOptions } from "../../../Utils/MonitorIntervalDropdownOptions";
 import {
   CustomElementProps,
+  FormFieldCollapsibleSection,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+
+/*
+ * Monitor Defaults' More fields: the default description and the labels,
+ * folded at the end of the step, as Create Monitor folds a monitor's own.
+ * Built once, so both fields fold under the one header.
+ */
+const MONITOR_DEFAULTS_MORE_FIELDS: FormFieldCollapsibleSection<MonitorTemplate> =
+  getAdvancedFormSection<MonitorTemplate>();
 
 const MonitorTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -151,6 +161,14 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               minLength: 2,
             },
           },
+          /*
+           * What kind of monitor comes first, as on Create Monitor: the
+           * same picker (MonitorTypeFormField), common types first.
+           */
+          getMonitorTypeFormField<MonitorTemplate>({
+            stepId: "monitor-defaults",
+            description: "What kind of monitor will this template produce?",
+          }),
           {
             field: {
               monitorName: true,
@@ -182,25 +200,10 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "monitor-defaults",
             required: false,
             placeholder: "Description",
-          },
-          {
-            field: {
-              monitorType: true,
-            },
-            title: "Monitor Type",
-            description: "What kind of monitor will this template produce?",
-            stepId: "monitor-defaults",
-            fieldType: FormFieldSchemaType.CardSelect,
-            required: true,
-            cardSelectOptions:
-              MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
-            cardSelectSearchable: true,
-            cardSelectSearchPlaceholder:
-              "Search monitor types - try ping, ssl, k8s, postgres",
-            cardSelectCollapsibleGroups: true,
+            collapsibleSection: MONITOR_DEFAULTS_MORE_FIELDS,
           },
           /*
-           * Folded under Advanced at the end of Monitor Defaults, where
+           * Folded under More fields at the end of Monitor Defaults, where
            * Create Monitor folds a monitor's own labels, rather than walked
            * as a last step of its own.
            */
@@ -208,6 +211,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "monitor-defaults",
             description:
               "Default labels applied to monitors created from this template.",
+            collapsibleSection: MONITOR_DEFAULTS_MORE_FIELDS,
           }),
           {
             field: {

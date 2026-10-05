@@ -9,13 +9,17 @@ import { ApiResult, sendWithRetry } from "./ApiRequest";
  *
  * The dashboard "Create Monitor" form (#create-monitor-form) is a multi-step
  * ModelForm:
- *   1. monitor-info  — name + monitorType CardSelect, and the optional labels
- *                      folded under More fields at the end of the step (the
- *                      one step every monitor type walks)
+ *   1. monitor-info  — the monitorType picker first (six common types, the
+ *                      rest behind "More monitor types" or its search box; a
+ *                      picked type shrinks to one line with Change), then the
+ *                      name, then the optional description and labels folded
+ *                      under More fields at the end of the step (the one step
+ *                      every monitor type walks)
  *   2. criteria      — per-monitor-type destination/config form (skipped for
  *                      Manual). A default offline/online criteria pair is
- *                      pre-populated, so only the type-specific destination /
- *                      config fields need filling.
+ *                      pre-populated, each folded to its one-line header, so
+ *                      only the type-specific destination / config fields
+ *                      need filling.
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
  *
  * Every step but the last shows a plain Next (#create-monitor-form-next-button,
@@ -60,6 +64,8 @@ const monitorNameInputSelector: string =
 const submitButtonTestId: string = "Create Monitor";
 
 const cardSelectSearchTestId: string = "card-select-search";
+const cardSelectSummaryTestId: string = "card-select-summary";
+const cardSelectChangeTestId: string = "card-select-change";
 
 /*
  * Walks the create form one step on with its Next, which every step but the
@@ -75,35 +81,42 @@ export const clickNext: (data: { page: Page }) => Promise<void> = async (data: {
 };
 
 /*
- * The picker is on screen once either its search box or its first card is:
- * both render in the same pass, so whichever comes first in the DOM answers
- * "the catalog is up". Waiting on the surrounding form is not enough — the
- * search box can still be a render away, and asking whether the picker is
- * searchable before it exists answers "no" and silently skips the search.
+ * The picker is on screen once its search box, its first card or - for a
+ * type already chosen - its summary is: they render in the same pass, so
+ * whichever comes first in the DOM answers "the picker is up". Waiting on the
+ * surrounding form is not enough - the picker can still be a render away, and
+ * asking whether it is searchable before it exists answers "no" and silently
+ * skips the search.
  */
-const cardSelectReadySelector: string = `[data-testid="${cardSelectSearchTestId}"], [data-testid^="card-select-option-"]`;
+const cardSelectReadySelector: string = `[data-testid="${cardSelectSearchTestId}"], [data-testid^="card-select-option-"], [data-testid="${cardSelectSummaryTestId}"]`;
 
 /*
- * Picks a monitor type card on any page that renders the full monitor type
- * catalog (Create Monitor, Monitor Templates, Monitor Template View).
+ * Picks a monitor type on any page that offers the monitor type catalog
+ * (Create Monitor, Monitor Templates, Monitor Template View).
  *
- * Those pickers fold every category but the first behind its heading, so only
- * the eight "Basic Monitoring" cards are in the DOM on first paint. Every
- * other type — Manual, the telemetry types, the infrastructure types — has no
- * card-select-option-<value> element at all until the catalog is opened up, so
- * a plain getByTestId waits out its whole timeout against markup that was
- * never rendered.
+ * Those pickers open on the six common types only (Website, API, Ping, Port,
+ * SSL Certificate, Incoming Request). Every other type — Manual, the
+ * telemetry types, the infrastructure types — has no
+ * card-select-option-<value> element at all until "More monitor types" is
+ * pressed or the search box finds it, so a plain getByTestId waits out its
+ * whole timeout against markup that was never rendered.
  *
- * Typing into the picker's search box is the way through: a search flattens
- * the categories and renders every match regardless of which headings are
- * folded. It is also what a user does, so the spec drives the picker the way
- * the picker is meant to be driven instead of reaching past its own UI.
+ * Typing into the picker's search box is the way through: a search runs over
+ * the whole catalog and renders every match. It is also what a user does, so
+ * the spec drives the picker the way the picker is meant to be driven instead
+ * of reaching past its own UI.
+ *
+ * A type already chosen (a template, a deep link, or an earlier pick) shows
+ * as one line with a Change button instead of the catalog: the requested type
+ * is left as it is, and any other type is changed through Change.
  *
  * The MonitorType enum value is always a safe search term. Search lowercases
  * what is typed, splits it on whitespace and requires every word somewhere
  * across the card's title, description, category heading and keywords — and
  * the value is the card's title for every type the catalog offers except
  * Docker and Podman, where it is the first word of it ("Docker Container").
+ * Common/Tests/App/Dashboard/MonitorTypePicker.test.tsx holds every type to
+ * that.
  */
 type SelectMonitorTypeFunction = (data: {
   page: Page;
@@ -121,6 +134,19 @@ export const selectMonitorTypeCard: SelectMonitorTypeFunction = async (data: {
     .first()
     .waitFor({ state: "visible", timeout: 30000 });
 
+  const summary: Locator = page.getByTestId(cardSelectSummaryTestId);
+
+  if ((await summary.count()) > 0) {
+    if (
+      (await summary.first().getAttribute("data-card-select-value")) ===
+      data.cardValue
+    ) {
+      return;
+    }
+
+    await page.getByTestId(cardSelectChangeTestId).first().click();
+  }
+
   const search: Locator = page.getByTestId(cardSelectSearchTestId);
 
   // A picker with a handful of cards does not opt into the search box.
@@ -133,6 +159,13 @@ export const selectMonitorTypeCard: SelectMonitorTypeFunction = async (data: {
   );
   await expect(card).toBeVisible({ timeout: 30000 });
   await card.click();
+
+  // The picker shrinks to the type picked: proof the pick landed.
+  await expect(page.getByTestId(cardSelectSummaryTestId)).toHaveAttribute(
+    "data-card-select-value",
+    data.cardValue,
+    { timeout: 30000 },
+  );
 };
 
 /*
@@ -247,9 +280,10 @@ const selectMonitoringInterval: (data: {
 
 /*
  * Selects zero or more monitor labels on Monitor Info, where they fold under
- * More fields at the end of the step. Opening the section and waiting for the
- * combobox even when no labels are requested makes every create recipe prove
- * the field is reachable on the step every monitor type walks.
+ * More fields, beside the description, at the end of the step. Opening the
+ * section and waiting for the combobox even when no labels are requested
+ * makes every create recipe prove the field is reachable on the step every
+ * monitor type walks.
  */
 export const selectMonitorLabels: (data: {
   page: Page;
@@ -362,9 +396,12 @@ export const createMonitor: CreateMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type, and the labels under More fields at its end.
-  await page.locator(monitorNameInputSelector).fill(data.monitorName);
+  /*
+   * Step 1: what to monitor, then the name, and the labels under More fields
+   * at its end - in the order the step asks.
+   */
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
+  await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorLabels({ page, labelNames: data.labelNames });
 
   if (!data.recipe.skipsCriteria) {
@@ -567,9 +604,9 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     ready: page.locator(monitorCreateFormSelector),
   });
 
-  // Step 1: name + type, and the labels under More fields at its end.
-  await page.locator(monitorNameInputSelector).fill(data.monitorName);
+  // Step 1: what to monitor, then the name; the labels wait under More fields.
   await selectMonitorTypeCard({ page, cardValue: data.recipe.cardValue });
+  await page.locator(monitorNameInputSelector).fill(data.monitorName);
   await selectMonitorLabels({ page });
   await clickNext({ page });
 

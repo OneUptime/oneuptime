@@ -375,6 +375,8 @@ export const DNS_SETUP_TEST_IDS: {
   recordValue: string;
   rootDomainNote: string;
   whatHappensNext: string;
+  // Why Check now is locked, for somebody who may not edit the domain.
+  checkNowLocked: string;
   verified: string;
   certificateError: string;
 } = {
@@ -384,6 +386,7 @@ export const DNS_SETUP_TEST_IDS: {
   recordValue: "dns-setup-record-value",
   rootDomainNote: "dns-setup-root-domain",
   whatHappensNext: "dns-setup-what-happens-next",
+  checkNowLocked: "dns-setup-check-now-locked",
   verified: "dns-setup-verified",
   certificateError: "dns-setup-certificate-error",
 };
