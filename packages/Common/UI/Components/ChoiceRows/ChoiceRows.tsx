@@ -1,6 +1,6 @@
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { Yellow } from "../../../Types/BrandColors";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Pill from "../Pill/Pill";
 import React, { ReactElement, ReactNode, useId } from "react";
@@ -82,6 +82,39 @@ export const getChoiceRowPlanPillText: (
 ) => string = (translator: Translator, plan: PlanType): string => {
   return translator.translateTemplate("{{planName}} Plan", {
     planName: plan,
+  });
+};
+
+/*
+ * A paid choice can always be left, on any plan: going back to the free
+ * choice takes the plan-gated column back to its default, which the server
+ * allows whatever the plan (PlanGatedColumnDefault). The page's dialog for
+ * such a move - off a choice a trial left in force, on a project now on a
+ * lower plan - adds this sentence, so nobody leaves it without knowing that
+ * coming back needs the plan. Already translated, with the choice's title
+ * translated inside it.
+ */
+export const CHOICE_PLAN_LEFTOVER_COPY: string = translationKey(
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.",
+);
+
+export const getChoicePlanLeftoverText: (
+  translator: Translator,
+  data: {
+    // The choice being left, in English.
+    choiceTitle: string;
+    planNeeded: PlanType;
+  },
+) => string = (
+  translator: Translator,
+  data: {
+    choiceTitle: string;
+    planNeeded: PlanType;
+  },
+): string => {
+  return translator.translateTemplate(CHOICE_PLAN_LEFTOVER_COPY, {
+    choiceName: translator.translateText(data.choiceTitle) || data.choiceTitle,
+    planName: data.planNeeded,
   });
 };
 

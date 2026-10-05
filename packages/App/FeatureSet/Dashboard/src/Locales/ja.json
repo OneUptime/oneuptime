@@ -25177,5 +25177,18 @@
   "With Compose: in the .env next to your docker-compose.yml.": "Compose の場合: docker-compose.yml の隣にある .env で。",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true または false: 調査中に AI が読み取り専用のコマンドを実行できるかどうか。これ（または次の変数）を設定すると、AI エージェントのページはエージェントに従い、読み取り専用になります。空の場合はエージェントの既定値（オン）です。",
   "Is Public": "公開",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "ご利用のプランにはこの設定が含まれていません。オフにすることはできますが、再びオンにするには {{planName}} プランが必要です。",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "ご利用のプランにはこの設定が含まれていません。オンにすることはできますが、再びオフにするには {{planName}} プランが必要です。",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "ご利用のプランには「{{choiceName}}」が含まれていないため、後で再び選ぶには {{planName}} プランが必要です。",
+  "Changing this setting needs the {{planName}} plan.": "この設定を変更するには {{planName}} プランが必要です。",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "今後、各テレメトリタイプはプロジェクトのデフォルトの保持期間で保持されます（独自の保持期間を持つサービスやリソースを除く）。すでに保存されているデータは、保存時の保持期間のままです。",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "今後、ここからのテレメトリはプロジェクトの保持期間で保持されます。すでに保存されているデータは、保存時の保持期間のままです。",
+  "Remove Override": "上書きを削除",
+  "Remove the retention override?": "保持期間の上書きを削除しますか？",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "削除しました。今後、ここからのテレメトリはプロジェクトの保持期間で保持されます。",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "削除しました。今後、テレメトリはプロジェクトのデフォルトの保持期間で保持されます。",
+  "Retention Override": "保持期間の上書き",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "一部のテレメトリタイプは、プロジェクトのデフォルトではなく独自の保持期間で保持されています。ご利用のプランにはテレメトリタイプ別の保持期間が含まれていません。削除はできますが、再び設定するには {{planName}} プランが必要です。",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "ここからのテレメトリは、プロジェクトのものではなく独自の保持期間で保持されています。ご利用のプランには保持期間の上書きが含まれていません。この上書きは削除できますが、再び設定するには {{planName}} プランが必要です。",
   "Monitors keep their status.": "モニターのステータスは変わりません。"
 }

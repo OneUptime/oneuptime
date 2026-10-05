@@ -1,5 +1,6 @@
 import TeamsElement from "../../Components/Team/TeamsElement";
 import RequireSsoForLoginCard from "../../Components/Project/RequireSsoForLoginCard";
+import RequireSsoForLoginLeftover from "../../Components/Project/RequireSsoForLoginLeftover";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
@@ -273,7 +274,10 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
 
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
- * Scale plan, so there a project below Scale sees the plan upsell instead.
+ * Scale plan, so there a project below Scale sees the plan upsell instead -
+ * with "Require SSO for Login" under it while a Scale trial (or a move down
+ * from Scale) left the project requiring SSO, so it can always be turned
+ * off (RequireSsoForLoginLeftover).
  */
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -314,6 +318,11 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           },
         ],
       }}
+      belowPlan={
+        <RequireSsoForLoginLeftover
+          projectId={ProjectUtil.getCurrentProjectId()!}
+        />
+      }
     >
       <SSOSettings {...props} />
     </PlanGatedPage>

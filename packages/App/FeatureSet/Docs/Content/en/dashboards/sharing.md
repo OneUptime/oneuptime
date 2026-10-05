@@ -14,7 +14,7 @@ Picking a choice asks you to confirm, saying what changes for visitors, then app
 
 Within the project, owners and labels control who sees what — see [Configuration & Permissions](/docs/dashboards/configuration). Someone who can see the dashboard but not edit it sees the choice, and can copy the public link, but can't change it.
 
-On OneUptime Cloud, sharing a dashboard, or making it private again, needs the **Growth** plan: on a lower plan those choices show the plan they need. Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan.
+On OneUptime Cloud, sharing a dashboard needs the **Growth** plan: on a lower plan the two public choices show the plan they need and can't be picked. Making a dashboard private again — **Only people in this project** — works on every plan, so a dashboard left public when a trial ended, or after a move to a lower plan, can always stop being shared; the dialog says that sharing it again needs **Growth**. Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan.
 
 The choice is stored in three columns, which the API and Terraform read and write as before: `isPublicDashboard`, `enableMasterPassword` and `masterPassword`. Only a public dashboard has a public link, and its visitors are asked for the password whenever `enableMasterPassword` is on. A public dashboard with `enableMasterPassword` on but no password set lets nobody in through its public link: the **Sharing** page shows it as **Anyone with the link and a password**, says that nobody can open the link yet, and offers **Set Password**. Picking **Only people in this project** also turns `enableMasterPassword` off, and keeps the password, so sharing with a password again can reuse it.
 
@@ -43,7 +43,7 @@ For stronger gating (separate accounts per viewer, an audit trail of who viewed 
 
 ## IP allowlist
 
-Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud. While a list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.
+Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column) limits the public link to the IP addresses or IPv4 ranges you list, one per line, for example `203.0.113.7` or `10.0.0.0/8`. It applies with or without the password; project members who sign in are not affected. Leave it empty to allow every address. It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud; emptying it works on every plan. While a list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.
 
 Use this when:
 

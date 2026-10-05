@@ -1,11 +1,13 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
+import { isPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { getAllEnvVars } from "../../Config";
 import ProjectUtil from "../../Utils/Project";
+import { translationKey } from "../../Utils/TranslateTemplate";
 
 /*
  * What a settings switch needs to know about the column it saves, worked out
@@ -67,6 +69,44 @@ export const getPlanNeededToChangeColumn: (
   }
 };
 
+// The column's metadata, or nothing for a column the model does not have.
+const getColumnMetadata: (
+  model: BaseModel,
+  column: string,
+) => TableColumnMetadata | undefined = (
+  model: BaseModel,
+  column: string,
+): TableColumnMetadata | undefined => {
+  try {
+    return model.getTableColumnMetadata(column);
+  } catch {
+    return undefined;
+  }
+};
+
+/*
+ * The plan this project would need to write `value` to the column, or null
+ * when it can. A plan-gated column's default - the feature it holds
+ * switched off - needs no plan on any plan, as the server has it
+ * (PlanGatedColumnDefault): a project below the plan can always switch the
+ * feature off, and only switching it on names the plan.
+ */
+export const getPlanNeededToWriteColumn: (
+  model: BaseModel,
+  column: string,
+  value: unknown,
+) => PlanType | null = (
+  model: BaseModel,
+  column: string,
+  value: unknown,
+): PlanType | null => {
+  if (isPlanGatedColumnDefault(getColumnMetadata(model, column), value)) {
+    return null;
+  }
+
+  return getPlanNeededToChangeColumn(model, column);
+};
+
 /*
  * What a boolean column holds when nothing was ever written to it: the
  * default its model declares, or false when it declares none (a nullable
@@ -118,3 +158,122 @@ export const getStoredValueForSwitch: (data: {
 }): boolean => {
   return data.isInverted ? !data.isOn : data.isOn;
 };
+
+/*
+ * A switch whose record holds a plan feature the project's plan does not
+ * include - left on when a trial ended, or when the project moved to a
+ * lower plan. The server lets the switch go back to the column's default
+ * on any plan (PlanGatedColumnDefault), so the switch can still be flipped
+ * that way, and the row says so: which way it can go, and the plan it takes
+ * to come back.
+ */
+export interface SwitchPlanLeftover {
+  // Which way the switch can still go: back to the column's default.
+  canTurn: "on" | "off";
+  // The plan it takes to flip it back again.
+  planNeeded: PlanType;
+}
+
+/*
+ * The leftover for a switch, or null when it is not one: the plan includes
+ * the column, the record holds the default already, or (a column with no
+ * default to go back to) neither way is free.
+ */
+export const getSwitchPlanLeftover: (data: {
+  model: BaseModel;
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+}) => SwitchPlanLeftover | null = (data: {
+  model: BaseModel;
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+}): SwitchPlanLeftover | null => {
+  const planNeeded: PlanType | null = getPlanNeededToChangeColumn(
+    data.model,
+    data.column,
+  );
+
+  if (!planNeeded) {
+    return null;
+  }
+
+  const metadata: TableColumnMetadata | undefined = getColumnMetadata(
+    data.model,
+    data.column,
+  );
+
+  const storedNow: boolean = getStoredValueForSwitch({
+    isOn: data.isOn,
+    isInverted: data.isInverted,
+  });
+
+  /*
+   * A leftover holds a value the plan does not include, and flipping it
+   * puts the column back to its default. Off already (flipping would turn
+   * the feature on), or a column with no default to go back to: none.
+   */
+  if (
+    isPlanGatedColumnDefault(metadata, storedNow) ||
+    !isPlanGatedColumnDefault(metadata, !storedNow)
+  ) {
+    return null;
+  }
+
+  return {
+    canTurn: data.isOn ? "off" : "on",
+    planNeeded: planNeeded,
+  };
+};
+
+/*
+ * The plan this project would need to flip the switch from where it is, or
+ * null when it can: none to put the column back to its default, the
+ * column's plan to set anything else.
+ */
+export const getPlanNeededToFlipSwitch: (data: {
+  model: BaseModel;
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+}) => PlanType | null = (data: {
+  model: BaseModel;
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+}): PlanType | null => {
+  return getPlanNeededToWriteColumn(
+    data.model,
+    data.column,
+    getStoredValueForSwitch({
+      isOn: !data.isOn,
+      isInverted: data.isInverted,
+    }),
+  );
+};
+
+/*
+ * What the row says under a leftover switch, in English, by which way it
+ * can still go. Templates: the row fills in the plan's name.
+ */
+export const SWITCH_PLAN_LEFTOVER_COPY: Record<
+  SwitchPlanLeftover["canTurn"],
+  string
+> = {
+  off: translationKey(
+    "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.",
+  ),
+  on: translationKey(
+    "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.",
+  ),
+};
+
+/*
+ * Why a switch drawn only to be switched back off (locksWhenPlanNeeded, under
+ * a plan's upsell) is locked once it is: flipping it again needs the plan.
+ * A template: the row fills in the plan's name.
+ */
+export const SWITCH_PLAN_LOCKED_COPY: string = translationKey(
+  "Changing this setting needs the {{planName}} plan.",
+);

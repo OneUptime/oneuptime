@@ -25177,5 +25177,18 @@
   "With Compose: in the .env next to your docker-compose.yml.": "С Compose: в файле .env рядом с вашим docker-compose.yml.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true или false: может ли ИИ выполнять команды только для чтения во время расследования. Задайте её (или следующую), и страница ИИ-агента будет следовать за агентом, только для чтения. Пусто: значение агента по умолчанию — включено.",
   "Is Public": "Общедоступный",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "Ваш тариф не включает эту настройку. Вы можете её выключить, но чтобы снова включить, нужен тариф {{planName}}.",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "Ваш тариф не включает эту настройку. Вы можете её включить, но чтобы снова выключить, нужен тариф {{planName}}.",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "Ваш тариф не включает «{{choiceName}}», поэтому, чтобы позже снова выбрать этот вариант, понадобится тариф {{planName}}.",
+  "Changing this setting needs the {{planName}} plan.": "Чтобы изменить эту настройку, нужен тариф {{planName}}.",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "Теперь каждый тип телеметрии хранится по сроку хранения проекта по умолчанию, если у сервиса или ресурса нет собственного. Уже сохранённые данные сохраняют срок хранения, с которым они были записаны.",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "Теперь телеметрия отсюда хранится по сроку хранения проекта. Уже сохранённые данные сохраняют срок хранения, с которым они были записаны.",
+  "Remove Override": "Удалить переопределение",
+  "Remove the retention override?": "Удалить переопределение хранения?",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "Удалено. Теперь телеметрия отсюда хранится по сроку хранения проекта.",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "Удалено. Теперь телеметрия хранится по сроку хранения проекта по умолчанию.",
+  "Retention Override": "Переопределение хранения",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Некоторые типы телеметрии хранятся по собственному сроку хранения, а не по сроку проекта по умолчанию. Ваш тариф не включает хранение по типу телеметрии: вы можете удалить его, но чтобы задать его снова, нужен тариф {{planName}}.",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Телеметрия отсюда хранится по собственному сроку хранения, а не по сроку проекта. Ваш тариф не включает переопределения хранения: вы можете удалить это, но чтобы задать его снова, нужен тариф {{planName}}.",
   "Monitors keep their status.": "Мониторы сохраняют свой статус."
 }

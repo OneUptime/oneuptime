@@ -25177,5 +25177,18 @@
   "With Compose: in the .env next to your docker-compose.yml.": "Con Compose: nel file .env accanto al tuo docker-compose.yml.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true o false: se l'IA può eseguire comandi di sola lettura mentre indaga. Impostala (o la successiva) e la pagina dell'agente IA segue l'agente, in sola lettura. Vuota: il valore predefinito dell'agente, attivo.",
   "Is Public": "È pubblico",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "Il tuo piano non include questa impostazione. Puoi disattivarla, ma per riattivarla serve il piano {{planName}}.",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "Il tuo piano non include questa impostazione. Puoi attivarla, ma per disattivarla di nuovo serve il piano {{planName}}.",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "Il tuo piano non include «{{choiceName}}»: per selezionare di nuovo questa opzione in seguito servirà il piano {{planName}}.",
+  "Changing this setting needs the {{planName}} plan.": "Per modificare questa impostazione serve il piano {{planName}}.",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "D'ora in poi ogni tipo di telemetria viene conservato con la conservazione predefinita del progetto, a meno che un servizio o una risorsa non abbia la propria. Ciò che è già archiviato mantiene la conservazione con cui è stato archiviato.",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "D'ora in poi la telemetria da qui viene conservata con la conservazione del progetto. Ciò che è già archiviato mantiene la conservazione con cui è stato archiviato.",
+  "Remove Override": "Rimuovi sostituzione",
+  "Remove the retention override?": "Rimuovere la sostituzione della conservazione?",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "Rimossa. D'ora in poi la telemetria da qui viene conservata con la conservazione del progetto.",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "Rimossa. D'ora in poi la telemetria viene conservata con la conservazione predefinita del progetto.",
+  "Retention Override": "Sostituzione della conservazione",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Alcuni tipi di telemetria vengono conservati con una conservazione propria, non con quella predefinita del progetto. Il tuo piano non include la conservazione per tipo di telemetria: puoi rimuoverla, ma per impostarla di nuovo serve il piano {{planName}}.",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "La telemetria da qui viene conservata con una conservazione propria, non con quella del progetto. Il tuo piano non include le sostituzioni della conservazione: puoi rimuovere questa, ma per impostarne di nuovo una serve il piano {{planName}}.",
   "Monitors keep their status.": "I monitor mantengono il loro stato."
 }

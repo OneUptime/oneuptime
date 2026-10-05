@@ -25177,5 +25177,18 @@
   "With Compose: in the .env next to your docker-compose.yml.": "Med Compose: i .env bredvid din docker-compose.yml.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true eller false: om AI får köra skrivskyddade kommandon medan den undersöker. Ange den (eller nästa) så följer AI-agentsidan agenten, skrivskyddad. Tom: agentens standard, på.",
   "Is Public": "Är offentlig",
+  "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "Ditt abonnemang omfattar inte den här inställningen. Du kan stänga av den, men för att slå på den igen behöver du {{planName}}-abonnemanget.",
+  "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "Ditt abonnemang omfattar inte den här inställningen. Du kan slå på den, men för att stänga av den igen behöver du {{planName}}-abonnemanget.",
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "Ditt abonnemang omfattar inte ”{{choiceName}}”. För att välja det igen senare behöver du {{planName}}-abonnemanget.",
+  "Changing this setting needs the {{planName}} plan.": "För att ändra den här inställningen behöver du {{planName}}-abonnemanget.",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "Från och med nu lagras varje typ av telemetri med projektets standardlagringstid, om inte en tjänst eller resurs har en egen. Det som redan är lagrat behåller lagringstiden det lagrades med.",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "Från och med nu lagras telemetri härifrån med projektets lagringstid. Det som redan är lagrat behåller lagringstiden det lagrades med.",
+  "Remove Override": "Ta bort åsidosättning",
+  "Remove the retention override?": "Ta bort åsidosättningen för lagring?",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "Borttagen. Telemetri härifrån lagras från och med nu med projektets lagringstid.",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "Borttagen. Telemetri lagras från och med nu med projektets standardlagringstid.",
+  "Retention Override": "Åsidosättning för lagring",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Vissa typer av telemetri lagras med en egen lagringstid, inte projektets standard. Ditt abonnemang omfattar inte lagring efter telemetrityp: du kan ta bort den, men för att ange den igen behöver du {{planName}}-abonnemanget.",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Telemetri härifrån lagras med en egen lagringstid, inte projektets. Ditt abonnemang omfattar inte åsidosättningar för lagring: du kan ta bort den här, men för att ange en igen behöver du {{planName}}-abonnemanget.",
   "Monitors keep their status.": "Monitorer behåller sin status."
 }

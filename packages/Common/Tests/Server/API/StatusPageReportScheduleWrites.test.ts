@@ -617,11 +617,11 @@ describe("on OneUptime Cloud (billing on)", () => {
     }
   });
 
-  test("switching reports off writes the switch alone on every plan that may change it", async () => {
+  test("switching reports off writes the switch alone on every plan, Free included", async () => {
     setTestBillingEnabled(true);
     stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = true;
 
-    for (const plan of [PlanType.Growth, PlanType.Scale, PlanType.Enterprise]) {
+    for (const plan of PLANS) {
       currentPlan = plan;
       writes = [];
 
@@ -631,6 +631,62 @@ describe("on OneUptime Cloud (billing on)", () => {
       ]);
       expect([plan, onlyWrite()]).toEqual([plan, { isReportEnabled: false }]);
     }
+  });
+
+  test("a page a Growth trial left sending reports, on a project now on Free: reports switch off, and stay off", async () => {
+    setTestBillingEnabled(true);
+    currentPlan = PlanType.Free;
+
+    // What the trial left: reports on, with the default schedule.
+    stored[STATUS_PAGE_ID.toString()] = {
+      isReportEnabled: true,
+      reportStartDateTime: OneUptimeDate.fromString("2026-11-01T09:00:00.000Z"),
+      reportRecurringInterval: every(EventInterval.Month, 1),
+      reportTimezone: Timezone.UTC,
+      reportPeriodType: StatusPageReportPeriodType.PreviousCalendarPeriod,
+      sendNextReportBy: OneUptimeDate.fromString("2026-11-01T09:00:00.000Z"),
+    };
+
+    // A paid feature can always be switched off: the switch alone is written.
+    expect(await put({ isReportEnabled: false })).toBe("saved");
+    expect(onlyWrite()).toEqual({ isReportEnabled: false });
+
+    stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = false;
+    writes = [];
+
+    // Switching them back on needs Growth again, and nothing is written.
+    expect(await put({ isReportEnabled: true })).toBe(GROWTH_REFUSAL);
+    expect(writes).toEqual([]);
+
+    // Nor can the schedule be changed below Growth: only put back.
+    expect(
+      await put({ reportTimezone: Timezone.EuropeLondon } as JSONObject),
+    ).toBe(GROWTH_REFUSAL);
+    expect(writes).toEqual([]);
+  });
+
+  test("on Free, a write that switches reports off and changes the schedule is refused: only putting things back is free", async () => {
+    setTestBillingEnabled(true);
+    currentPlan = PlanType.Free;
+    stored[STATUS_PAGE_ID.toString()]!.isReportEnabled = true;
+
+    expect(
+      await put({
+        isReportEnabled: false,
+        reportDataInDays: 7,
+      }),
+    ).toBe(GROWTH_REFUSAL);
+    expect(writes).toEqual([]);
+
+    // The schedule's own defaults put back with the switch are fine.
+    expect(
+      await put({
+        isReportEnabled: false,
+        reportDataInDays: 30,
+        reportPeriodType: StatusPageReportPeriodType.Rolling,
+        reportTimezone: Timezone.UTC,
+      }),
+    ).toBe("saved");
   });
 });
 
