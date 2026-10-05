@@ -32,11 +32,12 @@ import {
   INHERITED_LABEL_COLUMNS,
   INHERITED_OWNER_COLUMNS,
 } from "../../../UI/Components/RuleRun/RuleAction";
-import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
 import Label from "../../../Models/DatabaseModels/Label";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { DropdownChange } from "../../../UI/Components/Dropdown/DropdownChange";
-import Field from "../../../UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";

@@ -374,6 +374,8 @@ describe("RuleTable, for a rule that adds nothing", () => {
   beforeEach(() => {
     mockTableProps.length = 0;
     jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    // A viewer who may read every column of the rule.
+    jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -569,5 +571,60 @@ describe("RuleTable, for a rule that adds nothing", () => {
       props["selectMoreFields"],
     );
     expect(lastTableProps()["columns"]).toBe(props["columns"]);
+  });
+
+  /*
+   * Selecting a column one may not read fails the whole list, and a rule is
+   * never said to add nothing from part of what it adds: a viewer who may
+   * not read all of it gets the table exactly as the page wrote it.
+   */
+  it("reads nothing more, and marks nothing, for a viewer who may not read all a rule adds", () => {
+    jest
+      .spyOn(PermissionGate, "canReadColumn")
+      .mockImplementation((_model: unknown, column: string): boolean => {
+        return column !== "ownerTeams";
+      });
+
+    const props: Record<string, any> = tableProps();
+
+    render(
+      <RuleTable<MonitorOwnerRule>
+        {...(props as any)}
+        modelType={MonitorOwnerRule}
+      />,
+    );
+
+    expect(lastTableProps()["selectMoreFields"]).toBe(
+      props["selectMoreFields"],
+    );
+    expect(lastTableProps()["columns"]).toBe(props["columns"]);
+  });
+
+  it("asks about every column the rule adds from, switches included", () => {
+    const asked: Array<string> = [];
+
+    jest
+      .spyOn(PermissionGate, "canReadColumn")
+      .mockImplementation((_model: unknown, column: string): boolean => {
+        asked.push(column);
+        return true;
+      });
+
+    render(
+      <RuleTable<IncidentLabelRule>
+        {...(tableProps() as any)}
+        modelType={IncidentLabelRule}
+      />,
+    );
+
+    expect([...new Set(asked)]).toEqual([
+      "labelsToAdd",
+      "inheritLabelsFromMonitors",
+      "inheritLabelsFromHosts",
+      "inheritLabelsFromKubernetesClusters",
+      "inheritLabelsFromDockerHosts",
+      "inheritLabelsFromPodmanHosts",
+      "inheritLabelsFromServices",
+    ]);
   });
 });

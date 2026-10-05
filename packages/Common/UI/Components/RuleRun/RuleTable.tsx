@@ -123,6 +123,9 @@ function withAddsNothingMarker<TBaseModel extends BaseModel>(
  *
  * Every rule starts on: the create form leaves out the rule's Enabled
  * switch, which stays on the edit form and in the table (RuleEnabledField).
+ *
+ * A label or owner rule that adds nothing - saved before the form asked
+ * what it adds - says "Adds nothing" beside its status (RuleAction).
  */
 const RuleTable: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -226,11 +229,23 @@ const RuleTable: <TBaseModel extends BaseModel>(
 
   /*
    * A label or owner rule's table reads what each rule adds, so a rule that
-   * adds nothing says so beside its status.
+   * adds nothing says so beside its status. Only for a viewer who may read
+   * all of it: selecting a column one may not read fails the whole list
+   * (PermissionGate.canReadColumn), and a rule is never said to add nothing
+   * from part of what it adds.
    */
   const ruleAction: RuleActionColumns | null = getRuleActionColumns(model);
 
-  if (ruleAction) {
+  const canReadRuleAction: boolean = Boolean(
+    ruleAction &&
+      [...ruleAction.listColumns, ...ruleAction.switchColumns].every(
+        (column: string): boolean => {
+          return PermissionGate.canReadColumn(model, column);
+        },
+      ),
+  );
+
+  if (ruleAction && canReadRuleAction) {
     ruleTableProps.selectMoreFields = {
       ...(tableProps.selectMoreFields || {}),
       ...getRuleActionSelect(ruleAction),

@@ -249,7 +249,9 @@ const actionFieldsCallOf: ActionFieldsCallFunction = (
     );
   }
 
-  return new RegExp(`\\.\\.\\.get${kind}RuleActionFields<${model}>\\(\\), \\]\\}`);
+  return new RegExp(
+    `\\.\\.\\.get${kind}RuleActionFields<${model}>\\(\\), \\]\\}`,
+  );
 };
 
 describe("every label and owner rule form", () => {
@@ -262,12 +264,8 @@ describe("every label and owner rule form", () => {
     expect(files.length).toBeGreaterThan(2000);
     expect(ruleModelNames.length).toBeGreaterThanOrEqual(60);
     expect(ruleForms.length).toBeGreaterThanOrEqual(60);
-    expect(ruleForms.filter(isLabelRuleForm).length).toBeGreaterThanOrEqual(
-      30,
-    );
-    expect(ruleForms.filter(isOwnerRuleForm).length).toBeGreaterThanOrEqual(
-      30,
-    );
+    expect(ruleForms.filter(isLabelRuleForm).length).toBeGreaterThanOrEqual(30);
+    expect(ruleForms.filter(isOwnerRuleForm).length).toBeGreaterThanOrEqual(30);
     expect(ruleForms.filter(inherits).length).toBe(6);
 
     for (const form of ruleForms) {

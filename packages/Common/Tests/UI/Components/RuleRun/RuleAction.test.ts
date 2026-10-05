@@ -56,10 +56,13 @@ const loadModel: LoadFunction = (file: string): BaseModel => {
   return new loaded.default();
 };
 
+const RULE_MODEL_FILE: RegExp = /(?:Label|Owner)Rule\.ts$/;
+const LABEL_RULE_MODEL_FILE: RegExp = /LabelRule\.ts$/;
+
 const ruleModelFiles: Array<string> = fs
   .readdirSync(MODELS_DIRECTORY)
   .filter((file: string): boolean => {
-    return /(?:Label|Owner)Rule\.ts$/.test(file);
+    return RULE_MODEL_FILE.test(file);
   })
   .sort();
 
@@ -116,7 +119,7 @@ describe("what a rule model adds, by column", () => {
     for (const file of ruleModelFiles) {
       const model: BaseModel = loadModel(file);
       const action: RuleActionColumns | null = getRuleActionColumns(model);
-      const isLabelRule: boolean = /LabelRule\.ts$/.test(file);
+      const isLabelRule: boolean = LABEL_RULE_MODEL_FILE.test(file);
       const switchPrefix: string = isLabelRule
         ? "inheritLabelsFrom"
         : "inheritOwnersFrom";
