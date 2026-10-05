@@ -950,6 +950,47 @@ describe("who may change it", () => {
 
     expect(within(switchRow()).queryByTestId("pill")).toBeNull();
   });
+
+  test("on Free, reports a Growth trial left on can be switched off: the row says so, and the switch saves alone", async () => {
+    plan = PlanType.Free;
+    stored = {
+      isReportEnabled: true,
+      reportStartDateTime: OneUptimeDate.fromString("2026-11-01T09:00:00.000Z"),
+      reportRecurringInterval: every(EventInterval.Month, 1),
+      reportTimezone: Timezone.UTC,
+      reportPeriodType: StatusPageReportPeriodType.PreviousCalendarPeriod,
+      reportDataInDays: 30,
+      sendNextReportBy: OneUptimeDate.fromString("2026-11-01T09:00:00.000Z"),
+    };
+
+    getJestSpyOn(
+      SubscriptionPlan,
+      "isFeatureAccessibleOnCurrentPlan",
+    ).mockImplementation((needed: unknown): boolean => {
+      return needed === PlanType.Free;
+    });
+
+    await renderCard();
+
+    expect(reportsSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(reportsSwitch()).not.toHaveAttribute("aria-disabled", "true");
+    expect(switchRow()).toHaveTextContent(
+      "Your plan does not include this setting. You can turn it off, but turning it on again needs the Growth plan.",
+    );
+
+    await press();
+
+    // A paid feature can always be switched off: the switch alone.
+    expect(updates()).toEqual([{ isReportEnabled: false }]);
+    await waitFor(() => {
+      expect(schedule()).toBeNull();
+    });
+    expect(switchRow()).not.toHaveTextContent("Your plan does not include");
+    // Switching them on again needs Growth, as the pill says.
+    expect(within(switchRow()).getByTestId("pill")).toHaveTextContent(
+      "Growth Plan",
+    );
+  });
 });
 
 describe("the card", () => {

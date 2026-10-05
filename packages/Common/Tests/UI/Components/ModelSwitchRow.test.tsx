@@ -569,6 +569,205 @@ describe("ModelSwitchRow names the plan it needs", () => {
   });
 });
 
+describe("ModelSwitchRow lets a paid feature be switched off on any plan", () => {
+  const OFF_NOTE: string =
+    "Your plan does not include this setting. You can turn it off, but turning it on again needs the Growth plan.";
+
+  function badgeRow(props?: Partial<ComponentProps<StatusPage>>): ReactElement {
+    // The embedded badge's switch is a Growth feature, off by default.
+    return rowFor<StatusPage>({
+      modelType: StatusPage,
+      column: "enableEmbeddedOverallStatus",
+      title: "Enable Embedded Status Badge",
+      ...props,
+    });
+  }
+
+  function leftover(): HTMLElement | null {
+    return screen.queryByTestId(`${TEST_ID}-plan-leftover`);
+  }
+
+  test("a switch a trial left on, below its plan: it says it can be turned off, and what turning it on again takes", () => {
+    plan = PlanType.Free;
+
+    render(badgeRow({ initialValue: true }));
+
+    expect(leftover()).toHaveTextContent(OFF_NOTE);
+    // Still the plan's pill: the feature is the plan's.
+    expect(screen.getByTestId(`${TEST_ID}-row`)).toHaveTextContent(
+      "Growth Plan",
+    );
+    // Not locked: it can be flipped.
+    expect(theSwitch()).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("the sentence is read with the switch", () => {
+    plan = PlanType.Free;
+
+    render(badgeRow({ initialValue: true }));
+
+    expect(theSwitch()).toHaveAccessibleDescription(
+      expect.stringContaining(OFF_NOTE),
+    );
+  });
+
+  test("turning it off saves the column's default, says Saved, and the sentence goes", async () => {
+    plan = PlanType.Free;
+
+    render(badgeRow({ initialValue: true }));
+
+    await press();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateCall().data).toEqual({ enableEmbeddedOverallStatus: false });
+    expect(theSwitch()).toHaveAttribute("aria-checked", "false");
+    expect(status()).toHaveTextContent("Saved");
+    expect(leftover()).not.toBeInTheDocument();
+    // Turning it on again needs Growth: the pill stays.
+    expect(screen.getByTestId(`${TEST_ID}-row`)).toHaveTextContent(
+      "Growth Plan",
+    );
+  });
+
+  test("turning it on again, below the plan, is refused: the switch goes back and says why", async () => {
+    plan = PlanType.Free;
+    updateByIdMock.mockImplementation(async (): Promise<unknown> => {
+      throw new Error(
+        "Please upgrade your plan to Growth to access this feature",
+      );
+    });
+
+    render(badgeRow({ initialValue: false }));
+
+    expect(leftover()).not.toBeInTheDocument();
+
+    await press();
+
+    expect(updateCall().data).toEqual({ enableEmbeddedOverallStatus: true });
+    expect(theSwitch()).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByTestId(`${TEST_ID}-row`)).toHaveTextContent(
+      "Please upgrade your plan to Growth to access this feature",
+    );
+    expect(leftover()).not.toBeInTheDocument();
+  });
+
+  test("a column on by default, hidden by a trial (Show Incidents): it can be turned on, and turning it off again takes the plan", async () => {
+    plan = PlanType.Free;
+
+    render(
+      rowFor<StatusPage>({
+        modelType: StatusPage,
+        column: "showIncidentsOnStatusPage",
+        title: "Show Incidents",
+        initialValue: false,
+      }),
+    );
+
+    expect(leftover()).toHaveTextContent(
+      "Your plan does not include this setting. You can turn it on, but turning it off again needs the Growth plan.",
+    );
+
+    await press();
+
+    expect(updateCall().data).toEqual({ showIncidentsOnStatusPage: true });
+    expect(leftover()).not.toBeInTheDocument();
+  });
+
+  test("an inverted switch (Show Powered By branding), left off by a Scale trial: it can be turned on, writing the column's default", async () => {
+    plan = PlanType.Growth;
+
+    render(
+      rowFor<StatusPage>({
+        modelType: StatusPage,
+        column: "hidePoweredByOneUptimeBranding",
+        title: "Show Powered By OneUptime Branding",
+        isInverted: true,
+        // Off: the branding hidden, the column true - a Scale feature.
+        initialValue: false,
+      }),
+    );
+
+    expect(leftover()).toHaveTextContent(
+      "Your plan does not include this setting. You can turn it on, but turning it off again needs the Scale plan.",
+    );
+
+    await press();
+
+    expect(updateCall().data).toEqual({
+      hidePoweredByOneUptimeBranding: false,
+    });
+    expect(leftover()).not.toBeInTheDocument();
+  });
+
+  test("requiring SSO, left on by a Scale trial: it can be turned off at once, with no dialog", async () => {
+    plan = PlanType.Growth;
+
+    render(
+      rowFor<Project>({
+        modelType: Project,
+        column: "requireSsoForLogin",
+        title: "Require SSO for Login",
+        initialValue: true,
+        getConfirmation: (
+          isTurningOn: boolean,
+        ): ModelSwitchConfirmation | undefined => {
+          return isTurningOn
+            ? {
+                title: "Require SSO for this project?",
+                description: "Everyone signs in with SSO.",
+                submitButtonText: "Require SSO",
+                submitButtonType: ButtonStyleType.DANGER,
+              }
+            : undefined;
+        },
+      }),
+    );
+
+    expect(leftover()).toHaveTextContent(
+      "Your plan does not include this setting. You can turn it off, but turning it on again needs the Scale plan.",
+    );
+
+    await press();
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    expect(updateCall().data).toEqual({ requireSsoForLogin: false });
+  });
+
+  test("no sentence on a plan that has the feature, with billing off, or on a column no plan gates", () => {
+    plan = PlanType.Growth;
+    render(badgeRow({ initialValue: true }));
+    expect(leftover()).not.toBeInTheDocument();
+    cleanup();
+
+    plan = null;
+    render(badgeRow({ initialValue: true }));
+    expect(leftover()).not.toBeInTheDocument();
+    cleanup();
+
+    plan = PlanType.Free;
+    render(mcpRow({ initialValue: true }));
+    expect(leftover()).not.toBeInTheDocument();
+  });
+
+  test("no sentence for someone who may not change it: the switch is locked, with why", () => {
+    plan = PlanType.Free;
+    permissionsForTest = [Permission.ProjectMember];
+    PermissionGate.clearPermissionPropsCache();
+
+    render(
+      rowFor<Project>({
+        modelType: Project,
+        column: "requireSsoForLogin",
+        title: "Require SSO for Login",
+        initialValue: true,
+      }),
+    );
+
+    expect(theSwitch()).toHaveAttribute("aria-disabled", "true");
+    expect(leftover()).not.toBeInTheDocument();
+  });
+});
+
 describe("ModelSwitchRow asks first where a flip can lock people out", () => {
   const CONFIRM_ON: ModelSwitchConfirmation = {
     title: "Require SSO for everyone?",

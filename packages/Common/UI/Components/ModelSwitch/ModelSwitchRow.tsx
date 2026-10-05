@@ -23,7 +23,10 @@ import {
 import {
   getPlanNeededToChangeColumn,
   getStoredValueForSwitch,
+  getSwitchPlanLeftover,
   ModelSwitchColumn,
+  SWITCH_PLAN_LEFTOVER_COPY,
+  SwitchPlanLeftover,
 } from "./ModelSwitchUtil";
 import React, {
   MutableRefObject,
@@ -55,6 +58,13 @@ import React, {
  * - Where a plan has to be upgraded for the switch to be changed, the plan's
  *   name is beside it before anyone tries - the same pill a table shows for
  *   a plan feature.
+ * - A paid feature can always be switched off, on any plan: the server takes
+ *   the column back to its default whatever the plan (see
+ *   PlanGatedColumnDefault). So a switch a trial left on - email reports on
+ *   a project now on Free, say - can still be flipped back, and the row says
+ *   so under the switch, with the plan it takes to flip it again
+ *   (getSwitchPlanLeftover). Flipping it on keeps needing the plan: the pill
+ *   says which, and the server's refusal says it again.
  * - A switch whose change can lock people out (requiring SSO, say) asks
  *   first: getConfirmation names the dialog for the way it is being turned.
  *   The switch shows where it is going while the dialog is open, and goes
@@ -318,13 +328,45 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
 
   const descriptionText: string | undefined = props.getDescription?.(isOn);
 
+  /*
+   * A plan feature left on by a trial that ended (or a move to a lower
+   * plan): the switch can still go back to the column's default - the
+   * server allows that on any plan - and the row says so, and what it takes
+   * to come back. Only for someone who may change it.
+   */
+  const leftover: SwitchPlanLeftover | null = updateGate.isAllowed
+    ? getSwitchPlanLeftover({
+        model: model,
+        column: props.column,
+        isOn: isOn,
+        isInverted: props.isInverted,
+      })
+    : null;
+
+  const leftoverNote: ReactElement | undefined = leftover ? (
+    <span
+      className="mt-1 block"
+      data-testid={
+        props.dataTestId ? `${props.dataTestId}-plan-leftover` : undefined
+      }
+    >
+      {translator.translateTemplate(
+        SWITCH_PLAN_LEFTOVER_COPY[leftover.canTurn],
+        {
+          planName: leftover.planNeeded,
+        },
+      )}
+    </span>
+  ) : undefined;
+
   // Translated here, as one element: the Toggle would look a string up again.
   const description: ReactElement | undefined =
-    descriptionText || props.note ? (
+    descriptionText || props.note || leftoverNote ? (
       <>
         {descriptionText ? translator.translateText(descriptionText) : ""}
         {descriptionText && props.note ? " " : ""}
         {props.note ? translator.translateText(props.note) : ""}
+        {leftoverNote || ""}
       </>
     ) : undefined;
 

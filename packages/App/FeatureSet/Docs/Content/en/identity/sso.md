@@ -308,6 +308,8 @@ Setting up a provider does not stop anyone signing in with a password. To make S
 
 Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password. Project owners, project admins and members with the **Edit Project** permission can change it; anyone else sees the switch locked, with the permission they would need.
 
+On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO for Login** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
+
 ## Notes on SSO and Roles
 
 OneUptime does not currently support mapping SAML roles from your identity provider. Role-based access must be configured separately within OneUptime's **Project Settings** > **Security** > **SSO** settings, where you can assign default roles for SSO users.

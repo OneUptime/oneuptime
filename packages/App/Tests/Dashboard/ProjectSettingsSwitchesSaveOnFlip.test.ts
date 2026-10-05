@@ -152,6 +152,39 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
     // The old help's doubled word is gone with the dialog.
     expect(page).not.toContain("you you");
   });
+
+  /*
+   * A paid feature can always be switched off, on any plan. Below Scale the
+   * page is the plan's upsell, but a project a Scale trial left requiring
+   * SSO still requires it: the switch is drawn under the upsell while it
+   * does, without the test link's line (the link is not on that page).
+   */
+  test("Settings > SSO below Scale: the Require SSO switch under the upsell, while the project requires SSO", () => {
+    const page: string = readDashboard("Pages/Settings/SSO.tsx");
+
+    expect(page).toContain(
+      "belowPlan={ <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> }",
+    );
+
+    const leftover: string = readDashboard(
+      "Components/Project/RequireSsoForLoginLeftover.tsx",
+    );
+
+    // Read once: only whether the project requires SSO.
+    expect(leftover).toContain("select: { requireSsoForLogin: true, }");
+    expect(leftover).toContain("project?.requireSsoForLogin === true");
+    expect(leftover).toContain(
+      "<RequireSsoForLoginCard projectId={props.projectId} isPlanLeftover={true} />",
+    );
+
+    const card: string = readDashboard(
+      "Components/Project/RequireSsoForLoginCard.tsx",
+    );
+
+    expect(card).toContain(
+      "cardDescription={ props.isPlanLeftover ? undefined : RequireSsoForLoginSwitchCopy.cardDescription }",
+    );
+  });
 });
 
 describe("the switch cards", () => {
