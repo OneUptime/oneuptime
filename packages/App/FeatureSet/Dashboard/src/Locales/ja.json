@@ -24963,7 +24963,7 @@
   "Copy the Deployment from the setup guide and apply it again with kubectl apply -f. It carries the current collector version and config.": "セットアップガイドから Deployment をコピーし、kubectl apply -f でもう一度適用します。現在のコレクターのバージョンと設定が含まれています。",
   "Download the latest files": "最新のファイルをダウンロードする",
   "Helm": "Helm",
-  "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.": "{{directory}} 以外にインストールしましたか? INSTALL_DIR にそのフォルダーを指定してスクリプトを実行します: INSTALL_DIR=<folder> bash install.sh。",
+  "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.": "{{directory}} 以外にインストールしましたか？INSTALL_DIR にそのフォルダーを指定してスクリプトを実行します: INSTALL_DIR=<folder> bash install.sh。",
   "Pull the new image and remove the running Runner": "新しいイメージを pull して、実行中の Runner を削除する",
   "Pull the new image and remove the running agent": "新しいイメージを pull して、実行中のエージェントを削除する",
   "Recreate the agent": "エージェントを作り直す",
