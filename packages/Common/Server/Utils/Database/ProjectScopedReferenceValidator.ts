@@ -2,6 +2,7 @@ import DatabaseService from "../../Services/DatabaseService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import UpdateBy from "../../Types/Database/UpdateBy";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -342,6 +343,84 @@ export default class ProjectScopedReferenceValidator {
           ProjectScopedReferenceValidator.describeReferences(unavailable),
       }),
     );
+  }
+
+  /*
+   * The references an update writes, checked against the project of every
+   * record it changes: the request's project, or - for an update with none
+   * on the request (OneUptime's own, a master admin) - the project each
+   * record the update matches is in. Handing validateReferencesBelongToProject
+   * the request's project alone would check nothing for those updates.
+   */
+  public static async validateUpdateReferencesBelongToProject<
+    TModel extends DatabaseBaseModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    updateBy: UpdateBy<TModel>;
+    references: Array<ProjectScopedReference>;
+    subject?: string | undefined;
+  }): Promise<void> {
+    if (data.references.length === 0) {
+      return;
+    }
+
+    const projectIds: Array<ObjectID> = data.updateBy.props.tenantId
+      ? [data.updateBy.props.tenantId]
+      : await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
+          service: data.service as unknown as DatabaseService<DatabaseBaseModel>,
+          query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
+        });
+
+    for (const projectId of projectIds) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        references: data.references,
+        subject: data.subject,
+      });
+    }
+  }
+
+  /*
+   * The projects of the records `query` matches, each once, read as root -
+   * for a check of an update that has no project on its request.
+   */
+  public static async getProjectIdsOfRecords(data: {
+    service: DatabaseService<DatabaseBaseModel>;
+    query: Query<DatabaseBaseModel>;
+  }): Promise<Array<ObjectID>> {
+    const tenantColumnName: string | null = data.service
+      .getModel()
+      .getTenantColumn();
+
+    if (!tenantColumnName) {
+      return [];
+    }
+
+    const records: Array<DatabaseBaseModel> = await data.service.findBy({
+      query: data.query,
+      select: {
+        _id: true,
+        [tenantColumnName]: true,
+      } as Select<DatabaseBaseModel>,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Map<string, ObjectID> = new Map();
+
+    for (const record of records) {
+      const projectId: string =
+        readRowColumn(record, tenantColumnName)?.toString().trim() || "";
+
+      if (projectId && !projectIds.has(normalizeId(projectId))) {
+        projectIds.set(normalizeId(projectId), new ObjectID(projectId));
+      }
+    }
+
+    return Array.from(projectIds.values());
   }
 
   /*
