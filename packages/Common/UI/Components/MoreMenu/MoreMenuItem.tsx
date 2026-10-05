@@ -49,6 +49,7 @@ export interface ComponentProps {
    * ordinary menuitem.
    */
   isChecked?: boolean | undefined;
+  dataTestId?: string | undefined;
 }
 
 const MoreMenuItem: FunctionComponent<ComponentProps> = (
@@ -106,6 +107,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       aria-disabled={isDisabled}
       aria-describedby={isExplainedLock ? reasonId : undefined}
       data-focusable-when-disabled={isExplainedLock ? "true" : undefined}
+      data-testid={props.dataTestId}
       onClick={() => {
         if (isDisabled) {
           return;
