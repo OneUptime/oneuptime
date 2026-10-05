@@ -53,9 +53,9 @@ const HOLDING_CALLS: ReadonlySet<string> = new Set<string>([
   "FileOwnership.keepProjectFile",
   "FileOwnership.findProjectAttachment",
   // The image routes: a public file to anyone, a private one to its project.
-  "FileViewerAccess.keepReadableFile",
+  "FileViewerAccess.findReadableFile",
   // The id-based image route: public files only.
-  "FileViewerAccess.keepPublicFile",
+  "FileViewerAccess.findPublicFile",
 ]);
 
 /*
@@ -64,7 +64,12 @@ const HOLDING_CALLS: ReadonlySet<string> = new Set<string>([
  * fails the guard until it is listed here, with how it is held.
  */
 const BYTE_READERS: Record<string, string> = {
-  "packages/Common/Server/API/FileAPI.ts": "FileViewerAccess.keep",
+  /*
+   * The image routes' reads: a file's owners first, its bytes only once the
+   * person asking may see it (keepReadableFile), or only a public file's.
+   */
+  "packages/Common/Server/Utils/File/FileViewerAccess.ts":
+    "await this.keepReadableFile(",
   "packages/Common/Server/API/StatusPageAPI.ts":
     "FileOwnership.keepProjectFile",
   "packages/Common/Server/API/DashboardAPI.ts": "FileOwnership.keepProjectFile",

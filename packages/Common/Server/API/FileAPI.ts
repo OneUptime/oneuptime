@@ -13,23 +13,6 @@ import ObjectID from "../../Types/ObjectID";
 import File from "../../Models/DatabaseModels/File";
 import FileViewerAccess from "../Utils/File/FileViewerAccess";
 
-// What the image routes read of a file: its bytes, and who may see them.
-const SERVED_FILE_SELECT: {
-  file: true;
-  fileType: true;
-  isPublic: true;
-  name: true;
-  projectId: true;
-  createdByUserId: true;
-} = {
-  file: true,
-  fileType: true,
-  isPublic: true,
-  name: true,
-  projectId: true,
-  createdByUserId: true,
-};
-
 const FILE_NOT_FOUND_MESSAGE: string = "File not found";
 
 export default class FileAPI extends BaseAPI<File, FileServiceType> {
@@ -61,21 +44,12 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
             );
           }
 
-          const file: File | null = await FileService.findOneBy({
-            query: {
-              imageAccessToken: token,
-            },
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            select: SERVED_FILE_SELECT,
-          });
-
           const image: File | undefined =
-            await FileViewerAccess.keepReadableFile({
+            await FileViewerAccess.findReadableFile({
               req: req,
-              file: file,
+              query: {
+                imageAccessToken: token,
+              },
             });
 
           if (!image || !image.file || !image.fileType) {
@@ -116,16 +90,9 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
             );
           }
 
-          const file: File | null = await FileService.findOneById({
-            id: new ObjectID(imageId),
-            props: {
-              isRoot: true,
-              ignoreHooks: true,
-            },
-            select: SERVED_FILE_SELECT,
-          });
-
-          const icon: File | undefined = FileViewerAccess.keepPublicFile(file);
+          const icon: File | undefined = await FileViewerAccess.findPublicFile(
+            new ObjectID(imageId),
+          );
 
           if (!icon || !icon.file || !icon.fileType) {
             return Response.sendErrorResponse(

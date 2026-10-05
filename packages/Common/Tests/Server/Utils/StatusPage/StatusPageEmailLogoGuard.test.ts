@@ -13,8 +13,7 @@ import ts from "typescript";
  *
  *   - no file but StatusPageEmailLogo builds a /logo/<page> address;
  *   - every `logoUrl` an email is given comes from
- *     StatusPageEmailLogo.getLogoUrl (or the incident email builder's
- *     getLogoUrl, which is it);
+ *     StatusPageEmailLogo.getLogoUrl;
  *   - every file that calls it reads its pages with the logo's project:
  *     with STATUS_PAGE_EMAIL_LOGO_SELECT, or through
  *     getStatusPagesToSendNotification, which selects it.
@@ -34,11 +33,9 @@ const SCAN_ROOTS: Array<string> = [
 const HELPER: string =
   "packages/Common/Server/Utils/StatusPage/StatusPageEmailLogo.ts";
 
-// The calls a logoUrl may come from.
+// The one call a logoUrl may come from.
 const LOGO_CALLS: ReadonlySet<string> = new Set<string>([
   "StatusPageEmailLogo.getLogoUrl",
-  // SubscriberIncidentEmailBuilder.getLogoUrl, which returns the helper's.
-  "this.getLogoUrl",
 ]);
 
 // How a sender's pages are read with the logo's project.
@@ -214,18 +211,6 @@ describe("every status page email takes its logo from StatusPageEmailLogo", () =
         return !logoUrl.fromHelper;
       }),
     ).toEqual([]);
-  });
-
-  test("the incident email builder's getLogoUrl is the helper's", () => {
-    const text: string = fs.readFileSync(
-      path.join(
-        REPOSITORY_ROOT,
-        "packages/Common/Server/Utils/StatusPage/SubscriberIncidentEmailBuilder.ts",
-      ),
-      "utf8",
-    );
-
-    expect(text).toContain("return StatusPageEmailLogo.getLogoUrl(data);");
   });
 
   test("every sender reads its pages with the logo's project", () => {

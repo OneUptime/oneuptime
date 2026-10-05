@@ -198,18 +198,6 @@ export default class SubscriberIncidentEmailBuilder {
   }
 
   /*
-   * The status page's logo, for the default email, or "" when it has none
-   * the page's logo route would serve (StatusPageEmailLogo).
-   */
-  public static getLogoUrl(data: {
-    statusPage: StatusPage;
-    host: Hostname;
-    httpProtocol: Protocol;
-  }): string {
-    return StatusPageEmailLogo.getLogoUrl(data);
-  }
-
-  /*
    * Which email a page's subscribers get: its custom template only when the
    * template has a body and the page sends through its own SMTP server.
    */
@@ -366,7 +354,8 @@ export default class SubscriberIncidentEmailBuilder {
         IncidentTemplateVariableBuilder.getStatusPageName(statusPage),
       statusPageUrl: data.statusPageUrl,
       detailsUrl: data.detailsUrl,
-      logoUrl: this.getLogoUrl({
+      // "" when the page's logo route would not serve its logo.
+      logoUrl: StatusPageEmailLogo.getLogoUrl({
         statusPage: statusPage,
         host: data.host,
         httpProtocol: data.httpProtocol,

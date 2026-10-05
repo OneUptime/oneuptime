@@ -11,7 +11,8 @@ import React, {
 
 /*
  * Private inline images (pasted into notes, postmortems, runbooks) are served
- * from this route, and only to a request that carries a session.
+ * from this route, and only to a request whose session may see them: a
+ * member of the project they were uploaded in.
  */
 export const PRIVATE_IMAGE_ROUTE_SEGMENT: string = "/image/access-token/";
 
@@ -41,6 +42,26 @@ export type RefreshSessionFunction = () => Promise<boolean>;
  * startup) or the caller passes one.
  */
 let appRefreshSession: RefreshSessionFunction | null = null;
+
+/*
+ * When each refresh last renewed the session. An image that fails right
+ * after a renewal is not one whose session lapsed - every image already has
+ * the session it can get - but one the person may not see: a private image
+ * of a project they are not in is answered as missing. It is loaded once
+ * more (it may have been requested with the old session), without renewing
+ * the session again, so a page of such images costs one renewal, not one
+ * per image.
+ */
+const RECENT_RENEWAL_MS: number = 60 * 1000;
+const lastRenewedAt: WeakMap<RefreshSessionFunction, number> = new WeakMap();
+
+const wasRenewedRecently: (refresh: RefreshSessionFunction) => boolean = (
+  refresh: RefreshSessionFunction,
+): boolean => {
+  const renewedAt: number | undefined = lastRenewedAt.get(refresh);
+
+  return renewedAt !== undefined && Date.now() - renewedAt < RECENT_RENEWAL_MS;
+};
 
 export const enablePrivateImageSessionRefresh: (
   refreshSession: RefreshSessionFunction | null,
@@ -100,9 +121,15 @@ const SessionAwareImage: FunctionComponent<ComponentProps> = ({
 
         hasRetriedRef.current = true;
 
+        if (wasRenewedRecently(refresh) && typeof src === "string") {
+          setCurrentSrc(withCacheBuster(src, Date.now().toString()));
+          return;
+        }
+
         void refresh()
           .then((refreshed: boolean) => {
             if (refreshed && typeof src === "string") {
+              lastRenewedAt.set(refresh, Date.now());
               setCurrentSrc(withCacheBuster(src, Date.now().toString()));
               return;
             }

@@ -1,13 +1,18 @@
 import UserMiddleware from "../../../../Server/Middleware/UserAuthorization";
+import FileService from "../../../../Server/Services/FileService";
 import UserService from "../../../../Server/Services/UserService";
 import {
   ExpressRequest,
   ExpressResponse,
 } from "../../../../Server/Utils/Express";
 import FileViewerAccess, {
+  FILE_VIEWERS_SELECT,
   FileViewer,
+  SERVED_FILE_SELECT,
   ViewableFile,
 } from "../../../../Server/Utils/File/FileViewerAccess";
+import File from "../../../../Models/DatabaseModels/File";
+import MimeType from "../../../../Types/File/MimeType";
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
 import SsoAuthorizationException from "../../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../../Types/Exception/TenantNotFoundException";
@@ -377,6 +382,172 @@ describe("FileViewerAccess.keepReadableFile: the access-token image route", () =
   test("no file, nothing kept", async () => {
     expect(
       await FileViewerAccess.keepReadableFile({ req: REQUEST, file: null }),
+    ).toBeUndefined();
+  });
+});
+
+describe("FileViewerAccess.keepReadableFile when who may see a file cannot be found out", () => {
+  const image: ViewableFile = file({ isPublic: false, projectId: PROJECT_ID });
+
+  test("a failed membership lookup keeps nothing, and is logged rather than thrown", async () => {
+    signedInAs({ userId: USER_ID });
+    canOpenProject(new Error("the database is unreachable"));
+
+    await expect(
+      FileViewerAccess.keepReadableFile({ req: REQUEST, file: image }),
+    ).resolves.toBeUndefined();
+  });
+
+  test("a failed blocked-user lookup keeps nothing either", async () => {
+    signedInAs({ userId: USER_ID });
+    canOpenProject(true);
+    jest
+      .spyOn(UserService, "isUserBlocked")
+      .mockRejectedValue(new Error("the database is unreachable"));
+
+    await expect(
+      FileViewerAccess.keepReadableFile({ req: REQUEST, file: image }),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("FileViewerAccess's reads: who a file belongs to first, its bytes only to serve it", () => {
+  const FILE_ID: string = "f0000000-0000-4000-8000-000000000001";
+
+  function stored(isPublic: boolean): File {
+    const row: File = new File();
+    row._id = FILE_ID;
+    row.file = Buffer.from("image-bytes");
+    row.fileType = MimeType.png;
+    row.projectId = PROJECT_ID;
+    row.isPublic = isPublic;
+    return row;
+  }
+
+  function reads(): {
+    findOneBy: ReturnType<typeof jest.spyOn>;
+    findOneById: ReturnType<typeof jest.spyOn>;
+  } {
+    return {
+      findOneBy: jest
+        .spyOn(FileService, "findOneBy")
+        .mockResolvedValue(stored(false) as never),
+      findOneById: jest
+        .spyOn(FileService, "findOneById")
+        .mockResolvedValue(stored(false) as never),
+    };
+  }
+
+  test("deciding reads no bytes; serving reads them", () => {
+    expect(FILE_VIEWERS_SELECT).toEqual({
+      _id: true,
+      isPublic: true,
+      projectId: true,
+      createdByUserId: true,
+    });
+    expect(SERVED_FILE_SELECT).toMatchObject({
+      file: true,
+      fileType: true,
+      isPublic: true,
+    });
+  });
+
+  test("a private file someone may not see: its owners are read, its bytes never", async () => {
+    signedInAs(null);
+    const { findOneBy, findOneById } = reads();
+
+    expect(
+      await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: "a1".repeat(32) },
+      }),
+    ).toBeUndefined();
+
+    expect(findOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { imageAccessToken: "a1".repeat(32) },
+        select: FILE_VIEWERS_SELECT,
+      }),
+    );
+    expect(findOneById).not.toHaveBeenCalled();
+  });
+
+  test("a private file a member may see: read whole, by its id, after the decision", async () => {
+    signedInAs({ userId: USER_ID });
+    canOpenProject(true);
+    const { findOneById } = reads();
+
+    const served: File | undefined = await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: "a1".repeat(32) },
+    });
+
+    expect(served?.file?.toString()).toBe("image-bytes");
+    expect(findOneById).toHaveBeenCalledWith(
+      expect.objectContaining({ select: SERVED_FILE_SELECT }),
+    );
+    expect(
+      (findOneById.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+    ).toBe(FILE_ID);
+  });
+
+  test("a public file: served to anyone, read whole only after its owners", async () => {
+    signedInAs(null);
+    jest
+      .spyOn(FileService, "findOneBy")
+      .mockResolvedValue(stored(true) as never);
+    const findOneById: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(FileService, "findOneById")
+      .mockResolvedValue(stored(true) as never);
+
+    expect(
+      (
+        await FileViewerAccess.findReadableFile({
+          req: REQUEST,
+          query: { imageAccessToken: "a1".repeat(32) },
+        })
+      )?.file?.toString(),
+    ).toBe("image-bytes");
+    expect(findOneById).toHaveBeenCalledTimes(1);
+  });
+
+  test("no file: nothing read whole", async () => {
+    jest.spyOn(FileService, "findOneBy").mockResolvedValue(null as never);
+    const findOneById: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      FileService,
+      "findOneById",
+    );
+
+    expect(
+      await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: "a1".repeat(32) },
+      }),
+    ).toBeUndefined();
+    expect(findOneById).not.toHaveBeenCalled();
+  });
+
+  test("by id: only a public file is asked for, and only a strictly public one kept", async () => {
+    const findOneBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(FileService, "findOneBy")
+      .mockResolvedValue(stored(true) as never);
+
+    expect(
+      (await FileViewerAccess.findPublicFile(new ObjectID(FILE_ID)))?.file,
+    ).toBeDefined();
+    expect(findOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { _id: new ObjectID(FILE_ID), isPublic: true },
+        select: SERVED_FILE_SELECT,
+      }),
+    );
+
+    const loose: File = stored(true);
+    (loose as unknown as { isPublic: unknown }).isPublic = "true";
+    findOneBy.mockResolvedValue(loose as never);
+
+    expect(
+      await FileViewerAccess.findPublicFile(new ObjectID(FILE_ID)),
     ).toBeUndefined();
   });
 });

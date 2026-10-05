@@ -200,15 +200,25 @@ const FIXTURES: Array<FileFixture> = [
   LOOSE_IMAGE,
 ];
 
-// A fresh row for every read: a route may change what it is handed.
-function fileOf(fixture: FileFixture | undefined): File | null {
+/*
+ * A fresh row for every read: a route may change what it is handed. The
+ * bytes come back only when the read selected them, as Postgres would.
+ */
+function fileOf(
+  fixture: FileFixture | undefined,
+  select: Dictionary<unknown>,
+): File | null {
   if (!fixture) {
     return null;
   }
 
   const file: File = new File();
   file._id = fixture.id;
-  file.file = Buffer.from(fixture.bytes);
+
+  if (select["file"]) {
+    file.file = Buffer.from(fixture.bytes);
+  }
+
   file.fileType = MimeType.png;
   file.name = "image.png";
   (file as unknown as { isPublic: unknown }).isPublic = fixture.isPublic;
@@ -338,25 +348,51 @@ describe("the image routes serve a file only to the people who may see it", () =
   let port: number;
   let blocked: Set<string> = new Set<string>();
   let failMembershipLookups: boolean = false;
+  // Every read of a file, and what it selected.
+  let reads: Array<{ by: string; select: Dictionary<unknown> }> = [];
+
+  // Whether any read so far selected a file's bytes.
+  const readAnyBytes: () => boolean = (): boolean => {
+    return reads.some((read: { select: Dictionary<unknown> }): boolean => {
+      return Boolean(read.select["file"]);
+    });
+  };
 
   beforeAll(async () => {
+    // By access token (who may see it), or by id - and, if asked, only if public.
     jest.spyOn(FileService, "findOneBy").mockImplementation((async (data: {
       query: Dictionary<unknown>;
+      select: Dictionary<unknown>;
     }) => {
+      reads.push({ by: "query", select: data.select });
+
       return fileOf(
         FIXTURES.find((fixture: FileFixture): boolean => {
-          return fixture.token === data.query["imageAccessToken"];
+          if (data.query["imageAccessToken"] !== undefined) {
+            return fixture.token === data.query["imageAccessToken"];
+          }
+
+          return (
+            fixture.id === String(data.query["_id"]) &&
+            (data.query["isPublic"] === undefined ||
+              fixture.isPublic === data.query["isPublic"])
+          );
         }),
+        data.select,
       );
     }) as never);
 
     jest.spyOn(FileService, "findOneById").mockImplementation((async (data: {
       id: ObjectID;
+      select: Dictionary<unknown>;
     }) => {
+      reads.push({ by: "id", select: data.select });
+
       return fileOf(
         FIXTURES.find((fixture: FileFixture): boolean => {
           return fixture.id === data.id.toString();
         }),
+        data.select,
       );
     }) as never);
 
@@ -415,6 +451,8 @@ describe("the image routes serve a file only to the people who may see it", () =
     blocked = new Set<string>([BLOCKED_ID.toString()]);
     failMembershipLookups = false;
     (FileService.findOneById as unknown as jest.Mock).mockClear();
+    (FileService.findOneBy as unknown as jest.Mock).mockClear();
+    reads = [];
   });
 
   afterAll(async () => {
@@ -625,17 +663,45 @@ describe("the image routes serve a file only to the people who may see it", () =
       }
     });
 
-    it("is never served when whether the viewer may see it cannot be decided", async () => {
+    it("is answered like a missing file when who may see it cannot be decided", async () => {
       failMembershipLookups = true;
 
-      const result: HttpResult = await get({
+      await expectRefusedLikeMissing(
+        await get({
+          port,
+          path: tokenPath(PRIVATE_IMAGE),
+          cookies: asSession(MEMBER_ID),
+        }),
+        PRIVATE_IMAGE,
+      );
+    });
+
+    it("is never read for someone who may not see it: only who it belongs to is", async () => {
+      for (const cookies of [{}, asSession(OUTSIDER_ID)]) {
+        reads = [];
+
+        await get({ port, path: tokenPath(PRIVATE_IMAGE), cookies });
+
+        expect(reads.length).toBeGreaterThan(0);
+        expect(readAnyBytes()).toBe(false);
+      }
+    });
+
+    it("is read whole only once it may be served", async () => {
+      await get({
         port,
         path: tokenPath(PRIVATE_IMAGE),
         cookies: asSession(MEMBER_ID),
       });
 
-      expect(result.status).toBeGreaterThanOrEqual(400);
-      expect(result.text).not.toContain(PRIVATE_IMAGE.bytes);
+      expect(
+        reads.map((read: { by: string; select: Dictionary<unknown> }) => {
+          return { by: read.by, bytes: Boolean(read.select["file"]) };
+        }),
+      ).toEqual([
+        { by: "query", bytes: false },
+        { by: "id", bytes: true },
+      ]);
     });
 
     it("stays private when isPublic holds anything but true", async () => {
@@ -805,7 +871,26 @@ describe("the image routes serve a file only to the people who may see it", () =
         expect(result.status).toBe(404);
       }
 
-      expect(FileService.findOneById).not.toHaveBeenCalled();
+      expect(reads).toEqual([]);
+    });
+
+    it("never reads a private file's bytes: its one read asks for a public file", async () => {
+      const result: HttpResult = await get({
+        port,
+        path: idPath(PRIVATE_IMAGE),
+        cookies: asAdmin(),
+      });
+
+      expect(result.status).toBe(404);
+      expect(reads).toHaveLength(1);
+      expect(
+        (FileService.findOneBy as unknown as jest.Mock).mock.calls[0]![0],
+      ).toMatchObject({ query: { isPublic: true } });
+      // ...and found none, so no bytes came back.
+      expect(
+        await (FileService.findOneBy as unknown as jest.Mock).mock.results[0]!
+          .value,
+      ).toBeNull();
     });
   });
 

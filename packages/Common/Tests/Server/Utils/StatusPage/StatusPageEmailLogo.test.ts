@@ -12,7 +12,6 @@ import StatusPageSubscriberService from "../../../../Server/Services/StatusPageS
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../../../../Server/Utils/StatusPage/StatusPageEmailLogo";
-import SubscriberIncidentEmailBuilder from "../../../../Server/Utils/StatusPage/SubscriberIncidentEmailBuilder";
 import Hostname from "../../../../Types/API/Hostname";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import Protocol from "../../../../Types/API/Protocol";
@@ -168,19 +167,6 @@ describe("StatusPageEmailLogo.getLogoUrl", () => {
   test("nothing at all is no logo", () => {
     expect(StatusPageEmailLogo.isLogoServed(null)).toBe(false);
     expect(StatusPageEmailLogo.isLogoServed(undefined)).toBe(false);
-  });
-
-  test("SubscriberIncidentEmailBuilder's logo is this one", () => {
-    for (const logo of Object.values(Logo)) {
-      expect({
-        logo,
-        url: SubscriberIncidentEmailBuilder.getLogoUrl({
-          statusPage: statusPage(logo),
-          host: HOST,
-          httpProtocol: Protocol.HTTPS,
-        }),
-      }).toEqual({ logo, url: logoUrlOf(statusPage(logo)) });
-    }
   });
 });
 
