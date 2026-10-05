@@ -7,7 +7,11 @@ import LogDropFilterAction from "../../../Types/Log/LogDropFilterAction";
 import TraceDropFilterAction from "../../../Types/Trace/TraceDropFilterAction";
 import { coerceNumericColumnsInJSON } from "../../../Types/Database/NumericColumnValue";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import { inspect } from "util";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
@@ -229,7 +233,7 @@ describe.each(SUITES)(
           filterQuery: VALID_QUERY,
         });
 
-        await service.onBeforeUpdate(
+        await service.onBeforeUpdateUniqueCheck(
           updateBy({ name: "Renamed", isEnabled: false, sortOrder: 3 }),
         );
 
@@ -244,8 +248,8 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(updateBy({ samplePercentage: 25 })),
-        ).resolves.toBeDefined();
+          service.onBeforeUpdateUniqueCheck(updateBy({ samplePercentage: 25 })),
+        ).resolves.toBeUndefined();
       });
 
       it("rejects a percentage change that leaves the range", async () => {
@@ -256,7 +260,7 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(updateBy({ samplePercentage: 0 })),
+          service.onBeforeUpdateUniqueCheck(updateBy({ samplePercentage: 0 })),
         ).rejects.toThrow(BadDataException);
       });
 
@@ -272,7 +276,7 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(updateBy({ action: sampleAction })),
+          service.onBeforeUpdateUniqueCheck(updateBy({ action: sampleAction })),
         ).rejects.toThrow(BadDataException);
       });
 
@@ -284,10 +288,10 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(
+          service.onBeforeUpdateUniqueCheck(
             updateBy({ action: sampleAction, samplePercentage: 5 }),
           ),
-        ).resolves.toBeDefined();
+        ).resolves.toBeUndefined();
       });
 
       it("allows flipping to sample when the stored percentage is already valid", async () => {
@@ -298,8 +302,8 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(updateBy({ action: sampleAction })),
-        ).resolves.toBeDefined();
+          service.onBeforeUpdateUniqueCheck(updateBy({ action: sampleAction })),
+        ).resolves.toBeUndefined();
       });
 
       /*
@@ -315,7 +319,7 @@ describe.each(SUITES)(
 
         for (const blank of ["", "  "]) {
           await expect(
-            service.onBeforeUpdate(updateBy({ filterQuery: blank })),
+            service.onBeforeUpdateUniqueCheck(updateBy({ filterQuery: blank })),
           ).rejects.toThrow(BadDataException);
         }
       });
@@ -328,10 +332,10 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(
+          service.onBeforeUpdateUniqueCheck(
             updateBy({ filterQuery: "body CONTAINS 'healthcheck'" }),
           ),
-        ).resolves.toBeDefined();
+        ).resolves.toBeUndefined();
       });
 
       /*
@@ -358,7 +362,7 @@ describe.each(SUITES)(
           });
 
         await expect(
-          service.onBeforeUpdate(updateBy({ action: sampleAction })),
+          service.onBeforeUpdateUniqueCheck(updateBy({ action: sampleAction })),
         ).rejects.toThrow(BadDataException);
       });
 
@@ -370,8 +374,8 @@ describe.each(SUITES)(
           });
 
         await expect(
-          service.onBeforeUpdate(updateBy({ filterQuery: "" })),
-        ).resolves.toBeDefined();
+          service.onBeforeUpdateUniqueCheck(updateBy({ filterQuery: "" })),
+        ).resolves.toBeUndefined();
       });
 
       /*
@@ -387,14 +391,14 @@ describe.each(SUITES)(
         });
 
         await expect(
-          service.onBeforeUpdate(
+          service.onBeforeUpdateUniqueCheck(
             updateBy({
               filterQuery: () => {
                 return "'x'";
               },
             }),
           ),
-        ).resolves.toBeDefined();
+        ).resolves.toBeUndefined();
 
         expect(findBy).not.toHaveBeenCalled();
       });
@@ -601,10 +605,10 @@ describe.each(SUITES)(
       });
 
       await expect(
-        service.onBeforeUpdate(
+        service.onBeforeUpdateUniqueCheck(
           updateByFromRequestBody({ samplePercentage: "25" }),
         ),
-      ).resolves.toBeDefined();
+      ).resolves.toBeUndefined();
     });
 
     it("accepts flipping a drop filter to sample with a string percentage", async () => {
@@ -615,13 +619,13 @@ describe.each(SUITES)(
       });
 
       await expect(
-        service.onBeforeUpdate(
+        service.onBeforeUpdateUniqueCheck(
           updateByFromRequestBody({
             action: sampleAction,
             samplePercentage: "5",
           }),
         ),
-      ).resolves.toBeDefined();
+      ).resolves.toBeUndefined();
     });
 
     it("still rejects an out-of-range percentage sent as a string", async () => {
@@ -633,11 +637,107 @@ describe.each(SUITES)(
 
       for (const percentage of ["0", "100"]) {
         await expect(
-          service.onBeforeUpdate(
+          service.onBeforeUpdateUniqueCheck(
             updateByFromRequestBody({ samplePercentage: percentage }),
           ),
         ).rejects.toThrow(BadDataException);
       }
+    });
+  },
+);
+
+/*
+ * The merged-row check reads the stored filters as root, so it runs only once
+ * the caller has passed DatabaseService's permission checks and the query has
+ * been narrowed to the filters they may write: it can never read, or describe
+ * in a refusal, another project's filter.
+ */
+describe.each(SUITES)(
+  "$name updated through DatabaseService.updateOneById",
+  ({ service, makeModel }: any) => {
+    const USER_ID: ObjectID = new ObjectID(
+      "33333333-3333-4333-8333-333333333333",
+    );
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function projectMember(permissions: Array<Permission>): any {
+      return {
+        userId: USER_ID,
+        tenantId: PROJECT_ID,
+        currentPlan: PlanType.Enterprise,
+        isSubscriptionUnpaid: false,
+        userTenantAccessPermission: {
+          [PROJECT_ID.toString()]: {
+            projectId: PROJECT_ID,
+            permissions: permissions.map((permission: Permission) => {
+              return {
+                permission,
+                labelIds: [],
+                isBlockPermission: false,
+                _type: "UserPermission",
+              };
+            }),
+            _type: "UserTenantAccessPermission",
+          },
+        },
+      };
+    }
+
+    function storedFilter(): any {
+      const stored: any = makeModel();
+      stored._id = FILTER_ID.toString();
+      stored.projectId = PROJECT_ID;
+      stored.action = "drop";
+      stored.filterQuery = VALID_QUERY;
+      return stored;
+    }
+
+    it("reads the stored filter only within the caller's project", async () => {
+      const findBy: jest.SpiedFunction<any> = jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([storedFilter()] as never) as any;
+
+      // The rows the update may write, looked up before its hooks: this one.
+      jest.spyOn(service, "getRepository").mockReturnValue({
+        find: async (): Promise<Array<any>> => {
+          return [storedFilter()];
+        },
+      } as never);
+
+      await expect(
+        service.updateOneById({
+          id: FILTER_ID,
+          data: { filterQuery: "   " },
+          props: projectMember([Permission.ProjectAdmin]),
+        }),
+      ).rejects.toThrow(BadDataException);
+
+      expect(findBy).toHaveBeenCalledTimes(1);
+      const request: any = findBy.mock.calls[0]![0];
+      expect(request.query["_id"]?.toString()).toBe(FILTER_ID.toString());
+      // The tenant scope the permission check added: this project only.
+      expect(inspect(request.query["projectId"], { depth: 4 })).toContain(
+        PROJECT_ID.toString(),
+      );
+    });
+
+    it("reads nothing for a caller who may not edit drop filters", async () => {
+      const findBy: jest.SpiedFunction<any> = jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([] as never) as any;
+
+      await expect(
+        service.updateOneById({
+          id: FILTER_ID,
+          data: { filterQuery: "   " },
+          props: projectMember([Permission.Viewer]),
+        }),
+      ).rejects.toThrow(NotAuthorizedException);
+
+      expect(findBy).not.toHaveBeenCalled();
     });
   },
 );
