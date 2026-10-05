@@ -12,7 +12,6 @@ Diese Seite ist die Referenz für diese Konfiguration – was auf welcher Seite 
 
 | Seite                      | Was Sie dort tun                                                                                          |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **KI**                     | Automatische Untersuchung, automatische Code-Korrekturen und Postmortem-Entwürfe ein- oder ausschalten und die optionalen Grenzen setzen, unter denen die KI arbeitet – keine davon gilt, bevor Sie sie setzen. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Vorfallsstatus**         | Die Status, die ein Vorfall durchläuft, hinzufügen, umbenennen, neu einfärben und neu anordnen.            |
 | **Vorfallsschweregrad**    | Schweregrade hinzufügen, umbenennen, neu einfärben und neu anordnen.                                       |
 | **Vorfall-Vorlagen**       | Einen ganzen Vorfall vorbelegen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
@@ -22,9 +21,11 @@ Diese Seite ist die Referenz für diese Konfiguration – was auf welcher Seite 
 | **Vorfallsrollen**         | Die Rollen definieren, denen Sie Responder zuweisen, etwa Incident Commander.                              |
 | **Nummernpräfix**  | Die Nummernpräfixe für Vorfälle und Vorfall-Episoden.                                                      |
 
+Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet automatische Untersuchung, automatische Code-Korrekturen und Postmortem-Entwürfe ein oder aus und enthält die optionalen Grenzen, unter denen die KI arbeitet – keine davon gilt, bevor Sie sie setzen. Daneben liegen die **Auto-Behebungsregeln**, dazu **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
+
 **Vorfallsstatus** und **Vorfallsschweregrad** werden ausführlich unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt – der Rest dieser Seite setzt bei **Vorfall-Vorlagen** an.
 
-Klappen Sie **Regeln** auf, kommen neun weitere Seiten dazu: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln** und **Reminder Rules**. Die behandeln wir weiter unten.
+Klappen Sie **Regeln** auf, kommen acht weitere Seiten dazu: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln** und **Reminder Rules**. Die behandeln wir weiter unten.
 
 ## Vorfall-Vorlagen
 
@@ -116,13 +117,13 @@ Ein neues Präfix gilt nur für Vorfälle und Episoden, die danach entstehen. Be
 
 ## Regeln, die beim Anlegen eines Vorfalls laufen
 
-**Vorfälle → Regeln** enthält neun Regel-Engines. Alle machen dasselbe – sie sehen sich einen Vorfall in dem Moment an, in dem er entsteht, und handeln, wenn er passt –, unterscheiden sich aber darin, was sie tun und wie mehrere zutreffende Regeln aufgelöst werden.
+**Vorfälle → Regeln** enthält acht Regel-Engines, **Vorfälle → KI** eine neunte, die **Auto-Behebungsregeln**. Alle machen dasselbe – sie sehen sich einen Vorfall in dem Moment an, in dem er entsteht, und handeln, wenn er passt –, unterscheiden sich aber darin, was sie tun und wie mehrere zutreffende Regeln aufgelöst werden.
 
 - **Gruppierungsregeln** – fassen verwandte Vorfälle zu Episoden zusammen. Die Regeln werden in Prioritätsreihenfolge ausgewertet; niedrigere Prioritätsnummern zuerst.
 - **Bereitschaftsregeln** – führen Bereitschaftsrichtlinien für passende Vorfälle aus. Weiter unten im Detail.
 - **Eigentümerregeln** – weisen automatisch Eigentümer zu.
 - **Runbook-Regeln** – starten ein [Runbook](/docs/runbooks/index), wenn ein Vorfall passt.
-- **Auto-Behebungsregeln** – schlagen Behebungs-Runbooks vor oder starten sie, wenn ein Vorfall passt. Steht für den Vorfall eine KI-Untersuchung in der Warteschlange, laufen sie, sobald diese fertig ist, mit ihrer Analyse in der Hand. Siehe [AI SRE](/docs/ai/ai-sre).
+- **Auto-Behebungsregeln**, unter **KI** – schlagen Behebungs-Runbooks vor oder starten sie, wenn ein Vorfall passt. Steht für den Vorfall eine KI-Untersuchung in der Warteschlange, laufen sie, sobald diese fertig ist, mit ihrer Analyse in der Hand. Siehe [AI SRE](/docs/ai/ai-sre).
 - **Datenschutzregeln** – entscheiden, ob ein passender Vorfall privat ist.
 - **Beschriftungsregeln** – vergeben automatisch Beschriftungen.
 - **SLA-Regeln** – verfolgen Reaktions- und Behebungszeiten. Die Regeln werden der Reihe nach ausgewertet; niedrigere Reihenfolgenummern zuerst.

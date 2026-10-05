@@ -114,11 +114,12 @@ Abre **Incidentes** en la navegación lateral. Su menú lateral está organizado
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Vista General**          | **Todos los Incidentes** e **Incidentes Activos**; esta última lleva una insignia roja con el recuento de incidentes que no están en el estado resuelto.           |
 | **Episodios**              | Los episodios de incidente, una funcionalidad de agrupación aparte con sus propias páginas.                                                                        |
+| **IA** | **Análisis**, **Registros**, **Ajustes**, **Reglas de autorremediación**: lo que OneUptime AI aprendió de tus incidentes y todo lo que hizo con ellos, lo que puede hacer por su cuenta y las reglas que corrigen incidentes con runbooks. Consulta [AI SRE](/docs/ai/ai-sre). |
 | **Espacio de trabajo**     | Las conexiones de **Slack** y **Microsoft Teams** para incidentes.                                                                                                |
-| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de autorremediación**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
-| **Ajustes**                | **IA**, **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Prefijo de número**. |
+| **Reglas**                 | Los motores de reglas: **Reglas de Agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reminder Rules**. |
+| **Ajustes**                | **Estado del Incidente**, **Gravedad del Incidente**, **Plantillas de Incidentes**, **Plantillas de Notas**, **Plantillas Post-mortem**, **Campos Personalizados**, **Roles de Incidente**, **Prefijo de número**. |
 
-**Reglas** y **Ajustes** aparecen contraídos de forma predeterminada: despliégalos para encontrar las páginas a las que se refiere el resto de esta documentación. La configuración de incidentes no está bajo Ajustes del proyecto; vive toda aquí.
+**IA**, **Reglas** y **Ajustes** aparecen contraídos de forma predeterminada: despliégalos para encontrar las páginas a las que se refiere el resto de esta documentación. La configuración de incidentes no está bajo Ajustes del proyecto; vive toda aquí.
 
 La propia lista de incidentes muestra **Número de incidente**, **Título**, **Estado**, **Gravedad**, **Recursos afectados**, **Declarado**, **Duración**, **Etiquetas** y **Propietarios**, con una acción masiva **Cambiar estado** para cerrar varios de golpe.
 

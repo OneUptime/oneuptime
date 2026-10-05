@@ -114,11 +114,12 @@ Ouvrez **Incidents** dans la navigation de gauche. Son menu latéral est organis
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Vue d'ensemble**     | **Tous les incidents** et **Incidents actifs** — ce dernier porte un badge rouge comptant les incidents qui ne sont pas à l'état résolu.                                  |
 | **Épisodes**           | Les épisodes d'incident, une fonctionnalité de regroupement distincte avec ses propres pages.                                                                             |
+| **IA** | **Analyses**, **Journaux**, **Paramètres**, **Règles de remédiation automatique** : ce que OneUptime AI a appris de vos incidents et tout ce qu'il a fait pour eux, ce qu'il peut faire de lui-même, et les règles qui corrigent les incidents avec des runbooks. Voir [AI SRE](/docs/ai/ai-sre). |
 | **Espace de travail**  | Les connexions **Slack** et **Microsoft Teams** pour les incidents.                                                                                                      |
-| **Règles**             | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de remédiation automatique**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
-| **Paramètres**         | **IA**, **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Préfixe de numéro**. |
+| **Règles**             | Les moteurs de règles : **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Règles SLA**, **Reminder Rules**. |
+| **Paramètres**         | **État de l'incident**, **Gravité de l'incident**, **Modèles d'incident**, **Modèles de notes**, **Modèles de post-mortem**, **Champs personnalisés**, **Rôles d'incident**, **Préfixe de numéro**. |
 
-**Règles** et **Paramètres** sont repliés par défaut — dépliez-les pour trouver les pages auxquelles renvoie le reste de cette documentation. La configuration des incidents n'est pas dans les Paramètres du projet : tout vit ici.
+**IA**, **Règles** et **Paramètres** sont repliés par défaut — dépliez-les pour trouver les pages auxquelles renvoie le reste de cette documentation. La configuration des incidents n'est pas dans les Paramètres du projet : tout vit ici.
 
 La liste des incidents elle-même affiche **Numéro d'incident**, **Titre**, **État**, **Gravité**, **Ressources affectées**, **Déclaré**, **Durée**, **Étiquettes** et **Propriétaires**, avec une action groupée **Modifier l'état** pour en clore plusieurs d'un coup.
 

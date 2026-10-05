@@ -117,11 +117,12 @@
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Overview** | **All Incidents** و **Active Incidents** — دومی نشانی قرمز با شمار حادثه‌هایی که در وضعیت برطرف‌شده نیستند حمل می‌کند. |
 | **Episodes** | اپیزودهای حادثه، قابلیتی جدا برای گروه‌بندی با صفحه‌های خودش. |
+| **AI** | **Insights**، **Logs**، **Settings**، **Auto Remediation Rules**: آنچه هوش مصنوعی OneUptime از حادثه‌های شما آموخت و هر کاری که برایشان کرد، آنچه اجازه دارد خودش انجام دهد، و قواعدی که حادثه‌ها را با رانبوک‌ها اصلاح می‌کنند. [بررسی‌های هوش مصنوعی](/docs/ai/ai-sre) را ببینید. |
 | **Workspace** | اتصال‌های **Slack** و **Microsoft Teams** برای حادثه‌ها. |
-| **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Auto Remediation Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
-| **Settings** | **AI**، **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Number Prefix**. |
+| **Rules** | موتورهای قاعده: **Grouping Rules**، **On-Call Rules**، **Owner Rules**، **Runbook Rules**، **Privacy Rules**، **Label Rules**، **SLA Rules**، **Reminder Rules**. |
+| **Settings** | **Incident State**، **Incident Severity**، **Incident Templates**، **Note Templates**، **Postmortem Templates**، **Custom Fields**، **Incident Roles**، **Measurements**، **Linked Alerts**، **Number Prefix**. |
 
-بخش‌های **Rules** و **Settings** به‌طور پیش‌فرض جمع‌اند — بگسترانیدشان تا صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجا زندگی می‌کند.
+بخش‌های **AI**، **Rules** و **Settings** به‌طور پیش‌فرض جمع‌اند — بگسترانیدشان تا صفحه‌هایی را که باقی این مستندات به آن‌ها ارجاع می‌دهند بیابید. پیکربندی حادثه زیر Project Settings نیست؛ همه‌اش اینجا زندگی می‌کند.
 
 خودِ فهرست حادثه‌ها **Incident Number**، **Title**، **State**، **Severity**، **Resources Affected**، **Declared**، **Duration**، **Labels** و **Owners** را نشان می‌دهد، با کنش انبوه **Change State** برای بستن چندتا با هم.
 

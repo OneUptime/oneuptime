@@ -114,11 +114,12 @@ Danach können Sie ein Postmortem schreiben und es optional auf der Statusseite 
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Übersicht**      | **Alle Vorfälle** und **Aktive Vorfälle** – Letzteres trägt ein rotes Badge mit der Anzahl der Vorfälle, die nicht im behobenen Status sind.                            |
 | **Episoden**       | Vorfall-Episoden, eine eigenständige Gruppierungsfunktion mit eigenen Seiten.                                                                                           |
+| **KI** | **Einblicke**, **Protokolle**, **Einstellungen**, **Auto-Behebungsregeln**: was OneUptime AI aus Ihren Vorfällen gelernt hat und alles, was es für sie getan hat, was es selbstständig tun darf, und die Regeln, die Vorfälle mit Runbooks beheben. Siehe [AI SRE](/docs/ai/ai-sre). |
 | **Arbeitsbereich** | **Slack**- und **Microsoft Teams**-Verbindungen für Vorfälle.                                                                                                           |
-| **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Auto-Behebungsregeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
-| **Einstellungen**  | **KI**, **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Nummernpräfix**. |
+| **Regeln**         | Die Regel-Engines: **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **SLA-Regeln**, **Reminder Rules**. |
+| **Einstellungen**  | **Vorfallsstatus**, **Vorfallsschweregrad**, **Vorfall-Vorlagen**, **Notiz-Vorlagen**, **Postmortem-Vorlagen**, **Benutzerdefinierte Felder**, **Vorfallsrollen**, **Nummernpräfix**. |
 
-**Regeln** und **Einstellungen** sind standardmäßig eingeklappt – klappen Sie sie auf, um die Seiten zu finden, auf die sich der Rest dieser Dokumentation bezieht. Die Vorfallkonfiguration liegt nicht in den Projekteinstellungen; sie ist vollständig hier zu Hause.
+**KI**, **Regeln** und **Einstellungen** sind standardmäßig eingeklappt – klappen Sie sie auf, um die Seiten zu finden, auf die sich der Rest dieser Dokumentation bezieht. Die Vorfallkonfiguration liegt nicht in den Projekteinstellungen; sie ist vollständig hier zu Hause.
 
 Die Vorfallliste selbst zeigt **Vorfallnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen**, **Erklärt**, **Dauer**, **Beschriftungen** und **Eigentümer**, dazu die Massenaktion **Status ändern**, um mehrere auf einmal zu schließen.
 

@@ -12,7 +12,6 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 
 | Page                     | What you do there                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **AI**                   | Switch what OneUptime AI does on its own on or off — investigating new incidents, drafting postmortems, opening fix and missing-telemetry pull requests — each saving as soon as you flip it. Which incidents are investigated and the optional limits AI works under are folded under **More settings**; none apply until you set them. See [AI SRE](/docs/ai/ai-sre). |
 | **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
@@ -24,9 +23,11 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
 | **Number Prefix**        | The text in front of incident and episode numbers, such as `INC-` in `INC-42`.               |
 
+What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, drafting postmortems and opening fix and missing-telemetry pull requests on or off, each saving as soon as you flip it; which incidents are investigated, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Auto Remediation Rules** are next to it, with **Insights** and **Logs**: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
+
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. Forms that let people outside your team report incidents are a product of their own: see [Forms](/docs/forms/index).
 
-Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
+Expand **Rules** and you get eight more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
 
 ## Incident templates
 
@@ -427,13 +428,13 @@ Both are on for new projects; a project created before they were on by default k
 
 ## Rules that run when an incident is created
 
-**Incidents → Rules** holds nine rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
+**Incidents → Rules** holds eight rule engines, and **Incidents → AI** a ninth, **Auto Remediation Rules**. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
 
 - **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place. Covered in detail below.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
-- **Auto Remediation Rules** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
+- **Auto Remediation Rules**, under **AI** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
 - **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.
