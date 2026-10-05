@@ -40,6 +40,8 @@ import {
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
 } from "../../TightenOnly/TightenOnlyUpdates";
+import { canCurrentUserSaveScimConnections } from "../../ScimSaveAccess";
+import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
 
 /*
  * Settings > SCIM: the project's SCIM connections and their logs.
@@ -50,6 +52,12 @@ import {
  * Once it is saved, the dialog with the SCIM URLs and the bearer token to
  * give the identity provider opens straight away: that is the next thing to
  * do.
+ *
+ * A connection can change the members of any team, so only someone who
+ * could invite people to every team - a project owner - may add one, change
+ * one or reset its bearer token (../../ScimSaveAccess). Everyone else who
+ * can see the page is told so instead of being offered what the server
+ * would refuse.
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -78,6 +86,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
     LicensedFeature.SCIM,
   );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
+
+  // Adding, changing or resetting a connection: a project owner's to do.
+  const canSaveConnections: boolean = canCurrentUserSaveScimConnections();
 
   const [showResetSuccessModal, setShowResetSuccessModal] =
     useState<boolean>(false);
@@ -118,7 +129,11 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         mode={licenseMode}
         feature={LicensedFeature.SCIM}
       />
-      <ReadOnlyActionsNotice mode={licenseMode} />
+      {canSaveConnections ? (
+        <ReadOnlyActionsNotice mode={licenseMode} />
+      ) : (
+        <ScimSaveAccessNotice />
+      )}
       <Tabs
         tabs={[
           {
@@ -137,8 +152,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   tableId: "settings-project-scim-table",
                 }}
                 isDeleteable={true}
-                isEditable={!isReadOnly}
-                isCreateable={!isReadOnly}
+                isEditable={!isReadOnly && canSaveConnections}
+                isCreateable={!isReadOnly && canSaveConnections}
                 showRefreshButton={true}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
@@ -228,20 +243,24 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       setShowSCIMUrlId(item.id?.toString() || "");
                     },
                   },
-                  {
-                    title: "Reset Bearer Token",
-                    buttonStyleType: ButtonStyleType.OUTLINE,
-                    icon: IconProp.Refresh,
-                    onClick: async (
-                      item: ProjectSCIM,
-                      onCompleteAction: () => void,
-                      _onError: (error: Error) => void,
-                    ) => {
-                      onCompleteAction();
-                      setResetSCIMId(item.id?.toString() || "");
-                      setShowResetModal(true);
-                    },
-                  },
+                  ...(canSaveConnections
+                    ? [
+                        {
+                          title: "Reset Bearer Token",
+                          buttonStyleType: ButtonStyleType.OUTLINE,
+                          icon: IconProp.Refresh,
+                          onClick: async (
+                            item: ProjectSCIM,
+                            onCompleteAction: () => void,
+                            _onError: (error: Error) => void,
+                          ) => {
+                            onCompleteAction();
+                            setResetSCIMId(item.id?.toString() || "");
+                            setShowResetModal(true);
+                          },
+                        },
+                      ]
+                    : []),
                 ]}
               />
             ),

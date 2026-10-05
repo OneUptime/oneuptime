@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
+import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -97,6 +98,7 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={getOidcProviderFormFields<ProjectOIDC>({
             withTeams: true,
+            getTeamsFooterElement: getSsoTeamsGrantNote,
           })}
           createInitialValues={createInitialValues}
           onCreateSuccess={(

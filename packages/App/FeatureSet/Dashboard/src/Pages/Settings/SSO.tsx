@@ -5,6 +5,7 @@ import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
+import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -50,8 +51,10 @@ interface SamlConfigDialogTarget {
  *
  * Adding one asks for what the identity provider gives - its sign-on URL,
  * issuer and certificate - and the teams newcomers join (the members team
- * to start with); the signature and digest methods and the description are
- * filled in under Advanced (Common/UI/Components/Sso/SamlProviderFormFields).
+ * to start with, and only teams the person could invite someone to: a
+ * picked team beyond that is named under Teams, see SsoTeamsGrantNote); the
+ * signature and digest methods and the description are filled in under
+ * Advanced (Common/UI/Components/Sso/SamlProviderFormFields).
  * Once it is saved, the dialog with the Entity ID and Reply URL to give the
  * identity provider opens straight away: that is the next thing to do.
  */
@@ -95,6 +98,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={getSamlProviderFormFields<ProjectSSO>({
             withTeams: true,
+            getTeamsFooterElement: getSsoTeamsGrantNote,
           })}
           createInitialValues={createInitialValues}
           onCreateSuccess={(
