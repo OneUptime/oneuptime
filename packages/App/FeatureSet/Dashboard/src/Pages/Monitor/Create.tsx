@@ -8,6 +8,8 @@ import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateCustomFieldUtil from "Common/Utils/Monitor/MonitorTemplateCustomFieldUtil";
 import Label from "Common/Models/DatabaseModels/Label";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import getMonitorTypeFormField from "../../Utils/Form/Monitor/MonitorTypeFormField";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import React, {
   Fragment,
   FunctionComponent,
@@ -33,9 +35,9 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import MonitorTypeUtil from "../../Utils/MonitorType";
 import {
   CustomElementProps,
+  FormFieldCollapsibleSection,
   FormFieldStyleType,
 } from "Common/UI/Components/Forms/Types/Field";
 import MonitorSteps from "../../Components/Form/Monitor/MonitorSteps";
@@ -215,6 +217,16 @@ interface MetricViewThresholdSource {
   warningThreshold: number | undefined;
   criticalThreshold: number | undefined;
 }
+
+/*
+ * Monitor Info's More fields: the description and the labels, folded at the
+ * end of the step. Neither is needed on the way to a first monitor - the
+ * step asks only what to monitor and what to call it - and the section says
+ * "Configured" once either is filled in (a template's labels, say). Built
+ * once, so both fields fold under the one header.
+ */
+const MONITOR_INFO_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> =
+  getAdvancedFormSection<Monitor>();
 
 function buildThresholdCriteriaInstance(input: {
   name: string;
@@ -1125,7 +1137,7 @@ const MonitorCreate: FunctionComponent<
       <Card
         title="Create New Monitor"
         description={
-          "Monitor anything - Websites, API, IPv4, IPv6, or send data inbound and more. Create alerts on any metrics and alert the right team."
+          "Pick what to monitor and give it a name. Everything else starts with defaults you can change."
         }
         className="mb-10"
       >
@@ -1151,11 +1163,23 @@ const MonitorCreate: FunctionComponent<
                 )
               }
               fields={[
+                /*
+                 * What to monitor comes first: the name, and everything the
+                 * next steps ask, follow from it. The six common types are
+                 * on screen as compact rows, the rest one search or one
+                 * "More monitor types" away, and a picked type shrinks to
+                 * one line with a Change button (MonitorTypeFormField).
+                 */
+                getMonitorTypeFormField<Monitor>({
+                  stepId: "monitor-info",
+                }),
                 {
                   field: {
                     name: true,
                   },
                   title: "Name",
+                  description:
+                    "A name your team will recognize. It is used in alerts and incident titles.",
                   stepId: "monitor-info",
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
@@ -1170,28 +1194,15 @@ const MonitorCreate: FunctionComponent<
                   },
                   stepId: "monitor-info",
                   title: "Description",
+                  description:
+                    "Anything your team should know about this monitor.",
                   fieldType: FormFieldSchemaType.LongText,
                   required: false,
                   placeholder: "Description",
-                },
-                {
-                  field: {
-                    monitorType: true,
-                  },
-                  title: "Monitor Type",
-                  description: "Select the type of monitor you want to create",
-                  stepId: "monitor-info",
-                  fieldType: FormFieldSchemaType.CardSelect,
-                  required: true,
-                  cardSelectOptions:
-                    MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
-                  cardSelectSearchable: true,
-                  cardSelectSearchPlaceholder:
-                    "Search monitor types - try ping, ssl, k8s, postgres",
-                  cardSelectCollapsibleGroups: true,
+                  collapsibleSection: MONITOR_INFO_MORE_FIELDS,
                 },
                 /*
-                 * Labels are folded under Advanced at the end of Monitor
+                 * Labels are folded under More fields at the end of Monitor
                  * Info rather than walked as a last step of their own: the
                  * one step every monitor type shows, Manual included. A
                  * template's labels fill it in, and the section then says
@@ -1199,6 +1210,7 @@ const MonitorCreate: FunctionComponent<
                  */
                 getLabelsFormField<Monitor>({
                   stepId: "monitor-info",
+                  collapsibleSection: MONITOR_INFO_MORE_FIELDS,
                 }),
                 {
                   field: {
@@ -1207,6 +1219,8 @@ const MonitorCreate: FunctionComponent<
                   stepId: "criteria",
                   styleType: FormFieldStyleType.Heading,
                   title: "Monitor Details",
+                  description:
+                    "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: true,
                   customValidation: (values: FormValues<Monitor>) => {
@@ -1227,6 +1241,12 @@ const MonitorCreate: FunctionComponent<
                         {...props}
                         monitorType={value.monitorType || MonitorType.Manual}
                         monitorName={value.name || ""}
+                        /*
+                         * A new monitor's criteria are defaults that suit
+                         * most monitors: each starts folded to its one-line
+                         * summary, so the step opens on what to check.
+                         */
+                        foldDefaultCriteria={true}
                       />
                     );
                   },
@@ -1270,6 +1290,12 @@ const MonitorCreate: FunctionComponent<
                   },
                   stepId: "monitoring-interval",
                   title: "Monitoring Interval",
+                  /*
+                   * The column's own help is written for the API ("a 5-field
+                   * cron expression"); this field is a list of intervals.
+                   */
+                  description:
+                    "How often to check. Every 5 minutes suits most monitors.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
                   /*
