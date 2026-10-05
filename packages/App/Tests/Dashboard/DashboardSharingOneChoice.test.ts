@@ -273,7 +273,7 @@ describe("one place for the choice", () => {
       "enableMasterPassword: access.isMasterPasswordRequired",
     );
     // ...and the password route asks the decision first, then the rule.
-    expect(api).toContain("PublicDashboardAccessPolicy.decide({ dashboard,");
+    expect(api).toContain("DashboardService.decidePublicAccess({ dashboard,");
     expect(api).toContain(
       "!isDashboardMasterPasswordRequired(accessState) || isDashboardLockedWithoutPassword(accessState)",
     );

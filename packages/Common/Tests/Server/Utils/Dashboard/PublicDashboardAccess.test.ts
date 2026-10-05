@@ -387,6 +387,149 @@ describe("what every visitor sees: a visitor nothing is known about", () => {
   );
 });
 
+describe("a visitor's facts are read only when the decision needs them", () => {
+  type RecordingVisitor = {
+    visitor: PublicDashboardVisitor;
+    reads: Array<string>;
+  };
+
+  /*
+   * A request's visitor works its facts out lazily (decoding the unlock
+   * cookie costs a token check per request), so the decision must not ask
+   * for one it has no use for.
+   */
+  const recordingVisitor: (facts: {
+    clientIp: string | undefined;
+    hasUnlockCookie: boolean;
+  }) => RecordingVisitor = (facts: {
+    clientIp: string | undefined;
+    hasUnlockCookie: boolean;
+  }): RecordingVisitor => {
+    const reads: Array<string> = [];
+
+    return {
+      reads,
+      visitor: {
+        get clientIp(): string | undefined {
+          reads.push("clientIp");
+          return facts.clientIp;
+        },
+        get hasUnlockCookie(): boolean {
+          reads.push("hasUnlockCookie");
+          return facts.hasUnlockCookie;
+        },
+      },
+    };
+  };
+
+  it.each([
+    [
+      "a dashboard only its project sees",
+      {
+        isPublicDashboard: false,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+        ipWhitelist: ALLOWLIST,
+      },
+      [],
+    ],
+    [
+      "an archived dashboard",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+        isArchived: true,
+        ipWhitelist: ALLOWLIST,
+      },
+      [],
+    ],
+    [
+      "anyone with the link",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        hasMasterPassword: true,
+      },
+      [],
+    ],
+    [
+      "anyone with the link, from some addresses",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+        ipWhitelist: ALLOWLIST,
+      },
+      ["clientIp"],
+    ],
+    [
+      "anyone with the link and a password",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+      },
+      ["hasUnlockCookie"],
+    ],
+    [
+      "a locked dashboard",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: false,
+      },
+      [],
+    ],
+    [
+      "a password and some addresses",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+        ipWhitelist: ALLOWLIST,
+      },
+      ["clientIp", "hasUnlockCookie"],
+    ],
+  ])(
+    "%s",
+    (
+      _label: string,
+      options: StoredDashboardOptions,
+      expectedReads: Array<string>,
+    ) => {
+      const recording: RecordingVisitor = recordingVisitor({
+        clientIp: ALLOWED_IP,
+        hasUnlockCookie: true,
+      });
+
+      decide(storedDashboard(options), recording.visitor);
+
+      expect(recording.reads).toEqual(expectedReads);
+    },
+  );
+
+  it("a refused address is never asked for its unlock cookie", () => {
+    const recording: RecordingVisitor = recordingVisitor({
+      clientIp: OTHER_IP,
+      hasUnlockCookie: true,
+    });
+
+    const result: PublicDashboardAccessResult = decide(
+      storedDashboard({
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+        ipWhitelist: ALLOWLIST,
+      }),
+      recording.visitor,
+    );
+
+    expect(result.access).toBe(PublicDashboardAccess.Forbidden);
+    expect(recording.reads).toEqual(["clientIp"]);
+  });
+});
+
 describe("what the decision reads", () => {
   it("selects the access columns and nothing a route sends", () => {
     expect(Object.keys(PUBLIC_DASHBOARD_ACCESS_SELECT).sort()).toEqual(

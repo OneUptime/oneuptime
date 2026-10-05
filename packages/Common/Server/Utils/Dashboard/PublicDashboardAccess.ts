@@ -47,15 +47,21 @@ export enum PublicDashboardAccess {
   Granted = "Granted",
 }
 
-// What the link knows about the visitor asking.
+/*
+ * What the link knows about the visitor asking. The decision reads each fact
+ * only when it needs it - the address only for a dashboard with an IP
+ * allowlist, the unlock cookie only for one that asks for the password - so
+ * a request's visitor can work them out lazily
+ * (DashboardService.getPublicDashboardVisitor).
+ */
 export interface PublicDashboardVisitor {
   /*
    * The address the IP allowlist is checked against (resolveClientIp), or
    * undefined when none can be established: an allowlist then refuses.
    */
-  clientIp: string | undefined;
+  readonly clientIp: string | undefined;
   // Whether the visitor holds this dashboard's unlock cookie.
-  hasUnlockCookie: boolean;
+  readonly hasUnlockCookie: boolean;
 }
 
 /*
@@ -83,6 +89,15 @@ export const PUBLIC_DASHBOARD_NOT_AVAILABLE_MESSAGE: string =
 export const PUBLIC_DASHBOARD_ADDRESS_UNKNOWN_MESSAGE: string =
   "Unable to verify IP address for dashboard access.";
 
+/*
+ * The page head a public dashboard page has before it knows anything about
+ * the dashboard, and keeps when it may show nothing of it.
+ */
+export const PUBLIC_DASHBOARD_DEFAULT_TITLE: string = "Dashboard";
+
+export const PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION: string =
+  "View dashboard metrics and insights.";
+
 export const getPublicDashboardAddressBlockedMessage: (
   clientIp: string,
 ) => string = (clientIp: string): string => {
@@ -100,21 +115,33 @@ export const PUBLIC_DASHBOARD_ACCESS_SELECT: Select<Dashboard> = {
   isArchived: true,
 };
 
-export interface PublicDashboardAccessResult {
-  access: PublicDashboardAccess;
-  /*
-   * Whether the link asks its visitors for the password, by the Sharing
-   * rule (isDashboardMasterPasswordRequired). False when the link answers
-   * nobody.
-   */
-  isMasterPasswordRequired: boolean;
-  /*
-   * For a refusal, what the read-checked routes answer
-   * (DashboardService.hasReadAccess): 401 for NotFound and PasswordRequired,
-   * 403 for Forbidden.
-   */
-  error?: NotAuthenticatedException | ForbiddenException | undefined;
-}
+/*
+ * The decision, with what goes with it. isMasterPasswordRequired is whether
+ * the link asks its visitors for the password, by the Sharing rule
+ * (isDashboardMasterPasswordRequired). A refusal carries what the
+ * read-checked routes answer (DashboardService.hasReadAccess): 401 for
+ * NotFound and PasswordRequired, 403 for Forbidden.
+ */
+export type PublicDashboardAccessResult =
+  | {
+      access: PublicDashboardAccess.Granted;
+      isMasterPasswordRequired: boolean;
+    }
+  | {
+      access: PublicDashboardAccess.NotFound;
+      isMasterPasswordRequired: false;
+      error: NotAuthenticatedException;
+    }
+  | {
+      access: PublicDashboardAccess.Forbidden;
+      isMasterPasswordRequired: boolean;
+      error: ForbiddenException;
+    }
+  | {
+      access: PublicDashboardAccess.PasswordRequired;
+      isMasterPasswordRequired: true;
+      error: MasterPasswordRequiredException;
+    };
 
 export default class PublicDashboardAccessPolicy {
   public static decide(data: {
@@ -148,11 +175,13 @@ export default class PublicDashboardAccessPolicy {
     const isMasterPasswordRequired: boolean =
       isDashboardMasterPasswordRequired(accessState);
 
-    const addressRefusal: ForbiddenException | null =
-      PublicDashboardAccessPolicy.getAddressRefusal({
-        ipWhitelist: dashboard.ipWhitelist,
-        clientIp: data.visitor.clientIp,
-      });
+    // The visitor's address is asked for only when there is a list to check.
+    const addressRefusal: ForbiddenException | null = dashboard.ipWhitelist
+      ? PublicDashboardAccessPolicy.getAddressRefusal({
+          ipWhitelist: dashboard.ipWhitelist,
+          clientIp: data.visitor.clientIp,
+        })
+      : null;
 
     if (addressRefusal) {
       return {
@@ -162,19 +191,25 @@ export default class PublicDashboardAccessPolicy {
       };
     }
 
+    if (!isMasterPasswordRequired) {
+      return {
+        access: PublicDashboardAccess.Granted,
+        isMasterPasswordRequired,
+      };
+    }
+
+    /*
+     * Fail closed if protection was turned on before a password was set.
+     * The Sharing page never writes this state (picking the password asks
+     * for one), but the API can. Only then is the unlock cookie asked for.
+     */
     if (
-      isMasterPasswordRequired &&
-      /*
-       * Fail closed if protection was turned on before a password was set.
-       * The Sharing page never writes this state (picking the password asks
-       * for one), but the API can.
-       */
-      (isDashboardLockedWithoutPassword(accessState) ||
-        !data.visitor.hasUnlockCookie)
+      isDashboardLockedWithoutPassword(accessState) ||
+      !data.visitor.hasUnlockCookie
     ) {
       return {
         access: PublicDashboardAccess.PasswordRequired,
-        isMasterPasswordRequired,
+        isMasterPasswordRequired: true,
         error: new MasterPasswordRequiredException(
           DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
         ),

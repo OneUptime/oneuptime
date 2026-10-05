@@ -63,6 +63,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -146,8 +147,16 @@ const MISSING_ID: ObjectID = new ObjectID(
 
 const MALFORMED_ID: string = "not-a-dashboard-id";
 
+// A dashboard whose lookup fails (the database is unreachable, say).
+const FAILING_ID: ObjectID = new ObjectID(
+  "ab000000-0000-4000-8000-0000000000fe",
+);
+
 const PUBLIC_DOMAIN: string = "status.public.example.com";
+const PROTECTED_DOMAIN: string = "status.protected.example.com";
+const ALLOWLISTED_DOMAIN: string = "status.allowlisted.example.com";
 const PRIVATE_DOMAIN: string = "status.private.example.com";
+const ARCHIVED_DOMAIN: string = "status.archived.example.com";
 const UNKNOWN_DOMAIN: string = "status.nobody.example.com";
 
 const PASSWORD: string = "open sesame";
@@ -295,7 +304,10 @@ for (const options of [
 
 const DOMAINS: Dictionary<ObjectID> = {
   [PUBLIC_DOMAIN]: PUBLIC_ID,
+  [PROTECTED_DOMAIN]: PROTECTED_ID,
+  [ALLOWLISTED_DOMAIN]: ALLOWLISTED_ID,
   [PRIVATE_DOMAIN]: PRIVATE_ID,
+  [ARCHIVED_DOMAIN]: ARCHIVED_ID,
 };
 
 // The whole metadata answer, for a visitor the link lets in.
@@ -574,6 +586,10 @@ describe("a dashboard's public link answers only what its visitor may see", () =
             {}) as Dictionary<unknown>;
 
           lookups.push({ id: data.id.toString(), select });
+
+          if (data.id.toString() === FAILING_ID.toString()) {
+            throw new Error("connection reset");
+          }
 
           const stored: Dashboard | undefined = DASHBOARDS[data.id.toString()];
 
@@ -894,14 +910,6 @@ describe("a dashboard's public link answers only what its visitor may see", () =
           PRIVATE_WITH_PASSWORD_ID,
         ],
         ["an archived dashboard", ARCHIVED_ID],
-        [
-          "a dashboard with an IP allowlist, even from an address it names",
-          ALLOWLISTED_ID,
-        ],
-        [
-          "a password-protected dashboard with an IP allowlist",
-          ALLOWLISTED_PROTECTED_ID,
-        ],
         ["a value that is not a dashboard id", MALFORMED_ID],
       ])(
         "says nothing about %s: not found, like a missing dashboard",
@@ -918,6 +926,30 @@ describe("a dashboard's public link answers only what its visitor may see", () =
         },
       );
 
+      it.each([
+        ["a dashboard with an IP allowlist", ALLOWLISTED_ID],
+        [
+          "a password-protected dashboard with an IP allowlist",
+          ALLOWLISTED_PROTECTED_ID,
+        ],
+      ])(
+        "holds only the generic title and description of %s, even for an address it names, and still answers so its llms.txt works",
+        async (_label: string, id: ObjectID) => {
+          for (const forwardedFor of [ALLOWED_IP, OTHER_IP]) {
+            const result: HttpResult = await seo(id, { forwardedFor });
+
+            expect(result.status).toBe(200);
+            expect(result.body).toEqual({
+              _id: id.toString(),
+              title: "Dashboard",
+              description: DEFAULT_SEO_DESCRIPTION,
+            });
+          }
+
+          expect(contentColumnsRead(id)).toEqual([]);
+        },
+      );
+
       it("answers a custom domain the same way: a public dashboard's, and a private one's like a domain nobody has", async () => {
         const byDomain: HttpResult = await seo(PUBLIC_DOMAIN);
 
@@ -928,6 +960,111 @@ describe("a dashboard's public link answers only what its visitor may see", () =
 
         expect(unknownDomain.status).toBe(404);
         expect(await seo(PRIVATE_DOMAIN)).toEqual(unknownDomain);
+        expect(await seo(ARCHIVED_DOMAIN)).toEqual(unknownDomain);
+      });
+    });
+
+    describe("the custom domain lookup the public app makes on its own domain", () => {
+      const lookUpDomain: (domain: string) => Promise<HttpResult> = (
+        domain: string,
+      ): Promise<HttpResult> => {
+        return send({
+          method: "POST",
+          path: "/api/dashboard/domain",
+          body: { domain },
+        });
+      };
+
+      it.each([
+        ["anyone with the link may view", PUBLIC_DOMAIN, PUBLIC_ID],
+        ["is shared with a password", PROTECTED_DOMAIN, PROTECTED_ID],
+        ["has an IP allowlist", ALLOWLISTED_DOMAIN, ALLOWLISTED_ID],
+      ])(
+        "names the dashboard of a domain whose dashboard %s: the routes the app calls next decide the rest",
+        async (_label: string, domain: string, id: ObjectID) => {
+          const result: HttpResult = await lookUpDomain(domain);
+
+          expect(result.status).toBe(200);
+          expect(result.body).toEqual({ dashboardId: id.toString() });
+        },
+      );
+
+      it.each([
+        ["a dashboard shared only with its project", PRIVATE_DOMAIN],
+        ["an archived dashboard", ARCHIVED_DOMAIN],
+      ])(
+        "answers the domain of %s exactly like a domain no dashboard has",
+        async (_label: string, domain: string) => {
+          const unknown: HttpResult = await lookUpDomain(UNKNOWN_DOMAIN);
+
+          expect(unknown.status).toBe(404);
+          expect(errorMessageOf(unknown)).toBe("Dashboard not found");
+
+          const result: HttpResult = await lookUpDomain(domain);
+
+          expect(result).toEqual(unknown);
+          expect(JSON.stringify(result.body)).not.toContain(
+            DOMAINS[domain]!.toString(),
+          );
+        },
+      );
+    });
+
+    describe("a lookup that fails", () => {
+      it("is a server error on the routes that send the dashboard itself, never a not-found", async () => {
+        for (const result of [
+          await metadata(FAILING_ID),
+          await seo(FAILING_ID),
+        ]) {
+          expect(result.status).toBe(500);
+          expect(JSON.stringify(result.body)).not.toContain(
+            "Dashboard not found",
+          );
+        }
+      });
+
+      it("is refused by the read check, which fails closed", async () => {
+        const result: HttpResult = await send({
+          method: "GET",
+          path: `/api/dashboard/overview/${FAILING_ID.toString()}`,
+        });
+
+        expect(result.status).toBe(401);
+        expect(errorMessageOf(result)).toBe("This dashboard is not available.");
+      });
+    });
+
+    describe("the unlock cookie and the address are read only when the link needs them", () => {
+      let decodeCookie: SpyInstance<typeof JSONWebToken.decodeJsonPayload>;
+
+      beforeEach(() => {
+        decodeCookie = jest.spyOn(JSONWebToken, "decodeJsonPayload");
+      });
+
+      afterEach(() => {
+        decodeCookie.mockRestore();
+      });
+
+      it("never decodes an unlock cookie on a dashboard that asks for no password", async () => {
+        await metadata(PUBLIC_ID, { cookie: unlockCookie(PUBLIC_ID) });
+        await send({
+          method: "GET",
+          path: `/api/dashboard/overview/${PUBLIC_ID.toString()}`,
+          cookie: unlockCookie(PUBLIC_ID),
+        });
+
+        expect(decodeCookie).not.toHaveBeenCalled();
+      });
+
+      it("decodes it on a dashboard that asks for the password", async () => {
+        const result: HttpResult = await metadata(PROTECTED_ID, {
+          cookie: unlockCookie(PROTECTED_ID),
+        });
+
+        expect(result.body).toEqual(
+          fullMetadata(PROTECTED_ID, "Protected", true),
+        );
+        expect(decodeCookie).toHaveBeenCalled();
       });
     });
 

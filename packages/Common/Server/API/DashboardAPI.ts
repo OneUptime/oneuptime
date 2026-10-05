@@ -7,7 +7,6 @@ import DashboardService, {
 } from "../Services/DashboardService";
 import DashboardDomainService from "../Services/DashboardDomainService";
 import CookieUtil from "../Utils/Cookie";
-import logger from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -26,7 +25,9 @@ import {
   isDashboardLockedWithoutPassword,
   isDashboardMasterPasswordRequired,
 } from "../../Types/Dashboard/DashboardAccess";
-import PublicDashboardAccessPolicy, {
+import {
+  PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+  PUBLIC_DASHBOARD_DEFAULT_TITLE,
   PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE,
   PublicDashboardAccess,
   PublicDashboardAccessResult,
@@ -326,58 +327,6 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   },
 };
 
-type ResolveDashboardIdOrThrowFunction = (
-  dashboardIdOrDomain: string,
-) => Promise<ObjectID>;
-
-/*
- * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
- * either a dashboard ID (UUID) or a verified custom dashboard domain —
- * same contract as the status page overview endpoint.
- */
-const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
-  dashboardIdOrDomain: string,
-): Promise<ObjectID> => {
-  if (!dashboardIdOrDomain) {
-    throw new NotFoundException("Dashboard not found");
-  }
-
-  if (dashboardIdOrDomain.includes(".")) {
-    const dashboardDomain: DashboardDomain | null =
-      await DashboardDomainService.findOneBy({
-        query: {
-          fullDomain: dashboardIdOrDomain,
-          domain: {
-            isVerified: true,
-          } as any,
-        },
-        select: {
-          dashboardId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!dashboardDomain || !dashboardDomain.dashboardId) {
-      throw new NotFoundException("Dashboard not found");
-    }
-
-    return dashboardDomain.dashboardId;
-  }
-
-  try {
-    ObjectID.validateUUID(dashboardIdOrDomain);
-    return new ObjectID(dashboardIdOrDomain);
-  } catch (err) {
-    logger.error(
-      `Error converting dashboardIdOrDomain to ObjectID: ${dashboardIdOrDomain}`,
-    );
-    logger.error(err);
-    throw new NotFoundException("Dashboard not found");
-  }
-};
-
 type GetPublicDashboardIdOrThrowFunction = (
   dashboardId: string | undefined,
 ) => ObjectID;
@@ -394,6 +343,58 @@ const getPublicDashboardIdOrThrow: GetPublicDashboardIdOrThrowFunction = (
   }
 
   return new ObjectID(dashboardId);
+};
+
+type FindVerifiedDomainDashboardIdFunction = (
+  domain: string,
+) => Promise<ObjectID | null>;
+
+// The dashboard a verified custom domain is attached to, if any.
+const findVerifiedDomainDashboardId: FindVerifiedDomainDashboardIdFunction =
+  async (domain: string): Promise<ObjectID | null> => {
+    const dashboardDomain: DashboardDomain | null =
+      await DashboardDomainService.findOneBy({
+        query: {
+          fullDomain: domain,
+          domain: {
+            isVerified: true,
+          } as any,
+        },
+        select: {
+          dashboardId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return dashboardDomain?.dashboardId || null;
+  };
+
+type ResolveDashboardIdOrThrowFunction = (
+  dashboardIdOrDomain: string,
+) => Promise<ObjectID>;
+
+/*
+ * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
+ * either a dashboard ID (UUID) or a verified custom dashboard domain —
+ * same contract as the status page overview endpoint.
+ */
+const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
+  dashboardIdOrDomain: string,
+): Promise<ObjectID> => {
+  if (dashboardIdOrDomain && dashboardIdOrDomain.includes(".")) {
+    const dashboardId: ObjectID | null =
+      await findVerifiedDomainDashboardId(dashboardIdOrDomain);
+
+    if (!dashboardId) {
+      throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+    }
+
+    return dashboardId;
+  }
+
+  return getPublicDashboardIdOrThrow(dashboardIdOrDomain);
 };
 
 export default class DashboardAPI extends BaseAPI<
@@ -445,11 +446,15 @@ export default class DashboardAPI extends BaseAPI<
      *
      *   anyone with the link     the title and the description
      *   ... and a password       the title (its password prompt shows it)
+     *   an IP allowlist          the generic title and description: a
+     *                            visitor outside the list sees nothing of the
+     *                            dashboard, but the link still answers, so
+     *                            its llms.txt can point an allowed agent at
+     *                            the overview, which checks the address
      *   anything else            nothing: not found, like a missing dashboard
      *
      * "Anything else" is a dashboard shared only with its project, an
-     * archived one, and one with an IP allowlist, which shows a visitor
-     * outside it nothing at all.
+     * archived one, and one that does not exist.
      */
     this.router.get(
       `${new this.entityType()
@@ -468,11 +473,16 @@ export default class DashboardAPI extends BaseAPI<
               dashboardId,
             });
 
-          if (
-            access.access !== PublicDashboardAccess.Granted &&
-            access.access !== PublicDashboardAccess.PasswordRequired
-          ) {
+          if (access.access === PublicDashboardAccess.NotFound) {
             throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+          }
+
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            return Response.sendJsonObjectResponse(req, res, {
+              _id: dashboardId.toString(),
+              title: PUBLIC_DASHBOARD_DEFAULT_TITLE,
+              description: PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+            });
           }
 
           const isOpenToEveryone: boolean =
@@ -505,11 +515,14 @@ export default class DashboardAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
-            title: dashboard.pageTitle || dashboard.name || "Dashboard",
+            title:
+              dashboard.pageTitle ||
+              dashboard.name ||
+              PUBLIC_DASHBOARD_DEFAULT_TITLE,
             description:
               (isOpenToEveryone
                 ? dashboard.pageDescription || dashboard.description
-                : "") || "View dashboard metrics and insights.",
+                : "") || PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
           });
         } catch (err) {
           next(err);
@@ -625,7 +638,14 @@ export default class DashboardAPI extends BaseAPI<
       overviewHandler,
     );
 
-    // Domain resolution endpoint
+    /*
+     * The dashboard a verified custom domain shows, for the public app on
+     * that domain. It answers only for a dashboard whose public link
+     * answers: a domain whose dashboard is shared only with its project, or
+     * archived, reads like a domain no dashboard has. Whether the link
+     * answers at all is the same for every visitor; the address and the
+     * password are for the routes the app calls next.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
       publicDashboardRateLimit,
@@ -636,32 +656,19 @@ export default class DashboardAPI extends BaseAPI<
             throw new BadDataException("domain is required in request body");
           }
 
-          const domain: string = req.body["domain"] as string;
+          const dashboardId: ObjectID | null =
+            await findVerifiedDomainDashboardId(req.body["domain"] as string);
 
-          const dashboardDomain: DashboardDomain | null =
-            await DashboardDomainService.findOneBy({
-              query: {
-                fullDomain: domain,
-                domain: {
-                  isVerified: true,
-                } as any,
-              },
-              select: {
-                dashboardId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!dashboardDomain) {
-            throw new BadDataException("No dashboard found with this domain");
+          if (
+            !dashboardId ||
+            (await DashboardService.getPublicAccessForEveryone({ dashboardId }))
+              .access === PublicDashboardAccess.NotFound
+          ) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
-          const objectId: ObjectID = dashboardDomain.dashboardId!;
-
           return Response.sendJsonObjectResponse(req, res, {
-            dashboardId: objectId.toString(),
+            dashboardId: dashboardId.toString(),
           });
         } catch (err) {
           next(err);
@@ -709,10 +716,7 @@ export default class DashboardAPI extends BaseAPI<
           }
 
           if (access.access === PublicDashboardAccess.Forbidden) {
-            throw (
-              access.error ||
-              new BadDataException("Access denied to this dashboard.")
-            );
+            throw access.error;
           }
 
           const isUnlocked: boolean =
@@ -1612,12 +1616,10 @@ export default class DashboardAPI extends BaseAPI<
            * a visitor its IP allowlist refuses tries no password.
            */
           const access: PublicDashboardAccessResult =
-            PublicDashboardAccessPolicy.decide({
+            DashboardService.decidePublicAccess({
               dashboard,
-              visitor: DashboardService.getPublicDashboardVisitor({
-                dashboardId,
-                req,
-              }),
+              dashboardId,
+              req,
             });
 
           if (!dashboard || access.access === PublicDashboardAccess.NotFound) {
@@ -1625,10 +1627,7 @@ export default class DashboardAPI extends BaseAPI<
           }
 
           if (access.access === PublicDashboardAccess.Forbidden) {
-            throw (
-              access.error ||
-              new BadDataException("Access denied to this dashboard.")
-            );
+            throw access.error;
           }
 
           // Who can view it, by the rule the Sharing page shows and writes.

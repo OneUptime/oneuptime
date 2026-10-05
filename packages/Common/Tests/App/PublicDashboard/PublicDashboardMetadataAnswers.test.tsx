@@ -90,13 +90,17 @@ const PREVIEW_PATH: string = `/public-dashboard/${DASHBOARD_ID}`;
 
 const METADATA_URL: string = `${PUBLIC_DASHBOARD_API_URL.toString()}/metadata/${DASHBOARD_ID}`;
 
+const DOMAIN_URL: string = `${PUBLIC_DASHBOARD_API_URL.toString()}/domain`;
+
 let server: FakeAxiosServer;
 
 let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
-const renderApp: () => void = (): void => {
+const renderApp: (path?: string) => void = (
+  path: string = PREVIEW_PATH,
+): void => {
   render(
-    <MemoryRouter initialEntries={[PREVIEW_PATH]}>
+    <MemoryRouter initialEntries={[path]}>
       <App />
     </MemoryRouter>,
   );
@@ -247,5 +251,89 @@ describe("the public dashboard app shows what the metadata says this visitor may
     expect(navigateSpy).not.toHaveBeenCalled();
     expect(document.title).toBe("Checkout");
     expect(PublicDashboardUtil.requiresMasterPassword()).toBe(false);
+  });
+
+  test.each([
+    [
+      "a rate limit (429)",
+      429,
+      "Too many requests. Please try again in a minute.",
+    ],
+    ["a server error (500)", 500, "Server Error"],
+  ])(
+    "%s is shown as an error, not as a missing dashboard",
+    async (_label: string, status: number, message: string) => {
+      server.on(HTTPMethod.POST, METADATA_URL, [
+        { status, data: { error: message } },
+      ]);
+
+      renderApp();
+
+      expect(
+        await screen.findByText(message, undefined, { timeout: 15000 }),
+      ).toBeTruthy();
+
+      expect(screen.queryByText("Dashboard Not Found")).toBeNull();
+      expect(navigateSpy).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("on a custom domain, the public dashboard app asks which dashboard the domain shows", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/");
+  });
+
+  test("a domain no dashboard shows on (404) - none added, or its dashboard private or archived - shows Dashboard Not Found", async () => {
+    server.on(HTTPMethod.POST, DOMAIN_URL, [
+      { status: 404, data: { error: "Dashboard not found" } },
+    ]);
+
+    renderApp("/");
+
+    expect(
+      await screen.findByText("Dashboard Not Found", undefined, {
+        timeout: 15000,
+      }),
+    ).toBeTruthy();
+
+    // The metadata is never asked for.
+    expect(server.sent.length).toBe(1);
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a domain lookup that fails otherwise is shown as an error", async () => {
+    server.on(HTTPMethod.POST, DOMAIN_URL, [
+      { status: 500, data: { error: "Server Error" } },
+    ]);
+
+    renderApp("/");
+
+    expect(
+      await screen.findByText("Server Error", undefined, { timeout: 15000 }),
+    ).toBeTruthy();
+
+    expect(screen.queryByText("Dashboard Not Found")).toBeNull();
+    expect(server.sent.length).toBe(1);
+  });
+
+  test("a domain that names its dashboard goes on to that dashboard's metadata", async () => {
+    server.on(HTTPMethod.POST, DOMAIN_URL, [
+      { status: 200, data: { dashboardId: DASHBOARD_ID } },
+    ]);
+    server.on(HTTPMethod.POST, METADATA_URL, [
+      { status: 404, data: { error: "Dashboard not found" } },
+    ]);
+
+    renderApp("/");
+
+    expect(
+      await screen.findByText("Dashboard Not Found", undefined, {
+        timeout: 15000,
+      }),
+    ).toBeTruthy();
+
+    expect(server.sent.length).toBe(2);
+    expect(PublicDashboardUtil.getDashboardId()?.toString()).toBe(DASHBOARD_ID);
   });
 });
