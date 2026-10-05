@@ -25190,5 +25190,15 @@
   "Retention Override": "धारण ओवरराइड",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "कुछ प्रकार की टेलीमेट्री प्रोजेक्ट के डिफ़ॉल्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में टेलीमेट्री प्रकार के अनुसार धारण शामिल नहीं है: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।",
   "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "यहाँ की टेलीमेट्री प्रोजेक्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में धारण ओवरराइड शामिल नहीं हैं: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।",
-  "Monitors keep their status.": "मॉनिटर अपनी स्थिति बनाए रखते हैं।"
+  "Monitors keep their status.": "मॉनिटर अपनी स्थिति बनाए रखते हैं।",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "सेटअप गाइड से config.yaml फिर से कॉपी करें, वहाँ चुनी गई ingestion key के साथ: यह नया संस्करण बताता है। अपनी फ़ाइल में किए गए बदलाव इसमें भी ले आएँ।",
+  "Download the latest files and recreate the agent, or stop and remove it.": "नवीनतम फ़ाइलें डाउनलोड करें और एजेंट को फिर से बनाएँ, या उसे रोककर हटा दें।",
+  "Install the new release": "नई रिलीज़ इंस्टॉल करें",
+  "Install the release OneUptime pins, with the config that reports it.": "OneUptime द्वारा तय की गई रिलीज़ को, उसे बताने वाली config के साथ इंस्टॉल करें।",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "इसे उस मशीन पर चलाएँ जिस पर एजेंट चलता है। यह बिना कुछ दोबारा पूछे आपकी .env फिर से इस्तेमाल करता है, नवीनतम फ़ाइलें डाउनलोड करता है और एजेंट को फिर से बनाता है।",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "इसे एजेंट के फ़ोल्डर में चलाएँ। आपकी .env बनी रहती है; docker-compose.yml या otel-collector-config.yaml में किए गए बदलाव दोबारा लागू करें।",
+  "Run this in the folder that holds the new config.yaml.": "इसे उस फ़ोल्डर में चलाएँ जिसमें नई config.yaml है।",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "इसे उस मशीन पर चलाएँ जिस पर एजेंट चलता है। आपकी .env बनी रहती है; docker-compose.yml या otel-collector-config.yaml में किए गए बदलाव दोबारा लागू करें।",
+  "Save the new config": "नई config सहेजें",
+  "macOS": "macOS"
 }

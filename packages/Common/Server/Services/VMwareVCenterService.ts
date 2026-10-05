@@ -229,8 +229,8 @@ export class Service extends ProjectReferencesService<Model> {
    * Two callers share this throttle with DISJOINT extras shapes: the
    * metrics snapshot flush (inventory counts + datastore capacity, every
    * batch) and the fenced autoDiscoverVMwareVCenter maintenance path
-   * (agentVersion only — and usually an all-null fingerprint, since the
-   * shipped agent config does not stamp oneuptime.agent.version). The
+   * (agentVersion only — the oneuptime.agent.version the shipped agent
+   * config stamps). The
    * single fingerprint covers the whole extras object, so each alternation
    * between the two shapes busts the throttle: at most one extra Postgres
    * UPDATE per maintenance-fence window (~5 min), which is accepted. Do

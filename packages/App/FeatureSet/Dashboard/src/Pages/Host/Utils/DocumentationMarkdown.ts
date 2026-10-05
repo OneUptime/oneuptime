@@ -8,6 +8,7 @@ import {
   resolveSetupGuideOption,
 } from "../../../Components/SetupGuide/SetupGuide";
 import { getKubernetesSetupGuide } from "../../Kubernetes/Utils/DocumentationMarkdown";
+import { HOST_COLLECTOR_VERSION } from "../../../Components/AgentVersion/AgentKind";
 
 /*
  * How the OpenTelemetry Collector gets onto the host. Every method runs the
@@ -100,7 +101,40 @@ export interface HostSetupGuideOptions {
 }
 
 // The methods that put a collector on the host itself.
-type HostCollectorMethod = Exclude<HostInstallMethod, "kubernetes">;
+export type HostCollectorMethod = Exclude<HostInstallMethod, "kubernetes">;
+
+export const HOST_COLLECTOR_METHODS: ReadonlyArray<HostCollectorMethod> = [
+  "docker",
+  "linux-deb",
+  "linux-rpm",
+  "linux-tarball",
+  "macos",
+  "windows",
+];
+
+/*
+ * The install methods a host's collector can have been installed with,
+ * from the os.type it reports: a Windows host or a Mac ran the native
+ * install for it, and a Linux host any of the four Linux ones (a Docker
+ * collector reports the Linux it runs on, on a Mac's or Windows' Docker VM
+ * too). Unknown: every method.
+ */
+export function getHostCollectorMethodsForOsType(
+  osType: string | null | undefined,
+): Array<HostCollectorMethod> {
+  const os: string = (osType || "").trim().toLowerCase();
+
+  if (os === "windows") {
+    return ["windows"];
+  }
+  if (os === "darwin" || os === "macos") {
+    return ["macos"];
+  }
+  if (os === "linux") {
+    return ["docker", "linux-deb", "linux-rpm", "linux-tarball"];
+  }
+  return [...HOST_COLLECTOR_METHODS];
+}
 
 interface HostCollectorGuideOptions {
   oneuptimeUrl: string;
@@ -111,10 +145,21 @@ interface HostCollectorGuideOptions {
 const RELEASES_URL: string =
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases";
 
-// The Linux and macOS installs download the newest otelcol-contrib release.
-const RESOLVE_LATEST_VERSION: string = `# Resolve the latest released version from GitHub (or pin a specific one, e.g. VERSION=0.151.0)
-VERSION=$(curl -fsSL -o /dev/null -w '%{url_effective}' ${RELEASES_URL}/latest)
-VERSION=\${VERSION##*/v}`;
+/*
+ * Every install method installs the otelcol-contrib release OneUptime pins
+ * (HOST_COLLECTOR_VERSION), and the config stamps the same version as
+ * oneuptime.agent.version: that is the host's agent version, which gets a
+ * sign beside it once OneUptime pins a newer release.
+ */
+const PINNED_VERSION_COMMENT: string =
+  "the release config.yaml reports as the agent version";
+
+// The Linux and macOS installs download the pinned otelcol-contrib release.
+const PINNED_VERSION: string = `VERSION=${HOST_COLLECTOR_VERSION}   # ${PINNED_VERSION_COMMENT}`;
+
+const HOST_COLLECTOR_IMAGE: string = `otel/opentelemetry-collector-contrib:${HOST_COLLECTOR_VERSION}`;
+
+const DOCKER_CONTAINER_NAME: string = "otel-collector";
 
 const MACOS_PLIST_PATH: string =
   "/Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plist";
@@ -192,6 +237,14 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # The collector release this config is for. OneUptime shows it as the
+  # host's agent version, with a sign beside it once a newer one is out.
+  # Change it only together with the collector you install.
+  resource:
+    attributes:
+      - key: oneuptime.agent.version
+        value: "${HOST_COLLECTOR_VERSION}"
+        action: upsert
   batch:
 
 exporters:
@@ -204,8 +257,127 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp/oneuptime]`;
+}
+
+/*
+ * The container the Docker install runs. Its upgrade removes the container
+ * and runs this again: the image tag is the pin.
+ */
+function getDockerRunCommand(): string {
+  return `docker run -d \\
+  --name ${DOCKER_CONTAINER_NAME} \\
+  --restart unless-stopped \\
+  --network host \\
+  --pid host \\
+  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \\
+  --volume /:/hostfs:ro,rslave \\
+  -e HOST_PROC=/hostfs/proc \\
+  -e HOST_SYS=/hostfs/sys \\
+  -e HOST_ETC=/hostfs/etc \\
+  -e HOST_VAR=/hostfs/var \\
+  -e HOST_RUN=/hostfs/run \\
+  -e HOST_DEV=/hostfs/dev \\
+  ${HOST_COLLECTOR_IMAGE} \\
+  --config /etc/otelcol-contrib/config.yaml`;
+}
+
+// The Windows download, shared by the install and the upgrade.
+const WINDOWS_DOWNLOAD: string = `$version = "${HOST_COLLECTOR_VERSION}"   # ${PINNED_VERSION_COMMENT}
+$dest = "${WINDOWS_INSTALL_DIR}"
+$tar  = "$env:TEMP\\otelcol-contrib.tar.gz"`;
+
+const WINDOWS_DOWNLOAD_URL: string = `${RELEASES_URL}/download/v$version/otelcol-contrib_\${version}_windows_amd64.tar.gz`;
+
+/**
+ * How to move a host's collector to the release this OneUptime pins, per
+ * install method: the new release over the installed one, the config.yaml
+ * saved again in the current folder (it stamps the new version) put in
+ * place, and the collector restarted on both. The guide's "Upgrade the
+ * collector" topic and the dialog beside an outdated agent version
+ * (Components/AgentVersion) both show it.
+ */
+export function getHostCollectorUpgradeCommand(
+  method: HostCollectorMethod,
+): string {
+  switch (method) {
+    case "docker":
+      return `docker rm -f ${DOCKER_CONTAINER_NAME}
+${getDockerRunCommand()}`;
+
+    case "linux-deb":
+      return `${PINNED_VERSION}
+ARCH=$(dpkg --print-architecture)   # amd64 or arm64
+
+curl -fL -o /tmp/otelcol-contrib.deb \\
+  ${RELEASES_URL}/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.deb
+# --force-confold: keep the installed config without asking; the next line replaces it
+sudo dpkg -i --force-confold /tmp/otelcol-contrib.deb
+
+# Put the new config in place and restart the service on the new release
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
+sudo systemctl restart otelcol-contrib
+sudo systemctl status otelcol-contrib`;
+
+    case "linux-rpm":
+      return `${PINNED_VERSION}
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+curl -fL -o /tmp/otelcol-contrib.rpm \\
+  ${RELEASES_URL}/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.rpm
+sudo rpm -Uvh /tmp/otelcol-contrib.rpm
+
+# Put the new config in place and restart the service on the new release
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
+sudo systemctl restart otelcol-contrib
+sudo systemctl status otelcol-contrib`;
+
+    case "linux-tarball":
+      return `${PINNED_VERSION}
+ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+
+curl -fL -o /tmp/otelcol.tar.gz \\
+  ${RELEASES_URL}/download/v\${VERSION}/otelcol-contrib_\${VERSION}_linux_\${ARCH}.tar.gz
+
+# Stop the collector while its binary is replaced, then start the new one
+sudo systemctl stop otelcol-contrib
+sudo tar -xzf /tmp/otelcol.tar.gz -C /opt/otelcol-contrib
+sudo install -m 0644 config.yaml /opt/otelcol-contrib/config.yaml
+sudo systemctl start otelcol-contrib
+sudo systemctl status otelcol-contrib`;
+
+    case "macos":
+      return `${PINNED_VERSION}
+ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
+
+curl -fL -o /tmp/otelcol-contrib.tar.gz \\
+  ${RELEASES_URL}/download/v\${VERSION}/otelcol-contrib_\${VERSION}_darwin_\${ARCH}.tar.gz
+
+# Stop the collector while its binary is replaced, then start the new one
+sudo launchctl unload ${MACOS_PLIST_PATH}
+sudo tar -xzf /tmp/otelcol-contrib.tar.gz -C /usr/local/otelcol-contrib
+sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml
+sudo launchctl load -w ${MACOS_PLIST_PATH}`;
+
+    case "windows":
+      return `# Download the new release (amd64; use _windows_arm64.tar.gz on ARM)
+${WINDOWS_DOWNLOAD}
+Invoke-WebRequest -Uri "${WINDOWS_DOWNLOAD_URL}" -OutFile $tar
+
+# Stop the service while its binary is replaced, then start the new one
+Stop-Service otelcol-contrib
+tar -xf $tar -C $dest
+Copy-Item config.yaml "$dest\\config.yaml" -Force
+Start-Service otelcol-contrib`;
+  }
+}
+
+// The language of a method's commands, for its code blocks.
+export function getHostCollectorCommandLanguage(
+  method: HostCollectorMethod,
+): "bash" | "powershell" {
+  return method === "windows" ? "powershell" : "bash";
 }
 
 function getPrerequisites(method: HostCollectorMethod): Array<string> {
@@ -285,24 +457,7 @@ function getInstallStep(data: HostCollectorGuideOptions): SetupGuideStep {
         title: "Run the collector with Docker",
         description:
           "Start the collector in a container that can see the host's processes and filesystems.",
-        markdown: `${codeBlock(
-          "bash",
-          `docker run -d \\
-  --name otel-collector \\
-  --restart unless-stopped \\
-  --network host \\
-  --pid host \\
-  -v $(pwd)/config.yaml:/etc/otelcol-contrib/config.yaml:ro \\
-  --volume /:/hostfs:ro,rslave \\
-  -e HOST_PROC=/hostfs/proc \\
-  -e HOST_SYS=/hostfs/sys \\
-  -e HOST_ETC=/hostfs/etc \\
-  -e HOST_VAR=/hostfs/var \\
-  -e HOST_RUN=/hostfs/run \\
-  -e HOST_DEV=/hostfs/dev \\
-  otel/opentelemetry-collector-contrib:latest \\
-  --config /etc/otelcol-contrib/config.yaml`,
-        )}
+        markdown: `${codeBlock("bash", getDockerRunCommand())}
 
 \`--network host\`, \`--pid host\`, and the \`/hostfs\` bind mount let the \`hostmetrics\` and \`process\` scrapers read CPU, memory, disk, and per-process information from the host kernel rather than the container. Without these, you'd only see metrics for the collector container itself.`,
       };
@@ -314,7 +469,7 @@ function getInstallStep(data: HostCollectorGuideOptions): SetupGuideStep {
           "Install the otelcol-contrib .deb package and restart it with your config.",
         markdown: `${codeBlock(
           "bash",
-          `${RESOLVE_LATEST_VERSION}
+          `${PINNED_VERSION}
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
 
 curl -fL -o /tmp/otelcol-contrib.deb \\
@@ -329,8 +484,6 @@ sudo systemctl restart otelcol-contrib
 sudo systemctl status otelcol-contrib`,
         )}
 
-All releases are listed at <${RELEASES_URL}> if you need to pin a specific version.
-
 ${PACKAGED_UNIT_NOTE}`,
       };
 
@@ -341,7 +494,7 @@ ${PACKAGED_UNIT_NOTE}`,
           "Install the otelcol-contrib .rpm package and restart it with your config.",
         markdown: `${codeBlock(
           "bash",
-          `${RESOLVE_LATEST_VERSION}
+          `${PINNED_VERSION}
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol-contrib.rpm \\
@@ -356,8 +509,6 @@ sudo systemctl restart otelcol-contrib
 sudo systemctl status otelcol-contrib`,
         )}
 
-All releases are listed at <${RELEASES_URL}> if you need to pin a specific version.
-
 ${PACKAGED_UNIT_NOTE}`,
       };
 
@@ -368,7 +519,7 @@ ${PACKAGED_UNIT_NOTE}`,
           "Unpack the static binary and run it with a systemd unit of its own.",
         markdown: `${codeBlock(
           "bash",
-          `${RESOLVE_LATEST_VERSION}
+          `${PINNED_VERSION}
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 curl -fL -o /tmp/otelcol.tar.gz \\
@@ -416,7 +567,7 @@ Use this when packages aren't available — locked-down servers, or container ba
           "Install the otelcol-contrib release for your Mac and run it as a launchd service.",
         markdown: `${codeBlock(
           "bash",
-          `${RESOLVE_LATEST_VERSION}
+          `${PINNED_VERSION}
 ARCH=$(uname -m | sed 's/x86_64/amd64/')   # arm64 on Apple silicon, amd64 on Intel
 
 curl -fL -o /tmp/otelcol-contrib.tar.gz \\
@@ -467,11 +618,9 @@ ${codeBlock("bash", `sudo launchctl load -w ${MACOS_PLIST_PATH}`)}
 ${codeBlock(
   "powershell",
   `# Download otelcol-contrib for Windows (amd64; use _windows_arm64.tar.gz on ARM)
-$version = "0.156.0"   # use v0.155.0 or later for the Services tab
-$dest = "${WINDOWS_INSTALL_DIR}"
-$tar  = "$env:TEMP\\otelcol-contrib.tar.gz"
+${WINDOWS_DOWNLOAD}
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-Invoke-WebRequest -Uri "${RELEASES_URL}/download/v$version/otelcol-contrib_\${version}_windows_amd64.tar.gz" -OutFile $tar
+Invoke-WebRequest -Uri "${WINDOWS_DOWNLOAD_URL}" -OutFile $tar
 tar -xf $tar -C $dest   # tar.exe ships with Windows 10 1803+ / Server 2019+
 
 # Use the config.yaml you saved in step 2
@@ -601,9 +750,10 @@ service:
   pipelines:
     metrics:
       # Add systemd alongside the hostmetrics receiver. Keep
-      # resourcedetection — it is what stamps host.name onto each unit.
+      # resourcedetection — it is what stamps host.name onto each unit —
+      # and resource, which reports the collector's version.
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, batch]`,
+      processors: [resourcedetection, resource, batch]`,
 )}
 
 ${getRestartMarkdown(method)}
@@ -667,7 +817,7 @@ const HARDWARE_MOBILE_WARNING: string =
 const HARDWARE_PIPELINE: string = `service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource/oneuptime-hardware, batch]`;
+      processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]`;
 
 // How to read the four values on the machine itself, per OS.
 function getHardwareReadingMarkdown(method: HostInstallMethod): string {
@@ -739,7 +889,7 @@ function Format-YamlValue($value) {
 "@`,
 )}
 
-It prints one processor entry, already indented. Add it inside the \`processors:\` block your \`config.yaml\` already has — alongside \`resourcedetection:\` and \`batch:\`, not as a second \`processors:\` key — then name it in the metrics pipeline:
+It prints one processor entry, already indented. Add it inside the \`processors:\` block your \`config.yaml\` already has — alongside \`resourcedetection:\`, \`resource:\` and \`batch:\`, not as a second \`processors:\` key — then name it in the metrics pipeline:
 
 ${codeBlock("yaml", HARDWARE_PIPELINE)}
 
@@ -820,7 +970,7 @@ ${codeBlock(
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource/oneuptime-labels, batch]`,
+      processors: [resourcedetection, resource, resource/oneuptime-labels, batch]`,
 )}
 
 ${getRestartMarkdown(method)}
@@ -898,6 +1048,28 @@ It asks for your OneUptime URL, the ingestion key and the host's name — leave 
   };
 }
 
+export const HOST_COLLECTOR_UPGRADE_TOPIC_TITLE: string =
+  "Upgrade the collector";
+
+/*
+ * How to move the collector to the release this OneUptime pins. The config
+ * stamps the release it is for, so the upgrade saves the config again
+ * (step 2) and installs the new release over the old one.
+ */
+function getUpgradeTopic(method: HostCollectorMethod): SetupGuideTopic {
+  return {
+    title: HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
+    summary:
+      "Install the release OneUptime pins, with the config that reports it.",
+    markdown: `The config reports the collector release it is for (\`oneuptime.agent.version\`) as the host's **Agent Version**. When this OneUptime pins a newer release, a warning sign beside it opens these steps.
+
+1. Save the config from step 2 again, with the same ingestion key: it reports the new version. Copy across any change you made to yours.
+2. In the folder that holds it, install the new release and restart the collector:
+
+${codeBlock(getHostCollectorCommandLanguage(method), getHostCollectorUpgradeCommand(method))}`,
+  };
+}
+
 function getAdvancedTopics(
   method: HostCollectorMethod,
 ): Array<SetupGuideTopic> {
@@ -921,6 +1093,7 @@ function getAdvancedTopics(
     getHardwareTopic(method),
     getLabelsTopic(method),
     getReportedTopic(method),
+    getUpgradeTopic(method),
   );
 
   return topics;

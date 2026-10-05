@@ -190,7 +190,7 @@ To enable it:
 4. **Swap the collector image.** The stock `otel/opentelemetry-collector-contrib` image is built `FROM scratch`: it contains no `journalctl` binary (which the journald receiver shells out to) and runs as a non-root user that cannot read the journal. Build a thin wrapper and point `image:` in `docker-compose.yml` at it:
 
    ```dockerfile
-   FROM otel/opentelemetry-collector-contrib:latest AS otelcol
+   FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
    FROM debian:stable-slim
    RUN apt-get update \
        && apt-get install -y --no-install-recommends systemd \
@@ -270,11 +270,17 @@ The unit assumes the agent lives in `/opt/oneuptime-proxmox-agent` (the install 
 
 ## Upgrading
 
+The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the cluster's page; select it to see these commands. Pulling alone does not move the agent forward: download both files again, then pull and recreate the agent so the collector reads its new config. Your `.env` is kept; re-apply any change you made to the two files.
+
 ```bash
 cd /opt/oneuptime-proxmox-agent
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
+
+An agent installed before the collector was pinned reports no version until it is upgraded this way.
 
 ## Uninstalling
 

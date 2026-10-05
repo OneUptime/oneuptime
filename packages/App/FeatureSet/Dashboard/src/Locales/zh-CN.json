@@ -25190,5 +25190,15 @@
   "Retention Override": "保留覆盖",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "部分遥测类型按其自身的保留期限保存，而不是按项目的默认保留期限。您的套餐不包含按遥测类型保留：您可以移除它，但再次设置需要 {{planName}} 套餐。",
   "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "此处的遥测数据按其自身的保留期限保存，而不是按项目的保留期限。您的套餐不包含保留覆盖：您可以移除此覆盖，但再次设置需要 {{planName}} 套餐。",
-  "Monitors keep their status.": "监视器保持当前状态。"
+  "Monitors keep their status.": "监视器保持当前状态。",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "从设置指南重新复制 config.yaml，并使用你在那里选择的摄取密钥：它会报告新版本。把你对自己配置做过的修改也复制过去。",
+  "Download the latest files and recreate the agent, or stop and remove it.": "下载最新文件并重新创建代理，或者停止并移除它。",
+  "Install the new release": "安装新版本",
+  "Install the release OneUptime pins, with the config that reports it.": "安装 OneUptime 固定的版本，以及报告该版本的配置。",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "在代理所在的机器上运行。它会沿用你的 .env，不再询问任何内容，下载最新文件并重新创建代理。",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "在代理的文件夹中运行。你的 .env 会保留；请重新应用你对 docker-compose.yml 或 otel-collector-config.yaml 做过的修改。",
+  "Run this in the folder that holds the new config.yaml.": "在包含新 config.yaml 的文件夹中运行。",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "在代理所在的机器上运行。你的 .env 会保留；请重新应用你对 docker-compose.yml 或 otel-collector-config.yaml 做过的修改。",
+  "Save the new config": "保存新配置",
+  "macOS": "macOS"
 }

@@ -25190,5 +25190,15 @@
   "Retention Override": "Overstyring for oppbevaring",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Noen typer telemetri oppbevares med sin egen oppbevaringstid, ikke prosjektets standard. Abonnementet ditt omfatter ikke oppbevaring etter telemetritype: du kan fjerne den, men for å angi den igjen trenger du {{planName}}-abonnementet.",
   "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Telemetri herfra oppbevares med sin egen oppbevaringstid, ikke prosjektets. Abonnementet ditt omfatter ikke overstyringer for oppbevaring: du kan fjerne denne, men for å angi en igjen trenger du {{planName}}-abonnementet.",
-  "Monitors keep their status.": "Monitorer beholder statusen sin."
+  "Monitors keep their status.": "Monitorer beholder statusen sin.",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "Kopier config.yaml fra oppsettsveiledningen på nytt, med ingestion-nøkkelen du velger der: den oppgir den nye versjonen. Ta med endringene du har gjort i din egen.",
+  "Download the latest files and recreate the agent, or stop and remove it.": "Last ned de nyeste filene og opprett agenten på nytt, eller stopp og fjern den.",
+  "Install the new release": "Installer den nye versjonen",
+  "Install the release OneUptime pins, with the config that reports it.": "Installer versjonen OneUptime fester, med konfigurasjonen som oppgir den.",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "Kjør det på maskinen der agenten kjører. Det gjenbruker .env-filen din uten å spørre om noe på nytt, laster ned de nyeste filene og oppretter agenten på nytt.",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "Kjør dette i agentens mappe. .env-filen din beholdes; bruk endringene du gjorde i docker-compose.yml eller otel-collector-config.yaml på nytt.",
+  "Run this in the folder that holds the new config.yaml.": "Kjør dette i mappen som inneholder den nye config.yaml.",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "Kjør dette på maskinen der agenten kjører. .env-filen din beholdes; bruk endringene du gjorde i docker-compose.yml eller otel-collector-config.yaml på nytt.",
+  "Save the new config": "Lagre den nye konfigurasjonen",
+  "macOS": "macOS"
 }

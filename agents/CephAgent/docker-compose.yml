@@ -1,6 +1,12 @@
 services:
   oneuptime-ceph-agent:
-    image: otel/opentelemetry-collector-contrib:latest
+    # Upstream collector, pinned. There is no oneuptime/ceph-agent image —
+    # the agent is entirely defined by otel-collector-config.yaml, which
+    # install.sh downloads next to this file, and that config reports this
+    # pin as the agent's version (oneuptime.agent.version). Bump the two
+    # together; Tests/Ops/validate-collector-configs.sh validates the config
+    # against this version.
+    image: otel/opentelemetry-collector-contrib:0.161.0
     container_name: oneuptime-ceph-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro

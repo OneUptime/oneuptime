@@ -25190,5 +25190,15 @@
   "Retention Override": "بازنویسی نگهداری",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "برخی انواع تله‌متری با مدت نگهداری خودشان نگهداری می‌شوند، نه با مدت نگهداری پیش‌فرض پروژه. طرح شما نگهداری بر اساس نوع تله‌متری را ندارد: می‌توانید آن را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید.",
   "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "تله‌متری از اینجا با مدت نگهداری خودش نگهداری می‌شود، نه با مدت نگهداری پروژه. طرح شما بازنویسی‌های نگهداری را ندارد: می‌توانید این یکی را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید.",
-  "Monitors keep their status.": "مانیتورها وضعیت خود را حفظ می‌کنند."
+  "Monitors keep their status.": "مانیتورها وضعیت خود را حفظ می‌کنند.",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "config.yaml را دوباره از راهنمای راه‌اندازی کپی کنید، با کلید دریافتی که آنجا برمی‌گزینید: نسخه تازه را گزارش می‌کند. هر تغییری را که در فایل خودتان داده بودید به آن منتقل کنید.",
+  "Download the latest files and recreate the agent, or stop and remove it.": "دانلود تازه‌ترین فایل‌ها و ساختن دوباره عامل، یا متوقف کردن و حذف آن.",
+  "Install the new release": "نصب نسخه تازه",
+  "Install the release OneUptime pins, with the config that reports it.": "نصب نسخه‌ای که OneUptime تثبیت کرده، همراه با پیکربندی‌ای که آن را گزارش می‌کند.",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "آن را روی ماشینی اجرا کنید که عامل روی آن کار می‌کند. بی‌آنکه چیزی را دوباره بپرسد از .env شما استفاده می‌کند، تازه‌ترین فایل‌ها را دانلود می‌کند و عامل را دوباره می‌سازد.",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "این را در پوشه عامل اجرا کنید. فایل .env شما نگه داشته می‌شود؛ هر تغییری را که در docker-compose.yml یا otel-collector-config.yaml داده بودید دوباره اعمال کنید.",
+  "Run this in the folder that holds the new config.yaml.": "این را در پوشه‌ای اجرا کنید که config.yaml تازه در آن است.",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "این را روی ماشینی اجرا کنید که عامل روی آن کار می‌کند. فایل .env شما نگه داشته می‌شود؛ هر تغییری را که در docker-compose.yml یا otel-collector-config.yaml داده بودید دوباره اعمال کنید.",
+  "Save the new config": "ذخیره پیکربندی تازه",
+  "macOS": "macOS"
 }

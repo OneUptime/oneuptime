@@ -215,13 +215,23 @@ sudo systemctl enable --now oneuptime-vmware-agent
 
 ## ارتقای عامل
 
+عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** این vCenter و در فهرست **vCenters** پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
+
+ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند و عامل را دوباره می‌سازد تا جمع‌کننده پیکربندی تازه‌اش را بخواند.
+
 ```bash
-cd /opt/oneuptime-vmware-agent
-docker compose pull
-docker compose up -d
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+bash install.sh
 ```
 
-ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده است؛ وقتی انتشار تازه‌تری از OneUptime سنجاق را بالا می‌برد، پیش از pull فایل‌های `docker-compose.yml` و `otel-collector-config.yaml` را دوباره از پوشه VMwareAgent دانلود کنید — یا `install.sh` را دوباره اجرا کنید، که هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود) و فقط همان دو فایل را تازه می‌کند.
+آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل هر دو فایل را دوباره دانلود کنید (هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+docker compose pull
+docker compose up -d --force-recreate
+```
 
 ## حذف نصب عامل
 

@@ -85,6 +85,12 @@ processors:
       - key: vmware.vcenter.name
         value: "${env:VMWARE_VCENTER_NAME}"
         action: upsert
+      # Shown as the agent version on the vCenter's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Defensive: the native vcenter receiver does not synthesize
       # service.name / service.instance.id, but OTEL_RESOURCE_ATTRIBUTES
       # or a customised pipeline could add them. OneUptime routes batches

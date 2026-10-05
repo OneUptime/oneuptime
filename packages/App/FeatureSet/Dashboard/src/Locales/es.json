@@ -25190,5 +25190,15 @@
   "Retention Override": "Anulación de retención",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Algunos tipos de telemetría se conservan con su propia retención, no con la retención predeterminada del proyecto. Tu plan no incluye la retención por tipo de telemetría: puedes quitarla, pero para volver a definirla necesitas el plan {{planName}}.",
   "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "La telemetría de aquí se conserva con su propia retención, no con la del proyecto. Tu plan no incluye anulaciones de retención: puedes quitar esta, pero para volver a definir una necesitas el plan {{planName}}.",
-  "Monitors keep their status.": "Los monitores mantienen su estado."
+  "Monitors keep their status.": "Los monitores mantienen su estado.",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "Vuelve a copiar config.yaml de la guía de configuración, con la clave de ingesta que elijas allí: indica la nueva versión. Traslada cualquier cambio que hayas hecho en el tuyo.",
+  "Download the latest files and recreate the agent, or stop and remove it.": "Descarga los archivos más recientes y vuelve a crear el agente, o detenlo y quítalo.",
+  "Install the new release": "Instalar la nueva versión",
+  "Install the release OneUptime pins, with the config that reports it.": "Instala la versión que fija OneUptime, con la configuración que la indica.",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "Ejecútalo en la máquina donde se ejecuta el agente. Reutiliza tu .env sin volver a preguntar nada, descarga los archivos más recientes y vuelve a crear el agente.",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "Ejecuta esto en la carpeta del agente. Conserva tu .env; vuelve a aplicar cualquier cambio que hayas hecho en docker-compose.yml u otel-collector-config.yaml.",
+  "Run this in the folder that holds the new config.yaml.": "Ejecuta esto en la carpeta que contiene el nuevo config.yaml.",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "Ejecuta esto en la máquina donde se ejecuta el agente. Conserva tu .env; vuelve a aplicar cualquier cambio que hayas hecho en docker-compose.yml u otel-collector-config.yaml.",
+  "Save the new config": "Guardar la nueva configuración",
+  "macOS": "macOS"
 }

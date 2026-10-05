@@ -69,6 +69,20 @@ import {
   getDatabaseAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
+import {
+  getProxmoxAgentDownloadCommand,
+  getProxmoxAgentRecreateCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
+  getCephAgentDownloadCommand,
+  getCephAgentRecreateCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  VMWARE_AGENT_RECREATE_COMMAND,
+  getVMwareAgentDownloadCommand,
+  getVMwareAgentUpgradeCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { getHostCollectorUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import Route from "../../../Types/API/Route";
 
 const SETUP_GUIDE: Route = new Route("/dashboard/p1/docker/h1/documentation");
@@ -147,10 +161,6 @@ describe("an up-to-date or unknown version looks exactly as before", () => {
   });
 
   test.each([
-    [AgentKind.HostCollector],
-    [AgentKind.ProxmoxAgent],
-    [AgentKind.CephAgent],
-    [AgentKind.VMwareAgent],
     [AgentKind.IoTExporter],
     [AgentKind.ServerlessSdk],
     [AgentKind.RumSdk],
@@ -573,7 +583,7 @@ describe("the hero chip", () => {
   test("an agent OneUptime does not release keeps the gray chip", () => {
     render(
       <AgentVersion
-        kind={AgentKind.VMwareAgent}
+        kind={AgentKind.IoTExporter}
         version="0.1.0"
         variant="chip"
       />,
@@ -618,4 +628,285 @@ describe("the hero chip", () => {
       expect(container.innerHTML).toBe("");
     },
   );
+});
+
+/*
+ * Hosts, Proxmox, Ceph and VMware: their agents now report the collector
+ * release their files pin, so an older one gets the sign, compared with the
+ * pin whatever the server's own version is, and the dialog shows that
+ * agent's own upgrade, taken from its setup guide.
+ */
+describe("the agents that report the collector they pin", () => {
+  const OUTDATED_COLLECTOR: string =
+    "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.";
+
+  test.each([
+    [AgentKind.HostCollector],
+    [AgentKind.ProxmoxAgent],
+    [AgentKind.CephAgent],
+    [AgentKind.VMwareAgent],
+  ])(
+    "%s: an older collector shows the sign, compared with the pin even when the server knows no version",
+    (kind: AgentKind) => {
+      setServerVersion("");
+      render(<AgentVersion kind={kind} version="0.154.0" />);
+
+      const trigger: HTMLElement = screen.getByRole("button", {
+        name: OUTDATED_COLLECTOR,
+      });
+      expect(trigger).toHaveAttribute("data-agent-kind", kind);
+      expect(trigger).toHaveTextContent("0.154.0");
+    },
+  );
+
+  test.each([
+    [AgentKind.HostCollector],
+    [AgentKind.ProxmoxAgent],
+    [AgentKind.CephAgent],
+    [AgentKind.VMwareAgent],
+  ])(
+    "%s: the pinned release, or a newer one, is drawn exactly as before",
+    (kind: AgentKind) => {
+      for (const version of ["0.161.0", "0.162.0"]) {
+        const { container }: RenderResult = render(
+          <AgentVersion kind={kind} version={version} />,
+        );
+        expect(container.innerHTML).toBe(version);
+        cleanup();
+      }
+    },
+  );
+
+  test.each([
+    [AgentKind.HostCollector],
+    [AgentKind.ProxmoxAgent],
+    [AgentKind.CephAgent],
+    [AgentKind.VMwareAgent],
+  ])(
+    "%s: an install from before the pin reports nothing, which reads Not reported, never outdated",
+    (kind: AgentKind) => {
+      render(
+        <AgentVersion
+          kind={kind}
+          version={undefined}
+          placeholder="Not reported"
+        />,
+      );
+      expect(screen.getByTestId("placeholder-text")).toHaveTextContent(
+        "Not reported",
+      );
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    [
+      AgentKind.ProxmoxAgent,
+      "Upgrade the OneUptime Proxmox Agent",
+      getProxmoxAgentDownloadCommand,
+      getProxmoxAgentRecreateCommand,
+    ],
+    [
+      AgentKind.CephAgent,
+      "Upgrade the OneUptime Ceph Agent",
+      getCephAgentDownloadCommand,
+      getCephAgentRecreateCommand,
+    ],
+  ])(
+    "%s: the files again and a recreate, in the install script's folder or the reader's own",
+    async (
+      kind: AgentKind,
+      title: string,
+      download: (method: "install-script" | "docker-compose") => string,
+      recreate: (method: "install-script" | "docker-compose") => string,
+    ) => {
+      render(<AgentVersion kind={kind} version="0.154.0" />);
+      const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+
+      expect(
+        within(dialog).getByRole("heading", { name: title }),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).getByText(
+          "This agent runs version 0.154.0. Version 0.161.0 is available.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog)
+          .getAllByRole("tab")
+          .map((tab: HTMLElement): string => {
+            return tab.textContent || "";
+          }),
+      ).toEqual(["Install script", "Docker Compose"]);
+
+      expect(codeBlocksIn(dialog)).toEqual([
+        download("install-script"),
+        recreate("install-script"),
+      ]);
+      expect(
+        within(dialog).getByText("Download the latest files"),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByText(
+          "Pull the latest images and recreate the agent",
+        ),
+      ).toBeVisible();
+      expect(
+        within(dialog).getAllByRole("button", { name: "Copy to clipboard" }),
+      ).toHaveLength(2);
+      // Nothing to fill in from a guide.
+      expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
+
+      fireEvent.click(
+        within(dialog).getByRole("tab", { name: "Docker Compose" }),
+      );
+      expect(codeBlocksIn(dialog)).toEqual([
+        download("docker-compose"),
+        recreate("docker-compose"),
+      ]);
+    },
+  );
+
+  test("VMware: the hero chip turns amber and opens the install script again, or the files", async () => {
+    render(
+      <AgentVersion
+        kind={AgentKind.VMwareAgent}
+        version="0.154.0"
+        variant="chip"
+      />,
+    );
+
+    const chip: HTMLElement = screen.getByRole("button", {
+      name: OUTDATED_COLLECTOR,
+    });
+    expect(chip).toHaveTextContent("Agent 0.154.0");
+    expect(chip.className).toContain("bg-amber-50");
+
+    fireEvent.click(chip);
+    const dialog: HTMLElement = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Upgrade the OneUptime VMware Agent",
+      }),
+    ).toBeInTheDocument();
+    expect(codeBlocksIn(dialog)).toEqual([getVMwareAgentUpgradeCommand()]);
+    expect(
+      within(dialog).getByText("Run the install script again"),
+    ).toBeVisible();
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Docker Compose" }),
+    );
+    expect(codeBlocksIn(dialog)).toEqual([
+      getVMwareAgentDownloadCommand(),
+      VMWARE_AGENT_RECREATE_COMMAND,
+    ]);
+  });
+
+  test("Host on Linux: a tab per Linux install, the config from the setup guide, then the new release", async () => {
+    const route: Route = new Route("/dashboard/p1/hosts/h1/documentation");
+    render(
+      <AgentVersion
+        kind={AgentKind.HostCollector}
+        version="0.154.0"
+        setupGuideRoute={route}
+        upgradeGuideContext={{ hostOsType: "linux" }}
+      />,
+    );
+    const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Upgrade the OpenTelemetry Collector",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual(["Docker", "Debian / Ubuntu", "RHEL / Fedora", "Linux Tarball"]);
+
+    // Step 1: the config, which only the guide fills in with a key.
+    expect(within(dialog).getByText("Save the new config")).toBeVisible();
+    expect(
+      within(dialog).getByRole("link", { name: "Open the setup guide" }),
+    ).toHaveAttribute("href", route.toString());
+    // Step 2: the new release, the guide's own command.
+    expect(within(dialog).getByText("Install the new release")).toBeVisible();
+    expect(codeBlocksIn(dialog)).toEqual([
+      getHostCollectorUpgradeCommand("docker"),
+    ]);
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Debian / Ubuntu" }),
+    );
+    expect(codeBlocksIn(dialog)).toEqual([
+      getHostCollectorUpgradeCommand("linux-deb"),
+    ]);
+    expect(findNestedControls(document.body)).toEqual([]);
+  });
+
+  test("Host on Windows: one way, so no tabs, and the PowerShell is shown as it is", async () => {
+    render(
+      <AgentVersion
+        kind={AgentKind.HostCollector}
+        version="0.154.0"
+        setupGuideRoute={SETUP_GUIDE}
+        upgradeGuideContext={{ hostOsType: "windows" }}
+      />,
+    );
+    const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+
+    expect(within(dialog).queryByRole("tab")).not.toBeInTheDocument();
+    expect(codeBlocksIn(dialog)).toEqual([
+      getHostCollectorUpgradeCommand("windows"),
+    ]);
+    const code: Element | null = dialog.querySelector("pre code");
+    expect(code?.className).toContain("language-powershell");
+    // Not highlighted as bash: plain text, every character as written.
+    expect(code?.querySelector(".hljs-built_in")).toBeNull();
+  });
+
+  test("Host on a Mac: the macOS install alone", async () => {
+    render(
+      <AgentVersion
+        kind={AgentKind.HostCollector}
+        version="0.154.0"
+        upgradeGuideContext={{ hostOsType: "darwin" }}
+      />,
+    );
+    const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+    expect(within(dialog).queryByRole("tab")).not.toBeInTheDocument();
+    expect(codeBlocksIn(dialog)).toEqual([
+      getHostCollectorUpgradeCommand("macos"),
+    ]);
+    // Without the guide's route the step still says where the config is.
+    expect(
+      within(dialog).getByText(
+        "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.",
+      ),
+    ).toBeVisible();
+    expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  test("Host with an unknown OS: every install method, Docker first", async () => {
+    render(<AgentVersion kind={AgentKind.HostCollector} version="0.154.0" />);
+    const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+    expect(
+      within(dialog)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual([
+      "Docker",
+      "Debian / Ubuntu",
+      "RHEL / Fedora",
+      "Linux Tarball",
+      "macOS",
+      "Windows",
+    ]);
+  });
 });
