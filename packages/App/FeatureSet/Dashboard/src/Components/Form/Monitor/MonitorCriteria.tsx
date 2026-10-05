@@ -18,7 +18,13 @@ import Button, {
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Icon from "Common/UI/Components/Icon/Icon";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useRef,
+  useState,
+} from "react";
 import {
   DragDropContext,
   Draggable,
@@ -62,6 +68,16 @@ export interface ComponentProps {
    * instead of "change status to <nothing>".
    */
   offlineMonitorStatusId?: ObjectID | undefined;
+  /*
+   * Start each criteria folded to its one-line header (name, what it checks,
+   * what it does), not open across a screen of filters and actions. Create
+   * Monitor turns this on: a new monitor's criteria are defaults that suit
+   * most monitors, and the step should open on what to check. A criteria
+   * added with Add Criteria still opens (it is about to be filled in), and
+   * so does one that cannot be saved as it stands (it needs attention).
+   * Pressing a header always wins.
+   */
+  foldDefaultCriteria?: boolean | undefined;
 }
 
 interface CriteriaCollapsedState {
@@ -77,16 +93,57 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
 
   const monitorCriteria: MonitorCriteria = props.value || new MonitorCriteria();
 
-  // Track collapsed state for each criteria instance
+  /*
+   * The criteria the user opened or closed, by id. A criteria not in here
+   * shows its default (isCriteriaCollapsed).
+   */
   const [collapsedState, setCollapsedState] = useState<CriteriaCollapsedState>(
     {},
   );
 
-  const toggleCriteriaCollapsed: (id: string) => void = (id: string): void => {
+  // The criteria Add Criteria made here: they open, to be filled in.
+  const addedCriteriaIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
+
+  const isCriteriaCollapsed: (
+    instance: MonitorCriteriaInstance,
+    criteriaId: string,
+  ) => boolean = (
+    instance: MonitorCriteriaInstance,
+    criteriaId: string,
+  ): boolean => {
+    const toggled: boolean | undefined = collapsedState[criteriaId];
+
+    if (toggled !== undefined) {
+      return toggled;
+    }
+
+    if (!props.foldDefaultCriteria) {
+      return false;
+    }
+
+    if (addedCriteriaIds.current.has(criteriaId)) {
+      return false;
+    }
+
+    // A criteria that would not save stays open, where its problem is.
+    return !MonitorCriteriaInstance.getValidationError(
+      instance,
+      props.monitorType,
+    );
+  };
+
+  const toggleCriteriaCollapsed: (
+    instance: MonitorCriteriaInstance,
+    criteriaId: string,
+  ) => void = (instance: MonitorCriteriaInstance, criteriaId: string): void => {
+    const isCollapsed: boolean = isCriteriaCollapsed(instance, criteriaId);
+
     setCollapsedState((prev: CriteriaCollapsedState) => {
       return {
         ...prev,
-        [id]: !prev[id],
+        [criteriaId]: !isCollapsed,
       };
     });
   };
@@ -195,8 +252,10 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                   (i: MonitorCriteriaInstance, index: number) => {
                     const criteriaId: string =
                       i.data?.id || `criteria-${index}`;
-                    const isCollapsed: boolean =
-                      collapsedState[criteriaId] || false;
+                    const isCollapsed: boolean = isCriteriaCollapsed(
+                      i,
+                      criteriaId,
+                    );
                     const criteriaName: string =
                       i.data?.name ||
                       (translator.translateText("Unnamed Criteria") as string);
@@ -250,7 +309,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                   type="button"
                                   aria-expanded={!isCollapsed}
                                   onClick={() => {
-                                    toggleCriteriaCollapsed(criteriaId);
+                                    toggleCriteriaCollapsed(i, criteriaId);
                                   }}
                                   className="flex min-w-0 flex-1 items-center justify-between text-left after:absolute after:inset-0 focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-indigo-500"
                                 >
@@ -311,10 +370,26 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 </button>
                               </div>
 
-                              {/* Collapsible Content */}
+                              {/*
+                               * Collapsible Content. Folded, it is hidden
+                               * from the keyboard and from screen readers
+                               * too (invisible), not only clipped to no
+                               * height: Tab used to walk through every field
+                               * of a folded criteria without showing one.
+                               * And it holds its absolutely placed pieces
+                               * (screen reader text, a picker's live region)
+                               * inside the clip (relative): left to the page
+                               * they stretched it by the folded criteria's
+                               * whole height, a screen of blank space under
+                               * the form.
+                               */}
                               <div
+                                data-testid="monitor-criteria-body"
+                                aria-hidden={isCollapsed}
                                 className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                                  isCollapsed ? "max-h-0" : "max-h-[5000px]"
+                                  isCollapsed
+                                    ? "relative max-h-0 invisible"
+                                    : "max-h-[5000px]"
                                 }`}
                               >
                                 <div className="px-4 pb-4 bg-white">
@@ -476,6 +551,10 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
               newMonitorCriteria.setName(
                 CriteriaNameUtil.getNameForCriteria(newMonitorCriteria),
               );
+            }
+
+            if (newMonitorCriteria.data?.id) {
+              addedCriteriaIds.current.add(newMonitorCriteria.data.id);
             }
 
             newMonitorCriterias.push(newMonitorCriteria);

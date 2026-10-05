@@ -223,15 +223,19 @@ Consolidate alerts from multiple monitoring tools:
 
 ## Template Variables
 
-When configuring incident templates, you can use these variables from incoming emails:
+The titles, descriptions and remediation notes of the alerts and incidents this monitor creates can use these variables. The criteria's alert and incident forms list them under **Template variables**, and [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating) explains the syntax.
 
-| Variable              | Description                       |
-| --------------------- | --------------------------------- |
-| `{{emailSubject}}`    | The subject of the received email |
-| `{{emailFrom}}`       | The sender's email address        |
-| `{{emailTo}}`         | The recipient email address       |
-| `{{emailBody}}`       | The plain text body of the email  |
-| `{{emailReceivedAt}}` | When the email was received       |
+| Variable              | Description                                                       |
+| --------------------- | ----------------------------------------------------------------- |
+| `{{emailSubject}}`    | The subject of the received email                                 |
+| `{{emailFrom}}`       | The sender's email address                                        |
+| `{{emailTo}}`         | Who the email was sent to, with this monitor's own address masked |
+| `{{emailBody}}`       | The plain text body of the email                                  |
+| `{{emailReceivedAt}}` | When the email was received, as an ISO 8601 timestamp in UTC      |
+
+- **A title gets one line of each.** In a title, each variable is cut to one line of at most 150 characters, ending in `...` when it was longer. A title can't be longer than 500 characters, and an alert or incident whose title is too long isn't created at all, so quoting a whole email would stop the monitor from alerting on long emails. Descriptions and remediation notes get the full value.
+- **This monitor's address is masked.** The address works like a password, so it's masked before the email is stored, and `{{emailTo}}` reads `monitor-[REDACTED]@{inbound-domain}` (or `[REDACTED]@{inbound-domain}` for a custom address).
+- **A check for missing email uses the last email.** When an **Email Received** criteria opens an alert because no email arrived in time, the variables describe the last email the monitor received. They're empty if none has arrived yet.
 
 ## Monitor Summary View
 

@@ -201,9 +201,8 @@ export default class PermissionGate {
    * to as well (ColumnPermission refuses a column the user's permissions do
    * not cover, whatever the table allows). Many columns are narrower than
    * their table: a project's settings columns leave out Manage Billing, and
-   * a monitor's "Disable Monitoring" lists Create Project Monitor where the
-   * table lists Edit Project Monitor. Gated on the table alone, such a
-   * control works until the save, which the server then refuses.
+   * its billing columns leave out Edit Project. Gated on the table alone,
+   * such a control works until the save, which the server then refuses.
    *
    * Like check, it never accuses on an empty permission snapshot: it then
    * answers what the record's gate answered (which, on its own, is "not

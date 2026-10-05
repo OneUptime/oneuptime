@@ -14,9 +14,16 @@ Abra qualquer execução para ver sua UI de checklist. Cada passo mostra:
 - **Título e descrição** — copiados do runbook no momento da execução.
 - **Saída** (recolhível) — stdout, valores de retorno, respostas HTTP.
 - **Mensagem de erro** se o passo falhou.
-- Para passos manuais em `WaitingForUser`: botões **Marcar como concluído** e **Pular**.
+- No passo em que a execução está aguardando: **Mark complete** (um passo manual) ou **Approve & continue** (um passo com **Requer aprovação**), e **Pular**.
+- Enquanto a execução está pausada, **Pular** nos passos automatizados seguintes que não exigem aprovação.
 
 A página faz polling a cada 3 segundos enquanto a execução não é terminal, então você vê passos automatizados completando em quase tempo real.
+
+## Concluir, aprovar e pular passos
+
+Só o passo em que a execução está aguardando pode ser marcado como concluído, aprovado ou pulado para continuar a execução. Um passo manual ou um passo com **Requer aprovação** não pode ser marcado nem pulado antes de a execução chegar a ele — a função dele é parar a execução, então ele só aceita uma decisão quando a execução está nele (no caso de uma aprovação, depois que o passo rodou e você pode ver a saída dele).
+
+Enquanto a execução está pausada, você também pode pular um passo automatizado seguinte que não exige aprovação, para que ele não rode quando a execução continuar. A execução continua pausada no passo que está aguardando você. Não é possível pular passos enquanto há passos rodando — espere a execução pausar ou cancele-a. Cada passo registra quem o concluiu ou pulou.
 
 ## Intercalando passos manuais e automatizados
 

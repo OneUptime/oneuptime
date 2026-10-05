@@ -14,9 +14,16 @@ Apri una qualsiasi esecuzione per vederne la UI checklist. Ogni passo mostra:
 - **Titolo e descrizione** — copiati dal runbook al momento dell'esecuzione.
 - **Output** (collassabile) — stdout, valori di ritorno, risposte HTTP.
 - **Messaggio di errore** se il passo è fallito.
-- Per i passi manuali in `WaitingForUser`: pulsanti **Segna come completato** e **Salta**.
+- Sul passo su cui l'esecuzione è in attesa: **Mark complete** (un passo manuale) o **Approve & continue** (un passo con **Richiede approvazione**), e **Salta**.
+- Mentre l'esecuzione è in pausa, **Salta** sui passi automatizzati successivi che non richiedono approvazione.
 
 La pagina fa polling ogni 3 secondi finché l'esecuzione non è terminale, quindi vedrai i passi automatizzati completarsi quasi in tempo reale.
+
+## Completare, approvare e saltare i passi
+
+Solo il passo su cui l'esecuzione è in attesa può essere segnato come completato, approvato o saltato per far proseguire l'esecuzione. Un passo manuale o un passo con **Richiede approvazione** non può essere spuntato né saltato prima che l'esecuzione lo raggiunga — il suo compito è fermare l'esecuzione, quindi accetta una decisione solo quando l'esecuzione è arrivata lì (per un'approvazione, una volta che il passo è stato eseguito e puoi vederne l'output).
+
+Mentre l'esecuzione è in pausa, puoi anche saltare un passo automatizzato successivo che non richiede approvazione, così non verrà eseguito quando l'esecuzione riprenderà. L'esecuzione resta in pausa sul passo che ti aspetta. Non è possibile saltare passi mentre ci sono passi in esecuzione — aspetta che l'esecuzione vada in pausa, oppure annullala. Ogni passo registra chi lo ha completato o saltato.
 
 ## Intrecciare passi manuali e automatizzati
 

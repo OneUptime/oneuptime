@@ -34,6 +34,7 @@ import PushNotificationMessage from "../../Types/PushNotification/PushNotificati
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
@@ -439,14 +440,21 @@ export class Service extends DatabaseService<Model> {
   /*
    * A probe icon is rendered by the id-based image route, which serves
    * only public files. The file picker uploads it private, so attaching
-   * it to a probe is the point at which it becomes public.
+   * it to a probe is the point at which it becomes public - when it is a
+   * file of the probe's own project (FileService.makeRecordFilePublic).
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    await FileService.makeRecordFilePublic({
+      fileId: RelationIdUtil.read(
+        createdItem as unknown as Record<string, unknown>,
+        ["iconFileId", "iconFile"],
+      ),
+      projectId: createdItem.projectId || null,
+    });
 
     return createdItem;
   }
@@ -642,9 +650,17 @@ export class Service extends DatabaseService<Model> {
       await this.invalidateProbeAuthCache(updatedItemIds);
     }
 
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
+    }
 
     if (
       onUpdate.carryForward &&

@@ -272,7 +272,7 @@ describe("getWebhookSecretKeyResetGate", () => {
     });
   });
 
-  test("Delete Workflow can update a workflow, but not its key", () => {
+  test("Delete Workflow alone may not update a workflow, nor reset its key", () => {
     mockPermissions = [Permission.DeleteWorkflow];
 
     const gate: PermissionGateResult = getWebhookSecretKeyResetGate();

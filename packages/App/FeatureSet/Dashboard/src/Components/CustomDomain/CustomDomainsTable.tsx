@@ -37,6 +37,10 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -65,6 +69,9 @@ import React, {
  *   - The Status column says where each domain is on its way to HTTPS, with
  *     why an order failed when one did (the certificates route).
  *   - Reissue SSL stays, for a domain with a certificate of ours to replace.
+ *   - Check now and Reissue SSL change the domain, so they are for whoever
+ *     may edit it, as the server holds it; anyone else sees them locked, with
+ *     the permission they need.
  */
 
 /*
@@ -110,6 +117,17 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
 
   const [selectedDomain, setSelectedDomain] =
     useState<CustomDomainModel | null>(null);
+
+  /*
+   * Check now and Reissue SSL verify the domain and order or replace its
+   * certificate: changes, which the server allows only to whoever may edit
+   * the domain. Somebody who may only read it gets them locked, with the
+   * permission they need, rather than a refusal after the click.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    new kind.modelType(),
+    ModelAction.Update,
+  );
 
   const [error, setError] = useState<string>("");
 
@@ -316,7 +334,20 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             title: "Reissue SSL",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Refresh,
+            disabled: !updateGate.isAllowed,
+            tooltip: updateGate.isAllowed
+              ? undefined
+              : updateGate.disabledReason,
             isVisible: (item: CustomDomainModel): boolean => {
+              /*
+               * Nothing honest to say yet (the permission snapshot has not
+               * arrived): no Reissue SSL, rather than a locked one with no
+               * reason, as DNS Setup offers no Check now then.
+               */
+              if (!updateGate.isAllowed && !updateGate.disabledReason) {
+                return false;
+              }
+
               /*
                * Only where there is a Let's Encrypt certificate of ours to
                * replace. A custom certificate is the customer's own upload,
@@ -520,6 +551,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
               certificateOf(dnsSetupDomain),
             ) === CustomDomainState.CertificateExpired
           }
+          checkNowGate={updateGate}
           onClose={() => {
             setDnsSetupDomain(null);
           }}
