@@ -55,6 +55,8 @@ Each cluster has an **AI** section in the dashboard (Kubernetes → cluster → 
 - **Agent** — the cluster's **AI agent** page: whether the agent is connected, what AI may do on the cluster, and anything that needs attention, each with the step that fixes it. The same explanation appears on the incident's investigation panel when AI had to investigate with OneUptime data only.
 - **Insights** — the cluster's **AI Insights** page: what OneUptime AI investigated and changed on the cluster (see [Everything AI did on a cluster](#everything-ai-did-on-a-cluster)).
 
+The cluster's **Overview** ends with an **AI agent** card that sums the AI agent page up: whether the agent is connected, whether **Investigate with kubectl** is on, how fixes run (**Off**, **Ask for approval**, **Automatic** or **Bypass approval**) and what needs attention, with a link to the AI agent page, where they are changed.
+
 ### The Kubernetes AI agent — on by default, read-only
 
 The [OneUptime Kubernetes agent](/docs/telemetry/kubernetes-agent) chart runs the Kubernetes AI agent by default: one small pod (`component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) with a **read-only** ServiceAccount. It connects with the API key the chart already uses, so there is nothing to set up in the dashboard: within a minute the cluster's AI agent page shows it as **Connected** and **Investigate with kubectl** is on — unless someone already chose AI settings for the cluster there, which are kept as they are.

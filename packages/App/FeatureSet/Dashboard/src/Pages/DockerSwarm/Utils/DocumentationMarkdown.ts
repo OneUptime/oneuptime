@@ -283,7 +283,7 @@ docker compose logs --tail 50 ${DOCKER_SWARM_COLLECTOR_CONTAINER_NAME} ${DOCKER_
 
 \`docker compose ps\` lists three containers: the collector (\`${DOCKER_SWARM_COLLECTOR_CONTAINER_NAME}\`), the inventory poller (\`${DOCKER_SWARM_INVENTORY_CONTAINER_NAME}\`) and the OneUptime AI agent (\`${DOCKER_SWARM_AI_AGENT_CONTAINER_NAME}\`). The cluster appears in the **Docker Swarm** section within a few minutes, and its Nodes, Services, Tasks, Stacks, Networks, Secrets, Configs and Volumes pages fill in after the first inventory snapshot (≤ 5 minutes).
 
-**OneUptime AI agent (on by default, read-only).** It lets OneUptime AI investigate incidents and alerts on this cluster with read-only docker commands such as \`docker node ls\` and \`docker service ps\`, and changes nothing unless you allow fixes — see **The OneUptime AI agent** under Advanced.`,
+**OneUptime AI agent (on by default, read-only).** AI investigations are on: it lets OneUptime AI investigate incidents and alerts on this cluster with read-only docker commands such as \`docker node ls\` and \`docker service ps\`, and changes nothing unless you allow fixes — see **The OneUptime AI agent** under Advanced.`,
   };
 }
 

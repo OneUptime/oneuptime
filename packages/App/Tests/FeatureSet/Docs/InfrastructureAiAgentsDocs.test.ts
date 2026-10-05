@@ -898,7 +898,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
     });
 
-    it("says a resource starts with investigation and fixes off, as the models default them", (): void => {
+    it("says AI investigations are on by default and fixes off, as the models default them", (): void => {
       for (const model of [
         "DockerHost",
         "PodmanHost",
@@ -921,8 +921,8 @@ describe("Infrastructure AI Agents docs", (): void => {
 
         expect({
           model,
-          off: investigation.includes("default: false"),
-        }).toEqual({ model, off: true });
+          on: investigation.includes("default: true"),
+        }).toEqual({ model, on: true });
         expect({
           model,
           disabled: source.includes(
@@ -931,9 +931,20 @@ describe("Infrastructure AI Agents docs", (): void => {
         }).toEqual({ model, disabled: true });
       }
 
-      expect(page).toContain(
-        "A resource starts with investigation and fixes off.",
+      // The same defaults as a cluster, said among what is the same.
+      const same: string = page.slice(
+        page.indexOf("The resource AI agents follow the same design:"),
+        page.indexOf("What differs:"),
       );
+
+      expect(same).toContain(
+        "**The same defaults.** AI investigations are on by default",
+      );
+      expect(same).toContain(
+        "a resource starts with investigation on and fixes off, like a cluster",
+      );
+      expect(page).not.toContain("It starts switched off.");
+      expect(page).not.toContain("investigation and fixes off.");
 
       // The first connection's defaults, as the registration service applies them.
       const service: string = fs.readFileSync(

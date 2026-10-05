@@ -1565,6 +1565,7 @@ function getKubernetesVariant(data: {
 function getAgentVerifyStep(data: {
   database: DatabaseDocumentationTarget | null;
   namespace: string | null;
+  engine: DatabaseAgentEngine;
 }): SetupGuideStep {
   const arrival: string = data.database
     ? "After the first collection (about one `DATABASE_COLLECTION_INTERVAL`, 30 seconds by default) this database's **Engine metrics** status turns to Connected and its Overview charts the engine."
@@ -1579,6 +1580,13 @@ function getAgentVerifyStep(data: {
   if (data.namespace !== null) {
     parts.push(
       `The script needs Docker. For the Deployment, read the collector's log instead: \`kubectl -n ${data.namespace} logs deployment/oneuptime-database-agent\`.`,
+    );
+  }
+
+  // Only where the AI agent has diagnostics: for any other engine it runs nothing.
+  if (hasAiAgentDiagnostics(data.engine)) {
+    parts.push(
+      "**OneUptime AI agent (on by default, read-only).** AI investigations are on: with the install script or Docker Compose, the OneUptime AI agent runs beside the collector and lets OneUptime AI read this database's diagnostics while it investigates an incident or alert, and it changes nothing unless you allow fixes — see **The files the agent runs** under Advanced.",
     );
   }
 
@@ -2078,7 +2086,11 @@ export function getDatabaseAgentSetupGuide(
           : "Run it with Docker on any machine that can reach the database. One agent monitors one database server.",
       variants: variants,
     },
-    getAgentVerifyStep({ database: database, namespace: namespace }),
+    getAgentVerifyStep({
+      database: database,
+      namespace: namespace,
+      engine: engine,
+    }),
   );
 
   const advanced: Array<SetupGuideTopic> = getAgentAdvancedTopics({

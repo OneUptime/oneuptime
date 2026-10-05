@@ -871,6 +871,33 @@ ${tabs.join("\n")}`,
   };
 }
 
+export const HOST_AI_AGENT_TOPIC_TITLE: string = "Add the OneUptime AI agent";
+
+export const HOST_AI_AGENT_INSTALL_COMMAND: string = `curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+sudo bash install.sh`;
+
+/*
+ * The Host AI agent (agents/HostAIAgent): a host has no OneUptime container
+ * for it to sit beside, so it has its own installer. AI investigations are on
+ * by default for every host — the agent is what lets OneUptime AI run
+ * commands there. Linux only: it enters the host's namespaces from a
+ * privileged container.
+ */
+function getAiAgentTopic(method: HostCollectorMethod): SetupGuideTopic {
+  return {
+    title: HOST_AI_AGENT_TOPIC_TITLE,
+    summary:
+      "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.",
+    markdown: `**AI investigations are on by default** for every host: once the Host AI agent runs on it, OneUptime AI investigates incidents and alerts there with read-only commands such as \`systemctl status\`, \`df -h\`, \`free -m\` and \`ps aux\`, and changes nothing unless you allow fixes. It is a Linux container with its own installer${
+      method === "docker" ? ", so add it on Linux hosts only" : ""
+    }; it needs Docker (the system engine, not rootless Docker) with the Compose plugin:
+
+${codeBlock("bash", HOST_AI_AGENT_INSTALL_COMMAND)}
+
+It asks for your OneUptime URL, the ingestion key and the host's name — leave the name empty to use the hostname, which is what this collector reports. Once it connects, it shows as Connected on the host's **AI → AI agent** page and at the bottom of its **Overview**. What it may run, and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts).`,
+  };
+}
+
 function getAdvancedTopics(
   method: HostCollectorMethod,
 ): Array<SetupGuideTopic> {
@@ -882,6 +909,11 @@ function getAdvancedTopics(
 
   if (method === "windows") {
     topics.push(getWindowsServicesTopic());
+  }
+
+  // The Host AI agent runs on Linux only.
+  if (isNativeLinux(method) || method === "docker") {
+    topics.push(getAiAgentTopic(method));
   }
 
   // The hardware values belong to one machine, stamped into its own config.

@@ -13,16 +13,19 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 /*
  * The Docker agent install guide. The agent is one container
  * (agents/DockerAgent): a tuned OpenTelemetry Collector that reads the
- * Docker socket and the containers' json-file logs. It is started with
- * `docker run` or with Docker Compose, so the guide asks which and shows only
- * that way's commands. DockerSetupGuide.test.ts checks the image, container
- * name, mounts and variables here against agents/DockerAgent.
+ * Docker socket and the containers' json-file logs, with the OneUptime AI
+ * agent as a second container beside it — AI investigations are on by
+ * default, as with the agent's own docker-compose.yml and install.sh. Both
+ * are started with `docker run` or with Docker Compose, so the guide asks
+ * which and shows only that way's commands. DockerSetupGuide.test.ts checks
+ * the images, container names, mounts and variables here against
+ * agents/DockerAgent.
  */
 
 export const DOCKER_AGENT_IMAGE: string = "oneuptime/docker-agent:release";
 export const DOCKER_AGENT_CONTAINER_NAME: string = "oneuptime-docker-agent";
 
-// The OneUptime AI agent, which can run beside the collector.
+// The OneUptime AI agent, which runs beside the collector.
 export const DOCKER_AI_AGENT_IMAGE: string =
   "oneuptime/resource-ai-agent:release";
 export const DOCKER_AI_AGENT_CONTAINER_NAME: string =
@@ -128,6 +131,11 @@ export function getDockerRunCommand(data: {
   ].join(" \\\n");
 }
 
+/*
+ * The whole docker-compose.yml: the collector, and the OneUptime AI agent
+ * beside it. AI investigations are on by default, as with the agent's own
+ * docker-compose.yml and install.sh, so the AI agent is part of the install.
+ */
 export function getDockerComposeFile(data: {
   oneuptimeUrl: string;
   apiKey: string;
@@ -150,10 +158,16 @@ export function getDockerComposeFile(data: {
       driver: json-file
       options:
         max-size: "10m"
-        max-file: "3"`;
+        max-file: "3"
+${getDockerAiAgentComposeService(data)}`;
 }
 
-function getAiAgentRunCommand(data: GuideData): string {
+// The OneUptime AI agent, started beside the collector with the same values.
+export function getDockerAiAgentRunCommand(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hostName: string;
+}): string {
   return [
     "docker run -d",
     `  --name ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
@@ -164,13 +178,17 @@ function getAiAgentRunCommand(data: GuideData): string {
     `  -e ONEUPTIME_URL="${data.oneuptimeUrl}"`,
     `  -e ONEUPTIME_SERVICE_TOKEN="${data.apiKey}"`,
     "  -e ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker",
-    `  -e DOCKER_HOST_NAME="${data.hostName.name}"`,
+    `  -e DOCKER_HOST_NAME="${data.hostName}"`,
     `  ${DOCKER_AI_AGENT_IMAGE}`,
   ].join(" \\\n");
 }
 
-// The AI agent's service, to add under `services:` next to the collector.
-function getAiAgentComposeService(data: GuideData): string {
+// The AI agent's service, under `services:` next to the collector.
+export function getDockerAiAgentComposeService(data: {
+  oneuptimeUrl: string;
+  apiKey: string;
+  hostName: string;
+}): string {
   return `  ${DOCKER_AI_AGENT_CONTAINER_NAME}:
     image: ${DOCKER_AI_AGENT_IMAGE}
     container_name: ${DOCKER_AI_AGENT_CONTAINER_NAME}
@@ -185,7 +203,24 @@ function getAiAgentComposeService(data: GuideData): string {
       - ONEUPTIME_URL=${data.oneuptimeUrl}
       - ONEUPTIME_SERVICE_TOKEN=${data.apiKey}
       - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=docker
-      - DOCKER_HOST_NAME=${data.hostName.name}`;
+      - DOCKER_HOST_NAME=${data.hostName}`;
+}
+
+export const DOCKER_AI_AGENT_TOPIC_TITLE: string = "The OneUptime AI agent";
+
+/*
+ * Why the install has a second container, said where it is started: AI
+ * investigations are on by default, and how to install without them.
+ */
+function getAiAgentInstallNote(data: GuideData): string {
+  const intro: string = isCli(data)
+    ? "Then start the OneUptime AI agent beside it, with the same URL, key and host name."
+    : "The second service is the OneUptime AI agent, with the same URL, key and host name.";
+  const optOut: string = isCli(data)
+    ? "Skip this command to run the collector without AI investigations."
+    : `Delete the \`${DOCKER_AI_AGENT_CONTAINER_NAME}\` service to run the collector without AI investigations.`;
+
+  return `${intro} **AI investigations are on by default**: while OneUptime AI investigates an incident or alert on this host, it runs read-only \`docker\` commands through the AI agent, and it changes nothing unless you allow fixes — see **${DOCKER_AI_AGENT_TOPIC_TITLE}** under Advanced. ${optOut}`;
 }
 
 function getHostNameNote(hostName: HostName): string {
@@ -239,9 +274,11 @@ function getInstallSteps(data: GuideData): Array<SetupGuideStep> {
     return [
       {
         title: "Run the agent",
-        description: "Run this on the Docker host you want to monitor.",
+        description: "Run these on the Docker host you want to monitor.",
         markdown: [
           codeBlock("bash", getDockerRunCommand(values)),
+          getAiAgentInstallNote(data),
+          codeBlock("bash", getDockerAiAgentRunCommand(values)),
           ...notes,
         ].join("\n\n"),
       },
@@ -255,6 +292,7 @@ function getInstallSteps(data: GuideData): Array<SetupGuideStep> {
         "Save this as docker-compose.yml in a folder on the Docker host you want to monitor.",
       markdown: [
         codeBlock("yaml", getDockerComposeFile(values)),
+        getAiAgentInstallNote(data),
         ...notes,
       ].join("\n\n"),
     },
@@ -279,7 +317,7 @@ Look for this line in the logs:
 
 ${codeBlock("output", "Everything is ready. Begin running and processing data.")}
 
-Once the agent connects, the host appears automatically in the **Docker** section — usually within a minute or so.`,
+Once the agent connects, the host appears automatically in the **Docker** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.`,
   };
 }
 
@@ -347,20 +385,16 @@ ${codeBlock(
 Then restart Docker and **recreate** (not just restart) the affected containers: a container keeps the log driver it was created with.`,
     },
     {
-      title: "Add the OneUptime AI agent",
+      title: DOCKER_AI_AGENT_TOPIC_TITLE,
       summary:
-        "A second container that lets OneUptime AI run read-only docker commands on this host while it investigates.",
-      markdown: cli
-        ? `The OneUptime AI agent runs the \`docker\` commands OneUptime AI asks for while it investigates an incident or alert on this host. The command in step 2 starts the collector only — start the AI agent beside it with the same URL, key and host name:
-
-${codeBlock("bash", getAiAgentRunCommand(data))}
-
-${getAiAgentNotes(data)}`
-        : `The OneUptime AI agent runs the \`docker\` commands OneUptime AI asks for while it investigates an incident or alert on this host. The file in step 2 starts the collector only — add this service under \`services:\` in the same docker-compose.yml, with the same URL, key and host name:
-
-${codeBlock("yaml", getAiAgentComposeService(data))}
-
-Then run \`docker compose up -d\`.
+        "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.",
+      markdown: `\`${DOCKER_AI_AGENT_CONTAINER_NAME}\`, the second ${
+        cli ? "container step 2 starts" : "service in docker-compose.yml"
+      }, runs the \`docker\` commands OneUptime AI asks for while it investigates an incident or alert on this host. **AI investigations are on by default**: once it connects, OneUptime AI investigates with it, and the host's **AI → AI agent** page and **Overview** show its status. To turn investigation off, use **What AI may do** on that page; to run the collector without the AI agent, ${
+        cli
+          ? `remove it with \`docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}\``
+          : `delete its service and run \`docker compose up -d --remove-orphans\``
+      }.
 
 ${getAiAgentNotes(data)}`,
     },
@@ -385,21 +419,25 @@ ${
       title: "Upgrade or uninstall the agent",
       summary: "Move to the latest image, or remove the agent from the host.",
       markdown: cli
-        ? `**Upgrade** — pull the latest image and remove the running agent:
+        ? `**Upgrade** — pull the latest images and remove the running agent and AI agent:
 
 ${codeBlock(
   "bash",
   `docker pull ${DOCKER_AGENT_IMAGE}
-docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`,
+docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}
+docker pull ${DOCKER_AI_AGENT_IMAGE}
+docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
 )}
 
-Then run the \`docker run\` command from step 2 again. Added the OneUptime AI agent? Upgrade it the same way: \`docker pull ${DOCKER_AI_AGENT_IMAGE}\`, remove it and start it again.
+Then run both \`docker run\` commands from step 2 again.
 
 **Uninstall:**
 
-${codeBlock("bash", `docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`)}
-
-If you added the OneUptime AI agent, remove it too: \`docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}\`.`
+${codeBlock(
+  "bash",
+  `docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}
+docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
+)}`
         : `**Upgrade** — in the folder that holds docker-compose.yml, pull the latest images and recreate the containers:
 
 ${codeBlock("bash", "docker compose pull\ndocker compose up -d")}
