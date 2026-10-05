@@ -1178,11 +1178,11 @@ const MonitorCreate: FunctionComponent<
                     name: true,
                   },
                   title: "Name",
-                  description:
-                    "A name your team will recognize. It is used in alerts and incident titles.",
                   stepId: "monitor-info",
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
+                  description:
+                    "A name your team will recognize. It is used in alerts and incident titles.",
                   placeholder: "Monitor Name",
                   validation: {
                     minLength: 2,
