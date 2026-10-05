@@ -112,6 +112,7 @@ import FileOwnership, {
   FileReferenceCheck,
   FileReferenceColumn,
   FileReferenceOwner,
+  normalizeFileId,
 } from "../Utils/File/FileOwnership";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
@@ -614,7 +615,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         const added: Array<ObjectID> = fileIds.filter(
           (fileId: ObjectID): boolean => {
-            return !held.has(fileId.toString().trim().toLowerCase());
+            return !held.has(normalizeFileId(fileId));
           },
         );
 

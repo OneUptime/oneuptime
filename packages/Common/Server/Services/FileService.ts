@@ -12,7 +12,15 @@ import MimeType from "../../Types/File/MimeType";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
-import FileOwnership, { FileOwners } from "../Utils/File/FileOwnership";
+import FileOwnership, {
+  FileOwners,
+  normalizeFileId,
+} from "../Utils/File/FileOwnership";
+import QueryHelper from "../Types/Database/QueryHelper";
+import Query from "../Types/Database/Query";
+import Select from "../Types/Database/Select";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import crypto from "crypto";
 
 const generateImageAccessToken: () => string = (): string => {
@@ -45,6 +53,12 @@ const ALLOWED_MIME_TYPES: Set<string> = new Set<string>(
  * project it was uploaded in (null when it was uploaded with none, or before
  * files recorded it).
  */
+// A record's file, and the record's stored project (null for none).
+export interface RecordFile {
+  fileId: ObjectID | undefined | null;
+  projectId: ObjectID | null;
+}
+
 export interface FileFacts {
   fileType: string;
   size: number;
@@ -118,7 +132,7 @@ export class Service extends DatabaseService<File> {
       new Set(
         fileIds
           .map((fileId: ObjectID): string => {
-            return fileId.toString().trim().toLowerCase();
+            return normalizeFileId(fileId);
           })
           .filter((fileId: string): boolean => {
             return ObjectID.isValidUUID(fileId);
@@ -148,7 +162,7 @@ export class Service extends DatabaseService<File> {
         continue;
       }
 
-      owners.set(row._id.toLowerCase(), {
+      owners.set(normalizeFileId(row._id), {
         projectId: readStoredId(row.projectId),
         createdByUserId: readStoredId(row.createdByUserId),
       });
@@ -225,47 +239,126 @@ export class Service extends DatabaseService<File> {
    * never fail the write the user actually asked for.
    */
   @CaptureSpan()
-  public async makeRecordFilePublic(data: {
-    fileId: ObjectID | undefined | null;
-    // The stored project of the record the file is attached to; null for none.
-    projectId: ObjectID | null;
-  }): Promise<void> {
-    const fileId: ObjectID | undefined | null = data.fileId;
+  public async makeRecordFilePublic(data: RecordFile): Promise<void> {
+    await this.makeRecordFilesPublic([data]);
+  }
 
-    if (!fileId) {
+  /*
+   * makeRecordFilePublic for several records at once: the owners of their
+   * files are read in one query, and each file that may become public does.
+   */
+  @CaptureSpan()
+  public async makeRecordFilesPublic(
+    records: Array<RecordFile>,
+  ): Promise<void> {
+    const withFiles: Array<{ fileId: ObjectID; projectId: ObjectID | null }> =
+      [];
+
+    for (const record of records) {
+      if (record.fileId) {
+        withFiles.push({ fileId: record.fileId, projectId: record.projectId });
+      }
+    }
+
+    if (withFiles.length === 0) {
+      return;
+    }
+
+    let owners: Map<string, FileOwners> = new Map();
+
+    try {
+      const ownedByProjects: Array<ObjectID> = withFiles
+        .filter((record: { projectId: ObjectID | null }): boolean => {
+          return Boolean(record.projectId);
+        })
+        .map((record: { fileId: ObjectID }): ObjectID => {
+          return record.fileId;
+        });
+
+      if (ownedByProjects.length > 0) {
+        owners = await this.getFileOwners(ownedByProjects);
+      }
+    } catch (err) {
+      logger.error(`Failed to read the owners of files: ${String(err)}`);
+      return;
+    }
+
+    const madePublic: Set<string> = new Set();
+
+    for (const record of withFiles) {
+      const key: string = normalizeFileId(record.fileId);
+
+      if (
+        madePublic.has(key) ||
+        (record.projectId &&
+          !FileOwnership.isFileOfProject(owners.get(key), record.projectId))
+      ) {
+        continue;
+      }
+
+      madePublic.add(key);
+
+      try {
+        await this.updateOneById({
+          id: record.fileId,
+          data: {
+            isPublic: true,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      } catch (err) {
+        logger.error(
+          `Failed to mark file ${record.fileId.toString()} public: ${String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * After a write to records that show an icon - probes and AI agents - the
+   * icon each written record holds now (read back, never taken from what
+   * the write said) becomes public when it is a file of the record's own
+   * project (makeRecordFilesPublic).
+   */
+  @CaptureSpan()
+  public async makeStoredIconsPublic<TModel extends BaseModel>(data: {
+    service: DatabaseService<TModel>;
+    recordIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (data.recordIds.length === 0) {
       return;
     }
 
     try {
-      if (data.projectId) {
-        const owners: Map<string, FileOwners> = await this.getFileOwners([
-          fileId,
-        ]);
-
-        if (
-          !FileOwnership.isFileOfProject(
-            owners.get(fileId.toString().trim().toLowerCase()),
-            data.projectId,
-          )
-        ) {
-          return;
-        }
-      }
-
-      await this.updateOneById({
-        id: fileId,
-        data: {
-          isPublic: true,
-        },
+      const records: Array<TModel> = await data.service.findBy({
+        query: {
+          _id: QueryHelper.any(data.recordIds),
+        } as Query<TModel>,
+        select: {
+          _id: true,
+          projectId: true,
+          iconFileId: true,
+        } as Select<TModel>,
+        limit: LIMIT_MAX,
+        skip: 0,
         props: {
           isRoot: true,
-          ignoreHooks: true,
         },
       });
-    } catch (err) {
-      logger.error(
-        `Failed to mark file ${fileId.toString()} public: ${String(err)}`,
+
+      await this.makeRecordFilesPublic(
+        records.map((record: TModel): RecordFile => {
+          return {
+            fileId: record.getValue<ObjectID>("iconFileId") || null,
+            projectId: record.getValue<ObjectID>("projectId") || null,
+          };
+        }),
       );
+    } catch (err) {
+      logger.error(`Failed to make stored icons public: ${String(err)}`);
     }
   }
 

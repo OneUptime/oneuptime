@@ -460,42 +460,6 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The icon each updated probe holds now - read back, not taken from what
-   * the update said - made public when it is a file of the probe's own
-   * project.
-   */
-  private async makeStoredIconsPublic(
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<void> {
-    if (updatedItemIds.length === 0) {
-      return;
-    }
-
-    const probes: Array<Model> = await this.findBy({
-      query: {
-        _id: QueryHelper.any(updatedItemIds),
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        iconFileId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const probe of probes) {
-      await FileService.makeRecordFilePublic({
-        fileId: probe.iconFileId,
-        projectId: probe.projectId || null,
-      });
-    }
-  }
-
-  /*
    * Only global probes and probes belonging to this project may be attached to
    * that project's monitors. Probe ids reach the server from the browser - the
    * monitor create form and the Monitor > Probes table both post them - so
@@ -692,7 +656,10 @@ export class Service extends DatabaseService<Model> {
         "iconFile",
       ])
     ) {
-      await this.makeStoredIconsPublic(updatedItemIds);
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
     }
 
     if (

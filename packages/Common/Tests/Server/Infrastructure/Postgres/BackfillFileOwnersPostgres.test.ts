@@ -2,6 +2,8 @@ import {
   BackfillFileOwners1797900000000,
   FILE_PROJECT_REFERENCES,
   FileProjectReference,
+  MARKDOWN_IMAGE_REFERENCES,
+  MarkdownImageReference,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797900000000-BackfillFileOwners";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -45,7 +47,7 @@ function id(): string {
 // The tables the backfill reads, with the columns it reads.
 function createTablesSql(): Array<string> {
   const statements: Array<string> = [
-    `CREATE TABLE "File" ("_id" uuid PRIMARY KEY, "projectId" uuid, "deletedAt" TIMESTAMP)`,
+    `CREATE TABLE "File" ("_id" uuid PRIMARY KEY, "projectId" uuid, "imageAccessToken" character varying(100), "deletedAt" TIMESTAMP)`,
     `CREATE TABLE "User" ("_id" uuid PRIMARY KEY, "profilePictureId" uuid)`,
   ];
 
@@ -70,6 +72,13 @@ function createTablesSql(): Array<string> {
       columnsOf(reference.table).add(`"projectId" uuid`);
       columnsOf(reference.table).add(`"${reference.fileIdColumn}" uuid`);
     }
+  }
+
+  for (const reference of MARKDOWN_IMAGE_REFERENCES) {
+    columnsOf(reference.table).add(`"projectId" uuid`);
+    columnsOf(reference.table).add(
+      `"${reference.column}" ${reference.isJson ? "jsonb" : "text"}`,
+    );
   }
 
   for (const [table, columns] of tables) {
@@ -108,15 +117,37 @@ describePostgres("BackfillFileOwners against Postgres", () => {
   let database: DataSource;
   let runner: QueryRunner;
 
-  async function insertFile(projectId: string | null = null): Promise<string> {
+  async function insertFile(
+    projectId: string | null = null,
+    imageAccessToken: string | null = null,
+  ): Promise<string> {
     const fileId: string = id();
 
     await runner.query(
-      `INSERT INTO "File" ("_id", "projectId") VALUES ($1, $2)`,
-      [fileId, projectId],
+      `INSERT INTO "File" ("_id", "projectId", "imageAccessToken") VALUES ($1, $2, $3)`,
+      [fileId, projectId, imageAccessToken],
     );
 
     return fileId;
+  }
+
+  // A record of `projectId` whose markdown shows the image with `token`.
+  async function show(
+    reference: MarkdownImageReference,
+    token: string,
+    projectId: string,
+  ): Promise<void> {
+    const markdown: string = `Before ![shot](https://oneuptime.example/file/image/access-token/${token}) after`;
+
+    await runner.query(
+      `INSERT INTO "${reference.table}" ("projectId", "${reference.column}") VALUES ($1, $2)`,
+      [
+        projectId,
+        reference.isJson
+          ? JSON.stringify({ impact: { value: markdown } })
+          : markdown,
+      ],
+    );
   }
 
   // A record of `projectId` pointing at `fileId` the way `reference` does.
@@ -223,6 +254,53 @@ describePostgres("BackfillFileOwners against Postgres", () => {
       expect((await ownersOf(fileId)).projectId).toBe(PROJECT_A);
     },
   );
+
+  test.each(MARKDOWN_IMAGE_REFERENCES)(
+    "an inline image only $table ($column) of one project shows takes that project",
+    async (reference: MarkdownImageReference) => {
+      const token: string = id().replace(/-/g, "");
+      const fileId: string = await insertFile(null, token);
+      await show(reference, token, PROJECT_A);
+
+      await migration.up(runner);
+
+      expect((await ownersOf(fileId)).projectId).toBe(PROJECT_A);
+    },
+  );
+
+  test("an inline image shown by records of two projects stays without one", async () => {
+    const token: string = id().replace(/-/g, "");
+    const fileId: string = await insertFile(null, token);
+    await show(MARKDOWN_IMAGE_REFERENCES[0]!, token, PROJECT_A);
+    await show(MARKDOWN_IMAGE_REFERENCES[3]!, token, PROJECT_B);
+
+    await migration.up(runner);
+
+    expect((await ownersOf(fileId)).projectId).toBeNull();
+  });
+
+  test("an inline image a record of one project shows and another attaches stays without one", async () => {
+    const token: string = id().replace(/-/g, "");
+    const fileId: string = await insertFile(null, token);
+    await show(MARKDOWN_IMAGE_REFERENCES[4]!, token, PROJECT_A);
+    await point(referenceTo("Dashboard", "faviconFileId"), fileId, PROJECT_B);
+
+    await migration.up(runner);
+
+    expect((await ownersOf(fileId)).projectId).toBeNull();
+  });
+
+  test("markdown that shows no inline image claims nothing", async () => {
+    const fileId: string = await insertFile(null, "abc123");
+    await runner.query(
+      `INSERT INTO "IncidentPublicNote" ("projectId", "note") VALUES ($1, $2)`,
+      [PROJECT_A, "No screenshots here, and abc123 is only text."],
+    );
+
+    await migration.up(runner);
+
+    expect((await ownersOf(fileId)).projectId).toBeNull();
+  });
 
   test("a file records of two projects point at stays without one", async () => {
     const fileId: string = await insertFile();
@@ -357,6 +435,6 @@ describePostgres("BackfillFileOwners against Postgres", () => {
           return column.column_name;
         })
         .sort(),
-    ).toEqual(["_id", "deletedAt", "projectId"]);
+    ).toEqual(["_id", "deletedAt", "imageAccessToken", "projectId"]);
   });
 });

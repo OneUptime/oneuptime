@@ -4,8 +4,13 @@ import {
   BackfillFileOwners1797900000000,
   FILE_PROJECT_REFERENCES,
   FileProjectReference,
+  INLINE_IMAGE_TOKEN_PATTERN,
+  MARKDOWN_IMAGE_REFERENCES,
+  MarkdownImageReference,
   getFileProjectReferenceSql,
+  getMarkdownImageReferenceSql,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797900000000-BackfillFileOwners";
+import { extractImageAccessTokens } from "../../../../Server/Utils/InlineImageAccessTokenSync";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import FileOwnership, {
   FileReferenceColumn,
@@ -224,6 +229,57 @@ describe("BackfillFileOwners1797900000000", () => {
     expect(BACKFILL_FILE_PROJECT_SQL).not.toMatch(
       /\b(DELETE|INSERT|DROP|ALTER|TRUNCATE)\b/,
     );
+  });
+
+  test("reads the inline images of everything a status page shows, with their record's project", () => {
+    expect(
+      MARKDOWN_IMAGE_REFERENCES.map(
+        (reference: MarkdownImageReference): string => {
+          return `${reference.table}.${reference.column}`;
+        },
+      ),
+    ).toEqual([
+      "IncidentPublicNote.note",
+      "IncidentEpisodePublicNote.note",
+      "ScheduledMaintenancePublicNote.note",
+      "StatusPageAnnouncement.description",
+      "Incident.postmortemNote",
+      "Incident.customFields",
+    ]);
+
+    for (const reference of MARKDOWN_IMAGE_REFERENCES) {
+      expect(BACKFILL_FILE_PROJECT_SQL).toContain(
+        getMarkdownImageReferenceSql(reference),
+      );
+    }
+
+    expect(
+      getMarkdownImageReferenceSql({
+        table: "IncidentPublicNote",
+        column: "note",
+      }),
+    ).toBe(
+      `SELECT "file"."_id" AS "fileId", "markdown"."projectId" AS "projectId" FROM (SELECT "projectId", (regexp_matches("note"::text, '/file/image/access-token/([a-fA-F0-9]+)', 'g'))[1] AS "token" FROM "IncidentPublicNote" WHERE "note"::text LIKE '%/file/image/access-token/%') AS "markdown" INNER JOIN "File" AS "file" ON "file"."imageAccessToken" = "markdown"."token"`,
+    );
+  });
+
+  test("finds the tokens the inline image sync finds", () => {
+    const markdown: string = [
+      "![a](https://oneuptime.example/file/image/access-token/abc123DEF)",
+      "and ![b](https://oneuptime.example/file/image/access-token/0f0f0f)",
+      "but not ![c](https://oneuptime.example/file/image/abc999)",
+    ].join(" ");
+
+    const found: Array<string> = [];
+
+    for (const match of markdown.matchAll(
+      new RegExp(INLINE_IMAGE_TOKEN_PATTERN, "g"),
+    )) {
+      found.push(match[1]!);
+    }
+
+    expect(found).toEqual(extractImageAccessTokens(markdown));
+    expect(found).toEqual(["abc123DEF", "0f0f0f"]);
   });
 
   test("a profile picture takes its user when only one user has it, and only if it has no uploader", () => {

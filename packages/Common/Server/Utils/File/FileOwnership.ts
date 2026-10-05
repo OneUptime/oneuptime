@@ -1,4 +1,3 @@
-import RelationIdUtil from "../Database/RelationIdUtil";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "../../../Models/DatabaseModels/File";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -34,7 +33,8 @@ import ObjectID from "../../../Types/ObjectID";
  * so a record saved before this rule existed keeps saving.
  *
  * The routes that serve a record's files check the same owner again as they
- * read (isFileOfProject, findProjectAttachment), whatever wrote the row.
+ * read (keepProjectFile, findProjectAttachment, isFileOfUser), whatever
+ * wrote the row.
  */
 
 // One column of a model that points at files.
@@ -98,9 +98,12 @@ const USER_TABLE_NAME: string = "User";
 
 /*
  * Ids are compared in lower case: Postgres renders a uuid in lower case, and
- * a request may write one in upper case.
+ * a request may write one in upper case. Every comparison of file ids goes
+ * through here.
  */
-const normalizeId: (value: unknown) => string = (value: unknown): string => {
+export const normalizeFileId: (value: unknown) => string = (
+  value: unknown,
+): string => {
   if (value === undefined || value === null) {
     return "";
   }
@@ -220,9 +223,9 @@ export default class FileOwnership {
 
   /**
    * The files a write points a column at: null when it leaves the column
-   * alone, an empty list when it clears it. A single file written two ways
-   * (logoFileId and logoFile) must name the same file - which one the
-   * database would keep is not something to leave to chance.
+   * alone, an empty list when it clears it. A single file written both ways
+   * (logoFileId and logoFile) yields both ids, so each is checked: which of
+   * the two the database keeps is not something to leave to chance.
    */
   public static readWrittenFileIds(
     data: unknown,
@@ -268,13 +271,19 @@ export default class FileOwnership {
       return null;
     }
 
-    const id: ObjectID | null = RelationIdUtil.readConsistent(
-      values,
-      keys,
-      column.name,
-    );
+    const ids: Array<ObjectID> = [];
+    const seen: Set<string> = new Set();
 
-    return id ? [id] : [];
+    for (const key of keys) {
+      const id: ObjectID | null = readEntryId(values[key]);
+
+      if (id && !seen.has(normalizeFileId(id))) {
+        seen.add(normalizeFileId(id));
+        ids.push(id);
+      }
+    }
+
+    return ids;
   }
 
   /**
@@ -299,7 +308,7 @@ export default class FileOwnership {
         const id: ObjectID | null = readEntryId(entry);
 
         if (id) {
-          ids.add(normalizeId(id));
+          ids.add(normalizeFileId(id));
         }
       }
 
@@ -311,7 +320,7 @@ export default class FileOwnership {
       readEntryId(values[column.relationColumn]);
 
     if (id) {
-      ids.add(normalizeId(id));
+      ids.add(normalizeFileId(id));
     }
 
     return ids;
@@ -352,9 +361,11 @@ export default class FileOwnership {
     file: OwnedFile | FileOwners | null | undefined,
     projectId: ObjectID | string | null | undefined,
   ): boolean {
-    const fileProjectId: string = normalizeId(file?.projectId);
+    const fileProjectId: string = normalizeFileId(file?.projectId);
 
-    return Boolean(fileProjectId && fileProjectId === normalizeId(projectId));
+    return Boolean(
+      fileProjectId && fileProjectId === normalizeFileId(projectId),
+    );
   }
 
   // Whether a file was uploaded by the user.
@@ -362,9 +373,9 @@ export default class FileOwnership {
     file: OwnedFile | FileOwners | null | undefined,
     userId: ObjectID | string | null | undefined,
   ): boolean {
-    const uploadedBy: string = normalizeId(file?.createdByUserId);
+    const uploadedBy: string = normalizeFileId(file?.createdByUserId);
 
-    return Boolean(uploadedBy && uploadedBy === normalizeId(userId));
+    return Boolean(uploadedBy && uploadedBy === normalizeFileId(userId));
   }
 
   // Whether a file belongs to the owner a record holds its files to.
@@ -410,7 +421,7 @@ export default class FileOwnership {
 
     for (const check of pending) {
       for (const fileId of check.fileIds) {
-        const key: string = normalizeId(fileId);
+        const key: string = normalizeFileId(fileId);
 
         if (!seen.has(key)) {
           seen.add(key);
@@ -423,7 +434,7 @@ export default class FileOwnership {
 
     for (const check of pending) {
       for (const fileId of check.fileIds) {
-        if (!this.isOwnedBy(owners.get(normalizeId(fileId)), check.owner)) {
+        if (!this.isOwnedBy(owners.get(normalizeFileId(fileId)), check.owner)) {
           throw new BadDataException(check.column.notFoundMessage);
         }
       }
@@ -442,12 +453,12 @@ export default class FileOwnership {
     fileId: ObjectID;
     projectId: ObjectID | null | undefined;
   }): Promise<File | undefined> {
-    const wanted: string = normalizeId(data.fileId);
+    const wanted: string = normalizeFileId(data.fileId);
 
     const attachment: File | undefined = (data.files || []).find(
       (file: File): boolean => {
         return Boolean(
-          wanted && normalizeId(file._id || file.id || "") === wanted,
+          wanted && normalizeFileId(file._id || file.id || "") === wanted,
         );
       },
     );

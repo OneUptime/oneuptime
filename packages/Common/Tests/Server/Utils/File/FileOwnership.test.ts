@@ -425,20 +425,31 @@ describe("FileOwnership.readWrittenFileIds", () => {
     }
   });
 
-  test("refuses a single file written as two different files", () => {
-    expect(() => {
-      FileOwnership.readWrittenFileIds(
-        { logoFile: { _id: OWN_FILE_ID }, logoFileId: OTHER_PROJECT_FILE_ID },
-        logo,
-      );
-    }).toThrow("Conflicting logo references were provided.");
+  /*
+   * Which of two spellings the database keeps is not something to leave to
+   * chance: a single file written two ways yields both, and each is checked.
+   */
+  test("reads both files when a single one is written two different ways", () => {
+    expect(
+      ids(
+        FileOwnership.readWrittenFileIds(
+          {
+            logoFile: { _id: OWN_FILE_ID },
+            logoFileId: OTHER_PROJECT_FILE_ID,
+          },
+          logo,
+        ),
+      ),
+    ).toEqual([OTHER_PROJECT_FILE_ID, OWN_FILE_ID]);
 
-    expect(() => {
-      FileOwnership.readWrittenFileIds(
-        { logoFile: { _id: OWN_FILE_ID }, logoFileId: null },
-        logo,
-      );
-    }).toThrow("Conflicting logo references were provided.");
+    expect(
+      ids(
+        FileOwnership.readWrittenFileIds(
+          { logoFile: { _id: OWN_FILE_ID }, logoFileId: null },
+          logo,
+        ),
+      ),
+    ).toEqual([OWN_FILE_ID]);
   });
 
   test("reads every file of a list, in every shape a write carries one", () => {

@@ -191,42 +191,6 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
-  /*
-   * The icon each updated agent holds now - read back, not taken from what
-   * the update said - made public when it is a file of the agent's own
-   * project.
-   */
-  private async makeStoredIconsPublic(
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<void> {
-    if (updatedItemIds.length === 0) {
-      return;
-    }
-
-    const agents: Array<Model> = await this.findBy({
-      query: {
-        _id: QueryHelper.any(updatedItemIds),
-      },
-      select: {
-        _id: true,
-        projectId: true,
-        iconFileId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const agent of agents) {
-      await FileService.makeRecordFilePublic({
-        fileId: agent.iconFileId,
-        projectId: agent.projectId || null,
-      });
-    }
-  }
-
   @CaptureSpan()
   public async getOwners(aiAgentId: ObjectID): Promise<Array<User>> {
     if (!aiAgentId) {
@@ -349,7 +313,10 @@ export class Service extends DatabaseService<Model> {
         "iconFile",
       ])
     ) {
-      await this.makeStoredIconsPublic(updatedItemIds);
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
     }
 
     // An agent this update made the default takes it from the others.

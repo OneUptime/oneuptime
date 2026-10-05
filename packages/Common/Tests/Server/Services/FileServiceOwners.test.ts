@@ -1,4 +1,6 @@
 import FileService from "../../../Server/Services/FileService";
+import ProbeService from "../../../Server/Services/ProbeService";
+import Probe from "../../../Models/DatabaseModels/Probe";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
@@ -414,5 +416,100 @@ describe("FileService.makeRecordFilePublic: only a record's own file becomes pub
     await expect(
       FileService.makeRecordFilePublic({ fileId: FILE_ID, projectId: null }),
     ).resolves.toBeUndefined();
+  });
+
+  test("reads the owners of many records' files in one query, and makes each own file public once", async () => {
+    const { updateOneById, getFileOwners } = stub(
+      new Map([
+        [
+          FILE_ID.toString(),
+          { projectId: PROJECT_ID, createdByUserId: USER_ID },
+        ],
+        [
+          SECOND_FILE_ID.toString(),
+          { projectId: OTHER_PROJECT_ID, createdByUserId: OTHER_USER_ID },
+        ],
+      ]),
+    );
+
+    await FileService.makeRecordFilesPublic([
+      { fileId: FILE_ID, projectId: PROJECT_ID },
+      // The same file twice is made public once.
+      { fileId: FILE_ID, projectId: PROJECT_ID },
+      // Another project's file stays as it is.
+      { fileId: SECOND_FILE_ID, projectId: PROJECT_ID },
+      // A record with no file is skipped.
+      { fileId: null, projectId: PROJECT_ID },
+    ]);
+
+    expect(getFileOwners).toHaveBeenCalledTimes(1);
+    expect(madePublic(updateOneById)).toEqual([FILE_ID.toString()]);
+  });
+
+  test("makes public the icon each written record holds now, read back as root", async () => {
+    const { updateOneById } = stub(
+      new Map([
+        [
+          FILE_ID.toString(),
+          { projectId: PROJECT_ID, createdByUserId: USER_ID },
+        ],
+        [
+          SECOND_FILE_ID.toString(),
+          { projectId: OTHER_PROJECT_ID, createdByUserId: OTHER_USER_ID },
+        ],
+      ]),
+    );
+
+    const own: Probe = new Probe();
+    own._id = "a0000000-0000-4000-8000-000000000001";
+    own.projectId = PROJECT_ID;
+    own.iconFileId = FILE_ID;
+
+    const foreign: Probe = new Probe();
+    foreign._id = "a0000000-0000-4000-8000-000000000002";
+    foreign.projectId = PROJECT_ID;
+    foreign.iconFileId = SECOND_FILE_ID;
+
+    const findBy: Mock<(...args: Array<unknown>) => unknown> = jest.fn(
+      async () => {
+        return [own, foreign];
+      },
+    );
+
+    jest.spyOn(ProbeService, "findBy").mockImplementation(findBy as never);
+
+    await FileService.makeStoredIconsPublic({
+      service: ProbeService,
+      recordIds: [new ObjectID(own._id), new ObjectID(foreign._id)],
+    });
+
+    expect(madePublic(updateOneById)).toEqual([FILE_ID.toString()]);
+
+    const read: {
+      select: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = findBy.mock.calls[0]![0] as {
+      select: Record<string, unknown>;
+      props: Record<string, unknown>;
+    };
+
+    expect(read.select).toEqual({
+      _id: true,
+      projectId: true,
+      iconFileId: true,
+    });
+    expect(read.props).toEqual({ isRoot: true });
+  });
+
+  test("reads nothing for a write that wrote no record", async () => {
+    const findBy: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
+    jest.spyOn(ProbeService, "findBy").mockImplementation(findBy as never);
+
+    await FileService.makeStoredIconsPublic({
+      service: ProbeService,
+      recordIds: [],
+    });
+
+    expect(findBy).not.toHaveBeenCalled();
   });
 });

@@ -471,19 +471,29 @@ describe("create: a record points only at files of its own project", () => {
     expect(repository.save).not.toHaveBeenCalled();
   });
 
-  test("refuses one file written two different ways", async () => {
+  test("checks both files when one is written two different ways", async () => {
     const service: StatusPageWrites = new StatusPageWrites();
-    useRepository(service);
+    const repository: FakeRepository = useRepository(service);
 
-    const statusPage: StatusPage = newStatusPage();
-    statusPage.logoFile = fileRef(OWN_FILE_ID);
-    statusPage.logoFileId = new ObjectID(SECOND_OWN_FILE_ID);
+    const foreignOneWay: StatusPage = newStatusPage();
+    foreignOneWay.logoFile = fileRef(OWN_FILE_ID);
+    foreignOneWay.logoFileId = new ObjectID(OTHER_PROJECT_FILE_ID);
 
     expect(
       await refusalOf(
-        service.create({ data: statusPage, props: rootProps(PROJECT_ID) }),
+        service.create({ data: foreignOneWay, props: rootProps(PROJECT_ID) }),
       ),
-    ).toBe("Conflicting logo references were provided.");
+    ).toBe(LOGO_REFUSAL);
+    expect(repository.save).not.toHaveBeenCalled();
+
+    // Two files of its own: whichever the database keeps is its own.
+    const ownBothWays: StatusPage = newStatusPage();
+    ownBothWays.logoFile = fileRef(OWN_FILE_ID);
+    ownBothWays.logoFileId = new ObjectID(SECOND_OWN_FILE_ID);
+
+    await service.create({ data: ownBothWays, props: rootProps(PROJECT_ID) });
+
+    expect(repository.save).toHaveBeenCalledTimes(1);
   });
 
   test("reads no file for a create that points at none", async () => {

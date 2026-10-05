@@ -16,11 +16,15 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   - a file without a project takes the project of the records that point
  *     at it - a status page's logo, favicon or cover image, a dashboard's
  *     logo or favicon, a form's images, a probe's or an AI agent's icon,
- *     the attachments of notes, announcements and postmortems - when they
- *     are all records of one project. A file records of two projects point
- *     at stays without one: nothing says which of them it belongs to, so
- *     it is shown by neither until it is uploaded again. Records outside
- *     any project (global probes and AI agents) claim nothing;
+ *     the attachments of notes, announcements and postmortems, and the
+ *     inline images of what a status page shows (public notes,
+ *     announcements, postmortems, incident custom fields), which only the
+ *     record's own project may make public or private again
+ *     (InlineImageAccessTokenSync) - when they are all records of one
+ *     project. A file records of two projects point at stays without one:
+ *     nothing says which of them it belongs to, so it is shown by neither
+ *     until it is uploaded again. Records outside any project (global
+ *     probes and AI agents) claim nothing;
  *   - a profile picture takes its user as its uploader, when only one user
  *     has it.
  *
@@ -129,6 +133,41 @@ export const FILE_PROJECT_REFERENCES: Array<FileProjectReference> = [
   },
 ];
 
+/*
+ * A column of what a status page shows whose markdown carries inline images
+ * by token (/file/image/access-token/<token>, InlineImageAccessTokenSync):
+ * the record's project owns the images it shows. Custom fields are JSON,
+ * read as text.
+ */
+export interface MarkdownImageReference {
+  table: string;
+  column: string;
+  isJson?: boolean | undefined;
+}
+
+export const MARKDOWN_IMAGE_REFERENCES: Array<MarkdownImageReference> = [
+  { table: "IncidentPublicNote", column: "note" },
+  { table: "IncidentEpisodePublicNote", column: "note" },
+  { table: "ScheduledMaintenancePublicNote", column: "note" },
+  { table: "StatusPageAnnouncement", column: "description" },
+  { table: "Incident", column: "postmortemNote" },
+  { table: "Incident", column: "customFields", isJson: true },
+];
+
+// The inline image address in markdown, as InlineImageAccessTokenSync reads it.
+export const INLINE_IMAGE_TOKEN_PATTERN: string =
+  "/file/image/access-token/([a-fA-F0-9]+)";
+
+type GetMarkdownImageReferenceSqlFunction = (
+  reference: MarkdownImageReference,
+) => string;
+
+// Every inline image one column shows, with the project of its record.
+export const getMarkdownImageReferenceSql: GetMarkdownImageReferenceSqlFunction =
+  (reference: MarkdownImageReference): string => {
+    return `SELECT "file"."_id" AS "fileId", "markdown"."projectId" AS "projectId" FROM (SELECT "projectId", (regexp_matches("${reference.column}"::text, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS "token" FROM "${reference.table}" WHERE "${reference.column}"::text LIKE '%/file/image/access-token/%') AS "markdown" INNER JOIN "File" AS "file" ON "file"."imageAccessToken" = "markdown"."token"`;
+  };
+
 type GetFileProjectReferenceSqlFunction = (
   reference: FileProjectReference,
 ) => string;
@@ -148,9 +187,10 @@ export const getFileProjectReferenceSql: GetFileProjectReferenceSqlFunction = (
  * A file without a project takes the one project whose records point at
  * it. Postgres has no min() for uuid, so the one project is read as text.
  */
-export const BACKFILL_FILE_PROJECT_SQL: string = `UPDATE "File" AS "file" SET "projectId" = "owner"."projectId" FROM (SELECT "reference"."fileId" AS "fileId", MIN("reference"."projectId"::text)::uuid AS "projectId" FROM (${FILE_PROJECT_REFERENCES.map(
-  getFileProjectReferenceSql,
-).join(
+export const BACKFILL_FILE_PROJECT_SQL: string = `UPDATE "File" AS "file" SET "projectId" = "owner"."projectId" FROM (SELECT "reference"."fileId" AS "fileId", MIN("reference"."projectId"::text)::uuid AS "projectId" FROM (${[
+  ...FILE_PROJECT_REFERENCES.map(getFileProjectReferenceSql),
+  ...MARKDOWN_IMAGE_REFERENCES.map(getMarkdownImageReferenceSql),
+].join(
   " UNION ALL ",
 )}) AS "reference" WHERE "reference"."fileId" IS NOT NULL AND "reference"."projectId" IS NOT NULL GROUP BY "reference"."fileId" HAVING COUNT(DISTINCT "reference"."projectId") = 1) AS "owner" WHERE "file"."_id" = "owner"."fileId" AND "file"."projectId" IS NULL`;
 

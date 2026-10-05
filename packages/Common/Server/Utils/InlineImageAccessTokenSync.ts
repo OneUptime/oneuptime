@@ -18,9 +18,12 @@ import logger from "./Logger";
  * Only the images of the record's own project are flipped: a token is
  * copied along with the markdown it sits in, and a record of one project
  * must never make another project's image readable by everyone - nor
- * private again under the status page that shows it. Images uploaded
- * before files recorded their project have none; they are flipped as they
- * always were, since nothing says whose they are.
+ * private again under the status page that shows it. An image with no
+ * project (uploaded before files recorded one, and in no public note,
+ * announcement or postmortem then - BackfillFileOwners1797900000000) may
+ * still be made public, as it always could, so markdown that reuses one
+ * keeps rendering; it is never made private by anyone, as nothing says
+ * whose page it might be showing on.
  */
 const ACCESS_TOKEN_REGEX: RegExp =
   /\/file\/image\/access-token\/([a-fA-F0-9]+)/g;
@@ -42,15 +45,21 @@ export const extractImageAccessTokens: (
   return Array.from(tokens);
 };
 
-// Whether a record of this project may change the image's visibility.
+// Whether a record of this project may make the image public, or private.
 export const mayChangeImageVisibility: (
   file: { projectId?: ObjectID | null | undefined },
   projectId: ObjectID | null | undefined,
+  isPublic: boolean,
 ) => boolean = (
   file: { projectId?: ObjectID | null | undefined },
   projectId: ObjectID | null | undefined,
+  isPublic: boolean,
 ): boolean => {
-  return !file.projectId || FileOwnership.isFileOfProject(file, projectId);
+  if (!file.projectId) {
+    return isPublic;
+  }
+
+  return FileOwnership.isFileOfProject(file, projectId);
 };
 
 export const setIsPublicForMarkdownImages: (
@@ -84,7 +93,11 @@ export const setIsPublicForMarkdownImages: (
         },
       });
 
-      if (!file || !file._id || !mayChangeImageVisibility(file, projectId)) {
+      if (
+        !file ||
+        !file._id ||
+        !mayChangeImageVisibility(file, projectId, isPublic)
+      ) {
         continue;
       }
 
