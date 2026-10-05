@@ -4203,7 +4203,10 @@ ${incident.remediationNotes || "No remediation notes provided."}
    */
   private async queuePostmortemNotification(data: {
     incidentId: ObjectID;
-    statusBeforeUpdate: StatusPageSubscriberNotificationStatus | undefined | null;
+    statusBeforeUpdate:
+      | StatusPageSubscriberNotificationStatus
+      | undefined
+      | null;
   }): Promise<void> {
     const isQueued: boolean = await this.compareAndSetColumnsByIdWithoutHooks({
       id: data.incidentId,

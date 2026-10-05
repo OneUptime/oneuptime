@@ -254,7 +254,9 @@ function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
 
-type OnBeforeUpdate = (updateBy: UpdateBy<Incident>) => Promise<OnUpdate<Incident>>;
+type OnBeforeUpdate = (
+  updateBy: UpdateBy<Incident>,
+) => Promise<OnUpdate<Incident>>;
 type OnUpdateSuccess = (
   onUpdate: OnUpdate<Incident>,
   updatedItemIds: Array<ObjectID>,
@@ -522,23 +524,23 @@ beforeEach(() => {
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
 
   // The incident table: every read finds the incident as it is now.
-  jest
-    .spyOn(IncidentService, "findBy")
-    .mockImplementation((async (): Promise<Array<Incident>> => {
-      return [read()];
-    }) as never);
+  jest.spyOn(IncidentService, "findBy").mockImplementation((async (): Promise<
+    Array<Incident>
+  > => {
+    return [read()];
+  }) as never);
   jest
     .spyOn(IncidentService, "findOneById")
     .mockImplementation((async (): Promise<Incident> => {
       return read();
     }) as never);
-  jest
-    .spyOn(IncidentService, "findAllBy")
-    .mockImplementation((async (input: unknown): Promise<Array<Incident>> => {
-      const query: JSONObject = (input as { query: JSONObject }).query;
+  jest.spyOn(IncidentService, "findAllBy").mockImplementation((async (
+    input: unknown,
+  ): Promise<Array<Incident>> => {
+    const query: JSONObject = (input as { query: JSONObject }).query;
 
-      return holds(query) ? [read()] : [];
-    }) as never);
+    return holds(query) ? [read()] : [];
+  }) as never);
   // A conditional write - the hooks' queueing, the job's claim.
   jest
     .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
@@ -556,12 +558,12 @@ beforeEach(() => {
       return true;
     }) as never);
   // The job settling the notification.
-  jest
-    .spyOn(IncidentService, "updateOneById")
-    .mockImplementation((async (input: unknown): Promise<number> => {
-      Object.assign(incident, (input as { data: JSONObject }).data);
-      return 1;
-    }) as never);
+  jest.spyOn(IncidentService, "updateOneById").mockImplementation((async (
+    input: unknown,
+  ): Promise<number> => {
+    Object.assign(incident, (input as { data: JSONObject }).data);
+    return 1;
+  }) as never);
   jest
     .spyOn(IncidentService, "getIncidentLinkInDashboard")
     .mockResolvedValue(
@@ -629,9 +631,9 @@ describe("a postmortem published from the Edit Postmortem form", () => {
     expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
     );
-    expect(incident.subscriberNotificationStatusMessageOnPostmortemPublished).toBe(
-      IncidentPostmortemPublication.queuedMessage,
-    );
+    expect(
+      incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+    ).toBe(IncidentPostmortemPublication.queuedMessage);
 
     await runTheJob();
 
@@ -708,7 +710,9 @@ describe("a postmortem published from the Edit Postmortem form", () => {
     expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
       StatusPageSubscriberNotificationStatus.Skipped,
     );
-    expect(incident.subscriberNotificationStatusMessageOnPostmortemPublished).toBe(
+    expect(
+      incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+    ).toBe(
       "Incident is not set to notify subscribers on postmortem published. Skipping notifications to subscribers.",
     );
 

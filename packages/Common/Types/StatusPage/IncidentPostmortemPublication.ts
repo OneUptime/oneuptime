@@ -141,7 +141,7 @@ export default class IncidentPostmortemPublication {
           ? typeof writtenNote === "string"
             ? writtenNote
             : null
-          : (data.stored?.postmortemNote ?? null),
+          : data.stored?.postmortemNote ?? null,
     };
   }
 

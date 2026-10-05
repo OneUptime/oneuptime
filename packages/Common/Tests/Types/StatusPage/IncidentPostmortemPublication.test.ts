@@ -130,13 +130,13 @@ describe("IncidentPostmortemPublication.isWrittenBy", () => {
   test.each([
     ["nothing", {}],
     ["the title", { title: "Checkout errors" }],
-    [
-      "only the notify flag",
-      { notifySubscribersOnPostmortemPublished: true },
-    ],
+    ["only the notify flag", { notifySubscribersOnPostmortemPublished: true }],
     ["only Published At", { postmortemPostedAt: new Date() }],
     ["only the attachments", { postmortemAttachments: [] }],
-    ["the note as undefined, which writes nothing", { postmortemNote: undefined }],
+    [
+      "the note as undefined, which writes nothing",
+      { postmortemNote: undefined },
+    ],
   ] as Array<[string, Record<string, unknown>]>)(
     "an update that writes %s does not",
     (_label: string, written: Record<string, unknown>) => {
@@ -208,17 +208,14 @@ describe("IncidentPostmortemPublication.isNoteChanged", () => {
   test.each([
     ["with whitespace around it", `\n${NOTE}  \n`],
     ["with Windows line endings", NOTE.replace(/\n/g, "\r\n")],
-  ])(
-    "the same note %s is not",
-    (_label: string, note: string) => {
-      expect(
-        IncidentPostmortemPublication.isNoteChanged({
-          stored: shown(),
-          written: { postmortemNote: note },
-        }),
-      ).toBe(false);
-    },
-  );
+  ])("the same note %s is not", (_label: string, note: string) => {
+    expect(
+      IncidentPostmortemPublication.isNoteChanged({
+        stored: shown(),
+        written: { postmortemNote: note },
+      }),
+    ).toBe(false);
+  });
 
   test("clearing a note is a change, and so is writing one where there was none", () => {
     expect(
