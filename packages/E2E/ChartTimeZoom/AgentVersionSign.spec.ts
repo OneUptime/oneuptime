@@ -11,10 +11,12 @@ import {
  * agent version and also, when I click on it, show how to upgrade the agent?"
  *
  * The real Kubernetes cluster Overview and Host Overview, on the offline
- * fixture (Fixture/Fixture.js): the cluster's agent reports 1.9.0 and so
- * does the host's. `?appVersion=` sets the version the server says it runs
- * (APP_VERSION in env.js), which agent versions are compared with; the
- * fixture leaves it unset otherwise, as on a dev build.
+ * fixture (Fixture/Fixture.js): the cluster's agent reports 1.9.0, and the
+ * host's collector 0.154.0. `?appVersion=` sets the version the server says
+ * it runs (APP_VERSION in env.js), which a OneUptime agent's version is
+ * compared with; the fixture leaves it unset otherwise, as on a dev build.
+ * A host's collector is compared with the release the host guide pins
+ * (0.161.0), whatever the server's own version.
  *
  * Network fenced, page errors and requests the fixture does not model fail
  * the test - the sign and the dialog need nothing from the server.
@@ -29,6 +31,10 @@ const HOST_PATH: string = `/dashboard/${PROJECT_ID}/host/${HOST_ID}`;
 const SERVER_VERSION: string = "14.0.14";
 
 const OUTDATED_NAME: string = `Agent 1.9.0 is outdated. A newer agent is available: ${SERVER_VERSION}. Show how to upgrade.`;
+
+// The otelcol-contrib release the host guide pins (HOST_COLLECTOR_VERSION).
+const HOST_COLLECTOR_PIN: string = "0.161.0";
+const HOST_OUTDATED_NAME: string = `Agent 0.154.0 is outdated. A newer agent is available: ${HOST_COLLECTOR_PIN}. Show how to upgrade.`;
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 const abortedRequests: Map<Page, Array<string>> = new Map();
@@ -202,20 +208,93 @@ test.describe("versions that are not outdated look as they always did", () => {
     });
     await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
   });
+});
 
-  test("a host's collector is not a OneUptime release, so its version never carries the sign", async ({
+/*
+ * Hosts named by the maintainer: the host guide's collector now reports the
+ * release it pins, so a host whose collector is older carries the sign too,
+ * and the dialog shows how to upgrade the collector on that host's OS.
+ */
+test.describe("a host's collector behind the release the host guide pins", () => {
+  test("shows the sign whatever the server's own version, and opens the upgrade for a Linux host", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${HOST_PATH}?appVersion=${SERVER_VERSION}`);
+    // No ?appVersion: the pin decides, not the server.
+    await open(page, HOST_PATH);
 
-    await expect(page.getByText("1.9.0", { exact: true })).toBeVisible({
-      timeout: 30000,
+    const trigger: Locator = page.getByRole("button", {
+      name: HOST_OUTDATED_NAME,
     });
-    await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /is outdated/ })).toHaveCount(
-      0,
+    await expect(trigger).toBeVisible({ timeout: 30000 });
+    await expect(trigger).toHaveText("0.154.0");
+    await expect(trigger).toHaveAttribute("data-agent-kind", "host-collector");
+
+    await trigger.hover();
+    await expect(
+      page.getByText(`A newer agent is available: ${HOST_COLLECTOR_PIN}`),
+    ).toBeVisible();
+
+    await trigger.click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(
+      dialog.getByRole("heading", {
+        name: "Upgrade the OpenTelemetry Collector",
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByText(
+        `This agent runs version 0.154.0. Version ${HOST_COLLECTOR_PIN} is available.`,
+      ),
+    ).toBeVisible();
+
+    // The fixture host reports os.type linux: the four Linux installs.
+    await expect(dialog.getByRole("tab")).toHaveText([
+      "Docker",
+      "Debian / Ubuntu",
+      "RHEL / Fedora",
+      "Linux Tarball",
+    ]);
+
+    // First the config, which only the setup guide fills in with a key.
+    await expect(dialog.getByText("Save the new config")).toBeVisible();
+    await expect(
+      dialog.getByRole("link", { name: "Open the setup guide" }),
+    ).toHaveAttribute("href", `${HOST_PATH}/documentation`);
+
+    // Then the new release: the Docker container, on the pinned image.
+    await expect(dialog.getByText("Install the new release")).toBeVisible();
+    const command: Locator = dialog.locator("pre code");
+    await expect(command).toHaveCount(1);
+    await expect(command).toContainText("docker rm -f otel-collector");
+    await expect(command).toContainText(
+      `otel/opentelemetry-collector-contrib:${HOST_COLLECTOR_PIN}`,
     );
+
+    await dialog.getByRole("tab", { name: "Debian / Ubuntu" }).click();
+    await expect(command).toContainText(`VERSION=${HOST_COLLECTOR_PIN}`);
+    await expect(command).toContainText(
+      "sudo dpkg -i --force-confold /tmp/otelcol-contrib.deb",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test("a host on the pinned release, or a newer one, shows its version as plain text", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const version of [HOST_COLLECTOR_PIN, "0.162.0"]) {
+      await open(page, `${HOST_PATH}?hostAgentVersion=${version}`);
+
+      await expect(page.getByText(version, { exact: true })).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
+    }
   });
 });

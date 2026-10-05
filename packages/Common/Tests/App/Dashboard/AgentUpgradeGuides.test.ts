@@ -5,6 +5,7 @@ import {
   AGENT_KINDS,
   AgentKind,
   AgentLatestVersionSource,
+  HOST_COLLECTOR_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   AgentUpgradeGuide,
@@ -111,7 +112,6 @@ import {
   getHostCollectorUpgradeCommand,
   getHostSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
-import { HOST_COLLECTOR_VERSION } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   COMPOSE_DIRECTORY_COMMENT,
   getResourceAiAgentInstall,
@@ -772,10 +772,14 @@ describe.each([
       },
     ) as Array<SetupGuideOption<string>>,
     download: (method: string): string => {
-      return getProxmoxAgentDownloadCommand(method as ProxmoxAgentInstallMethod);
+      return getProxmoxAgentDownloadCommand(
+        method as ProxmoxAgentInstallMethod,
+      );
     },
     recreate: (method: string): string => {
-      return getProxmoxAgentRecreateCommand(method as ProxmoxAgentInstallMethod);
+      return getProxmoxAgentRecreateCommand(
+        method as ProxmoxAgentInstallMethod,
+      );
     },
     setupGuide: (method: string): SetupGuideContent => {
       return getProxmoxSetupGuide({
@@ -840,9 +844,11 @@ describe.each([
           agent.download(key),
           agent.recreate(key),
         ]);
-        expect(method.steps.map((step: AgentUpgradeStep) => {
-          return step.title;
-        })).toEqual([
+        expect(
+          method.steps.map((step: AgentUpgradeStep) => {
+            return step.title;
+          }),
+        ).toEqual([
           "Download the latest files",
           "Pull the latest images and recreate the agent",
         ]);
@@ -964,7 +970,9 @@ describe("VMware agent: the install script again, or the files again", () => {
     );
     expect(script).toContain("reusing it.");
     expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
-    expect(script).toContain(`INSTALL_DIR="\${INSTALL_DIR:-${VMWARE_AGENT_INSTALL_DIR}}"`);
+    expect(script).toContain(
+      `INSTALL_DIR="\${INSTALL_DIR:-${VMWARE_AGENT_INSTALL_DIR}}"`,
+    );
   });
 
   test("the Compose tab downloads both files, then pulls and recreates", () => {
@@ -1018,19 +1026,18 @@ describe("Host collector: the config again, then the new release, per install me
     ["darwin", ["macos"]],
     ["freebsd", [...HOST_COLLECTOR_METHODS]],
     ["", [...HOST_COLLECTOR_METHODS]],
-  ])(
-    "os.type %p offers %p",
-    (osType: string, methods: Array<string>) => {
-      expect(getHostCollectorMethodsForOsType(osType)).toEqual(methods);
-      expect(
-        labelsOf(guideFor(AgentKind.HostCollector, { hostOsType: osType })),
-      ).toEqual(labelsFor(methods as Array<HostCollectorMethod>));
-    },
-  );
+  ])("os.type %p offers %p", (osType: string, methods: Array<string>) => {
+    expect(getHostCollectorMethodsForOsType(osType)).toEqual(methods);
+    expect(
+      labelsOf(guideFor(AgentKind.HostCollector, { hostOsType: osType })),
+    ).toEqual(labelsFor(methods as Array<HostCollectorMethod>));
+  });
 
-  test.each(HOST_COLLECTOR_METHODS.map((method: string) => {
-    return [method];
-  }))(
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )(
     "%s: the config from the guide first, then the guide's own upgrade command",
     (key: string) => {
       const method: AgentUpgradeMethod = methodLabelled(
@@ -1039,7 +1046,10 @@ describe("Host collector: the config again, then the new release, per install me
       );
       expect(method.steps).toHaveLength(2);
 
-      const [config, install] = method.steps as [AgentUpgradeStep, AgentUpgradeStep];
+      const [config, install] = method.steps as [
+        AgentUpgradeStep,
+        AgentUpgradeStep,
+      ];
       expect(config.title).toBe("Save the new config");
       expect(config.needsSetupGuide).toBe(true);
       expect(config.code).toBeUndefined();
@@ -1087,9 +1097,11 @@ describe("the host upgrade commands", () => {
       .join("\n");
   }
 
-  test.each(HOST_COLLECTOR_METHODS.map((method: string) => {
-    return [method];
-  }))("%s installs the pinned release", (method: string) => {
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )("%s installs the pinned release", (method: string) => {
     const upgrade: string = getHostCollectorUpgradeCommand(
       method as HostCollectorMethod,
     );
@@ -1107,7 +1119,9 @@ describe("the host upgrade commands", () => {
 
   test("Debian keeps the installed config without a prompt, then replaces it and restarts", () => {
     const upgrade: string = getHostCollectorUpgradeCommand("linux-deb");
-    expect(upgrade).toContain("sudo dpkg -i --force-confold /tmp/otelcol-contrib.deb");
+    expect(upgrade).toContain(
+      "sudo dpkg -i --force-confold /tmp/otelcol-contrib.deb",
+    );
     expect(upgrade).toContain(
       "sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml",
     );
@@ -1168,7 +1182,9 @@ describe("the host upgrade commands", () => {
     "%s puts the new config where the install put the first one",
     (method: string, destination: string) => {
       const line: string = `sudo install -m 0644 config.yaml ${destination}`;
-      expect(getHostCollectorUpgradeCommand(method as HostCollectorMethod)).toContain(line);
+      expect(
+        getHostCollectorUpgradeCommand(method as HostCollectorMethod),
+      ).toContain(line);
       expect(installOf(method as HostCollectorMethod)).toContain(line);
     },
   );

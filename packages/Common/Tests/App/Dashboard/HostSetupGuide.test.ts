@@ -572,9 +572,9 @@ describe("the shared collector config", () => {
       ],
     });
     // A string, so YAML can never read the version as a number.
-    expect(getHostCollectorConfig({ oneuptimeUrl: URL, apiKey: KEY })).toContain(
-      `value: "${HOST_COLLECTOR_VERSION}"`,
-    );
+    expect(
+      getHostCollectorConfig({ oneuptimeUrl: URL, apiKey: KEY }),
+    ).toContain(`value: "${HOST_COLLECTOR_VERSION}"`);
   });
 
   test("matches what the docs site tells people editing the generated config", () => {
@@ -1230,9 +1230,11 @@ describe("the guide's claims match ingest", () => {
  * over the old one.
  */
 describe("upgrading the collector", () => {
-  test.each(HOST_COLLECTOR_METHODS.map((method: string) => {
-    return [method];
-  }))(
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )(
     "%s: the topic saves the config again, then runs the method's own upgrade",
     (method: string) => {
       const topic: SetupGuideTopic | undefined = topicTitled(
@@ -1263,14 +1265,16 @@ describe("upgrading the collector", () => {
       const titles: Array<string> = topicTitles(
         guideFor(method as HostInstallMethod).advanced,
       );
-      expect(titles[titles.length - 1]).toBe(HOST_COLLECTOR_UPGRADE_TOPIC_TITLE);
+      expect(titles[titles.length - 1]).toBe(
+        HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
+      );
     }
   });
 
   test("the Kubernetes option, which installs the Kubernetes agent, has no collector upgrade", () => {
-    expect(
-      topicTitles(guideFor("kubernetes").advanced),
-    ).not.toContain(HOST_COLLECTOR_UPGRADE_TOPIC_TITLE);
+    expect(topicTitles(guideFor("kubernetes").advanced)).not.toContain(
+      HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
+    );
   });
 
   test("the hardware fragment's note names every processor the config already has", () => {

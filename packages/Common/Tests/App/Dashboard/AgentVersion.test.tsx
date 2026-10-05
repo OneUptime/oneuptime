@@ -743,9 +743,13 @@ describe("the agents that report the collector they pin", () => {
         download("install-script"),
         recreate("install-script"),
       ]);
-      expect(within(dialog).getByText("Download the latest files")).toBeVisible();
       expect(
-        within(dialog).getByText("Pull the latest images and recreate the agent"),
+        within(dialog).getByText("Download the latest files"),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByText(
+          "Pull the latest images and recreate the agent",
+        ),
       ).toBeVisible();
       expect(
         within(dialog).getAllByRole("button", { name: "Copy to clipboard" }),
@@ -786,7 +790,9 @@ describe("the agents that report the collector they pin", () => {
       }),
     ).toBeInTheDocument();
     expect(codeBlocksIn(dialog)).toEqual([getVMwareAgentUpgradeCommand()]);
-    expect(within(dialog).getByText("Run the install script again")).toBeVisible();
+    expect(
+      within(dialog).getByText("Run the install script again"),
+    ).toBeVisible();
 
     fireEvent.click(
       within(dialog).getByRole("tab", { name: "Docker Compose" }),

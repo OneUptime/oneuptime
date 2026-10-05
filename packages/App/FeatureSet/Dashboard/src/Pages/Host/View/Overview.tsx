@@ -2032,7 +2032,9 @@ const HostOverview: FunctionComponent<
                               kind={AgentKind.HostCollector}
                               version={item.agentVersion}
                               setupGuideRoute={RouteUtil.populateRouteParams(
-                                RouteMap[PageMap.HOST_VIEW_DOCUMENTATION] as Route,
+                                RouteMap[
+                                  PageMap.HOST_VIEW_DOCUMENTATION
+                                ] as Route,
                                 { modelId: modelId },
                               )}
                               upgradeGuideContext={{

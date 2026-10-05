@@ -688,7 +688,9 @@ describe("the install script", () => {
     // The files are downloaded by hand only to upgrade, in the script's folder.
     for (const block of getSetupGuideCodeBlocks(guide)) {
       if (block.includes("curl -fsSLO")) {
-        expect(block.trim()).toBe(getCephAgentDownloadCommand("install-script"));
+        expect(block.trim()).toBe(
+          getCephAgentDownloadCommand("install-script"),
+        );
       }
     }
     expect(markdown).not.toContain("mkdir oneuptime-ceph-agent");
@@ -991,7 +993,9 @@ describe("drift guards against agents/CephAgent", () => {
       readAgentFile("docker-compose.yml"),
     ) as Record<string, any>;
     const image: string = compose["services"]["oneuptime-ceph-agent"]["image"];
-    expect(image).toMatch(/^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/);
+    expect(image).toMatch(
+      /^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/,
+    );
     const pin: string = image.split(":")[1] as string;
     expect(CEPH_AGENT_COLLECTOR_CONFIG).toContain(
       `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,

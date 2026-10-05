@@ -489,9 +489,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       }
     }
     // Syslog, labels and uninstall, plus the pull and recreate of a Compose upgrade.
-    expect(checked).toBeGreaterThanOrEqual(
-      method === "install-script" ? 3 : 4,
-    );
+    expect(checked).toBeGreaterThanOrEqual(method === "install-script" ? 3 : 4);
     if (method === "docker-compose") {
       expect(markdown).not.toContain(VMWARE_AGENT_INSTALL_DIR);
     }
@@ -540,11 +538,15 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       expect(upgrade).toContain(
         codeBlock("bash", getVMwareAgentDownloadCommand()),
       );
-      expect(upgrade).toContain(codeBlock("bash", VMWARE_AGENT_RECREATE_COMMAND));
-      expect(
-        upgrade.indexOf(getVMwareAgentDownloadCommand()),
-      ).toBeLessThan(upgrade.indexOf(VMWARE_AGENT_RECREATE_COMMAND));
-      expect(upgrade).toContain("pulling alone does not move the agent forward");
+      expect(upgrade).toContain(
+        codeBlock("bash", VMWARE_AGENT_RECREATE_COMMAND),
+      );
+      expect(upgrade.indexOf(getVMwareAgentDownloadCommand())).toBeLessThan(
+        upgrade.indexOf(VMWARE_AGENT_RECREATE_COMMAND),
+      );
+      expect(upgrade).toContain(
+        "pulling alone does not move the agent forward",
+      );
       expect(upgrade).not.toContain("install script");
     }
     expect(upgrade).toContain("**Agent Version**");
@@ -1010,10 +1012,11 @@ describe("drift guards against agents/VMwareAgent", () => {
   });
 
   test("the config reports the pin the compose file runs", () => {
-    const image: string = composeFile()["services"]["oneuptime-vmware-agent"][
-      "image"
-    ];
-    expect(image).toMatch(/^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/);
+    const image: string =
+      composeFile()["services"]["oneuptime-vmware-agent"]["image"];
+    expect(image).toMatch(
+      /^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/,
+    );
     const pin: string = image.split(":")[1] as string;
     expect(VMWARE_AGENT_COLLECTOR_CONFIG).toContain(
       `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,

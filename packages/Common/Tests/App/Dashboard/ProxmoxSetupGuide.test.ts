@@ -581,7 +581,9 @@ describe.each(AGENT_METHODS)(
       expect(recreate.endsWith("docker compose up -d --force-recreate")).toBe(
         true,
       );
-      expect(upgrade).toContain("pulling alone does not move the agent forward");
+      expect(upgrade).toContain(
+        "pulling alone does not move the agent forward",
+      );
       // The .env is kept: nothing here rewrites it.
       expect(upgrade).toContain("your `.env` stays");
       // And where the sign that opens these commands sits.
@@ -1263,9 +1265,8 @@ describe("drift guards against agents/ProxmoxAgent", () => {
    * guide builds runs the same one.
    */
   test("runs the pinned collector, and its config reports the pin", () => {
-    const image: string = composeFile()["services"]["oneuptime-proxmox-agent"][
-      "image"
-    ];
+    const image: string =
+      composeFile()["services"]["oneuptime-proxmox-agent"]["image"];
     expect(image).toBe(PROXMOX_AGENT_COLLECTOR_IMAGE);
     expect(image).not.toContain(":latest");
     const pin: string = image.split(":")[1] as string;

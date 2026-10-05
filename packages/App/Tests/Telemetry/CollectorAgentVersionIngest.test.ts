@@ -138,7 +138,9 @@ const CASES: Array<DiscoverCase> = [
   {
     name: "a Proxmox cluster",
     method: "autoDiscoverProxmoxCluster",
-    identity: [stringAttribute("proxmox.cluster.name", "pve-prod")] as JSONArray,
+    identity: [
+      stringAttribute("proxmox.cluster.name", "pve-prod"),
+    ] as JSONArray,
     service: ProxmoxClusterService,
     version: (): string => {
       return stampOf("ProxmoxAgent");
@@ -311,9 +313,7 @@ describe("runBatchHostEnrichment carries the host collector's version", () => {
         calls.push((extra ?? {}) as Record<string, unknown>);
       });
     jest.spyOn(HostService, "attachLabels").mockResolvedValue(undefined);
-    jest
-      .spyOn(LabelService, "findOrCreateLabelsByNames")
-      .mockResolvedValue([]);
+    jest.spyOn(LabelService, "findOrCreateLabelsByNames").mockResolvedValue([]);
   });
 
   afterEach(() => {

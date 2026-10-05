@@ -954,7 +954,9 @@ describe("the OpenTelemetry collector pin", () => {
   test.each([["ProxmoxAgent"], ["CephAgent"], ["VMwareAgent"]])(
     "agents/%s's config stamps the pin as oneuptime.agent.version",
     (agent) => {
-      const config = yaml.load(read(`agents/${agent}/otel-collector-config.yaml`));
+      const config = yaml.load(
+        read(`agents/${agent}/otel-collector-config.yaml`),
+      );
       const stamps = config.processors.resource.attributes.filter(
         (attribute) => {
           return attribute.key === "oneuptime.agent.version";

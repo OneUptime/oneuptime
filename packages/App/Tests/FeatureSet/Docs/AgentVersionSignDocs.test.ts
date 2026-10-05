@@ -346,7 +346,9 @@ describe("the Proxmox, Ceph and VMware guides say the sign follows the pinned co
       expect(section).toContain(`**${labelIn(language, "Agent Version")}**`);
       expect(section).toContain(`**${labelIn(language, "Overview")}**`);
       expect(section).toContain("docker compose up -d --force-recreate");
-      expect(section).not.toMatch(/docker compose pull\ndocker compose up -d\n/);
+      expect(section).not.toMatch(
+        /docker compose pull\ndocker compose up -d\n/,
+      );
     },
   );
 
@@ -413,8 +415,13 @@ describe("the Proxmox, Ceph and VMware guides say the sign follows the pinned co
   test.each(["en", "fa"])(
     "%s Proxmox: the journald wrapper image is built on the pinned collector",
     (language: string) => {
-      const guide: string = readGuide(language, "telemetry/proxmox.md") as string;
-      expect(guide).toContain(`FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol`);
+      const guide: string = readGuide(
+        language,
+        "telemetry/proxmox.md",
+      ) as string;
+      expect(guide).toContain(
+        `FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol`,
+      );
       expect(guide).not.toContain("opentelemetry-collector-contrib:latest");
     },
   );

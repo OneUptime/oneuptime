@@ -505,7 +505,9 @@ describe("the Proxmox, Ceph and VMware agents report the collector their compose
             return attribute.key === "oneuptime.agent.version";
           },
         ),
-      ).toEqual([{ key: "oneuptime.agent.version", value: pin, action: "upsert" }]);
+      ).toEqual([
+        { key: "oneuptime.agent.version", value: pin, action: "upsert" },
+      ]);
       for (const pipeline of Object.values(parsed.service.pipelines)) {
         expect(pipeline.processors).toContain("resource");
       }
@@ -519,7 +521,9 @@ describe("the Proxmox, Ceph and VMware agents report the collector their compose
   test.each(AGENTS)(
     "the Dashboard's copy of agents/%s's config is the shipped file, stamp included",
     (dir: string, _kind: AgentKind, pin: string, embedded: string) => {
-      expect(embedded).toBe(readRepoFile("agents", dir, "otel-collector-config.yaml"));
+      expect(embedded).toBe(
+        readRepoFile("agents", dir, "otel-collector-config.yaml"),
+      );
       expect(stampIn(embedded)).toBe(pin);
     },
   );
@@ -569,9 +573,11 @@ describe("the host guide installs the release it pins, and its config reports it
     );
   });
 
-  test.each(HOST_COLLECTOR_METHODS.map((method: string) => {
-    return [method];
-  }))(
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )(
     "%s installs and upgrades to exactly that release, and nothing resolves 'latest'",
     (method: string) => {
       const guide: SetupGuideContent = getHostSetupGuide({
@@ -615,7 +621,9 @@ describe("every pin is the collector the configs are validated against", () => {
       "Tests",
       "Ops",
       "validate-collector-configs.sh",
-    ).match(/^COLLECTOR_IMAGE="otel\/opentelemetry-collector-contrib:([^"]+)"$/m)?.[1];
+    ).match(
+      /^COLLECTOR_IMAGE="otel\/opentelemetry-collector-contrib:([^"]+)"$/m,
+    )?.[1];
     expect(validated).toMatch(/^\d+\.\d+\.\d+$/);
     expect(AGENT_KINDS[kind].pinnedVersion).toBe(validated);
   });
