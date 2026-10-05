@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "این قاعده هر دقیقه متریک خود را می‌نویسد و ظرف یک دقیقه پس از ذخیره شدن شروع می‌کند.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "وقتی این قاعده مطابقت کند، این برچسب‌ها افزوده می‌شوند. برچسب‌هایی که از قبل افزوده شده‌اند دوباره افزوده نمی‌شوند.",
   "e.g. Add Platform as owners": "برای نمونه افزودن Platform به‌عنوان مالک",
-  "e.g. Add production": "برای نمونه افزودن production"
+  "e.g. Add production": "برای نمونه افزودن production",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "کانتینری که به OneUptime AI اجازه می‌دهد هنگام بررسی، فرمان‌های فقط‌خواندنی را روی این میزبان Linux اجرا کند. بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن هستند.",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "هوش مصنوعی روی این {{noun}} فرمانی اجرا نمی‌کند. همچنان با داده‌هایی که OneUptime از قبل دارد بررسی می‌کند.",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن هستند: همین که {{agent}} وصل شود، OneUptime AI هر بار که حادثه یا هشداری را در اینجا بررسی می‌کند، {{commands}} را روی این {{noun}} اجرا می‌کند. اصلاحات تا وقتی که اجازه ندهید خاموش می‌مانند.",
+  "Run these on the Docker host you want to monitor.": "این فرمان‌ها را روی میزبان Docker که می‌خواهید پایش کنید اجرا کنید.",
+  "Run these on the Podman host you want to monitor.": "این فرمان‌ها را روی میزبان Podman که می‌خواهید پایش کنید اجرا کنید.",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "وضعیت عامل هوش مصنوعی بارگذاری نشد. برای دیدن آن، صفحه عامل هوش مصنوعی را باز کنید.",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "کانتینر دوم: به OneUptime AI اجازه می‌دهد هنگام بررسی، فرمان‌های فقط‌خواندنی docker را روی این میزبان اجرا کند. به‌طور پیش‌فرض روشن.",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} وصل است، اما در آخرین بررسی نتوانست به این {{noun}} دسترسی پیدا کند.",
+  "The {{agent}} is connected.": "{{agent}} وصل است.",
+  "The {{agent}} is not installed yet.": "{{agent}} هنوز نصب نشده است.",
+  "The {{agent}} is offline.": "{{agent}} آفلاین است."
 }

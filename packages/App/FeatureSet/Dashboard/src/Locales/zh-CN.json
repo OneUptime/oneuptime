@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "该规则在保存后一分钟内开始，每分钟写入一次其指标。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "当此规则匹配时，会添加这些标签。已添加的标签不会被重复添加。",
   "e.g. Add Platform as owners": "例如 将 Platform 添加为所有者",
-  "e.g. Add production": "例如 添加 production"
+  "e.g. Add production": "例如 添加 production",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "一个容器，让 OneUptime AI 在调查时可以在此 Linux 主机上运行只读命令。AI 调查默认开启。",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI 不会在此{{noun}}上运行命令。它仍会使用 OneUptime 已有的数据进行调查。",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI 调查默认开启：{{agent}} 一旦连接，OneUptime AI 每次在这里调查事件或警报时，都会在此{{noun}}上运行{{commands}}。修复在你允许之前一直保持关闭。",
+  "Run these on the Docker host you want to monitor.": "在你要监控的 Docker 主机上运行这些命令。",
+  "Run these on the Podman host you want to monitor.": "在你要监控的 Podman 主机上运行这些命令。",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "无法加载 AI 代理的状态。请打开 AI 代理页面查看。",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "第二个容器：让 OneUptime AI 在调查时可以在此主机上运行只读的 docker 命令。默认开启。",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} 已连接，但在上次检查时无法访问此{{noun}}。",
+  "The {{agent}} is connected.": "{{agent}} 已连接。",
+  "The {{agent}} is not installed yet.": "{{agent}} 尚未安装。",
+  "The {{agent}} is offline.": "{{agent}} 已离线。"
 }

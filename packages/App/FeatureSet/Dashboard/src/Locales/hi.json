@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "नियम सहेजे जाने के एक मिनट के भीतर शुरू होकर हर मिनट अपना मेट्रिक लिखता है।",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "जब यह नियम मेल खाता है, तो ये लेबल जोड़े जाते हैं। पहले से जुड़े लेबल दोबारा नहीं जोड़े जाते।",
   "e.g. Add Platform as owners": "उदा. Platform को स्वामी के रूप में जोड़ें",
-  "e.g. Add production": "उदा. production जोड़ें"
+  "e.g. Add production": "उदा. production जोड़ें",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "एक कंटेनर जो OneUptime AI को जांच के दौरान इस Linux होस्ट पर केवल-पढ़ने वाले कमांड चलाने देता है। AI जांच डिफ़ॉल्ट रूप से चालू है।",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI इस {{noun}} पर कोई कमांड नहीं चलाता। यह अब भी OneUptime के पास पहले से मौजूद डेटा से जांच करता है।",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI जांच डिफ़ॉल्ट रूप से चालू है: {{agent}} के कनेक्ट होते ही, OneUptime AI जब भी यहां किसी घटना या अलर्ट की जांच करता है, इस {{noun}} पर {{commands}} चलाता है। सुधार तब तक बंद रहते हैं जब तक आप उन्हें अनुमति नहीं देते।",
+  "Run these on the Docker host you want to monitor.": "जिस Docker होस्ट की निगरानी करनी है, उस पर ये कमांड चलाएं।",
+  "Run these on the Podman host you want to monitor.": "जिस Podman होस्ट की निगरानी करनी है, उस पर ये कमांड चलाएं।",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "AI एजेंट की स्थिति लोड नहीं हो सकी। इसे देखने के लिए AI एजेंट पेज खोलें।",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "दूसरा कंटेनर: यह OneUptime AI को जांच के दौरान इस होस्ट पर केवल-पढ़ने वाले docker कमांड चलाने देता है। डिफ़ॉल्ट रूप से चालू।",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} कनेक्ट है, लेकिन पिछली जांच में इस {{noun}} तक नहीं पहुंच सका।",
+  "The {{agent}} is connected.": "{{agent}} कनेक्ट है।",
+  "The {{agent}} is not installed yet.": "{{agent}} अभी इंस्टॉल नहीं है।",
+  "The {{agent}} is offline.": "{{agent}} ऑफ़लाइन है।"
 }

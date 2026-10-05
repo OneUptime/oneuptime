@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "La règle écrit sa métrique chaque minute, à partir de la minute qui suit son enregistrement.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Lorsque cette règle correspond, ces étiquettes sont ajoutées. Les étiquettes déjà présentes ne sont pas ajoutées deux fois.",
   "e.g. Add Platform as owners": "ex. Ajouter Platform comme propriétaires",
-  "e.g. Add production": "ex. Ajouter production"
+  "e.g. Add production": "ex. Ajouter production",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "Un conteneur qui permet à OneUptime AI d'exécuter des commandes en lecture seule sur cet hôte Linux pendant ses investigations. Les investigations IA sont activées par défaut.",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "L'IA n'exécute aucune commande sur ce {{noun}}. Elle mène toujours ses investigations avec les données dont OneUptime dispose déjà.",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "Les investigations IA sont activées par défaut : dès que le {{agent}} se connecte, OneUptime AI exécute des {{commands}} sur ce {{noun}} chaque fois qu'il examine un incident ou une alerte ici. Les correctifs restent désactivés tant que vous ne les autorisez pas.",
+  "Run these on the Docker host you want to monitor.": "Exécutez ces commandes sur l'hôte Docker que vous souhaitez surveiller.",
+  "Run these on the Podman host you want to monitor.": "Exécutez ces commandes sur l'hôte Podman que vous souhaitez surveiller.",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "Impossible de charger l'état de l'agent IA. Ouvrez la page de l'agent IA pour le voir.",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Le second conteneur : il permet à OneUptime AI d'exécuter des commandes docker en lecture seule sur cet hôte pendant ses investigations. Activé par défaut.",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "Le {{agent}} est connecté, mais il n'a pas pu joindre ce {{noun}} lors de sa dernière vérification.",
+  "The {{agent}} is connected.": "Le {{agent}} est connecté.",
+  "The {{agent}} is not installed yet.": "Le {{agent}} n'est pas encore installé.",
+  "The {{agent}} is offline.": "Le {{agent}} est hors ligne."
 }

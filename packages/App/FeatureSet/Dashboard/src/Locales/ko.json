@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "규칙은 저장 후 1분 이내에 시작하여 매분 메트릭을 기록합니다.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
   "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
-  "e.g. Add production": "예: production 추가"
+  "e.g. Add production": "예: production 추가",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "OneUptime AI가 조사하는 동안 이 Linux 호스트에서 읽기 전용 명령을 실행할 수 있게 하는 컨테이너입니다. AI 조사는 기본적으로 켜져 있습니다.",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI는 이 {{noun}}에서 명령을 실행하지 않습니다. OneUptime이 이미 가진 데이터로 계속 조사합니다.",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI 조사는 기본적으로 켜져 있습니다. {{agent}}가 연결되면 OneUptime AI는 여기서 인시던트나 경고를 조사할 때마다 이 {{noun}}에서 {{commands}}를 실행합니다. 수정은 허용하기 전까지 꺼진 상태로 유지됩니다.",
+  "Run these on the Docker host you want to monitor.": "모니터링할 Docker 호스트에서 이 명령을 실행하세요.",
+  "Run these on the Podman host you want to monitor.": "모니터링할 Podman 호스트에서 이 명령을 실행하세요.",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "AI 에이전트 상태를 불러올 수 없습니다. AI 에이전트 페이지를 열어 확인하세요.",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "두 번째 컨테이너입니다. OneUptime AI가 조사하는 동안 이 호스트에서 읽기 전용 docker 명령을 실행할 수 있게 합니다. 기본적으로 켜져 있습니다.",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}}가 연결되어 있지만 마지막 확인 때 이 {{noun}}에 연결하지 못했습니다.",
+  "The {{agent}} is connected.": "{{agent}}가 연결되어 있습니다.",
+  "The {{agent}} is not installed yet.": "{{agent}}가 아직 설치되지 않았습니다.",
+  "The {{agent}} is offline.": "{{agent}}가 오프라인입니다."
 }

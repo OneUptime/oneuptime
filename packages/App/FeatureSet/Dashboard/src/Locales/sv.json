@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "Regeln skriver sitt mått varje minut, med start senast en minut efter att den har sparats.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "När den här regeln matchar läggs dessa etiketter till. Etiketter som redan finns läggs inte till två gånger.",
   "e.g. Add Platform as owners": "t.ex. Lägg till Platform som ägare",
-  "e.g. Add production": "t.ex. Lägg till production"
+  "e.g. Add production": "t.ex. Lägg till production",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "En container som låter OneUptime AI köra skrivskyddade kommandon på den här Linux-värden medan den utreder. AI-utredningar är på som standard.",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI kör inga kommandon på den här {{noun}}. Den utreder fortfarande med de data som OneUptime redan har.",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI-utredningar är på som standard: så snart {{agent}} ansluter kör OneUptime AI {{commands}} på den här {{noun}} varje gång den utreder en incident eller ett larm här. Åtgärder förblir avstängda tills du tillåter dem.",
+  "Run these on the Docker host you want to monitor.": "Kör de här kommandona på Docker-värden som du vill övervaka.",
+  "Run these on the Podman host you want to monitor.": "Kör de här kommandona på Podman-värden som du vill övervaka.",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "AI-agentens status kunde inte läsas in. Öppna AI-agentens sida för att se den.",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Den andra containern: den låter OneUptime AI köra skrivskyddade docker-kommandon på den här värden medan den utreder. På som standard.",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} är ansluten men kunde inte nå den här {{noun}} vid sin senaste kontroll.",
+  "The {{agent}} is connected.": "{{agent}} är ansluten.",
+  "The {{agent}} is not installed yet.": "{{agent}} är inte installerad än.",
+  "The {{agent}} is offline.": "{{agent}} är offline."
 }

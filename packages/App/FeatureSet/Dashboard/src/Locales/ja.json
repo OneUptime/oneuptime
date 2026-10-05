@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "ルールは保存から 1 分以内に、毎分のメトリクスの書き込みを開始します。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。",
   "e.g. Add Platform as owners": "例: Platform を所有者として追加",
-  "e.g. Add production": "例: production を追加"
+  "e.g. Add production": "例: production を追加",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "調査中に OneUptime AI がこの Linux ホストで読み取り専用のコマンドを実行できるようにするコンテナです。AI による調査はデフォルトで有効です。",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI はこの{{noun}}でコマンドを実行しません。OneUptime が既に持っているデータで引き続き調査します。",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI による調査はデフォルトで有効です。{{agent}} が接続すると、ここでインシデントやアラートを調査するたびに、OneUptime AI はこの{{noun}}で {{commands}} を実行します。修正は許可するまで無効のままです。",
+  "Run these on the Docker host you want to monitor.": "監視したい Docker ホストでこれらのコマンドを実行してください。",
+  "Run these on the Podman host you want to monitor.": "監視したい Podman ホストでこれらのコマンドを実行してください。",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "AI エージェントの状態を読み込めませんでした。AI エージェントのページを開いて確認してください。",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "2 つ目のコンテナです。調査中に OneUptime AI がこのホストで読み取り専用の docker コマンドを実行できるようにします。デフォルトで有効です。",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} は接続されていますが、前回の確認でこの{{noun}}に到達できませんでした。",
+  "The {{agent}} is connected.": "{{agent}} は接続されています。",
+  "The {{agent}} is not installed yet.": "{{agent}} はまだインストールされていません。",
+  "The {{agent}} is offline.": "{{agent}} はオフラインです。"
 }

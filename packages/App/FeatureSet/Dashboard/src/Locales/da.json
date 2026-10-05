@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "Reglen skriver sin måling hvert minut, fra senest et minut efter, at den er gemt.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Når denne regel matcher, tilføjes disse etiketter. Etiketter, der allerede er tilføjet, tilføjes ikke to gange.",
   "e.g. Add Platform as owners": "f.eks. Tilføj Platform som ejere",
-  "e.g. Add production": "f.eks. Tilføj production"
+  "e.g. Add production": "f.eks. Tilføj production",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "En container, der lader OneUptime AI køre skrivebeskyttede kommandoer på denne Linux-vært, mens den undersøger. AI-undersøgelser er slået til som standard.",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "AI kører ingen kommandoer på denne {{noun}}. Den undersøger stadig med de data, OneUptime allerede har.",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "AI-undersøgelser er slået til som standard: Så snart {{agent}} forbinder, kører OneUptime AI {{commands}} på denne {{noun}}, hver gang den undersøger en hændelse eller en advarsel her. Rettelser forbliver slået fra, indtil du tillader dem.",
+  "Run these on the Docker host you want to monitor.": "Kør disse kommandoer på den Docker-vært, du vil overvåge.",
+  "Run these on the Podman host you want to monitor.": "Kør disse kommandoer på den Podman-vært, du vil overvåge.",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "AI-agentens status kunne ikke indlæses. Åbn AI-agentens side for at se den.",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Den anden container: Den lader OneUptime AI køre skrivebeskyttede docker-kommandoer på denne vært, mens den undersøger. Slået til som standard.",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} er forbundet, men kunne ikke nå denne {{noun}} ved sin seneste kontrol.",
+  "The {{agent}} is connected.": "{{agent}} er forbundet.",
+  "The {{agent}} is not installed yet.": "{{agent}} er ikke installeret endnu.",
+  "The {{agent}} is offline.": "{{agent}} er offline."
 }

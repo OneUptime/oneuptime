@@ -24892,5 +24892,16 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "Правило записывает свою метрику каждую минуту, начиная не позже чем через минуту после сохранения.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Когда это правило срабатывает, эти метки добавляются. Уже добавленные метки повторно не добавляются.",
   "e.g. Add Platform as owners": "напр. Добавить Platform как владельцев",
-  "e.g. Add production": "напр. Добавить production"
+  "e.g. Add production": "напр. Добавить production",
+  "A container that lets OneUptime AI run read-only commands on this Linux host while it investigates. AI investigations are on by default.": "Контейнер, через который OneUptime AI выполняет команды только для чтения на этом Linux-хосте во время расследования. ИИ-расследования включены по умолчанию.",
+  "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.": "ИИ не выполняет команды на этом ресурсе ({{noun}}). Он по-прежнему проводит расследование по данным, которые уже есть в OneUptime.",
+  "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.": "ИИ-расследования включены по умолчанию: как только {{agent}} подключится, OneUptime AI будет выполнять {{commands}} на этом ресурсе ({{noun}}) при каждом расследовании инцидента или оповещения. Исправления остаются выключенными, пока вы их не разрешите.",
+  "Run these on the Docker host you want to monitor.": "Выполните эти команды на Docker-хосте, который нужно отслеживать.",
+  "Run these on the Podman host you want to monitor.": "Выполните эти команды на Podman-хосте, который нужно отслеживать.",
+  "The AI agent's status could not be loaded. Open the AI agent page to see it.": "Не удалось загрузить состояние ИИ-агента. Откройте страницу ИИ-агента, чтобы его увидеть.",
+  "The second container: it lets OneUptime AI run read-only docker commands on this host while it investigates. On by default.": "Второй контейнер: через него OneUptime AI выполняет команды docker только для чтения на этом хосте во время расследования. Включено по умолчанию.",
+  "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.": "{{agent}} подключён, но при последней проверке не смог связаться с этим ресурсом ({{noun}}).",
+  "The {{agent}} is connected.": "{{agent}} подключён.",
+  "The {{agent}} is not installed yet.": "{{agent}} ещё не установлен.",
+  "The {{agent}} is offline.": "{{agent}} не в сети."
 }
