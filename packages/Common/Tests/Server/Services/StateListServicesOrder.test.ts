@@ -206,6 +206,17 @@ beforeEach(() => {
     .mockImplementation(((_modelType: unknown, query: unknown) => {
       return Promise.resolve(query);
     }) as never);
+  // The same checks, as DatabaseService asks them before the hooks.
+  jest
+    .spyOn(ModelPermission, "checkTableWritePermission")
+    .mockImplementation((() => {
+      return undefined;
+    }) as never);
+  jest
+    .spyOn(ModelPermission, "getUpdatableQuery")
+    .mockImplementation(((_modelType: unknown, query: unknown) => {
+      return Promise.resolve(query);
+    }) as never);
   jest.spyOn(Queue, "addJob").mockResolvedValue(undefined as never);
   jest.spyOn(logger, "error").mockImplementation((() => {
     return undefined;
