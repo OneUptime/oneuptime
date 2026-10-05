@@ -1030,8 +1030,7 @@ describe("the notify box on the summary step", () => {
     );
     expect(line).not.toContainElement(audience);
     expect(
-      line.compareDocumentPosition(audience) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      line.compareDocumentPosition(audience) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -1087,8 +1086,9 @@ describe("the notify box on the summary step", () => {
     const body: HTMLElement = await screen.findByTestId(
       "subscriber-notification-preview-body",
     );
-    expect(within(body).getByTestId("subscriber-notification-preview-subject"))
-      .toHaveTextContent("[Incident] Checkout failing");
+    expect(
+      within(body).getByTestId("subscriber-notification-preview-subject"),
+    ).toHaveTextContent("[Incident] Checkout failing");
 
     const previewRequests: Array<{ url: unknown; data: JSONObject }> =
       postMock.mock.calls

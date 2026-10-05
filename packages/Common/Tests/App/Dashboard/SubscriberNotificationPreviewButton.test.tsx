@@ -55,8 +55,10 @@ import { findNestedControls } from "../../Helpers/NestedControls";
  * would miss what an earlier test set off. The last test reads them.
  */
 const nestingWarnings: Array<string> = [];
+// eslint-disable-next-line no-console
 const consoleError: typeof console.error = console.error;
 
+// eslint-disable-next-line no-console
 console.error = (...args: Array<unknown>): void => {
   const message: string = args
     .map((arg: unknown): string => {
@@ -197,7 +199,9 @@ function classesOf(element: Element): Array<string> {
 }
 
 function renderLink(
-  props: Partial<React.ComponentProps<typeof SubscriberNotificationPreviewButton>> = {},
+  props: Partial<
+    React.ComponentProps<typeof SubscriberNotificationPreviewButton>
+  > = {},
 ): RenderResult {
   return render(
     <SubscriberNotificationPreviewButton
@@ -303,6 +307,7 @@ afterEach(async () => {
 
 afterAll(async () => {
   await i18next.changeLanguage("en");
+  // eslint-disable-next-line no-console
   console.error = consoleError;
 });
 
@@ -816,8 +821,7 @@ describe("beside the note composer's notify box", () => {
 
     // The label first, then the link.
     expect(
-      label.compareDocumentPosition(preview) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      label.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
     // The description and the audience come after the line, outside it.
@@ -868,7 +872,10 @@ describe("beside the note composer's notify box", () => {
   });
 
   test("opens the email of the note being written", async () => {
-    renderComposer({ note: "Rolling back the edge config.", shouldNotify: true });
+    renderComposer({
+      note: "Rolling back the edge config.",
+      shouldNotify: true,
+    });
 
     fireEvent.click(screen.getByTestId("composer-preview"));
 
@@ -910,7 +917,8 @@ describe("valid HTML", () => {
     answerPreviewWith({
       ...PREVIEW,
       statusPages: [],
-      nothingSentReason: SubscriberNotificationPreviewNothingSentReason.NoMonitors,
+      nothingSentReason:
+        SubscriberNotificationPreviewNothingSentReason.NoMonitors,
     });
 
     renderLink();
