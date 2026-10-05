@@ -53,7 +53,6 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
 import {
   afterEach,
   beforeEach,
@@ -98,28 +97,15 @@ function stringAttribute(key: string, value: string): JSONObject {
 
 // The oneuptime.agent.version an agent's shipped config stamps.
 function stampOf(agentDir: string): string {
-  const config: {
-    processors: {
-      resource: { attributes: Array<{ key: string; value?: string }> };
-    };
-  } = yaml.load(
-    fs.readFileSync(
-      path.join(REPO_ROOT, "agents", agentDir, "otel-collector-config.yaml"),
-      "utf8",
-    ),
-  ) as {
-    processors: {
-      resource: { attributes: Array<{ key: string; value?: string }> };
-    };
-  };
-  const stamp: { key: string; value?: string } | undefined =
-    config.processors.resource.attributes.find(
-      (attribute: { key: string }): boolean => {
-        return attribute.key === "oneuptime.agent.version";
-      },
-    );
-  expect(stamp?.value).toMatch(/^\d+\.\d+\.\d+$/);
-  return stamp!.value as string;
+  const config: string = fs.readFileSync(
+    path.join(REPO_ROOT, "agents", agentDir, "otel-collector-config.yaml"),
+    "utf8",
+  );
+  const stamp: string | undefined = config.match(
+    /- key: oneuptime\.agent\.version\n\s+value: "([^"]+)"\n\s+action: upsert/,
+  )?.[1];
+  expect(stamp).toMatch(/^\d+\.\d+\.\d+$/);
+  return stamp as string;
 }
 
 type DiscoverCase = {

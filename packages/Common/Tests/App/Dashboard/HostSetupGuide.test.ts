@@ -83,10 +83,9 @@ const NATIVE_LINUX: Array<HostInstallMethod> = [
 
 /*
  * Every method except Kubernetes puts a collector on the host, running the
- * shared config.yaml. Kubernetes installs the Kubernetes agent instead (see
- * "the Kubernetes option" below).
+ * shared config.yaml (HostCollectorMethod). Kubernetes installs the
+ * Kubernetes agent instead (see "the Kubernetes option" below).
  */
-type HostCollectorMethod = Exclude<HostInstallMethod, "kubernetes">;
 
 const CONFIG_FILE_METHODS: Array<HostCollectorMethod> = METHOD_KEYS.filter(
   (method: HostInstallMethod): method is HostCollectorMethod => {
