@@ -48,7 +48,7 @@ The provider derives the project from the key itself. A master key carries no pr
 
 ## "references records that are not in this project"
 
-Every ID a resource names — a monitor's labels, a status page group's status page, a network device's site, an on-call rule's teams — must be a record of the project your API key belongs to. An ID of another project's record and an ID that does not exist get the same answer, which names the field and the ID:
+Every ID a resource names — a monitor's labels, a status page group's status page, a network device's site, an escalation rule's teams — must be a record of the project your API key belongs to. An ID of another project's record and an ID that does not exist get the same answer, which names the field and the ID:
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
