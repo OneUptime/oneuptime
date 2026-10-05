@@ -61,6 +61,15 @@ export const AGENT_AI_FIXES_SETTING_VALUES: Readonly<
   BypassApproval: "bypass-approval",
 };
 
+// Each mode's name, as the AI agent page and the feeds write it.
+export const AGENT_AI_FIXES_LABELS: Readonly<Record<AgentAiFixesMode, string>> =
+  {
+    Disabled: "Off",
+    RequireApproval: "Ask for approval",
+    Automatic: "Automatic",
+    BypassApproval: "Bypass approval",
+  };
+
 /*
  * The environment both agents read. The kubernetes-agent chart sets them
  * from aiAgent.investigation and aiAgent.fixes; a resource AI agent takes

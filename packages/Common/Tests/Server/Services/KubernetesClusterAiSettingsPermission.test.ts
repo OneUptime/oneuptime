@@ -820,49 +820,52 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
       ).resolves.toBeDefined();
     });
 
-    it("reads the agent rows only for a write that clears a binding, scoped to the cluster's project", async () => {
+    /*
+     * Every operator write of an AI setting reads the cluster's agent row
+     * once — whether the agent sets investigation and fixes decides what the
+     * write may change, and, for a write that clears a binding, whether the
+     * cluster has an agent at all. One query, scoped to the cluster's
+     * project, whatever the write touches.
+     */
+    it("reads the agent rows once per AI write, scoped to the cluster's project", async () => {
+      const writes: Array<Record<string, unknown>> = [
+        { isAiInvestigationEnabled: false },
+        { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
+        { aiAccessRunnerId: RUNNER_ID },
+        { aiAccessRunnerId: null },
+      ];
+
+      for (const data of writes) {
+        await hooks().onBeforeUpdate(
+          updateBy(data, propsWith(Permission.SettingsMember)),
+        );
+      }
+
+      expect(agentLookup).toHaveBeenCalledTimes(writes.length);
+
+      for (const args of agentLookup.mock.calls) {
+        const call: {
+          projectId: ObjectID;
+          kubernetesClusterIds: Array<ObjectID>;
+        } = args[0] as {
+          projectId: ObjectID;
+          kubernetesClusterIds: Array<ObjectID>;
+        };
+        expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+        expect(
+          call.kubernetesClusterIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        ).toEqual([CLUSTER_ID.toString()]);
+      }
+    });
+
+    it("negative control: a write of no AI setting reads no agent row", async () => {
       await hooks().onBeforeUpdate(
-        updateBy(
-          { isAiInvestigationEnabled: false },
-          propsWith(Permission.SettingsMember),
-        ),
-      );
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
-          propsWith(Permission.SettingsMember),
-        ),
-      );
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessRunnerId: RUNNER_ID },
-          propsWith(Permission.SettingsMember),
-        ),
+        updateBy({ name: "renamed" }, propsWith(Permission.SettingsMember)),
       );
 
       expect(agentLookup).not.toHaveBeenCalled();
-
-      await hooks().onBeforeUpdate(
-        updateBy(
-          { aiAccessRunnerId: null },
-          propsWith(Permission.SettingsMember),
-        ),
-      );
-
-      expect(agentLookup).toHaveBeenCalledTimes(1);
-      const call: {
-        projectId: ObjectID;
-        kubernetesClusterIds: Array<ObjectID>;
-      } = agentLookup.mock.calls[0]![0] as {
-        projectId: ObjectID;
-        kubernetesClusterIds: Array<ObjectID>;
-      };
-      expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(
-        call.kubernetesClusterIds.map((id: ObjectID) => {
-          return id.toString();
-        }),
-      ).toEqual([CLUSTER_ID.toString()]);
     });
 
     it("is not gated for the server's own (root) writes", async () => {
@@ -1113,6 +1116,10 @@ describe("KubernetesCluster AI access through updateOneById", () => {
   let feedItems: jest.SpyInstance;
 
   beforeEach(() => {
+    // No Kubernetes AI agent unless a test says otherwise.
+    jest
+      .spyOn(KubernetesAiAgentService, "findForClusters")
+      .mockResolvedValue(new Map<string, KubernetesAiAgent>());
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
       cluster({
         _id: CLUSTER_ID.toString(),

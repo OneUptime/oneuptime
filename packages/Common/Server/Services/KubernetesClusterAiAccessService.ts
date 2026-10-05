@@ -19,6 +19,10 @@ import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import { getDeletedAgentRunnerRebindNote } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "../../Types/AI/AgentAiSettings";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import {
   RUNNER_ALIVE_WINDOW_IN_MINUTES,
@@ -231,10 +235,18 @@ export type KubernetesAiAccessExecutorKind =
  * complete command is on the AI agent page (a bare --set line would miss
  * the chart index refresh and --reuse-values).
  */
-export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Upgrade the Kubernetes agent chart with --set aiAgent.remediation.enabled=true; the complete command is on ${CLUSTER_AI_AGENT_PAGE}. List the namespaces AI may fix in aiAgent.remediation.namespaces (without it the write role is cluster-wide), and add aiAgent.remediation.nodeOperations=false to keep fixes off nodes.`;
+export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Upgrade the Kubernetes agent chart with --set aiAgent.fixes=ask-for-approval (or automatic, or bypass-approval), which grants the write access fixes need; the complete command is on ${CLUSTER_AI_AGENT_PAGE}. List the namespaces AI may fix in aiAgent.remediation.namespaces (without it the write role is cluster-wide), and add aiAgent.remediation.nodeOperations=false to keep fixes off nodes.`;
 
 // The same for the previous in-cluster Runner: the AI agent replaces it.
-export const LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner and your settings carry over. Add --set aiAgent.remediation.enabled=true to the upgrade to let it apply fixes; the complete command is on ${CLUSTER_AI_AGENT_PAGE}.`;
+export const LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner and your settings carry over. Add --set aiAgent.fixes=ask-for-approval to the upgrade to let it apply fixes; the complete command is on ${CLUSTER_AI_AGENT_PAGE}.`;
+
+/*
+ * The next steps for investigation or fixes that are off on a cluster whose
+ * Kubernetes AI agent sets them: they change in the chart, not on the page.
+ */
+export const AGENT_SET_INVESTIGATION_NEXT_STEP: string = `Set aiAgent.investigation=true on the Kubernetes agent chart; ${CLUSTER_AI_AGENT_PAGE} shows the command.`;
+
+export const AGENT_SET_FIXES_NEXT_STEP: string = `Set aiAgent.fixes to ask-for-approval, automatic or bypass-approval on the Kubernetes agent chart; ${CLUSTER_AI_AGENT_PAGE} shows the command.`;
 
 // The same for a Runner no chart configures: its own environment.
 export const CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it (${KUBECTL_WRITE_NAMESPACES_ENV} limits the namespaces it may change).`;
@@ -819,6 +831,24 @@ class KubernetesClusterAiAccessServiceClass {
       remediationMode,
     });
 
+    /*
+     * Where investigation and fixes are set: by the cluster's Kubernetes AI
+     * agent (its configuration, or its defaults on a cluster nobody
+     * configured) unless AI reaches the cluster through a Runner an
+     * operator bound. The columns above already hold the agent's values —
+     * it writes them on every report that changes them.
+     */
+    const aiSettingsSource: AgentAiSettingsSource =
+      KubernetesAiAgentService.getAiSettingsSource({
+        reported: loaded.agent
+          ? parseKubernetesAgentPosture(loaded.agent.posture)?.aiSettings
+          : undefined,
+        cluster,
+        isBoundToAdvancedRunner: loaded.target.type === "advanced_runner",
+      });
+    const isSetByAgent: boolean =
+      isAgentAiSettingsSourceAgent(aiSettingsSource);
+
     gaps.push(...access.gaps);
 
     if (!isInvestigationEnabled) {
@@ -827,7 +857,9 @@ class KubernetesClusterAiAccessServiceClass {
         title: "AI investigation is turned off for this cluster",
         description:
           "OneUptime AI will investigate incidents and alerts on this cluster with OneUptime data only — it will not run kubectl.",
-        nextStep: `Turn on "Investigate with kubectl" on ${CLUSTER_AI_AGENT_PAGE}.`,
+        nextStep: isSetByAgent
+          ? AGENT_SET_INVESTIGATION_NEXT_STEP
+          : `Turn on "Investigate with kubectl" on ${CLUSTER_AI_AGENT_PAGE}.`,
         blocks: "investigation",
       });
     }
@@ -838,7 +870,9 @@ class KubernetesClusterAiAccessServiceClass {
         title: "AI fixes are turned off for this cluster",
         description:
           "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
-        nextStep: `Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on ${CLUSTER_AI_AGENT_PAGE}.`,
+        nextStep: isSetByAgent
+          ? AGENT_SET_FIXES_NEXT_STEP
+          : `Set "Fixes" to "Ask for approval", "Automatic" or "Bypass approval" on ${CLUSTER_AI_AGENT_PAGE}.`,
         blocks: "remediation",
       });
     }
@@ -905,6 +939,7 @@ class KubernetesClusterAiAccessServiceClass {
         cluster.aiKubectlCommandAllowlist,
       ),
       isInvestigationEnabled,
+      aiSettingsSource,
       isInvestigationReady: isInvestigationEnabled && !blocksInvestigation,
       remediationMode,
       isRemediationReady:

@@ -448,6 +448,11 @@ export function parseKubernetesRunnerPosture(
 function parsePostureFields(
   raw: Record<string, unknown>,
 ): KubernetesAgentPosture {
+  // Reported but unreadable fails closed (parseReportedAgentAiSettings).
+  const aiSettings: AgentAiSettings | undefined = parseReportedAgentAiSettings(
+    raw["aiSettings"],
+  );
+
   return {
     clusterIdentifier:
       typeof raw["clusterIdentifier"] === "string"
@@ -478,8 +483,8 @@ function parsePostureFields(
       typeof raw["allowNodeOperations"] === "boolean"
         ? raw["allowNodeOperations"]
         : undefined,
-    // Reported but unreadable fails closed (parseReportedAgentAiSettings).
-    aiSettings: parseReportedAgentAiSettings(raw["aiSettings"]),
+    // Only when reported: an older agent's posture has no such key.
+    ...(aiSettings ? { aiSettings } : {}),
   };
 }
 

@@ -12,6 +12,7 @@ import PodmanHostFeedService from "../../../Server/Services/PodmanHostFeedServic
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterFeedService from "../../../Server/Services/ProxmoxClusterFeedService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
+import ResourceAiAgentService from "../../../Server/Services/ResourceAiAgentService";
 import UserService from "../../../Server/Services/UserService";
 import VMwareVCenterFeedService from "../../../Server/Services/VMwareVCenterFeedService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
@@ -37,6 +38,7 @@ import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import { PodmanHostFeedEventType } from "../../../Models/DatabaseModels/PodmanHostFeed";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import { ProxmoxClusterFeedEventType } from "../../../Models/DatabaseModels/ProxmoxClusterFeed";
+import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import { VMwareVCenterFeedEventType } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
 import {
@@ -380,12 +382,25 @@ const TIGHTENING_WRITES: Array<[string, Record<string, unknown>]> = [
   ["rename the resource", { name: "prod-web-1" }],
 ];
 
+/*
+ * No resource has an AI agent here: every operator write of an AI setting
+ * reads the resources' agent rows (whether the agent sets investigation and
+ * fixes), and these blocks are about who may change the settings. Without
+ * an agent, OneUptime sets them.
+ */
+function withoutResourceAiAgents(): jest.SpyInstance {
+  return jest
+    .spyOn(ResourceAiAgentService, "findAgentsForResources")
+    .mockResolvedValue(new Map<string, ResourceAiAgent>());
+}
+
 describe.each(FULLY_COVERED)(
   "$resourceType AI access: who may make AI do more",
   (wiring: ServiceWiring) => {
     let resourceLookup: jest.SpyInstance;
 
     beforeEach(() => {
+      withoutResourceAiAgents();
       resourceLookup = jest
         .spyOn(wiring.service, "findBy")
         .mockResolvedValue([resource()]);
@@ -785,6 +800,7 @@ describe.each(WIRING)(
     let feedWrite: jest.SpyInstance;
 
     beforeEach(() => {
+      withoutResourceAiAgents();
       resourceLookup = jest
         .spyOn(wiring.service, "findBy")
         .mockResolvedValue([resource()]);
@@ -865,6 +881,9 @@ describe.each(WIRING)(
             isAiInvestigationEnabled: false,
             aiRemediationMode: ResourceAiRemediationMode.Disabled,
             aiCommandAllowlist: [],
+            // Never configured, and no AI agent: OneUptime sets them.
+            aiAccessConfiguredAt: null,
+            aiSettingsSource: "oneuptime",
           },
         },
       });
@@ -943,6 +962,7 @@ describe.each(FULLY_COVERED)(
     let feedWrite: jest.SpyInstance;
 
     beforeEach(() => {
+      withoutResourceAiAgents();
       getJestSpyOn(wiring.service, "_findBy").mockResolvedValue([
         resource({
           _id: RESOURCE_ID.toString(),
