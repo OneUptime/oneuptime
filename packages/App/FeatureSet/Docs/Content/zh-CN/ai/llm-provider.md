@@ -219,7 +219,7 @@ API Key: (leave blank)
    ```
 
 2. 运行 `helm upgrade`，等待 vLLM Pod 变为 Ready 状态（首次启动会下载模型）
-3. 完成——vLLM 会在启动时自动注册为全局 LLM 提供商（`vllm.globalProvider.enabled`，默认值为 `true`），因此所有项目均可使用 AI 功能。注意：项目范围内的 AI 智能体无法使用全局提供商，仍需要项目专属的 LLM 提供商。
+3. 完成——vLLM 会在启动时自动注册为全局 LLM 提供商（`vllm.globalProvider.enabled`，默认值为 `true`），因此所有项目均可使用 AI 功能，包括 AI 修复任务。（无论是云端还是自托管，项目没有自己的提供商时，智能体的修复任务都会使用全局提供商；在云端，这部分用量按计量的 AI token 计费。项目自有的提供商始终优先。）
 
 如果您禁用了自动注册（`vllm.globalProvider.enabled: false`），请手动创建提供商：
 

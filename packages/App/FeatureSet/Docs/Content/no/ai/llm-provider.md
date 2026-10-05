@@ -219,7 +219,7 @@ Hvis du selvhoster OneUptime med Helm-chartet, kan du kjøre [vLLM](https://docs
    ```
 
 2. Kjør `helm upgrade` og vent til vLLM-poden blir klar (den første oppstarten laster ned modellen)
-3. Det er alt — vLLM registreres automatisk som en global LLM-leverandør ved oppstart (`vllm.globalProvider.enabled`, standard `true`), slik at AI-funksjoner fungerer for alle prosjekter. Merk: prosjektspesifikke AI-agenter kan ikke bruke globale leverandører og trenger fortsatt en prosjektspesifikk LLM-leverandør.
+3. Det er alt — vLLM registreres automatisk som en global LLM-leverandør ved oppstart (`vllm.globalProvider.enabled`, standard `true`), slik at AI-funksjoner fungerer for alle prosjekter, også AI-feilrettingsoppgaver. (Overalt — i skyen og selvhostet — bruker agentens feilrettingsoppgaver den globale leverandøren når prosjektet ikke eier en egen leverandør; i skyen faktureres den bruken som målte AI-tokens. En leverandør som prosjektet selv eier, har alltid forrang.)
 
 Hvis du deaktiverte automatisk registrering (`vllm.globalProvider.enabled: false`), opprett leverandøren manuelt:
 

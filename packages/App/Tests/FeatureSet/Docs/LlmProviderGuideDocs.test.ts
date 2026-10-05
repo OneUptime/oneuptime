@@ -565,3 +565,50 @@ describe("every LLM provider guide recommends the models OneUptime defaults to",
     },
   );
 });
+
+describe("no LLM provider guide says AI fix tasks cannot use the global provider", () => {
+  /*
+   * They can. A fix task uses the provider its project owns and, when the
+   * project owns none, the global one - on Cloud too, where that usage is
+   * billed as metered AI tokens (LlmProviderService
+   * .getLlmProviderForMeteredAgentPath, held to that in
+   * LlmProviderProjectOwned.test.ts). The vLLM section of 15 translations
+   * said otherwise, in these words.
+   */
+  const CLAIM: Record<string, string> = {
+    en: "cannot use global providers",
+    da: "kan ikke bruge globale udbydere",
+    de: "können keine globalen Anbieter verwenden",
+    es: "no pueden usar proveedores globales",
+    fr: "ne peuvent pas utiliser les fournisseurs globaux",
+    hi: "global providers का उपयोग नहीं कर सकते",
+    it: "non possono usare i provider globali",
+    ja: "グローバルプロバイダーを使用できない",
+    ko: "글로벌 공급자를 사용할 수 없으며",
+    nl: "kunnen geen globale providers gebruiken",
+    no: "kan ikke bruke globale leverandører",
+    pt: "não podem usar provedores globais",
+    ru: "не могут использовать глобальных провайдеров",
+    sv: "kan inte använda globala leverantörer",
+    "zh-CN": "无法使用全局提供商",
+    "zh-TW": "無法使用全域供應商",
+  };
+
+  test.each(Object.keys(CLAIM))("%s", (language: string) => {
+    expect(readPage(language)).not.toContain(CLAIM[language]);
+  });
+
+  test("the English vLLM step says fix tasks fall back to the global provider", () => {
+    const step: string =
+      sectionOf(readPage("en"), "### Self-Hosted vLLM on Kubernetes (Helm)")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("`vllm.globalProvider.enabled`");
+        }) || "";
+
+    expect(step).toContain("including AI fix tasks");
+    expect(step).toContain(
+      "agent fix tasks use the global provider when the project owns no provider of its own",
+    );
+  });
+});

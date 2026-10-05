@@ -219,7 +219,7 @@ API Key: (leave blank)
    ```
 
 2. `helm upgrade` चलाएं और vLLM pod के Ready होने की प्रतीक्षा करें (पहली शुरुआत में मॉडल डाउनलोड होता है)
-3. बस इतना ही — vLLM startup पर एक Global LLM Provider के रूप में स्वचालित रूप से पंजीकृत हो जाता है (`vllm.globalProvider.enabled`, डिफ़ॉल्ट `true`), इसलिए AI सुविधाएं सभी projects के लिए काम करती हैं। ध्यान दें: project-scoped AI Agents global providers का उपयोग नहीं कर सकते और उन्हें अभी भी एक project-specific LLM Provider की आवश्यकता होती है।
+3. बस इतना ही — vLLM startup पर एक Global LLM Provider के रूप में स्वचालित रूप से पंजीकृत हो जाता है (`vllm.globalProvider.enabled`, डिफ़ॉल्ट `true`), इसलिए AI सुविधाएं सभी projects के लिए काम करती हैं, AI fix tasks भी। (हर जगह — Cloud और self-hosted दोनों पर — जिस project का अपना कोई provider नहीं है, उसके agent fix tasks global provider का उपयोग करते हैं; Cloud पर यह उपयोग metered AI tokens के रूप में bill होता है। Project का अपना provider हमेशा प्राथमिकता पाता है।)
 
 यदि आपने auto-registration (`vllm.globalProvider.enabled: false`) को अक्षम किया है, तो provider को मैन्युअल रूप से बनाएं:
 

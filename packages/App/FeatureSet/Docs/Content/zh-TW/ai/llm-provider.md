@@ -219,7 +219,7 @@ API Key: (leave blank)
    ```
 
 2. 執行 `helm upgrade`，並等待 vLLM Pod 變為 Ready（首次啟動會下載模型）
-3. 完成——vLLM 會在啟動時自動註冊為 Global LLM Provider（`vllm.globalProvider.enabled`，預設為 `true`），因此所有專案的 AI 功能皆可使用。注意：專案範圍的 AI Agents 無法使用全域供應商，仍需要專案專屬的 LLM Provider。
+3. 完成——vLLM 會在啟動時自動註冊為 Global LLM Provider（`vllm.globalProvider.enabled`，預設為 `true`），因此所有專案的 AI 功能皆可使用，包括 AI 修正任務。（無論是雲端或自行託管，專案沒有自己的供應商時，代理的修正任務都會使用全域供應商；在雲端，這部分用量會以計量的 AI token 計費。專案自有的供應商一律優先。）
 
 如果您停用了自動註冊（`vllm.globalProvider.enabled: false`），請手動建立供應商：
 

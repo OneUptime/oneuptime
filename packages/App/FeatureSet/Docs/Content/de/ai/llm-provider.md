@@ -219,7 +219,7 @@ Wenn Sie OneUptime selbst mit dem Helm-Chart hosten, können Sie [vLLM](https://
    ```
 
 2. Führen Sie `helm upgrade` aus und warten Sie, bis der vLLM-Pod bereit (Ready) ist (beim ersten Start wird das Modell heruntergeladen)
-3. Das war's — vLLM wird beim Start automatisch als globaler LLM-Anbieter registriert (`vllm.globalProvider.enabled`, Standard `true`), sodass KI-Funktionen für alle Projekte funktionieren. Hinweis: Projektbezogene KI-Agenten können keine globalen Anbieter verwenden und benötigen weiterhin einen projektspezifischen LLM-Anbieter.
+3. Das war's — vLLM wird beim Start automatisch als globaler LLM-Anbieter registriert (`vllm.globalProvider.enabled`, Standard `true`), sodass KI-Funktionen für alle Projekte funktionieren, auch KI-Korrekturaufgaben. (Überall — in der Cloud wie bei Selbsthosting — verwenden die Korrekturaufgaben des Agenten den globalen Anbieter, wenn das Projekt keinen eigenen Anbieter hat; in der Cloud wird diese Nutzung als gemessene KI-Token abgerechnet. Ein projekteigener Anbieter hat immer Vorrang.)
 
 Wenn Sie die automatische Registrierung deaktiviert haben (`vllm.globalProvider.enabled: false`), erstellen Sie den Anbieter manuell:
 

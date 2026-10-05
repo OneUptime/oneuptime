@@ -219,7 +219,7 @@ Si vous auto-hébergez OneUptime avec le chart Helm, vous pouvez exécuter [vLLM
    ```
 
 2. Exécutez `helm upgrade` et attendez que le pod vLLM devienne Ready (le premier démarrage télécharge le modèle)
-3. C'est tout — vLLM est enregistré automatiquement comme fournisseur LLM global au démarrage (`vllm.globalProvider.enabled`, `true` par défaut), afin que les fonctionnalités IA fonctionnent pour tous les projets. Remarque : les agents IA au niveau projet ne peuvent pas utiliser les fournisseurs globaux et nécessitent toujours un fournisseur LLM propre au projet.
+3. C'est tout — vLLM est enregistré automatiquement comme fournisseur LLM global au démarrage (`vllm.globalProvider.enabled`, `true` par défaut), afin que les fonctionnalités IA fonctionnent pour tous les projets, y compris les tâches de correctif IA. (Partout — dans le cloud comme en auto-hébergé — les tâches de correctif de l'agent utilisent le fournisseur global lorsque le projet n'a pas son propre fournisseur ; dans le cloud, cet usage est facturé en tokens IA mesurés. Un fournisseur propre au projet a toujours la priorité.)
 
 Si vous avez désactivé l'enregistrement automatique (`vllm.globalProvider.enabled: false`), créez le fournisseur manuellement :
 

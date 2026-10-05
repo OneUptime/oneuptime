@@ -219,7 +219,7 @@ Als u OneUptime zelf host met de Helm-chart, kunt u [vLLM](https://docs.vllm.ai)
    ```
 
 2. Voer `helm upgrade` uit en wacht tot de vLLM-pod Ready wordt (bij de eerste start wordt het model gedownload)
-3. Dat is alles — vLLM wordt bij het opstarten automatisch geregistreerd als Globale LLM Provider (`vllm.globalProvider.enabled`, standaard `true`), zodat AI-functies voor alle projecten werken. Let op: project-gebonden AI Agenten kunnen geen globale providers gebruiken en hebben nog steeds een project-specifieke LLM Provider nodig.
+3. Dat is alles — vLLM wordt bij het opstarten automatisch geregistreerd als Globale LLM Provider (`vllm.globalProvider.enabled`, standaard `true`), zodat AI-functies voor alle projecten werken, ook AI-hersteltaken. (Overal — in de cloud en zelf-gehost — gebruiken de hersteltaken van de agent de globale provider wanneer het project geen eigen provider heeft; in de cloud wordt dat gebruik gefactureerd als gemeten AI-tokens. Een provider van het project zelf gaat altijd voor.)
 
 Als u automatische registratie hebt uitgeschakeld (`vllm.globalProvider.enabled: false`), maak de provider dan handmatig aan:
 
