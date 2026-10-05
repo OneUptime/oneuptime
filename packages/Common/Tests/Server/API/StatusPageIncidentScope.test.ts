@@ -9,6 +9,8 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
+import FileService from "../../../Server/Services/FileService";
+import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodePublicNoteService from "../../../Server/Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
@@ -722,7 +724,30 @@ type IncidentRead = {
 
 let incidentReads: Array<IncidentRead> = [];
 
+/*
+ * Who each attachment belongs to: every file here was uploaded in the
+ * project of the page that serves it, unless a test says otherwise.
+ */
+function mockFileOwners(projectId: ObjectID = PROJECT_ID): void {
+  jest
+    .spyOn(FileService, "getFileOwners")
+    .mockImplementation((async (
+      fileIds: Array<ObjectID>,
+    ): Promise<Map<string, FileOwners>> => {
+      return new Map(
+        fileIds.map((fileId: ObjectID): [string, FileOwners] => {
+          return [
+            fileId.toString().toLowerCase(),
+            { projectId: projectId, createdByUserId: null },
+          ];
+        }),
+      );
+    }) as never);
+}
+
 function mockDatabase(): void {
+  mockFileOwners();
+
   // The per-request read access check: every page here is public.
   (
     jest.spyOn(StatusPageService, "findOneById") as unknown as jest.SpyInstance
@@ -1576,6 +1601,50 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
         }
       },
     );
+
+    /*
+     * A page serves only files of its own project, whatever wrote the
+     * record that points at them - answered exactly as an attachment that
+     * is not there.
+     */
+    it("never serves an attachment that is a file of another project", async () => {
+      mockFileOwners(OTHER_PROJECT_ID);
+
+      const postmortem: RouteResult = await download({
+        route: POSTMORTEM_ATTACHMENT_ROUTE,
+        params: {
+          statusPageId: SITE_A,
+          incidentId: SCOPED_TO_A,
+          fileId: fileIdFor(SCOPED_TO_A),
+        },
+      });
+
+      expectNotFound(postmortem);
+
+      const note: RouteResult = await download({
+        route: INCIDENT_NOTE_ATTACHMENT_ROUTE,
+        params: {
+          statusPageId: SITE_A,
+          incidentId: SCOPED_TO_A,
+          noteId: noteIdFor(SCOPED_TO_A),
+          fileId: fileIdFor(noteIdFor(SCOPED_TO_A)),
+        },
+      });
+
+      expectNotFound(note);
+
+      const episodeNote: RouteResult = await download({
+        route: EPISODE_NOTE_ATTACHMENT_ROUTE,
+        params: {
+          statusPageId: SITE_A,
+          episodeId: EPISODE_SCOPED_TO_A,
+          noteId: noteIdFor(EPISODE_SCOPED_TO_A),
+          fileId: fileIdFor(noteIdFor(EPISODE_SCOPED_TO_A)),
+        },
+      });
+
+      expectNotFound(episodeNote);
+    });
   });
 
   describe("the public JSON never names an incident's scope", () => {
