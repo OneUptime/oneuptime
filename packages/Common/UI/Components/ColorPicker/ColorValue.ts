@@ -155,6 +155,22 @@ export const shouldUseDarkMark: (value: string) => boolean = (
   return getContrastRatio(rgb, WHITE) < MIN_MARK_CONTRAST;
 };
 
+// The light theme's darkest text (gray-900): the dark tick.
+export const DARK_MARK_COLOR: string = "#111827";
+export const LIGHT_MARK_COLOR: string = "#ffffff";
+
+/**
+ * The tick's color, as a color rather than a class: the swatch under it is
+ * the same in both themes, so the tick must be too. A text class would be
+ * recolored by the dark theme (Theme.css turns text-gray-900 pale), and a
+ * pale tick on a pale swatch is no tick at all.
+ */
+export const getMarkColor: (value: string) => string = (
+  value: string,
+): string => {
+  return shouldUseDarkMark(value) ? DARK_MARK_COLOR : LIGHT_MARK_COLOR;
+};
+
 /*
  * Hue, saturation and value (brightness): the two axes of the saturation
  * square and the one of the hue strip. h is 0 to 360, s and v 0 to 1.

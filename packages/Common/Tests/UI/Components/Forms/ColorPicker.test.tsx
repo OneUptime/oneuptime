@@ -245,6 +245,27 @@ describe("ColorPicker, inline (a form's color field)", () => {
 
       expect(dot.style.backgroundColor).toBe("rgb(62, 64, 154)");
       expect(dot.querySelector("svg")).not.toBeNull();
+      expect(dot.querySelector("svg")!.style.color).toBe("rgb(255, 255, 255)");
+    });
+
+    test("a pale custom color takes a dark tick, so the tick still shows", () => {
+      const { field } = renderControlled({ start: "#fef08a" });
+      const dot: HTMLElement = within(getCustomButton(field)).getByTestId(
+        "color-picker-custom-dot",
+      );
+
+      expect(dot.querySelector("svg")!.style.color).toBe("rgb(17, 24, 39)");
+    });
+
+    test("with no custom color the button shows the color wheel, and no tick", () => {
+      const { field } = renderControlled({ start: hexOf("Teal") });
+      const dot: HTMLElement = within(getCustomButton(field)).getByTestId(
+        "color-picker-custom-dot",
+      );
+
+      // Not painted with a color of its own: the wheel is its background.
+      expect(dot.style.backgroundColor).toBe("");
+      expect(dot.querySelector("svg")).toBeNull();
     });
 
     test("a color that is not a swatch arrives as a custom one", () => {

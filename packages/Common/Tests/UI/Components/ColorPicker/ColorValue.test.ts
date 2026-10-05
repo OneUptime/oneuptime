@@ -7,6 +7,9 @@ import {
   COLOR_CODE_INVALID_CHARACTERS_MESSAGE,
   COLOR_CODE_INVALID_LENGTH_MESSAGE,
   ColorCodeInput,
+  DARK_MARK_COLOR,
+  getMarkColor,
+  LIGHT_MARK_COLOR,
   colorToHsv,
   findSwatch,
   getHueAtPoint,
@@ -179,6 +182,16 @@ describe("shouldUseDarkMark: the tick a picked swatch carries", () => {
       expect(shouldUseDarkMark(pale)).toBe(true);
     },
   );
+
+  test("the tick is a colour, not a class: white on the palette, dark on a pale custom color", () => {
+    for (const color of DISTINCT_COLORS) {
+      expect(getMarkColor(color.toString())).toBe(LIGHT_MARK_COLOR);
+    }
+
+    expect(getMarkColor("#fef08a")).toBe(DARK_MARK_COLOR);
+    expect(LIGHT_MARK_COLOR).toBe("#ffffff");
+    expect(DARK_MARK_COLOR).toBe("#111827");
+  });
 
   test("dark custom colors take a white one, and text takes the default", () => {
     expect(shouldUseDarkMark("#3e409a")).toBe(false);

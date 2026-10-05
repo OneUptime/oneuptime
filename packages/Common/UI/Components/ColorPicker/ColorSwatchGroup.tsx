@@ -3,11 +3,7 @@ import Icon from "../Icon/Icon";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { ColorSwatchOption } from "./ColorPalette";
-import {
-  findSwatch,
-  normalizeColorValue,
-  shouldUseDarkMark,
-} from "./ColorValue";
+import { findSwatch, getMarkColor, normalizeColorValue } from "./ColorValue";
 import React, { FunctionComponent, ReactElement, useRef } from "react";
 
 /*
@@ -312,9 +308,8 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
         {isChecked ? (
           <Icon
             icon={IconProp.Check}
-            className={`h-4 w-4 ${
-              shouldUseDarkMark(item.hex) ? "text-gray-900" : "text-white"
-            }`}
+            className="h-4 w-4"
+            style={{ color: getMarkColor(item.hex) }}
           />
         ) : (
           <></>

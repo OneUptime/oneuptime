@@ -16,8 +16,8 @@ import ColorSwatchGroup, {
 } from "../../ColorPicker/ColorSwatchGroup";
 import {
   findSwatch,
+  getMarkColor,
   normalizeColorValue,
-  shouldUseDarkMark,
 } from "../../ColorPicker/ColorValue";
 import CustomColorPanel from "../../ColorPicker/CustomColorPanel";
 import DROPDOWN_MENU_Z_INDEX from "../../Dropdown/DropdownMenuZIndex";
@@ -357,9 +357,8 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
         >
           <Icon
             icon={IconProp.Check}
-            className={`h-3 w-3 ${
-              shouldUseDarkMark(value) ? "text-gray-900" : "text-white"
-            }`}
+            className="h-3 w-3"
+            style={{ color: getMarkColor(value) }}
           />
         </span>
       );

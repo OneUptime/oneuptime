@@ -119,6 +119,34 @@ describe("ColorSwatchGroup", () => {
     // A tick, and a ring in the swatch's own color.
     expect(checked[0]!.querySelector("svg")).not.toBeNull();
     expect(checked[0]!.style.boxShadow).toBe(getSwatchShadow(teal, true));
+    // The tick is white, inline: the dark theme cannot recolour it.
+    expect(checked[0]!.querySelector("svg")!.style.color).toBe(
+      "rgb(255, 255, 255)",
+    );
+    // Unpicked swatches carry no tick.
+    expect(
+      radios(screen.getByRole("radiogroup")).filter(
+        (radio: HTMLElement): boolean => {
+          return radio.querySelector("svg") !== null;
+        },
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("a pale color in a caller's own palette takes a dark tick", () => {
+    render(
+      <ColorSwatchGroup
+        swatches={[{ name: "Butter", hex: "#fef08a" }]}
+        value="#fef08a"
+        onPick={getJestMockFunction()}
+        layout="row"
+        ariaLabel="Series color"
+      />,
+    );
+
+    const butter: HTMLElement = screen.getByRole("radio", { name: "Butter" });
+
+    expect(butter.querySelector("svg")!.style.color).toBe("rgb(17, 24, 39)");
   });
 
   test("a custom color ticks no swatch, and the first one keeps the Tab stop", () => {
