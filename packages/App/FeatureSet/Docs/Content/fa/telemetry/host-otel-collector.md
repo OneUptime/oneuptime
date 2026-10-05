@@ -22,13 +22,13 @@
 
 ## گام ۱ — نصب جمع‌کننده OpenTelemetry
 
-بخش مربوط به سیستم‌عامل خود را برگزینید. همه نمونه‌ها فرض می‌گیرند که تازه‌ترین انتشار `otelcol-contrib` را از [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) نصب می‌کنید.
+بخش مربوط به سیستم‌عامل خود را برگزینید. همه نمونه‌ها `otelcol-contrib` **v0.161.0** را از [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) نصب می‌کنند: انتشاری که OneUptime تثبیت کرده و پیکربندی‌های گام ۲ آن را نسخه عامل میزبان گزارش می‌کنند (پایین‌تر «ارتقای جمع‌کننده» را ببینید).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ sudo dpkg -i otelcol-contrib.deb
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ sudo mkdir -p /etc/otelcol-contrib
 از یک خط فرمان **PowerShell با دسترسی مدیر**، این بلوک را یکجا اجرا کنید — هر خطی به متغیرهایی که بالایش تنظیم شده‌اند وابسته است:
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** رکوردها را پیش از صدور دسته می‌کند تا به ازای هر رکورد یک رفت‌وبرگشت HTTP نپردازید.
 - **`resource`** هر رکوردی را با `service.name` مهر می‌زند. اگر می‌خواهید هر ماشین به‌صورت سرویس تله‌متری خودش در OneUptime پدیدار شود، به ازای هر میزبان مقدار متفاوتی به کار ببرید (مثلاً `prod-web-01`).
+- **`oneuptime.agent.version`** انتشار جمع‌کننده‌ای است که این پیکربندی برای آن است. OneUptime آن را به‌عنوان **Agent Version** میزبان نشان می‌دهد؛ آن را فقط همراه با جمع‌کننده‌ای که نصب می‌کنید تغییر دهید (پایین‌تر «ارتقای جمع‌کننده» را ببینید).
 - **`otlphttp`** روی HTTPS با توکن دریافتِ پیوست‌شده به OneUptime می‌فرستد.
 
 ### سنجه‌های میزبان (Linux، macOS، Windows)
@@ -417,6 +421,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -490,6 +497,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -575,6 +585,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -674,6 +687,12 @@ sc.exe query "otelcol-contrib"
 3. بخش **Metrics** را باز کنید — سنجه‌های میزبان (‏CPU، حافظه، سامانه فایل و جز آن) باید ظرف یک دقیقه پدیدار شوند.
 4. بخش **Logs** را باز کنید — گزارش‌های فایلی / مدخل‌های journald / گزارش‌های رویداد Windows شما باید در حال جاری شدن باشند. ویژگی‌های جست‌وجوپذیر مفید شامل `log.file.name`، `systemd.unit`، `winlog.channel`، `winlog.event_id` و `winlog.provider.name` است.
 5. اگر گیرنده `systemd` (‏Linux) یا `windows_service` (‏Windows) را فعال کرده‌اید، مسیر **Infrastructure → Hosts** را باز کنید، میزبان را برگزینید و زبانه **Systemd Units** / **Services** را بررسی کنید — هر واحد برداشت‌شده‌ای باید با وضعیت جاری‌اش فهرست شده باشد.
+
+## ارتقای جمع‌کننده
+
+هر پیکربندی این صفحه انتشار جمع‌کننده‌ای را که برای آن است، در پردازنده `resource` خود، به‌صورت `oneuptime.agent.version` مهر می‌زند. OneUptime آن را به‌عنوان **Agent Version** در **Overview** میزبان نشان می‌دهد و وقتی OneUptime انتشار تازه‌تری را تثبیت کند، نشانه هشداری کنارش می‌گذارد. نشانه را برگزینید تا ببینید به همان روشی که نصب کرده‌اید چگونه ارتقا دهید: پیکربندی را دوباره ذخیره کنید، سپس انتشار تازه را روی قدیمی نصب کنید.
+
+برای ارتقای دستی، انتشار تازه را به همان روشی که این یکی را نصب کردید نصب کنید (گام ۱، با `VERSION` تازه)، `oneuptime.agent.version` را در پیکربندی خود روی همان نسخه بگذارید و جمع‌کننده را دوباره راه‌اندازی کنید (گام ۳). جمع‌کننده‌ای که پیکربندی‌اش هیچ نسخه‌ای مهر نمی‌زند، نسخه‌ای نشان نمی‌دهد و هرگز نشانه‌ای ندارد.
 
 ## کاهش حجم داده جمع‌آوری‌شده
 
@@ -852,18 +871,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **پیکربندی‌ای را که OneUptime برایتان تولید کرده ویرایش می‌کنید؟** خط لوله بالا با نمونه‌های کامل این صفحه می‌خواند. پیکربندی داشبورد (‏Hosts → Documentation) چیزها را جور دیگری نام می‌برد: پردازنده‌هایش `resourcedetection` و `batch` هستند (هیچ پردازنده `resource`ای **نیست**) و صادرکننده‌اش `otlphttp/oneuptime` است. ارجاع به پردازنده‌ای که تعریف نشده، جمع‌کننده را هنگام راه‌اندازی با `references processor "resource" which is not configured` متوقف می‌کند. پالایه را به آنچه از پیش هست بیفزایید، به‌جای اینکه این بلوک را رویش بچسبانید:
+> **پیکربندی‌ای را که OneUptime برایتان تولید کرده ویرایش می‌کنید؟** خط لوله بالا با نمونه‌های کامل این صفحه می‌خواند. پیکربندی داشبورد (‏Hosts → Documentation) چیزها را جور دیگری نام می‌برد: پردازنده‌هایش `resourcedetection`، `resource` و `batch` هستند و صادرکننده‌اش `otlphttp/oneuptime` است. ارجاع به پردازنده یا صادرکننده‌ای که تعریف نشده، جمع‌کننده را هنگام راه‌اندازی متوقف می‌کند. پالایه را به آنچه از پیش هست بیفزایید، به‌جای اینکه این بلوک را رویش بچسبانید:
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> ‏`resourcedetection` را نگه دارید — OneUptime تله‌متری را با `host.name` / `host.id`ای که آن تنظیم می‌کند به میزبان تطبیق می‌دهد. آن پیکربندی تولیدشده همچنین **فقط سنجه** است: تا وقتی خودتان نیفزایید خط لوله `logs:` ندارد، پس `filter/drop-low-severity` تا وقتی گیرنده‌ای `filelog` یا `journald` کنارش نیفزایید چیزی برای پالایش ندارد.
+> ‏`resourcedetection` را نگه دارید — OneUptime تله‌متری را با `host.name` / `host.id`ای که آن تنظیم می‌کند به میزبان تطبیق می‌دهد — و `resource` را هم، که نسخه جمع‌کننده را گزارش می‌کند. آن پیکربندی تولیدشده همچنین **فقط سنجه** است: تا وقتی خودتان نیفزایید خط لوله `logs:` ندارد، پس `filter/drop-low-severity` تا وقتی گیرنده‌ای `filelog` یا `journald` کنارش نیفزایید چیزی برای پالایش ندارد.
 
 > **روی macOS از تاربال استفاده کنید، نه Homebrew.** فرمول Homebrew جمع‌کننده **هسته** را عرضه می‌کند، و `filter` پردازنده‌ای فقط-contrib است — جمع‌کننده صرف‌نظر از اینکه YAML شما درست باشد یا نه، از آغاز شدن سر باز می‌زند.
 
@@ -915,6 +934,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:

@@ -42,3 +42,5 @@ Actions include creating incidents, acknowledging/resolving incidents and alerts
 ## Requirements
 
 Ask AI uses your project's configured LLM provider (see [LLM Providers](/docs/ai/llm-provider)). On OneUptime Cloud it works out of the box with metered AI tokens; self-hosted deployments configure a provider or the global provider environment variables. Answers are only as good as the model behind them — small self-hosted models without reliable tool-calling will underperform.
+
+Ask AI counts toward the project's own daily AI limits when the project sets them (Project Settings → AI Features → More settings): once one is reached, Ask AI shows a sentence saying which limit was reached and that OneUptime AI starts again at midnight UTC. The incident and alert daily limits never stop Ask AI. See [the project's own daily limits](/docs/ai/ai-sre#the-projects-own-daily-limits).

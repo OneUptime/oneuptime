@@ -67,7 +67,10 @@ export function resolveProxmoxConnectMethod(
   );
 }
 
-type ProxmoxAgentInstallMethod = Exclude<ProxmoxConnectMethod, "native-push">;
+export type ProxmoxAgentInstallMethod = Exclude<
+  ProxmoxConnectMethod,
+  "native-push"
+>;
 
 // Where the agent's files are published, and where install.sh puts them.
 export const PROXMOX_AGENT_RAW_URL: string =
@@ -75,6 +78,14 @@ export const PROXMOX_AGENT_RAW_URL: string =
 export const PROXMOX_AGENT_SOURCE_URL: string =
   "https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent";
 export const PROXMOX_AGENT_INSTALL_DIR: string = "/opt/oneuptime-proxmox-agent";
+
+/*
+ * The collector image agents/ProxmoxAgent/docker-compose.yml pins, which
+ * its config reports as the agent's version. The journald wrapper image
+ * below is built on it too.
+ */
+export const PROXMOX_AGENT_COLLECTOR_IMAGE: string =
+  "otel/opentelemetry-collector-contrib:0.161.0";
 
 // The containers docker-compose.yml runs (their container_name).
 export const PROXMOX_AGENT_CONTAINER: string = "oneuptime-proxmox-agent";
@@ -201,6 +212,12 @@ processors:
     attributes:
       - key: proxmox.cluster.name
         value: "\${env:PROXMOX_CLUSTER_NAME}"
+        action: upsert
+      # Shown as the agent version on the cluster's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
       # The prometheus receiver synthesizes service.name (= the scrape job
       # name, "oneuptime-proxmox") and service.instance.id on every batch
@@ -362,6 +379,33 @@ function inAgentFolder(
   return commands.join("\n");
 }
 
+/*
+ * The commands that upgrade the agent. The collector image is pinned in
+ * docker-compose.yml and its config is a file beside it, so an upgrade
+ * downloads both again and recreates the containers: Compose recreates a
+ * container for a new image or environment, never for a new config file,
+ * and the collector reads its config only when it starts. The .env stays.
+ * The guide's "Upgrade or uninstall the agent" topic and the dialog beside
+ * an outdated agent version (Components/AgentVersion) both show these.
+ */
+export function getProxmoxAgentDownloadCommand(
+  method: ProxmoxAgentInstallMethod,
+): string {
+  return inAgentFolder(method, [
+    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
+    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+  ]);
+}
+
+export function getProxmoxAgentRecreateCommand(
+  method: ProxmoxAgentInstallMethod,
+): string {
+  return inAgentFolder(method, [
+    "docker compose pull",
+    "docker compose up -d --force-recreate",
+  ]);
+}
+
 function agentFolder(method: ProxmoxAgentInstallMethod): string {
   return method === "install-script"
     ? `\`${PROXMOX_AGENT_INSTALL_DIR}\``
@@ -472,8 +516,7 @@ function getDockerComposeStep(context: AgentGuideContext): SetupGuideStep {
 ${codeBlock(
   "bash",
   `mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml
-curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+${getProxmoxAgentDownloadCommand("docker-compose")}`,
 )}
 
 Create a \`.env\` file next to them — it holds the token secret, so keep it private with \`chmod 600 .env\`:
@@ -625,7 +668,7 @@ function getServiceLogsTopic(context: AgentGuideContext): SetupGuideTopic {
 
 ${codeBlock(
   "dockerfile",
-  `FROM otel/opentelemetry-collector-contrib:latest AS otelcol
+  `FROM ${PROXMOX_AGENT_COLLECTOR_IMAGE} AS otelcol
 FROM debian:stable-slim
 RUN apt-get update \\
     && apt-get install -y --no-install-recommends systemd \\
@@ -701,16 +744,17 @@ function getUpgradeTopic(context: AgentGuideContext): SetupGuideTopic {
 
   return {
     title: "Upgrade or uninstall the agent",
-    summary: "Pull the latest images, or stop and remove the agent.",
-    markdown: `${where}**Upgrade** to the latest images:
+    summary:
+      "Download the latest files and recreate the agent, or stop and remove it.",
+    markdown: `${where}**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
 
-${codeBlock(
-  "bash",
-  inAgentFolder(context.method, [
-    "docker compose pull",
-    "docker compose up -d",
-  ]),
-)}
+${codeBlock("bash", getProxmoxAgentDownloadCommand(context.method))}
+
+Then pull the images and recreate the agent, so the collector reads its new config:
+
+${codeBlock("bash", getProxmoxAgentRecreateCommand(context.method))}
+
+The config reports the collector version it pins as the cluster's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
 
 **Uninstall** the agent:
 

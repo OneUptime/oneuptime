@@ -103,6 +103,15 @@ ENV_ARGS=(
   -e "VCENTER_PASSWORD=validate-only"
   -e "VCENTER_INSECURE_SKIP_VERIFY=true"
   -e "VCENTER_COLLECTION_INTERVAL=2m"
+  # The Proxmox and Ceph agents (prometheus receivers scraping an exporter
+  # and the mgr prometheus module). A scrape target has to parse as
+  # host:port, and the Ceph targets are one YAML list, so give them the
+  # shapes their compose files and install scripts write.
+  -e "PROXMOX_CLUSTER_NAME=validate-only"
+  -e "PVE_HOST=pve.example.com"
+  -e "PVE_EXPORTER_URL=pve-exporter:9221"
+  -e "CEPH_CLUSTER_NAME=validate-only"
+  -e "CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283]"
   # The Database Agent (one config per engine under agents/DatabaseAgent/
   # configs). The postgresql receiver splits the endpoint as host:port and
   # refuses an empty username or password, the TLS flags and the two event
@@ -157,7 +166,7 @@ validate() {
   fi
 }
 
-for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent; do
+for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent ProxmoxAgent CephAgent; do
   # Copied into the work dir so every config is mounted from one place and the
   # bind mount cannot pick up anything else from the agent directory.
   cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"

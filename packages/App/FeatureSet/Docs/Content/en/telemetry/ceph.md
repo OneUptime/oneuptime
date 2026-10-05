@@ -131,11 +131,19 @@ The unit assumes the agent lives in `/opt/oneuptime-ceph-agent` (the install scr
 
 ## Upgrading the Agent
 
+The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the cluster's **Overview**. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
+
+The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Download both files again (your `.env` stays; re-apply any change you made to the two files), then pull the images and recreate the agent so the collector reads its new config:
+
 ```bash
 cd /opt/oneuptime-ceph-agent
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
+
+Installed it with Docker Compose in a folder of your own? Run the same commands there, without the `cd`.
 
 ## Uninstalling the Agent
 

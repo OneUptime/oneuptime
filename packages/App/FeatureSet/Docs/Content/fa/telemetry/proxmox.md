@@ -147,7 +147,7 @@ docker logs -f oneuptime-proxmox-agent
 4. **ایمیج جمع‌کننده را عوض کنید.** ایمیج خام `otel/opentelemetry-collector-contrib` با `FROM scratch` ساخته شده است: باینری `journalctl` را ندارد (که گیرنده journald به آن پوسته می‌زند) و با کاربری غیر ریشه اجرا می‌شود که نمی‌تواند journal را بخواند. پوششی نازک بسازید و `image:` را در `docker-compose.yml` به آن نشانه بگیرید:
 
    ```dockerfile
-   FROM otel/opentelemetry-collector-contrib:latest AS otelcol
+   FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
    FROM debian:stable-slim
    RUN apt-get update \
        && apt-get install -y --no-install-recommends systemd \
@@ -240,11 +240,19 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 ## ارتقای عامل
 
+عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** خوشه پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
+
+ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. هر دو فایل را دوباره دانلود کنید (`.env` شما می‌ماند؛ هر تغییری را که در آن دو فایل داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید تا جمع‌کننده پیکربندی تازه‌اش را بخواند:
+
 ```bash
 cd /opt/oneuptime-proxmox-agent
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
+
+آن را با Docker Compose در پوشه‌ای از خودتان نصب کرده‌اید؟ همین فرمان‌ها را بدون `cd` در همان پوشه اجرا کنید.
 
 ## حذف نصب عامل
 

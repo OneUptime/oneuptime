@@ -116,7 +116,11 @@ import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import AIService, { AI_DISABLED_MESSAGE } from "../../../Services/AIService";
+import AIService, {
+  AI_DISABLED_MESSAGE,
+  getProjectDailyLimitMessage,
+  ProjectAiDailyLimitStatus,
+} from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import { escapeMarkdownInline } from "../../../../Utils/Markdown/MarkdownEscape";
@@ -3705,6 +3709,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectId: projectId.toString(),
       });
       await turnContext.sendActivity(AI_DISABLED_MESSAGE);
+      return;
+    }
+
+    /*
+     * The project's own daily AI limits, read before we acknowledge for the
+     * same reason: past a limit, the generic "I ran into a problem" would be
+     * wrong about a setting somebody chose on purpose.
+     */
+    const reachedDailyLimit: ProjectAiDailyLimitStatus | null =
+      await AIService.getReachedProjectDailyLimit({ projectId });
+
+    if (reachedDailyLimit) {
+      logger.debug(
+        "AI Ops declined: the project has reached its own daily AI limit",
+        {
+          projectId: projectId.toString(),
+        },
+      );
+      await turnContext.sendActivity(
+        getProjectDailyLimitMessage(reachedDailyLimit),
+      );
       return;
     }
 

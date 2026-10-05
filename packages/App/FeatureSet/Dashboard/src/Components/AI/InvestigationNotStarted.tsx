@@ -5,6 +5,7 @@ import InvestigationNotStartedReason, {
   InvestigationNotStartedCode,
 } from "Common/Types/AI/InvestigationNotStartedReason";
 import Project from "Common/Models/DatabaseModels/Project";
+import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -76,6 +77,7 @@ const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "automatic_investigation_disabled",
   "provider_missing",
   "insufficient_ai_balance",
+  "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
   "daily_budget_exhausted",
@@ -126,6 +128,17 @@ function getEnableAiUpdatePermissions(): Array<Permission> {
   return new Project().getColumnAccessControlFor("enableAi")?.update || [];
 }
 
+/*
+ * Who may change the project's own daily AI limits, the same way: from the
+ * token limit column's update access control.
+ */
+function getDailyAiLimitUpdatePermissions(): Array<Permission> {
+  return (
+    new Project().getColumnAccessControlFor(PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN)
+      ?.update || []
+  );
+}
+
 export function getSettingsAction(
   code: InvestigationNotStartedCode,
   subjectType: "incident" | "alert",
@@ -157,6 +170,21 @@ export function getSettingsAction(
       permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
       whoCanAct: translationKey(
         "A project owner or someone with Manage Billing can add AI credits.",
+      ),
+    };
+  }
+
+  /*
+   * The project's own daily AI limits live under More settings on Project
+   * Settings → AI Features, which every install shows.
+   */
+  if (code === "project_daily_limit_reached") {
+    return {
+      label: "Go to Project Settings → AI Features",
+      page: PageMap.SETTINGS_AI_FEATURES,
+      permissions: getDailyAiLimitUpdatePermissions(),
+      whoCanAct: translationKey(
+        "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI Features.",
       ),
     };
   }

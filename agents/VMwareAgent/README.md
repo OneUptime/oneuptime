@@ -249,13 +249,25 @@ The unit assumes the agent lives in `/opt/oneuptime-vmware-agent` (the install s
 
 ## Upgrading
 
+The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the vCenter's page; select it to see these commands.
+
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml`, and recreates the agent so the collector reads its new config.
+
 ```bash
-cd /opt/oneuptime-vmware-agent
-docker compose pull
-docker compose up -d
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+bash install.sh
 ```
 
-The collector image is pinned in `docker-compose.yml`; when a newer OneUptime release bumps the pin, re-download `docker-compose.yml` and `otel-collector-config.yaml` from this directory before pulling — or re-run `install.sh`, which reuses every value in your existing `.env` (nothing is prompted for again) and refreshes only those two files.
+Installed it with Docker Compose instead? Download both files again, then pull and recreate the agent (re-apply any change you made to the two files):
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+docker compose pull
+docker compose up -d --force-recreate
+```
+
+An agent installed before its config reported a version shows none until it is upgraded this way.
 
 ## Uninstalling
 
