@@ -21,18 +21,20 @@ import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import AIRunType from "../../Types/AI/AIRunType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
-  RESOURCE_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS,
-  RESOURCE_AI_INSIGHTS_LIMIT,
-  RESOURCE_AI_INSIGHTS_RATIONALE_MAX_LENGTH,
+  RESOURCE_AI_LOGS_COMMAND_WINDOW_IN_DAYS,
+  RESOURCE_AI_LOGS_LIMIT,
+  RESOURCE_AI_LOGS_RATIONALE_MAX_LENGTH,
   ResourceAiAccessTestCommandResult,
-  ResourceAiInsightFix,
-  ResourceAiInsightInvestigation,
-  ResourceAiInsights,
+  ResourceAiLogFix,
+  ResourceAiLogInvestigation,
+  ResourceAiLogs,
 } from "../../Types/AI/ResourceAiAccessApi";
 import {
   RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
@@ -78,6 +80,23 @@ import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
+import AiActivityInsightsReader, {
+  AiActivityInsightsScope,
+} from "../Utils/AI/ActivityInsights/AiActivityInsightsReader";
+import {
+  CephClusterNameLabelKeys,
+  DatabaseServerIdLabelKeys,
+  DockerHostIdLabelKeys,
+  DockerHostNameLabelKeys,
+  DockerSwarmClusterNameLabelKeys,
+  HostIdLabelKeys,
+  HostNameLabelKeys,
+  PodmanHostIdLabelKeys,
+  PodmanHostNameLabelKeys,
+  ProxmoxClusterNameLabelKeys,
+  VMwareVCenterNameLabelKeys,
+} from "../Utils/Monitor/SeriesResourceLabels";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
   ResourceCommandJobOutcome,
@@ -86,8 +105,9 @@ import ResourceCommandJobRunner, {
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The custom calls behind the AI pages (AI → AI agent and AI → Insights) of
- * every infrastructure resource a resource AI agent serves: Docker, Podman
+ * The custom calls behind the AI pages (AI → Insights, AI → Logs and
+ * AI → AI agent) of every infrastructure resource a resource AI agent
+ * serves: Docker, Podman
  * and Docker Swarm hosts, Proxmox clusters, VMware vCenters, Ceph clusters,
  * database servers and hosts. The resource-agnostic sibling of
  * KubernetesClusterAiAccessAPI, shaped like it. Everything else on those
@@ -125,22 +145,31 @@ const router: ExpressRouter = Express.getRouter();
  *     For the people who may loosen AI access
  *     (RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS).
  *
+ *   POST /resource-ai-access/logs         { resourceType, resourceId }
+ *     Everything AI did on the resource, newest first, as summaries: the AI
+ *     Logs page. Same read gate as the status; what it says about
+ *     incidents, alerts, AI runs and suggestions follows the caller's own
+ *     read access to those (see getResourceAiLogs).
+ *
  *   POST /resource-ai-access/insights     { resourceType, resourceId }
- *     What AI investigated and changed on the resource, as summaries. Same
- *     read gate as the status; what it says about incidents, alerts, AI runs
- *     and suggestions follows the caller's own read access to those (see
- *     getResourceAiInsights).
+ *     What AI learned on the resource and what deserves attention
+ *     (AiActivityInsights): the AI Insights page. Same read gate, and the
+ *     same rule about incidents, alerts and findings
+ *     (AiActivityInsightsReader).
  */
 
 /*
  * How each resource type is read: its table's service (under the caller's
- * props — that is the access check) and the Incident/Alert relation that
- * links it to a subject.
+ * props — that is the access check), the Incident/Alert relation that
+ * links it to a subject, and the series labels that name the resource
+ * itself on its alerts (SeriesResourceLabels) — every subject on its AI
+ * Insights page carries those, so they are never a hotspot there.
  */
 interface ResourceAiAccessKind {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   service: DatabaseService<any>;
   subjectRelation: string;
+  scopeLabelKeys: ReadonlyArray<string>;
 }
 
 export const RESOURCE_AI_ACCESS_KINDS: Readonly<
@@ -149,34 +178,47 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
   [AiResourceType.DockerHost]: {
     service: DockerHostService,
     subjectRelation: "dockerHosts",
+    scopeLabelKeys: [...DockerHostIdLabelKeys, ...DockerHostNameLabelKeys],
   },
   [AiResourceType.PodmanHost]: {
     service: PodmanHostService,
     subjectRelation: "podmanHosts",
+    scopeLabelKeys: [...PodmanHostIdLabelKeys, ...PodmanHostNameLabelKeys],
   },
   [AiResourceType.DockerSwarmCluster]: {
     service: DockerSwarmClusterService,
     subjectRelation: "dockerSwarmClusters",
+    scopeLabelKeys: [...DockerSwarmClusterNameLabelKeys],
   },
   [AiResourceType.ProxmoxCluster]: {
     service: ProxmoxClusterService,
     subjectRelation: "proxmoxClusters",
+    scopeLabelKeys: [...ProxmoxClusterNameLabelKeys],
   },
   [AiResourceType.VMwareVCenter]: {
     service: VMwareVCenterService,
     subjectRelation: "vmwareVCenters",
+    scopeLabelKeys: [...VMwareVCenterNameLabelKeys],
   },
   [AiResourceType.CephCluster]: {
     service: CephClusterService,
     subjectRelation: "cephClusters",
+    scopeLabelKeys: [...CephClusterNameLabelKeys],
   },
   [AiResourceType.DatabaseServer]: {
     service: DatabaseServerService,
     subjectRelation: "databaseServers",
+    // The id stamp, and the display name ingest stamps next to it.
+    scopeLabelKeys: [
+      ...DatabaseServerIdLabelKeys,
+      "resource.oneuptime.database.server.name",
+      "oneuptime.database.server.name",
+    ],
   },
   [AiResourceType.Host]: {
     service: HostService,
     subjectRelation: "hosts",
+    scopeLabelKeys: [...HostIdLabelKeys, ...HostNameLabelKeys],
   },
 };
 
@@ -1048,16 +1090,16 @@ router.post(
 );
 
 /*
- * How many of the resource's newest agent jobs the insights read to find
- * the AI runs and suggestions that ran commands on it. Each AI run runs at
- * most a handful, so this reaches well past the newest 25 of either.
+ * How many of the resource's newest agent jobs the logs read to find the AI
+ * runs and suggestions that ran commands on it. Each AI run runs at most a
+ * handful, so this reaches well past the newest 25 of either.
  */
-const INSIGHTS_JOB_SCAN_LIMIT: number = 500;
+const LOGS_JOB_SCAN_LIMIT: number = 500;
 
-// How many incidents and alerts linked to the resource the insights read.
-const INSIGHTS_LINKED_SUBJECT_LIMIT: number = 200;
+// How many incidents and alerts linked to the resource the logs read.
+const LOGS_LINKED_SUBJECT_LIMIT: number = 200;
 
-// What the insights' merge reads off every row it unions.
+// What the logs' merge reads off every row it unions.
 interface BaseRow {
   id?: ObjectID | null | undefined;
   createdAt?: Date | undefined;
@@ -1147,8 +1189,8 @@ async function readIfPermitted<T>(
 }
 
 /*
- * What OneUptime AI investigated and changed on one resource, as summaries
- * (ResourceAiInsights). The caller has already been checked for read
+ * Everything OneUptime AI did on one resource, newest first, as summaries
+ * (ResourceAiLogs). The caller has already been checked for read
  * access to the resource (findAccessibleResource), which is a wider
  * audience than the incidents, alerts, AI runs and suggestions summarised
  * here, so what is said about THOSE follows the caller's own read access to
@@ -1178,24 +1220,24 @@ async function readIfPermitted<T>(
  *   (their RunnerJob rows name it), UNION investigations of incidents and
  *   alerts linked to it — which also covers one whose access was not set
  *   up, so it never ran a command. Newest first, at most
- *   RESOURCE_AI_INSIGHTS_LIMIT.
+ *   RESOURCE_AI_LOGS_LIMIT.
  * - fixes: suggestions the resource's own AI remediation setting produced
  *   (AutoRemediationSuggestion.resourceType / resourceId), UNION any
  *   suggestion whose commands ran on this resource (a rule's round, too).
  *   Newest first, same limit.
  * - commandCounts: commands in the last
- *   RESOURCE_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS days. The AI agent page's
+ *   RESOURCE_AI_LOGS_COMMAND_WINDOW_IN_DAYS days. The AI agent page's
  *   connection tests have no AI run behind them and are not counted.
  */
-export async function getResourceAiInsights(data: {
+export async function getResourceAiLogs(data: {
   projectId: ObjectID;
   resourceType: AiResourceType;
   resourceId: ObjectID;
   // The caller's own (tenant-pinned) props.
   props: DatabaseCommonInteractionProps;
-}): Promise<ResourceAiInsights> {
+}): Promise<ResourceAiLogs> {
   const { projectId, resourceType, resourceId, props } = data;
-  const limit: number = RESOURCE_AI_INSIGHTS_LIMIT;
+  const limit: number = RESOURCE_AI_LOGS_LIMIT;
   const subjectRelation: string =
     RESOURCE_AI_ACCESS_KINDS[resourceType].subjectRelation;
 
@@ -1208,7 +1250,7 @@ export async function getResourceAiInsights(data: {
     },
     select: { _id: true, aiRunId: true, autoRemediationSuggestionId: true },
     sort: { createdAt: SortOrder.Descending },
-    limit: INSIGHTS_JOB_SCAN_LIMIT,
+    limit: LOGS_JOB_SCAN_LIMIT,
     skip: 0,
     props: { isRoot: true },
   });
@@ -1243,7 +1285,7 @@ export async function getResourceAiInsights(data: {
           } as never,
           select: { _id: true },
           sort: { createdAt: SortOrder.Descending },
-          limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+          limit: LOGS_LINKED_SUBJECT_LIMIT,
           skip: 0,
           props,
         });
@@ -1256,15 +1298,15 @@ export async function getResourceAiInsights(data: {
           } as never,
           select: { _id: true },
           sort: { createdAt: SortOrder.Descending },
-          limit: INSIGHTS_LINKED_SUBJECT_LIMIT,
+          limit: LOGS_LINKED_SUBJECT_LIMIT,
           skip: 0,
           props,
         });
       }),
     ]);
 
-  const investigations: Array<ResourceAiInsightInvestigation> =
-    await getInsightInvestigations({
+  const investigations: Array<ResourceAiLogInvestigation> =
+    await getLogInvestigations({
       projectId,
       props,
       runIds: Array.from(runIdsFromJobs.values()),
@@ -1273,7 +1315,7 @@ export async function getResourceAiInsights(data: {
       limit,
     });
 
-  const fixes: Array<ResourceAiInsightFix> = await getInsightFixes({
+  const fixes: Array<ResourceAiLogFix> = await getLogFixes({
     projectId,
     props,
     resourceType,
@@ -1283,7 +1325,7 @@ export async function getResourceAiInsights(data: {
   });
 
   const since: Date = OneUptimeDate.getSomeDaysAgo(
-    RESOURCE_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS,
+    RESOURCE_AI_LOGS_COMMAND_WINDOW_IN_DAYS,
   );
 
   const countCommands: (
@@ -1328,7 +1370,7 @@ export async function getResourceAiInsights(data: {
   };
 }
 
-const INSIGHT_RUN_SELECT: Record<string, boolean> = {
+const LOG_RUN_SELECT: Record<string, boolean> = {
   _id: true,
   status: true,
   analysisTldr: true,
@@ -1346,14 +1388,14 @@ function getSubjectlessRunTldrReadPermissions(): Array<Permission> {
   return new AIRun().getColumnAccessControlFor("analysisTldr")?.read || [];
 }
 
-async function getInsightInvestigations(data: {
+async function getLogInvestigations(data: {
   projectId: ObjectID;
   props: DatabaseCommonInteractionProps;
   runIds: Array<ObjectID>;
   incidentIds: Array<ObjectID>;
   alertIds: Array<ObjectID>;
   limit: number;
-}): Promise<Array<ResourceAiInsightInvestigation>> {
+}): Promise<Array<ResourceAiLogInvestigation>> {
   const reads: Array<Promise<Array<AIRun>>> = [];
 
   const readRuns: (query: Record<string, unknown>) => Promise<Array<AIRun>> = (
@@ -1365,7 +1407,7 @@ async function getInsightInvestigations(data: {
         projectId: data.projectId,
         runType: AIRunType.Investigation,
       } as never,
-      select: INSIGHT_RUN_SELECT,
+      select: LOG_RUN_SELECT,
       sort: { createdAt: SortOrder.Descending },
       limit: data.limit,
       skip: 0,
@@ -1482,7 +1524,19 @@ async function getInsightInvestigations(data: {
     allowed: getSubjectlessRunTldrReadPermissions(),
   });
 
-  return runs.map((run: AIRun): ResourceAiInsightInvestigation => {
+  /*
+   * A completed run without a TL;DR still published a report on its
+   * incident or alert, and its own Summary stands in
+   * (InvestigationReportSummary). Only runs with a subject have a report,
+   * and every such run left here has a subject the caller may read.
+   */
+  const reportSummaries: Map<string, string> =
+    await InvestigationReportSummary.getForRuns({
+      projectId: data.projectId,
+      runs: InvestigationReportSummary.getRunsWithoutTldr(runs),
+    });
+
+  return runs.map((run: AIRun): ResourceAiLogInvestigation => {
     const incident: Incident | undefined = run.triggeredByIncidentId
       ? incidentsById.get(run.triggeredByIncidentId.toString())
       : undefined;
@@ -1502,6 +1556,9 @@ async function getInsightInvestigations(data: {
       aiRunId: run.id!.toString(),
       status: run.status,
       analysisTldr: mayReadTldr ? run.analysisTldr || undefined : undefined,
+      reportSummary: mayReadTldr
+        ? reportSummaries.get(run.id!.toString())
+        : undefined,
       createdAt: toIsoString(run.createdAt),
       completedAt: toIsoString(run.completedAt),
       incident: run.triggeredByIncidentId
@@ -1523,9 +1580,9 @@ async function getInsightInvestigations(data: {
 
 /*
  * Read as root, so never the rationale: that is read under the caller's
- * props (getInsightFixes).
+ * props (getLogFixes).
  */
-const INSIGHT_FIX_SELECT: Record<string, boolean> = {
+const LOG_FIX_SELECT: Record<string, boolean> = {
   _id: true,
   status: true,
   executionMode: true,
@@ -1536,14 +1593,14 @@ const INSIGHT_FIX_SELECT: Record<string, boolean> = {
   alertId: true,
 };
 
-async function getInsightFixes(data: {
+async function getLogFixes(data: {
   projectId: ObjectID;
   props: DatabaseCommonInteractionProps;
   resourceType: AiResourceType;
   resourceId: ObjectID;
   suggestionIds: Array<ObjectID>;
   limit: number;
-}): Promise<Array<ResourceAiInsightFix>> {
+}): Promise<Array<ResourceAiLogFix>> {
   const readSuggestions: (
     query: Record<string, unknown>,
   ) => Promise<Array<AutoRemediationSuggestion>> = (
@@ -1551,7 +1608,7 @@ async function getInsightFixes(data: {
   ): Promise<Array<AutoRemediationSuggestion>> => {
     return AutoRemediationSuggestionService.findBy({
       query: { ...query, projectId: data.projectId } as never,
-      select: INSIGHT_FIX_SELECT,
+      select: LOG_FIX_SELECT,
       sort: { createdAt: SortOrder.Descending },
       limit: data.limit,
       skip: 0,
@@ -1606,7 +1663,7 @@ async function getInsightFixes(data: {
   }
 
   return suggestions.map(
-    (suggestion: AutoRemediationSuggestion): ResourceAiInsightFix => {
+    (suggestion: AutoRemediationSuggestion): ResourceAiLogFix => {
       const rationale: string | undefined = rationaleById.get(
         suggestion.id!.toString(),
       );
@@ -1617,7 +1674,7 @@ async function getInsightFixes(data: {
         executionMode: suggestion.executionMode,
         suggestionType: suggestion.suggestionType,
         rationale: rationale
-          ? rationale.slice(0, RESOURCE_AI_INSIGHTS_RATIONALE_MAX_LENGTH)
+          ? rationale.slice(0, RESOURCE_AI_LOGS_RATIONALE_MAX_LENGTH)
           : undefined,
         createdAt: toIsoString(suggestion.createdAt),
         approvedAt: toIsoString(suggestion.approvedAt),
@@ -1626,6 +1683,73 @@ async function getInsightFixes(data: {
       };
     },
   );
+}
+
+router.post(
+  RESOURCE_AI_ACCESS_LOGS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const resource: AccessibleResource = await findAccessibleResource({
+        req,
+        props,
+        tenantId,
+      });
+
+      const logs: ResourceAiLogs = await getResourceAiLogs({
+        projectId: tenantId,
+        resourceType: resource.resourceType,
+        resourceId: resource.id,
+        props,
+      });
+
+      Response.sendJsonObjectResponse(req, res, logs as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * How the AI Insights reader finds a resource's activity: the commands its
+ * AI agent ran, the incidents and alerts linked through the type's own
+ * relation, the rounds the resource's own fixes setting produced, and the
+ * labels that name the resource itself.
+ */
+export function getResourceAiActivityInsightsScope(data: {
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+  resource: AccessibleResource;
+}): AiActivityInsightsScope {
+  const kind: ResourceAiAccessKind =
+    RESOURCE_AI_ACCESS_KINDS[data.resource.resourceType];
+
+  return {
+    projectId: data.projectId,
+    props: data.props,
+    scopeId: data.resource.id,
+    commandJobQuery: {
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+      stepType: RunbookStepType.ResourceCommand,
+    },
+    subjectRelation: kind.subjectRelation,
+    ownFixQuery: {
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+    },
+    scopeLabelKeys: kind.scopeLabelKeys,
+    scopeNames: data.resource.name ? [data.resource.name] : [],
+  };
 }
 
 router.post(
@@ -1646,12 +1770,13 @@ router.post(
         tenantId,
       });
 
-      const insights: ResourceAiInsights = await getResourceAiInsights({
-        projectId: tenantId,
-        resourceType: resource.resourceType,
-        resourceId: resource.id,
-        props,
-      });
+      const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+        getResourceAiActivityInsightsScope({
+          projectId: tenantId,
+          props,
+          resource,
+        }),
+      );
 
       Response.sendJsonObjectResponse(
         req,

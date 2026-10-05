@@ -24,23 +24,23 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import ResourceAiInsightsPage from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiInsightsPage";
+import ResourceAiLogsPage from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiLogsPage";
 import {
-  RESOURCE_AI_INSIGHTS_EMPTY_TITLE,
-  RESOURCE_AI_INSIGHTS_PAGE_TITLE,
+  RESOURCE_AI_LOGS_EMPTY_TITLE,
+  RESOURCE_AI_LOGS_PAGE_TITLE,
   RESOURCE_COMMAND_JOB_ORIGIN_LABELS,
-  ResourceAiInsights,
+  ResourceAiLogs,
   describeResourceCommandJobOrigin,
   describeResourceFixType,
   describeResourceInvestigationSubject,
-  getResourceAiInsightsEmptyDescription,
-  getResourceAiInsightsPageSubtitle,
+  getResourceAiLogsEmptyDescription,
+  getResourceAiLogsPageSubtitle,
   getResourceCommandsEmptyMessage,
   getResourceFixStatusLook,
   getResourceInvestigationStatusLook,
   getResourceInvestigationSummary,
-  parseResourceAiInsights,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiInsights";
+  parseResourceAiLogs,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiLogs";
 import {
   ResourceAiAgentDescriptor,
   getResourceAiAgentDescriptor,
@@ -93,9 +93,9 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * A resource's AI Insights page (AI → Insights) renders for real on its
- * real route, with the insights and status routes, the model API and the
- * permission snapshot stubbed. It answers "what did OneUptime AI do on this
+ * A resource's AI Logs page (AI → Logs) renders for real on its real route,
+ * with the logs and status routes, the model API and the permission
+ * snapshot stubbed. It answers "what did OneUptime AI do on this
  * resource?": the investigations of incidents and alerts here, the fixes
  * AI proposed or applied, and every command it ran through the resource's
  * AI agent — a RunnerJob table filtered on this resource's ResourceCommand
@@ -113,7 +113,7 @@ const SECOND_RUN_ID: string = "66666666-0000-4000-8000-000000000007";
 const FIX_ID: string = "77777777-0000-4000-8000-000000000001";
 const SECOND_FIX_ID: string = "77777777-0000-4000-8000-000000000002";
 
-const INSIGHTS_ROUTE: string = "/resource-ai-access/insights";
+const LOGS_ROUTE: string = "/resource-ai-access/logs";
 const STATUS_ROUTE: string = "/resource-ai-access/status";
 
 const CEPH: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
@@ -159,6 +159,24 @@ function incidentInvestigation(): JSONObject {
   };
 }
 
+/*
+ * A completed investigation whose TL;DR call failed: the server sends the
+ * summary its posted report opens with instead.
+ */
+const REPORT_SUMMARY: string =
+  "osd.7 is flapping because its journal disk reports read errors.";
+
+function reportOnlyInvestigation(): JSONObject {
+  return {
+    aiRunId: RUN_ID,
+    status: AIRunStatus.Completed,
+    reportSummary: REPORT_SUMMARY,
+    createdAt: "2026-09-22T09:00:00.000Z",
+    completedAt: "2026-09-22T09:04:00.000Z",
+    alert: { id: ALERT_ID, title: "OSD flapping" },
+  };
+}
+
 function alertInvestigation(): JSONObject {
   return {
     aiRunId: SECOND_RUN_ID,
@@ -168,7 +186,7 @@ function alertInvestigation(): JSONObject {
   };
 }
 
-function fullInsights(): JSONObject {
+function fullLogs(): JSONObject {
   return {
     resourceType: AiResourceType.CephCluster,
     resourceId: RESOURCE_ID,
@@ -195,7 +213,7 @@ function fullInsights(): JSONObject {
   };
 }
 
-function emptyInsights(): JSONObject {
+function emptyLogs(): JSONObject {
   return {
     resourceType: AiResourceType.CephCluster,
     resourceId: RESOURCE_ID,
@@ -222,11 +240,11 @@ function httpError(statusCode: number, message: string): Answer {
 let postSpy: ReturnType<typeof jest.spyOn>;
 let getListSpy: ReturnType<typeof jest.spyOn>;
 let jobs: Array<RunnerJob> = [];
-let insightsAnswers: Array<Answer> = [];
+let logsAnswers: Array<Answer> = [];
 let statusAnswer: Answer = ok(makeStatus());
 
-function serve(insights: Answer | Array<Answer>, status?: Answer): void {
-  insightsAnswers = Array.isArray(insights) ? [...insights] : [insights];
+function serve(logs: Answer | Array<Answer>, status?: Answer): void {
+  logsAnswers = Array.isArray(logs) ? [...logs] : [logs];
   if (status) {
     statusAnswer = status;
   }
@@ -302,17 +320,17 @@ function NavigationProbe(): React.ReactElement {
   return <></>;
 }
 
-function insightsPath(
+function logsPath(
   descriptor: ResourceAiAgentDescriptor,
   resourceId: string = RESOURCE_ID,
 ): string {
-  return RouteMap[descriptor.insightsPage]!.toString()
+  return RouteMap[descriptor.logsPage]!.toString()
     .replace(":projectId", PROJECT_ID)
     .replace(":id", resourceId);
 }
 
-function openInsightsPage(descriptor: ResourceAiAgentDescriptor = CEPH): void {
-  const path: string = insightsPath(descriptor);
+function openLogsPage(descriptor: ResourceAiAgentDescriptor = CEPH): void {
+  const path: string = logsPath(descriptor);
   goTo(path);
 
   render(
@@ -320,11 +338,11 @@ function openInsightsPage(descriptor: ResourceAiAgentDescriptor = CEPH): void {
       <NavigationProbe />
       <Routes>
         <PageRoute
-          path={String(RouteMap[descriptor.insightsPage])}
+          path={String(RouteMap[descriptor.logsPage])}
           element={
-            <ResourceAiInsightsPage
+            <ResourceAiLogsPage
               descriptor={descriptor}
-              pageRoute={RouteMap[descriptor.insightsPage] as Route}
+              pageRoute={RouteMap[descriptor.logsPage] as Route}
               currentProject={null}
               hasPaymentMethod={true}
             />
@@ -353,7 +371,7 @@ beforeEach(() => {
   grant([...BASE_PERMISSIONS, Permission.ProjectMember]);
 
   statusAnswer = ok(makeStatus());
-  insightsAnswers = [ok(fullInsights())];
+  logsAnswers = [ok(fullLogs())];
 
   postSpy = jest.spyOn(API, "post");
   postSpy.mockImplementation(
@@ -361,11 +379,9 @@ beforeEach(() => {
       request: unknown,
     ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
       const url: string = String((request as JSONObject)["url"]);
-      if (url.endsWith(INSIGHTS_ROUTE)) {
+      if (url.endsWith(LOGS_ROUTE)) {
         const answer: Answer =
-          insightsAnswers.length > 1
-            ? insightsAnswers.shift()!
-            : insightsAnswers[0]!;
+          logsAnswers.length > 1 ? logsAnswers.shift()! : logsAnswers[0]!;
         return await answer();
       }
       if (url.endsWith(STATUS_ROUTE)) {
@@ -394,16 +410,16 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("parseResourceAiInsights", () => {
-  test("reads the shape the insights route returns", () => {
-    const parsed: ResourceAiInsights | null =
-      parseResourceAiInsights(fullInsights());
+describe("parseResourceAiLogs", () => {
+  test("reads the shape the logs route returns", () => {
+    const parsed: ResourceAiLogs | null = parseResourceAiLogs(fullLogs());
 
     expect(parsed?.investigations).toEqual([
       {
         aiRunId: RUN_ID,
         status: AIRunStatus.Completed,
         analysisTldr: "osd.3 went down after its disk filled.",
+        reportSummary: null,
         createdAt: "2026-09-22T09:00:00.000Z",
         completedAt: "2026-09-22T09:04:00.000Z",
         incident: {
@@ -417,6 +433,7 @@ describe("parseResourceAiInsights", () => {
         aiRunId: SECOND_RUN_ID,
         status: AIRunStatus.Running,
         analysisTldr: null,
+        reportSummary: null,
         createdAt: "2026-09-22T09:30:00.000Z",
         completedAt: null,
         incident: null,
@@ -438,16 +455,33 @@ describe("parseResourceAiInsights", () => {
 
   test.each([
     ["null", null],
-    ["a string", "insights"],
+    ["a string", "logs"],
     ["an array", [incidentInvestigation()]],
     ["an object with neither list", { commandCounts: {} }],
   ])("refuses %s", (_label: string, value: unknown) => {
-    expect(parseResourceAiInsights(value)).toBeNull();
+    expect(parseResourceAiLogs(value)).toBeNull();
+  });
+
+  test("reads the summary a run's report opens with, and reads a blank one as none", () => {
+    const parsed: ResourceAiLogs = parseResourceAiLogs({
+      investigations: [
+        reportOnlyInvestigation(),
+        {
+          ...reportOnlyInvestigation(),
+          aiRunId: SECOND_RUN_ID,
+          reportSummary: "  ",
+        },
+      ],
+    })!;
+
+    expect(parsed.investigations[0]!.analysisTldr).toBeNull();
+    expect(parsed.investigations[0]!.reportSummary).toBe(REPORT_SUMMARY);
+    expect(parsed.investigations[1]!.reportSummary).toBeNull();
   });
 
   test("drops rows without an id, and reads ids in the serialized envelope", () => {
     expect(
-      parseResourceAiInsights({
+      parseResourceAiLogs({
         investigations: [
           { status: AIRunStatus.Completed },
           { aiRunId: { _type: "ObjectID", value: RUN_ID } },
@@ -460,6 +494,7 @@ describe("parseResourceAiInsights", () => {
           aiRunId: RUN_ID,
           status: null,
           analysisTldr: null,
+          reportSummary: null,
           createdAt: null,
           completedAt: null,
           incident: null,
@@ -523,7 +558,7 @@ describe("the words on each row", () => {
     );
     expect(describeResourceFixType(null)).toBeNull();
 
-    const parsed: ResourceAiInsights = parseResourceAiInsights(fullInsights())!;
+    const parsed: ResourceAiLogs = parseResourceAiLogs(fullLogs())!;
     expect(
       describeResourceInvestigationSubject(parsed.investigations[0]!),
     ).toEqual({
@@ -543,6 +578,28 @@ describe("the words on each row", () => {
         status: AIRunStatus.Error,
       }),
     ).toBe("No summary was recorded.");
+  });
+
+  test("the finding: the TL;DR, else the report's own summary, else why there is none", () => {
+    const base: ResourceAiLogs["investigations"][number] = parseResourceAiLogs({
+      investigations: [reportOnlyInvestigation()],
+    })!.investigations[0]!;
+
+    // Regression: a run whose TL;DR call failed shows what its report found.
+    expect(getResourceInvestigationSummary(base)).toBe(REPORT_SUMMARY);
+    expect(
+      getResourceInvestigationSummary({ ...base, analysisTldr: "The TL;DR." }),
+    ).toBe("The TL;DR.");
+    expect(
+      getResourceInvestigationSummary({ ...base, reportSummary: null }),
+    ).toBe("No summary was recorded.");
+    expect(
+      getResourceInvestigationSummary({
+        ...base,
+        reportSummary: null,
+        status: AIRunStatus.Queued,
+      }),
+    ).toBe("Still investigating.");
   });
 
   test("a command's reason: an investigation, a connection test or a fix", () => {
@@ -570,30 +627,28 @@ describe("the words on each row", () => {
   });
 });
 
-describe("the AI Insights page", () => {
+describe("the AI Logs page", () => {
   test("shows its title and the resource's subtitle", async () => {
-    openInsightsPage();
+    openLogsPage();
 
+    expect(screen.getByText(RESOURCE_AI_LOGS_PAGE_TITLE)).toBeInTheDocument();
     expect(
-      screen.getByText(RESOURCE_AI_INSIGHTS_PAGE_TITLE),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(getResourceAiInsightsPageSubtitle(CEPH)),
+      screen.getByText(getResourceAiLogsPageSubtitle(CEPH)),
     ).toBeInTheDocument();
     expect(await findText("Investigations")).toBeInTheDocument();
   });
 
-  test("asks the insights and status routes about this resource", async () => {
-    openInsightsPage();
+  test("asks the logs and status routes about this resource", async () => {
+    openLogsPage();
     await findText("Investigations");
 
-    expect(postsTo(INSIGHTS_ROUTE)).toHaveLength(1);
-    expect(postsTo(INSIGHTS_ROUTE)[0]!["data"]).toEqual({
+    expect(postsTo(LOGS_ROUTE)).toHaveLength(1);
+    expect(postsTo(LOGS_ROUTE)[0]!["data"]).toEqual({
       resourceType: AiResourceType.CephCluster,
       resourceId: RESOURCE_ID,
     });
-    expect(String(postsTo(INSIGHTS_ROUTE)[0]!["url"])).toContain(
-      "/api/resource-ai-access/insights",
+    expect(String(postsTo(LOGS_ROUTE)[0]!["url"])).toContain(
+      "/api/resource-ai-access/logs",
     );
     await waitFor(
       () => {
@@ -604,11 +659,11 @@ describe("the AI Insights page", () => {
   });
 
   test("lists investigations and fixes, linked to their incident or alert", async () => {
-    openInsightsPage();
+    openLogsPage();
     await findText("Investigations");
 
     const investigations: Array<HTMLElement> = screen.getAllByTestId(
-      "ai-insights-investigation",
+      "ai-logs-investigation",
     );
     expect(investigations).toHaveLength(2);
     expect(
@@ -627,7 +682,7 @@ describe("the AI Insights page", () => {
       hrefOf(within(investigations[1]!).getByText("Alert: PGs degraded")),
     ).toBe(`/dashboard/${PROJECT_ID}/alerts/${ALERT_ID}`);
 
-    const fixes: Array<HTMLElement> = screen.getAllByTestId("ai-insights-fix");
+    const fixes: Array<HTMLElement> = screen.getAllByTestId("ai-logs-fix");
     expect(fixes).toHaveLength(2);
     expect(
       within(fixes[0]!).getByText("Waiting for approval"),
@@ -663,7 +718,7 @@ describe("the AI Insights page", () => {
         fixes: [],
       }),
     );
-    openInsightsPage();
+    openLogsPage();
 
     expect(
       await findText("Incident #1: <script>window.pwned=1</script>"),
@@ -672,18 +727,16 @@ describe("the AI Insights page", () => {
   });
 
   test("one empty state, pointing at the AI agent page when AI cannot run commands here", async () => {
-    serve(ok(emptyInsights()), ok(makeStatus({ isInvestigationReady: false })));
-    openInsightsPage();
+    serve(ok(emptyLogs()), ok(makeStatus({ isInvestigationReady: false })));
+    openLogsPage();
 
+    expect(await findText(RESOURCE_AI_LOGS_EMPTY_TITLE)).toBeInTheDocument();
     expect(
-      await findText(RESOURCE_AI_INSIGHTS_EMPTY_TITLE),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(getResourceAiInsightsEmptyDescription(CEPH)),
+      screen.getByText(getResourceAiLogsEmptyDescription(CEPH)),
     ).toBeInTheDocument();
     expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
 
-    const hint: HTMLElement = await findTestId("ai-insights-agent-hint");
+    const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
     expect(hint).toHaveTextContent(
       "OneUptime AI can't run commands on this Ceph cluster right now.",
     );
@@ -693,33 +746,29 @@ describe("the AI Insights page", () => {
   });
 
   test("no pointer when AI is ready, or when the status cannot be read", async () => {
-    serve(ok(emptyInsights()));
-    openInsightsPage();
-    await findText(RESOURCE_AI_INSIGHTS_EMPTY_TITLE);
+    serve(ok(emptyLogs()));
+    openLogsPage();
+    await findText(RESOURCE_AI_LOGS_EMPTY_TITLE);
     await waitFor(
       () => {
         expect(postsTo(STATUS_ROUTE)).toHaveLength(1);
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(
-      screen.queryByTestId("ai-insights-agent-hint"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-logs-agent-hint")).not.toBeInTheDocument();
     cleanup();
 
-    serve(ok(emptyInsights()), httpError(500, "status is down"));
-    openInsightsPage();
-    await findText(RESOURCE_AI_INSIGHTS_EMPTY_TITLE);
-    expect(
-      screen.queryByTestId("ai-insights-agent-hint"),
-    ).not.toBeInTheDocument();
+    serve(ok(emptyLogs()), httpError(500, "status is down"));
+    openLogsPage();
+    await findText(RESOURCE_AI_LOGS_EMPTY_TITLE);
+    expect(screen.queryByTestId("ai-logs-agent-hint")).not.toBeInTheDocument();
   });
 
   test("the pointer sits above the lists when there is history but AI is not ready", async () => {
-    serve(ok(fullInsights()), ok(makeStatus({ isInvestigationReady: false })));
-    openInsightsPage();
+    serve(ok(fullLogs()), ok(makeStatus({ isInvestigationReady: false })));
+    openLogsPage();
 
-    const hint: HTMLElement = await findTestId("ai-insights-agent-hint");
+    const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
     expect(screen.getByText("Investigations")).toBeInTheDocument();
     expect(
       hint.compareDocumentPosition(screen.getByText("Investigations")) &
@@ -728,31 +777,26 @@ describe("the AI Insights page", () => {
   });
 
   test("shows the server's error and retries on request", async () => {
-    serve([
-      httpError(500, "The insights service is unavailable."),
-      ok(fullInsights()),
-    ]);
-    openInsightsPage();
+    serve([httpError(500, "The logs service is unavailable."), ok(fullLogs())]);
+    openLogsPage();
 
     expect(
-      await findText("The insights service is unavailable."),
+      await findText("The logs service is unavailable."),
     ).toBeInTheDocument();
     fireEvent.click(
-      within(screen.getByTestId("ai-insights-error")).getByTestId(
-        "refresh-button",
-      ),
+      within(screen.getByTestId("ai-logs-error")).getByTestId("refresh-button"),
     );
 
     expect(await findText("Investigations")).toBeInTheDocument();
-    expect(postsTo(INSIGHTS_ROUTE)).toHaveLength(2);
+    expect(postsTo(LOGS_ROUTE)).toHaveLength(2);
   });
 
   test("explains a body it cannot read", async () => {
     serve(ok({ unexpected: true }));
-    openInsightsPage();
+    openLogsPage();
 
     expect(
-      await findText("The server returned AI insights this page cannot read."),
+      await findText("The server returned AI logs this page cannot read."),
     ).toBeInTheDocument();
   });
 
@@ -776,7 +820,7 @@ describe("the AI Insights page", () => {
           await new Promise<void>((resolve: () => void) => {
             answerFirst = resolve;
           });
-          return new HTTPResponse<JSONObject>(200, fullInsights(), {});
+          return new HTTPResponse<JSONObject>(200, fullLogs(), {});
         }
         return new HTTPResponse<JSONObject>(
           200,
@@ -785,7 +829,7 @@ describe("the AI Insights page", () => {
         );
       },
     );
-    openInsightsPage();
+    openLogsPage();
 
     await waitFor(
       () => {
@@ -795,12 +839,12 @@ describe("the AI Insights page", () => {
     );
 
     act(() => {
-      navigate!(insightsPath(CEPH, OTHER_RESOURCE_ID));
+      navigate!(logsPath(CEPH, OTHER_RESOURCE_ID));
     });
 
     expect(await findText("Alert: PGs degraded")).toBeInTheDocument();
     expect(
-      postsTo(INSIGHTS_ROUTE).map((request: JSONObject): unknown => {
+      postsTo(LOGS_ROUTE).map((request: JSONObject): unknown => {
         return (request["data"] as JSONObject)["resourceId"];
       }),
     ).toEqual([RESOURCE_ID, OTHER_RESOURCE_ID]);
@@ -830,7 +874,7 @@ describe("the commands table", () => {
         payload: { displayCommand: "ceph osd out 3" },
       }),
     ];
-    openInsightsPage();
+    openLogsPage();
 
     expect(await findText("ceph osd tree investigation")).toBeInTheDocument();
     expect(
@@ -875,7 +919,7 @@ describe("the commands table", () => {
   });
 
   test("is titled for the resource's tool and says when nothing ran yet", async () => {
-    openInsightsPage();
+    openLogsPage();
 
     expect(
       await findText(toHeadline(getResourceCommandsEmptyMessage(CEPH))),
@@ -890,7 +934,7 @@ describe("the commands table", () => {
   ]) {
     test(`explains instead of failing for ${permission}`, async () => {
       grant([...BASE_PERMISSIONS, permission]);
-      openInsightsPage();
+      openLogsPage();
 
       const note: HTMLElement = await findTestId(
         "resource-command-jobs-permission-note",
@@ -909,12 +953,12 @@ describe("every resource type", () => {
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
         getResourceAiAgentDescriptor(type);
-      openInsightsPage(descriptor);
+      openLogsPage(descriptor);
 
       expect(
         await findText(toHeadline(getResourceCommandsEmptyMessage(descriptor))),
       ).toBeInTheDocument();
-      expect(postsTo(INSIGHTS_ROUTE)[0]!["data"]).toEqual({
+      expect(postsTo(LOGS_ROUTE)[0]!["data"]).toEqual({
         resourceType: type,
         resourceId: RESOURCE_ID,
       });
@@ -927,6 +971,28 @@ describe("every resource type", () => {
       expect(
         screen.getAllByText(descriptor.commandsCardTitle).length,
       ).toBeGreaterThan(0);
+    },
+  );
+
+  /*
+   * Regression for the screenshot this page was renamed from: a completed
+   * investigation without a TL;DR read "No summary was recorded." though
+   * its report said what it found.
+   */
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: an investigation without a TL;DR shows what its report found",
+    async (type: AiResourceType) => {
+      serve(ok({ investigations: [reportOnlyInvestigation()], fixes: [] }));
+      openLogsPage(getResourceAiAgentDescriptor(type));
+
+      const row: HTMLElement = (await findText(REPORT_SUMMARY)).closest(
+        "[data-testid='ai-logs-investigation']",
+      ) as HTMLElement;
+      expect(row).not.toBeNull();
+      expect(
+        within(row).queryByText("No summary was recorded."),
+      ).not.toBeInTheDocument();
+      expect(within(row).getByText("Completed")).toBeInTheDocument();
     },
   );
 });

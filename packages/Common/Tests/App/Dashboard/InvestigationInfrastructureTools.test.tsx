@@ -250,6 +250,15 @@ describe("infrastructure tool outcomes and evidence", () => {
       expect(note).toBeTruthy();
       expect(note).not.toContain("its rows");
     }
+
+    // Every command is listed on the resource's AI Logs page now.
+    const commandNote: string | null = getClusterEvidenceNote(
+      RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    );
+    expect(commandNote).toContain(
+      "the resource's AI Logs page (AI → Logs) lists every command OneUptime AI ran there.",
+    );
+    expect(commandNote).not.toContain("AI Insights");
   });
 
   test("leaves the kubectl wording as it was", () => {
