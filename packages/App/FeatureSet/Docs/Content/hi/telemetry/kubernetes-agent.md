@@ -354,6 +354,8 @@ clusterName: prod
 
 ## एजेंट को अपग्रेड करना
 
+जब एजेंट आपके OneUptime से पुराना होता है, तो क्लस्टर के **क्लस्टर विवरण** में **एजेंट संस्करण** के पास एक चेतावनी चिह्न दिखता है। यह कमांड देखने के लिए उसे चुनें।
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

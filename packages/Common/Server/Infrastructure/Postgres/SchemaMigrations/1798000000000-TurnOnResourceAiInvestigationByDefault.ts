@@ -36,10 +36,10 @@ const RESOURCE_TABLES: ReadonlyArray<string> = [
   "DatabaseServer",
 ];
 
-export class TurnOnResourceAiInvestigationByDefault1797900000000
+export class TurnOnResourceAiInvestigationByDefault1798000000000
   implements MigrationInterface
 {
-  public name: string = "TurnOnResourceAiInvestigationByDefault1797900000000";
+  public name: string = "TurnOnResourceAiInvestigationByDefault1798000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

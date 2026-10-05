@@ -173,6 +173,23 @@ export function getPodmanComposeFile(data: {
 ${getPodmanAiAgentComposeService(data)}`;
 }
 
+/*
+ * Moving an installed agent to the newest image. The guide's "Upgrade or
+ * uninstall the agent" topic and the upgrade dialog beside an outdated agent
+ * version (Components/AgentVersion) both show this command, so the two never
+ * drift. With the Podman CLI it pulls the image and removes the running
+ * container; the `podman run` command then starts it again on the new image.
+ */
+export function getPodmanAgentUpgradeCommand(
+  method: PodmanInstallMethod,
+): string {
+  if (method === "podman-cli") {
+    return `podman pull ${PODMAN_AGENT_IMAGE}
+podman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`;
+  }
+  return "podman compose pull\npodman compose up -d";
+}
+
 // The OneUptime AI agent, started beside the collector with the same values.
 export function getPodmanAiAgentRunCommand(data: {
   oneuptimeUrl: string;
@@ -433,13 +450,15 @@ ${
       title: "Upgrade or uninstall the agent",
       summary: "Move to the latest image, or remove the agent from the host.",
       markdown: cli
-        ? `**Upgrade** — pull the latest images and remove the running agent and AI agent:
+        ? `**Upgrade** — pull the latest image and remove the running agent:
+
+${codeBlock("bash", getPodmanAgentUpgradeCommand("podman-cli"))}
+
+Then the OneUptime AI agent, the same way:
 
 ${codeBlock(
   "bash",
-  `podman pull ${PODMAN_AGENT_IMAGE}
-podman rm -f ${PODMAN_AGENT_CONTAINER_NAME}
-podman pull ${PODMAN_AI_AGENT_IMAGE}
+  `podman pull ${PODMAN_AI_AGENT_IMAGE}
 podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
 )}
 
@@ -454,7 +473,7 @@ podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
 )}`
         : `**Upgrade** — in the folder that holds docker-compose.yml, pull the latest images and recreate the containers:
 
-${codeBlock("bash", "podman compose pull\npodman compose up -d")}
+${codeBlock("bash", getPodmanAgentUpgradeCommand("podman-compose"))}
 
 **Uninstall** — stop and remove everything the file started:
 

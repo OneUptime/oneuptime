@@ -5,6 +5,8 @@ import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -3014,8 +3016,20 @@ const KubernetesClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * chart (AgentVersion).
+               */
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.KubernetesAgent}
+                    version={item.agentVersion}
+                    placeholder="Not reported"
+                  />
+                );
+              },
             },
             {
               field: {

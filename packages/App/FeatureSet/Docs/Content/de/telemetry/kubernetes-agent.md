@@ -353,6 +353,8 @@ Labels werden ohne Beachtung der Groß-/Kleinschreibung abgeglichen, sodass ein 
 
 ## Den Agent aktualisieren
 
+Ist der Agent älter als Ihr OneUptime, erscheint neben **Agent-Version** in den **Cluster-Details** des Clusters ein Warnzeichen. Wählen Sie es aus, um diesen Befehl zu sehen.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

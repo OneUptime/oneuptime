@@ -354,6 +354,8 @@ clusterName: prod
 
 ## 升級 Agent
 
+當代理程式比你的 OneUptime 舊時，叢集的 **叢集詳細資料** 中 **代理程式版本** 旁會出現警告標誌。選取它即可查看這個命令。
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

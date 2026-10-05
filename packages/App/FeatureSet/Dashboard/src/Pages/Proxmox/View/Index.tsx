@@ -7,6 +7,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -1482,14 +1484,6 @@ const ProxmoxClusterOverview: FunctionComponent<
         }),
       });
     }
-    if (cluster.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: translator.translateTemplate("Agent {{version}}", {
-          version: String(cluster.agentVersion),
-        }),
-      });
-    }
 
     /*
      * HA state distribution chips — counts per pve_ha_state state
@@ -1586,7 +1580,7 @@ const ProxmoxClusterOverview: FunctionComponent<
               </div>
             </div>
 
-            {specChips.length > 0 && (
+            {(specChips.length > 0 || Boolean(cluster.agentVersion)) && (
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
@@ -1607,6 +1601,15 @@ const ProxmoxClusterOverview: FunctionComponent<
                     );
                   },
                 )}
+                {/*
+                 * The agent's version chip, last (AgentVersion draws the
+                 * same gray chip, or nothing without a version).
+                 */}
+                <AgentVersion
+                  kind={AgentKind.ProxmoxAgent}
+                  version={cluster.agentVersion}
+                  variant="chip"
+                />
                 {/*
                  * Only the count chips need explaining; the version chips
                  * are metadata, so a row of versions alone gets no (i).
@@ -2916,8 +2919,16 @@ const ProxmoxClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
+              getElement: (item: ProxmoxCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.ProxmoxAgent}
+                    version={item.agentVersion}
+                    placeholder="Not reported"
+                  />
+                );
+              },
             },
             {
               field: {

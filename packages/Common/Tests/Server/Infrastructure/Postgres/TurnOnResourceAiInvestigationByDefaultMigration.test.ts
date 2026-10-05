@@ -1,5 +1,5 @@
 import { AddResourceAiAgents1796300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796300000000-AddResourceAiAgents";
-import { TurnOnResourceAiInvestigationByDefault1797900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797900000000-TurnOnResourceAiInvestigationByDefault";
+import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798000000000-TurnOnResourceAiInvestigationByDefault";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
@@ -46,8 +46,8 @@ import type { TableMetadataArgs } from "typeorm/metadata-args/TableMetadataArgs"
  */
 
 const MIGRATION_NAME: string =
-  "TurnOnResourceAiInvestigationByDefault1797900000000";
-const TIMESTAMP: number = 1797900000000;
+  "TurnOnResourceAiInvestigationByDefault1798000000000";
+const TIMESTAMP: number = 1798000000000;
 
 type ModelType = { new (): unknown; name: string };
 
@@ -91,14 +91,14 @@ async function recordQueries(
 
 async function up(): Promise<Array<string>> {
   return recordQueries(
-    new TurnOnResourceAiInvestigationByDefault1797900000000(),
+    new TurnOnResourceAiInvestigationByDefault1798000000000(),
     "up",
   );
 }
 
 async function down(): Promise<Array<string>> {
   return recordQueries(
-    new TurnOnResourceAiInvestigationByDefault1797900000000(),
+    new TurnOnResourceAiInvestigationByDefault1798000000000(),
     "down",
   );
 }
@@ -148,13 +148,13 @@ const RESOURCE_TABLES: Array<string> = ALL_AI_RESOURCE_TYPES.map(
   },
 );
 
-describe("TurnOnResourceAiInvestigationByDefault1797900000000: registration", () => {
+describe("TurnOnResourceAiInvestigationByDefault1798000000000: registration", () => {
   test("is registered once, under the name its class carries", () => {
-    expect(new TurnOnResourceAiInvestigationByDefault1797900000000().name).toBe(
+    expect(new TurnOnResourceAiInvestigationByDefault1798000000000().name).toBe(
       MIGRATION_NAME,
     );
     expect(SchemaMigrations).toContain(
-      TurnOnResourceAiInvestigationByDefault1797900000000,
+      TurnOnResourceAiInvestigationByDefault1798000000000,
     );
     expect(
       registeredNames().filter((name: string): boolean => {
@@ -200,7 +200,7 @@ describe("TurnOnResourceAiInvestigationByDefault1797900000000: registration", ()
   });
 });
 
-describe("TurnOnResourceAiInvestigationByDefault1797900000000: the schema", () => {
+describe("TurnOnResourceAiInvestigationByDefault1798000000000: the schema", () => {
   test("the resource tables are the eight AiResourceType tables", () => {
     expect(RESOURCE_TABLES).toHaveLength(8);
     expect([...RESOURCE_TABLES].sort()).toEqual(
@@ -256,7 +256,7 @@ describe("TurnOnResourceAiInvestigationByDefault1797900000000: the schema", () =
   });
 });
 
-describe("TurnOnResourceAiInvestigationByDefault1797900000000: the data", () => {
+describe("TurnOnResourceAiInvestigationByDefault1798000000000: the data", () => {
   test("up() turns investigation on for never-configured resources on every resource table, once each", async () => {
     const tables: Array<string> = tablesIn(
       await up(),
@@ -358,7 +358,7 @@ describe("TurnOnResourceAiInvestigationByDefault1797900000000: the data", () => 
   });
 });
 
-describe("TurnOnResourceAiInvestigationByDefault1797900000000: down()", () => {
+describe("TurnOnResourceAiInvestigationByDefault1798000000000: down()", () => {
   test("puts back the defaults, in reverse order, and nothing else", async () => {
     const defaultsUp: Array<string> = (await up()).filter(
       (statement: string): boolean => {

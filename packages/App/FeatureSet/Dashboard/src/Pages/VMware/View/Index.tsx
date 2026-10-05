@@ -6,6 +6,8 @@ import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import Card from "Common/UI/Components/Card/Card";
@@ -1423,16 +1425,11 @@ const VMwareVCenterOverview: FunctionComponent<
         ),
       });
     }
-    // Every chip so far is a count; the agent version below is metadata.
+    /*
+     * Every chip here is a count. The agent version is metadata, drawn after
+     * them by AgentVersion, so it never earns the row an (i).
+     */
     const hasCountChips: boolean = specChips.length > 0;
-    if (vcenter.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: translator.translateTemplate("Agent {{version}}", {
-          version: String(vcenter.agentVersion),
-        }),
-      });
-    }
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1499,7 +1496,7 @@ const VMwareVCenterOverview: FunctionComponent<
               </div>
             </div>
 
-            {specChips.length > 0 && (
+            {(specChips.length > 0 || Boolean(vcenter.agentVersion)) && (
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
@@ -1520,6 +1517,11 @@ const VMwareVCenterOverview: FunctionComponent<
                     );
                   },
                 )}
+                <AgentVersion
+                  kind={AgentKind.VMwareAgent}
+                  version={vcenter.agentVersion}
+                  variant="chip"
+                />
                 {/*
                  * One (i) for the count chips; a row holding only the
                  * agent version chip is metadata and gets none.
@@ -2611,8 +2613,16 @@ const VMwareVCenterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
+              getElement: (item: VMwareVCenter): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.VMwareAgent}
+                    version={item.agentVersion}
+                    placeholder="Not reported"
+                  />
+                );
+              },
             },
             {
               field: {

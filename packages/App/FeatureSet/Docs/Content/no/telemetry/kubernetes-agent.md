@@ -353,6 +353,8 @@ Etiketter matches uten hensyn til store/små bokstaver, så en eksisterende manu
 
 ## Oppgradering av agenten
 
+Når agenten er eldre enn din OneUptime, vises et varseltegn ved siden av **Agentversjon** i klyngens **Klyngedetaljer**. Velg det for å se denne kommandoen.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

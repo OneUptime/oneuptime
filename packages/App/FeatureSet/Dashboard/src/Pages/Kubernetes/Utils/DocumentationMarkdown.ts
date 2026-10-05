@@ -186,6 +186,17 @@ export function getKubernetesAgentUpgradeCommand(flags: Array<string>): string {
   ].join(" \\\n");
 }
 
+/*
+ * Moving an installed agent to the newest chart while keeping its settings.
+ * The guide's "Upgrade or uninstall the agent" topic and the upgrade dialog
+ * beside an outdated agent version (Components/AgentVersion) both show this
+ * command, so the two never drift. `helm repo update` comes first: a cached
+ * chart index would resolve the chart the agent already runs.
+ */
+export function getKubernetesAgentChartUpgradeCommand(): string {
+  return `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`;
+}
+
 function getPrerequisites(platform: KubernetesPlatform): Array<string> {
   const lines: Array<string> = [
     "A Kubernetes cluster running v1.23 or later",
@@ -547,7 +558,7 @@ Each \`oneuptime.labels.<key>=<value>\` becomes the label \`<key>:<value>\` on t
         "Move to the latest chart and keep your settings, or remove the agent.",
       markdown: `**Upgrade** to the latest chart. \`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); add any new \`--set\` flags on top of it:
 
-${codeBlock("bash", `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`)}
+${codeBlock("bash", getKubernetesAgentChartUpgradeCommand())}
 
 **Uninstall** the agent and its namespace:
 

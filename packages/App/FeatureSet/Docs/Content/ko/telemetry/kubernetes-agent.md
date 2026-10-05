@@ -353,6 +353,8 @@ clusterName: prod
 
 ## 에이전트 업그레이드
 
+에이전트가 OneUptime보다 오래된 경우, 클러스터의 **클러스터 세부 정보**에서 **에이전트 버전** 옆에 경고 표시가 나타납니다. 이를 선택하면 이 명령을 볼 수 있습니다.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

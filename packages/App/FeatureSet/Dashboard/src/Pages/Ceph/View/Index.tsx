@@ -5,6 +5,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -1721,10 +1723,17 @@ const CephClusterOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: CephCluster): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              getElement: (item: CephCluster): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.CephAgent}
+                    version={item.agentVersion}
+                  />
+                );
               },
             },
             {
