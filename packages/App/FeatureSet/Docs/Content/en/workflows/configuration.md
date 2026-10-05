@@ -133,7 +133,7 @@ Built-in bounds keep unattended calls finite: System Instructions, Prompt, and s
 
 Workflows respect your project's role-based access control. The relevant permissions:
 
-- **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself.
+- **Create / Read / Edit / Delete Workflow** — the basic permissions on the workflow itself. Changing a workflow, including turning it on or off and archiving it, takes **Edit Workflow**; **Delete Workflow** only deletes.
 - **Edit Workflow** — also what it takes to run a workflow by hand, and to see or reset its webhook URL and incoming email address. Viewers can open the builder but can't see the URL or the address.
 - **Read Workflow Log** — needed to view runs.
 - **Read / Create / Edit / Delete Workflow Variable** — control over the global variables list.

@@ -1232,7 +1232,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1273,7 +1273,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1318,7 +1318,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1361,7 +1361,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({
@@ -1405,7 +1405,7 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.EditScheduledMaintenanceNoteTemplate,
+      Permission.EditScheduledMaintenanceTemplate,
     ],
   })
   @TableColumn({

@@ -284,7 +284,7 @@ describe("getIncomingEmailSecretKeyResetGate", () => {
     });
   });
 
-  test("Delete Workflow can update a workflow, but not its address", () => {
+  test("Delete Workflow alone may not update a workflow, nor reset its address", () => {
     mockPermissions = [Permission.DeleteWorkflow];
 
     const gate: PermissionGateResult = getIncomingEmailSecretKeyResetGate();
