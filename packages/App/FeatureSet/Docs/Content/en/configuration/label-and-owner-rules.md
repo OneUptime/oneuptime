@@ -14,7 +14,7 @@ Every label and owner rule is created the same way, in two steps.
    - **Name** — filled in from what you pick (_Add Production_, _Add Platform as owners_) and following your picks until you type a name of your own.
    - **More fields** — the optional **Description** and, on an owner rule, **Notify Owners**, which is on by default: the owners a rule adds get the same "you were added as an owner" notification as an owner added by hand. Turn it off to add owners silently.
 
-A new rule has to add something: at least one label, or at least one owner. It starts enabled; to pause it without deleting it, switch **Enabled** off on its edit form. The list shows a green **Enabled** or red **Disabled** pill for each rule.
+A new rule has to add something: at least one label (or owner) or, on an incident, alert or scheduled maintenance rule, something it inherits (see below). It starts enabled; to pause it without deleting it, switch **Enabled** off on its edit form. The list shows a green **Enabled** or red **Disabled** pill for each rule.
 
 ## Inheriting labels and owners
 
