@@ -25189,5 +25189,6 @@
   "Removed. Telemetry is kept for the project's default retention from now on.": "हटा दिया गया। अब से टेलीमेट्री प्रोजेक्ट के डिफ़ॉल्ट धारण के अनुसार रखी जाएगी।",
   "Retention Override": "धारण ओवरराइड",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "कुछ प्रकार की टेलीमेट्री प्रोजेक्ट के डिफ़ॉल्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में टेलीमेट्री प्रकार के अनुसार धारण शामिल नहीं है: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।",
-  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "यहाँ की टेलीमेट्री प्रोजेक्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में धारण ओवरराइड शामिल नहीं हैं: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।"
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "यहाँ की टेलीमेट्री प्रोजेक्ट के नहीं, बल्कि अपने स्वयं के धारण के अनुसार रखी जाती है। आपके प्लान में धारण ओवरराइड शामिल नहीं हैं: आप इसे हटा सकते हैं, लेकिन फिर से सेट करने के लिए {{planName}} प्लान चाहिए।",
+  "Monitors keep their status.": "मॉनिटर अपनी स्थिति बनाए रखते हैं।"
 }

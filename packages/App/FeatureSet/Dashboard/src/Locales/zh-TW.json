@@ -25189,5 +25189,6 @@
   "Removed. Telemetry is kept for the project's default retention from now on.": "已移除。從現在起，遙測資料依專案的預設保留期限保存。",
   "Retention Override": "保留覆寫",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "部分遙測類型依其自身的保留期限保存，而不是依專案的預設保留期限。您的方案不包含依遙測類型的保留時間：您可以移除它，但再次設定需要 {{planName}} 方案。",
-  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "此處的遙測資料依其自身的保留期限保存，而不是依專案的保留期限。您的方案不包含保留覆寫：您可以移除此覆寫，但再次設定需要 {{planName}} 方案。"
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "此處的遙測資料依其自身的保留期限保存，而不是依專案的保留期限。您的方案不包含保留覆寫：您可以移除此覆寫，但再次設定需要 {{planName}} 方案。",
+  "Monitors keep their status.": "監測器維持目前狀態。"
 }

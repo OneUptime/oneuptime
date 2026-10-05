@@ -25189,5 +25189,6 @@
   "Removed. Telemetry is kept for the project's default retention from now on.": "حذف شد. از این پس تله‌متری با مدت نگهداری پیش‌فرض پروژه نگهداری می‌شود.",
   "Retention Override": "بازنویسی نگهداری",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "برخی انواع تله‌متری با مدت نگهداری خودشان نگهداری می‌شوند، نه با مدت نگهداری پیش‌فرض پروژه. طرح شما نگهداری بر اساس نوع تله‌متری را ندارد: می‌توانید آن را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید.",
-  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "تله‌متری از اینجا با مدت نگهداری خودش نگهداری می‌شود، نه با مدت نگهداری پروژه. طرح شما بازنویسی‌های نگهداری را ندارد: می‌توانید این یکی را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید."
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "تله‌متری از اینجا با مدت نگهداری خودش نگهداری می‌شود، نه با مدت نگهداری پروژه. طرح شما بازنویسی‌های نگهداری را ندارد: می‌توانید این یکی را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید.",
+  "Monitors keep their status.": "مانیتورها وضعیت خود را حفظ می‌کنند."
 }
