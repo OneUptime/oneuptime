@@ -205,6 +205,8 @@ describe("the three rows", () => {
     );
     expect(version).toContainElement(screen.getByTestId("the-agent-version"));
     expect(details.textContent).not.toContain(AI_AGENT_VERSION_DETAIL);
+    // A div: AgentVersion's upgrade dialog cannot sit inside a <p>.
+    expect(details.tagName).toBe("DIV");
   });
 
   test("no version to draw: its place is left out, with no stray separator", () => {

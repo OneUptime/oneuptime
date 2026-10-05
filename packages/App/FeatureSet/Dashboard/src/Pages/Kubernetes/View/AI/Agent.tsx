@@ -1802,7 +1802,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           )}
 
           {meta.lastSeen || isAgentVersionShown || meta.rest.length > 0 ? (
-            <p className="text-xs text-gray-500" data-testid="ai-agent-meta">
+            <div className="text-xs text-gray-500" data-testid="ai-agent-meta">
               {[
                 ...(meta.lastSeen
                   ? [<span key="last-seen">{meta.lastSeen}</span>]
@@ -1835,7 +1835,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   </Fragment>
                 );
               })}
-            </p>
+            </div>
           ) : (
             <></>
           )}

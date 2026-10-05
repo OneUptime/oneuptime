@@ -50,16 +50,17 @@ const ResourceAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
       refreshToken: props.refreshToken,
     });
   const agent: ResourceAiAgentSummary | null = read.status?.agent || null;
-  const versionElement: ReactElement | undefined =
-    Boolean(agent?.agentVersion) || Boolean(agent?.posture?.agentVersion) ? (
-      <AgentVersion
-        kind={AgentKind.ResourceAiAgent}
-        version={agent?.agentVersion || agent?.posture?.agentVersion}
-        upgradeGuideContext={{
-          resourceType: props.descriptor.resourceType,
-        }}
-      />
-    ) : undefined;
+  const hasAgentVersion: boolean =
+    Boolean(agent?.agentVersion) || Boolean(agent?.posture?.agentVersion);
+  const versionElement: ReactElement | undefined = hasAgentVersion ? (
+    <AgentVersion
+      kind={AgentKind.ResourceAiAgent}
+      version={agent?.agentVersion || agent?.posture?.agentVersion}
+      upgradeGuideContext={{
+        resourceType: props.descriptor.resourceType,
+      }}
+    />
+  ) : undefined;
 
   return (
     <AiAgentStatusSummaryCard

@@ -54,9 +54,9 @@ const KubernetesAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
     });
   const read: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
     props.read || ownRead;
+  const hasAgentVersion: boolean = Boolean(read.status?.aiAgent?.agentVersion);
   // The Kubernetes AI agent ships in the Kubernetes agent chart.
-  const versionElement: ReactElement | undefined = read.status?.aiAgent
-    ?.agentVersion ? (
+  const versionElement: ReactElement | undefined = hasAgentVersion ? (
     <AgentVersion
       kind={AgentKind.KubernetesAgent}
       version={read.status?.aiAgent?.agentVersion}

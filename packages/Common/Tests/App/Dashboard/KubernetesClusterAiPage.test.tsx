@@ -836,6 +836,11 @@ describe("the Kubernetes AI agent card", () => {
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
       "agent 14.1.0 · kubectl v1.31.2 · Read-only",
     );
+    /*
+     * A div, not a paragraph: AgentVersion opens its upgrade dialog beside
+     * the version, and a dialog cannot sit inside a <p>.
+     */
+    expect(screen.getByTestId("ai-agent-meta").tagName).toBe("DIV");
     expect(screen.getByTestId("ai-agent-version")).toHaveTextContent(
       "agent 14.1.0",
     );

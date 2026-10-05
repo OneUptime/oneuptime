@@ -176,7 +176,7 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
             dataTestId={`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection`}
           >
             {connectionDetails.length > 0 ? (
-              <p
+              <div
                 className="text-xs text-gray-500"
                 data-testid={`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`}
               >
@@ -190,7 +190,7 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
                     );
                   },
                 )}
-              </p>
+              </div>
             ) : null}
           </AiAccessRow>
           <AiAccessRow

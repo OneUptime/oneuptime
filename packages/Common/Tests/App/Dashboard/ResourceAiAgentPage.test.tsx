@@ -595,6 +595,11 @@ describe("the agent card", () => {
     expect(screen.getByTestId("ai-agent-meta")).toHaveTextContent(
       "agent 14.1.0 · Docker 27.3.1 · Read-only",
     );
+    /*
+     * A div, not a paragraph: AgentVersion opens its upgrade dialog beside
+     * the version, and a dialog cannot sit inside a <p>.
+     */
+    expect(screen.getByTestId("ai-agent-meta").tagName).toBe("DIV");
     expect(screen.getByTestId("ai-agent-version")).toHaveTextContent(
       "agent 14.1.0",
     );

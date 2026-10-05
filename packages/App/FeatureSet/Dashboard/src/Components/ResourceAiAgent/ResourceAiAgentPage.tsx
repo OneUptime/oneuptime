@@ -1426,7 +1426,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           )}
 
           {meta.lastSeen || isAgentVersionShown || meta.rest.length > 0 ? (
-            <p className="text-xs text-gray-500" data-testid="ai-agent-meta">
+            <div className="text-xs text-gray-500" data-testid="ai-agent-meta">
               {[
                 ...(meta.lastSeen
                   ? [<span key="last-seen">{meta.lastSeen}</span>]
@@ -1465,7 +1465,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                   </Fragment>
                 );
               })}
-            </p>
+            </div>
           ) : (
             <></>
           )}
