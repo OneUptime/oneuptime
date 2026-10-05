@@ -245,7 +245,11 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    data.databaseServerId = databaseServerId;
+    RelationIdUtil.stamp(
+      data as unknown as Record<string, unknown>,
+      ["databaseServerId", "databaseServer"],
+      databaseServerId,
+    );
     data.endpoint = formatted;
     /*
      * Forced, whatever the caller sent: a person only ever adds a removable

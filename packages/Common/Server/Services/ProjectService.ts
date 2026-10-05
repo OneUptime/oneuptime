@@ -77,6 +77,8 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
 import ProjectAiDailyLimits, {
@@ -448,7 +450,11 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiDailyLimitRules(data.data);
 
     if (data.props.userId) {
-      data.data.createdByUserId = data.props.userId;
+      RelationIdUtil.stamp(
+        data.data as unknown as Record<string, unknown>,
+        CREATED_BY_USER_KEYS,
+        data.props.userId,
+      );
     } else {
       throw new NotAuthorizedException(
         "User should be logged in to create the project.",
@@ -580,12 +586,25 @@ export class ProjectService extends ProjectReferencesService<Model> {
             data.data.resellerLicenseId = promoCode.resellerLicenseId;
           }
 
+          /*
+           * The promo code's reseller and plan, under their ID columns
+           * alone: a relation the request sent beside one would otherwise
+           * be stored in its place.
+           */
           if (promoCode.resellerId) {
-            data.data.resellerId = promoCode.resellerId;
+            RelationIdUtil.stamp(
+              data.data as unknown as Record<string, unknown>,
+              ["resellerId", "reseller"],
+              promoCode.resellerId,
+            );
           }
 
           if (promoCode.resellerPlanId) {
-            data.data.resellerPlanId = promoCode.resellerPlanId;
+            RelationIdUtil.stamp(
+              data.data as unknown as Record<string, unknown>,
+              ["resellerPlanId", "resellerPlan"],
+              promoCode.resellerPlanId,
+            );
           }
         }
       }

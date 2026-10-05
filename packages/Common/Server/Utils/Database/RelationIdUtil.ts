@@ -21,8 +21,10 @@ import BadDataException from "../../../Types/Exception/BadDataException";
  * relation first and falls back to the column only when the relation holds
  * no object (RelationNamePrecedence.test.ts pins this). So a hook that checks
  * or decides on one of the keys must read both, through readConsistent, which
- * refuses a payload whose keys disagree; and a hook that writes a value of its
- * own writes it with stamp, which leaves no other key to win over it.
+ * refuses a payload whose keys disagree (ReferenceNamesReadTogether holds the
+ * server code to it); and a hook that writes a value of its own writes it
+ * with stamp, which leaves no other key to win over it
+ * (HookReferenceWritesUseStamp holds every service to it).
  *
  * Give these helpers both spellings, FK column first.
  */
@@ -131,7 +133,8 @@ export default class RelationIdUtil {
        * Case-blind and trimmed: ObjectID keeps the case it was handed while
        * Postgres compares uuids by value, so one id in two cases is one id.
        */
-      const normalizedId: string = id ? id.toString().trim().toLowerCase() : "";
+      const trimmedId: string = id ? id.toString().trim() : "";
+      const normalizedId: string = trimmedId.toLowerCase();
 
       if (!normalizedId) {
         hasExplicitNull = true;
@@ -140,8 +143,13 @@ export default class RelationIdUtil {
 
       distinctIds.add(normalizedId);
 
+      /*
+       * Trimmed, so a hook looks up the id the database holds: a padded
+       * spelling under one name agrees with a clean one under the other,
+       * and the clean one is what is stored.
+       */
       if (!firstId) {
-        firstId = id;
+        firstId = trimmedId === id!.toString() ? id : new ObjectID(trimmedId);
       }
     }
 

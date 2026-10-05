@@ -548,8 +548,20 @@ describe("an update that writes a state changes the state, under either name", (
   );
 });
 
-describe("an incident update that writes a severity under its ID column records it", () => {
-  test("the feed names the new severity, and the SLA deadlines follow it", async () => {
+/*
+ * The severity's feed entry, SLA recalculation and metric follow a severity
+ * written as the relation, which is how the dashboard's forms send it, as
+ * they did before both names were read: they do not compare it with the
+ * severity the incident had. The id they act on is the stored one.
+ */
+describe("an incident update records a severity written as the relation", () => {
+  interface SeverityEffects {
+    severityLookup: jest.Mock;
+    recalculate: jest.Mock;
+    feed: jest.Mock;
+  }
+
+  function spyOnSeverityEffects(): SeverityEffects {
     const incident: Incident = new Incident();
     incident._id = RECORD_ID.toString();
     incident.projectId = PROJECT_ID;
@@ -564,50 +576,88 @@ describe("an incident update that writes a severity under its ID column records 
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/i") as never);
-    const severityLookup: jest.Mock = jest
-      .spyOn(IncidentSeverityService, "findOneBy")
-      .mockResolvedValue(severity as never) as unknown as jest.Mock;
-    const recalculate: jest.Mock = jest
-      .spyOn(IncidentSlaService, "recalculateDeadlines")
-      .mockResolvedValue(undefined as never) as unknown as jest.Mock;
     jest
       .spyOn(IncidentService, "refreshReminderSchedule")
       .mockResolvedValue(undefined as never);
     jest
       .spyOn(IncidentService, "getIncidentMetricContext")
       .mockRejectedValue(new Error("no metrics here") as never);
-    const feed: jest.Mock = jest
-      .spyOn(IncidentFeedService, "createIncidentFeedItem")
-      .mockResolvedValue(undefined as never) as unknown as jest.Mock;
 
+    return {
+      severityLookup: jest
+        .spyOn(IncidentSeverityService, "findOneBy")
+        .mockResolvedValue(severity as never) as unknown as jest.Mock,
+      recalculate: jest
+        .spyOn(IncidentSlaService, "recalculateDeadlines")
+        .mockResolvedValue(undefined as never) as unknown as jest.Mock,
+      feed: jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never) as unknown as jest.Mock,
+    };
+  }
+
+  async function runUpdate(data: Record<string, unknown>): Promise<void> {
     await hooksOf(IncidentService)["onUpdateSuccess"]!(
       {
         updateBy: {
           query: { _id: RECORD_ID.toString() },
-          data: { incidentSeverityId: new ObjectID(SEVERITY) },
+          data: data,
           props: { tenantId: PROJECT_ID, userId: USER_ID },
         },
         carryForward: {},
       },
       [RECORD_ID],
     );
+  }
 
-    expect(
-      String(
-        (severityLookup.mock.calls[0]![0] as { query: { _id: unknown } }).query
-          ._id,
-      ),
-    ).toBe(SEVERITY);
-    expect(recalculate).toHaveBeenCalledTimes(1);
-    expect(
-      (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
-        .feedInfoInMarkdown,
-    ).toContain("Critical");
+  test.each([
+    ["the relation alone", { incidentSeverity: { _id: SEVERITY } }],
+    [
+      "both names, holding the same id",
+      {
+        incidentSeverityId: new ObjectID(SEVERITY),
+        incidentSeverity: { _id: SEVERITY },
+      },
+    ],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "%s: the feed names the severity, and the SLA deadlines follow it",
+    async (_label: string, data: Record<string, unknown>) => {
+      const effects: SeverityEffects = spyOnSeverityEffects();
+
+      await runUpdate(data);
+
+      expect(
+        String(
+          (
+            effects.severityLookup.mock.calls[0]![0] as {
+              query: { _id: unknown };
+            }
+          ).query._id,
+        ),
+      ).toBe(SEVERITY);
+      expect(effects.recalculate).toHaveBeenCalledTimes(1);
+      expect(
+        (effects.feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+          .feedInfoInMarkdown,
+      ).toContain("Critical");
+    },
+  );
+
+  test("the ID column alone, which an API write may re-send unchanged, is not announced", async () => {
+    const effects: SeverityEffects = spyOnSeverityEffects();
+
+    await runUpdate({ incidentSeverityId: new ObjectID(SEVERITY) });
+
+    expect(effects.severityLookup).not.toHaveBeenCalled();
+    expect(effects.recalculate).not.toHaveBeenCalled();
+    expect(effects.feed).not.toHaveBeenCalled();
   });
 });
 
-describe("an alert update that writes a severity under its ID column records it", () => {
-  test("the severity is read by its id for the feed", async () => {
+describe("an alert update records a severity written as the relation", () => {
+  async function runUpdate(
+    data: Record<string, unknown>,
+  ): Promise<{ outcome: unknown; severityLookup: jest.Mock }> {
     const severityLookup: jest.Mock = jest
       .spyOn(AlertSeverityService, "findOneBy")
       .mockRejectedValue(new PastTheStep() as never) as unknown as jest.Mock;
@@ -625,7 +675,7 @@ describe("an alert update that writes a severity under its ID column records it"
         {
           updateBy: {
             query: { _id: RECORD_ID.toString() },
-            data: { alertSeverityId: new ObjectID(SEVERITY) },
+            data: data,
             props: { tenantId: PROJECT_ID, userId: USER_ID },
           },
           carryForward: null,
@@ -634,12 +684,39 @@ describe("an alert update that writes a severity under its ID column records it"
       ),
     );
 
-    expect(outcome).toBeInstanceOf(PastTheStep);
-    expect(
-      String(
-        (severityLookup.mock.calls[0]![0] as { query: { _id: unknown } }).query
-          ._id,
-      ),
-    ).toBe(SEVERITY);
+    return { outcome: outcome, severityLookup: severityLookup };
+  }
+
+  test.each([
+    ["the relation alone", { alertSeverity: { _id: SEVERITY } }],
+    [
+      "both names, holding the same id",
+      {
+        alertSeverityId: new ObjectID(SEVERITY),
+        alertSeverity: { _id: SEVERITY },
+      },
+    ],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "%s: the severity is read by the stored id for the feed",
+    async (_label: string, data: Record<string, unknown>) => {
+      const { outcome, severityLookup } = await runUpdate(data);
+
+      expect(outcome).toBeInstanceOf(PastTheStep);
+      expect(
+        String(
+          (severityLookup.mock.calls[0]![0] as { query: { _id: unknown } })
+            .query._id,
+        ),
+      ).toBe(SEVERITY);
+    },
+  );
+
+  test("the ID column alone, which an API write may re-send unchanged, is not announced", async () => {
+    const { outcome, severityLookup } = await runUpdate({
+      alertSeverityId: new ObjectID(SEVERITY),
+    });
+
+    expect(outcome).not.toBeInstanceOf(PastTheStep);
+    expect(severityLookup).not.toHaveBeenCalled();
   });
 });

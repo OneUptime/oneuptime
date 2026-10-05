@@ -1696,6 +1696,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * stamp, the relation is dropped here, before the hooks, so they read no
    * one else either. Writes with no person on the request (OneUptime's own,
    * a workflow) keep what they name.
+   *
+   * Only the relation goes here, not RelationIdUtil.stamp: the ID column is
+   * stamped after the create permission check, so a person is never asked
+   * for create access to a column they did not send.
    */
   private dropCreatedByUserRelationWhenStamped(
     data: TBaseModel | PartialEntity<TBaseModel>,

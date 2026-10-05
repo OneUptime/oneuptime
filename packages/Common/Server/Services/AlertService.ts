@@ -1671,9 +1671,8 @@ ${alert.remediationNotes || "No remediation notes provided."}
     }
 
     /*
-     * The state and the severity the update wrote, each under either of its
-     * names: onBeforeUpdate refused two that disagree, so each reads one
-     * value.
+     * The state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
      */
     const updatedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
       onUpdate.updateBy.data as unknown as Record<string, unknown>,
@@ -1681,12 +1680,24 @@ ${alert.remediationNotes || "No remediation notes provided."}
       "Alert State",
     );
 
-    const updatedAlertSeverityId: ObjectID | null =
-      RelationIdUtil.readConsistent(
-        onUpdate.updateBy.data as unknown as Record<string, unknown>,
-        ALERT_SEVERITY_KEYS,
-        "Alert Severity",
-      );
+    /*
+     * The severity's feed entry and reminder refresh follow a severity
+     * written as the relation, which is how the dashboard's forms send it,
+     * as they always have. They do not compare it with the severity the alert
+     * had, so they would repeat for every write that re-sends the ID column
+     * unchanged. The id they act on is the one stored: both names, read
+     * together.
+     */
+    const updatedAlertSeverityId: ObjectID | null = RelationIdUtil.isPresent(
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      ["alertSeverity"],
+    )
+      ? RelationIdUtil.readConsistent(
+          onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          ALERT_SEVERITY_KEYS,
+          "Alert Severity",
+        )
+      : null;
 
     if (updatedAlertStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {

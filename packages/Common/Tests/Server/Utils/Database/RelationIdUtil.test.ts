@@ -165,6 +165,18 @@ describe("RelationIdUtil.readConsistent", () => {
     ).toBe(SITE_ID.toString().toUpperCase());
   });
 
+  it("reads a padded id as the id the database holds, alone or beside a clean one", () => {
+    const padded: string = `  ${SITE_ID.toString()} `;
+
+    expect(read({ siteId: padded })?.toString()).toBe(SITE_ID.toString());
+    expect(
+      read({ siteId: padded, site: { _id: SITE_ID.toString() } })?.toString(),
+    ).toBe(SITE_ID.toString());
+    expect(read({ site: { _id: padded } })?.toString()).toBe(
+      SITE_ID.toString(),
+    );
+  });
+
   it("refuses two different ids, naming both fields", () => {
     expect(() => {
       return read({

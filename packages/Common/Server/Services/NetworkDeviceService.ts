@@ -1316,7 +1316,11 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (inheritedProbeId) {
-        createBy.data.probeId = inheritedProbeId;
+        RelationIdUtil.stamp(
+          createBy.data as unknown as Record<string, unknown>,
+          PROBE_KEYS,
+          inheritedProbeId,
+        );
       }
     }
 
@@ -1853,7 +1857,11 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     if (inheritedProbeId) {
-      data.updateBy.data.probeId = inheritedProbeId;
+      RelationIdUtil.stamp(
+        data.updateBy.data as unknown as Record<string, unknown>,
+        PROBE_KEYS,
+        inheritedProbeId,
+      );
     }
   }
 
