@@ -1,5 +1,5 @@
 import AlertSeverityService from "./AlertSeverityService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -98,15 +98,33 @@ const SEVERITY_LISTS: ReadonlyArray<{
   },
 ];
 
-export class TeamComplianceSettingService extends DatabaseService<Model> {
+export class TeamComplianceSettingService extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // Its refusals name what it looks up: the create permission comes first.
+  protected override checksCreatePermissionFirst(): boolean {
+    return true;
+  }
+
+  /*
+   * The severities are checked by this service's own hooks
+   * (assertSeveritiesBelongToProject), after the rule type has dropped the
+   * options it does not use - a stray severity on a rule that does not read
+   * one is cleared rather than refused. The team is checked by
+   * ProjectReferencesService.
+   */
+  protected override getListsCheckedByService(): Array<string> {
+    return ["incidentSeverities", "alertSeverities"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Authorisation first. DatabaseService.create only checks the caller's
      * create permission AFTER this hook, and every check below reads as root
@@ -188,6 +206,8 @@ export class TeamComplianceSettingService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: JSONObject = updateBy.data as JSONObject;
 
     const changesScope: boolean =

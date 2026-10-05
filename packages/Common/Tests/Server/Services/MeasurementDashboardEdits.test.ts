@@ -23,6 +23,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * What the dashboard's measurement forms send, through each measurement
@@ -231,6 +240,7 @@ describe.each(DOMAINS)(
       jest.spyOn(service, "findOneBy").mockResolvedValue(null as never);
       jest.spyOn(service, "findBy").mockResolvedValue([stored()] as never);
       jest.spyOn(stateService, "findBy").mockResolvedValue(STATES as never);
+      stubProjectDirectory({});
     });
 
     afterEach(() => {

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DockerSwarmClusterLabelRuleEngineService from "./DockerSwarmClusterLabelRuleEngineService";
 import DockerSwarmClusterOwnerRuleEngineService from "./DockerSwarmClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/DockerSwarmCluster";
@@ -50,7 +50,7 @@ const DOCKER_SWARM_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "Docker Swarm cluster",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -586,6 +586,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     ResourceAiAccessSettings.checkCreate({
       resourceType: AiResourceType.DockerSwarmCluster,
       createBy,
@@ -604,6 +606,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

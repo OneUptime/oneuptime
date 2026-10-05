@@ -172,6 +172,8 @@ export default class LlmProviderAPI extends BaseAPI<
                 baseUrl: true,
                 modelName: true,
                 additionalParams: true,
+                isGlobalLlm: true,
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -193,6 +195,13 @@ export default class LlmProviderAPI extends BaseAPI<
             ...(provider.apiKey ? { apiKey: provider.apiKey } : {}),
             ...(provider.baseUrl ? { baseUrl: provider.baseUrl } : {}),
             ...(provider.modelName ? { modelName: provider.modelName } : {}),
+            /*
+             * The egress policy AIService.executeWithLogging gives the same
+             * provider, so the verdict here is the one AI features would get.
+             */
+            ...(LlmProviderService.isUnownedGlobalProvider(provider)
+              ? { isGlobalProvider: true }
+              : {}),
           };
 
           const runTestCompletion: (

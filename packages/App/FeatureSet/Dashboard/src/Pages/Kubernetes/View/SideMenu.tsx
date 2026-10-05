@@ -187,10 +187,10 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
 
       {/*
        * Right after Basic, so it is not buried under forty resource links:
-       * what OneUptime AI investigated and changed here, and the in-cluster
-       * agent it works through (with what it may do). Folded down to its
-       * title until opened, like the AI section of every menu (see
-       * SideMenuSectionState.ts), and open by itself on its pages.
+       * what OneUptime AI learned here (Insights), everything it did (Logs),
+       * and the in-cluster agent it works through (with what it may do).
+       * Folded down to its title until opened, like the AI section of every
+       * menu (see SideMenuSectionState.ts), and open by itself on its pages.
        */}
       <SideMenuSection title="AI">
         <SideMenuItem
@@ -202,6 +202,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
         />
         <SideMenuItem
           link={{

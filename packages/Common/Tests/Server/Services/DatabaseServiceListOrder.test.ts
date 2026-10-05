@@ -19,6 +19,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/Utils/PasswordHash", () => {
   return {
@@ -78,6 +87,8 @@ const link: (data: {
   row._id = id(data.n);
   row.order = data.order as number;
   row.statusPageId = data.statusPageId || STATUS_PAGE_ID;
+  // A list is its page's rows in the row's own project.
+  row.projectId = PROJECT_ID;
   row.createdAt = at(data.n);
   return row;
 };
@@ -177,6 +188,7 @@ beforeEach(() => {
     .mockImplementation(((_modelType: unknown, query: unknown) => {
       return Promise.resolve(query);
     }) as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -554,6 +566,7 @@ describe("a list that counts down (site assignment rules: the highest number win
     }): Promise<void> => {
       written.push({ id: input.id.toString(), data: input.data });
     }) as never);
+    stubProjectDirectory({});
   });
 
   test("is a list ordered within its project, highest number first", () => {
@@ -655,7 +668,7 @@ describe("normalizeListOrders: the data migration's renumbering", () => {
     expect(result).toEqual({ lists: 1, rowsChanged: 2 });
   });
 
-  test("reads every row of the table, as root, with the list columns", async () => {
+  test("reads every row of the table, as root, with the list columns and the project", async () => {
     await service.normalizeListOrders();
 
     const args: any = findAllBy.mock.calls[0]![0];
@@ -667,7 +680,25 @@ describe("normalizeListOrders: the data migration's renumbering", () => {
       createdAt: true,
       order: true,
       statusPageId: true,
+      projectId: true,
     });
+  });
+
+  test("numbers the same page's rows of two projects as two lists", async () => {
+    const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    );
+    const foreign: StatusPageHeaderLink = link({ n: 3, order: 1 });
+    foreign.projectId = OTHER_PROJECT_ID;
+
+    siblings = [link({ n: 1, order: 1 }), link({ n: 2, order: 2 }), foreign];
+
+    const result: { lists: number; rowsChanged: number } =
+      await service.normalizeListOrders();
+
+    // Each project's list is already in order; nothing is shared between them.
+    expect(written).toEqual([]);
+    expect(result).toEqual({ lists: 0, rowsChanged: 0 });
   });
 
   test("a second run finds nothing to do", async () => {

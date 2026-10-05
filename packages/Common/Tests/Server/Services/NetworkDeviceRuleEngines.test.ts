@@ -24,6 +24,14 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
 
 /*
+ * The labels and teams these rules name are their project's own: the engines
+ * attach only the project's records (RuleRecordScope).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
+
+/*
  * Contract under test - the network device label and owner rule engines, and
  * the write-time validation in front of them.
  *

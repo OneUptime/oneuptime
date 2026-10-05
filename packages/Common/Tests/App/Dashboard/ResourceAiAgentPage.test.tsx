@@ -27,6 +27,7 @@ import {
   RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT,
   RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS,
   RESOURCE_AI_SETTINGS_SET_BY_TEXT,
+  getResourceAiAgentInstallInvestigationText,
   getResourceAiAgentNotInstalledText,
   getResourceAiAgentPageSubtitle,
   getResourceAiAgentReadyText,
@@ -663,6 +664,56 @@ describe("the agent card", () => {
     await expectNoAgentActions();
     expect(screen.queryByTestId("ai-agent-ready")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ai-agent-meta")).not.toBeInTheDocument();
+  });
+
+  /*
+   * Investigation is on by default for every resource, so installing the
+   * agent is the only step: the instructions open by saying so.
+   */
+  test("not installed: the instructions open with AI investigations being on by default", async () => {
+    serve(notInstalledStatus());
+    openAgentPage();
+
+    const line: HTMLElement = await findTestId(
+      "ai-agent-install-investigation",
+    );
+
+    expect(line).toHaveTextContent(
+      getResourceAiAgentInstallInvestigationText(DOCKER),
+    );
+    expect(line).toHaveTextContent(
+      "AI investigations are on by default: once the Docker AI agent connects, OneUptime AI runs read-only docker commands on this Docker host whenever it investigates an incident or alert here. Fixes stay off until you allow them.",
+    );
+    // First in the instructions, before where to add the agent.
+    expect(
+      line.compareDocumentPosition(
+        screen.getByTestId("ai-agent-install-where"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("ai-agent-install")).getByTestId(
+        "ai-agent-install-investigation",
+      ),
+    ).toBe(line);
+  });
+
+  test("not installed, with investigation turned off before installing: no such line", async () => {
+    serve({ ...notInstalledStatus(), isAiInvestigationEnabled: false });
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-install-command")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ai-agent-install-investigation"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a connected agent shows no install instructions, so no such line either", async () => {
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-status")).toHaveTextContent("Connected");
+    expect(
+      screen.queryByTestId("ai-agent-install-investigation"),
+    ).not.toBeInTheDocument();
   });
 
   test("not installed, and the host's name cannot be read: the collector's own variable", async () => {
@@ -2918,6 +2969,27 @@ describe("every resource type", () => {
         screen.getByTestId("ai-agent-gap-ai_agent_not_connected"),
       ).toHaveTextContent(
         `Install the ${descriptor.agentName} with the instructions above.`,
+      );
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the install instructions say AI investigations are on by default, in its own words",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve({
+        ...notInstalledStatus(),
+        resourceType: type,
+      });
+      openAgentPage(descriptor);
+
+      const line: HTMLElement = await findTestId(
+        "ai-agent-install-investigation",
+      );
+
+      expect(line).toHaveTextContent(
+        `AI investigations are on by default: once the ${descriptor.agentName} connects, OneUptime AI runs ${descriptor.readOnlyCommandsPhrase} on this ${descriptor.noun} whenever it investigates an incident or alert here. Fixes stay off until you allow them.`,
       );
     },
   );

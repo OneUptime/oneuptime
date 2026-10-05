@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/TelemetryException";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
@@ -71,7 +71,7 @@ export interface DashboardSummaryResult {
   serviceSummaries: Array<DashboardServiceSummary>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

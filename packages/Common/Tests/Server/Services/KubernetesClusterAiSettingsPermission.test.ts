@@ -33,6 +33,15 @@ import Permission, {
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Who may make OneUptime AI do MORE on a Kubernetes cluster.
@@ -284,6 +293,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         id: CREDENTIAL_ID,
         credentialType: RunbookCredentialType.Kubernetes,
       } as unknown as RunbookCredential);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -488,6 +498,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
 
     beforeEach(() => {
       clusterLookup.mockResolvedValue([cluster(configured)]);
+      stubProjectDirectory({});
     });
 
     /*
@@ -740,6 +751,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
 
     beforeEach(() => {
       clusterLookup.mockResolvedValue([cluster(bound)]);
+      stubProjectDirectory({});
     });
 
     it.each(CLEARING_WRITES)(
@@ -1148,6 +1160,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
     jest
       .spyOn(KubernetesClusterService, "getKubernetesClusterMarkdownLink")
       .mockResolvedValue("[Kubernetes Cluster prod-us](https://x)");
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

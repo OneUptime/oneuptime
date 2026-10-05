@@ -1040,9 +1040,13 @@ describe("the Runner README's kubectl environment", () => {
     );
   });
 
-  it("sends a Runner's refused command to the cluster's AI Insights page", () => {
+  // Every command and its result is on the AI Logs page (AI → Logs) now.
+  it("sends a Runner's refused command to the cluster's AI Logs page", () => {
     expect(readFlat(RUNNER_README)).toContain(
-      "some refusals appear only in the command's result on the cluster's AI Insights page",
+      "some refusals appear only in the command's result on the cluster's AI Logs page",
+    );
+    expect(readFlat(RUNNER_README)).not.toContain(
+      "the command's result on the cluster's AI Insights page",
     );
   });
 });

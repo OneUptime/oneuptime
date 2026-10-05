@@ -43,6 +43,15 @@ import SloOwnerReferenceValidator from "../../../Server/Utils/Slo/SloOwnerRefere
 import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The rows that hang off an SLO - owner users, owner teams, burn rate rules
@@ -380,6 +389,7 @@ const CHILD_ROW_CASES: Array<ChildRowCase> = [
 
 beforeEach(() => {
   installFakeTables();
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

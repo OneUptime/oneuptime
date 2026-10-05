@@ -1088,10 +1088,12 @@ outboundConnections:
   # projects on this instance belong to people who should not reach your
   # internal network. Always on when billing.enabled is true, whatever this
   # says. Does not change which targets webhooks (above) or
-  # probes.<key>.allowPrivateNetworkMonitors allow. With it on, a refused host
-  # name (webhooks and workflow requests included) is reported as "... could
-  # not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG logs
-  # the reason.
+  # probes.<key>.allowPrivateNetworkMonitors allow, and does not apply to
+  # Global LLM Providers (vllm.globalProvider, or one added in the Admin
+  # Dashboard): you choose their address, not a project. With it on, a refused
+  # host name (webhooks and workflow requests included) is reported as "...
+  # could not be reached." without saying what it resolved to; LOG_LEVEL=DEBUG
+  # logs the reason.
   blockPrivateNetwork: false
 
 # VAPID Configuration for Web Push Notifications
@@ -2215,6 +2217,9 @@ runner:
 # connect it by hand instead: Project Settings > AI > LLM Providers > Create
 # LLM Provider, with LLM Provider "OpenAI Compatible" and Base URL:
 #   http://<release>-vllm.<namespace>.svc.<clusterDomain>:8000/v1
+# With billing.enabled or outboundConnections.blockPrivateNetwork on, a
+# project's own provider cannot reach that address; add it in the Admin
+# Dashboard under Settings > Global LLM Providers instead.
 vllm:
   enabled: false
   # N replicas = N independent copies of the model (each replica needs its own
@@ -2297,9 +2302,13 @@ vllm:
   # env-managed fields (name, description, type, model, base URL, API key) in the
   # Admin Dashboard are overwritten (other fields, e.g. token cost, are kept).
   # A project's own LLM Provider takes precedence; AI fix tasks fall back to
-  # this one when a project has none. Intended for self-hosted installs; with
-  # billing.enabled=true global providers are subject to AI-credit balance
-  # checks.
+  # this one when a project has none. Works with billing.enabled=true and
+  # outboundConnections.blockPrivateNetwork=true: they refuse private addresses
+  # such as this Service's ClusterIP only to providers a project configures,
+  # and this provider's address comes from the chart, not from a project.
+  # Loopback and link-local addresses stay refused for every provider. With
+  # billing.enabled=true, global providers are subject to AI-credit balance
+  # checks once you set their token cost in the Admin Dashboard.
   globalProvider:
     enabled: true
     # Display name of the auto-registered provider in the dashboard.

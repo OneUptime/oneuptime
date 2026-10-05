@@ -34,6 +34,13 @@ export function getDockerBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Insights",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_AI_LOGS, [
+      "Project",
+      "Docker",
+      "View Host",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DOCKER_HOST_VIEW_AI_AGENT, [
       "Project",
       "Docker",

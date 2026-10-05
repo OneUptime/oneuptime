@@ -51,7 +51,7 @@ export const AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
 export const REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
 
-// The page's heading, matching the AI Insights page's title and subtitle.
+// The page's heading, matching the AI Insights and AI Logs pages' headings.
 export const AI_AGENT_PAGE_TITLE: string = "AI agent";
 
 export const AI_AGENT_PAGE_SUBTITLE: string =
@@ -112,6 +112,13 @@ export function isKubernetesAiSettingsSetByAgent(
 // The "Needs attention" step for investigation the agent keeps off.
 export const KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT: string =
   translationKey("Turn on AI investigation on the Kubernetes agent chart.");
+
+/*
+ * The route a cluster's AI access status is read from, with { clusterId }:
+ * the AI agent page, and the Overview's two cards that show it.
+ */
+export const KUBERNETES_AI_ACCESS_STATUS_ROUTE: string =
+  "/kubernetes-cluster/ai-access/status";
 
 /*
  * The status as the route returns it, or null when the body is not one.

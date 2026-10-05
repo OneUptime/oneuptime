@@ -101,6 +101,15 @@ import GoldenMetricTile, {
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
+import KubernetesAiAgentStatusSummaryCard from "../Utils/KubernetesAiAgentStatusSummaryCard";
+import {
+  KUBERNETES_AI_ACCESS_STATUS_ROUTE,
+  parseStatus as parseAiAccessStatus,
+} from "../Utils/KubernetesAiAgentStatus";
+import useAiAgentAccessStatus, {
+  AiAgentAccessStatusRead,
+} from "../../../Components/AiAccess/useAiAgentAccessStatus";
+import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -1283,6 +1292,19 @@ const KubernetesClusterOverview: FunctionComponent<
       });
     }
   };
+
+  /*
+   * The cluster's AI access status, read once for both cards that show it
+   * — "AI agent" beside Agent Status and the AI agent card at the bottom —
+   * so they never disagree, and again when the Overview refreshes.
+   */
+  const aiAccessStatus: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
+    useAiAgentAccessStatus<KubernetesClusterAiAccessStatus>({
+      route: KUBERNETES_AI_ACCESS_STATUS_ROUTE,
+      body: { clusterId: modelId.toString() },
+      parse: parseAiAccessStatus,
+      refreshToken: lastRefreshedAt ? lastRefreshedAt.getTime() : undefined,
+    });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -2491,6 +2513,7 @@ const KubernetesClusterOverview: FunctionComponent<
         <KubernetesAiAgentOverviewCard
           clusterId={modelId}
           tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.aiAgent}
+          read={aiAccessStatus}
         />
       </div>
 
@@ -3023,6 +3046,16 @@ const KubernetesClusterOverview: FunctionComponent<
             },
           ],
         }}
+      />
+
+      {/*
+       * Last on the page: the Kubernetes AI agent's connection, whether AI
+       * may investigate with kubectl, and how fixes run, linking to AI →
+       * Agent, where they are changed.
+       */}
+      <KubernetesAiAgentStatusSummaryCard
+        clusterId={modelId}
+        read={aiAccessStatus}
       />
     </TimeRangeZoomScope>
   );

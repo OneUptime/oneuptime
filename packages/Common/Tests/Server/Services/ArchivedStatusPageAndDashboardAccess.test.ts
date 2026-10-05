@@ -34,6 +34,15 @@ import {
   jest,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * An archived status page is offline and an archived dashboard is not public.
@@ -77,6 +86,7 @@ describe("an archived status page is not served", () => {
 
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -318,6 +328,7 @@ describe("an archived status page takes no new subscribers", () => {
     jest
       .spyOn(StatusPageSubscriberService, "getStatusPagesToSendNotification")
       .mockResolvedValue([]);
+    stubProjectDirectory({});
   });
 
   it("says the page is archived, rather than that it does not exist", async () => {

@@ -2566,7 +2566,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   ): void {
     select[settings.column] = true;
 
-    for (const column of settings.scopeColumns) {
+    // The project too: a list is its parent's rows in that project.
+    for (const column of ListOrderMaintainer.getScopeColumns({
+      model: this.getModel(),
+      settings: settings,
+    })) {
       select[column] = true;
     }
   }

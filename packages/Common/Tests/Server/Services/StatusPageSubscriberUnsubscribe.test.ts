@@ -40,6 +40,15 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { FindOperator } from "typeorm";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Unsubscribing from a status page without signing in: the token every
@@ -241,6 +250,7 @@ beforeEach(() => {
     }) as never);
 
   jest.spyOn(MailService, "sendMail").mockResolvedValue(undefined as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -477,6 +487,7 @@ describe("who added a subscriber (Is Added By Team), set on create", () => {
         seenByHook.push(saved);
         return saved;
       } as never);
+    stubProjectDirectory({});
   });
 
   const teammate: DatabaseCommonInteractionProps = {
@@ -613,6 +624,7 @@ describe("a create never hands back the secrets it minted", () => {
       saved.subscriptionConfirmationToken = "123456";
       return Promise.resolve(saved);
     }) as never);
+    stubProjectDirectory({});
   });
 
   test.each([

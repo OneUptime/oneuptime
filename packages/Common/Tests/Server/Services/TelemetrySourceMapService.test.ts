@@ -59,7 +59,23 @@ import {
   MinifiedStackFrame,
   ResolveStackTraceResult,
 } from "../../../Types/Telemetry/SourceMap";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A minimal but real source map (see SourceMapResolver.test.ts for the

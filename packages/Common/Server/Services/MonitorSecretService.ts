@@ -11,6 +11,7 @@ import ProjectScopedReferenceValidator, {
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import MonitorService from "./MonitorService";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -27,9 +28,18 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorSecret from "../../Models/DatabaseModels/MonitorSecret";
 
-export class Service extends DatabaseService<MonitorSecret> {
+export class Service extends ProjectReferencesService<MonitorSecret> {
   public constructor() {
     super(MonitorSecret);
+  }
+
+  /*
+   * The monitors and labels a secret is shared with are checked by this
+   * service's own hooks below, with ProjectScopedReferenceValidator and its
+   * own words.
+   */
+  protected override getListsCheckedByService(): Array<string> {
+    return ["monitors", "labels"];
   }
 
   /*
@@ -42,6 +52,8 @@ export class Service extends DatabaseService<MonitorSecret> {
   protected override async onBeforeCreate(
     createBy: CreateBy<MonitorSecret>,
   ): Promise<OnCreate<MonitorSecret>> {
+    await super.onBeforeCreate(createBy);
+
     const requested: unknown = createBy.data.monitorAccess;
 
     const access: MonitorSecretAccess =
@@ -78,6 +90,8 @@ export class Service extends DatabaseService<MonitorSecret> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<MonitorSecret>,
   ): Promise<OnUpdate<MonitorSecret>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: Dictionary<unknown> = updateBy.data as Dictionary<unknown>;
 
     if (data["monitorAccess"] !== undefined) {

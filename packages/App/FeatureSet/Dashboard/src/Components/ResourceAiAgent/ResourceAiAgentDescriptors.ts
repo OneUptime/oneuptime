@@ -19,10 +19,11 @@ import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 
 /*
- * What the generic AI pages (ResourceAiAgentPage, ResourceAiInsightsPage)
- * need to know about one kind of resource: its model, its two AI pages, and
- * the words the pages use for it. One entry per AiResourceType — the thin
- * per-resource pages under Pages/<Resource>/View/AI only pick theirs.
+ * What the generic AI pages (ResourceAiAgentPage, ResourceAiInsightsPage,
+ * ResourceAiLogsPage) need to know about one kind of resource: its model,
+ * its AI pages, and the words the pages use for it. One entry per
+ * AiResourceType — the thin per-resource pages under Pages/<Resource>/View/AI
+ * only pick theirs.
  *
  * Kubernetes clusters are not here: they keep their own AI pages
  * (Pages/Kubernetes/View/AI).
@@ -47,9 +48,10 @@ export type ResourceAiModelType = { new (): ResourceAiModel };
 export interface ResourceAiAgentDescriptor {
   resourceType: AiResourceType;
   modelType: ResourceAiModelType;
-  // The resource's AI → Agent and AI → Insights pages.
+  // The resource's AI → AI agent, AI → Insights and AI → Logs pages.
   agentPage: PageMap;
   insightsPage: PageMap;
+  logsPage: PageMap;
   // How sentences name the resource, after "this" or "a": "Docker host".
   noun: string;
   // The agent, as everything else names it: "Docker AI agent".
@@ -99,6 +101,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: DockerHost,
     agentPage: PageMap.DOCKER_HOST_VIEW_AI_AGENT,
     insightsPage: PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.DOCKER_HOST_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container next to your Docker agent that runs docker commands for OneUptime AI.",
     ),
@@ -121,6 +124,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: PodmanHost,
     agentPage: PageMap.PODMAN_HOST_VIEW_AI_AGENT,
     insightsPage: PageMap.PODMAN_HOST_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.PODMAN_HOST_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container next to your Podman agent that runs docker commands against Podman's Docker-compatible API for OneUptime AI.",
     ),
@@ -143,6 +147,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: DockerSwarmCluster,
     agentPage: PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_AGENT,
     insightsPage: PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.DOCKER_SWARM_CLUSTER_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container on a manager node that runs docker commands for OneUptime AI.",
     ),
@@ -165,6 +170,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: ProxmoxCluster,
     agentPage: PageMap.PROXMOX_CLUSTER_VIEW_AI_AGENT,
     insightsPage: PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container next to your Proxmox agent that calls the Proxmox VE API (pvesh) for OneUptime AI with its own API token.",
     ),
@@ -190,6 +196,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: VMwareVCenter,
     agentPage: PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
     insightsPage: PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.VMWARE_VCENTER_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container next to your VMware agent that runs govc for OneUptime AI with its own vCenter user.",
     ),
@@ -214,6 +221,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: CephCluster,
     agentPage: PageMap.CEPH_CLUSTER_VIEW_AI_AGENT,
     insightsPage: PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.CEPH_CLUSTER_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container next to your Ceph agent that runs the ceph CLI for OneUptime AI with its own keyring.",
     ),
@@ -238,6 +246,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: DatabaseServer,
     agentPage: PageMap.DATABASE_SERVER_VIEW_AI_AGENT,
     insightsPage: PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.DATABASE_SERVER_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small container next to your database agent that runs a fixed catalog of diagnostics for OneUptime AI with its own login. It never runs free SQL.",
     ),
@@ -257,6 +266,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     modelType: Host,
     agentPage: PageMap.HOST_VIEW_AI_AGENT,
     insightsPage: PageMap.HOST_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.HOST_VIEW_AI_LOGS,
     agentCardDescription: translationKey(
       "The small privileged container on this host that runs the host's own tools (systemctl, journalctl, ps, …) for OneUptime AI.",
     ),

@@ -77,6 +77,8 @@ export class Service extends DatabaseService<Model> {
         modelName: true,
         additionalParams: true,
         isGlobalLlm: true,
+        // isUnownedGlobalProvider reads it.
+        projectId: true,
         costPerMillionTokensInUSDCents: true,
       },
       props: {
@@ -103,6 +105,7 @@ export class Service extends DatabaseService<Model> {
         modelName: true,
         additionalParams: true,
         isGlobalLlm: true,
+        projectId: true,
         costPerMillionTokensInUSDCents: true,
       },
       props: {
@@ -115,6 +118,23 @@ export class Service extends DatabaseService<Model> {
     }
 
     return null;
+  }
+
+  /*
+   * Is this a global provider that no project owns? Then no project member can
+   * have chosen where it points: isGlobalLlm is writable by no project role,
+   * and a project's writes are scoped to its own projectId, so its Base URL
+   * comes from the operator's environment (SeedGlobalLlmProviderFromEnv, which
+   * the Helm chart drives for the bundled vLLM) or a master admin. LLMService
+   * lets such a provider reach private addresses where the deployment refuses
+   * them to providers a project configures (LLMProviderConfig.isGlobalProvider).
+   *
+   * Both halves are required. isGlobalLlm alone would also cover a row that
+   * carries a projectId, whose Base URL that project's members can edit. The
+   * row must have been read with projectId selected.
+   */
+  public isUnownedGlobalProvider(provider: Model): boolean {
+    return provider.isGlobalLlm === true && !provider.projectId;
   }
 
   /*

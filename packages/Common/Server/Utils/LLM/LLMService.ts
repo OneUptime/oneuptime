@@ -102,6 +102,15 @@ export interface LLMProviderConfig {
   apiKey?: string;
   baseUrl?: string;
   modelName?: string;
+  /*
+   * A global provider no project owns (LlmProviderService.
+   * isUnownedGlobalProvider): its Base URL was set by the operator or a master
+   * admin, never by a project member. Such a provider may reach private
+   * addresses even where the deployment refuses them to project-owned
+   * providers — see buildGuardedRequestOptions. Set it from the stored
+   * provider row only, never from anything a request carries.
+   */
+  isGlobalProvider?: boolean | undefined;
 }
 
 /**
@@ -780,10 +789,21 @@ export default class LLMService {
    * refused: pinning covers only the validated host, so a 3xx would walk
    * around it. Private ranges stay reachable on self-hosted installs, because
    * a self-hosted Ollama on 10.x is the documented deployment.
+   *
+   * A global provider no project owns reaches private ranges everywhere, even
+   * where billing or DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES refuses them to
+   * project-owned providers. That refusal stops a project member from aiming
+   * the server at the internal network; a global provider's Base URL is set
+   * by the operator or a master admin instead. It is what lets the Helm
+   * chart's bundled vLLM, which sits at a ClusterIP, serve a billing-enabled
+   * install. Everything else holds for it too: loopback, link-local and the
+   * other always-refused ranges stay refused, the address is pinned, and
+   * redirects are refused.
    */
   private static async buildGuardedRequestOptions(data: {
     providerName: string;
     requestUrl: string;
+    isGlobalProvider: boolean | undefined;
     options: RequestOptions;
     logAttributes: LogAttributes;
   }): Promise<RequestOptions> {
@@ -794,6 +814,10 @@ export default class LLMService {
         data.requestUrl,
         {
           targetLabel: "LLM provider",
+          // Otherwise the deployment's policy decides.
+          ...(data.isGlobalProvider === true
+            ? { blockPrivateAddresses: false }
+            : {}),
         },
       );
     } catch (error) {
@@ -887,6 +911,7 @@ export default class LLMService {
       await this.buildGuardedRequestOptions({
         providerName: data.providerName,
         requestUrl: data.requestUrl,
+        isGlobalProvider: data.config.isGlobalProvider,
         options: this.buildRequestPolicy({
           request: data.request,
           defaultTimeoutInMs: 120000,
@@ -1607,6 +1632,7 @@ export default class LLMService {
         options: await this.buildGuardedRequestOptions({
           providerName: "Anthropic",
           requestUrl: anthropicRequestUrl,
+          isGlobalProvider: config.isGlobalProvider,
           options: this.buildRequestPolicy({
             request: request,
             defaultTimeoutInMs: 120000,
@@ -1833,6 +1859,7 @@ export default class LLMService {
         options: await this.buildGuardedRequestOptions({
           providerName: "Ollama",
           requestUrl: ollamaRequestUrl,
+          isGlobalProvider: config.isGlobalProvider,
           options: this.buildRequestPolicy({
             request: request,
             defaultTimeoutInMs: 300000, // Ollama may be slower

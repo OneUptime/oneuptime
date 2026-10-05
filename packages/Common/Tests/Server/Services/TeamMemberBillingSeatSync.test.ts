@@ -29,6 +29,15 @@ import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const config: Record<string, unknown> = {
@@ -152,6 +161,7 @@ beforeEach(() => {
     .mockReturnValue(
       new SubscriptionPlan(PLAN_ID, "price_yearly", "Growth", 20, 200, 1, 14),
     );
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -559,6 +569,7 @@ describe("completed membership writes during a billing outage", () => {
     jest
       .spyOn(UserNotificationRuleService, "addDefaultNotificationRuleForUser")
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   test("returns the saved pending invitation even when the provider returns 429", async () => {

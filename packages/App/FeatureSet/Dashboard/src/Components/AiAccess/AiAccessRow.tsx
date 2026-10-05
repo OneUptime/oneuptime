@@ -16,24 +16,28 @@ import React, { ReactElement, ReactNode } from "react";
  */
 
 /*
- * Two looks only: off is gray, on is green, whatever the mode (see
- * AiAccessBadgeTone). Amber stays for what needs doing. Every class here
- * has a dark-theme rule in Theme.css (App/Tests/Dashboard/
- * AiAccessDarkMode.test.ts).
+ * A setting has two looks only: off is gray, on is green, whatever the
+ * mode (see AiAccessBadgeTone). Red (danger) is for an AI agent that
+ * stopped working, never a setting, and amber stays for what needs doing.
+ * Every class here has a dark-theme rule in Theme.css (App/Tests/
+ * Dashboard/AiAccessDarkMode.test.ts).
  */
 const BADGE_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   off: "bg-gray-50 text-gray-600 ring-gray-200",
   on: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  danger: "bg-red-50 text-red-700 ring-red-200",
 };
 
 const BADGE_DOT_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   off: "bg-gray-300",
   on: "bg-emerald-500",
+  danger: "bg-red-500",
 };
 
 const ROW_ICON_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   off: "bg-gray-100 text-gray-500",
   on: "bg-emerald-50 text-emerald-600",
+  danger: "bg-red-50 text-red-600",
 };
 
 export function AiAccessBadgeElement(props: {

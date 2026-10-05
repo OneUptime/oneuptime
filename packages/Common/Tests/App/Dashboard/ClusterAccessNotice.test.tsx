@@ -896,9 +896,9 @@ describe("ClusterAccessNotice", () => {
   });
 
   /*
-   * The cluster's AI page is now two: AI → Insights and AI → Agent. The
-   * notice's links go where access is fixed — the AI agent page — and not
-   * to ".../ai", which only redirects there.
+   * The cluster's AI page is now three: AI → Insights, AI → Logs and
+   * AI → Agent. The notice's links go where access is fixed — the AI agent
+   * page — and not to ".../ai", which only redirects there.
    */
   test("links every cluster to its AI agent page", () => {
     render(

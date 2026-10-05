@@ -3,7 +3,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentStateService from "./IncidentStateService";
 import UserService from "./UserService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -26,7 +26,7 @@ import IncidentEpisodeInternalNote from "../../Models/DatabaseModels/IncidentEpi
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
 
-export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
+export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   public constructor() {
     super(IncidentEpisodeStateTimeline);
     if (IsBillingEnabled) {
@@ -38,6 +38,8 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentEpisodeStateTimeline>,
   ): Promise<OnCreate<IncidentEpisodeStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.incidentEpisodeId) {
       throw new BadDataException("incidentEpisodeId is null");
     }
@@ -487,6 +489,8 @@ export class Service extends DatabaseService<IncidentEpisodeStateTimeline> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentEpisodeStateTimeline>,
   ): Promise<OnUpdate<IncidentEpisodeStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     await SubscriberNotificationResendAccess.assertNotQueuedWhileBeingSent({
       modelType: IncidentEpisodeStateTimeline,
       service: this,

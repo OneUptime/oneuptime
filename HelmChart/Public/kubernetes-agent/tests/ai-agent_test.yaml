@@ -119,6 +119,48 @@ tests:
           path: spec.template.spec.containers[0].name
           value: ai-agent
 
+  # Every install command in the docs, the chart README and the dashboard
+  # spells AI investigations out as --set aiAgent.enabled=true. That must be
+  # exactly the default install: the same four read-only documents, never a
+  # write role or a node role.
+  - it: renders the same read-only agent with aiAgent.enabled=true, as every documented install command passes it
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAgent.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 1
+        isKind:
+          of: ClusterRole
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-agent
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 3
+        isKind:
+          of: Deployment
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+
   - it: labels every object component=ai-agent, which the dashboard's `kubectl logs -l component=ai-agent` relies on
     set:
       clusterName: prod-us

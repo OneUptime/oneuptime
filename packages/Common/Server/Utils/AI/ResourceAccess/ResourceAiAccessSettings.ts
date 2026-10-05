@@ -159,11 +159,12 @@ export function getAgentSetResourceAiAccessRefusal(data: {
 
 /*
  * What a resource that was never AI-configured has: the column defaults
- * (investigation off, remediation Disabled, no allowlist).
+ * (investigation on, remediation Disabled, no allowlist), the same as a
+ * Kubernetes cluster's.
  */
 export const NEVER_CONFIGURED_RESOURCE_AI_ACCESS: Readonly<ResourceAiAccessSettingsSnapshot> =
   {
-    isAiInvestigationEnabled: false,
+    isAiInvestigationEnabled: true,
     aiRemediationMode: ResourceAiRemediationMode.Disabled,
     aiCommandAllowlist: [],
   };

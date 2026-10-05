@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/StatusPageAnnouncement";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -10,7 +10,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -18,6 +18,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     // Set notification status based on shouldStatusPageSubscribersBeNotified
     if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
       createBy.data.subscriberNotificationStatus =
@@ -38,6 +40,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // Set notification status based on shouldStatusPageSubscribersBeNotified if it's being updated
     if (updateBy.data.shouldStatusPageSubscribersBeNotified !== undefined) {
       if (updateBy.data.shouldStatusPageSubscribersBeNotified === false) {

@@ -27,6 +27,15 @@ import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test — the tenant guard on a cluster's AI access binding,
@@ -265,6 +274,7 @@ describe("KubernetesClusterService AI access binding guard", () => {
           ];
         },
       );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -976,6 +986,7 @@ describe("KubernetesClusterService: the Runner and credential bound together mus
       .mockImplementation(async (): Promise<Array<KubernetesCluster>> => {
         return [current as unknown as KubernetesCluster];
       });
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1142,6 +1153,7 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
         projectId: PROJECT_ID,
       } as unknown as KubernetesCluster,
     ]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1582,6 +1594,7 @@ describe("KubernetesClusterService AI access configured marker", () => {
         "writeKubernetesClusterUpdatedFeed",
       )
       .mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

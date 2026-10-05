@@ -115,6 +115,13 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       "AI",
       "Insights",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_AI_LOGS, [
+      "Project",
+      "Databases",
+      "View Database",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_AI_AGENT, [
       "Project",
       "Databases",

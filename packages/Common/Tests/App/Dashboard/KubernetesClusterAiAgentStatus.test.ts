@@ -500,7 +500,7 @@ describe("the pill and the sentence", () => {
     );
   });
 
-  test("the page's heading matches the AI Insights page's", () => {
+  test("the page's heading is worded like the AI Insights and AI Logs pages'", () => {
     expect(AI_AGENT_PAGE_TITLE).toBe("AI agent");
     expect(AI_AGENT_PAGE_SUBTITLE).toBe(
       "Whether OneUptime AI can reach this cluster, and what it may do there.",

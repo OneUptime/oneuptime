@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentSla";
 import IncidentSlaRule from "../../Models/DatabaseModels/IncidentSlaRule";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -13,7 +13,7 @@ import IncidentService from "./IncidentService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {

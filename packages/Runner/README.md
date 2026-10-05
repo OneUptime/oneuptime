@@ -168,7 +168,7 @@ outside them is refused before it reaches this host, and the refusal names
 the variable to change here (`ONEUPTIME_KUBECTL_WRITE_NAMESPACES` or
 `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS`, then restart the Runner). The
 Runner itself still checks every command, so some refusals appear only in
-the command's result on the cluster's AI Insights page, not as a missing
+the command's result on the cluster's AI Logs page, not as a missing
 setup step:
 
 - a write other than a node operation, refused because

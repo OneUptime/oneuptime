@@ -23,6 +23,7 @@ import {
   getResourceAiAccessRequestBody,
   getResourceAiAgentCardCommand,
   getResourceAiAgentCardState,
+  getResourceAiAgentInstallInvestigationText,
   getResourceAiAgentMeta,
   getResourceAiSettingsChoice,
   getResourceAiSettingsSource,
@@ -203,7 +204,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  *     rows are shared with the cluster page, ../AiAccess), and the write
  *     switch when fixes need it.
  *
- * What AI did on the resource lives on the AI Insights page (AI → Insights).
+ * What AI did on the resource lives on the AI Logs page (AI → Logs), and
+ * what it learned there on the AI Insights page (AI → Insights).
  */
 
 export interface ComponentProps extends PageComponentProps {
@@ -652,14 +654,37 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   );
 };
 
-// The install instructions: the compose snippet, how to start it, and what it reads.
+/*
+ * The install instructions: that AI investigations are on by default, so
+ * the agent is the only step (said while the resource's investigation
+ * switch is on — someone may have turned it off before installing), the
+ * compose snippet, how to start it, and what it reads.
+ */
 function InstallInstructions(props: {
   install: ResourceAiAgentInstall;
+  descriptor: ResourceAiAgentDescriptor;
+  isInvestigationEnabled: boolean;
 }): ReactElement {
   const translator: Translator = useTranslator();
 
   return (
     <div className="space-y-3" data-testid="ai-agent-install">
+      {props.isInvestigationEnabled ? (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2"
+          data-testid="ai-agent-install-investigation"
+        >
+          <Icon
+            icon={IconProp.MagnifyingGlass}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
+          />
+          <p className="text-xs leading-5 text-emerald-900">
+            {getResourceAiAgentInstallInvestigationText(props.descriptor)}
+          </p>
+        </div>
+      ) : (
+        <></>
+      )}
       <p className="text-xs text-gray-600" data-testid="ai-agent-install-where">
         {props.install.whereText}
       </p>
@@ -1045,7 +1070,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     });
   };
 
-  // Shown in every state, like the AI Insights page's heading.
+  // Shown in every state, like the AI Insights and AI Logs pages' headings.
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
@@ -1384,7 +1409,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           </p>
 
           {install ? (
-            <InstallInstructions install={install} />
+            <InstallInstructions
+              install={install}
+              descriptor={descriptor}
+              isInvestigationEnabled={status.isAiInvestigationEnabled}
+            />
           ) : command === "logs" ? (
             <div data-testid="ai-agent-logs-command">
               <CodeBlock

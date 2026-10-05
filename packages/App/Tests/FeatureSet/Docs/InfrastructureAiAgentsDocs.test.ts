@@ -436,6 +436,42 @@ describe("Infrastructure AI Agents docs", (): void => {
       expect(fences % 2).toBe(0);
     });
 
+    /*
+     * The resource's AI section, as the side menu has it: Insights (what AI
+     * learned, what deserves attention), Logs (everything AI did — the page
+     * that used to be called Insights) and AI agent.
+     */
+    it("names the AI section's three pages in the side menu's order", (): void => {
+      const pageBullet: RegExp = /^- \*\*(Insights|Logs|AI agent)\*\* — /;
+      const bullets: Array<string> = page
+        .split("\n")
+        .filter((line: string): boolean => {
+          return pageBullet.test(line);
+        });
+
+      expect(page).toContain(
+        "Each resource's dashboard page has an **AI** section with three pages:",
+      );
+      expect(
+        bullets.map((line: string): string => {
+          return line.split(" — ")[0]!;
+        }),
+      ).toEqual(["- **Insights**", "- **Logs**", "- **AI agent**"]);
+      expect(bullets[0]).toContain(
+        "what OneUptime AI has learned about the resource from its own work there in the last 30 days, and what deserves your attention",
+      );
+      expect(bullets[0]).toContain(
+        "[What AI learned on a cluster](/docs/ai/ai-sre#what-ai-learned-on-a-cluster)",
+      );
+      expect(bullets[1]).toContain(
+        "everything OneUptime AI did on the resource, newest first",
+      );
+      expect(bullets[1]).toContain("every command it sent through the agent");
+      expect(bullets[1]).toContain("(This page used to be called Insights.)");
+      // The chronological list is Logs', never Insights'.
+      expect(bullets[0]).not.toContain("every command it sent");
+    });
+
     it("gives every heading a distinct anchor", (): void => {
       const slugs: Array<string> = getHeadings(page).map(
         (heading: string): string => {
@@ -908,7 +944,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
     });
 
-    it("says a resource starts with investigation and fixes off, as the models default them", (): void => {
+    it("says AI investigations are on by default and fixes off, as the models default them", (): void => {
       for (const model of [
         "DockerHost",
         "PodmanHost",
@@ -931,8 +967,8 @@ describe("Infrastructure AI Agents docs", (): void => {
 
         expect({
           model,
-          off: investigation.includes("default: false"),
-        }).toEqual({ model, off: true });
+          on: investigation.includes("default: true"),
+        }).toEqual({ model, on: true });
         expect({
           model,
           disabled: source.includes(
@@ -941,9 +977,20 @@ describe("Infrastructure AI Agents docs", (): void => {
         }).toEqual({ model, disabled: true });
       }
 
-      expect(page).toContain(
-        "A resource starts with investigation and fixes off.",
+      // The same defaults as a cluster, said among what is the same.
+      const same: string = page.slice(
+        page.indexOf("The resource AI agents follow the same design:"),
+        page.indexOf("What differs:"),
       );
+
+      expect(same).toContain(
+        "**The same defaults.** AI investigations are on by default",
+      );
+      expect(same).toContain(
+        "a resource starts with investigation on and fixes off, like a cluster",
+      );
+      expect(page).not.toContain("It starts switched off.");
+      expect(page).not.toContain("investigation and fixes off.");
 
       // The first connection's defaults, as the registration service applies them.
       const service: string = fs.readFileSync(

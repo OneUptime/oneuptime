@@ -25,6 +25,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A public note that does not say whether to notify status page subscribers
@@ -628,6 +637,7 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
     jest
       .spyOn(ScheduledMaintenancePublicNoteService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    stubProjectDirectory({});
   });
 
   test("a member who may only create scheduled maintenance public notes saves a quiet note on a quiet event", async () => {

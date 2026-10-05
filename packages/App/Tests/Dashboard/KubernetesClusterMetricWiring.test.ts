@@ -377,11 +377,12 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
 
     /*
      * The sixth card, beside Agent Status, is the Kubernetes AI agent's own
-     * component; its (i) comes from the same record.
+     * component; its (i) comes from the same record. It shows the status
+     * the Overview reads once for it and the AI agent card at the bottom.
      */
     expectCode(
       OVERVIEW,
-      `<KubernetesAiAgentOverviewCard clusterId={modelId} tooltip={${CLUSTER_RECORD}.aiAgent} />`,
+      `<KubernetesAiAgentOverviewCard clusterId={modelId} tooltip={${CLUSTER_RECORD}.aiAgent} read={aiAccessStatus} />`,
     );
   });
 

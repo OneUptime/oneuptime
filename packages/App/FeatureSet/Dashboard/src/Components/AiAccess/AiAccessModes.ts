@@ -1,6 +1,10 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { AgentAiSettingsSource } from "Common/Types/AI/AgentAiSettings";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words and looks "What AI may do" shares between a Kubernetes
@@ -13,8 +17,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * (KubernetesAiRemediationMode and ResourceAiRemediationMode), so either
  * enum reads as an AiFixesMode.
  *
- * Import-clean on purpose (Common types only), so the suites read it
- * without a browser.
+ * Import-clean on purpose (Common types and the translation helpers only),
+ * so the suites read it without a browser.
  */
 
 export type AiFixesMode =
@@ -24,7 +28,8 @@ export type AiFixesMode =
   | "BypassApproval";
 
 /*
- * How a badge is coloured: off (gray) or on (green), and nothing else.
+ * How a badge is coloured: a setting is off (gray) or on (green), and
+ * nothing else.
  *
  * "When fixes are enabled, why does it show in yellow? That makes me think
  * that fixes are not enabled, and I need to enable it." A badge answers one
@@ -32,8 +37,12 @@ export type AiFixesMode =
  * its name (the badge's words: Ask for approval, Automatic, Bypass approval)
  * and its icon, never in a warning colour that reads as "something is
  * wrong".
+ *
+ * danger is for that alone: something that should work does not (an AI
+ * agent that went offline, on the Overview's AI agent card) — never a
+ * setting.
  */
-export type AiAccessBadgeTone = "off" | "on";
+export type AiAccessBadgeTone = "off" | "on" | "danger";
 
 export interface AiAccessBadge {
   text: string;
@@ -157,10 +166,14 @@ export function getAiAccessCardDescription(noun: string): string {
 /*
  * What the Investigation row says when investigation is off. Off is not
  * "AI does nothing": it still investigates, with what OneUptime already
- * has, it just runs nothing on the place itself.
+ * has, it just runs nothing on the place itself. In the reader's language:
+ * the Overview's AI agent card shows it too.
  */
 export function getAiInvestigationOffSentence(noun: string): string {
-  return `AI does not run commands on this ${noun}. It still investigates with the data OneUptime already has.`;
+  return translateTemplate(
+    "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.",
+    { noun: translatableTerm(noun, { inSentence: true }) },
+  );
 }
 
 /*
