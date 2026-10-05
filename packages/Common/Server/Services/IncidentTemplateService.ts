@@ -21,10 +21,10 @@ import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
+  getRelationAndIdColumnReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import {
@@ -323,31 +323,33 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * Each relation by both of its names: the API takes the ID column and the
+   * relation alike, and the template's cards write the relation. A write
+   * may carry both; each is checked.
+   */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
     return [
-      {
+      ...getRelationAndIdColumnReferences({
         modelName: "Incident State",
-        id:
-          resolveReferenceId(data.initialIncidentStateId) ||
-          resolveReferenceId(data.initialIncidentState),
         service: IncidentStateService,
-      },
-      {
+        idColumnValue: data.initialIncidentStateId,
+        relationValue: data.initialIncidentState,
+      }),
+      ...getRelationAndIdColumnReferences({
         modelName: "Incident Severity",
-        id:
-          resolveReferenceId(data.incidentSeverityId) ||
-          resolveReferenceId(data.incidentSeverity),
         service: IncidentSeverityService,
-      },
-      {
+        idColumnValue: data.incidentSeverityId,
+        relationValue: data.incidentSeverity,
+      }),
+      ...getRelationAndIdColumnReferences({
         modelName: "Monitor Status",
-        id:
-          resolveReferenceId(data.changeMonitorStatusToId) ||
-          resolveReferenceId(data.changeMonitorStatusTo),
         service: MonitorStatusService,
-      },
+        idColumnValue: data.changeMonitorStatusToId,
+        relationValue: data.changeMonitorStatusTo,
+      }),
     ];
   }
 

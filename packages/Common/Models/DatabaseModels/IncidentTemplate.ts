@@ -1190,7 +1190,19 @@ export default class IncidentTemplate extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
     ],
-    update: [],
+    /*
+     * The same list as changeMonitorStatusToId: the two name one column. The
+     * template's Affected Resources card writes this name, and an empty list
+     * here dropped the field from its Edit for everyone but master admins.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",
@@ -1276,7 +1288,18 @@ export default class IncidentTemplate extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadIncidentTemplate,
     ],
-    update: [],
+    /*
+     * The same list as initialIncidentStateId, for the same reason as
+     * changeMonitorStatusTo: the template's details card writes this name.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditIncidentTemplate,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "initialIncidentStateId",
