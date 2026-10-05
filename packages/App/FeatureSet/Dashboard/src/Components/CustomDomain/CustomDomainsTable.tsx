@@ -340,6 +340,15 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
               : updateGate.disabledReason,
             isVisible: (item: CustomDomainModel): boolean => {
               /*
+               * Nothing honest to say yet (the permission snapshot has not
+               * arrived): no Reissue SSL, rather than a locked one with no
+               * reason, as DNS Setup offers no Check now then.
+               */
+              if (!updateGate.isAllowed && !updateGate.disabledReason) {
+                return false;
+              }
+
+              /*
                * Only where there is a Let's Encrypt certificate of ours to
                * replace. A custom certificate is the customer's own upload,
                * and a domain whose first certificate is not ordered yet

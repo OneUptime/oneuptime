@@ -975,6 +975,20 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       },
     );
 
+    test("before the permissions have arrived, Reissue SSL is not offered rather than locked with nothing to say", () => {
+      mockPermissions = [];
+
+      renderPage();
+
+      for (const fullDomain of [ORDERED, PROVISIONED]) {
+        expect(
+          within(rowOf(fullDomain)).queryByRole("button", {
+            name: "Reissue SSL",
+          }),
+        ).toBeNull();
+      }
+    });
+
     test("before the permissions have arrived, DNS Setup offers no Check now rather than a locked one", () => {
       mockPermissions = [];
 

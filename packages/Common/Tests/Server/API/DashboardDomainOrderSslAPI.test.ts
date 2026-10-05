@@ -99,7 +99,6 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import Permission from "../../../Types/Permission";
 import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
 import { customDomainCaller } from "./CustomDomainCallers";
@@ -144,7 +143,6 @@ function makeDomain(extra: Partial<DomainRow> = {}): DomainRow {
 }
 
 type Spies = {
-  countBy: MockedFn;
   findOneBy: MockedFn;
   orderCertIfMissing: MockedFn;
   orderCert: MockedFn;
@@ -159,15 +157,15 @@ function setUp(data: {
   claim?: { mayOrder: boolean; lastError?: string };
 }): Spies {
   return {
-    countBy: jest
-      .spyOn(DashboardDomainService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(data.canSee === false ? 0 : 1),
-      ) as unknown as MockedFn,
+    /*
+     * The one lookup the route makes: the domain, read on the query the
+     * update check narrowed to the caller's scope - nothing when the domain
+     * is outside it.
+     */
     findOneBy: jest
       .spyOn(DashboardDomainService, "findOneBy")
       .mockResolvedValue(
-        (data.domain || makeDomain()) as never,
+        (data.canSee === false ? null : data.domain || makeDomain()) as never,
       ) as unknown as MockedFn,
     orderCertIfMissing: jest
       .spyOn(DashboardDomainService, "orderCertIfMissing")
@@ -250,19 +248,22 @@ describe("dashboard order-ssl", () => {
 
     await callRoute();
 
-    const countArgs: {
+    // One lookup: the domain, as root, on the query the update check narrowed.
+    expect(spies.findOneBy).toHaveBeenCalledTimes(1);
+
+    const lookup: {
       query: Record<string, unknown>;
       props: Record<string, unknown>;
-    } = spies.countBy.mock.calls[0]![0] as {
+    } = spies.findOneBy.mock.calls[0]![0] as {
       query: Record<string, unknown>;
       props: Record<string, unknown>;
     };
 
-    expect(countArgs.query["_id"]).toBe(domainId.toString());
-    expect(JSON.stringify(countArgs.query["projectId"])).toContain(
+    expect(lookup.query["_id"]).toBe(domainId.toString());
+    expect(JSON.stringify(lookup.query["projectId"])).toContain(
       callerProps.tenantId!.toString(),
     );
-    expect(countArgs.props).toEqual({ isRoot: true });
+    expect(lookup.props).toEqual({ isRoot: true });
     expect(spies.claim).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
 

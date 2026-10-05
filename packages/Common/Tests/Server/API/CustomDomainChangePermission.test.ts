@@ -111,7 +111,6 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import { customDomainCaller } from "./CustomDomainCallers";
 
@@ -233,7 +232,6 @@ const ROLES: Array<Permission> = PermissionHelper.getRolePermissionProps()
   });
 
 type Spies = {
-  countBy: MockedFn;
   findOneBy: MockedFn;
   findOneById: MockedFn;
   isCnameValid: MockedFn;
@@ -259,14 +257,16 @@ function stubDomainTable(kind: Kind, data: { inScope?: boolean } = {}): Spies {
   };
 
   return {
-    countBy: jest
-      .spyOn(kind.service, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(data.inScope === false ? 0 : 1),
-      ) as unknown as MockedFn,
+    /*
+     * The one lookup a route makes: the domain, read as root on the query
+     * the update check narrowed to the caller's scope - nothing when it is
+     * outside it.
+     */
     findOneBy: jest
       .spyOn(kind.service, "findOneBy")
-      .mockResolvedValue(row as never) as unknown as MockedFn,
+      .mockResolvedValue(
+        (data.inScope === false ? null : row) as never,
+      ) as unknown as MockedFn,
     findOneById: jest
       .spyOn(kind.service, "findOneById")
       .mockResolvedValue(row as never) as unknown as MockedFn,
@@ -572,7 +572,8 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         expect(error).toBeInstanceOf(BadDataException);
         expect(error!.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
-        expect(spies.findOneBy).not.toHaveBeenCalled();
+        // Looked for once, inside their scope, and not found there.
+        expect(spies.findOneBy).toHaveBeenCalledTimes(1);
         expect(changeRoute.reachedTheChange(spies)).toBe(false);
       });
 
@@ -585,21 +586,25 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         await callAs(props, kind, changeRoute.route);
 
-        expect(spies.countBy).toHaveBeenCalledTimes(1);
+        // One read of the domain: the check and the row the route works on.
+        expect(spies.findOneBy).toHaveBeenCalledTimes(1);
 
-        const countArgs: {
+        const lookup: {
           query: Record<string, unknown>;
+          select: Record<string, unknown>;
           props: Record<string, unknown>;
-        } = spies.countBy.mock.calls[0]![0] as {
+        } = spies.findOneBy.mock.calls[0]![0] as {
           query: Record<string, unknown>;
+          select: Record<string, unknown>;
           props: Record<string, unknown>;
         };
 
-        expect(countArgs.query["_id"]).toBe(domainId.toString());
-        expect(JSON.stringify(countArgs.query["projectId"])).toContain(
+        expect(lookup.query["_id"]).toBe(domainId.toString());
+        expect(JSON.stringify(lookup.query["projectId"])).toContain(
           props.tenantId!.toString(),
         );
-        expect(countArgs.props).toEqual({ isRoot: true });
+        expect(lookup.props).toEqual({ isRoot: true });
+        expect(lookup.select["_id"]).toBe(true);
         expect(changeRoute.reachedTheChange(spies)).toBe(true);
       });
 
@@ -627,10 +632,10 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
 
         await callAs(props, kind, changeRoute.route);
 
-        const countArgs: { query: Record<string, unknown> } = spies.countBy.mock
+        const lookup: { query: Record<string, unknown> } = spies.findOneBy.mock
           .calls[0]![0] as { query: Record<string, unknown> };
 
-        expect(JSON.stringify(countArgs.query[kind.parentRelation])).toContain(
+        expect(JSON.stringify(lookup.query[kind.parentRelation])).toContain(
           labelId.toString(),
         );
       });
@@ -659,7 +664,7 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
         );
 
         expect(sentError()!.message).toBe("The domain ID is not valid.");
-        expect(spies.countBy).not.toHaveBeenCalled();
+        expect(spies.findOneBy).not.toHaveBeenCalled();
         expect(changeRoute.reachedTheChange(spies)).toBe(false);
       });
     },

@@ -119,7 +119,6 @@ import {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import PositiveNumber from "../../../Types/PositiveNumber";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 import Permission from "../../../Types/Permission";
 import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
@@ -172,7 +171,6 @@ function makeDomain(extra: Partial<DomainRow> = {}): DomainRow {
 }
 
 type Spies = {
-  countBy: MockedFn;
   findOneBy: MockedFn;
   isCnameValid: MockedFn;
   orderCertIfMissing: MockedFn;
@@ -226,15 +224,19 @@ function setUp(data: {
     updateBy: jest
       .spyOn(StatusPageDomainService, "updateBy")
       .mockResolvedValue(1 as never) as unknown as MockedFn,
-    countBy: jest
-      .spyOn(StatusPageDomainService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(data.canSee === false ? 0 : 1),
-      ) as unknown as MockedFn,
+    /*
+     * The one lookup the routes make: the domain, read on the query the
+     * update check narrowed to the caller's scope - nothing when the domain
+     * is outside it.
+     */
     findOneBy: jest
       .spyOn(StatusPageDomainService, "findOneBy")
       .mockResolvedValue(
-        (data.domain === undefined ? makeDomain() : data.domain) as never,
+        (data.canSee === false
+          ? null
+          : data.domain === undefined
+            ? makeDomain()
+            : data.domain) as never,
       ) as unknown as MockedFn,
     isCnameValid: jest
       .spyOn(StatusPageDomainService, "isCnameValid")
@@ -333,7 +335,6 @@ describe("verify-cname (Check now)", () => {
 
     await callRoute(VERIFY_ROUTE, { id: "not-a-uuid" });
 
-    expect(spies.countBy).not.toHaveBeenCalled();
     expect(spies.findOneBy).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
 
@@ -355,20 +356,22 @@ describe("verify-cname (Check now)", () => {
 
     await callRoute(VERIFY_ROUTE);
 
-    const countArgs: {
+    // One lookup: the domain, as root, on the query the update check narrowed.
+    expect(spies.findOneBy).toHaveBeenCalledTimes(1);
+
+    const lookup: {
       query: Record<string, unknown>;
       props: Record<string, unknown>;
-    } = spies.countBy.mock.calls[0]![0] as {
+    } = spies.findOneBy.mock.calls[0]![0] as {
       query: Record<string, unknown>;
       props: Record<string, unknown>;
     };
 
-    expect(countArgs.query["_id"]).toBe(domainId.toString());
-    expect(JSON.stringify(countArgs.query["projectId"])).toContain(
+    expect(lookup.query["_id"]).toBe(domainId.toString());
+    expect(JSON.stringify(lookup.query["projectId"])).toContain(
       callerProps.tenantId!.toString(),
     );
-    expect(countArgs.props).toEqual({ isRoot: true });
-    expect(spies.findOneBy).not.toHaveBeenCalled();
+    expect(lookup.props).toEqual({ isRoot: true });
     expect(spies.isCnameValid).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
 

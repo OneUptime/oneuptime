@@ -10,7 +10,6 @@ import {
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
-import ModelPermission from "../Types/Database/Permissions/Index";
 import CertificateOrder, {
   CertificateOrderOutcome,
 } from "../Utils/Greenlock/CertificateOrder";
@@ -25,7 +24,6 @@ import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedExc
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
-import PositiveNumber from "../../Types/PositiveNumber";
 import CustomDomainVerification, {
   CustomDomainVerificationResult,
 } from "../../Types/CustomDomain/CustomDomainVerification";
@@ -86,83 +84,51 @@ export default class CustomDomainRoutes {
    * Check now, Order SSL and Reissue SSL change a domain: they verify its
    * record, order or replace its certificate, and write down what came of
    * it. So they take what editing the domain takes, asked the way an update
-   * of the domain asks it: one of the domain table's update permissions in
-   * the caller's project, no team block on them, and the domain inside the
-   * caller's update scope (the labels and the Owned scope of its status page
-   * or dashboard). Reading the domain is not enough. Whoever may only read
-   * it - a Viewer, a read-only API key - sees its status and the record to
-   * add, and the 15-minute checks verify it and order its certificate on
-   * their own.
+   * of the domain asks it (DatabaseService.findOneUpdatableById): one of the
+   * domain table's update permissions in the caller's project, no team block
+   * on them, and the domain inside the caller's update scope (the labels and
+   * the Owned scope of its status page or dashboard). Reading the domain is
+   * not enough. Whoever may only read it - a Viewer, a read-only API key -
+   * sees its status and the record to add, and the 15-minute checks verify
+   * it and order its certificate on their own.
    *
-   * Answers null when the caller may change the domain, or the refusal to
-   * send: what the update itself would refuse with when the caller may not
-   * update this kind of domain at all (no credentials is a 401), and
+   * Answers the domain, read with `select`, or the refusal to send: what the
+   * update itself would refuse with when the caller may not update this kind
+   * of domain at all (no credentials is a 401), and
    * DOMAIN_NOT_CHANGEABLE_MESSAGE when they may, but not this domain.
    */
-  public static async getChangeRefusal(data: {
+  public static async findDomainCallerMayChange(data: {
     service: DatabaseService<BaseModel>;
     domainId: ObjectID;
+    select: Select<BaseModel>;
     props: DatabaseCommonInteractionProps;
-  }): Promise<Exception | null> {
-    const service: DatabaseService<BaseModel> = data.service;
-
-    let changeableQuery: Query<BaseModel>;
+  }): Promise<{ domain: BaseModel } | { refusal: Exception }> {
+    let domain: BaseModel | null = null;
 
     try {
-      // The team block list, and the table's update permissions.
-      await ModelPermission.checkUpdatePermissionByModel({
-        modelType: service.modelType,
-        fetchModelWithAccessControlIds: async (): Promise<BaseModel | null> => {
-          return await service.findOneById({
-            id: data.domainId,
-            select: {
-              _id: true,
-            } as Select<BaseModel>,
-            props: {
-              isRoot: true,
-            },
-          });
-        },
+      domain = await data.service.findOneUpdatableById({
+        id: data.domainId,
+        select: data.select,
         props: data.props,
       });
-
-      // The caller's project, labels and Owned scope, as a query.
-      changeableQuery = await ModelPermission.checkUpdateQueryPermissions(
-        service.modelType,
-        {
-          _id: data.domainId.toString(),
-        } as Query<BaseModel>,
-        {},
-        data.props,
-      );
     } catch (err) {
       if (
         err instanceof NotAuthorizedException ||
         err instanceof NotAuthenticatedException
       ) {
-        return err;
-      }
-
-      // A domain that is gone by the time the block list asks for it.
-      if (err instanceof BadDataException) {
-        return new BadDataException(DOMAIN_NOT_CHANGEABLE_MESSAGE);
+        return { refusal: err };
       }
 
       throw err;
     }
 
-    const changeableCount: PositiveNumber = await service.countBy({
-      query: changeableQuery,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (changeableCount.toNumber() === 0) {
-      return new BadDataException(DOMAIN_NOT_CHANGEABLE_MESSAGE);
+    if (!domain) {
+      return {
+        refusal: new BadDataException(DOMAIN_NOT_CHANGEABLE_MESSAGE),
+      };
     }
 
-    return null;
+    return { domain };
   }
 
   public static add(data: {
@@ -184,16 +150,18 @@ export default class CustomDomainRoutes {
     /*
      * What every route that changes a domain asks first, in this order:
      * custom domains are on, the id is one, and the caller may change the
-     * domain (getChangeRefusal). Answers the domain's id, or null once the
-     * refusal has been sent.
+     * domain (findDomainCallerMayChange). Answers the domain, read as root
+     * with `select`, or null once the refusal has been sent.
      */
-    const getDomainIdCallerMayChange: (
+    const findDomainCallerMayChange: (
       req: ExpressRequest,
       res: ExpressResponse,
-    ) => Promise<ObjectID | null> = async (
+      select: Select<BaseModel>,
+    ) => Promise<BaseModel | null> = async (
       req: ExpressRequest,
       res: ExpressResponse,
-    ): Promise<ObjectID | null> => {
+      select: Select<BaseModel>,
+    ): Promise<BaseModel | null> => {
       if (!data.getCnameRecord()) {
         Response.sendErrorResponse(
           req,
@@ -215,21 +183,20 @@ export default class CustomDomainRoutes {
         return null;
       }
 
-      const domainId: ObjectID = new ObjectID(idParameter);
-
-      const refusal: Exception | null =
-        await CustomDomainRoutes.getChangeRefusal({
+      const found: { domain: BaseModel } | { refusal: Exception } =
+        await CustomDomainRoutes.findDomainCallerMayChange({
           service: service,
-          domainId: domainId,
+          domainId: new ObjectID(idParameter),
+          select: select,
           props: await CommonAPI.getDatabaseCommonInteractionProps(req),
         });
 
-      if (refusal) {
-        Response.sendErrorResponse(req, res, refusal);
+      if ("refusal" in found) {
+        Response.sendErrorResponse(req, res, found.refusal);
         return null;
       }
 
-      return domainId;
+      return found.domain;
     };
 
     /*
@@ -246,20 +213,10 @@ export default class CustomDomainRoutes {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const domainId: ObjectID | null = await getDomainIdCallerMayChange(
+          const domain: BaseModel | null = await findDomainCallerMayChange(
             req,
             res,
-          );
-
-          if (!domainId) {
-            return;
-          }
-
-          const domain: BaseModel | null = await service.findOneBy({
-            query: {
-              _id: domainId.toString(),
-            } as Query<BaseModel>,
-            select: {
+            {
               _id: true,
               fullDomain: true,
               isCustomCertificate: true,
@@ -267,17 +224,10 @@ export default class CustomDomainRoutes {
               // Whose on-demand orders the order counts against.
               projectId: true,
             } as Select<BaseModel>,
-            props: {
-              isRoot: true,
-            },
-          });
+          );
 
           if (!domain) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid token."),
-            );
+            return;
           }
 
           const fullDomain: string | undefined = (
@@ -337,20 +287,10 @@ export default class CustomDomainRoutes {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const domainId: ObjectID | null = await getDomainIdCallerMayChange(
+          const domain: BaseModel | null = await findDomainCallerMayChange(
             req,
             res,
-          );
-
-          if (!domainId) {
-            return;
-          }
-
-          const domain: BaseModel | null = await service.findOneBy({
-            query: {
-              _id: domainId.toString(),
-            } as Query<BaseModel>,
-            select: {
+            {
               _id: true,
               fullDomain: true,
               cnameVerificationToken: true,
@@ -360,15 +300,15 @@ export default class CustomDomainRoutes {
               // Whose on-demand orders the order counts against.
               projectId: true,
             } as Select<BaseModel>,
-            props: {
-              isRoot: true,
-            },
-          });
+          );
 
-          const row: CustomDomainRow | null =
-            domain as unknown as CustomDomainRow | null;
+          if (!domain) {
+            return;
+          }
 
-          if (!domain || !row || !row.cnameVerificationToken) {
+          const row: CustomDomainRow = domain as unknown as CustomDomainRow;
+
+          if (!row.cnameVerificationToken) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -465,14 +405,20 @@ export default class CustomDomainRoutes {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const domainId: ObjectID | null = await getDomainIdCallerMayChange(
+          const domain: BaseModel | null = await findDomainCallerMayChange(
             req,
             res,
+            {
+              _id: true,
+            } as Select<BaseModel>,
           );
 
-          if (!domainId) {
+          if (!domain) {
             return;
           }
+
+          // The id the lookup above checked, and found.
+          const domainId: ObjectID = new ObjectID(req.params["id"] as string);
 
           logger.debug(
             "Reissuing SSL",
