@@ -757,6 +757,7 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerService, "findOneBy")
       .mockResolvedValue({
+        id: LAYER_1,
         order: 2,
         onCallDutyPolicyScheduleId: SCHEDULE_1,
         projectId: PROJECT_ID,
@@ -787,6 +788,31 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
       reason: OnCallShiftChangeReason.LayerChanged,
     });
     expectCalledAfter(propagate, refresh);
+  });
+
+  test("a delete that removed no layer neither re-sequences, refreshes nor propagates", async () => {
+    const findBy: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyScheduleLayerService, "findBy")
+      .mockResolvedValue([] as never);
+    const refresh: any = spyRosterRefresh();
+    const propagate: any = spyPropagate();
+
+    await (OnCallDutyPolicyScheduleLayerService as any).onDeleteSuccess(
+      {
+        deleteBy: { query: { _id: LAYER_1 }, props: {} },
+        carryForward: {
+          id: LAYER_1,
+          order: 2,
+          onCallDutyPolicyScheduleId: SCHEDULE_1,
+          projectId: PROJECT_ID,
+        },
+      },
+      [],
+    );
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(propagate).not.toHaveBeenCalled();
   });
 
   test("a root delete (no carried resource) neither refreshes nor propagates — unchanged behaviour", async () => {
@@ -889,6 +915,7 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
     jest
       .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findOneBy")
       .mockResolvedValue({
+        id: ROW_ID,
         order: 1,
         onCallDutyPolicyScheduleLayerId: LAYER_1,
         onCallDutyPolicyScheduleId: SCHEDULE_1,
@@ -1014,6 +1041,7 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerUserService", () => {
       {
         deleteBy: { query: { _id: ROW_ID }, props: {} },
         carryForward: {
+          id: ROW_ID,
           order: 1,
           onCallDutyPolicyScheduleLayerId: LAYER_1,
           onCallDutyPolicyScheduleId: SCHEDULE_1,

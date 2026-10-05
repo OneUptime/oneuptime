@@ -16,9 +16,8 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -36,6 +35,20 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+
+/*
+ * A rule moved to another place by a non-root update: where it was, where it
+ * goes, and its policy. Read before the update (onBeforeUpdate) and acted on
+ * after it (onUpdateSuccess), only if the update wrote that rule.
+ */
+interface RuleMove {
+  ruleId: ObjectID;
+  previousOrder: number;
+  newOrder: number;
+  onCallDutyPolicyId: ObjectID;
+  projectId: ObjectID;
+}
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   @CaptureSpan()
@@ -689,6 +702,23 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       throw new BadDataException("id is required");
     }
 
+    /*
+     * The rules at the new rule's place and after it move one place down -
+     * now that it exists, so a create that is refused or fails leaves the
+     * policy's order as it was.
+     */
+    if (createdItem.onCallDutyPolicyId && createdItem.order) {
+      await ContiguousOrder.afterCreate({
+        service: this,
+        list: {
+          onCallDutyPolicyId: createdItem.onCallDutyPolicyId,
+          projectId: createdItem.projectId,
+        },
+        createdItemId: createdItem.id,
+        order: createdItem.order,
+      });
+    }
+
     // add people in escalation rule.
 
     if (
@@ -891,12 +921,6 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       );
     }
 
-    await this.rearrangeOrder(
-      createBy.data.order,
-      createBy.data.onCallDutyPolicyId,
-      true,
-    );
-
     return {
       createBy: createBy,
       carryForward: null,
@@ -906,8 +930,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   /*
    * The level a new rule with this order takes: one past every rule of the
    * policy ordered before it. Rules at or after its order make room for it
-   * (rearrangeOrder), so they do not count. Counted rather than read off the
-   * order, which an API caller may leave with gaps.
+   * once it is saved (onCreateSuccess), so they do not count. Counted rather
+   * than read off the order, which an API caller may leave with gaps.
    */
   private async getLevelOfNewRule(data: {
     onCallDutyPolicyId: ObjectID;
@@ -1006,23 +1030,37 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
   }
 
+  /*
+   * The rules after a deleted one close its gap - only when the rule was
+   * actually deleted, within its own policy and project.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
     const deleteBy: DeleteBy<Model> = onDelete.deleteBy;
     const resource: Model | null = onDelete.carryForward;
 
-    if (!deleteBy.props.isRoot && resource) {
-      if (resource && resource.order && resource.onCallDutyPolicyId) {
-        await this.rearrangeOrder(
-          resource.order,
-          resource.onCallDutyPolicyId,
-
-          false,
-        );
-      }
+    if (
+      !deleteBy.props.isRoot &&
+      resource &&
+      resource.id &&
+      resource.order &&
+      resource.onCallDutyPolicyId &&
+      resource.projectId &&
+      itemIdsBeforeDelete.some((id: ObjectID): boolean => {
+        return id.toString() === resource.id!.toString();
+      })
+    ) {
+      await ContiguousOrder.afterDelete({
+        service: this,
+        list: {
+          onCallDutyPolicyId: resource.onCallDutyPolicyId,
+          projectId: resource.projectId,
+        },
+        order: resource.order,
+      });
     }
 
     return {
@@ -1031,10 +1069,17 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
   }
 
+  /*
+   * A rule moved to another place: where it is now is read here, and the
+   * rules it passes step aside once the update has moved it
+   * (onUpdateSuccess). Nothing is written before the update.
+   */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    let move: RuleMove | null = null;
+
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
       const resource: Model | null = await this.findOneBy({
         query: {
@@ -1046,124 +1091,58 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         select: {
           order: true,
           onCallDutyPolicyId: true,
-
+          projectId: true,
           _id: true,
         },
       });
 
-      const currentOrder: number = resource?.order as number;
-      const newOrder: number = updateBy.data.order as number;
-
-      const resources: Array<Model> = await this.findBy({
-        query: {
-          onCallDutyPolicyId: resource?.onCallDutyPolicyId as ObjectID,
-        },
-
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-        select: {
-          order: true,
-          onCallDutyPolicyId: true,
-
-          _id: true,
-        },
-      });
-
-      if (currentOrder > newOrder) {
-        // moving up.
-
-        for (const resource of resources) {
-          if (resource.order! >= newOrder && resource.order! < currentOrder) {
-            // increment order.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! + 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
-      }
-
-      if (newOrder > currentOrder) {
-        // moving down.
-
-        for (const resource of resources) {
-          if (resource.order! > currentOrder && resource.order! <= newOrder) {
-            // decrement order to fill the gap left by the moved rule.
-            await this.updateOneBy({
-              query: {
-                _id: resource._id!,
-              },
-              data: {
-                order: resource.order! - 1,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
+      if (
+        resource &&
+        resource.id &&
+        resource.order &&
+        resource.onCallDutyPolicyId &&
+        resource.projectId
+      ) {
+        move = {
+          ruleId: resource.id,
+          previousOrder: resource.order,
+          newOrder: updateBy.data.order as number,
+          onCallDutyPolicyId: resource.onCallDutyPolicyId,
+          projectId: resource.projectId,
+        };
       }
     }
 
-    return { updateBy, carryForward: null };
+    return { updateBy, carryForward: move };
   }
 
-  private async rearrangeOrder(
-    currentOrder: number,
-    onCallDutyPolicyId: ObjectID,
-    increaseOrder: boolean = true,
-  ): Promise<void> {
-    // get status page resource with this order.
-    const resources: Array<Model> = await this.findBy({
-      query: {
-        order: QueryHelper.greaterThanEqualTo(currentOrder),
-        onCallDutyPolicyId: onCallDutyPolicyId,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    });
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const move: RuleMove | null = (onUpdate.carryForward as RuleMove) || null;
 
-    let newOrder: number = currentOrder;
-
-    for (const resource of resources) {
-      if (increaseOrder) {
-        newOrder = resource.order! + 1;
-      } else {
-        newOrder = resource.order! - 1;
-      }
-
-      await this.updateOneBy({
-        query: {
-          _id: resource._id!,
+    if (
+      move &&
+      move.ruleId &&
+      updatedItemIds.some((id: ObjectID): boolean => {
+        return id.toString() === move.ruleId.toString();
+      })
+    ) {
+      await ContiguousOrder.afterMove({
+        service: this,
+        list: {
+          onCallDutyPolicyId: move.onCallDutyPolicyId,
+          projectId: move.projectId,
         },
-        data: {
-          order: newOrder,
-        },
-        props: {
-          isRoot: true,
-        },
+        movedItemId: move.ruleId,
+        previousOrder: move.previousOrder,
+        newOrder: move.newOrder,
       });
     }
+
+    return onUpdate;
   }
 }
 export default new Service();
