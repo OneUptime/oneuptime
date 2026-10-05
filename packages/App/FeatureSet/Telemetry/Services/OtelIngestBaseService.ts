@@ -2152,6 +2152,20 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "storage.array.name");
   }
 
+  /*
+   * The platform the agent declares in `storage.system` (STORAGE_SYSTEM in
+   * its .env), normalized; null when absent or malformed. Only a fallback
+   * for the platform the metric names imply — see
+   * OtelMetricsIngestService.flushStorageArraySnapshotBuffers.
+   */
+  protected static getDeclaredStorageSystemFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return StorageSystemUtil.normalize(
+      this.getStringAttribute(attributes, "storage.system"),
+    );
+  }
+
   private static readonly STORAGE_ARRAY_ID_CACHE_NAMESPACE: string =
     "storage-array-id";
   private static readonly STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS: number =
@@ -2214,17 +2228,18 @@ export default abstract class OtelIngestBaseService {
             "oneuptime.agent.version",
           );
           /*
-           * The platform the agent declares. The metrics snapshot also
-           * detects it from the metric names (purefa_ / purefb_), which
-           * covers a hand-written collector config that stamps only the
-           * array name.
+           * The platform is deliberately not written here. The metrics
+           * snapshot derives it from the metric names (purefa_ / purefb_),
+           * which a collector config cannot get wrong, and takes the
+           * declared `storage.system` only for a platform it has no
+           * catalog for (OtelMetricsIngestService.
+           * flushStorageArraySnapshotBuffers). Writing it from both made
+           * the column flip whenever the two disagreed: a FlashBlade .env
+           * without STORAGE_SYSTEM gets the compose default,
+           * purestorage.flasharray.
            */
-          const storageSystem: string | null = StorageSystemUtil.normalize(
-            this.getStringAttribute(data.attributes, "storage.system"),
-          );
           await StorageArrayService.updateLastSeen(arrayId, {
             agentVersion: agentVersion || undefined,
-            storageSystem: storageSystem || undefined,
           });
           await this.promoteOneuptimeLabelsToStorageArray({
             projectId: data.projectId,

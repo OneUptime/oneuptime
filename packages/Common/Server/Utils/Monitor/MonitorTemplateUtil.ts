@@ -518,7 +518,8 @@ export default class MonitorTemplateUtil {
         data.monitorType === MonitorType.DockerSwarm ||
         data.monitorType === MonitorType.Proxmox ||
         data.monitorType === MonitorType.VMware ||
-        data.monitorType === MonitorType.Ceph
+        data.monitorType === MonitorType.Ceph ||
+        data.monitorType === MonitorType.StorageArray
       ) {
         const metricResponse: MetricMonitorResponse =
           data.dataToProcess as MetricMonitorResponse;

@@ -30,6 +30,7 @@ import KubernetesClusterService from "../../../Server/Services/KubernetesCluster
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
+import StorageArrayService from "../../../Server/Services/StorageArrayService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import IoTFleetService from "../../../Server/Services/IoTFleetService";
@@ -63,7 +64,7 @@ import {
  * `resolveTelemetryResource` has run, and none of the three consults the
  * dictionary before calling in. So every resource block of every batch paid
  * that SELECT. The memo (keyed on entityType + entityId, 60s TTL) is what
- * actually removes it; this suite pins that for ALL thirteen entity types.
+ * actually removes it; this suite pins that for ALL fourteen entity types.
  *
  * What is pinned, per type:
  *
@@ -122,6 +123,11 @@ const RETENTION_CASES: Array<RetentionCase> = [
     name: "CephCluster",
     serviceType: ServiceType.CephCluster,
     service: CephClusterService,
+  },
+  {
+    name: "StorageArray",
+    serviceType: ServiceType.StorageArray,
+    service: StorageArrayService,
   },
   {
     name: "DockerSwarmCluster",

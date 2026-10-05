@@ -13,6 +13,7 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import { getAffectedResourceRelations } from "../../../Server/Utils/Database/AffectedResourceRelations";
 import { ProjectScopedRelation } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
@@ -87,6 +88,12 @@ const LINKED_RELATIONS: Array<LinkedRelation> = [
     model: CephCluster,
     joinTable: "MonitorCephCluster",
     inverseColumn: "cephClusterId",
+  },
+  {
+    column: "storageArrays",
+    model: StorageArray,
+    joinTable: "MonitorStorageArray",
+    inverseColumn: "storageArrayId",
   },
   {
     column: "dockerSwarmClusters",

@@ -115,6 +115,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
     databaseServerIds: [],
+    storageArrayIds: [],
   };
 }
 

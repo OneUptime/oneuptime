@@ -146,6 +146,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.StorageArray ||
       monitorType === MonitorType.IoTDevice
     );
   }

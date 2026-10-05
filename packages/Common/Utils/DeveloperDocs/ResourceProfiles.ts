@@ -1798,6 +1798,16 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     ],
   },
 
+  StorageArray: {
+    createNote:
+      "The OneUptime Storage Array Agent adds a storage array the first time it reports. Its name must match the storage.array.name the agent reports.",
+    fields: [
+      field("name", literal("pure-prod-01")),
+      field("description", literal("Production Pure Storage FlashArray.")),
+      "labels",
+    ],
+  },
+
   Host: {
     createNote:
       "The OneUptime agent adds a host the first time it reports. Create one ahead of it only to set it up in advance, with the host.name the agent reports as its host identifier.",

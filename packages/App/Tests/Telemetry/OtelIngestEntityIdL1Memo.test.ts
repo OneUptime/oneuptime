@@ -42,6 +42,7 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
 import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelIngestBaseService";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CephClusterService from "Common/Server/Services/CephClusterService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
 import DockerHostService from "Common/Server/Services/DockerHostService";
@@ -61,8 +62,8 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * The shared entity-id L1 memo in front of the eleven autoDiscover* Redis
- * caches.
+ * The shared entity-id L1 memo in front of every autoDiscover* Redis
+ * cache.
  *
  * Every autoDiscover* method resolves "(projectId, natural key) -> Postgres
  * row id" through GlobalCache — a pure Redis client with no in-process
@@ -185,6 +186,19 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
     attributes: [stringAttribute("ceph.cluster.name", "ceph-1")] as JSONArray,
     findOrCreate: { service: CephClusterService, method: "findOrCreateByName" },
     maintenance: { service: CephClusterService, method: "updateLastSeen" },
+  },
+  {
+    name: "autoDiscoverStorageArray",
+    method: "autoDiscoverStorageArray",
+    namespace: "storage-array-id",
+    attributes: [
+      stringAttribute("storage.array.name", "pure-prod-01"),
+    ] as JSONArray,
+    findOrCreate: {
+      service: StorageArrayService,
+      method: "findOrCreateByName",
+    },
+    maintenance: { service: StorageArrayService, method: "updateLastSeen" },
   },
   {
     name: "autoDiscoverServerless",

@@ -9,10 +9,13 @@ import {
   deriveStorageArraySnapshotExtras,
   emptyStorageArrayResourceEntry,
   foldStorageArrayResourceSnapshot,
+  getConnectedVolumeNames,
+  getVolumeConnectionCounts,
   getOrCreateStorageArraySnapshot,
   getStorageArrayResourceRows,
   isCriticalComponentStatus,
   isUnhealthyComponentStatus,
+  resolveStorageArraySystem,
 } from "../../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import logger from "../../../../Server/Utils/Logger";
 import StorageArrayResourceKind from "../../../../Types/StorageArray/StorageArrayResourceKind";
@@ -2312,6 +2315,188 @@ describe("StorageArraySnapshotScan - FlashArray hosts and connections", () => {
     expect(entries(b)).toHaveLength(0);
     expect(snapOf(b)?.sawHosts).toBe(false);
     expect(snapOf(b)?.connectionsObservedAt).toBeNull();
+  });
+});
+
+/*
+ * Which volumes keep a connection count after a batch: everything else of
+ * the array is reset to 0 by StorageArrayResourceService.
+ * resetVolumeConnectionCounts — so null (reset nothing) is the answer
+ * whenever the batch cannot see every connection.
+ */
+describe("StorageArraySnapshotScan - volume connection counts (getVolumeConnectionCounts)", () => {
+  test("counts each connected volume's hosts for a complete hosts batch", () => {
+    const b: Buffers = buffers();
+    feed(b, "purefa_info", { array_name: "fa", scrape_endpoint: "hosts" }, 1);
+    for (const [host, volume] of [
+      ["esx-01", "vol-a"],
+      ["esx-02", "vol-a"],
+      ["esx-01", "vol-b"],
+    ]) {
+      feed(
+        b,
+        "purefa_host_connections_info",
+        { host: host!, hostgroup: "cluster", volume: volume! },
+        1,
+      );
+    }
+
+    expect(getVolumeConnectionCounts(rows(b), snapOf(b))).toEqual({
+      "vol-a": 2,
+      "vol-b": 1,
+    });
+  });
+
+  test("is null whenever the batch does not know every connection", () => {
+    const b: Buffers = buffers();
+    feed(b, "purefa_info", { array_name: "fa", scrape_endpoint: "volumes" }, 1);
+    expect(getVolumeConnectionCounts(rows(b), snapOf(b))).toBeNull();
+    expect(getVolumeConnectionCounts([], undefined)).toBeNull();
+  });
+
+  test("a hosts batch with no host at all knows nothing is connected", () => {
+    const b: Buffers = buffers();
+    feed(b, "purefa_info", { array_name: "fa", scrape_endpoint: "hosts" }, 1);
+    expect(getVolumeConnectionCounts(rows(b), snapOf(b))).toEqual({});
+  });
+});
+
+describe("StorageArraySnapshotScan - volumes to keep connected (getConnectedVolumeNames)", () => {
+  function connected(b: Buffers): Array<string> | null {
+    return getConnectedVolumeNames(rows(b), snapOf(b));
+  }
+
+  test("a hosts scrape names every connected volume once, sorted", () => {
+    const b: Buffers = buffers();
+    faInfo(b, "hosts");
+    faConnection(b, "esx-02", "vol-web-01", "esx-cluster");
+    faConnection(b, "esx-01", "vol-db-01", "esx-cluster");
+    faConnection(b, "esx-02", "vol-db-01", "esx-cluster");
+    // A host with nothing connected names no volume.
+    feed(
+      b,
+      "purefa_host_connections_info",
+      { host: "idle-host", hostgroup: "", volume: "" },
+      1,
+    );
+
+    expect(connected(b)).toEqual(["vol-db-01", "vol-web-01"]);
+  });
+
+  test("without the scrape_endpoint label the host series alone mark the complete list", () => {
+    const b: Buffers = buffers();
+    faConnection(b, "esx-01", "vol-db-01");
+
+    expect(snapOf(b)?.sawHosts).toBe(true);
+    expect(connected(b)).toEqual(["vol-db-01"]);
+  });
+
+  test("a hosts scrape that listed no host at all has nothing connected", () => {
+    const b: Buffers = buffers();
+    faInfo(b, "hosts");
+
+    expect(snapOf(b)?.sawHosts).toBe(true);
+    expect(snapOf(b)?.connectionsObservedAt).toBeNull();
+    expect(connected(b)).toEqual([]);
+  });
+
+  test("hosts whose connections series was filtered out reset nothing", () => {
+    const b: Buffers = buffers();
+    faInfo(b, "hosts");
+    feed(
+      b,
+      "purefa_host_connectivity_info",
+      { host: "esx-01", status: "healthy", details: "Redundant" },
+      1,
+    );
+
+    expect(snapOf(b)?.sawHosts).toBe(true);
+    expect(connected(b)).toBeNull();
+  });
+
+  test("a batch without the hosts endpoint resets nothing", () => {
+    for (const endpoint of ["array", "volumes", "pods", "directories"]) {
+      const b: Buffers = buffers();
+      faInfo(b, endpoint);
+      faVolume(
+        b,
+        "purefa_volume_space_bytes",
+        "vol-db-01",
+        { space: "total_provisioned" },
+        TIB,
+      );
+
+      expect({ endpoint, connected: connected(b) }).toEqual({
+        endpoint,
+        connected: null,
+      });
+    }
+    expect(getConnectedVolumeNames([], undefined)).toBeNull();
+  });
+
+  test("a FlashArray `all` scrape is complete; a FlashBlade one has no hosts to speak of", () => {
+    const fa: Buffers = buffers();
+    faInfo(fa, "all");
+    faConnection(fa, "esx-01", "vol-db-01");
+    expect(connected(fa)).toEqual(["vol-db-01"]);
+
+    const fb: Buffers = buffers();
+    fbInfo(fb, "all");
+    expect(snapOf(fb)?.sawHosts).toBe(false);
+    expect(connected(fb)).toBeNull();
+  });
+});
+
+describe("StorageArraySnapshotScan - the platform to write (resolveStorageArraySystem)", () => {
+  test("the metric names win over a declaration that disagrees", () => {
+    // A FlashBlade .env without STORAGE_SYSTEM declares the compose default.
+    expect(
+      resolveStorageArraySystem({
+        derived: StorageSystem.PureStorageFlashBlade,
+        declared: StorageSystem.PureStorageFlashArray,
+      }),
+    ).toBe(StorageSystem.PureStorageFlashBlade);
+  });
+
+  test("a platform with no catalog is taken from the declaration", () => {
+    expect(
+      resolveStorageArraySystem({
+        derived: undefined,
+        declared: "netapp.ontap",
+      }),
+    ).toBe("netapp.ontap");
+  });
+
+  test("a known platform is never taken from the declaration alone", () => {
+    // A batch with no Pure series (a failed scrape's `up`) writes nothing.
+    for (const declared of Object.values(StorageSystem) as Array<string>) {
+      expect(
+        resolveStorageArraySystem({ derived: undefined, declared }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("nothing derived and nothing declared writes nothing", () => {
+    expect(
+      resolveStorageArraySystem({ derived: undefined, declared: undefined }),
+    ).toBeUndefined();
+    expect(
+      resolveStorageArraySystem({ derived: null, declared: null }),
+    ).toBeUndefined();
+    expect(resolveStorageArraySystem({ derived: "", declared: "" })).toBe(
+      undefined,
+    );
+  });
+
+  test("the snapshot's derived platform is what the flush passes as derived", () => {
+    const b: Buffers = buffers();
+    fbInfo(b, "array");
+    expect(
+      resolveStorageArraySystem({
+        derived: derive(b).storageSystem,
+        declared: StorageSystem.PureStorageFlashArray,
+      }),
+    ).toBe(StorageSystem.PureStorageFlashBlade);
   });
 });
 

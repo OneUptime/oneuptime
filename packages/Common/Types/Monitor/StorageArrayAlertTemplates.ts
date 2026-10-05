@@ -10,7 +10,9 @@ import { FilterType } from "./CriteriaFilter";
 import MonitorStepStorageArrayMonitor from "./MonitorStepStorageArrayMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
-import StorageSystem, { StorageSystemUtil } from "../StorageArray/StorageSystem";
+import StorageSystem, {
+  StorageSystemUtil,
+} from "../StorageArray/StorageSystem";
 
 export type StorageArrayAlertTemplateCategory =
   | "Array Health"
@@ -297,7 +299,7 @@ const faCriticalAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate(
     recover: RECOVER_WHEN_ABSENT,
     incidentTitle: "[Storage Array] CRITICAL: Array Alert",
     incidentDescription:
-      "The FlashArray has an open critical alert. The summary label on the series names the problem, and the code label is the Purity alert code. Check the alert in Pure1 or on the array (`purealert list --filter \"state='open'\"`), follow the alert's knowledge base article, and open a case with Pure Storage support if a component has failed — the array usually phones the alert home already.",
+      "The FlashArray has an open critical alert. The summary label on the series names the problem, and the code label is the Purity alert code. Check the alert in Pure1 or on the array (`purealert list --filter \"state='open'\"`; `puremessage list --open` on releases before Purity//FA 6), follow the alert's knowledge base article, and open a case with Pure Storage support if a component has failed — the array usually phones the alert home already.",
     criteriaName: "Critical Alert Open",
     criteriaDescription:
       "Triggers while the array reports at least one open alert with critical severity.",
@@ -322,7 +324,7 @@ const faWarningAlertsTemplate: StorageArrayAlertTemplate = singleQueryTemplate({
   recover: RECOVER_WHEN_ABSENT,
   incidentTitle: "[Storage Array] Array Warning Alert",
   incidentDescription:
-    "The FlashArray has an open warning alert. The summary label on the series names the problem. Review it in Pure1 or on the array (`purealert list`) before it turns critical.",
+    "The FlashArray has an open warning alert. The summary label on the series names the problem. Review it in Pure1 or on the array (`purealert list --filter \"state='open'\"`) before it turns critical.",
   criteriaName: "Warning Alert Open",
   criteriaDescription:
     "Triggers while the array reports at least one open alert with warning severity.",

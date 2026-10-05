@@ -652,6 +652,178 @@ describe("StorageArrayResourceService.deleteStaleForArray", () => {
   });
 });
 
+describe("StorageArrayResourceService.setVolumeConnectionCounts", () => {
+  test("writes each named volume's count in one update, unconditional on lastSeenAt", async () => {
+    const query: jest.Mock = mockQueryRunner([[], 2]);
+
+    const affected: number =
+      await StorageArrayResourceService.setVolumeConnectionCounts({
+        storageArrayId: ARRAY_ID,
+        connectionCounts: { "vol-db-01": 2, "vol-web-01": 1 },
+      });
+
+    expect(affected).toBe(2);
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, params] = query.mock.calls[0] as QueryCall;
+    expect(sql).toContain('UPDATE "StorageArrayResource" AS r');
+    expect(sql).toContain(
+      'unnest($2::text[], $3::integer[]) AS v("externalId", "count")',
+    );
+    expect(sql).toContain('r."kind" = $4');
+    // Rows already at their count are not rewritten.
+    expect(sql).toContain('r."connectionCount" IS DISTINCT FROM v."count"');
+    // Unlike bulkUpsert, no lastSeenAt guard can drop it.
+    expect(sql).not.toContain("lastSeenAt");
+    expect(params).toEqual([
+      ARRAY_ID.toString(),
+      ["vol-db-01", "vol-web-01"],
+      [2, 1],
+      StorageArrayResourceKind.Volume,
+    ]);
+  });
+
+  test("an empty map issues no query", async () => {
+    const query: jest.Mock = mockQueryRunner([[], 0]);
+    await expect(
+      StorageArrayResourceService.setVolumeConnectionCounts({
+        storageArrayId: ARRAY_ID,
+        connectionCounts: {},
+      }),
+    ).resolves.toBe(0);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("drops counts the integer column would reject and clamps names like bulkUpsert", async () => {
+    const query: jest.Mock = mockQueryRunner([[], 1]);
+    const longName: string = "v".repeat(600);
+
+    await StorageArrayResourceService.setVolumeConnectionCounts({
+      storageArrayId: ARRAY_ID,
+      connectionCounts: {
+        ok: 3.7,
+        negative: -1,
+        notANumber: NaN,
+        infinite: Infinity,
+        huge: 1e12,
+        [longName]: 1,
+      },
+    });
+
+    const [, params] = query.mock.calls[0] as QueryCall;
+    expect(params[1]).toEqual(["ok", "huge", "v".repeat(500)]);
+    expect(params[2]).toEqual([3, 2147483647, 1]);
+  });
+});
+
+describe("StorageArrayResourceService.resetVolumeConnectionCounts", () => {
+  async function reset(
+    connectedVolumeNames: Array<string>,
+    result: unknown = [[], 0],
+  ): Promise<{ affected: number; call: QueryCall; calls: number }> {
+    const query: jest.Mock = mockQueryRunner(result);
+    const affected: number =
+      await StorageArrayResourceService.resetVolumeConnectionCounts({
+        storageArrayId: ARRAY_ID,
+        connectedVolumeNames,
+      });
+    return {
+      affected,
+      call: query.mock.calls[0] as QueryCall,
+      calls: query.mock.calls.length,
+    };
+  }
+
+  test("zeroes, in one UPDATE, every volume of the array the hosts scrape no longer names", async () => {
+    const { call, calls } = await reset(["vol-db-01", "vol-web-01"]);
+    const [sql, params] = call;
+
+    expect(calls).toBe(1);
+    expect(sql).toContain('UPDATE "StorageArrayResource"');
+    expect(sql).toContain('SET "connectionCount" = 0, "updatedAt" = now()');
+    expect(sql).toContain('WHERE "storageArrayId" = $1');
+    expect(sql).toContain('"kind" = $3');
+    expect(sql).toContain('"externalId" <> ALL($2::text[])');
+    // Rows already at 0 are not rewritten; a NULL count becomes 0.
+    expect(sql).toContain('"connectionCount" IS DISTINCT FROM 0');
+    expect(params).toEqual([
+      ARRAY_ID.toString(),
+      ["vol-db-01", "vol-web-01"],
+      StorageArrayResourceKind.Volume,
+    ]);
+  });
+
+  test("touches no other column and no other array or kind", async () => {
+    const { call } = await reset(["vol-db-01"]);
+    const [sql] = call;
+
+    const setClause: string = sql.slice(
+      sql.indexOf("SET"),
+      sql.indexOf("WHERE"),
+    );
+    expect(setClause.match(/"\w+" =/g)).toEqual([
+      '"connectionCount" =',
+      '"updatedAt" =',
+    ]);
+    expect(sql).not.toContain('"lastSeenAt"');
+    expect(sql).not.toContain('"projectId"');
+  });
+
+  test("an empty list resets every volume of the array: nothing is connected", async () => {
+    const { call } = await reset([]);
+    expect(call[1]).toEqual([
+      ARRAY_ID.toString(),
+      [],
+      StorageArrayResourceKind.Volume,
+    ]);
+  });
+
+  test("names are clamped like bulkUpsert clamps externalId, and de-duplicated", async () => {
+    const longName: string = "v".repeat(600);
+    const { call } = await reset([longName, "vol-a", "vol-a"]);
+
+    expect(call[1][1]).toEqual(["v".repeat(500), "vol-a"]);
+
+    // The clamped name is exactly the key bulkUpsert stores for that volume.
+    const upsertQuery: jest.Mock = await upsert([
+      resource({
+        kind: StorageArrayResourceKind.Volume,
+        externalId: longName,
+        name: longName,
+      }),
+    ]);
+    const [, upsertParams] = upsertQuery.mock.calls[0] as QueryCall;
+    expect(upsertParams[3]).toBe("v".repeat(500));
+  });
+
+  test("returns the number of volumes reset from the postgres [rows, affected] result", async () => {
+    expect((await reset(["vol-a"], [[], 3])).affected).toBe(3);
+  });
+
+  test.each([
+    ["an empty array", []],
+    ["a rows-only array", [[]]],
+    ["an object", { affected: 3 }],
+    ["undefined", undefined],
+  ])(
+    "returns 0 when the driver result is %s",
+    async (_: string, result: unknown) => {
+      expect((await reset(["vol-a"], result)).affected).toBe(0);
+    },
+  );
+
+  test("a failing query rejects, so the caller can log it", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    query.mockRejectedValueOnce(new Error("connection reset") as never);
+
+    await expect(
+      StorageArrayResourceService.resetVolumeConnectionCounts({
+        storageArrayId: ARRAY_ID,
+        connectedVolumeNames: [],
+      }),
+    ).rejects.toThrow("connection reset");
+  });
+});
+
 describe("StorageArrayResourceService.getInventorySummary", () => {
   test("counts per kind and distinct unhealthy components in one grouped query", async () => {
     const query: jest.Mock = mockQueryRunner([]);
@@ -708,7 +880,9 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
   });
 
   test("a missing or garbage unhealthy count reads as 0", async () => {
-    mockQueryRunner([{ kind: "Volume", count: "1", unhealthyHardwareCount: null }]);
+    mockQueryRunner([
+      { kind: "Volume", count: "1", unhealthyHardwareCount: null },
+    ]);
     await expect(
       StorageArrayResourceService.getInventorySummary({
         projectId: PROJECT_ID,

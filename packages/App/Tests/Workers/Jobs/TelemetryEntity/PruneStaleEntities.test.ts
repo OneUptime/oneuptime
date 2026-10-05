@@ -280,6 +280,7 @@ describe("entity pruning is scoped to discovered rows", () => {
       EntityType.ProxmoxNode,
       EntityType.ProxmoxGuest,
       EntityType.CephCluster,
+      EntityType.StorageArray,
       EntityType.DockerSwarmCluster,
       EntityType.TelemetrySdk,
       EntityType.VMwareVCenter,

@@ -34,6 +34,9 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1796700000000-AddMessageQueueTables
   "MessageQueueLabelRule",
   "MessageQueueOwnerRule",
+  // 1797900000000-AddStorageArrayTables
+  "StorageArrayLabelRule",
+  "StorageArrayOwnerRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;

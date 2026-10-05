@@ -12,6 +12,7 @@ import BaseModel, {
 } from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "../../../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../../../../Models/DatabaseModels/DatabaseServer";
 import DockerSwarmCluster from "../../../../../Models/DatabaseModels/DockerSwarmCluster";
 import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
@@ -71,6 +72,13 @@ const INFRASTRUCTURE: Array<InfrastructureCase> = [
     fkColumn: "cephClusterId",
     readPermission: Permission.ReadCephCluster,
     serviceType: ServiceType.CephCluster,
+  },
+  {
+    name: "StorageArray",
+    modelType: StorageArray,
+    fkColumn: "storageArrayId",
+    readPermission: Permission.ReadStorageArray,
+    serviceType: ServiceType.StorageArray,
   },
   {
     name: "DockerSwarmCluster",

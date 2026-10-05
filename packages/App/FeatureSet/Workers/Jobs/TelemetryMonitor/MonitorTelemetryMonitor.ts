@@ -57,6 +57,8 @@ import MetricMonitorResponse, {
   VMwareAffectedResource,
   CephResourceBreakdown,
   CephAffectedResource,
+  StorageArrayResourceBreakdown,
+  StorageArrayAffectedResource,
   DockerSwarmResourceBreakdown,
   DockerSwarmAffectedResource,
   PlatformResourceBreakdownSource,
@@ -117,6 +119,10 @@ import MonitorStepVMwareMonitor, {
 import MonitorStepCephMonitor, {
   CephResourceFilters,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepStorageArrayMonitor, {
+  StorageArrayResourceFilters,
+  StorageArrayResourceScope,
+} from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
 } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
@@ -127,6 +133,10 @@ import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/Kubernetes
 import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "Common/Types/Monitor/CephMetricCatalog";
+import {
+  getStorageArrayMetric,
+  getStorageArrayObjectLabel,
+} from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { getDockerSwarmMetricByMetricName } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -167,6 +177,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
           MonitorType.Proxmox,
           MonitorType.VMware,
           MonitorType.Ceph,
+          MonitorType.StorageArray,
           MonitorType.IoTDevice,
         ]),
         telemetryMonitorNextMonitorAt:
@@ -469,7 +480,49 @@ const buildNativeUnitsByMetricName: (input: {
     ),
     metricNames: getQueryMetricNames(input.queryConfigs),
     declaredUnitsByMetricName: input.declaredUnitsByMetricName,
+    attributesByMetricName: getQueryAttributesByMetricName(input.queryConfigs),
   });
+};
+
+/**
+ * Each queried metric's attribute filters, keyed by lowercased metric name
+ * (the first query wins when two filter one name). The storage array
+ * catalog needs them to name a unit: Pure puts several quantities on one
+ * metric name and tells them apart by a label. Every other catalog ignores
+ * them.
+ */
+const getQueryAttributesByMetricName: (
+  queryConfigs: Array<MetricQueryConfigData>,
+) => Map<string, Dictionary<unknown>> = (
+  queryConfigs: Array<MetricQueryConfigData>,
+): Map<string, Dictionary<unknown>> => {
+  const attributesByMetricName: Map<string, Dictionary<unknown>> = new Map<
+    string,
+    Dictionary<unknown>
+  >();
+
+  for (const queryConfig of queryConfigs) {
+    const name: string | undefined =
+      queryConfig.metricQueryData?.filterData?.metricName?.toString();
+    const attributes: unknown =
+      queryConfig.metricQueryData?.filterData?.attributes;
+
+    if (
+      !name ||
+      attributesByMetricName.has(name.toLowerCase()) ||
+      !attributes ||
+      typeof attributes !== "object"
+    ) {
+      continue;
+    }
+
+    attributesByMetricName.set(
+      name.toLowerCase(),
+      attributes as Dictionary<unknown>,
+    );
+  }
+
+  return attributesByMetricName;
 };
 
 /*
@@ -1290,6 +1343,14 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.Ceph) {
     return monitorCeph({
+      monitorStep,
+      monitorId,
+      projectId,
+    });
+  }
+
+  if (monitorType === MonitorType.StorageArray) {
+    return monitorStorageArray({
       monitorStep,
       monitorId,
       projectId,
@@ -3717,6 +3778,309 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     metricResult: resultsWithFormulas,
     cephResourceBreakdowns:
       cephResourceBreakdowns.length > 0 ? cephResourceBreakdowns : undefined,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
+  };
+};
+
+type MonitorStorageArrayFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}) => Promise<MetricMonitorResponse>;
+
+/*
+ * Map a Storage Array monitor step's resource filters onto the ClickHouse
+ * attribute equalities the query runs with. Like ceph-mgr, Pure Storage
+ * keeps object identity in DATAPOINT labels (stored unprefixed), and the
+ * label differs per object and platform — a FlashArray volume or pod is
+ * `name`, a host `host`, a hardware component `component_name`; every
+ * FlashBlade object is `name` — so each filter resolves its label through
+ * the catalog (getStorageArrayObjectLabel), with the query's metric name
+ * for the few series that name their object differently (replica links
+ * carry the pod as `local_pod`). Two filters that resolve to the same
+ * label on one query cannot both hold; the later one in this map wins.
+ *
+ * Exported for the worker test; the root-cause renderer
+ * (MonitorCriteriaEvaluator.buildStorageArrayRootCauseContext) surfaces the
+ * same filters.
+ */
+export const StorageArrayResourceFilterScopes: Record<
+  keyof StorageArrayResourceFilters,
+  StorageArrayResourceScope
+> = {
+  volumeName: StorageArrayResourceScope.Volume,
+  hostName: StorageArrayResourceScope.Host,
+  podName: StorageArrayResourceScope.Pod,
+  componentName: StorageArrayResourceScope.Hardware,
+  fileSystemName: StorageArrayResourceScope.FileSystem,
+  bucketName: StorageArrayResourceScope.Bucket,
+};
+
+export const applyStorageArrayResourceFilters: (input: {
+  attributes: Dictionary<string>;
+  resourceFilters: StorageArrayResourceFilters | undefined;
+  storageSystem: string | undefined;
+  metricName: string;
+}) => void = (input: {
+  attributes: Dictionary<string>;
+  resourceFilters: StorageArrayResourceFilters | undefined;
+  storageSystem: string | undefined;
+  metricName: string;
+}): void => {
+  if (!input.resourceFilters || typeof input.resourceFilters !== "object") {
+    return;
+  }
+
+  for (const filterKey of Object.keys(
+    StorageArrayResourceFilterScopes,
+  ) as Array<keyof StorageArrayResourceFilters>) {
+    const filterValue: unknown = input.resourceFilters[filterKey];
+
+    /*
+     * `typeof` rather than truthiness: step JSON is not schema-checked,
+     * so a filter written by the API or an import can be a number or an
+     * object, and neither is an attribute equality ClickHouse can run.
+     */
+    if (typeof filterValue !== "string") {
+      continue;
+    }
+
+    const trimmed: string = filterValue.trim();
+
+    if (trimmed.length === 0) {
+      continue;
+    }
+
+    const label: string | null = getStorageArrayObjectLabel(
+      StorageArrayResourceFilterScopes[filterKey],
+      input.storageSystem,
+      input.metricName || undefined,
+    );
+
+    if (label) {
+      input.attributes[label] = trimmed;
+    }
+  }
+};
+
+export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+}): Promise<MetricMonitorResponse> => {
+  const storageArrayMonitorConfig: MonitorStepStorageArrayMonitor | undefined =
+    data.monitorStep.data?.storageArrayMonitor;
+
+  if (!storageArrayMonitorConfig) {
+    throw new BadDataException("Storage Array monitor config is missing");
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const storageArrayResourceBreakdowns: Array<StorageArrayResourceBreakdown> =
+    [];
+
+  const groupByAttributeKeys: Array<string> = collectGroupByAttributeKeys(
+    storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+  );
+
+  for (const queryConfig of storageArrayMonitorConfig.metricViewConfig
+    .queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    /*
+     * Always scope to the array via the `storage.array.name` resource
+     * attribute the Storage Array Agent stamps on every batch. This is
+     * what keeps two arrays that both have a volume called `vol-01` from
+     * bleeding into each other's monitors.
+     */
+    if (storageArrayMonitorConfig.arrayIdentifier) {
+      attributes["resource.storage.array.name"] =
+        storageArrayMonitorConfig.arrayIdentifier;
+    }
+
+    applyStorageArrayResourceFilters({
+      attributes: attributes,
+      resourceFilters: storageArrayMonitorConfig.resourceFilters,
+      storageSystem: storageArrayMonitorConfig.storageSystem,
+      metricName: metricName,
+    });
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    let aggregatedResults: AggregatedResult;
+
+    if (groupByAttributeKeys.length > 0) {
+      const rawMetricsForAgg: Array<Metric> = await MetricService.findBy({
+        query: query,
+        select: {
+          attributes: true,
+          value: true,
+          time: true,
+        },
+        sort: {
+          time: SortOrder.Descending,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      aggregatedResults = aggregatePerSeriesFromRawMetrics({
+        rawMetrics: rawMetricsForAgg,
+        attributeKeys: groupByAttributeKeys,
+        aggregationType,
+      });
+    } else {
+      aggregatedResults = await MetricService.aggregateBy({
+        query: query,
+        aggregationType,
+        aggregateColumnName: "value",
+        aggregationTimestampColumnName: "time",
+        startTimestamp:
+          (startAndEndDate?.startValue as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        endTimestamp:
+          (startAndEndDate?.endValue as Date) || OneUptimeDate.getCurrentDate(),
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        groupBy: queryConfig.metricQueryData.groupBy,
+        // Alerting path: fail loud on timeout, never score partial buckets.
+        timeoutOverflowMode: "throw",
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    logger.debug("Storage Array monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+
+    // Fetch raw metrics to extract per-object storage array context
+    const affectedResources: Array<StorageArrayAffectedResource> | undefined =
+      await scanAffectedResources({
+        query: query,
+        projectId: data.projectId,
+        platformName: "Storage Array",
+        getIdentity: PlatformResourceIdentity.storageArray,
+        getIdentityKey: PlatformResourceIdentity.storageArrayKey,
+      });
+
+    if (affectedResources) {
+      storageArrayResourceBreakdowns.push({
+        arrayName: storageArrayMonitorConfig.arrayIdentifier,
+        metricName: metricName,
+        /*
+         * Pure puts read and write latency (and a dozen other figures) on
+         * one metric name, told apart by the `dimension` label, so the
+         * friendly name is looked up with the query's filters.
+         */
+        metricFriendlyName:
+          getStorageArrayMetric(metricName, attributes)?.friendlyName ||
+          metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
+      });
+    }
+  }
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    await loadNativeUnitsByMetricName({
+      queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+      projectId: data.projectId,
+    });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.StorageArray,
+    queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: storageArrayResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> = appendFormulaResults({
+    queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+    formulaConfigs:
+      storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
+    aggregatedResults: resultsInDisplayUnit,
+    projectId: data.projectId,
+  });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? buildSeriesBreakdown({
+          queryConfigs: storageArrayMonitorConfig.metricViewConfig.queryConfigs,
+          formulaConfigs:
+            storageArrayMonitorConfig.metricViewConfig.formulaConfigs || [],
+          perQueryResults: resultsInDisplayUnit,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: storageArrayMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    metricResult: resultsWithFormulas,
+    storageArrayResourceBreakdowns:
+      storageArrayResourceBreakdowns.length > 0
+        ? storageArrayResourceBreakdowns
+        : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: unitsByMetricName,

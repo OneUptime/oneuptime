@@ -97,7 +97,9 @@ import {
   StorageArraySnapshotDerivedExtras,
   bufferStorageArraySnapshotMetric,
   deriveStorageArraySnapshotExtras,
+  getVolumeConnectionCounts,
   getStorageArrayResourceRows,
+  resolveStorageArraySystem,
 } from "Common/Server/Utils/Telemetry/StorageArraySnapshotScan";
 import IoTDeviceService, {
   ParsedIoTDevice,
@@ -973,6 +975,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         string,
         StorageArraySnapshotBufferEntry
       > = new Map();
+      /*
+       * The platform each storage array's agent declared in
+       * `storage.system`, normalized, by array id. Only a fallback for what
+       * the metric names imply — see flushStorageArraySnapshotBuffers.
+       */
+      const storageArrayDeclaredSystems: Map<string, string> = new Map();
       const iotResourceMetricsBuffer: Map<
         string,
         Map<string, IoTDeviceBufferEntry>
@@ -1144,6 +1152,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               receiverSystemHint: databaseReceiverSystemHint,
             }),
           ]);
+
+          if (storageArrayId) {
+            const declaredStorageSystem: string | null =
+              this.getDeclaredStorageSystemFromAttributes(
+                resourceAttributes_raw,
+              );
+            if (declaredStorageSystem) {
+              storageArrayDeclaredSystems.set(
+                storageArrayId.toString(),
+                declaredStorageSystem,
+              );
+            }
+          }
 
           /*
            * A native-push node's own status push also reports the
@@ -2052,6 +2073,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         projectId,
         resourceBuffer: storageArrayResourceMetricsBuffer,
         arrayBuffer: storageArraySnapshotBuffer,
+        declaredSystems: storageArrayDeclaredSystems,
       });
 
       await this.flushIoTSnapshotBuffers({
@@ -3982,15 +4004,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * snapshot columns — computed from the SAME buffer the inventory rows were
    * upserted from (single-source rule). Failures are logged and swallowed:
    * snapshots are best-effort and must never affect ClickHouse ingest.
+   *
+   * declaredSystems holds each array's declared `storage.system`; an array
+   * that sent no Pure series at all is visited for it too, so an array of a
+   * platform OneUptime has no catalog for is still labelled
+   * (resolveStorageArraySystem decides when the declaration counts).
    */
   private static async flushStorageArraySnapshotBuffers(data: {
     projectId: ObjectID;
     resourceBuffer: Map<string, Map<string, StorageArrayResourceBufferEntry>>;
     arrayBuffer: Map<string, StorageArraySnapshotBufferEntry>;
+    declaredSystems: Map<string, string>;
   }): Promise<void> {
     const arrayIdStrs: Set<string> = new Set<string>([
       ...data.resourceBuffer.keys(),
       ...data.arrayBuffer.keys(),
+      ...data.declaredSystems.keys(),
     ]);
 
     for (const arrayIdStr of arrayIdStrs) {
@@ -4047,6 +4076,37 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         }
       }
 
+      /*
+       * A volume detached from its last host drops out of
+       * purefa_host_connections_info, so the upsert above never writes its
+       * count again. A batch that knows every connection zeroes the rest —
+       * after the upsert, outside it: an array whose last host was deleted
+       * has no row to upsert and still has counts to clear.
+       */
+      const volumeConnectionCounts: Record<string, number> | null =
+        getVolumeConnectionCounts(entries, snap);
+      if (volumeConnectionCounts) {
+        try {
+          /*
+           * The named volumes' counts get their own UPDATE too: the
+           * connection-only rows above ride the upsert's lastSeenAt guard,
+           * which drops them when the volumes scrape was flushed first.
+           */
+          await StorageArrayResourceService.setVolumeConnectionCounts({
+            storageArrayId: new ObjectID(arrayIdStr),
+            connectionCounts: volumeConnectionCounts,
+          });
+          await StorageArrayResourceService.resetVolumeConnectionCounts({
+            storageArrayId: new ObjectID(arrayIdStr),
+            connectedVolumeNames: Object.keys(volumeConnectionCounts),
+          });
+        } catch (err) {
+          logger.warn(
+            `Storage array snapshot writeback (volume connections) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
       try {
         /*
          * Counts are only written when the batch carried the matching
@@ -4055,6 +4115,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
          */
         const extras: StorageArraySnapshotDerivedExtras =
           deriveStorageArraySnapshotExtras(entries, snap);
+
+        const storageSystem: string | undefined = resolveStorageArraySystem({
+          derived: extras.storageSystem,
+          declared: data.declaredSystems.get(arrayIdStr),
+        });
+        if (storageSystem) {
+          extras.storageSystem = storageSystem;
+        }
 
         if (Object.keys(extras).length > 0) {
           await StorageArrayService.updateLastSeen(

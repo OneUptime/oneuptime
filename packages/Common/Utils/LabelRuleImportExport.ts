@@ -29,6 +29,7 @@ import ServerlessFunctionLabelRule from "../Models/DatabaseModels/ServerlessFunc
 import ServiceLabelRule from "../Models/DatabaseModels/ServiceLabelRule";
 import ServiceLevelObjectiveLabelRule from "../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import StatusPageLabelRule from "../Models/DatabaseModels/StatusPageLabelRule";
+import StorageArrayLabelRule from "../Models/DatabaseModels/StorageArrayLabelRule";
 import WorkflowLabelRule from "../Models/DatabaseModels/WorkflowLabelRule";
 import Select from "../Types/BaseDatabase/Select";
 import { ColumnAccessControl } from "../Types/BaseDatabase/AccessControl";
@@ -81,6 +82,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   ServiceLabelRule,
   ServiceLevelObjectiveLabelRule,
   StatusPageLabelRule,
+  StorageArrayLabelRule,
   WorkflowLabelRule,
 ];
 

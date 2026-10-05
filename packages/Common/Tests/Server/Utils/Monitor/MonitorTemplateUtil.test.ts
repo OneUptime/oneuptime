@@ -775,6 +775,7 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — metric-backed types", 
     MonitorType.Proxmox,
     MonitorType.VMware,
     MonitorType.Ceph,
+    MonitorType.StorageArray,
   ];
 
   function metricResponse(queryConfigs: Array<unknown>): MetricMonitorResponse {

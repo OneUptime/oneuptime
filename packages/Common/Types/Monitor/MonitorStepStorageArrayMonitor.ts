@@ -43,7 +43,10 @@ export default interface MonitorStepStorageArrayMonitor {
   /*
    * The platform of the array when the monitor was configured
    * (StorageArray.storageSystem). Picks the metric catalog and templates in
-   * the form; evaluation never depends on it.
+   * the form, and the label a hardware filter reads at evaluation
+   * (component_name on a FlashArray, name on a FlashBlade — see
+   * getStorageArrayObjectLabel), which is why a template sync keeps it
+   * together with arrayIdentifier (MonitorTemplateSyncField).
    */
   storageSystem?: string | undefined;
   resourceFilters: StorageArrayResourceFilters;
@@ -61,7 +64,13 @@ export class MonitorStepStorageArrayMonitorUtil {
         queryConfigs: [],
         formulaConfigs: [],
       },
-      rollingTime: RollingTime.Past1Minute,
+      /*
+       * Not the 1 minute the 30-second scrapers default to: the agent reads
+       * the array endpoint every 60 seconds and volumes, hosts and pods
+       * every 2 minutes, so a 1-minute window would be empty on some
+       * evaluations and the monitor would flap. Same reasoning as VMware.
+       */
+      rollingTime: RollingTime.Past5Minutes,
     };
   }
 

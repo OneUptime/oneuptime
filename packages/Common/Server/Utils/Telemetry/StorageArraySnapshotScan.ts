@@ -1372,6 +1372,99 @@ export function getStorageArrayResourceRows(
   return rows;
 }
 
+/*
+ * The volumes a batch's hosts scrape names as connected, for
+ * StorageArrayResourceService.resetVolumeConnectionCounts — or null when the
+ * batch cannot tell which volumes are connected, so no count may be reset.
+ *
+ * purefa_host_connections_info is the only source of a volume's
+ * connectionCount and it lists connected volumes only: a volume detached
+ * from its last host just stops appearing in it, and without a reset its
+ * old count would stand. The batch knows every connection when it carried
+ * the hosts endpoint (sawHosts) and either that connections series or no
+ * host at all — an array whose last host was deleted has nothing connected.
+ * A hosts batch whose connections series was filtered out (a
+ * metric_relabel_configs drop on the agent) knows nothing, and resets
+ * nothing.
+ */
+export function getConnectedVolumeNames(
+  entries: Array<StorageArrayResourceBufferEntry>,
+  snap: StorageArraySnapshotBufferEntry | undefined,
+): Array<string> | null {
+  if (!snap || !snap.sawHosts) {
+    return null;
+  }
+
+  if (
+    !snap.connectionsObservedAt &&
+    entries.some((entry: StorageArrayResourceBufferEntry) => {
+      return entry.kind === StorageArrayResourceKind.Host;
+    })
+  ) {
+    return null;
+  }
+
+  return Array.from(snap.hostsByVolume.entries())
+    .filter(([, hosts]: [string, Set<string>]) => {
+      return hosts.size > 0;
+    })
+    .map(([volumeName]: [string, Set<string>]) => {
+      return volumeName;
+    })
+    .sort();
+}
+
+/*
+ * How many hosts each connected volume has, for a batch that knows every
+ * connection — null exactly when getConnectedVolumeNames is. The flush
+ * writes these with their own UPDATE rather than relying on the
+ * connection-only rows getStorageArrayResourceRows adds: those ride
+ * bulkUpsert, whose lastSeenAt guard would drop them whenever the volumes
+ * scrape (a later lastSeenAt) is flushed first — and scrape timing is
+ * fixed per deployment, so an unlucky one would never update its counts.
+ */
+export function getVolumeConnectionCounts(
+  entries: Array<StorageArrayResourceBufferEntry>,
+  snap: StorageArraySnapshotBufferEntry | undefined,
+): Record<string, number> | null {
+  const connected: Array<string> | null = getConnectedVolumeNames(
+    entries,
+    snap,
+  );
+  if (!connected || !snap) {
+    return null;
+  }
+  const counts: Record<string, number> = {};
+  for (const volumeName of connected) {
+    counts[volumeName] = snap.hostsByVolume.get(volumeName)?.size || 0;
+  }
+  return counts;
+}
+
+/*
+ * The platform to write for an array. The metric names decide it whenever
+ * the batch carried any (purefa_ / purefb_ — a collector config cannot get
+ * them wrong); the agent's declared `storage.system` only fills in for a
+ * platform OneUptime has no metric catalog for, so an array of another
+ * vendor is still labelled. A known platform is never taken from the
+ * attribute: a FlashBlade .env without STORAGE_SYSTEM declares the compose
+ * default, purestorage.flasharray, and a batch with no Pure series (a
+ * failed scrape's `up` alone) would otherwise write it back over the
+ * derived value, flipping the column between scrapes.
+ */
+export function resolveStorageArraySystem(data: {
+  derived: string | null | undefined;
+  declared: string | null | undefined;
+}): string | undefined {
+  if (data.derived) {
+    return data.derived;
+  }
+  if (data.declared && !StorageSystemUtil.isKnownSystem(data.declared)) {
+    return data.declared;
+  }
+  return undefined;
+}
+
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }

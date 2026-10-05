@@ -272,6 +272,20 @@ function countOrNull(value: number | null | undefined): number | null {
   return Math.min(INTEGER_MAX, Math.trunc(finite));
 }
 
+/*
+ * manager.query() hands back [rows, affected] for an UPDATE or a DELETE on
+ * Postgres; anything else (a driver that returns only rows) counts as 0.
+ */
+function getAffectedRowCount(result: unknown): number {
+  if (Array.isArray(result) && result.length >= 2) {
+    const second: unknown = (result as Array<unknown>)[1];
+    if (typeof second === "number") {
+      return second;
+    }
+  }
+  return 0;
+}
+
 function hasAnyMetric(r: ParsedStorageArrayResource): boolean {
   return [
     r.capacityBytes,
@@ -441,13 +455,7 @@ export class Service extends DatabaseService<Model> {
       );
 
     // Postgres driver returns [rows, affected] for DELETE — normalize.
-    let affected: number = 0;
-    if (Array.isArray(result) && result.length >= 2) {
-      const second: unknown = (result as Array<unknown>)[1];
-      if (typeof second === "number") {
-        affected = second;
-      }
-    }
+    const affected: number = getAffectedRowCount(result);
 
     if (affected > STALE_DELETE_WARN_THRESHOLD) {
       logger.warn(
@@ -456,6 +464,103 @@ export class Service extends DatabaseService<Model> {
     }
 
     return affected;
+  }
+
+  /**
+   * Write the connection count of every volume a complete hosts scrape
+   * names, and return how many rows changed. Unconditional on lastSeenAt,
+   * unlike bulkUpsert: the counts come from the hosts scrape, and the
+   * volumes scrape can be flushed first with a later lastSeenAt, which
+   * would make the upsert guard drop them. Rows already at their count are
+   * left alone, so a steady array writes nothing. A volume with no row yet
+   * gets its count from the connection-only row bulkUpsert inserts.
+   */
+  @CaptureSpan()
+  public async setVolumeConnectionCounts(data: {
+    storageArrayId: ObjectID;
+    connectionCounts: Record<string, number>;
+  }): Promise<number> {
+    const counts: Map<string, number> = new Map();
+    for (const [name, count] of Object.entries(data.connectionCounts)) {
+      if (!isFinite(count) || count < 0) {
+        continue;
+      }
+      // Clamped exactly as bulkUpsert clamps externalId.
+      counts.set(
+        truncateLongText(name),
+        Math.min(Math.trunc(count), 2147483647),
+      );
+    }
+
+    if (counts.size === 0) {
+      return 0;
+    }
+
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "StorageArrayResource" AS r
+       SET "connectionCount" = v."count", "updatedAt" = now()
+       FROM unnest($2::text[], $3::integer[]) AS v("externalId", "count")
+       WHERE r."storageArrayId" = $1
+         AND r."kind" = $4
+         AND r."externalId" = v."externalId"
+         AND r."connectionCount" IS DISTINCT FROM v."count"`,
+      [
+        data.storageArrayId.toString(),
+        Array.from(counts.keys()),
+        Array.from(counts.values()),
+        StorageArrayResourceKind.Volume,
+      ],
+    );
+
+    return getAffectedRowCount(result);
+  }
+
+  /**
+   * Zero the connection count of every volume of an array that a complete
+   * hosts scrape no longer names, and return how many were reset.
+   *
+   * purefa_host_connections_info is the only source of a volume's
+   * connectionCount, and it lists connected volumes only: a volume detached
+   * from its last host just stops appearing in it, so bulkUpsert never
+   * writes that row's count again and the old one would stand for as long
+   * as the volume exists. The ingest flush calls this after the upsert, and
+   * only for a batch that knows every connection
+   * (StorageArraySnapshotScan.getConnectedVolumeNames). One UPDATE; rows
+   * already at 0 are left alone, so a steady array writes nothing, and a
+   * NULL count (a volume no hosts scrape has named yet) becomes 0.
+   */
+  @CaptureSpan()
+  public async resetVolumeConnectionCounts(data: {
+    storageArrayId: ObjectID;
+    connectedVolumeNames: Array<string>;
+  }): Promise<number> {
+    /*
+     * Clamped exactly as bulkUpsert clamps externalId, so a connected
+     * volume whose name was truncated on write still matches its row.
+     */
+    const connectedVolumeNames: Array<string> = Array.from(
+      new Set(
+        data.connectedVolumeNames.map((name: string): string => {
+          return truncateLongText(name);
+        }),
+      ),
+    );
+
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "StorageArrayResource"
+       SET "connectionCount" = 0, "updatedAt" = now()
+       WHERE "storageArrayId" = $1
+         AND "kind" = $3
+         AND "externalId" <> ALL($2::text[])
+         AND "connectionCount" IS DISTINCT FROM 0`,
+      [
+        data.storageArrayId.toString(),
+        connectedVolumeNames,
+        StorageArrayResourceKind.Volume,
+      ],
+    );
+
+    return getAffectedRowCount(result);
   }
 
   /**

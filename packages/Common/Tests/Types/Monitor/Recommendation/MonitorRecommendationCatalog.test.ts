@@ -26,6 +26,12 @@ import {
 } from "../../../../Types/Monitor/RumAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
 import {
+  StorageArrayAlertTemplate,
+  getAllStorageArrayAlertTemplates,
+  getStorageArrayAlertTemplatesForSystem,
+} from "../../../../Types/Monitor/StorageArrayAlertTemplates";
+import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
+import {
   getAllServiceAlertTemplates,
   getLanguagesWithServiceAlertTemplates,
   getServiceAlertTemplates,
@@ -40,12 +46,17 @@ import {
 /*
  * Resource types whose recommendation set is EMPTY without context, on
  * purpose: a database with no known engine has no template that applies to
- * it (every database template reads one engine receiver's metrics). Every
- * other resource type has a non-empty context-free subset, and the tests
- * below keep holding them to that.
+ * it (every database template reads one engine receiver's metrics), and a
+ * storage array with no known platform has none either (every template
+ * reads one platform's purefa_* or purefb_* metrics). Every other resource
+ * type has a non-empty context-free subset, and the tests below keep
+ * holding them to that.
  */
 const RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET: Array<MonitorRecommendationResourceType> =
-  [MonitorRecommendationResourceType.DatabaseServer];
+  [
+    MonitorRecommendationResourceType.DatabaseServer,
+    MonitorRecommendationResourceType.StorageArray,
+  ];
 
 /*
  * The catalog is the seam between ten independently-maintained alert-template
@@ -92,6 +103,7 @@ interface ModuleExpectation {
     | "vcenterIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
+    | "arrayIdentifier"
     | "rumApplicationId"
     | "serviceId"
     | "databaseServerId";
@@ -153,6 +165,17 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     templateCount: getAllCephAlertTemplates().length,
     contextFreeTemplateCount: getAllCephAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.StorageArray,
+    monitorTypes: [MonitorType.StorageArray],
+    templateCount: getAllStorageArrayAlertTemplates().length,
+    /*
+     * Zero, and deliberately so — see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
+     * An array whose platform is not known yet is offered nothing.
+     */
+    contextFreeTemplateCount: 0,
+    identifierFieldName: "arrayIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.IoTDevice,
@@ -934,6 +957,147 @@ describe("MonitorRecommendationCatalog", () => {
       // Availability (Engine Metrics Stopped) always leads.
       expect(categories[0]).toBe("Availability");
       expect(new Set(categories).size).toBe(categories.length);
+    });
+  });
+
+  /*
+   * Storage arrays: the platform decides the set. A FlashBlade exports no
+   * purefa_* series, so a FlashArray template on it would be a monitor that
+   * can never fire.
+   */
+  describe("storage array recommendations", () => {
+    function storageArrayTemplateIds(
+      context?: MonitorRecommendationContext | undefined,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.StorageArray,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId;
+      });
+    }
+
+    function idsFor(system: StorageSystem): Array<string> {
+      return getAllStorageArrayAlertTemplates()
+        .filter((template: StorageArrayAlertTemplate) => {
+          return template.storageSystems.includes(system);
+        })
+        .map((template: StorageArrayAlertTemplate) => {
+          return template.id;
+        });
+    }
+
+    it("offers a FlashArray only the FlashArray templates", () => {
+      const ids: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.PureStorageFlashArray,
+      });
+
+      expect(ids).toEqual(idsFor(StorageSystem.PureStorageFlashArray));
+      expect(ids.length).toBeGreaterThan(0);
+      for (const id of ids) {
+        expect(id.startsWith("purefa-")).toBe(true);
+      }
+    });
+
+    it("offers a FlashBlade only the FlashBlade templates", () => {
+      const ids: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.PureStorageFlashBlade,
+      });
+
+      expect(ids).toEqual(idsFor(StorageSystem.PureStorageFlashBlade));
+      expect(ids.length).toBeGreaterThan(0);
+      for (const id of ids) {
+        expect(id.startsWith("purefb-")).toBe(true);
+      }
+    });
+
+    it("offers nothing to an array that has not reported its platform yet", () => {
+      /*
+       * Offering both platforms' sets would put two "Critical Array Alert"
+       * cards on one array, one of which could never fire.
+       */
+      expect(storageArrayTemplateIds()).toEqual([]);
+      expect(storageArrayTemplateIds({})).toEqual([]);
+      expect(storageArrayTemplateIds({ storageSystem: null })).toEqual([]);
+    });
+
+    it("offers nothing to an array of a platform OneUptime ships no templates for", () => {
+      expect(
+        storageArrayTemplateIds({ storageSystem: "netapp.ontap" }),
+      ).toEqual([]);
+      // The module itself would hand such a platform every template.
+      expect(
+        getStorageArrayAlertTemplatesForSystem("netapp.ontap").length,
+      ).toBe(getAllStorageArrayAlertTemplates().length);
+    });
+
+    it("the two platforms' sets partition the whole catalog", () => {
+      const flashArray: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.PureStorageFlashArray,
+      });
+      const flashBlade: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.PureStorageFlashBlade,
+      });
+
+      expect(
+        flashArray.filter((id: string) => {
+          return flashBlade.includes(id);
+        }),
+      ).toEqual([]);
+      expect([...flashArray, ...flashBlade].sort()).toEqual(
+        getAllStorageArrayAlertTemplates()
+          .map((template: StorageArrayAlertTemplate) => {
+            return template.id;
+          })
+          .sort(),
+      );
+    });
+
+    it("ignores context meant for other resource types", () => {
+      expect(
+        storageArrayTemplateIds({
+          storageSystem: StorageSystem.PureStorageFlashArray,
+          databaseEngine: "postgresql",
+          serviceLanguage: null,
+        }),
+      ).toEqual(idsFor(StorageSystem.PureStorageFlashArray));
+    });
+
+    it("stays exhaustive and resolvable by id with no context", () => {
+      const all: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(
+          MonitorRecommendationResourceType.StorageArray,
+        );
+
+      expect(all.length).toBe(getAllStorageArrayAlertTemplates().length);
+
+      for (const recommendation of all) {
+        expect(recommendation.monitorType).toBe(MonitorType.StorageArray);
+        expect(
+          MonitorRecommendationCatalog.getRecommendationById(
+            recommendation.recommendationId,
+          )?.templateId,
+        ).toBe(recommendation.templateId);
+      }
+    });
+
+    it("threads the array identifier into every recommendation's step", () => {
+      for (const recommendation of MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        MonitorRecommendationResourceType.StorageArray,
+      )) {
+        const step: MonitorStep = recommendation.getMonitorStep({
+          resourceIdentifier: "pure-prod-01",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "pure-prod-01",
+        });
+
+        expect(step.data!.storageArrayMonitor!.arrayIdentifier).toBe(
+          "pure-prod-01",
+        );
+      }
     });
   });
 

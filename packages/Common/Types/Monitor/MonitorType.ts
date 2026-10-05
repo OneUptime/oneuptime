@@ -427,7 +427,7 @@ export class MonitorTypeHelper {
         monitorType: MonitorType.StorageArray,
         title: "Storage Array",
         description:
-          "Array health, open alerts, capacity, latency and hardware state of Pure Storage FlashArray and FlashBlade arrays.",
+          "Array health, alerts, capacity, latency and hardware of Pure Storage FlashArray and FlashBlade.",
         icon: IconProp.StorageArray,
         keywords: [
           "storage",

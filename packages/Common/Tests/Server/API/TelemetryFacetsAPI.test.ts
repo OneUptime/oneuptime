@@ -595,6 +595,32 @@ describe("telemetry facet endpoints (list first)", () => {
         proxmoxClusterId: [],
       });
     });
+
+    test("a storage array with rows is counted and merged under its own facet key", async () => {
+      listedRows = {
+        storageArrayId: [{ id: "sa-1", displayName: "pure-prod-01" }],
+      };
+      const counts: { counted: Array<string> } = stubPerFacetCounts(
+        MetricAggregationService,
+        { storageArrayId: [{ value: "sa-1", count: 7 }] },
+      );
+
+      const result: CallResult = await callRoute({
+        uri: METRICS_ROUTE,
+        request: viewerRequest,
+        body: { facetKeys: ["storageArrayId", "cephClusterId"] },
+      });
+
+      expect(listedFacetKeys()).toEqual(["storageArrayId", "cephClusterId"]);
+      // The Ceph facet listed no rows, so only the storage array is counted.
+      expect(counts.counted).toEqual(["storageArrayId"]);
+      expect(result.facets).toEqual({
+        storageArrayId: [
+          { value: "sa-1", count: 7, displayName: "pure-prod-01" },
+        ],
+        cephClusterId: [],
+      });
+    });
   });
 
   describe("POST /telemetry/traces/facets", () => {
