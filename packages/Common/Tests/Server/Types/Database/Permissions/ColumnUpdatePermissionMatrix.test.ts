@@ -3,6 +3,8 @@ import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/
 import SelectPermission from "../../../../../Server/Types/Database/Permissions/SelectPermission";
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
+import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "../../../../../Models/DatabaseModels/IncidentTemplate";
 import MetricType from "../../../../../Models/DatabaseModels/MetricType";
@@ -37,6 +39,9 @@ import { describe, expect, test } from "@jest/globals";
  *     maintenance) and an incident template's Initial Incident State take
  *     what renaming the template takes, by the relation the template's cards
  *     write as by its ID column. The relation took nobody's.
+ *   - An API key permission row stays with the key it was made for: neither
+ *     apiKeyId nor the apiKey relation is changed by anyone. The relation
+ *     was changeable while its ID column was not.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -513,4 +518,28 @@ describe("a template's Change Monitor Status to and Initial Incident State", () 
       ).toBe(false);
     },
   );
+});
+
+describe("ApiKeyPermission's API key", () => {
+  function key(): ApiKey {
+    const apiKey: ApiKey = new ApiKey();
+    apiKey._id = ObjectID.generate().toString();
+    return apiKey;
+  }
+
+  test("is not moved to another key by anyone, by the relation", () => {
+    expect(whoMayUpdate(ApiKeyPermission, "apiKey", key())).toEqual([]);
+  });
+
+  test("is not moved to another key by anyone, by the ID column", () => {
+    expect(
+      whoMayUpdate(ApiKeyPermission, "apiKeyId", ObjectID.generate()),
+    ).toEqual([]);
+  });
+
+  test("the row itself is still edited by those who edit API key permissions", () => {
+    expect(
+      whoMayUpdate(ApiKeyPermission, "isBlockPermission", true),
+    ).toContain(Permission.EditProjectApiKeyPermissions);
+  });
 });
