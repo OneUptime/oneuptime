@@ -47,8 +47,9 @@ const REQUEST: ExpressRequest = {} as ExpressRequest;
 const MEMBER: FileViewer = { userId: USER_ID, isMasterAdmin: false };
 const ADMIN: FileViewer = { userId: OTHER_USER_ID, isMasterAdmin: true };
 
+// isPublic typed loose, so a varchar-era string can be fed through too.
 function file(
-  data: Partial<ViewableFile> & { isPublic?: unknown },
+  data: Omit<Partial<ViewableFile>, "isPublic"> & { isPublic?: unknown },
 ): ViewableFile {
   return data as ViewableFile;
 }

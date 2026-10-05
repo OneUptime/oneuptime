@@ -1181,7 +1181,9 @@ describe("StatusPageAPI manage-subscription templates", () => {
       const withLogo: (projectId: ObjectID | null) => StatusPage = (
         projectId: ObjectID | null,
       ): StatusPage => {
-        const page: StatusPage = statusPageFixture({});
+        const page: StatusPage = statusPageFixture({
+          withCustomSmtpAndSms: false,
+        });
         const logo: File = new File();
         logo._id = "5e000000-0000-4000-8000-000000000005";
 
