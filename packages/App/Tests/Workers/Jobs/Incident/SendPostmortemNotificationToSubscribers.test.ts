@@ -385,7 +385,8 @@ let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 /*
  * The job skips an incident unless its postmortem is shown on the status
- * page and subscribers are to be told when it is published.
+ * page - switched on, with a note - and subscribers are to be told when it
+ * is published.
  */
 function incident(): Incident {
   const row: Incident = new Incident();
@@ -767,6 +768,27 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       },
       message:
         "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
+    },
+    /*
+     * The status page shows a postmortem only with a note, so one switched
+     * on without one - or emptied after it was queued, or sent again through
+     * the API - announces nothing (IncidentPostmortemPublication).
+     */
+    {
+      name: "a postmortem without a note",
+      change: (row: Incident): void => {
+        delete row.postmortemNote;
+      },
+      message:
+        "The postmortem has no note, so the status page does not show it. Skipping notifications to subscribers.",
+    },
+    {
+      name: "a postmortem whose note is only whitespace",
+      change: (row: Incident): void => {
+        row.postmortemNote = "  \n\n  ";
+      },
+      message:
+        "The postmortem has no note, so the status page does not show it. Skipping notifications to subscribers.",
     },
     {
       name: "an incident not set to notify on postmortem published",
