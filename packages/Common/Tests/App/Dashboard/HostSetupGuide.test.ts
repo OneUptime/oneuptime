@@ -585,7 +585,11 @@ describe("the shared collector config", () => {
      */
     const doc: string = squash(readRepoFile(HOST_DOCS_PAGE));
     expect(doc).toContain(
-      "its processors are `resourcedetection` and `batch` (there is **no** `resource` processor) and its exporter is `otlphttp/oneuptime`",
+      "its processors are `resourcedetection`, `resource` and `batch`, and its exporter is `otlphttp/oneuptime`",
+    );
+    // The block it tells them to merge keeps every processor the config has.
+    expect(doc).toContain(
+      "processors: [filter/drop-metrics, resourcedetection, resource, batch]",
     );
     expect(Object.keys(config["processors"]).sort()).toEqual([
       "batch",

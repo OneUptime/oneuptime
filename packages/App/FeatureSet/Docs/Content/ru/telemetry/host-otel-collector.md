@@ -22,13 +22,13 @@
 
 ## Шаг 1 — Установите OpenTelemetry Collector
 
-Выберите раздел для вашей ОС. Все примеры предполагают, что вы устанавливаете последний релиз `otelcol-contrib` из [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases).
+Выберите раздел для вашей ОС. Все примеры устанавливают `otelcol-contrib` **v0.161.0** из [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases): релиз, закреплённый OneUptime, который конфигурации из шага 2 сообщают как версию агента хоста (см. «Обновление коллектора» ниже).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ sudo dpkg -i otelcol-contrib.deb
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ sudo mkdir -p /etc/otelcol-contrib
 Из **командной строки PowerShell с повышенными правами** выполните блок целиком — каждая строка зависит от переменных, заданных выше:
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** группирует записи перед экспортом, чтобы вы не платили за один HTTP-обмен на каждую запись.
 - **`resource`** проставляет каждой записи `service.name`. Используйте разные значения для каждого хоста (например, `prod-web-01`), если хотите, чтобы каждая машина отображалась как отдельная служба телеметрии в OneUptime.
+- **`oneuptime.agent.version`** — релиз коллектора, для которого предназначена эта конфигурация. OneUptime показывает его как **Версия агента** хоста; меняйте его только вместе с устанавливаемым коллектором (см. «Обновление коллектора» ниже).
 - **`otlphttp`** отправляет данные в OneUptime по HTTPS с прикреплённым токеном приёма данных.
 
 ### Метрики хоста (Linux, macOS, Windows)
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ sc.exe query "otelcol-contrib"
 3. Откройте **Метрики** — метрики хоста (CPU, память, файловая система и т. д.) должны появиться в течение минуты.
 4. Откройте **Журналы** — ваши файловые логи / записи journald / журналы событий Windows должны поступать в потоке. Полезные для поиска атрибуты включают `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` и `winlog.provider.name`.
 5. Если вы включили приёмник `systemd` (Linux) или `windows_service` (Windows), откройте **Инфраструктура → Хосты**, выберите хост и проверьте вкладку **Systemd Units** / **Службы** — каждый собранный юнит должен быть в списке со своим текущим состоянием.
+
+## Обновление коллектора
+
+Каждая конфигурация на этой странице в своём процессоре `resource` проставляет релиз коллектора, для которого она предназначена, как `oneuptime.agent.version`. OneUptime показывает его как **Версия агента** в разделе **Обзор** хоста и ставит рядом предупреждающий знак, когда OneUptime закрепляет более новый релиз. Выберите знак, чтобы увидеть, как обновиться тем же способом, каким вы устанавливали: снова сохраните конфигурацию, затем установите новый релиз поверх старого.
+
+Чтобы обновиться вручную, установите новый релиз так же, как устанавливали этот (шаг 1, с новым `VERSION`), задайте в конфигурации `oneuptime.agent.version` ту же версию и перезапустите коллектор (шаг 3). Коллектор, конфигурация которого не проставляет версию, не показывает её и никогда не получает знака.
 
 ## Уменьшение объёма собираемых данных
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **Редактируете конфигурацию, которую сгенерировал для вас OneUptime?** Приведённый выше конвейер соответствует полным примерам на этой странице. В конфигурации из панели управления (Хосты → Документация) всё называется иначе: её процессоры — `resourcedetection` и `batch` (процессора `resource` там **нет**), а её экспортёр — `otlphttp/oneuptime`. Ссылка на процессор, который не определён, останавливает сборщик при запуске с ошибкой `references processor "resource" which is not configured`. Добавляйте фильтр к тому, что там уже есть, а не вставляйте этот блок поверх:
+> **Редактируете конфигурацию, которую сгенерировал для вас OneUptime?** Приведённый выше конвейер соответствует полным примерам на этой странице. В конфигурации из панели управления (Хосты → Документация) всё называется иначе: её процессоры — `resourcedetection`, `resource` и `batch`, а её экспортёр — `otlphttp/oneuptime`. Ссылка на процессор или экспортёр, который не определён, останавливает сборщик при запуске. Добавляйте фильтр к тому, что там уже есть, а не вставляйте этот блок поверх:
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> Сохраните `resourcedetection` — OneUptime сопоставляет телеметрию с хостом по `host.name` / `host.id`, которые он задаёт. Кроме того, эта сгенерированная конфигурация содержит **только метрики**: в ней нет конвейера `logs:`, пока вы его не добавите, поэтому `filter/drop-low-severity` нечего фильтровать, пока вы не добавите рядом приёмник `filelog` или `journald`.
+> Сохраните `resourcedetection` — OneUptime сопоставляет телеметрию с хостом по `host.name` / `host.id`, которые он задаёт, — и `resource`, который сообщает версию коллектора. Кроме того, эта сгенерированная конфигурация содержит **только метрики**: в ней нет конвейера `logs:`, пока вы его не добавите, поэтому `filter/drop-low-severity` нечего фильтровать, пока вы не добавите рядом приёмник `filelog` или `journald`.
 
 > **На macOS используйте tarball, а не Homebrew.** Формула Homebrew поставляет **core**-сборку сборщика, а `filter` — процессор, доступный только в contrib: сборщик откажется запускаться независимо от того, корректен ли ваш YAML.
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
