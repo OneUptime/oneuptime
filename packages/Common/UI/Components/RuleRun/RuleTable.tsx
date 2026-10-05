@@ -1,6 +1,7 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
+import Select from "../../../Types/BaseDatabase/Select";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
@@ -10,13 +11,27 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { Yellow } from "../../../Types/BrandColors";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import { BulkActionProps } from "../ModelTable/BaseModelTable";
+import Column from "../ModelTable/Column";
 import ModelTable, {
   ComponentProps as ModelTableComponentProps,
 } from "../ModelTable/ModelTable";
-import { withRuleEnabledOnEditOnly } from "./RuleEnabledField";
+import Pill from "../Pill/Pill";
+import {
+  doesRuleAddNothing,
+  getRuleActionColumns,
+  getRuleActionSelect,
+  RULE_ADDS_NOTHING_TEXT,
+  RULE_ADDS_NOTHING_TOOLTIP,
+  RuleActionColumns,
+} from "./RuleAction";
+import {
+  RULE_ENABLED_COLUMN,
+  withRuleEnabledOnEditOnly,
+} from "./RuleEnabledField";
 import RuleView from "./RuleView";
 import RunRuleNowModal from "./RunRuleNowModal";
 import getRunRulesBulkAction from "./RunRulesBulkAction";
@@ -46,6 +61,59 @@ function getParentRoute(): Route {
       .replace(/\/+$/, "")
       .replace(/\/[^/]+$/, ""),
   );
+}
+
+// The rule's status column: the one its Enabled switch is shown in.
+function isStatusColumn<TBaseModel extends BaseModel>(
+  column: Column<TBaseModel>,
+): boolean {
+  return Object.keys(column.field || {})[0] === RULE_ENABLED_COLUMN;
+}
+
+/*
+ * A label or owner rule that adds nothing when it matches - one saved
+ * before the form asked what it adds (RuleAction) - says so beside its
+ * status: "Adds nothing". Every other row is drawn exactly as the page drew
+ * it.
+ */
+function withAddsNothingMarker<TBaseModel extends BaseModel>(
+  columns: Array<Column<TBaseModel>>,
+  action: RuleActionColumns,
+): Array<Column<TBaseModel>> {
+  return columns.map((column: Column<TBaseModel>): Column<TBaseModel> => {
+    const getElement: Column<TBaseModel>["getElement"] = column.getElement;
+
+    if (!getElement || !isStatusColumn(column)) {
+      return column;
+    }
+
+    return {
+      ...column,
+      getElement: (
+        item: TBaseModel,
+        onBeforeFetchData?: TBaseModel | undefined,
+      ): ReactElement => {
+        const status: ReactElement = getElement(item, onBeforeFetchData);
+
+        if (!doesRuleAddNothing(item, action)) {
+          return status;
+        }
+
+        return (
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            {status}
+            <span data-testid="rule-adds-nothing">
+              <Pill
+                color={Yellow}
+                text={RULE_ADDS_NOTHING_TEXT}
+                tooltip={RULE_ADDS_NOTHING_TOOLTIP}
+              />
+            </span>
+          </span>
+        );
+      },
+    };
+  });
 }
 
 /*
@@ -155,6 +223,23 @@ const RuleTable: <TBaseModel extends BaseModel>(
       ? withRuleEnabledOnEditOnly<TBaseModel>(tableProps.formFields)
       : tableProps.formFields,
   };
+
+  /*
+   * A label or owner rule's table reads what each rule adds, so a rule that
+   * adds nothing says so beside its status.
+   */
+  const ruleAction: RuleActionColumns | null = getRuleActionColumns(model);
+
+  if (ruleAction) {
+    ruleTableProps.selectMoreFields = {
+      ...(tableProps.selectMoreFields || {}),
+      ...getRuleActionSelect(ruleAction),
+    } as Select<TBaseModel>;
+    ruleTableProps.columns = withAddsNothingMarker<TBaseModel>(
+      tableProps.columns || [],
+      ruleAction,
+    );
+  }
 
   const isViewable: boolean =
     props.isViewable ??
