@@ -24960,5 +24960,21 @@
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "U kunt via deze provider geen mensen toevoegen aan {{teams}}: dat team geeft meer toegang dan u hebt. Kies teams waarvoor u iemand zou kunnen uitnodigen, of vraag een projecteigenaar deze provider op te slaan.",
   "Only a project owner can add or change SCIM connections.": "Alleen een projecteigenaar kan SCIM-verbindingen toevoegen of wijzigen.",
   "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "Via SCIM kan uw identiteitsprovider mensen toevoegen aan elk team in dit project. Een verbinding toevoegen, wijzigen, of het bearer-token ervan bekijken of opnieuw instellen vereist daarom toegang die alle teams omvat.",
-  "Switching it off, with nothing else changed, is still allowed.": "Uitschakelen mag nog steeds, als er verder niets verandert."
+  "Switching it off, with nothing else changed, is still allowed.": "Uitschakelen mag nog steeds, als er verder niets verandert.",
+  "A name your team will recognize. It is used in alerts and incident titles.": "Een naam die uw team herkent. Hij wordt gebruikt in waarschuwingen en in de titels van incidenten.",
+  "Anything your team should know about this monitor.": "Alles wat uw team over deze monitor moet weten.",
+  "How often to check. Every 5 minutes suits most monitors.": "Hoe vaak er wordt gecontroleerd. Elke 5 minuten past bij de meeste monitors.",
+  "More monitor types": "Meer monitortypen",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change.": "Kies wat u wilt bewaken en geef het een naam. Al het andere begint met standaardwaarden die u kunt wijzigen.",
+  "Search monitor types - try ping, ssl, k8s, postgres": "Zoek monitortypen - probeer ping, ssl, k8s, postgres",
+  "The IPv4 or IPv6 address to check, like 192.168.1.1.": "Het IPv4- of IPv6-adres dat wordt gecontroleerd, bijvoorbeeld 192.168.1.1.",
+  "The TCP or UDP port to check, like 443.": "De TCP- of UDP-poort die wordt gecontroleerd, bijvoorbeeld 443.",
+  "The endpoint to call, like https://api.example.com/health.": "Het endpoint dat wordt aangeroepen, bijvoorbeeld https://api.example.com/health.",
+  "The host the port is on, like example.com.": "De host waarop de poort zit, bijvoorbeeld example.com.",
+  "The host to ping, like example.com or 192.168.1.1.": "De host die wordt gepingd, bijvoorbeeld example.com of 192.168.1.1.",
+  "The page to check, like https://example.com.": "De pagina die wordt gecontroleerd, bijvoorbeeld https://example.com.",
+  "The site whose certificate to check, like https://example.com.": "De site waarvan het certificaat wordt gecontroleerd, bijvoorbeeld https://example.com.",
+  "What do you want to monitor?": "Wat wilt u bewaken?",
+  "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.": "Wat er wordt gecontroleerd en wat als probleem telt. De criteria beginnen met standaardwaarden die bij de meeste monitors passen.",
+  "When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides.": "Wanneer deze monitor van status verandert, een incident meldt of een waarschuwing maakt. Ze worden van boven naar beneden gecontroleerd, en de eerste die overeenkomt beslist."
 }

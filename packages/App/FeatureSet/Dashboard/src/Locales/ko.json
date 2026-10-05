@@ -24960,5 +24960,21 @@
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "이 공급자를 통해 {{teams}}에 사용자를 추가할 수 없습니다. 내가 가진 것보다 더 많은 액세스 권한이 부여되기 때문입니다. 다른 사람을 초대할 수 있는 팀을 선택하거나 프로젝트 소유자에게 이 공급자를 저장해 달라고 요청하세요.",
   "Only a project owner can add or change SCIM connections.": "SCIM 연결을 추가하거나 변경할 수 있는 사람은 프로젝트 소유자뿐입니다.",
   "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "SCIM을 통해 ID 공급자는 이 프로젝트의 모든 팀에 사용자를 추가할 수 있습니다. 따라서 연결을 추가하거나 변경하거나 Bearer 토큰을 보거나 재설정하려면 모든 팀을 포괄하는 액세스 권한이 필요합니다.",
-  "Switching it off, with nothing else changed, is still allowed.": "다른 것을 변경하지 않는다면 끄는 것은 여전히 허용됩니다."
+  "Switching it off, with nothing else changed, is still allowed.": "다른 것을 변경하지 않는다면 끄는 것은 여전히 허용됩니다.",
+  "A name your team will recognize. It is used in alerts and incident titles.": "팀이 알아볼 수 있는 이름입니다. 경고와 인시던트 제목에 사용됩니다.",
+  "Anything your team should know about this monitor.": "이 모니터에 대해 팀이 알아야 할 모든 것.",
+  "How often to check. Every 5 minutes suits most monitors.": "확인 빈도입니다. 대부분의 모니터에는 5분마다가 적당합니다.",
+  "More monitor types": "더 많은 모니터 유형",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change.": "모니터링할 대상을 고르고 이름을 지정하세요. 나머지는 모두 변경할 수 있는 기본값으로 시작합니다.",
+  "Search monitor types - try ping, ssl, k8s, postgres": "모니터 유형 검색 - ping, ssl, k8s, postgres 등",
+  "The IPv4 or IPv6 address to check, like 192.168.1.1.": "확인할 IPv4 또는 IPv6 주소 (예: 192.168.1.1).",
+  "The TCP or UDP port to check, like 443.": "확인할 TCP 또는 UDP 포트 (예: 443).",
+  "The endpoint to call, like https://api.example.com/health.": "호출할 엔드포인트 (예: https://api.example.com/health).",
+  "The host the port is on, like example.com.": "포트가 있는 호스트 (예: example.com).",
+  "The host to ping, like example.com or 192.168.1.1.": "ping을 보낼 호스트 (예: example.com 또는 192.168.1.1).",
+  "The page to check, like https://example.com.": "확인할 페이지 (예: https://example.com).",
+  "The site whose certificate to check, like https://example.com.": "인증서를 확인할 사이트 (예: https://example.com).",
+  "What do you want to monitor?": "무엇을 모니터링하시겠습니까?",
+  "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.": "무엇을 확인하고 무엇을 문제로 볼지 정합니다. 기준은 대부분의 모니터에 맞는 기본값으로 시작합니다.",
+  "When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides.": "이 모니터가 상태를 바꾸거나, 인시던트를 선언하거나, 경고를 만드는 조건입니다. 위에서 아래로 확인하며, 처음 일치하는 기준이 결정합니다."
 }
