@@ -531,23 +531,21 @@ describe("publish-time inline image visibility", () => {
     },
   ])("intentionally public icons: $name", ({ service, build }: IconCase) => {
     beforeEach(() => {
-      jest
-        .spyOn(FileService, "getFileOwners")
-        .mockImplementation((async (
-          fileIds: Array<ObjectID>,
-        ): Promise<Map<string, FileOwners>> => {
-          const owners: Map<string, FileOwners> = new Map();
+      jest.spyOn(FileService, "getFileOwners").mockImplementation((async (
+        fileIds: Array<ObjectID>,
+      ): Promise<Map<string, FileOwners>> => {
+        const owners: Map<string, FileOwners> = new Map();
 
-          for (const fileId of fileIds) {
-            const key: string = fileId.toString().toLowerCase();
+        for (const fileId of fileIds) {
+          const key: string = fileId.toString().toLowerCase();
 
-            if (ICON_OWNERS[key]) {
-              owners.set(key, ICON_OWNERS[key]!);
-            }
+          if (ICON_OWNERS[key]) {
+            owners.set(key, ICON_OWNERS[key]!);
           }
+        }
 
-          return owners;
-        }) as never);
+        return owners;
+      }) as never);
     });
 
     function record(data: {
@@ -669,14 +667,12 @@ describe("publish-time inline image visibility", () => {
     });
 
     it("never publishes another project's file after an update", async () => {
-      jest
-        .spyOn(service, "findBy")
-        .mockResolvedValue([
-          record({
-            projectId: ICON_PROJECT_ID,
-            iconFileId: FOREIGN_ICON_FILE_ID,
-          }),
-        ] as never);
+      jest.spyOn(service, "findBy").mockResolvedValue([
+        record({
+          projectId: ICON_PROJECT_ID,
+          iconFileId: FOREIGN_ICON_FILE_ID,
+        }),
+      ] as never);
 
       await update({ iconFileId: FOREIGN_ICON_FILE_ID });
 

@@ -412,16 +412,16 @@ describe("create: a record points only at files of its own project", () => {
 
     expect(repository.save).toHaveBeenCalledTimes(1);
     expect(
-      String(
-        (repository.save.mock.calls[0]![0] as StatusPage).projectId,
-      ),
+      String((repository.save.mock.calls[0]![0] as StatusPage).projectId),
     ).toBe(PROJECT_ID.toString());
 
     const foreignLogo: StatusPage = newStatusPage(OTHER_PROJECT_ID);
     foreignLogo.logoFile = fileRef(OTHER_PROJECT_FILE_ID);
 
     expect(
-      await refusalOf(service.create({ data: foreignLogo, props: ownerProps() })),
+      await refusalOf(
+        service.create({ data: foreignLogo, props: ownerProps() }),
+      ),
     ).toBe(LOGO_REFUSAL);
     expect(repository.save).toHaveBeenCalledTimes(1);
   });
@@ -435,9 +435,9 @@ describe("create: a record points only at files of its own project", () => {
     note.incidentId = new ObjectID("eeeeeeee-0000-4000-8000-0000000000aa");
     note.attachments = [fileRef(OWN_FILE_ID), fileRef(OTHER_PROJECT_FILE_ID)];
 
-    expect(await refusalOf(service.create({ data: note, props: ownerProps() }))).toBe(
-      ATTACHMENT_REFUSAL,
-    );
+    expect(
+      await refusalOf(service.create({ data: note, props: ownerProps() })),
+    ).toBe(ATTACHMENT_REFUSAL);
     expect(repository.save).not.toHaveBeenCalled();
 
     const ownNote: IncidentPublicNote = new IncidentPublicNote();

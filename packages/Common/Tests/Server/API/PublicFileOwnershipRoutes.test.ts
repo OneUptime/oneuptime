@@ -149,7 +149,11 @@ function image(
   return file;
 }
 
-function buildPage(id: ObjectID, bytes: Buffer, owner: ObjectID | null): StatusPage {
+function buildPage(
+  id: ObjectID,
+  bytes: Buffer,
+  owner: ObjectID | null,
+): StatusPage {
   const page: StatusPage = new StatusPage();
   page._id = id.toString();
   page.projectId = PROJECT_ID;
@@ -462,7 +466,9 @@ describe("public routes serve only a record's own files", () => {
 
       for (const relation of ["logoFile", "coverImageFile", "faviconFile"]) {
         expect(statusPage[relation]).toBeDefined();
-        expect((statusPage[relation] as JSONObject)["projectId"]).toBeUndefined();
+        expect(
+          (statusPage[relation] as JSONObject)["projectId"],
+        ).toBeUndefined();
       }
 
       expect(statusPage["logoFileId"]).toBeDefined();
@@ -531,9 +537,9 @@ describe("public routes serve only a record's own files", () => {
       });
 
       expect(metadata.status).toBe(200);
-      expect(
-        (metadata.body?.["logoFile"] as JSONObject | null)?.["file"],
-      ).toBe(base64(OWN_BYTES));
+      expect((metadata.body?.["logoFile"] as JSONObject | null)?.["file"]).toBe(
+        base64(OWN_BYTES),
+      );
       expect(
         (metadata.body?.["faviconFile"] as JSONObject | null)?.["file"],
       ).toBe(base64(OWN_BYTES));
@@ -599,23 +605,23 @@ describe("public routes serve only a record's own files", () => {
 
   describe("a person's profile picture", () => {
     function withPicture(createdByUserId: ObjectID | null): void {
-      jest
-        .spyOn(UserService, "findOneBy")
-        .mockImplementation((async (data: { select: Dictionary<unknown> }) => {
-          selects.push(data.select);
+      jest.spyOn(UserService, "findOneBy").mockImplementation((async (data: {
+        select: Dictionary<unknown>;
+      }) => {
+        selects.push(data.select);
 
-          const user: User = new User();
-          user._id = USER_ID.toString();
+        const user: User = new User();
+        user._id = USER_ID.toString();
 
-          const picture: File = image(OWN_BYTES, null);
+        const picture: File = image(OWN_BYTES, null);
 
-          if (createdByUserId) {
-            picture.createdByUserId = createdByUserId;
-          }
+        if (createdByUserId) {
+          picture.createdByUserId = createdByUserId;
+        }
 
-          user.profilePictureFile = picture;
-          return user;
-        }) as never);
+        user.profilePictureFile = picture;
+        return user;
+      }) as never);
     }
 
     it("serves a picture the person uploaded", async () => {

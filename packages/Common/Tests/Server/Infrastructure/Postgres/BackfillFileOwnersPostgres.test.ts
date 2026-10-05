@@ -81,15 +81,16 @@ function createTablesSql(): Array<string> {
   return statements;
 }
 
-function referenceTo(table: string, fileIdColumn: string): FileProjectReference {
+function referenceTo(
+  table: string,
+  fileIdColumn: string,
+): FileProjectReference {
   const reference: FileProjectReference | undefined =
-    FILE_PROJECT_REFERENCES.find(
-      (candidate: FileProjectReference): boolean => {
-        return (
-          candidate.table === table && candidate.fileIdColumn === fileIdColumn
-        );
-      },
-    );
+    FILE_PROJECT_REFERENCES.find((candidate: FileProjectReference): boolean => {
+      return (
+        candidate.table === table && candidate.fileIdColumn === fileIdColumn
+      );
+    });
 
   expect(reference).toBeDefined();
 
@@ -181,8 +182,9 @@ describePostgres("BackfillFileOwners against Postgres", () => {
     runner = database.createQueryRunner();
     await runner.connect();
 
-    const currentSchema: Array<{ current_schema: string }> =
-      await runner.query("SELECT current_schema()");
+    const currentSchema: Array<{ current_schema: string }> = await runner.query(
+      "SELECT current_schema()",
+    );
     expect(currentSchema[0]?.current_schema).toBe(schema);
   });
 
@@ -225,7 +227,11 @@ describePostgres("BackfillFileOwners against Postgres", () => {
   test("a file records of two projects point at stays without one", async () => {
     const fileId: string = await insertFile();
     await point(referenceTo("StatusPage", "logoFileId"), fileId, PROJECT_A);
-    await point(referenceTo("IncidentPublicNoteFile", "fileId"), fileId, PROJECT_B);
+    await point(
+      referenceTo("IncidentPublicNoteFile", "fileId"),
+      fileId,
+      PROJECT_B,
+    );
 
     await migration.up(runner);
 
@@ -254,7 +260,11 @@ describePostgres("BackfillFileOwners against Postgres", () => {
 
     const globalAndProject: string = await insertFile();
     await point(referenceTo("AIAgent", "iconFileId"), globalAndProject, null);
-    await point(referenceTo("AIAgent", "iconFileId"), globalAndProject, PROJECT_B);
+    await point(
+      referenceTo("AIAgent", "iconFileId"),
+      globalAndProject,
+      PROJECT_B,
+    );
 
     await migration.up(runner);
 
@@ -264,7 +274,11 @@ describePostgres("BackfillFileOwners against Postgres", () => {
 
   test("a file that has a project keeps it, whatever points at it", async () => {
     const fileId: string = await insertFile(PROJECT_B);
-    await point(referenceTo("StatusPage", "coverImageFileId"), fileId, PROJECT_A);
+    await point(
+      referenceTo("StatusPage", "coverImageFileId"),
+      fileId,
+      PROJECT_A,
+    );
 
     await migration.up(runner);
 

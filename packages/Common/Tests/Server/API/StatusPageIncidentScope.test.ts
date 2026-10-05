@@ -729,20 +729,18 @@ let incidentReads: Array<IncidentRead> = [];
  * project of the page that serves it, unless a test says otherwise.
  */
 function mockFileOwners(projectId: ObjectID = PROJECT_ID): void {
-  jest
-    .spyOn(FileService, "getFileOwners")
-    .mockImplementation((async (
-      fileIds: Array<ObjectID>,
-    ): Promise<Map<string, FileOwners>> => {
-      return new Map(
-        fileIds.map((fileId: ObjectID): [string, FileOwners] => {
-          return [
-            fileId.toString().toLowerCase(),
-            { projectId: projectId, createdByUserId: null },
-          ];
-        }),
-      );
-    }) as never);
+  jest.spyOn(FileService, "getFileOwners").mockImplementation((async (
+    fileIds: Array<ObjectID>,
+  ): Promise<Map<string, FileOwners>> => {
+    return new Map(
+      fileIds.map((fileId: ObjectID): [string, FileOwners] => {
+        return [
+          fileId.toString().toLowerCase(),
+          { projectId: projectId, createdByUserId: null },
+        ];
+      }),
+    );
+  }) as never);
 }
 
 function mockDatabase(): void {

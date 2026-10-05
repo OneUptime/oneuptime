@@ -208,11 +208,7 @@ describe("setIsPublicForMarkdownImages", () => {
       false,
       PROJECT_ID,
     );
-    await setIsPublicForMarkdownImages(
-      `![a](${urlFor("aaa111")})`,
-      true,
-      null,
-    );
+    await setIsPublicForMarkdownImages(`![a](${urlFor("aaa111")})`, true, null);
 
     expect(FileService.updateOneById).not.toHaveBeenCalled();
   });
@@ -265,9 +261,9 @@ describe("setIsPublicForMarkdownImages", () => {
 
 describe("mayChangeImageVisibility", () => {
   it("allows the note's own project's images and images with no project", () => {
-    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, PROJECT_ID)).toBe(
-      true,
-    );
+    expect(
+      mayChangeImageVisibility({ projectId: PROJECT_ID }, PROJECT_ID),
+    ).toBe(true);
     expect(mayChangeImageVisibility({}, PROJECT_ID)).toBe(true);
     expect(mayChangeImageVisibility({ projectId: undefined }, null)).toBe(true);
   });
@@ -279,9 +275,9 @@ describe("mayChangeImageVisibility", () => {
     expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, null)).toBe(
       false,
     );
-    expect(
-      mayChangeImageVisibility({ projectId: PROJECT_ID }, undefined),
-    ).toBe(false);
+    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, undefined)).toBe(
+      false,
+    );
   });
 });
 

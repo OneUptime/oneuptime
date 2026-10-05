@@ -194,7 +194,11 @@ describe("FileService.getFileOwners: who each file belongs to", () => {
         projectId: PROJECT_ID.toString(),
         createdByUserId: USER_ID.toString(),
       },
-      { _id: SECOND_FILE_ID.toString(), projectId: null, createdByUserId: null },
+      {
+        _id: SECOND_FILE_ID.toString(),
+        projectId: null,
+        createdByUserId: null,
+      },
     ]);
 
     const owners: Map<string, FileOwners> = await FileService.getFileOwners([
@@ -256,9 +260,7 @@ describe("FileService.getFileOwners: who each file belongs to", () => {
   });
 
   test("reads an owner that is not an id as none", async () => {
-    withRows([
-      { _id: FILE_ID.toString(), projectId: "", createdByUserId: 42 },
-    ]);
+    withRows([{ _id: FILE_ID.toString(), projectId: "", createdByUserId: 42 }]);
 
     expect(
       (await FileService.getFileOwners([FILE_ID])).get(FILE_ID.toString()),

@@ -508,8 +508,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     let owner: FileReferenceOwner | null | undefined = undefined;
 
     for (const column of columns) {
-      const fileIds: Array<ObjectID> | null =
-        FileOwnership.readWrittenFileIds(data, column);
+      const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
+        data,
+        column,
+      );
 
       if (!fileIds || fileIds.length === 0) {
         continue;
@@ -556,8 +558,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }> = [];
 
     for (const column of columns) {
-      const fileIds: Array<ObjectID> | null =
-        FileOwnership.readWrittenFileIds(data.updateBy.data, column);
+      const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
+        data.updateBy.data,
+        column,
+      );
 
       if (fileIds && fileIds.length > 0) {
         written.push({ column, fileIds });
@@ -606,10 +610,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       for (const { column, fileIds } of written) {
-        const held: Set<string> = FileOwnership.readStoredFileIds(
-          row,
-          column,
-        );
+        const held: Set<string> = FileOwnership.readStoredFileIds(row, column);
 
         const added: Array<ObjectID> = fileIds.filter(
           (fileId: ObjectID): boolean => {

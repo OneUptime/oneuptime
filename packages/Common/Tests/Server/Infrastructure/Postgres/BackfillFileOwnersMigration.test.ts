@@ -181,7 +181,10 @@ describe("BackfillFileOwners1797900000000", () => {
       getFileProjectReferenceSql({
         table: "IncidentPublicNoteFile",
         fileIdColumn: "fileId",
-        owner: { table: "IncidentPublicNote", idColumn: "incidentPublicNoteId" },
+        owner: {
+          table: "IncidentPublicNote",
+          idColumn: "incidentPublicNoteId",
+        },
       }),
     ).toBe(
       `SELECT "link"."fileId" AS "fileId", "owner"."projectId" AS "projectId" FROM "IncidentPublicNoteFile" AS "link" INNER JOIN "IncidentPublicNote" AS "owner" ON "owner"."_id" = "link"."incidentPublicNoteId"`,
@@ -204,7 +207,9 @@ describe("BackfillFileOwners1797900000000", () => {
       );
     }
 
-    expect(BACKFILL_FILE_PROJECT_SQL).toMatch(/^UPDATE "File" AS "file" SET "projectId" = /);
+    expect(BACKFILL_FILE_PROJECT_SQL).toMatch(
+      /^UPDATE "File" AS "file" SET "projectId" = /,
+    );
     expect(BACKFILL_FILE_PROJECT_SQL).toContain(
       `HAVING COUNT(DISTINCT "reference"."projectId") = 1`,
     );

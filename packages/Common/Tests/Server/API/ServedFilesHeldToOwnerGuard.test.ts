@@ -334,9 +334,10 @@ describe("every file a route serves is held to its owner first", () => {
         "utf8",
       );
 
-      expect({ allowed, sendsFiles: text.includes("sendFileResponse(") }).toEqual(
-        { allowed, sendsFiles: true },
-      );
+      expect({
+        allowed,
+        sendsFiles: text.includes("sendFileResponse("),
+      }).toEqual({ allowed, sendsFiles: true });
     }
   });
 });

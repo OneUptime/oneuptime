@@ -265,7 +265,9 @@ async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
 
 beforeEach(() => {
   // An AI agent's icon is made public on save; there is none here.
-  getJestSpyOn(FileService, "makeRecordFilePublic").mockResolvedValue(undefined);
+  getJestSpyOn(FileService, "makeRecordFilePublic").mockResolvedValue(
+    undefined,
+  );
 });
 
 afterEach(() => {

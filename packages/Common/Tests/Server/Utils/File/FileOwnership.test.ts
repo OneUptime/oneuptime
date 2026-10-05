@@ -100,7 +100,10 @@ function stubFileOwners(): GetFileOwnersMock {
   return mock;
 }
 
-function columnOf(model: BaseModel, relationColumn: string): FileReferenceColumn {
+function columnOf(
+  model: BaseModel,
+  relationColumn: string,
+): FileReferenceColumn {
   const column: FileReferenceColumn | undefined =
     FileOwnership.getFileReferenceColumns(model).find(
       (candidate: FileReferenceColumn): boolean => {
@@ -344,8 +347,7 @@ describe("FileOwnership.getFileReferenceColumns", () => {
       expect({
         table: model.tableName,
         ownedBy:
-          model.getTenantColumn() === "projectId" ||
-          model.tableName === "User",
+          model.getTenantColumn() === "projectId" || model.tableName === "User",
       }).toEqual({ table: model.tableName, ownedBy: true });
     }
   });
@@ -359,9 +361,7 @@ describe("FileOwnership.getFileReferenceColumns", () => {
     const first: Array<FileReferenceColumn> =
       FileOwnership.getFileReferenceColumns(new StatusPage());
 
-    expect(FileOwnership.getFileReferenceColumns(new StatusPage())).toBe(
-      first,
-    );
+    expect(FileOwnership.getFileReferenceColumns(new StatusPage())).toBe(first);
   });
 });
 
@@ -592,9 +592,9 @@ describe("FileOwnership.getOwner", () => {
 
 describe("FileOwnership.isFileOfProject / isFileOfUser / isOwnedBy", () => {
   test("a file is its project's, however the ids are written", () => {
-    expect(
-      FileOwnership.isFileOfProject(FILES[OWN_FILE_ID], PROJECT_ID),
-    ).toBe(true);
+    expect(FileOwnership.isFileOfProject(FILES[OWN_FILE_ID], PROJECT_ID)).toBe(
+      true,
+    );
     expect(
       FileOwnership.isFileOfProject(
         { projectId: PROJECT_ID.toString().toUpperCase() },
@@ -629,9 +629,9 @@ describe("FileOwnership.isFileOfProject / isFileOfUser / isOwnedBy", () => {
     expect(FileOwnership.isFileOfUser(FILES[OWN_FILE_ID], OTHER_USER_ID)).toBe(
       false,
     );
-    expect(
-      FileOwnership.isFileOfUser(FILES[NO_PROJECT_FILE_ID], USER_ID),
-    ).toBe(false);
+    expect(FileOwnership.isFileOfUser(FILES[NO_PROJECT_FILE_ID], USER_ID)).toBe(
+      false,
+    );
     expect(FileOwnership.isFileOfUser(FILES[OWN_FILE_ID], null)).toBe(false);
   });
 
@@ -902,7 +902,9 @@ describe("FileOwnership.keepProjectFile", () => {
     expect(
       FileOwnership.keepProjectFile(new File(), PROJECT_ID),
     ).toBeUndefined();
-    expect(FileOwnership.keepProjectFile(undefined, PROJECT_ID)).toBeUndefined();
+    expect(
+      FileOwnership.keepProjectFile(undefined, PROJECT_ID),
+    ).toBeUndefined();
     expect(FileOwnership.keepProjectFile(null, PROJECT_ID)).toBeUndefined();
 
     const own: File = new File();
