@@ -119,11 +119,12 @@ test.describe.skip("Docker Swarm Product Onboarding", () => {
       ready: page.locator("#create-monitor-form"),
     });
 
+    // What to monitor comes first on Monitor Info, then the name.
+    await selectMonitorTypeCard({ page, cardValue: "Docker Swarm" });
+
     await page
       .locator("#create-monitor-form input[placeholder='Monitor Name']")
       .fill("E2E Docker Swarm Monitor " + Faker.generateName().toString());
-
-    await selectMonitorTypeCard({ page, cardValue: "Docker Swarm" });
 
     /*
      * Monitor Info is not the last step: its one way on is a plain Next

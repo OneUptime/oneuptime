@@ -6,6 +6,7 @@ import ScheduledMaintenanceInternalNoteService, {
   Service as ScheduledMaintenanceInternalNoteServiceType,
 } from "../Services/ScheduledMaintenanceInternalNoteService";
 import Response from "../Utils/Response";
+import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
@@ -69,6 +70,7 @@ export default class ScheduledMaintenanceInternalNoteAPI extends BaseAPI<
           _id: noteId,
         },
         select: {
+          projectId: true,
           attachments: {
             _id: true,
             file: true,
@@ -79,18 +81,15 @@ export default class ScheduledMaintenanceInternalNoteAPI extends BaseAPI<
         props,
       });
 
-    const attachment: File | undefined = note?.attachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in its own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: note?.attachments,
+        fileId: fileId,
+        projectId: note?.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 

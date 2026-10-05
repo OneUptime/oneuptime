@@ -129,10 +129,16 @@ const MISSING_DASHBOARD_ID: ObjectID = new ObjectID(
   "da5a0000-0000-4000-8000-0000000000ff",
 );
 
+// The dashboard's project, and so its images' (a dashboard shows only its own).
+const DASHBOARD_PROJECT_ID: ObjectID = new ObjectID(
+  "da5a0000-0000-4000-8000-0000000000ee",
+);
+
 const imageFile: (bytes: string) => File = (bytes: string): File => {
   const file: File = new File();
   file.file = Buffer.from(bytes);
   file.fileType = MimeType.png;
+  file.projectId = DASHBOARD_PROJECT_ID;
   return file;
 };
 
@@ -237,6 +243,7 @@ const storedDashboard: (state: DashboardAccessState) => Dashboard = (
   const dashboard: Dashboard = new Dashboard();
   dashboard.id = DASHBOARD_ID;
   dashboard._id = DASHBOARD_ID.toString();
+  dashboard.projectId = DASHBOARD_PROJECT_ID;
   dashboard.name = "Checkout";
   dashboard.description = "Orders and payments";
   dashboard.pageTitle = "Checkout status";

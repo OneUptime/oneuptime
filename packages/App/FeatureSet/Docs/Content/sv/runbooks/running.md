@@ -14,9 +14,16 @@ Det finns tre sätt en runbook-körning skapas:
 - **Titel och beskrivning** — kopierade från runbooket vid körtid.
 - **Utdata** (hopfällbart) — stdout, returvärden, HTTP-svar.
 - **Felmeddelande** om steget misslyckades.
-- För manuella steg i `WaitingForUser`: **Markera som klar**- och **Hoppa över**-knappar.
+- På steget som körningen väntar på: **Mark complete** (ett manuellt steg) eller **Approve & continue** (ett steg med **Kräver godkännande**), och **Hoppa över**.
+- Medan körningen är pausad, **Hoppa över** på senare automatiserade steg som inte kräver godkännande.
 
 Sidan pollar var tredje sekund medan körningen inte är terminal, så du ser automatiserade steg avslutas i nära realtid.
+
+## Slutföra, godkänna och hoppa över steg
+
+Bara steget som körningen väntar på kan markeras som klart, godkännas eller hoppas över för att körningen ska fortsätta. Ett manuellt steg eller ett steg med **Kräver godkännande** kan inte bockas av eller hoppas över innan körningen når det — dess uppgift är att stoppa körningen, så det tar emot ett beslut först när körningen är där (för ett godkännande först när steget har körts och du kan se dess utdata).
+
+Medan körningen är pausad kan du också hoppa över ett senare automatiserat steg som inte kräver godkännande, så att det inte körs när körningen fortsätter. Körningen förblir pausad på steget som väntar på dig. Det går inte att hoppa över steg medan steg körs — vänta tills körningen pausas, eller avbryt den. Varje steg registrerar vem som slutförde eller hoppade över det.
 
 ## Varva manuella och automatiserade steg
 

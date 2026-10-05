@@ -49,8 +49,9 @@ const PERMISSIONS_WITHOUT_PROPS_BY_DESIGN: Array<string> = [
  * Columns whose create list requires a granular permission the table's own
  * create list never accepts. Each is a pre-existing copy-paste mis-key of the
  * same family as the ScheduledMaintenanceTemplateOwnerUser one this test was
- * written for — MonitorFeed asking for CreateScheduledMaintenanceFeed,
- * MetricType asking for CreateProjectIncident, and so on. They are recorded
+ * written for — MonitorFeed asking for CreateScheduledMaintenanceFeed, and so
+ * on (MetricType.services asked for CreateProjectIncident until its lists
+ * were given the telemetry metric permissions). They are recorded
  * rather than fixed here because each needs its own judgement about which
  * permission was intended, and because a required column gated this way cannot
  * be set by a granular-only holder at all.
@@ -61,7 +62,6 @@ const KNOWN_CROSS_MODEL_COLUMN_GATES: Array<string> = [
   "IncidentFeed.postedAt requires CreateScheduledMaintenanceFeed",
   "IncidentFeed.user requires CreateScheduledMaintenanceFeed",
   "IncidentFeed.userId requires CreateScheduledMaintenanceFeed",
-  "MetricType.services requires CreateProjectIncident",
   "Monitor.currentMonitorStatusId requires CreateProjectIncident",
   "MonitorFeed.postedAt requires CreateScheduledMaintenanceFeed",
   "MonitorFeed.user requires CreateScheduledMaintenanceFeed",

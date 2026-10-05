@@ -542,9 +542,9 @@ describe("the Access field", () => {
     expect(field.cardSelectSingleColumn).toBe(true);
     expect(field.required).toBe(true);
     expect(field.defaultValue).toBe(ROLE_ACCESS_LATER);
-    // A plain list: no search box and no folded groups (four cards).
+    // A plain list: no search box and no catalog layout (four cards).
     expect(field.cardSelectSearchable).toBeUndefined();
-    expect(field.cardSelectCollapsibleGroups).toBeUndefined();
+    expect(field.cardSelectCatalog).toBeUndefined();
     // Asked on the first page: never folded, never a step of its own.
     expect(field.collapsibleSection).toBeUndefined();
     expect(field.stepId).toBeUndefined();
