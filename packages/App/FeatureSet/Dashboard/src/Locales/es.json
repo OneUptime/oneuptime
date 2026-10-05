@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "Esta regla se ejecuta cuando se cumplen todas estas condiciones:",
   "This rule runs when any one of these conditions is met:": "Esta regla se ejecuta cuando se cumple cualquiera de estas condiciones:",
   "This rule runs when this condition is met:": "Esta regla se ejecuta cuando se cumple esta condición:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Esta regla todavía tiene un asignado predeterminado establecido por una versión anterior de este formulario. Abre esta sección para añadirlos como propietarios o quitarlo."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Esta regla todavía tiene un asignado predeterminado establecido por una versión anterior de este formulario. Abre esta sección para añadirlos como propietarios o quitarlo.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notificar a los suscriptores cuando se publique este análisis post mortem. Las ediciones posteriores no vuelven a notificarles."
 }

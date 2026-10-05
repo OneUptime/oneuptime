@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "Denne regelen kjører når alle disse betingelsene er oppfylt:",
   "This rule runs when any one of these conditions is met:": "Denne regelen kjører når én av disse betingelsene er oppfylt:",
   "This rule runs when this condition is met:": "Denne regelen kjører når denne betingelsen er oppfylt:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Denne regelen har fortsatt en standard tilordnet, satt av en eldre versjon av dette skjemaet. Åpne denne delen for å legge dem til som eiere eller fjerne den."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Denne regelen har fortsatt en standard tilordnet, satt av en eldre versjon av dette skjemaet. Åpne denne delen for å legge dem til som eiere eller fjerne den.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Varsle abonnenter når denne evalueringen publiseres. Senere endringer varsler dem ikke på nytt."
 }

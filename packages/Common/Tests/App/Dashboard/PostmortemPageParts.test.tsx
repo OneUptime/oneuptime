@@ -361,6 +361,25 @@ describe("the incident postmortem form", () => {
     }
   });
 
+  /*
+   * The box stays ticked on every later edit of a published postmortem, and
+   * every save used to tell subscribers again. They are told once, when it
+   * is published (IncidentPostmortemPublication), and the box says so.
+   */
+  test("Notify Subscribers says subscribers are told once, when it is published", () => {
+    const notify: Field<Incident> = INCIDENT_POSTMORTEM_FORM_FIELDS.find(
+      (field: Field<Incident>): boolean => {
+        return fieldName(field) === "notifySubscribersOnPostmortemPublished";
+      },
+    )!;
+
+    expect(notify.title).toBe("Notify Subscribers");
+    expect(notify.description).toBe(
+      "Notify subscribers when this postmortem is published. Later edits do not notify them again.",
+    );
+    expect(notify.defaultValue).toBe(true);
+  });
+
   test("Published At no longer starts at now on its own: publishing sets it", () => {
     const postedAt: Field<Incident> = INCIDENT_POSTMORTEM_FORM_FIELDS.find(
       (field: Field<Incident>): boolean => {

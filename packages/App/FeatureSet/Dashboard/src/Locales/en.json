@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "This rule runs when all of these conditions are met:",
   "This rule runs when any one of these conditions is met:": "This rule runs when any one of these conditions is met:",
   "This rule runs when this condition is met:": "This rule runs when this condition is met:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notify subscribers when this postmortem is published. Later edits do not notify them again."
 }

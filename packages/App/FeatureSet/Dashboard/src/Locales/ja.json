@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "このルールは、次の条件をすべて満たすと実行されます:",
   "This rule runs when any one of these conditions is met:": "このルールは、次の条件のいずれか 1 つを満たすと実行されます:",
   "This rule runs when this condition is met:": "このルールは、次の条件を満たすと実行されます:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。"
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "このポストモーテムが公開されたときに購読者に通知します。後から編集しても、再度通知されることはありません。"
 }

@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "이 규칙은 다음 조건을 모두 충족하면 실행됩니다:",
   "This rule runs when any one of these conditions is met:": "이 규칙은 다음 조건 중 하나라도 충족하면 실행됩니다:",
   "This rule runs when this condition is met:": "이 규칙은 다음 조건을 충족하면 실행됩니다:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "이 규칙에는 이 양식의 이전 버전에서 설정된 기본 담당자가 아직 남아 있습니다. 이 섹션을 열어 소유자로 추가하거나 제거하세요."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "이 규칙에는 이 양식의 이전 버전에서 설정된 기본 담당자가 아직 남아 있습니다. 이 섹션을 열어 소유자로 추가하거나 제거하세요.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "이 사후 분석이 게시되면 구독자에게 알립니다. 이후에 수정해도 다시 알리지 않습니다."
 }

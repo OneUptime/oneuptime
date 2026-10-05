@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "滿足以下所有條件時，此規則會執行：",
   "This rule runs when any one of these conditions is met:": "滿足以下任一條件時，此規則會執行：",
   "This rule runs when this condition is met:": "滿足此條件時，此規則會執行：",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此規則仍有一個由此表單的舊版本設定的預設受指派者。開啟此區段，將其新增為擁有者或將其移除。"
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此規則仍有一個由此表單的舊版本設定的預設受指派者。開啟此區段，將其新增為擁有者或將其移除。",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "當此事後檢討發布時通知訂閱者。之後的編輯不會再次通知他們。"
 }

@@ -25327,5 +25327,6 @@
   "This rule runs when all of these conditions are met:": "满足以下所有条件时，此规则会运行：",
   "This rule runs when any one of these conditions is met:": "满足以下任一条件时，此规则会运行：",
   "This rule runs when this condition is met:": "满足此条件时，此规则会运行：",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此规则仍有一个由此表单的旧版本设置的默认受理人。打开此部分，将其添加为所有者或将其移除。"
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此规则仍有一个由此表单的旧版本设置的默认受理人。打开此部分，将其添加为所有者或将其移除。",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "当此事后分析发布时通知订阅者。之后的编辑不会再次通知他们。"
 }
