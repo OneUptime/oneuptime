@@ -18,6 +18,8 @@ import FileOwnership, {
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "../../../../Models/DatabaseModels/File";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
 import { describe, expect, test } from "@jest/globals";
 import {
   MigrationInterface,
@@ -46,6 +48,14 @@ interface Statement {
   sql: string;
   parameters: Array<unknown> | undefined;
 }
+
+/*
+ * File references and markdown columns added to the models after this
+ * migration, as `{"table","fileIdColumn","owner"}` keys / `Table.column`:
+ * they need no backfill, as their files are uploaded with their project.
+ */
+const FILE_REFERENCES_ADDED_LATER: Array<string> = [];
+const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [];
 
 async function statementsFor(
   direction: "up" | "down",
@@ -167,6 +177,11 @@ describe("BackfillFileOwners1797900000000", () => {
     ]);
   });
 
+  /*
+   * A File column added after this migration needs no backfill - its files
+   * are uploaded with their project - so it goes in
+   * FILE_REFERENCES_ADDED_LATER.
+   */
   test("reads every place a project's record points at a file, from the models' metadata", () => {
     const fromModels: Array<string> = AllModelTypes.filter(
       (modelType: { new (): BaseModel }): boolean => {
@@ -177,8 +192,20 @@ describe("BackfillFileOwners1797900000000", () => {
       .map(keyOf)
       .sort();
 
+    const listed: Array<string> = FILE_PROJECT_REFERENCES.map(keyOf).sort();
+
     expect(fromModels.length).toBeGreaterThan(0);
-    expect(FILE_PROJECT_REFERENCES.map(keyOf).sort()).toEqual(fromModels);
+
+    // Each place it reads is one the models have.
+    for (const reference of listed) {
+      expect(fromModels).toContain(reference);
+    }
+
+    expect(
+      fromModels.filter((reference: string): boolean => {
+        return !FILE_REFERENCES_ADDED_LATER.includes(reference);
+      }),
+    ).toEqual(listed);
   });
 
   test("a list's files take the project of the record the list belongs to", () => {
@@ -231,35 +258,77 @@ describe("BackfillFileOwners1797900000000", () => {
     );
   });
 
-  test("reads the inline images of everything a status page shows, with their record's project", () => {
+  /*
+   * Every markdown column people write in, and every custom fields column,
+   * of every project's model - from the models' metadata. The feeds and the
+   * state timelines are left out (OneUptime writes them). A column added
+   * after this migration needs no backfill - its images are uploaded with
+   * their project - so it goes in MARKDOWN_COLUMNS_ADDED_LATER.
+   */
+  test("reads the inline images of every markdown column people write in", () => {
+    const listed: Array<string> = MARKDOWN_IMAGE_REFERENCES.flatMap(
+      (reference: MarkdownImageReference): Array<string> => {
+        return reference.columns.map((column: string): string => {
+          return `${reference.table}.${column}`;
+        });
+      },
+    ).sort();
+
+    const fromModels: Array<string> = [];
+
+    for (const modelType of AllModelTypes) {
+      const model: BaseModel = new modelType();
+      const table: string = model.tableName || "";
+
+      if (
+        model.getTenantColumn() !== "projectId" ||
+        table.endsWith("Feed") ||
+        table.endsWith("Timeline")
+      ) {
+        continue;
+      }
+
+      for (const column of model.getTableColumns().columns) {
+        const metadata: TableColumnMetadata | undefined =
+          model.getTableColumnMetadata(column);
+
+        if (
+          metadata?.type === TableColumnType.Markdown ||
+          (column === "customFields" && metadata?.type === TableColumnType.JSON)
+        ) {
+          fromModels.push(`${table}.${column}`);
+        }
+      }
+    }
+
+    // Each column it reads is one the models have.
+    for (const column of listed) {
+      expect(fromModels).toContain(column);
+    }
+
     expect(
-      MARKDOWN_IMAGE_REFERENCES.map(
-        (reference: MarkdownImageReference): string => {
-          return `${reference.table}.${reference.column}`;
-        },
-      ),
-    ).toEqual([
-      "IncidentPublicNote.note",
-      "IncidentEpisodePublicNote.note",
-      "ScheduledMaintenancePublicNote.note",
-      "StatusPageAnnouncement.description",
-      "Incident.postmortemNote",
-      "Incident.customFields",
-    ]);
+      fromModels
+        .filter((column: string): boolean => {
+          return !MARKDOWN_COLUMNS_ADDED_LATER.includes(column);
+        })
+        .sort(),
+    ).toEqual(listed);
 
     for (const reference of MARKDOWN_IMAGE_REFERENCES) {
       expect(BACKFILL_FILE_PROJECT_SQL).toContain(
         getMarkdownImageReferenceSql(reference),
       );
     }
+  });
 
+  test("reads a table's markdown once, its columns side by side, with its record's project", () => {
     expect(
       getMarkdownImageReferenceSql({
-        table: "IncidentPublicNote",
-        column: "note",
+        table: "StatusPage",
+        columns: ["overviewPageDescription", "customFields"],
       }),
     ).toBe(
-      `SELECT "file"."_id" AS "fileId", "markdown"."projectId" AS "projectId" FROM (SELECT "projectId", (regexp_matches("note"::text, '/file/image/access-token/([a-fA-F0-9]+)', 'g'))[1] AS "token" FROM "IncidentPublicNote" WHERE "note"::text LIKE '%/file/image/access-token/%') AS "markdown" INNER JOIN "File" AS "file" ON "file"."imageAccessToken" = "markdown"."token"`,
+      `SELECT "file"."_id" AS "fileId", "markdown"."projectId" AS "projectId" FROM (SELECT "projectId", (regexp_matches(concat_ws(' ', "overviewPageDescription"::text, "customFields"::text), '/file/image/access-token/([a-fA-F0-9]+)', 'g'))[1] AS "token" FROM "StatusPage" WHERE concat_ws(' ', "overviewPageDescription"::text, "customFields"::text) LIKE '%/file/image/access-token/%') AS "markdown" INNER JOIN "File" AS "file" ON "file"."imageAccessToken" = "markdown"."token"`,
     );
   });
 

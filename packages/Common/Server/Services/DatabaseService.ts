@@ -535,22 +535,24 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * The update's half of assertFileReferencesOwnedOnCreate. Every record the
-   * update writes is read - its project, and the files it points at now -
-   * and only the files it does not point at already are checked: nothing
-   * about a file can change once it is uploaded, and a record saved before
-   * files had owners keeps saving the file it has.
+   * The update's half of assertFileReferencesOwnedOnCreate, on the rows the
+   * update reads before it writes them - each row's project (the tenant
+   * column) and the files it points at now (the written columns, read as
+   * they are) - so the rows checked are the rows written. Only the files a
+   * row does not point at already are checked: nothing about a file can
+   * change once it is uploaded, and a record saved before files had owners
+   * keeps saving the file it has. Returns the checks; the caller runs them
+   * before it writes anything.
    */
-  private async assertFileReferencesOwnedOnUpdate(data: {
-    updateBy: UpdateBy<TBaseModel>;
-    skip: PositiveNumber | number;
-    limit: PositiveNumber | number;
-  }): Promise<void> {
+  private getFileReferenceChecksOnUpdate(data: {
+    data: PartialEntity<TBaseModel>;
+    rows: Array<TBaseModel>;
+  }): Array<FileReferenceCheck> {
     const columns: Array<FileReferenceColumn> =
       FileOwnership.getFileReferenceColumns(this.model);
 
     if (columns.length === 0) {
-      return;
+      return [];
     }
 
     const written: Array<{
@@ -560,7 +562,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     for (const column of columns) {
       const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
-        data.updateBy.data,
+        data.data,
         column,
       );
 
@@ -570,33 +572,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     if (written.length === 0) {
-      return;
+      return [];
     }
 
-    const select: Dictionary<unknown> = { _id: true };
-    const tenantColumn: string | null = this.model.getTenantColumn();
-
-    if (tenantColumn) {
-      select[tenantColumn] = true;
-    }
-
-    for (const { column } of written) {
-      if (column.isList) {
-        select[column.relationColumn] = { _id: true };
-      } else if (column.idColumn) {
-        select[column.idColumn] = true;
-      } else {
-        select[column.relationColumn] = { _id: true };
-      }
-    }
-
-    const rows: Array<TBaseModel> = await this._findBy({
-      query: data.updateBy.query,
-      select: select as Select<TBaseModel>,
-      skip: this.normalizePositiveNumber(data.skip) ?? 0,
-      limit: this.normalizePositiveNumber(data.limit) ?? LIMIT_MAX,
-      props: { isRoot: true, ignoreHooks: true },
-    });
+    const rows: Array<TBaseModel> = data.rows;
 
     const checks: Array<FileReferenceCheck> = [];
 
@@ -625,7 +604,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
     }
 
-    await FileOwnership.assertOwned(checks);
+    return checks;
   }
 
   /*
@@ -4081,13 +4060,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         beforeUpdateBy.props,
       );
 
-      // Only each record's own files. See the helper.
-      await this.assertFileReferencesOwnedOnUpdate({
-        updateBy: beforeUpdateBy,
-        skip: updateBy.skip,
-        limit: updateBy.limit,
-      });
-
       // A service's own words for a clash, now the caller may make the write.
       if (!updateBy.props.ignoreHooks) {
         await this.onBeforeUpdateUniqueCheck(beforeUpdateBy);
@@ -4172,6 +4144,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             props: { isRoot: true, ignoreHooks: true },
           })
         : [];
+
+      /*
+       * Only each record's own files, checked on the very rows this write
+       * is about to write, as they are before it. See the helper.
+       */
+      await FileOwnership.assertOwned(
+        this.getFileReferenceChecksOnUpdate({ data: data, rows: items }),
+      );
 
       /*
        * save() has upsert semantics: if the located row is hard-deleted by a

@@ -1,3 +1,4 @@
+import RelationIdUtil from "../Database/RelationIdUtil";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "../../../Models/DatabaseModels/File";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -127,27 +128,15 @@ const readId: (value: unknown) => ObjectID | null = (
 };
 
 /*
- * One entry of a list of files, in every shape DatabaseService links: a
- * model, a { _id } or { id } object, an ObjectID or a uuid string. An entry
- * with no id links nothing.
+ * One file a write names, in every shape DatabaseService links: a model, a
+ * { _id } or { id } object, an ObjectID or a uuid string - read the way
+ * every other relation a hook checks is read (RelationIdUtil). A value with
+ * no id names nothing.
  */
 const readEntryId: (entry: unknown) => ObjectID | null = (
   entry: unknown,
 ): ObjectID | null => {
-  if (entry instanceof ObjectID || typeof entry === "string") {
-    return readId(entry);
-  }
-
-  if (!entry || typeof entry !== "object") {
-    return null;
-  }
-
-  const relation: { _id?: unknown; id?: unknown } = entry as {
-    _id?: unknown;
-    id?: unknown;
-  };
-
-  return readId(relation._id) || readId(relation.id);
+  return RelationIdUtil.read({ entry: entry }, ["entry"]);
 };
 
 // "Cover Image" -> "cover image"; profilePictureFile (no title) -> "profile picture".
@@ -446,7 +435,8 @@ export default class FileOwnership {
    * with its bytes, uploaded in the record's own project. Undefined for any
    * other - not one of the record's, or a file of another project or of
    * none - so a route answers it as it answers an attachment that does not
-   * exist.
+   * exist. A route that read the files with their projectId (a root read)
+   * is answered from it; otherwise the file's owner is looked up.
    */
   public static async findProjectAttachment(data: {
     files: Array<File> | null | undefined;
@@ -465,6 +455,12 @@ export default class FileOwnership {
 
     if (!attachment || !attachment.file || !data.projectId) {
       return undefined;
+    }
+
+    if (attachment.projectId !== undefined) {
+      return this.isFileOfProject(attachment, data.projectId)
+        ? attachment
+        : undefined;
     }
 
     const owners: Map<string, FileOwners> = await this.readFileOwners([

@@ -117,8 +117,10 @@ const filesMadePublic: UpdatedFileIds = (): Array<string> => {
 
 describe("publish-time inline image visibility", () => {
   beforeEach(() => {
+    // The image is a file of the project every note here belongs to.
     jest.spyOn(FileService, "findOneBy").mockResolvedValue({
       _id: FILE_ID,
+      projectId: new ObjectID("55555555-5555-4555-8555-555555555555"),
     } as never);
     jest
       .spyOn(FileService, "updateOneById")
@@ -422,6 +424,9 @@ describe("publish-time inline image visibility", () => {
     it("publishes inline images when an announcement is created", async () => {
       const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
       announcement.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+      announcement.projectId = new ObjectID(
+        "55555555-5555-4555-8555-555555555555",
+      );
       announcement.description = NOTE_WITH_IMAGE;
 
       await callHook(
@@ -437,6 +442,9 @@ describe("publish-time inline image visibility", () => {
     it("publishes inline images when an announcement is edited", async () => {
       const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
       announcement.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+      announcement.projectId = new ObjectID(
+        "55555555-5555-4555-8555-555555555555",
+      );
       announcement.description = NOTE_WITH_IMAGE;
 
       jest

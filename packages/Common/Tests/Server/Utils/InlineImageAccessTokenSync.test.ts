@@ -97,6 +97,7 @@ describe("setIsPublicForMarkdownImages", () => {
   it("flips every referenced file to public", async () => {
     (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
       _id: "11111111-1111-1111-1111-111111111111",
+      projectId: PROJECT_ID,
     } as never);
 
     await setIsPublicForMarkdownImages(
@@ -155,6 +156,7 @@ describe("setIsPublicForMarkdownImages", () => {
       .mockRejectedValueOnce(new Error("db down") as never)
       .mockResolvedValueOnce({
         _id: "22222222-2222-2222-2222-222222222222",
+        projectId: PROJECT_ID,
       } as never);
 
     await setIsPublicForMarkdownImages(
@@ -244,91 +246,55 @@ describe("setIsPublicForMarkdownImages", () => {
    * Images uploaded before files recorded their project have none, and
    * nothing says whose they are: they keep the behaviour they always had.
    */
-  it("still makes public an image with no project, so reused markdown renders", async () => {
-    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
-      _id: "11111111-1111-1111-1111-111111111111",
-      projectId: null,
-    } as never);
-
-    await setIsPublicForMarkdownImages(
-      `![a](${urlFor("aaa111")})`,
-      true,
-      PROJECT_ID,
-    );
-
-    expect(
-      (FileService.updateOneById as unknown as jest.Mock).mock.calls.map(
-        (call: Array<any>) => {
-          return call[0]?.data;
-        },
-      ),
-    ).toEqual([{ isPublic: true }]);
-  });
-
   /*
-   * Nothing says whose page an image with no project is showing on, so no
-   * record makes one private again - not even under a page that shows it.
+   * An image with no project is nobody's to flip: not public - so a token
+   * pasted from elsewhere cannot open it to everyone - and not private.
    */
-  it("never makes an image with no project private", async () => {
+  it("never changes the visibility of an image with no project", async () => {
     (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
       _id: "11111111-1111-1111-1111-111111111111",
       projectId: null,
     } as never);
 
-    await setIsPublicForMarkdownImages(
-      `![a](${urlFor("aaa111")})`,
-      false,
-      PROJECT_ID,
-    );
+    for (const isPublic of [true, false]) {
+      await setIsPublicForMarkdownImages(
+        `![a](${urlFor("aaa111")})`,
+        isPublic,
+        PROJECT_ID,
+      );
+    }
 
     expect(FileService.updateOneById).not.toHaveBeenCalled();
   });
 });
 
 describe("mayChangeImageVisibility", () => {
-  it("lets a record make its own project's images public and private", () => {
-    for (const isPublic of [true, false]) {
-      expect(
-        mayChangeImageVisibility(
-          { projectId: PROJECT_ID },
-          PROJECT_ID,
-          isPublic,
-        ),
-      ).toBe(true);
-    }
-  });
-
-  it("lets an image with no project be made public, never private", () => {
-    expect(mayChangeImageVisibility({}, PROJECT_ID, true)).toBe(true);
-    expect(mayChangeImageVisibility({ projectId: undefined }, null, true)).toBe(
-      true,
-    );
-    expect(mayChangeImageVisibility({}, PROJECT_ID, false)).toBe(false);
+  it("lets a record change its own project's images, in any case of id", () => {
     expect(
-      mayChangeImageVisibility({ projectId: null }, PROJECT_ID, false),
-    ).toBe(false);
+      mayChangeImageVisibility({ projectId: PROJECT_ID }, PROJECT_ID),
+    ).toBe(true);
+    expect(
+      mayChangeImageVisibility(
+        { projectId: new ObjectID(PROJECT_ID.toString().toUpperCase()) },
+        PROJECT_ID,
+      ),
+    ).toBe(true);
   });
 
-  it("refuses another project's images either way, and any image for a note of no project", () => {
-    for (const isPublic of [true, false]) {
-      expect(
-        mayChangeImageVisibility(
-          { projectId: OTHER_PROJECT_ID },
-          PROJECT_ID,
-          isPublic,
-        ),
-      ).toBe(false);
-      expect(
-        mayChangeImageVisibility({ projectId: PROJECT_ID }, null, isPublic),
-      ).toBe(false);
-      expect(
-        mayChangeImageVisibility(
-          { projectId: PROJECT_ID },
-          undefined,
-          isPublic,
-        ),
-      ).toBe(false);
-    }
+  it("refuses another project's images, images with no project, and any image for a note of no project", () => {
+    expect(
+      mayChangeImageVisibility({ projectId: OTHER_PROJECT_ID }, PROJECT_ID),
+    ).toBe(false);
+    expect(mayChangeImageVisibility({}, PROJECT_ID)).toBe(false);
+    expect(mayChangeImageVisibility({ projectId: null }, PROJECT_ID)).toBe(
+      false,
+    );
+    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, null)).toBe(
+      false,
+    );
+    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, undefined)).toBe(
+      false,
+    );
   });
 });
 
@@ -340,6 +306,7 @@ describe("syncIsPublicForMarkdownImages", () => {
   it("flips images public like the unwrapped call", async () => {
     (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
       _id: "11111111-1111-1111-1111-111111111111",
+      projectId: PROJECT_ID,
     } as never);
 
     await syncIsPublicForMarkdownImages(
@@ -390,6 +357,7 @@ describe("syncIsPublicForMarkdownImages", () => {
   it("never throws when the update itself fails", async () => {
     (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
       _id: "11111111-1111-1111-1111-111111111111",
+      projectId: PROJECT_ID,
     } as never);
     (FileService.updateOneById as unknown as jest.Mock).mockRejectedValue(
       new Error("write failed") as never,

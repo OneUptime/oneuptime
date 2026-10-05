@@ -17,6 +17,21 @@ import {
 } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
 
+// One column of a table whose markdown the backfill reads.
+interface MarkdownColumn {
+  table: string;
+  column: string;
+}
+
+const MARKDOWN_COLUMNS: Array<MarkdownColumn> =
+  MARKDOWN_IMAGE_REFERENCES.flatMap(
+    (reference: MarkdownImageReference): Array<MarkdownColumn> => {
+      return reference.columns.map((column: string): MarkdownColumn => {
+        return { table: reference.table, column: column };
+      });
+    },
+  );
+
 /*
  * BackfillFileOwners1797900000000 against a real Postgres, on real rows:
  * a file uploaded before files recorded their project takes the project of
@@ -76,9 +91,12 @@ function createTablesSql(): Array<string> {
 
   for (const reference of MARKDOWN_IMAGE_REFERENCES) {
     columnsOf(reference.table).add(`"projectId" uuid`);
-    columnsOf(reference.table).add(
-      `"${reference.column}" ${reference.isJson ? "jsonb" : "text"}`,
-    );
+
+    for (const column of reference.columns) {
+      columnsOf(reference.table).add(
+        `"${column}" ${column === "customFields" ? "jsonb" : "text"}`,
+      );
+    }
   }
 
   for (const [table, columns] of tables) {
@@ -131,19 +149,19 @@ describePostgres("BackfillFileOwners against Postgres", () => {
     return fileId;
   }
 
-  // A record of `projectId` whose markdown shows the image with `token`.
+  // A record of `projectId` whose `column` shows the image with `token`.
   async function show(
-    reference: MarkdownImageReference,
+    shown: MarkdownColumn,
     token: string,
     projectId: string,
   ): Promise<void> {
     const markdown: string = `Before ![shot](https://oneuptime.example/file/image/access-token/${token}) after`;
 
     await runner.query(
-      `INSERT INTO "${reference.table}" ("projectId", "${reference.column}") VALUES ($1, $2)`,
+      `INSERT INTO "${shown.table}" ("projectId", "${shown.column}") VALUES ($1, $2)`,
       [
         projectId,
-        reference.isJson
+        shown.column === "customFields"
           ? JSON.stringify({ impact: { value: markdown } })
           : markdown,
       ],
@@ -255,12 +273,12 @@ describePostgres("BackfillFileOwners against Postgres", () => {
     },
   );
 
-  test.each(MARKDOWN_IMAGE_REFERENCES)(
+  test.each(MARKDOWN_COLUMNS)(
     "an inline image only $table ($column) of one project shows takes that project",
-    async (reference: MarkdownImageReference) => {
+    async (shown: MarkdownColumn) => {
       const token: string = id().replace(/-/g, "");
       const fileId: string = await insertFile(null, token);
-      await show(reference, token, PROJECT_A);
+      await show(shown, token, PROJECT_A);
 
       await migration.up(runner);
 
@@ -271,18 +289,45 @@ describePostgres("BackfillFileOwners against Postgres", () => {
   test("an inline image shown by records of two projects stays without one", async () => {
     const token: string = id().replace(/-/g, "");
     const fileId: string = await insertFile(null, token);
-    await show(MARKDOWN_IMAGE_REFERENCES[0]!, token, PROJECT_A);
-    await show(MARKDOWN_IMAGE_REFERENCES[3]!, token, PROJECT_B);
+    await show(
+      { table: "IncidentInternalNote", column: "note" },
+      token,
+      PROJECT_A,
+    );
+    await show(
+      { table: "StatusPageAnnouncement", column: "description" },
+      token,
+      PROJECT_B,
+    );
 
     await migration.up(runner);
 
     expect((await ownersOf(fileId)).projectId).toBeNull();
   });
 
+  test("an inline image a record shows twice, in two of its columns, takes its project", async () => {
+    const token: string = id().replace(/-/g, "");
+    const fileId: string = await insertFile(null, token);
+    const markdown: string = `![a](https://oneuptime.example/file/image/access-token/${token})`;
+
+    await runner.query(
+      `INSERT INTO "Incident" ("projectId", "description", "postmortemNote") VALUES ($1, $2, $3)`,
+      [PROJECT_A, markdown, `${markdown} and again ${markdown}`],
+    );
+
+    await migration.up(runner);
+
+    expect((await ownersOf(fileId)).projectId).toBe(PROJECT_A);
+  });
+
   test("an inline image a record of one project shows and another attaches stays without one", async () => {
     const token: string = id().replace(/-/g, "");
     const fileId: string = await insertFile(null, token);
-    await show(MARKDOWN_IMAGE_REFERENCES[4]!, token, PROJECT_A);
+    await show(
+      { table: "Incident", column: "postmortemNote" },
+      token,
+      PROJECT_A,
+    );
     await point(referenceTo("Dashboard", "faviconFileId"), fileId, PROJECT_B);
 
     await migration.up(runner);

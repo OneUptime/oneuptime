@@ -875,6 +875,37 @@ describe("FileOwnership.findProjectAttachment", () => {
     }
   });
 
+  test("answers from a projectId read with the files, asking nothing more", async () => {
+    const getFileOwners: GetFileOwnersMock = stubFileOwners();
+
+    const own: File = file(OWN_FILE_ID);
+    own.projectId = PROJECT_ID;
+    const foreign: File = file(OTHER_PROJECT_FILE_ID);
+    foreign.projectId = OTHER_PROJECT_ID;
+    const unowned: File = file(NO_PROJECT_FILE_ID);
+    (unowned as unknown as { projectId: null }).projectId = null;
+
+    expect(
+      await FileOwnership.findProjectAttachment({
+        files: [own, foreign, unowned],
+        fileId: new ObjectID(OWN_FILE_ID),
+        projectId: PROJECT_ID,
+      }),
+    ).toBe(own);
+
+    for (const fileId of [OTHER_PROJECT_FILE_ID, NO_PROJECT_FILE_ID]) {
+      expect(
+        await FileOwnership.findProjectAttachment({
+          files: [own, foreign, unowned],
+          fileId: new ObjectID(fileId),
+          projectId: PROJECT_ID,
+        }),
+      ).toBeUndefined();
+    }
+
+    expect(getFileOwners).not.toHaveBeenCalled();
+  });
+
   test("serves nothing for a record with no files or no project", async () => {
     const getFileOwners: GetFileOwnersMock = stubFileOwners();
 

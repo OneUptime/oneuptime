@@ -19,11 +19,9 @@ import logger from "./Logger";
  * copied along with the markdown it sits in, and a record of one project
  * must never make another project's image readable by everyone - nor
  * private again under the status page that shows it. An image with no
- * project (uploaded before files recorded one, and in no public note,
- * announcement or postmortem then - BackfillFileOwners1797900000000) may
- * still be made public, as it always could, so markdown that reuses one
- * keeps rendering; it is never made private by anyone, as nothing says
- * whose page it might be showing on.
+ * project is nobody's to flip. Images uploaded before files recorded their
+ * project got the project of the markdown that shows them
+ * (BackfillFileOwners1797900000000), unless markdown of two projects does.
  */
 const ACCESS_TOKEN_REGEX: RegExp =
   /\/file\/image\/access-token\/([a-fA-F0-9]+)/g;
@@ -49,16 +47,10 @@ export const extractImageAccessTokens: (
 export const mayChangeImageVisibility: (
   file: { projectId?: ObjectID | null | undefined },
   projectId: ObjectID | null | undefined,
-  isPublic: boolean,
 ) => boolean = (
   file: { projectId?: ObjectID | null | undefined },
   projectId: ObjectID | null | undefined,
-  isPublic: boolean,
 ): boolean => {
-  if (!file.projectId) {
-    return isPublic;
-  }
-
   return FileOwnership.isFileOfProject(file, projectId);
 };
 
@@ -93,11 +85,7 @@ export const setIsPublicForMarkdownImages: (
         },
       });
 
-      if (
-        !file ||
-        !file._id ||
-        !mayChangeImageVisibility(file, projectId, isPublic)
-      ) {
+      if (!file || !file._id || !mayChangeImageVisibility(file, projectId)) {
         continue;
       }
 

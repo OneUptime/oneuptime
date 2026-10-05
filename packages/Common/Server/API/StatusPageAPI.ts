@@ -6256,6 +6256,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6376,6 +6378,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6482,6 +6486,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6614,6 +6620,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
@@ -6794,6 +6802,8 @@ export default class StatusPageAPI extends BaseAPI<
             file: true,
             fileType: true,
             name: true,
+            // Read with the file, so serving it asks nothing more.
+            projectId: true,
           },
         },
         props: {
