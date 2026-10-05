@@ -303,19 +303,24 @@ beforeEach(() => {
     },
   });
 
-  for (const counter of [
-    "incrementAndGetAlertCounter",
-    "incrementAndGetAlertEpisodeCounter",
-    "incrementAndGetIncidentEpisodeCounter",
-  ] as const) {
-    jest.spyOn(ProjectService, counter).mockImplementation((async (): Promise<{
-      counter: number;
-      prefix: string | undefined;
-    }> => {
-      numbersUsed++;
-      return { counter: 42, prefix: undefined };
-    }) as never);
-  }
+  // Each number a create spends from the project's counter, counted.
+  const useNumber: () => Promise<{
+    counter: number;
+    prefix: string | undefined;
+  }> = async (): Promise<{ counter: number; prefix: string | undefined }> => {
+    numbersUsed++;
+    return { counter: 42, prefix: undefined };
+  };
+
+  jest
+    .spyOn(ProjectService, "incrementAndGetAlertCounter")
+    .mockImplementation(useNumber as never);
+  jest
+    .spyOn(ProjectService, "incrementAndGetAlertEpisodeCounter")
+    .mockImplementation(useNumber as never);
+  jest
+    .spyOn(ProjectService, "incrementAndGetIncidentEpisodeCounter")
+    .mockImplementation(useNumber as never);
 
   jest
     .spyOn(CustomFieldMappingService, "applyMappingsToCreate")
@@ -360,216 +365,228 @@ async function refusalOf(
   return (outcome as Error).message;
 }
 
-describe.each(KINDS)("creating an $name: the state it starts in", (kind: Kind) => {
-  test("a state picked under the relation - the create form's Initial State - is where it starts, written under the ID column alone", async () => {
-    const data: Record<string, unknown> = await create(kind, {
-      [kind.relation]: { _id: ACKNOWLEDGED_STATE },
-    });
-
-    expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
-    expect(has(data, kind.relation)).toBe(false);
-    expect(numbersUsed).toBe(1);
-  });
-
-  test("a state picked under the ID column - the API, Terraform, a workflow - is where it starts", async () => {
-    const data: Record<string, unknown> = await create(kind, {
-      [kind.idColumn]: new ObjectID(RESOLVED_STATE),
-    });
-
-    expect(idOf(data[kind.idColumn])).toBe(RESOLVED_STATE);
-    expect(has(data, kind.relation)).toBe(false);
-  });
-
-  test("a state picked as a plain id string is where it starts", async () => {
-    const data: Record<string, unknown> = await create(kind, {
-      [kind.idColumn]: ACKNOWLEDGED_STATE,
-    });
-
-    expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
-  });
-
-  test("the same state under both names, in any letter case, is one state", async () => {
-    const data: Record<string, unknown> = await create(kind, {
-      [kind.idColumn]: new ObjectID(ACKNOWLEDGED_STATE.toUpperCase()),
-      [kind.relation]: { _id: ACKNOWLEDGED_STATE },
-    });
-
-    expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
-    expect(has(data, kind.relation)).toBe(false);
-  });
-
-  test("the project's created state picked on purpose is where it starts", async () => {
-    const data: Record<string, unknown> = await create(kind, {
-      [kind.relation]: { _id: CREATED_STATE },
-    });
-
-    expect(idOf(data[kind.idColumn])).toBe(CREATED_STATE);
-  });
-
-  test("with no state picked it starts in the project's created state", async () => {
-    const data: Record<string, unknown> = await create(kind, {});
-
-    expect(idOf(data[kind.idColumn])).toBe(CREATED_STATE);
-    expect(has(data, kind.relation)).toBe(false);
-    expect(numbersUsed).toBe(1);
-  });
-
-  test("a state left empty - a cleared field - is no pick: it starts in the created state", async () => {
-    for (const empty of [null, { _id: null }, ""]) {
+describe.each(KINDS)(
+  "creating an $name: the state it starts in",
+  (kind: Kind) => {
+    test("a state picked under the relation - the create form's Initial State - is where it starts, written under the ID column alone", async () => {
       const data: Record<string, unknown> = await create(kind, {
-        [kind.relation]: empty,
+        [kind.relation]: { _id: ACKNOWLEDGED_STATE },
+      });
+
+      expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
+      expect(has(data, kind.relation)).toBe(false);
+      expect(numbersUsed).toBe(1);
+    });
+
+    test("a state picked under the ID column - the API, Terraform, a workflow - is where it starts", async () => {
+      const data: Record<string, unknown> = await create(kind, {
+        [kind.idColumn]: new ObjectID(RESOLVED_STATE),
+      });
+
+      expect(idOf(data[kind.idColumn])).toBe(RESOLVED_STATE);
+      expect(has(data, kind.relation)).toBe(false);
+    });
+
+    test("a state picked as a plain id string is where it starts", async () => {
+      const data: Record<string, unknown> = await create(kind, {
+        [kind.idColumn]: ACKNOWLEDGED_STATE,
+      });
+
+      expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
+    });
+
+    test("the same state under both names, in any letter case, is one state", async () => {
+      const data: Record<string, unknown> = await create(kind, {
+        [kind.idColumn]: new ObjectID(ACKNOWLEDGED_STATE.toUpperCase()),
+        [kind.relation]: { _id: ACKNOWLEDGED_STATE },
+      });
+
+      expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
+      expect(has(data, kind.relation)).toBe(false);
+    });
+
+    test("the project's created state picked on purpose is where it starts", async () => {
+      const data: Record<string, unknown> = await create(kind, {
+        [kind.relation]: { _id: CREATED_STATE },
       });
 
       expect(idOf(data[kind.idColumn])).toBe(CREATED_STATE);
-      expect(has(data, kind.relation)).toBe(false);
-    }
-  });
-
-  test("the created state is looked up only when no state is picked", async () => {
-    await create(kind, { [kind.relation]: { _id: ACKNOWLEDGED_STATE } });
-    expect(createdStateLookups()).toBe(0);
-
-    await create(kind, {});
-    expect(createdStateLookups()).toBe(1);
-  });
-
-  test("a picked state is checked against the project, under the name it came in", async () => {
-    await create(kind, { [kind.relation]: { _id: ACKNOWLEDGED_STATE } });
-
-    expect(
-      directory.recordLookups.some(
-        (lookup: { model: string; projectId: string; ids: Array<string> }) => {
-          return (
-            lookup.projectId === PROJECT_ID.toString() &&
-            lookup.ids
-              .map((id: string): string => {
-                return id.toLowerCase();
-              })
-              .includes(ACKNOWLEDGED_STATE)
-          );
-        },
-      ),
-    ).toBe(true);
-  });
-
-  test("two different states under the two names are refused, naming both fields, and no number is used", async () => {
-    const message: string = await refusalOf(kind, {
-      [kind.idColumn]: new ObjectID(CREATED_STATE),
-      [kind.relation]: { _id: ACKNOWLEDGED_STATE },
     });
 
-    expect(message).toBe(
-      RelationIdUtil.getConflictMessage(kind.stateTitle, [
-        kind.idColumn,
-        kind.relation,
-      ]),
-    );
-    expect(numbersUsed).toBe(0);
-  });
+    test("with no state picked it starts in the project's created state", async () => {
+      const data: Record<string, unknown> = await create(kind, {});
 
-  test("a state under one name beside a clear under the other is refused", async () => {
-    for (const values of [
-      { [kind.idColumn]: null, [kind.relation]: { _id: RESOLVED_STATE } },
-      { [kind.idColumn]: new ObjectID(RESOLVED_STATE), [kind.relation]: null },
-    ]) {
-      const message: string = await refusalOf(kind, values);
-      expect(message).toContain(
-        `${kind.idColumn} and ${kind.relation} are names for the same field`,
-      );
-    }
+      expect(idOf(data[kind.idColumn])).toBe(CREATED_STATE);
+      expect(has(data, kind.relation)).toBe(false);
+      expect(numbersUsed).toBe(1);
+    });
 
-    expect(numbersUsed).toBe(0);
-  });
+    test("a state left empty - a cleared field - is no pick: it starts in the created state", async () => {
+      for (const empty of [null, { _id: null }, ""]) {
+        const data: Record<string, unknown> = await create(kind, {
+          [kind.relation]: empty,
+        });
 
-  test.each([
-    [
-      "the relation",
-      (kind: Kind, id: string): Record<string, unknown> => {
-        return { [kind.relation]: { _id: id } };
-      },
-    ],
-    [
-      "the ID column",
-      (kind: Kind, id: string): Record<string, unknown> => {
-        return { [kind.idColumn]: new ObjectID(id) };
-      },
-    ],
-  ] as Array<[string, (kind: Kind, id: string) => Record<string, unknown>]>)(
-    "another project's state under %s is refused with the same words as one that does not exist, and no number is used",
-    async (
-      _name: string,
-      payload: (kind: Kind, id: string) => Record<string, unknown>,
-    ) => {
-      const foreign: string = await refusalOf(
-        kind,
-        payload(kind, FOREIGN_STATE),
-      );
-      const missing: string = await refusalOf(
-        kind,
-        payload(kind, MISSING_STATE),
-      );
+        expect(idOf(data[kind.idColumn])).toBe(CREATED_STATE);
+        expect(has(data, kind.relation)).toBe(false);
+      }
+    });
 
-      expect(foreign).toContain(
-        `This ${kind.subject} references records that are not in this project:`,
-      );
-      expect(foreign).toContain(`"${FOREIGN_STATE}"`);
-      expect(missing.split(MISSING_STATE).join("<id>")).toBe(
-        foreign.split(FOREIGN_STATE).join("<id>"),
+    test("the created state is looked up only when no state is picked", async () => {
+      await create(kind, { [kind.relation]: { _id: ACKNOWLEDGED_STATE } });
+      expect(createdStateLookups()).toBe(0);
+
+      await create(kind, {});
+      expect(createdStateLookups()).toBe(1);
+    });
+
+    test("a picked state is checked against the project, under the name it came in", async () => {
+      await create(kind, { [kind.relation]: { _id: ACKNOWLEDGED_STATE } });
+
+      expect(
+        directory.recordLookups.some(
+          (lookup: {
+            model: string;
+            projectId: string;
+            ids: Array<string>;
+          }) => {
+            return (
+              lookup.projectId === PROJECT_ID.toString() &&
+              lookup.ids
+                .map((id: string): string => {
+                  return id.toLowerCase();
+                })
+                .includes(ACKNOWLEDGED_STATE)
+            );
+          },
+        ),
+      ).toBe(true);
+    });
+
+    test("two different states under the two names are refused, naming both fields, and no number is used", async () => {
+      const message: string = await refusalOf(kind, {
+        [kind.idColumn]: new ObjectID(CREATED_STATE),
+        [kind.relation]: { _id: ACKNOWLEDGED_STATE },
+      });
+
+      expect(message).toBe(
+        RelationIdUtil.getConflictMessage(kind.stateTitle, [
+          kind.idColumn,
+          kind.relation,
+        ]),
       );
       expect(numbersUsed).toBe(0);
-    },
-  );
-
-  test("a malformed state id is refused like one that does not exist", async () => {
-    const message: string = await refusalOf(kind, {
-      [kind.relation]: { _id: "not-a-state" },
     });
 
-    expect(message).toContain("references records that are not in this project");
-    expect(message).toContain('"not-a-state"');
-    expect(numbersUsed).toBe(0);
-  });
+    test("a state under one name beside a clear under the other is refused", async () => {
+      for (const values of [
+        { [kind.idColumn]: null, [kind.relation]: { _id: RESOLVED_STATE } },
+        {
+          [kind.idColumn]: new ObjectID(RESOLVED_STATE),
+          [kind.relation]: null,
+        },
+      ]) {
+        const message: string = await refusalOf(kind, values);
+        expect(message).toContain(
+          `${kind.idColumn} and ${kind.relation} are names for the same field`,
+        );
+      }
 
-  test("a project without a created state: a picked state still works, and no pick is refused with the created-state message", async () => {
-    projectHasCreatedState = false;
-
-    const data: Record<string, unknown> = await create(kind, {
-      [kind.relation]: { _id: ACKNOWLEDGED_STATE },
+      expect(numbersUsed).toBe(0);
     });
-    expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
 
-    expect(await refusalOf(kind, {})).toBe(kind.noCreatedState);
-  });
+    test.each([
+      [
+        "the relation",
+        (kind: Kind, id: string): Record<string, unknown> => {
+          return { [kind.relation]: { _id: id } };
+        },
+      ],
+      [
+        "the ID column",
+        (kind: Kind, id: string): Record<string, unknown> => {
+          return { [kind.idColumn]: new ObjectID(id) };
+        },
+      ],
+    ] as Array<[string, (kind: Kind, id: string) => Record<string, unknown>]>)(
+      "another project's state under %s is refused with the same words as one that does not exist, and no number is used",
+      async (
+        _name: string,
+        payload: (kind: Kind, id: string) => Record<string, unknown>,
+      ) => {
+        const foreign: string = await refusalOf(
+          kind,
+          payload(kind, FOREIGN_STATE),
+        );
+        const missing: string = await refusalOf(
+          kind,
+          payload(kind, MISSING_STATE),
+        );
 
-  test("OneUptime's own write (root, no project on the request) is checked against the record's project", async () => {
-    const data: Record<string, unknown> = await create(
-      kind,
-      {
-        projectId: PROJECT_ID,
-        [kind.idColumn]: new ObjectID(ACKNOWLEDGED_STATE),
+        expect(foreign).toContain(
+          `This ${kind.subject} references records that are not in this project:`,
+        );
+        expect(foreign).toContain(`"${FOREIGN_STATE}"`);
+        expect(missing.split(MISSING_STATE).join("<id>")).toBe(
+          foreign.split(FOREIGN_STATE).join("<id>"),
+        );
+        expect(numbersUsed).toBe(0);
       },
-      { isRoot: true },
     );
 
-    expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
+    test("a malformed state id is refused like one that does not exist", async () => {
+      const message: string = await refusalOf(kind, {
+        [kind.relation]: { _id: "not-a-state" },
+      });
 
-    const message: string = await refusalOf(
-      kind,
-      { projectId: PROJECT_ID, [kind.idColumn]: new ObjectID(FOREIGN_STATE) },
-      { isRoot: true },
-    );
-    expect(message).toContain(`"${FOREIGN_STATE}"`);
-  });
-
-  test("the state is checked against the request's project, not a project the payload names", async () => {
-    const message: string = await refusalOf(kind, {
-      projectId: OTHER_PROJECT_ID,
-      [kind.relation]: { _id: FOREIGN_STATE },
+      expect(message).toContain(
+        "references records that are not in this project",
+      );
+      expect(message).toContain('"not-a-state"');
+      expect(numbersUsed).toBe(0);
     });
 
-    expect(message).toContain(`"${FOREIGN_STATE}"`);
-  });
-});
+    test("a project without a created state: a picked state still works, and no pick is refused with the created-state message", async () => {
+      projectHasCreatedState = false;
+
+      const data: Record<string, unknown> = await create(kind, {
+        [kind.relation]: { _id: ACKNOWLEDGED_STATE },
+      });
+      expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
+
+      expect(await refusalOf(kind, {})).toBe(kind.noCreatedState);
+    });
+
+    test("OneUptime's own write (root, no project on the request) is checked against the record's project", async () => {
+      const data: Record<string, unknown> = await create(
+        kind,
+        {
+          projectId: PROJECT_ID,
+          [kind.idColumn]: new ObjectID(ACKNOWLEDGED_STATE),
+        },
+        { isRoot: true },
+      );
+
+      expect(idOf(data[kind.idColumn])).toBe(ACKNOWLEDGED_STATE);
+
+      const message: string = await refusalOf(
+        kind,
+        { projectId: PROJECT_ID, [kind.idColumn]: new ObjectID(FOREIGN_STATE) },
+        { isRoot: true },
+      );
+      expect(message).toContain(`"${FOREIGN_STATE}"`);
+    });
+
+    test("the state is checked against the request's project, not a project the payload names", async () => {
+      const message: string = await refusalOf(kind, {
+        projectId: OTHER_PROJECT_ID,
+        [kind.relation]: { _id: FOREIGN_STATE },
+      });
+
+      expect(message).toContain(`"${FOREIGN_STATE}"`);
+    });
+  },
+);
 
 describe.each(
   KINDS.filter((kind: Kind): boolean => {

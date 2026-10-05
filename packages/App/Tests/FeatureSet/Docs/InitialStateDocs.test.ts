@@ -23,7 +23,10 @@ const CONTENT_DIR: string = path.resolve(
 );
 
 function read(language: string, page: string): string {
-  return fs.readFileSync(path.join(CONTENT_DIR, language, `${page}.md`), "utf8");
+  return fs.readFileSync(
+    path.join(CONTENT_DIR, language, `${page}.md`),
+    "utf8",
+  );
 }
 
 // The paragraphs of the section under `heading`, up to the next heading.

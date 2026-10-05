@@ -241,8 +241,7 @@ async function answerItem(request: ItemRequest): Promise<unknown> {
   const id: string = request.id.toString();
 
   if (
-    (request.modelType === AlertState ||
-      request.modelType === IncidentState) &&
+    (request.modelType === AlertState || request.modelType === IncidentState) &&
     STATE_NAMES[id]
   ) {
     return named(request.modelType, id, STATE_NAMES[id]!, 1);

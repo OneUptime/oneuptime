@@ -339,14 +339,12 @@ function stubDatabase(kind: Kind): void {
     .mockReturnValue({ save: repositorySave } as never);
 
   // The success chain (the first timeline row) has suites of its own.
-  jest
-    .spyOn(service, "onCreateSuccess")
-    .mockImplementation((async (
-      _onCreate: unknown,
-      createdItem: BaseModel,
-    ): Promise<BaseModel> => {
-      return createdItem;
-    }) as never);
+  jest.spyOn(service, "onCreateSuccess").mockImplementation((async (
+    _onCreate: unknown,
+    createdItem: BaseModel,
+  ): Promise<BaseModel> => {
+    return createdItem;
+  }) as never);
   jest
     .spyOn(service, "onTriggerWorkflow")
     .mockResolvedValue(undefined as never);
@@ -445,19 +443,24 @@ beforeEach(() => {
     },
   });
 
-  for (const counter of [
-    "incrementAndGetAlertCounter",
-    "incrementAndGetAlertEpisodeCounter",
-    "incrementAndGetIncidentEpisodeCounter",
-  ] as const) {
-    jest.spyOn(ProjectService, counter).mockImplementation((async (): Promise<{
-      counter: number;
-      prefix: string | undefined;
-    }> => {
-      numbersUsed++;
-      return { counter: 7, prefix: undefined };
-    }) as never);
-  }
+  // Each number a create spends from the project's counter, counted.
+  const useNumber: () => Promise<{
+    counter: number;
+    prefix: string | undefined;
+  }> = async (): Promise<{ counter: number; prefix: string | undefined }> => {
+    numbersUsed++;
+    return { counter: 7, prefix: undefined };
+  };
+
+  jest
+    .spyOn(ProjectService, "incrementAndGetAlertCounter")
+    .mockImplementation(useNumber as never);
+  jest
+    .spyOn(ProjectService, "incrementAndGetAlertEpisodeCounter")
+    .mockImplementation(useNumber as never);
+  jest
+    .spyOn(ProjectService, "incrementAndGetIncidentEpisodeCounter")
+    .mockImplementation(useNumber as never);
 
   jest
     .spyOn(CustomFieldMappingService, "applyMappingsToCreate")
@@ -514,7 +517,8 @@ describe.each(KINDS)("POST a new $name with an Initial State", (kind: Kind) => {
 
     const sendEntityResponse: MockFunction =
       Response.sendEntityResponse as unknown as MockFunction;
-    const returned: BaseModel = sendEntityResponse.mock.calls[0]![2] as BaseModel;
+    const returned: BaseModel = sendEntityResponse.mock
+      .calls[0]![2] as BaseModel;
 
     expect(
       String(
