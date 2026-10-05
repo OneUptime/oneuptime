@@ -24,6 +24,7 @@ import ProxmoxClusterInsights from "../Pages/Proxmox/View/Insights";
 import ProxmoxClusterMetrics from "../Pages/Proxmox/View/Metrics";
 import ProxmoxClusterRecommendations from "../Pages/Proxmox/View/Recommendations";
 import ProxmoxClusterAiInsights from "../Pages/Proxmox/View/AI/Insights";
+import ProxmoxClusterAiLogs from "../Pages/Proxmox/View/AI/Logs";
 import ProxmoxClusterAiAgent from "../Pages/Proxmox/View/AI/Agent";
 import ProxmoxClusterLogs from "../Pages/Proxmox/View/Logs";
 import ProxmoxClusterIncidents from "../Pages/Proxmox/View/Incidents";
@@ -262,7 +263,7 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
           }
         />
 
-        {/* AI: what OneUptime AI did here, and the resource AI agent */}
+        {/* AI: Insights, Logs, and the resource AI agent */}
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS,
@@ -273,6 +274,21 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <ProxmoxClusterAiLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_AI_LOGS] as Route
               }
             />
           }

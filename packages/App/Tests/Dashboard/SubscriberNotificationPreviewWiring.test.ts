@@ -30,12 +30,17 @@ import path from "path";
  *   - every string is in all seventeen Dashboard locales, with its
  *     {{placeholders}} (the dashboard translates by English text, so a
  *     string with no entry silently stays English);
+ *   - the 'Preview' link's accessible name holds the word it shows, in every
+ *     locale;
  *   - what the dialog says for each reason, page and count, through the
  *     locale lookup with the placeholders filled in after it;
  *   - the requests the dashboard builds from the Declare Incident form and
  *     the note being written;
  *   - that the pages are wired where the feature says they are, to the
- *     routes the notification API mounts.
+ *     routes the notification API mounts, with the link on the line of the
+ *     value it previews;
+ *   - that the link stays a small link: none of the bordered button it
+ *     replaced.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -126,6 +131,71 @@ describe("preview strings in every Dashboard locale", () => {
       expect(value).not.toBe(text);
       expect(placeholders(value as string)).toEqual(placeholders(text));
     });
+  });
+});
+
+/*
+ * "This preview notification button is quite big." The link shows one word,
+ * 'Preview', beside the value it previews, and is named 'Preview
+ * notification' so it says what it previews when read on its own. A name
+ * that holds the word on screen lets a voice command say what it sees
+ * ("click Vorschau") - WCAG 2.5.3, Label in Name - so every locale's name
+ * holds that locale's word.
+ */
+describe("the link's name holds the word it shows, in every locale", () => {
+  test("one word on screen, a name that says what it previews", () => {
+    expect(SubscriberNotificationPreviewCopy.previewButton).toBe("Preview");
+    expect(SubscriberNotificationPreviewCopy.previewButtonAccessibleName).toBe(
+      "Preview notification",
+    );
+    // The dialog it opens has that name for its title.
+    expect(SubscriberNotificationPreviewCopy.dialogTitle).toBe(
+      SubscriberNotificationPreviewCopy.previewButtonAccessibleName,
+    );
+  });
+
+  test.each(["en", ...OTHER_LOCALES])("%s", (locale: string) => {
+    const translations: Record<string, unknown> = readLocale(locale);
+    const word: unknown =
+      translations[SubscriberNotificationPreviewCopy.previewButton];
+    const name: unknown =
+      translations[
+        SubscriberNotificationPreviewCopy.previewButtonAccessibleName
+      ];
+
+    expect(typeof word).toBe("string");
+    expect(typeof name).toBe("string");
+    expect({
+      locale: locale,
+      name: name,
+      holdsWord: String(name).includes(String(word)),
+    }).toEqual({
+      locale: locale,
+      name: name,
+      holdsWord: true,
+    });
+  });
+
+  test("the six locales reworded so their names hold the word", () => {
+    // Each read "see the notification" before, without the word "Preview".
+    expect(readLocale("de")["Preview notification"]).toBe(
+      "Vorschau der Benachrichtigung",
+    );
+    expect(readLocale("da")["Preview notification"]).toBe(
+      "Forhåndsvisning af notifikation",
+    );
+    expect(readLocale("nl")["Preview notification"]).toBe(
+      "Voorbeeld van de melding",
+    );
+    expect(readLocale("no")["Preview notification"]).toBe(
+      "Forhåndsvisning av varsel",
+    );
+    expect(readLocale("pt")["Preview notification"]).toBe(
+      "Pré-visualização da notificação",
+    );
+    expect(readLocale("sv")["Preview notification"]).toBe(
+      "Förhandsgranskning av avisering",
+    );
   });
 });
 
@@ -378,12 +448,16 @@ describe("the dashboard is wired where the feature says", () => {
       "return getIncidentCreatedPreviewRequest({ values: item as Record<string, unknown>, customFields: packCustomFieldFormValues({ definitions: detailsStepDefinitions, formValues: item as JSONObject, startingCustomFields: startingCustomFields, isShown: isAskedOnIncidentForm, }), });",
     );
     /*
-     * On the summary of the notify field: whether it is ticked, the
-     * audience, then the preview - offered only when something can be sent
-     * (notifying, not private, on a monitor).
+     * On the summary of the notify field: whether it is ticked, with the
+     * preview beside it on one line ("Yes · Preview") - offered only when
+     * something can be sent (notifying, not private, on a monitor) - and
+     * who it reaches under them.
      */
     expect(source).toContain(
-      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {getAudienceSummary(item)} {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton dataTestId="incident-create-preview-notification"',
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="incident-create-notify-subscribers-line" > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton dataTestId="incident-create-preview-notification"',
+    );
+    expect(source).toContain(
+      "isShown: isAskedOnIncidentForm, }), }); }} /> ) : ( <></> )} </div> {getAudienceSummary(item)} </> ); },",
     );
     expect(
       source.split("<SubscriberNotificationPreviewButton").length - 1,
@@ -425,6 +499,77 @@ describe("the dashboard is wired where the feature says", () => {
     expect(composer).toContain(
       "{props.values.shouldNotify && props.notifyPreview ? (",
     );
+    /*
+     * Beside the box's label, on its line - not inside the label, where a
+     * press would tick the box - and the description and who it reaches
+     * under them.
+     */
+    expect(composer).toContain(
+      '<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5" data-testid="note-notify-line" > <label htmlFor={notifyId} className="block cursor-pointer text-sm font-medium text-gray-900" > {tx(props.notifyOption.title)} </label> {props.values.shouldNotify && props.notifyPreview ? ( <div className="flex" data-testid="note-notify-preview"> {props.notifyPreview(props.values)} </div> ) : ( <></> )} </div> <p className="mt-0.5 text-xs text-gray-500" data-testid="note-notify-description" >',
+    );
+    expect(
+      composer.indexOf('data-testid="note-notify-audience"'),
+    ).toBeGreaterThan(
+      composer.indexOf('data-testid="note-notify-description"'),
+    );
+    expect(composer.split("props.notifyPreview(props.values)").length - 1).toBe(
+      1,
+    );
+  });
+
+  /*
+   * The link replaced a bordered, shadowed button that was as wide as the
+   * screen on a phone. It must not grow back into one: it never draws the
+   * shared Button, a border, a shadow, a background or a full width, and
+   * its icon is the 16px of a line of text.
+   */
+  test("the link stays a small link", () => {
+    // Read as written, so line comments end at their line.
+    const code: string = fs
+      .readFileSync(
+        path.join(
+          DASHBOARD_SRC,
+          "Components",
+          "Incident",
+          "SubscriberNotificationPreviewButton.tsx",
+        ),
+        "utf8",
+      )
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ")
+      .replace(/\s+/g, " ");
+    const classTokens: Array<string> = Array.from(
+      code.matchAll(/"([^"]*)"/g),
+      (match: RegExpMatchArray): Array<string> => {
+        return match[1]!.split(" ");
+      },
+    ).flat();
+
+    expect(code).not.toContain("Common/UI/Components/Button/Button");
+    expect(code).not.toContain("ButtonStyleType");
+
+    // What the old button drew with: a box, a full width, a 20px icon.
+    const BIG_BUTTON_CLASS: RegExp =
+      /^(?:border|border-[a-z0-9-]+|shadow(?:-[a-z]+)?|bg-[a-z0-9-]+|w-full|md:ml-3|text-base|w-5|h-5)$/;
+
+    for (const token of classTokens) {
+      expect({
+        token: token,
+        isBig: BIG_BUTTON_CLASS.test(token),
+      }).toEqual({ token: token, isBig: false });
+    }
+
+    expect(code).toContain(
+      '<Icon icon={IconProp.Eye} className="h-4 w-4 shrink-0" />',
+    );
+    expect(code).toContain('type="button"');
+    expect(code).toContain('aria-haspopup="dialog"');
+    expect(code).toContain(
+      "aria-label={translate( SubscriberNotificationPreviewCopy.previewButtonAccessibleName, )}",
+    );
+    // Grey with nothing to preview, and still a keyboard stop.
+    expect(code).toContain("aria-disabled={isDisabled ? true : undefined}");
+    expect(code).not.toMatch(/\sdisabled=\{/);
   });
 
   test("the template editor previews as it is typed, when creating and when editing", () => {

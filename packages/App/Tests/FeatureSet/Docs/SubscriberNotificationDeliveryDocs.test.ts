@@ -827,7 +827,9 @@ describe("Subscriber notification delivery docs", () => {
         {
           page: SUBSCRIBERS_PAGE,
           names: [
+            // The link, and the dialog it opens.
             SubscriberNotificationPreviewCopy.previewButton,
+            SubscriberNotificationPreviewCopy.dialogTitle,
             SubscriberNotificationPreviewCopy.sendTestButton,
             SubscriberNotificationPreviewCopy.livePreviewTitle,
           ],

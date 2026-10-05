@@ -15,8 +15,9 @@
  */
 
 export const SubscriberNotificationPreviewCopy: {
-  // The button, and the dialog it opens.
+  // The link, and the dialog it opens.
   previewButton: string;
+  previewButtonAccessibleName: string;
   previewButtonDisabledNoNote: string;
   dialogTitle: string;
   dialogDescription: string;
@@ -60,7 +61,14 @@ export const SubscriberNotificationPreviewCopy: {
   livePreviewUnknownPlaceholders: string;
   livePreviewReportUnavailable: string;
 } = {
-  previewButton: "Preview notification",
+  /*
+   * One word on screen, beside the value it previews ("Yes · Preview"), and
+   * a name that says what it previews when it is read on its own. The name
+   * holds the word, in every locale, so a voice command can say what it
+   * sees.
+   */
+  previewButton: "Preview",
+  previewButtonAccessibleName: "Preview notification",
   previewButtonDisabledNoNote:
     "Write the note first to preview the email it sends.",
   dialogTitle: "Preview notification",

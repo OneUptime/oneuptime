@@ -520,3 +520,97 @@ describe("POST /llm-provider/test - the provider is genuinely unreachable", () =
     expect(sentError()).toBeInstanceOf(BadDataException);
   });
 });
+
+/*
+ * The test runs the provider under the egress policy AI features give it
+ * (AIService.executeWithLogging): a global provider no project owns may reach
+ * a private address where the deployment refuses one to project-owned
+ * providers — the Helm chart's in-cluster vLLM is that case. A verdict reached
+ * under the other policy would pass a provider that then fails in use, or
+ * fail one that works.
+ */
+describe("POST /llm-provider/test - the egress policy is the one AI features use", () => {
+  function globalProviderRow(): LlmProvider {
+    const provider: LlmProvider = new LlmProvider(PROVIDER_ID);
+    provider.isGlobalLlm = true;
+    provider.llmType = LlmType.OpenAICompatible;
+    provider.baseUrl =
+      "http://oneuptime-vllm.oneuptime.svc.cluster.local:8000/v1";
+    provider.modelName = "Qwen/Qwen2.5-1.5B-Instruct";
+    return provider;
+  }
+
+  function testedAsMasterAdmin(): void {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue({
+        userId: USER_ID,
+        isMasterAdmin: true,
+      });
+  }
+
+  function sentAsGlobal(): Array<boolean | undefined> {
+    return completionRequests().map(
+      (request: LLMCompletionRequest): boolean | undefined => {
+        return request.llmProviderConfig.isGlobalProvider;
+      },
+    );
+  }
+
+  test("a master admin's test of a global provider runs it as global", async () => {
+    testedAsMasterAdmin();
+    providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
+      return globalProviderRow();
+    });
+
+    await callTestRoute();
+
+    expect(sentAsGlobal()).toEqual([true]);
+  });
+
+  test("a project's own provider is not run as global", async () => {
+    await callTestRoute();
+
+    expect(sentAsGlobal()).toEqual([undefined]);
+  });
+
+  test("a global row that a project owns is not run as global", async () => {
+    testedAsMasterAdmin();
+    providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
+      const provider: LlmProvider = providerRow();
+      provider.isGlobalLlm = true;
+      return provider;
+    });
+
+    await callTestRoute();
+
+    expect(sentAsGlobal()).toEqual([undefined]);
+  });
+
+  test("the root read that builds the request selects what decides it", async () => {
+    testedAsMasterAdmin();
+    providerLookupSpy.mockImplementation(async (): Promise<LlmProvider> => {
+      return globalProviderRow();
+    });
+
+    await callTestRoute();
+
+    type ProviderRead = {
+      select: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    const rootRead: ProviderRead | undefined = (
+      providerLookupSpy.mock.calls as Array<Array<ProviderRead>>
+    )
+      .map((call: Array<ProviderRead>): ProviderRead => {
+        return call[0]!;
+      })
+      .find((read: ProviderRead): boolean => {
+        return read.props.isRoot === true;
+      });
+
+    expect(rootRead?.select["isGlobalLlm"]).toBe(true);
+    expect(rootRead?.select["projectId"]).toBe(true);
+  });
+});
