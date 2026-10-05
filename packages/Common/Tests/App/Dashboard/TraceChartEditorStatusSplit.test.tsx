@@ -72,6 +72,10 @@ import {
   SERIES_COLOR_SWATCHES,
   Swatch,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/SeriesColorSelector";
+import {
+  colorOf,
+  getCustomButton,
+} from "../../UI/Components/ColorPicker/ColorPickerDriver";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardTraceChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
@@ -356,7 +360,7 @@ describe("Trace Chart editor — Colors under a split by span status", () => {
     expect(screen.queryByTitle(AUTO_TITLE)).not.toBeInTheDocument();
     // No swatches at all until a status is pinned.
     expect(
-      screen.queryByRole("button", { name: SERIES_COLOR_SWATCHES[0]!.name }),
+      screen.queryByRole("radio", { name: SERIES_COLOR_SWATCHES[0]!.name }),
     ).not.toBeInTheDocument();
 
     // A pin still wins over a status's own color, so the pin editor stays.
@@ -413,7 +417,7 @@ describe("Trace Chart editor — Colors under a split by span status", () => {
     expect(pinSuggestions()).toEqual(["0", "1"]);
 
     // The pin's own swatches are the only ones under this split.
-    fireEvent.click(screen.getByRole("button", { name: "Rose" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Rose" }));
 
     expect(lastArguments(handle)).toEqual({
       metric: "count",
@@ -445,7 +449,7 @@ describe("Trace Chart editor — Colors under a split by span status", () => {
     );
     // On Auto, since the widget has no lead color yet.
     expect(screen.getByTitle(AUTO_TITLE)).toHaveAttribute(
-      "aria-pressed",
+      "aria-checked",
       "true",
     );
     expect(
@@ -464,7 +468,7 @@ describe("Trace Chart editor — Colors under a split by span status", () => {
     expect(screen.getByText(GROUP_COLORS_DESCRIPTION)).toBeInTheDocument();
 
     // And the control still writes the lead color.
-    fireEvent.click(screen.getByRole("button", { name: "Rose" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Rose" }));
 
     expect(lastArguments(handle)).toEqual({
       metric: "count",
@@ -520,8 +524,14 @@ describe("Trace Chart editor — Colors under a split by span status", () => {
       screen.queryByTestId("trace-chart-status-split-colors"),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Default series color")).toBeInTheDocument();
-    // The lead color's hex box shows the saved color.
-    expect(screen.getByPlaceholderText("#6366f1")).toHaveValue("#0ea5e9");
+    /*
+     * The lead color's picker holds the saved color: not one of the chart's
+     * swatches, so it is the custom one.
+     */
+    const leadColor: HTMLElement = screen.getByTestId("series-color-picker");
+
+    expect(colorOf(leadColor)).toBe("#0ea5e9");
+    expect(getCustomButton(leadColor)).toHaveAttribute("data-picked", "true");
     // The attribute split offers the empty-group pin again.
     await waitFor(() => {
       expect(pinSuggestions()[0]).toBe(EMPTY_GROUP_VALUE);

@@ -176,8 +176,6 @@ const FormField: <T extends GenericObject>(
         return "time";
       case FormFieldSchemaType.LongText:
         return "textarea";
-      case FormFieldSchemaType.Color:
-        return "color";
       case FormFieldSchemaType.URL:
         return "url";
       case FormFieldSchemaType.PositiveNumber:

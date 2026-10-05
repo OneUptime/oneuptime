@@ -11,9 +11,7 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import {
-  afterAll,
   afterEach,
-  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -96,7 +94,6 @@ jest.mock("react-i18next", () => {
 import LabelsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Labels";
 import IncidentStatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentState";
 import IncidentSeveritiesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentSeverity";
-import { StateSettingsSharedCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -121,8 +118,8 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { areSimilarColors } from "../../../Utils/DistinctColor";
+import { colorOf } from "../../UI/Components/ColorPicker/ColorPickerDriver";
 
-const LABEL_COLOR_PLACEHOLDER: string = "Please select color for this label.";
 
 interface Row {
   _id: string;
@@ -237,19 +234,21 @@ const openCreate: (buttonName: string) => Promise<void> = async (
   });
 };
 
-const colorBox: (placeholder: string) => Promise<HTMLInputElement> = async (
-  placeholder: string,
-): Promise<HTMLInputElement> => {
-  const box: HTMLInputElement = (await within(dialog()).findByPlaceholderText(
-    placeholder,
-  )) as HTMLInputElement;
+/*
+ * The color the dialog's color field holds, once the form has filled it in:
+ * the swatch ticked among the palette's, its code in the field's data-value.
+ */
+const pickedColor: () => Promise<string> = async (): Promise<string> => {
+  const field: HTMLElement = await within(dialog()).findByTestId(
+    "color-picker",
+  );
 
   // The form fills its fields in once it has worked them out.
   await waitFor(() => {
-    expect(box.value).not.toBe("");
+    expect(colorOf(field)).not.toBe("");
   });
 
-  return box;
+  return colorOf(field);
 };
 
 const submitDialog: () => Promise<void> = async (): Promise<void> => {
@@ -257,20 +256,6 @@ const submitDialog: () => Promise<void> = async (): Promise<void> => {
     fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
   });
 };
-
-const originalGetContext: typeof HTMLCanvasElement.prototype.getContext =
-  HTMLCanvasElement.prototype.getContext;
-
-beforeAll(() => {
-  // react-color's checkerboard: jsdom has no canvas, and says so.
-  HTMLCanvasElement.prototype.getContext = ((): null => {
-    return null;
-  }) as unknown as typeof HTMLCanvasElement.prototype.getContext;
-});
-
-afterAll(() => {
-  HTMLCanvasElement.prototype.getContext = originalGetContext;
-});
 
 let listedModelType: { new (): BaseModel } = Label;
 
@@ -333,7 +318,7 @@ describe("Settings > Labels", () => {
     await renderPage(LabelsPage, "/dashboard/project/settings/labels");
     await openCreate("Create Label");
 
-    expect((await colorBox(LABEL_COLOR_PLACEHOLDER)).value).toBe(
+    expect((await pickedColor())).toBe(
       Indigo500.toString(),
     );
   });
@@ -348,10 +333,10 @@ describe("Settings > Labels", () => {
     await renderPage(LabelsPage, "/dashboard/project/settings/labels");
     await openCreate("Create Label");
 
-    const box: HTMLInputElement = await colorBox(LABEL_COLOR_PLACEHOLDER);
+    const picked: string = await pickedColor();
 
     for (const listed of rows) {
-      expect(areSimilarColors(box.value, listed.color)).toBe(false);
+      expect(areSimilarColors(picked, listed.color)).toBe(false);
     }
 
     fireEvent.change(
@@ -367,9 +352,9 @@ describe("Settings > Labels", () => {
     const color: unknown = (saved[0]!.model as Label).color;
 
     expect(color).toBeInstanceOf(Color);
-    expect(String(color)).toBe(box.value);
+    expect(String(color)).toBe(picked);
     // The fourth colour of the palette, after the three the rows use.
-    expect(box.value).toBe(Pink500.toString());
+    expect(picked).toBe(Pink500.toString());
   });
 
   test("Edit shows the label's own colour, not a pick", async () => {
@@ -384,7 +369,7 @@ describe("Settings > Labels", () => {
       ),
     );
 
-    expect((await colorBox(LABEL_COLOR_PLACEHOLDER)).value).toBe("#ef4444");
+    expect((await pickedColor())).toBe("#ef4444");
   });
 });
 
@@ -404,14 +389,12 @@ describe("the state and severity pages", () => {
     );
     await openCreate("Create Incident State");
 
-    const box: HTMLInputElement = await colorBox(
-      StateSettingsSharedCopy.colorFieldPlaceholder,
-    );
+    const picked: string = await pickedColor();
 
-    expect(box.value).toBe(Indigo500.toString());
+    expect(picked).toBe(Indigo500.toString());
 
     for (const listed of rows) {
-      expect(areSimilarColors(box.value, listed.color)).toBe(false);
+      expect(areSimilarColors(picked, listed.color)).toBe(false);
     }
 
     fireEvent.change(within(dialog()).getByPlaceholderText("Investigating"), {
@@ -443,11 +426,9 @@ describe("the state and severity pages", () => {
     );
     await openCreate("Create Incident Severity");
 
-    const box: HTMLInputElement = await colorBox(
-      StateSettingsSharedCopy.colorFieldPlaceholder,
-    );
+    const picked: string = await pickedColor();
 
     // Indigo is taken and amber reads as the yellow above: teal.
-    expect(box.value).toBe(Teal600.toString());
+    expect(picked).toBe(Teal600.toString());
   });
 });
