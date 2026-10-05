@@ -31,8 +31,9 @@ import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import IncidentSeverityService from "./IncidentSeverityService";
 import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
+  getWrittenRelationReferences,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
@@ -58,6 +59,21 @@ import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEng
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "./IncidentEpisodePrivacyRuleEngineService";
+
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. A write may name a reference under either, and the two must
+ * agree (RelationIdUtil.readConsistent), so what the service acts on is what
+ * is stored.
+ */
+const INCIDENT_STATE_KEYS: Array<string> = [
+  "currentIncidentStateId",
+  "currentIncidentState",
+];
+const GROUPING_RULE_KEYS: Array<string> = [
+  "incidentGroupingRuleId",
+  "incidentGroupingRule",
+];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -130,26 +146,28 @@ export class Service extends ProjectReferencesService<Model> {
      * from another project here leaves that project undeletable in exactly
      * the same way. onBeforeCreate overwrites currentIncidentStateId with
      * this project's created state, which leaves the severity as the only
-     * create-reachable column — but an update can write either.
+     * create-reachable column — but an update can write either. Each by both
+     * of its names: every name that holds an id is checked, and two that
+     * disagree are refused.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: updateBy.props.tenantId,
       subject: "incident episode",
       references: [
-        {
+        ...getWrittenRelationReferences({
+          payload: updateBy.data,
+          idColumn: "currentIncidentStateId",
+          relation: "currentIncidentState",
           modelName: "Incident State",
-          id:
-            resolveReferenceId(updateBy.data.currentIncidentStateId) ||
-            resolveReferenceId(updateBy.data.currentIncidentState),
           service: IncidentStateService,
-        },
-        {
+        }),
+        ...getWrittenRelationReferences({
+          payload: updateBy.data,
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
           modelName: "Incident Severity",
-          id:
-            resolveReferenceId(updateBy.data.incidentSeverityId) ||
-            resolveReferenceId(updateBy.data.incidentSeverity),
           service: IncidentSeverityService,
-        },
+        }),
       ],
     });
 
@@ -203,20 +221,27 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    createBy.data.currentIncidentStateId = incidentState.id;
+    /*
+     * Every episode starts in the project's created state, whatever state the
+     * write named under either name: stamp leaves no other name of it to be
+     * stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      INCIDENT_STATE_KEYS,
+      incidentState.id,
+    );
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "incident episode",
-      references: [
-        {
-          modelName: "Incident Severity",
-          id:
-            resolveReferenceId(createBy.data.incidentSeverityId) ||
-            resolveReferenceId(createBy.data.incidentSeverity),
-          service: IncidentSeverityService,
-        },
-      ],
+      references: getWrittenRelationReferences({
+        payload: createBy.data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
+        modelName: "Incident Severity",
+        service: IncidentSeverityService,
+      }),
     });
 
     // Auto-generate episode number
@@ -241,11 +266,21 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
     }
 
-    // Copy showEpisodeOnStatusPage from grouping rule if available
-    if (createBy.data.incidentGroupingRuleId) {
+    /*
+     * Copy showEpisodeOnStatusPage from the grouping rule that opened it, named
+     * under either of its names (the two must agree).
+     */
+    const incidentGroupingRuleId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        GROUPING_RULE_KEYS,
+        "Incident Grouping Rule",
+      );
+
+    if (incidentGroupingRuleId) {
       const groupingRule: IncidentGroupingRule | null =
         await IncidentGroupingRuleService.findOneById({
-          id: createBy.data.incidentGroupingRuleId,
+          id: incidentGroupingRuleId,
           select: {
             showEpisodeOnStatusPage: true,
           },

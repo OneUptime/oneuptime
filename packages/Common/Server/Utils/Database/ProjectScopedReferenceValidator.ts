@@ -11,6 +11,7 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
+import RelationIdUtil from "./RelationIdUtil";
 
 /*
  * Incidents, alerts and scheduled maintenance events point at project-scoped
@@ -235,6 +236,81 @@ export function resolveReferenceIds(value: unknown): Array<ObjectID | string> {
   }
 
   return ids;
+}
+
+/*
+ * The references a write makes through one relation, read from both of its
+ * names: the ID column (`changeMonitorStatusToId`) and the relation itself
+ * (`changeMonitorStatusTo`). The API takes either, and a payload may carry
+ * both, so each name that holds an id is a reference of its own and is
+ * checked; the same id under both is looked up once
+ * (validateReferencesBelongToProject).
+ *
+ * This reads values already taken off a payload. A check of a payload uses
+ * getWrittenRelationReferences, which also refuses two names that disagree.
+ */
+export function getRelationAndIdColumnReferences(data: {
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+  idColumnValue: unknown;
+  relationValue: unknown;
+}): Array<ProjectScopedReference> {
+  const references: Array<ProjectScopedReference> = [];
+
+  for (const value of [data.idColumnValue, data.relationValue]) {
+    const id: ObjectID | string | undefined = resolveReferenceId(value);
+
+    if (id && id.toString().trim()) {
+      references.push({
+        modelName: data.modelName,
+        id: id,
+        service: data.service,
+      });
+    }
+  }
+
+  return references;
+}
+
+/*
+ * The references a payload makes through one relation, for a service that
+ * checks the relation itself: every name that holds an id - the ID column
+ * and the relation - is a reference of its own, so the id the write stores
+ * is among them whichever name it came under.
+ *
+ * A payload whose two names disagree (two ids, or an id and a clear) is
+ * refused first, without a lookup, with RelationIdUtil.readConsistent's
+ * words: which of the two TypeORM would store depends on the shape of the
+ * write, so the check would be answering for a value the caller did not
+ * pick.
+ */
+export function getWrittenRelationReferences(data: {
+  payload: unknown;
+  // "changeMonitorStatusToId"
+  idColumn: string;
+  // "changeMonitorStatusTo"
+  relation: string;
+  // "Monitor Status": how a refusal names the record.
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+}): Array<ProjectScopedReference> {
+  const payload: Record<string, unknown> =
+    data.payload && typeof data.payload === "object"
+      ? (data.payload as Record<string, unknown>)
+      : {};
+
+  RelationIdUtil.readConsistent(
+    payload,
+    [data.idColumn, data.relation],
+    data.modelName,
+  );
+
+  return getRelationAndIdColumnReferences({
+    modelName: data.modelName,
+    service: data.service,
+    idColumnValue: payload[data.idColumn],
+    relationValue: payload[data.relation],
+  });
 }
 
 /*

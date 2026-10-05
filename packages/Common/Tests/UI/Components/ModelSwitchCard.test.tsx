@@ -395,6 +395,81 @@ describe("ModelSwitchCard follows the record it is for", () => {
 });
 
 /*
+ * A record the page already read - the Require SSO switch drawn under the
+ * SSO upsell reads the project to know whether to draw itself at all - is
+ * handed to the card, which then reads nothing itself.
+ */
+describe("ModelSwitchCard given the record (initialItem)", () => {
+  function readRecord(values: Record<string, unknown>): StatusPage {
+    const item: StatusPage = new StatusPage();
+    item._id = RECORD_ID;
+    Object.assign(item, values);
+    return item;
+  }
+
+  test("starts from it, with no loader and no second read", async () => {
+    render(mcpCard({ initialItem: readRecord({ enableMcpServer: true }) }));
+
+    // Drawn at once, from the record handed in.
+    expect(screen.getByTestId(TEST_ID)).toHaveAttribute("aria-checked", "true");
+    expect(getItemMock).not.toHaveBeenCalled();
+  });
+
+  test("onLoaded and onChange hear it as they hear a read", async () => {
+    const heardLoaded: Array<unknown> = [];
+    const heardChange: Array<boolean> = [];
+    const item: StatusPage = readRecord({ enableMcpServer: false });
+
+    render(
+      mcpCard({
+        initialItem: item,
+        onLoaded: (loadedItem: StatusPage): void => {
+          heardLoaded.push(loadedItem);
+        },
+        onChange: (isOn: boolean): void => {
+          heardChange.push(isOn);
+        },
+      }),
+    );
+
+    await loaded();
+
+    expect(heardLoaded).toEqual([item]);
+    expect(heardChange).toEqual([false]);
+  });
+
+  test("a record of another id is not used: the card reads its own", async () => {
+    stored = { enableMcpServer: true };
+
+    const other: StatusPage = new StatusPage();
+    other._id = OTHER_ID;
+    other.enableMcpServer = false;
+
+    render(mcpCard({ initialItem: other }));
+
+    const control: HTMLElement = await loaded();
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+    expect(getItemCall().id.toString()).toBe(RECORD_ID);
+    expect(control).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("flipped, it saves as usual", async () => {
+    render(mcpCard({ initialItem: readRecord({ enableMcpServer: true }) }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(TEST_ID));
+    });
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { data: Record<string, unknown> })
+        .data,
+    ).toEqual({ enableMcpServer: false });
+  });
+});
+
+/*
  * Lines under the switch: an incident's reminders card shows when the next
  * reminder goes out and how many were sent, which the server works out
  * again whenever reminders are switched on or off.

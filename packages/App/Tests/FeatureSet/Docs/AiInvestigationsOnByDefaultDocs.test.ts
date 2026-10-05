@@ -472,9 +472,15 @@ describe.each<[string, string, string]>([
     expect(line).toContain(
       `the ${noun}'s **Overview** shows the agent's status`,
     );
+    /*
+     * Investigation is the agent's own setting (ONEUPTIME_AI_INVESTIGATION),
+     * which the AI agent page shows read-only while the agent sets it: the
+     * note says where to stop it, and that the page's Change shows how.
+     */
     expect(line).toContain(
-      "turn investigation off under **What AI may do** on the AI agent page",
+      "set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how)",
     );
+    expect(line).not.toContain("turn investigation off under");
   });
 });
 

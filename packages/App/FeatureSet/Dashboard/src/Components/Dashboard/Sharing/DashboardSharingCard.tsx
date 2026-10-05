@@ -23,6 +23,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import ChoiceRows, {
   ChoiceRowOption,
+  getChoicePlanLeftoverText,
 } from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
@@ -32,7 +33,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { getPlanNeededToChangeColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
+import { getPlanNeededToWriteColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -56,6 +57,7 @@ import DashboardSharingCopy, {
   DASHBOARD_SHARING_CARD_TEST_ID,
   DASHBOARD_SHARING_CHANGE_PASSWORD_TEST_ID,
   DASHBOARD_SHARING_LOCKED_TEST_ID,
+  DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID,
   DASHBOARD_SHARING_SET_PASSWORD_TEST_ID,
   DashboardAccessConfirmationCopy,
   getDashboardAccessChoiceTestId,
@@ -63,6 +65,7 @@ import DashboardSharingCopy, {
   getDashboardAccessSelect,
   getDashboardAccessState,
   getPlanNeededForDashboardAccess,
+  getPlanNeededToComeBackToDashboardAccess,
   isDashboardPasswordRequiredInDialog,
 } from "./DashboardSharingCopy";
 import { getPublicDashboardUrl } from "./PublicDashboardUrl";
@@ -88,10 +91,12 @@ import { getPublicDashboardUrl } from "./PublicDashboardUrl";
  *   not have (the server lets nobody in then), why nobody can open it and
  *   Set Password.
  * - A choice the plan does not include shows the plan and cannot be picked
- *   (sharing a dashboard, or stopping, needs Growth on OneUptime Cloud;
- *   moving between the two public choices does not). Someone who may not
- *   edit the dashboard sees the choices locked, with why - and can still
- *   copy the link.
+ *   (sharing a dashboard needs Growth on OneUptime Cloud; moving between
+ *   the two public choices does not). Stopping never needs a plan: a
+ *   dashboard a trial left public can always be made private again, and the
+ *   dialog for that move says that sharing it again needs Growth. Someone
+ *   who may not edit the dashboard sees the choices locked, with why - and
+ *   can still copy the link.
  */
 
 export interface ComponentProps {
@@ -174,6 +179,17 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
 
   const dashboardIdString: string = props.dashboardId.toString();
   const model: Dashboard = new Dashboard();
+
+  /*
+   * The plan a column needs for the value a move writes to it: none to put
+   * isPublicDashboard back to its default (private), on any plan.
+   */
+  const getPlanNeeded: (column: string, value: unknown) => PlanType | null = (
+    column: string,
+    value: unknown,
+  ): PlanType | null => {
+    return getPlanNeededToWriteColumn(model, column, value);
+  };
 
   const fetchDashboard: () => Promise<void> = async (): Promise<void> => {
     const read: number = readRef.current + 1;
@@ -418,9 +434,7 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
             : getPlanNeededForDashboardAccess({
                 from: state,
                 to: access,
-                getPlanNeeded: (column: string): PlanType | null => {
-                  return getPlanNeededToChangeColumn(model, column);
-                },
+                getPlanNeeded: getPlanNeeded,
               });
 
           let details: ReactNode = undefined;
@@ -592,10 +606,38 @@ const DashboardSharingCard: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * Leaving a choice the plan does not include (a trial left the
+     * dashboard public): the move needs no plan, coming back does - said
+     * before it is saved.
+     */
+    const planToComeBack: PlanType | null =
+      getPlanNeededToComeBackToDashboardAccess({
+        from: state,
+        to: pending,
+        getPlanNeeded: getPlanNeeded,
+      });
+
     return (
       <ConfirmModal
         title={copy.title}
-        description={copy.description}
+        description={
+          <div className="space-y-2">
+            <p>{translate(copy.description)}</p>
+            {planToComeBack ? (
+              <p data-testid={DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID}>
+                {getChoicePlanLeftoverText(translator, {
+                  choiceTitle:
+                    DASHBOARD_ACCESS_CHOICE_COPY[getDashboardAccess(state)]
+                      .title,
+                  planNeeded: planToComeBack,
+                })}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        }
         submitButtonText={copy.submitButtonText}
         submitButtonType={ButtonStyleType.PRIMARY}
         isLoading={isSaving}

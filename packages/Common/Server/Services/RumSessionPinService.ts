@@ -5,6 +5,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OneUptimeDate from "../../Types/Date";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import CreateBy from "../Types/Database/CreateBy";
@@ -135,9 +136,14 @@ export class Service extends ProjectReferencesService<Model> {
      * props.userId) attributing the pin to a colleague.
      */
     if (createBy.props.userId) {
-      createBy.data.pinnedByUserId = createBy.props.userId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["pinnedByUserId", "pinnedByUser"],
+        createBy.props.userId,
+      );
     } else {
       delete createBy.data.pinnedByUserId;
+      delete createBy.data.pinnedByUser;
     }
 
     return { createBy, carryForward: null };
@@ -337,7 +343,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.rumApplicationId = rumApplicationId;
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["rumApplicationId", "rumApplication"],
+      rumApplicationId,
+    );
 
     return {
       projectId: projectId,

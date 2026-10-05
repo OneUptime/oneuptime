@@ -553,6 +553,162 @@ describe("EnterprisePluginPage", () => {
   });
 });
 
+/*
+ * A paid feature can always be switched off, on any plan: a shell hands what
+ * a trial may have left on (the retention override's Remove button) as
+ * `belowPlan`, drawn under the PLAN upsell for a project known to be below
+ * the plan - never under the edition upsell, never in place of the plugin,
+ * and not while the plan is still unknown.
+ */
+describe("EnterprisePluginPage belowPlan", () => {
+  const LEFTOVER: ReactElement = <div data-testid="below-plan-leftover" />;
+
+  function renderWithLeftover(
+    props?: Partial<{
+      plugin: EnterprisePluginComponent<PageComponentProps> | undefined;
+      requiredPlan: typeof IDENTITY_REQUIRED_PLAN;
+      isEligible: boolean;
+    }>,
+  ): void {
+    render(
+      <EnterprisePluginPage
+        plugin={props && "plugin" in props ? props.plugin : FakeSCIMPage}
+        pluginProps={PAGE_PROPS}
+        requiredPlan={props?.requiredPlan || IDENTITY_REQUIRED_PLAN}
+        upsell={UPSELL}
+        isEligible={props?.isEligible}
+        belowPlan={LEFTOVER}
+      />,
+    );
+  }
+
+  test("is drawn under the plan upsell for a Cloud project known to be below the plan", () => {
+    pinDeployment("cloud");
+
+    for (const plan of [PlanType.Free, PlanType.Growth]) {
+      currentPlanForTest = plan;
+
+      renderWithLeftover();
+
+      expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+      expect(screen.getByTestId("below-plan-leftover")).toBeInTheDocument();
+      expect(screen.queryByTestId("fake-scim-plugin")).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  test("uses the page's own tier: Scale is below an Enterprise-tier page", () => {
+    pinDeployment("cloud");
+    currentPlanForTest = PlanType.Scale;
+
+    renderWithLeftover({ requiredPlan: AUDIT_LOGS_REQUIRED_PLAN });
+
+    expect(screen.getAllByText("Upgrade to Enterprise")).toHaveLength(2);
+    expect(screen.getByTestId("below-plan-leftover")).toBeInTheDocument();
+  });
+
+  test("is drawn under a bespoke upsell (renderUpsell) too", () => {
+    pinDeployment("cloud");
+    currentPlanForTest = PlanType.Scale;
+
+    render(
+      <EnterprisePluginPage
+        plugin={FakeSCIMPage}
+        pluginProps={PAGE_PROPS}
+        requiredPlan={AUDIT_LOGS_REQUIRED_PLAN}
+        renderUpsell={(reason: EnterpriseUpgradeReason): ReactElement => {
+          return (
+            <AuditLogsEnterpriseUpgrade
+              title="Audit Logs"
+              description="Every change made in this project."
+              reason={reason}
+            />
+          );
+        }}
+        belowPlan={LEFTOVER}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Audit Logs are available on the Enterprise plan. Upgrade to turn on audit logging for this project.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("below-plan-leftover")).toBeInTheDocument();
+  });
+
+  test("is not drawn while the plan is unknown: the upsell shows, nothing under it", () => {
+    pinDeployment("cloud");
+    currentPlanForTest = null;
+
+    renderWithLeftover();
+
+    expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+    expect(screen.queryByTestId("below-plan-leftover")).not.toBeInTheDocument();
+  });
+
+  test("is not drawn for a project on the plan: the plugin is", () => {
+    pinDeployment("cloud");
+
+    for (const plan of [PlanType.Scale, PlanType.Enterprise]) {
+      currentPlanForTest = plan;
+
+      renderWithLeftover();
+
+      expect(screen.getByTestId("fake-scim-plugin")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("below-plan-leftover"),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  test("is not drawn under the edition upsell: an eligible Cloud project on a Community bundle", () => {
+    pinDeployment("cloud");
+    currentPlanForTest = PlanType.Enterprise;
+
+    renderWithLeftover({ plugin: undefined });
+
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
+    expect(screen.queryByTestId("below-plan-leftover")).not.toBeInTheDocument();
+  });
+
+  test("is never drawn self-hosted, where there are no plans", () => {
+    for (const deployment of [
+      "self-hosted-community",
+      "self-hosted-enterprise",
+    ] as Array<Deployment>) {
+      pinDeployment(deployment);
+      currentPlanForTest = PlanType.Free;
+
+      renderWithLeftover({ plugin: undefined });
+
+      expect(
+        screen.getAllByText("Learn about Enterprise Edition"),
+      ).toHaveLength(2);
+      expect(
+        screen.queryByTestId("below-plan-leftover"),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  test("an isEligible={false} override on a project that has the plan draws no leftover", () => {
+    pinDeployment("cloud");
+    currentPlanForTest = PlanType.Scale;
+
+    renderWithLeftover({ isEligible: false });
+
+    expect(screen.getByText("SCIM User Provisioning")).toBeInTheDocument();
+    expect(screen.queryByTestId("below-plan-leftover")).not.toBeInTheDocument();
+  });
+});
+
 describe("the Community plugin door (what this jest config resolves)", () => {
   test("getDashboardPlugins() is the empty Community stub", () => {
     const plugins: DashboardEnterprisePlugins = getDashboardPlugins();

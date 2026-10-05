@@ -1,6 +1,7 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
 import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
@@ -471,6 +472,26 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     dockerHosts={item.dockerHosts || []}
                     podmanHosts={item.podmanHosts || []}
                     services={item.services || []}
+                  />
+                );
+              },
+            },
+            // What its Edit asks under the monitors, shown with them.
+            {
+              field: {
+                changeMonitorStatusTo: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Change Monitor Status to",
+              fieldType: FieldType.Entity,
+              getElement: (
+                item: ScheduledMaintenanceTemplate,
+              ): ReactElement => {
+                return (
+                  <ChangeMonitorStatusToElement
+                    monitorStatus={item.changeMonitorStatusTo}
                   />
                 );
               },

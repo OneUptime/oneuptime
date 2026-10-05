@@ -7,6 +7,7 @@ import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import UserService from "./UserService";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Model from "../../Models/DatabaseModels/KubernetesCluster";
+import KubernetesAiAgent from "../../Models/DatabaseModels/KubernetesAiAgent";
 import Label from "../../Models/DatabaseModels/Label";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
@@ -31,6 +32,10 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { KubernetesAiRemediationMode } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "../../Types/AI/AgentAiSettings";
 import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
@@ -165,6 +170,30 @@ export function getAiAccessAdminRefusal(): string {
   )}. Anyone who may edit the cluster can still turn AI fixes off or down to Ask for approval, and remove allowlist patterns.`;
 }
 
+/*
+ * The two settings a cluster's Kubernetes AI agent sets once its
+ * configuration (or, on a cluster nobody configured, its defaults) decides
+ * them. The allowlist and the Runner binding stay OneUptime's.
+ */
+export const AGENT_SET_AI_ACCESS_KEYS: Array<string> = [
+  "isAiInvestigationEnabled",
+  "aiRemediationMode",
+];
+
+/*
+ * The refusal for a change to a setting the cluster's Kubernetes AI agent
+ * sets: where it is set instead, and where the command is.
+ */
+export function getAgentSetAiAccessRefusal(
+  source: AgentAiSettingsSource,
+): string {
+  return `What OneUptime AI may do on this cluster is set by its Kubernetes AI agent${
+    source === "agent_defaults"
+      ? " (its defaults: the Kubernetes agent chart sets neither aiAgent.investigation nor aiAgent.fixes)"
+      : "'s configuration"
+  }, so AI investigation and fixes cannot be changed here. Set aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart instead; the cluster's AI agent page (AI → Agent) shows the command for each option.`;
+}
+
 export function getAiAccessCredentialRefusal(): string {
   return `Binding a Kubernetes credential to a cluster also needs permission to read credentials. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
     KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
@@ -197,6 +226,17 @@ export interface AiAccessSettingsSnapshot {
    * agent, whose RBAC may reach more, so it is a loosening.
    */
   hasKubernetesAiAgent?: boolean | undefined;
+  /*
+   * When an operator first chose AI settings for the cluster (null: never).
+   * The agent's defaults decide only while it is null.
+   */
+  aiAccessConfiguredAt?: Date | null | undefined;
+  /*
+   * Where investigation and fixes are set, as the write found it: while the
+   * agent sets them, an operator's change to either is refused, and the
+   * write marks nothing configured (it chose neither).
+   */
+  aiSettingsSource?: AgentAiSettingsSource | undefined;
 }
 
 /*
@@ -292,9 +332,13 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The project, under either of its names (the two must agree).
     const projectId: ObjectID | undefined =
-      createBy.data.projectId ||
-      createBy.data.project?.id ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "Project",
+      ) ||
       createBy.props.tenantId ||
       undefined;
 
@@ -410,6 +454,18 @@ export class Service extends ProjectReferencesService<Model> {
         await this.getAiAccessSettingsForUpdateQuery(updateBy, {
           withKubernetesAiAgent: this.clearsAiAccessBinding(data),
         });
+
+      /*
+       * Investigation and fixes are the agent's while it sets them: a change
+       * to either is refused for everyone, master admins included — it is
+       * where the setting lives, not who may change it. Re-posting the
+       * value the cluster has is no change and passes (Terraform and the
+       * API post every field).
+       */
+      this.assertAgentSetSettingsUnchanged({
+        data,
+        current: Object.values(previousAiAccessSettings),
+      });
 
       if (!updateBy.props.isMasterAdmin) {
         this.assertMayChangeAiAccess({
@@ -655,6 +711,38 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Refuse a change to investigation or fixes on a cluster whose agent sets
+   * them (see readKubernetesAiAgents). A write that posts the value the
+   * cluster already has changes nothing and passes.
+   */
+  private assertAgentSetSettingsUnchanged(data: {
+    data: JSONObject;
+    current: Array<AiAccessSettingsSnapshot>;
+  }): void {
+    const investigation: unknown = data.data["isAiInvestigationEnabled"];
+    const mode: unknown = data.data["aiRemediationMode"];
+
+    for (const snapshot of data.current) {
+      if (!isAgentAiSettingsSourceAgent(snapshot.aiSettingsSource)) {
+        continue;
+      }
+
+      const changesInvestigation: boolean =
+        investigation !== undefined &&
+        (investigation === true) !== snapshot.isAiInvestigationEnabled;
+      const changesMode: boolean =
+        mode !== undefined &&
+        readStoredRemediationMode(mode) !== snapshot.aiRemediationMode;
+
+      if (changesInvestigation || changesMode) {
+        throw new BadDataException(
+          getAgentSetAiAccessRefusal(snapshot.aiSettingsSource!),
+        );
+      }
+    }
+  }
+
+  /*
    * aiRemediationMode is a plain text column and aiKubectlCommandAllowlist
    * untyped JSON, and both of their readers fail safe: an unknown mode reads
    * as Disabled and an unusable pattern as no pattern. Accepting such a value
@@ -892,6 +980,7 @@ export class Service extends ProjectReferencesService<Model> {
         aiKubectlCommandAllowlist: true,
         aiAccessRunnerId: true,
         aiAccessCredentialId: true,
+        aiAccessConfiguredAt: true,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -920,62 +1009,94 @@ export class Service extends ProjectReferencesService<Model> {
         ),
         aiAccessRunnerId: cluster.aiAccessRunnerId?.toString() || null,
         aiAccessCredentialId: cluster.aiAccessCredentialId?.toString() || null,
+        aiAccessConfiguredAt: cluster.aiAccessConfiguredAt || null,
       };
     }
 
-    if (options.withKubernetesAiAgent) {
-      await this.readKubernetesAiAgentPresence(settings);
-    }
+    await this.readKubernetesAiAgents(settings, {
+      withPresence: options.withKubernetesAiAgent,
+    });
 
     return settings;
   }
 
   /*
-   * Fill in hasKubernetesAiAgent on each snapshot, one query per project the
-   * write reaches. Fails closed: when the agent rows cannot be read, every
-   * cluster is treated as having one, so clearing a binding then needs the
-   * admin permissions rather than slipping through unchecked.
+   * Read the clusters' Kubernetes AI agent rows, one query per project the
+   * write reaches, and fill in on each snapshot:
+   *
+   * - aiSettingsSource, always: whether the agent sets investigation and
+   *   fixes (a bound Runner is read only for a cluster whose agent reports
+   *   settings at all);
+   * - hasKubernetesAiAgent, for a write that clears a binding.
+   *
+   * Fails closed: when the rows cannot be read, every cluster is treated as
+   * having an agent whose configuration sets its settings, so clearing a
+   * binding needs the admin permissions and a change to investigation or
+   * fixes is refused, rather than either slipping through unchecked.
    */
-  private async readKubernetesAiAgentPresence(
+  private async readKubernetesAiAgents(
     settings: Record<string, AiAccessSettingsSnapshot>,
+    options: { withPresence: boolean },
   ): Promise<void> {
-    const clusterIdsByProject: Map<string, Array<ObjectID>> = new Map<
+    const clustersByProject: Map<string, Array<Model>> = new Map<
       string,
-      Array<ObjectID>
+      Array<Model>
     >();
 
     for (const [clusterId, snapshot] of Object.entries(settings)) {
       const projectId: string = snapshot.projectId?.toString() || "";
-      const clusterIds: Array<ObjectID> =
-        clusterIdsByProject.get(projectId) || [];
-      clusterIds.push(new ObjectID(clusterId));
-      clusterIdsByProject.set(projectId, clusterIds);
+      const cluster: Model = new Model();
+      cluster.id = new ObjectID(clusterId);
+      if (snapshot.aiAccessRunnerId) {
+        cluster.aiAccessRunnerId = new ObjectID(snapshot.aiAccessRunnerId);
+      }
+      if (snapshot.aiAccessConfiguredAt) {
+        cluster.aiAccessConfiguredAt = snapshot.aiAccessConfiguredAt;
+      }
+      const clusters: Array<Model> = clustersByProject.get(projectId) || [];
+      clusters.push(cluster);
+      clustersByProject.set(projectId, clusters);
     }
 
-    for (const [projectId, clusterIds] of clusterIdsByProject.entries()) {
-      let agentClusterIds: Set<string> | null = null;
+    for (const [projectId, clusters] of clustersByProject.entries()) {
+      let agents: Map<string, KubernetesAiAgent> | null = null;
+      let sources: Map<string, AgentAiSettingsSource> | null = null;
 
       if (projectId) {
         try {
-          agentClusterIds = new Set<string>(
-            (
-              await KubernetesAiAgentService.findForClusters({
-                projectId: new ObjectID(projectId),
-                kubernetesClusterIds: clusterIds,
-              })
-            ).keys(),
-          );
+          agents = await KubernetesAiAgentService.findForClusters({
+            projectId: new ObjectID(projectId),
+            kubernetesClusterIds: clusters.map((cluster: Model): ObjectID => {
+              return cluster.id!;
+            }),
+          });
+          sources =
+            await KubernetesAiAgentService.getAiSettingsSourcesForClusters({
+              projectId: new ObjectID(projectId),
+              clusters,
+              agents,
+            });
         } catch (error) {
           logger.error(
-            `KubernetesClusterService: could not read the Kubernetes AI agents of project ${projectId}; treating every cluster as having one: ${error}`,
+            `KubernetesClusterService: could not read the Kubernetes AI agents of project ${projectId}; treating every cluster as having one that sets its AI settings: ${error}`,
           );
+          agents = null;
+          sources = null;
         }
       }
 
-      for (const clusterId of clusterIds) {
-        settings[clusterId.toString()]!.hasKubernetesAiAgent = agentClusterIds
-          ? agentClusterIds.has(clusterId.toString())
-          : true;
+      for (const cluster of clusters) {
+        const clusterId: string = cluster.id!.toString();
+
+        settings[clusterId]!.aiSettingsSource = sources
+          ? sources.get(clusterId) || "oneuptime"
+          : "agent_configuration";
+
+        if (options.withPresence) {
+          settings[clusterId]!.hasKubernetesAiAgent = agents
+            ? agents.has(clusterId)
+            : true;
+        }
       }
     }
   }
@@ -1742,14 +1863,66 @@ export class Service extends ProjectReferencesService<Model> {
      * one that did.
      */
     if (aiAccessWrite && updatedItemIds.length > 0) {
-      await this.markAiAccessConfigured(updatedItemIds);
+      /*
+       * A cluster whose agent set investigation and fixes when the write
+       * came in had neither chosen by it (they are refused), so the write
+       * does not mark it configured: the agent's defaults keep deciding.
+       */
+      const chosenHere: Array<ObjectID> = updatedItemIds.filter(
+        (clusterId: ObjectID): boolean => {
+          return !isAgentAiSettingsSourceAgent(
+            aiAccessWrite.previousAiAccessSettings[clusterId.toString()]
+              ?.aiSettingsSource,
+          );
+        },
+      );
 
-      if (this.bindsRunner(onUpdate.updateBy.data as unknown as JSONObject)) {
+      if (chosenHere.length > 0) {
+        await this.markAiAccessConfigured(chosenHere);
+      }
+
+      const writeData: JSONObject = onUpdate.updateBy
+        .data as unknown as JSONObject;
+
+      if (this.bindsRunner(writeData)) {
         await this.markAiAccessRunnerBound(updatedItemIds);
+      }
+
+      /*
+       * Clearing the Runner binding hands the cluster back to its agent
+       * ("Switch to the AI agent"): what the agent reports applies now, not
+       * at its next check.
+       */
+      if (this.clearsRunnerBinding(writeData)) {
+        for (const clusterId of updatedItemIds) {
+          const projectId: ObjectID | undefined =
+            aiAccessWrite.previousAiAccessSettings[clusterId.toString()]
+              ?.projectId;
+
+          if (projectId) {
+            await KubernetesAiAgentService.applyStoredAiSettingsToCluster({
+              projectId,
+              kubernetesClusterId: clusterId,
+            });
+          }
+        }
       }
     }
 
     return onUpdate;
+  }
+
+  // The write clears the Runner binding (null), not merely the credential.
+  private clearsRunnerBinding(data: JSONObject | undefined): boolean {
+    return Boolean(
+      data &&
+        isAnyKeyWritten(data, AI_ACCESS_RUNNER_KEYS) &&
+        !RelationIdUtil.readConsistent(
+          data,
+          AI_ACCESS_RUNNER_KEYS,
+          "AI access Runner",
+        ),
+    );
   }
 
   // The write binds a Runner (not merely clears the binding).

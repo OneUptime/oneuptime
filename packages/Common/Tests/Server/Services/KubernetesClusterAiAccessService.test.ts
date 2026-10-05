@@ -1066,7 +1066,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP,
     );
     expect(status.gaps[0]?.nextStep).toContain(
-      "--set aiAgent.remediation.enabled=true",
+      "--set aiAgent.fixes=ask-for-approval",
     );
     expect(status.isInvestigationReady).toBe(true);
     expect(status.isRemediationReady).toBe(false);
@@ -1105,7 +1105,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
    */
   it("points the read-only gap at the AI agent page and the aiAgent values that scope it", () => {
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
-      "--set aiAgent.remediation.enabled=true",
+      "--set aiAgent.fixes=ask-for-approval",
     );
     expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
       "the cluster's AI agent page (AI → Agent)",

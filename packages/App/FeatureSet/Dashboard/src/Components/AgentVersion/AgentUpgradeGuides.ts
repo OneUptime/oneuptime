@@ -12,9 +12,33 @@ import {
   getDockerSwarmAgentDownloadCommand,
   getDockerSwarmAgentInstallScriptCommand,
 } from "../../Pages/DockerSwarm/Utils/DocumentationMarkdown";
+import {
+  HostCollectorMethod,
+  getHostCollectorCommandLanguage,
+  getHostCollectorMethodsForOsType,
+  getHostCollectorUpgradeCommand,
+} from "../../Pages/Host/Utils/DocumentationMarkdown";
 import { getKubernetesAgentChartUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../Pages/Podman/Utils/DocumentationMarkdown";
+import {
+  getProxmoxAgentDownloadCommand,
+  getProxmoxAgentRecreateCommand,
+} from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
+  getCephAgentDownloadCommand,
+  getCephAgentRecreateCommand,
+} from "../../Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  VMWARE_AGENT_RECREATE_COMMAND,
+  getVMwareAgentDownloadCommand,
+  getVMwareAgentUpgradeCommand,
+} from "../../Pages/VMware/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../Runner/RunnerImage";
+import {
+  doesInstallScriptStartResourceAiAgent,
+  getResourceAiAgentUpgradeCommand,
+} from "../ResourceAiAgent/ResourceAiAgentInstall";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -41,6 +65,8 @@ export interface AgentUpgradeStep {
   values?: Record<string, string> | undefined;
   // One command (or a few lines of them), shown with a copy button.
   code?: string | undefined;
+  // The code's language; bash when unset (PowerShell on Windows).
+  language?: "bash" | "powershell" | undefined;
   /*
    * The step needs the resource's setup guide (the docker run command is
    * filled in there with a key the reader picks): a link to it is drawn
@@ -75,6 +101,16 @@ export interface AgentUpgradeGuideContext {
   databaseEngine?: DatabaseAgentEngine | null | undefined;
   // The database runs in Kubernetes, where the guide offers a Deployment.
   databaseRunsInKubernetes?: boolean | undefined;
+  /*
+   * The resource a resource AI agent serves: its compose service, and
+   * whether its collector's install script starts it.
+   */
+  resourceType?: AiResourceType | null | undefined;
+  /*
+   * The os.type a host reports: its collector upgrade offers only the
+   * install methods that OS can have (every one when it is unknown).
+   */
+  hostOsType?: string | null | undefined;
 }
 
 // ---- shared wording --------------------------------------------------------
@@ -89,6 +125,14 @@ const PULL_AND_RECREATE: string = translationKey(
 
 const DOWNLOAD_LATEST_FILES: string = translationKey(
   "Download the latest files",
+);
+
+const COLLECTOR_READS_CONFIG_AT_START: string = translationKey(
+  "The collector reads its config only when it starts.",
+);
+
+const COMPOSE_FOLDER_DOWNLOAD: string = translationKey(
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.",
 );
 
 // ---- per kind ------------------------------------------------------------------
@@ -196,6 +240,156 @@ function getDockerSwarmAgentGuide(): AgentUpgradeGuide {
   };
 }
 
+type CollectorFilesInstallMethod = "install-script" | "docker-compose";
+
+interface CollectorFilesCommands {
+  download: (method: CollectorFilesInstallMethod) => string;
+  recreate: (method: CollectorFilesInstallMethod) => string;
+}
+
+/*
+ * The Proxmox and Ceph agents: the stock collector plus a config, pinned in
+ * the docker-compose.yml beside it. However they were installed, they
+ * upgrade the same way in the folder that holds them (the install script's
+ * folder, or the reader's own): both files again, then the images pulled and
+ * the containers recreated, because the collector reads its config only
+ * when it starts. Their install scripts ask every question again, so running
+ * one again is not offered.
+ */
+function getCollectorFilesGuide(
+  commands: CollectorFilesCommands,
+): AgentUpgradeGuide {
+  const getMethod: (
+    method: CollectorFilesInstallMethod,
+    label: string,
+    downloadDescription: string,
+  ) => AgentUpgradeMethod = (
+    method: CollectorFilesInstallMethod,
+    label: string,
+    downloadDescription: string,
+  ): AgentUpgradeMethod => {
+    return {
+      label: label,
+      steps: [
+        {
+          title: DOWNLOAD_LATEST_FILES,
+          description: downloadDescription,
+          code: commands.download(method),
+        },
+        {
+          title: PULL_AND_RECREATE,
+          description: COLLECTOR_READS_CONFIG_AT_START,
+          code: commands.recreate(method),
+        },
+      ],
+    };
+  };
+
+  return {
+    methods: [
+      getMethod(
+        "install-script",
+        translationKey("Install script"),
+        translationKey(
+          "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.",
+        ),
+      ),
+      getMethod(
+        "docker-compose",
+        translationKey("Docker Compose"),
+        COMPOSE_FOLDER_DOWNLOAD,
+      ),
+    ],
+  };
+}
+
+/*
+ * The VMware agent's install script reuses the .env it finds, so running it
+ * again is the upgrade; a Docker Compose install takes the files itself.
+ */
+function getVMwareAgentGuide(): AgentUpgradeGuide {
+  return {
+    methods: [
+      {
+        label: translationKey("Install script"),
+        steps: [
+          {
+            title: translationKey("Run the install script again"),
+            description: translationKey(
+              "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
+            ),
+            code: getVMwareAgentUpgradeCommand(),
+          },
+        ],
+      },
+      {
+        label: translationKey("Docker Compose"),
+        steps: [
+          {
+            title: DOWNLOAD_LATEST_FILES,
+            description: COMPOSE_FOLDER_DOWNLOAD,
+            code: getVMwareAgentDownloadCommand(),
+          },
+          {
+            title: PULL_AND_RECREATE,
+            description: COLLECTOR_READS_CONFIG_AT_START,
+            code: VMWARE_AGENT_RECREATE_COMMAND,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+// The host guide's install methods, labelled as its picker labels them.
+const HOST_COLLECTOR_METHOD_LABELS: Record<HostCollectorMethod, string> = {
+  docker: translationKey("Docker"),
+  "linux-deb": translationKey("Debian / Ubuntu"),
+  "linux-rpm": translationKey("RHEL / Fedora"),
+  "linux-tarball": translationKey("Linux Tarball"),
+  macos: translationKey("macOS"),
+  windows: translationKey("Windows"),
+};
+
+/*
+ * A host's collector: the upstream otelcol-contrib, installed one of six
+ * ways, with the host guide's config.yaml. That config stamps the release
+ * it is for, so an upgrade saves it again from the setup guide (it holds
+ * the ingestion key, which only the guide fills in) and then installs the
+ * new release over the old one. A tab per install method the host's OS can
+ * have.
+ */
+function getHostCollectorGuide(
+  context: AgentUpgradeGuideContext,
+): AgentUpgradeGuide {
+  return {
+    methods: getHostCollectorMethodsForOsType(context.hostOsType).map(
+      (method: HostCollectorMethod): AgentUpgradeMethod => {
+        return {
+          label: HOST_COLLECTOR_METHOD_LABELS[method],
+          steps: [
+            {
+              title: translationKey("Save the new config"),
+              description: translationKey(
+                "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.",
+              ),
+              needsSetupGuide: true,
+            },
+            {
+              title: translationKey("Install the new release"),
+              description: translationKey(
+                "Run this in the folder that holds the new config.yaml.",
+              ),
+              code: getHostCollectorUpgradeCommand(method),
+              language: getHostCollectorCommandLanguage(method),
+            },
+          ],
+        };
+      },
+    ),
+  };
+}
+
 function getDatabaseAgentGuide(
   context: AgentUpgradeGuideContext,
 ): AgentUpgradeGuide {
@@ -231,9 +425,7 @@ function getDatabaseAgentGuide(
         },
         {
           title: translationKey("Recreate the agent"),
-          description: translationKey(
-            "The collector reads its config only when it starts.",
-          ),
+          description: COLLECTOR_READS_CONFIG_AT_START,
           code: DATABASE_AGENT_RECREATE_COMMAND,
         },
       ],
@@ -286,6 +478,52 @@ function getRunnerGuide(): AgentUpgradeGuide {
 }
 
 /*
+ * A resource's AI agent: its compose service pulled and recreated, from the
+ * directory of its docker-compose.yml (ResourceAiAgentInstall, the install
+ * instructions on the resource's AI agent page). On a Docker or Podman
+ * host, whose collector's install script starts it as a plain container,
+ * running that script again comes first.
+ */
+function getResourceAiAgentGuide(
+  context: AgentUpgradeGuideContext,
+): AgentUpgradeGuide {
+  const resourceType: AiResourceType | null = context.resourceType || null;
+  const methods: Array<AgentUpgradeMethod> = [];
+
+  if (resourceType && doesInstallScriptStartResourceAiAgent(resourceType)) {
+    methods.push({
+      label: translationKey("Install script"),
+      steps: [
+        {
+          title: translationKey("Run the install script again"),
+          description: translationKey(
+            "Run it on the host with the same settings. It pulls the agent's newest image and starts the agent again.",
+          ),
+        },
+      ],
+    });
+  }
+
+  methods.push({
+    label:
+      resourceType === AiResourceType.PodmanHost
+        ? translationKey("Podman Compose")
+        : translationKey("Docker Compose"),
+    steps: [
+      {
+        title: PULL_AND_RECREATE,
+        description: translationKey(
+          "Run this where the agent's docker-compose.yml is.",
+        ),
+        code: getResourceAiAgentUpgradeCommand(resourceType),
+      },
+    ],
+  });
+
+  return { methods: methods };
+}
+
+/*
  * The upgrade guide for a kind of agent, or null for a kind OneUptime does
  * not release (its version is never outdated, so nothing asks for one).
  */
@@ -322,6 +560,22 @@ export function getAgentUpgradeGuide(
       return getDatabaseAgentGuide(context);
     case AgentKind.Runner:
       return getRunnerGuide();
+    case AgentKind.ResourceAiAgent:
+      return getResourceAiAgentGuide(context);
+    case AgentKind.HostCollector:
+      return getHostCollectorGuide(context);
+    case AgentKind.ProxmoxAgent:
+      return getCollectorFilesGuide({
+        download: getProxmoxAgentDownloadCommand,
+        recreate: getProxmoxAgentRecreateCommand,
+      });
+    case AgentKind.CephAgent:
+      return getCollectorFilesGuide({
+        download: getCephAgentDownloadCommand,
+        recreate: getCephAgentRecreateCommand,
+      });
+    case AgentKind.VMwareAgent:
+      return getVMwareAgentGuide();
     default:
       return null;
   }

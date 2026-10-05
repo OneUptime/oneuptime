@@ -77,7 +77,8 @@ export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
     # install.sh downloads next to this file. The native \`vcenter\`
     # receiver talks to vCenter directly, so no exporter sidecar is
     # needed. This is the version Tests/Ops/validate-collector-configs.sh
-    # validates the config against; bump the two together.
+    # validates the config against, and the one the config reports as the
+    # agent's version (oneuptime.agent.version); bump the three together.
     image: otel/opentelemetry-collector-contrib:0.161.0
     container_name: oneuptime-vmware-agent
     volumes:
@@ -168,6 +169,15 @@ export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
       # VCENTER_ENDPOINT's host (the vCenter appliance, when it is named so).
       # With an IP address as the endpoint, or an appliance VM named
       # otherwise, put the appliance's VM name in ONEUPTIME_AI_PROTECTED_TARGETS.
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION
+      # (true or false) and ONEUPTIME_AI_FIXES (off, ask-for-approval,
+      # automatic or bypass-approval; fixes also need
+      # ONEUPTIME_AI_ALLOW_WRITES=true). Set either and the AI agent page in
+      # OneUptime follows them, read-only; leave both empty for the agent's
+      # defaults (investigation on, fixes Ask for approval when writes are
+      # allowed, else off).
+      - ONEUPTIME_AI_INVESTIGATION=\${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=\${ONEUPTIME_AI_FIXES:-}
       - ONEUPTIME_AI_ALLOW_WRITES=\${ONEUPTIME_AI_ALLOW_WRITES:-false}
       - ONEUPTIME_AI_WRITE_TARGETS=\${ONEUPTIME_AI_WRITE_TARGETS:-}
       - ONEUPTIME_AI_PROTECTED_TARGETS=\${ONEUPTIME_AI_PROTECTED_TARGETS:-}
@@ -277,6 +287,12 @@ processors:
       - key: vmware.vcenter.name
         value: "\${env:VMWARE_VCENTER_NAME}"
         action: upsert
+      # Shown as the agent version on the vCenter's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Defensive: the native vcenter receiver does not synthesize
       # service.name / service.instance.id, but OTEL_RESOURCE_ATTRIBUTES
       # or a customised pipeline could add them. OneUptime routes batches
@@ -374,6 +390,37 @@ export function getVMwareInstallScriptCommand(data: {
     [...environment, "bash install.sh"].join(" "),
   ].join("\n");
 }
+
+/*
+ * The commands that upgrade the agent. The collector image is pinned in
+ * docker-compose.yml and its config is a file beside it, so pulling alone
+ * never moves the agent forward. An install-script install runs the script
+ * again: it reuses every value in .env (nothing is asked again), downloads
+ * the latest docker-compose.yml and otel-collector-config.yaml and
+ * recreates the containers. A Docker Compose install downloads the two
+ * files itself and recreates the containers: Compose recreates a container
+ * for a new image or environment, never for a new config file, and the
+ * collector reads its config only when it starts. The guide's "Upgrade or
+ * uninstall the agent" topic and the dialog beside an outdated agent
+ * version (Components/AgentVersion) both show these.
+ */
+export function getVMwareAgentUpgradeCommand(): string {
+  return getVMwareInstallScriptCommand({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+  });
+}
+
+export function getVMwareAgentDownloadCommand(): string {
+  return [
+    `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml`,
+    `curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml`,
+  ].join("\n");
+}
+
+export const VMWARE_AGENT_RECREATE_COMMAND: string =
+  "docker compose pull\ndocker compose up -d --force-recreate";
 
 /**
  * The `.env` file of a Docker Compose install. The password is
@@ -522,8 +569,7 @@ function getDockerComposeStep(context: GuideContext): SetupGuideStep {
 ${codeBlock(
   "bash",
   `mkdir oneuptime-vmware-agent && cd oneuptime-vmware-agent
-curl -fsSLO ${VMWARE_AGENT_RAW_URL}/docker-compose.yml
-curl -fsSLO ${VMWARE_AGENT_RAW_URL}/otel-collector-config.yaml`,
+${getVMwareAgentDownloadCommand()}`,
 )}
 
 Create a \`.env\` file next to them:
@@ -733,30 +779,28 @@ What it may run and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastr
 }
 
 function getUpgradeTopic(context: GuideContext): SetupGuideTopic {
-  const pinNote: string =
+  const upgrade: string =
     context.method === "install-script"
-      ? "The collector image is pinned in `docker-compose.yml`. When a newer OneUptime release bumps the pin, re-run the install script: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml`, and starts the agent again."
-      : "The collector image is pinned in `docker-compose.yml`. When a newer OneUptime release bumps the pin, download `docker-compose.yml` and `otel-collector-config.yaml` again (the commands in step 3) before pulling.";
+      ? `**Upgrade** — re-run the install script. It reuses every value in your existing \`.env\` (nothing is prompted for again), downloads the latest \`docker-compose.yml\` and \`otel-collector-config.yaml\`, and recreates the agent with them:
 
-  const where: string =
-    context.method === "install-script"
-      ? ""
-      : "Run these in the agent's folder, the one with `docker-compose.yml`.\n\n";
+${codeBlock("bash", getVMwareAgentUpgradeCommand())}`
+      : `Run these in the agent's folder, the one with \`docker-compose.yml\`.
+
+**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` again; your \`.env\` stays, and a change you made to either file has to be made again:
+
+${codeBlock("bash", getVMwareAgentDownloadCommand())}
+
+Then pull the images and recreate the agent, so the collector reads its new config:
+
+${codeBlock("bash", VMWARE_AGENT_RECREATE_COMMAND)}`;
 
   return {
     title: "Upgrade or uninstall the agent",
-    summary: "Pull the latest images, or stop and remove the agent.",
-    markdown: `${where}**Upgrade:**
+    summary:
+      "Download the latest files and recreate the agent, or stop and remove it.",
+    markdown: `${upgrade}
 
-${codeBlock(
-  "bash",
-  inAgentFolder(context.method, [
-    "docker compose pull",
-    "docker compose up -d",
-  ]),
-)}
-
-${pinNote}
+The config reports the collector version it pins as the vCenter's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
 
 **Uninstall:**
 

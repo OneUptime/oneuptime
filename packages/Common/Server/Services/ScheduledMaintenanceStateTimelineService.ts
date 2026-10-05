@@ -19,7 +19,7 @@ import ObjectID from "../../Types/ObjectID";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
-import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -31,6 +31,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -142,9 +143,13 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
-      const scheduledMaintenanceStateId: ObjectID | undefined | null =
-        createBy.data.scheduledMaintenanceStateId ||
-        createBy.data.scheduledMaintenanceState?.id;
+      // Under either of its names; the two must agree.
+      const scheduledMaintenanceStateId: ObjectID | null =
+        RelationIdUtil.readConsistent(
+          createBy.data as unknown as Record<string, unknown>,
+          ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
+          "Scheduled Maintenance State",
+        );
 
       if (!scheduledMaintenanceStateId) {
         throw new BadDataException("scheduledMaintenanceStateId is null");
@@ -287,9 +292,10 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         }
       }
 
-      const publicNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["publicNote"] as string | undefined;
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
 
       if (publicNote) {
         const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
@@ -303,30 +309,23 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
           Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
 
-        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-        if (
-          scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
-        ) {
-          createBy.data.subscriberNotificationStatus =
-            StatusPageSubscriberNotificationStatus.Success;
-        }
-
         await ScheduledMaintenancePublicNoteService.create({
           data: scheduledMaintenancePublicNote,
           props: createBy.props,
         });
       }
 
-      // Set notification status based on shouldStatusPageSubscribersBeNotified
-      if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.";
-      } else if (createBy.data.shouldStatusPageSubscribersBeNotified === true) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
+      /*
+       * The change's own notification, decided once: when it notifies
+       * subscribers and a note came with it, the note is the one message
+       * they get (StateChangeSubscriberNotification).
+       */
+      StateChangeSubscriberNotification.applyToStateChange({
+        stateChange: createBy.data,
+        hasPublicNote: Boolean(publicNote),
+        skippedMessage:
+          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.",
+      });
 
       return {
         createBy,

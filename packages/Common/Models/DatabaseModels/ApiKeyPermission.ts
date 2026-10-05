@@ -91,11 +91,11 @@ export default class APIKeyPermission extends BaseModel {
       Permission.ProjectAdmin,
       Permission.ReadProjectApiKey,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectApiKeyPermissions,
-    ],
+    /*
+     * A permission row stays with the API key it was created for, under
+     * either name: apiKeyId is not updatable, and neither is the relation.
+     */
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "apiKeyId",

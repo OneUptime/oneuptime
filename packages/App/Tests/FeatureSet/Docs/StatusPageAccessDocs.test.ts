@@ -83,11 +83,21 @@ describe("the English status pages guide", () => {
 
   it("says which choices need a plan, and which do not", () => {
     expect(section).toContain(
-      "On OneUptime Cloud, making a page private, or public again, needs the **Growth** plan",
+      "On OneUptime Cloud, making a page private needs the **Growth** plan",
     );
     expect(section).toContain(
       "Moving between **Only people who sign in** and **Anyone with the password** works on every plan",
     );
+  });
+
+  it("says a page can always be made public again, on any plan, and what making it private again takes", () => {
+    expect(section).toContain(
+      "Making it public again — **Anyone with the link** — works on every plan",
+    );
+    expect(section).toContain(
+      "the dialog says that making it private again needs **Growth**",
+    );
+    expect(section).not.toContain("or public again, needs");
   });
 
   it("names Change Password, and asks for the password in the same dialog", () => {
@@ -114,7 +124,9 @@ describe("the English status pages guide", () => {
     expect(section).toContain(
       "While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds.",
     );
-    expect(section).toContain("changing it needs the **Scale** plan");
+    expect(section).toContain(
+      "changing it needs the **Scale** plan; emptying it works on every plan.",
+    );
   });
 
   it("keeps the SSO, OIDC and SCIM paragraph whole", () => {

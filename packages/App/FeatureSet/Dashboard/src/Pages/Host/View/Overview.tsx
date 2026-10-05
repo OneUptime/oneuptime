@@ -2019,10 +2019,27 @@ const HostOverview: FunctionComponent<
                           return Boolean(item.agentVersion);
                         },
                         getElement: (item: Host): ReactElement => {
+                          /*
+                           * A sign beside a collector older than the
+                           * release the host guide pins opens how to
+                           * upgrade it: the config saved again from the
+                           * setup guide (it holds the ingestion key), then
+                           * the new release, for the install methods this
+                           * host's OS can have.
+                           */
                           return (
                             <AgentVersion
                               kind={AgentKind.HostCollector}
                               version={item.agentVersion}
+                              setupGuideRoute={RouteUtil.populateRouteParams(
+                                RouteMap[
+                                  PageMap.HOST_VIEW_DOCUMENTATION
+                                ] as Route,
+                                { modelId: modelId },
+                              )}
+                              upgradeGuideContext={{
+                                hostOsType: item.osType,
+                              }}
                             />
                           );
                         },

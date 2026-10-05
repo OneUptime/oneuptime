@@ -27,7 +27,10 @@ import ts from "typescript";
  *      agentVersion: true }`, `key: "agentVersion"`) without a getElement
  *      that draws AgentVersion: a FieldType.Text field shows the bare value;
  *   5. the hero's "Agent {{version}}" chip anywhere but the component;
- *   6. a stale entry in either list.
+ *   6. a stale entry in either list;
+ *   7. an AgentVersion for a kind whose upgrade has a step only the setup
+ *      guide can fill in (a key picked there) without the guide's route,
+ *      which would leave the dialog naming a guide it cannot link to.
  *
  * Rendering is tested in Common/Tests/App/Dashboard/AgentVersion.test.tsx.
  */
@@ -115,7 +118,34 @@ const DISPLAYS: Record<string, Array<string>> = {
   "packages/App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview.tsx": [
     "RumSdk",
   ],
+  // The cluster's AI agent page: the Kubernetes AI agent ships in the chart.
+  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx": [
+    "KubernetesAgent",
+  ],
+  // Every other resource's AI agent page.
+  "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentPage.tsx":
+    ["ResourceAiAgent"],
+  // The Overviews' AI agent cards: a cluster's, and every other resource's.
+  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatusSummaryCard.tsx":
+    ["KubernetesAgent"],
+  "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard.tsx":
+    ["ResourceAiAgent"],
 };
+
+/*
+ * The kinds whose upgrade dialog has a step that needs the setup guide: the
+ * Docker and Podman CLI runs (the docker run command with a key), the
+ * Database agent's Kubernetes Deployment, and a host's config.yaml (it
+ * holds the ingestion key). Common/Tests/App/Dashboard/
+ * AgentUpgradeGuides.test.ts holds the dialog to the same list: change both
+ * together.
+ */
+const KINDS_NEEDING_SETUP_GUIDE: Array<string> = [
+  "DockerAgent",
+  "PodmanAgent",
+  "DatabaseAgent",
+  "HostCollector",
+];
 
 /*
  * Files that read agentVersion without drawing it as a version on a
@@ -124,10 +154,6 @@ const DISPLAYS: Record<string, Array<string>> = {
 const NOT_DRAWN: Record<string, string> = {
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/RumInstrumentation.ts":
     "Reads the SDK version only to tell whether the RUM SDK ever reported; it draws nothing.",
-  "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts":
-    "The cluster AI page's status line names the Kubernetes AI agent's version in a sentence; the ai-access-synced-with-agent task moves it onto AgentVersion.",
-  "packages/App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentStatus.ts":
-    "The resource AI page's status line names the resource AI agent's version in a sentence; the ai-access-synced-with-agent task moves it onto AgentVersion.",
 };
 
 const AGENT_KIND_SOURCE: string = fs.readFileSync(
@@ -402,6 +428,13 @@ describe("every front-end file that mentions agentVersion is accounted for", () 
     }
   });
 
+  test("the kinds needing the setup guide are AgentKind's members", () => {
+    const members: Array<string> = agentKindMembers();
+    for (const kind of KINDS_NEEDING_SETUP_GUIDE) {
+      expect(members).toContain(kind);
+    }
+  });
+
   test("every agent kind is drawn somewhere", () => {
     const drawn: Set<string> = new Set(Object.values(DISPLAYS).flat());
     expect(
@@ -484,6 +517,32 @@ describe.each(Object.entries(DISPLAYS))(
         }
       });
       expect(violations).toEqual([]);
+    });
+
+    test("passes the setup guide's route wherever the kind's upgrade needs it", () => {
+      const missing: Array<string> = [];
+      visit(sourceFile, (node: ts.Node): void => {
+        if (
+          !(ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) ||
+          !isAgentVersionElement(node)
+        ) {
+          return;
+        }
+        let needsGuide: boolean = false;
+        visit(attributeOf(node, "kind") as ts.Node, (inner: ts.Node): void => {
+          if (
+            ts.isPropertyAccessExpression(inner) &&
+            inner.expression.getText() === "AgentKind" &&
+            KINDS_NEEDING_SETUP_GUIDE.includes(inner.name.text)
+          ) {
+            needsGuide = true;
+          }
+        });
+        if (needsGuide && !attributeOf(node, "setupGuideRoute")) {
+          missing.push(`${file}:${lineOf(sourceFile, node)}`);
+        }
+      });
+      expect(missing).toEqual([]);
     });
 
     test("every details field or table column on agentVersion draws it with AgentVersion", () => {

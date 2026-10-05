@@ -69,6 +69,8 @@ Two naming quirks worth knowing before you go looking:
 
 Outside an individual page, the **Status Pages** section itself lists **All Status Pages**, and a **More** section holds **Announcements**. A collapsed **Settings** section holds **Announcement Templates**, **Subscriber Templates**, **Custom Fields**, **Owner Rules** and **Label Rules**, which are project-wide and shared across every status page. A collapsed **Advanced** section holds **Archived**: the status pages you took offline (see [Archiving a status page](#archiving-a-status-page)).
 
+**Label Rules** and **Owner Rules** label new status pages and give them owners. A rule takes two steps — **Match**, the conditions a status page must meet, then **Labels** (or **Owners**), what the rule adds — and its **Name** is filled in from what you pick. A new rule has to add at least one label or owner; editing one never insists, and the list marks an older rule that adds nothing **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+
 ## What visitors see
 
 The public page is its own app, with a small set of routes:
@@ -115,7 +117,7 @@ What visitors see is set in one card: **What your status page shows**, on **Stat
 
 **A list that is off** is gone from the page, with its item in the nav bar if it has one; its public endpoint refuses, and the page's subscribers are not notified about that kind of event. Its row then shows only its switch: how far back a hidden list goes, and whether it shows labels, change nothing.
 
-**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own: a page whose overall uptime percent is already on can change its precision on any plan.
+**Plans.** On OneUptime Cloud, a setting your plan cannot change shows the plan it needs beside it. The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan, and each saves on its own: a page whose overall uptime percent is already on can change its precision on any plan. Putting a setting back the way a new page has it — showing a list again, hiding labels or the overall uptime percent, showing the "Powered by OneUptime" line, the episodes' history back to 14 days — works on every plan, so nothing a trial changed stays that way for want of a plan: the switch says it can still go back, and which plan it takes to change it again.
 
 Whether the page shows a **Subscribe** item (**Show Subscriber Page**, `showSubscriberPageOnStatusPage`, on by default), and which channels visitors can subscribe by, are not set on this screen: both are in the **Channels** card on **Subscribers → Subscriber Settings** (see [Subscription channels](/docs/status-pages/subscribers#subscription-channels)).
 
@@ -141,7 +143,7 @@ Picking a choice asks you to confirm, saying what changes for visitors, and save
 
 **What it stores.** The choice is three columns, which the API and Terraform read and write as before: `isPublicStatusPage`, `enableMasterPassword` and `masterPassword`. Visitors are asked for the password only on a page that is not public, with `enableMasterPassword` on and a password set; a private page with the switch on but no password is a sign-in page. Picking **Anyone with the link** also turns `enableMasterPassword` off, since a public page never asks for it. The **Access** screen writes only the columns a choice changes.
 
-**Plans.** On OneUptime Cloud, making a page private, or public again, needs the **Growth** plan: on a lower plan those choices show the plan they need and can't be picked. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
+**Plans.** On OneUptime Cloud, making a page private needs the **Growth** plan: on a lower plan the two private choices show the plan they need and can't be picked. Making it public again — **Anyone with the link** — works on every plan, so a page left private when a trial ended, or after a move to a lower plan, can always be opened up; the dialog says that making it private again needs **Growth**. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
 
 ### Private users
 
@@ -157,7 +159,7 @@ Under the providers, the **SSO Settings** card holds the **Require SSO for Login
 
 ### IP allowlist
 
-Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan.
+Under **More settings** on **Access**, the **IP Allowlist** card (the `ipWhitelist` column) limits a page to known networks. It applies whoever the page is open to: a visitor from any other address is refused, even with the password or a private user account. Enter one entry per line — an IPv4 or IPv6 address, or an IPv4 range such as `10.0.0.0/8`; a line that is neither is refused when you save. Leave it empty to let every address in. While the list is in force, the folded **More settings** header shows **IP Allowlist** with the number of entries it holds. On OneUptime Cloud, changing it needs the **Scale** plan; emptying it works on every plan.
 
 ## The embeddable badge and the RSS feed
 

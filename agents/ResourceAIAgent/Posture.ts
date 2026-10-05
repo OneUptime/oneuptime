@@ -268,6 +268,12 @@ export function buildPosture(data: {
       ...data.config.identityDetails,
     }),
     reportedAt: (data.now || new Date()).toISOString(),
+    /*
+     * What the .env lets OneUptime AI do here (or the agent's defaults, when
+     * it names neither setting). OneUptime applies it to the resource and
+     * the resource's AI agent page shows it read-only.
+     */
+    aiSettings: { ...data.config.aiSettings },
   };
 
   if (data.config.agentVersion) {

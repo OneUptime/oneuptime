@@ -400,7 +400,12 @@ function aiMenuSection(): string {
  * exactly when Enable AI is.
  */
 describe("the project's AI switches", () => {
-  test("AI Features is Enable AI's own switch, saving on flip, and no card", () => {
+  /*
+   * Enable AI is the switch itself, never a card behind an Edit button. The
+   * page's one card is the project's Daily limits, folded under More
+   * settings, and it edits the daily limit columns alone - never Enable AI.
+   */
+  test("AI Features is Enable AI's own switch, saving on flip; its one card is Daily limits, under More settings", () => {
     // Code only: the comment that says what it replaced may name it.
     const source: string = read("Pages", "Settings", "AIFeatures.tsx")
       .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -410,8 +415,23 @@ describe("the project's AI switches", () => {
     expect(source).toContain("<ModelSwitchCard<Project>");
     expect(source).toContain("column={ENABLE_AI_COLUMN}");
     expect(source).toContain("getConfirmation={getEnableAiConfirmation}");
-    expect(source).not.toContain("<CardModelDetail");
     expect(source).not.toContain("Edit AI Features");
+
+    expect(source.split("<CardModelDetail").length - 1).toBe(1);
+    const fold: number = source.indexOf("<AdvancedPageSection");
+    const card: number = source.indexOf("<CardModelDetail");
+    expect(fold).toBeGreaterThan(source.indexOf("<ModelSwitchCard"));
+    expect(card).toBeGreaterThan(fold);
+    expect(card).toBeLessThan(source.indexOf("</AdvancedPageSection>"));
+
+    // The card's fields are the daily limits, and Enable AI is none of them.
+    const fields: string = source.slice(
+      source.indexOf("const formFields"),
+      source.indexOf("return ("),
+    );
+    expect(fields).toContain("aiDailyTokenLimit: true");
+    expect(fields).toContain("aiDailySpendLimitInUSD: true");
+    expect(fields).not.toContain("enableAi");
   });
 
   test("AI Features never shows the switches folded into Enable AI", () => {

@@ -149,7 +149,7 @@ To enable it:
 4. **Swap the collector image.** The stock `otel/opentelemetry-collector-contrib` image is built `FROM scratch`: it contains no `journalctl` binary (which the journald receiver shells out to) and runs as a non-root user that cannot read the journal. Build a thin wrapper and point `image:` in `docker-compose.yml` at it:
 
    ```dockerfile
-   FROM otel/opentelemetry-collector-contrib:latest AS otelcol
+   FROM otel/opentelemetry-collector-contrib:0.161.0 AS otelcol
    FROM debian:stable-slim
    RUN apt-get update \
        && apt-get install -y --no-install-recommends systemd \
@@ -242,11 +242,19 @@ The unit assumes the agent lives in `/opt/oneuptime-proxmox-agent` (the install 
 
 ## Upgrading the Agent
 
+The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the cluster's **Overview**. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
+
+The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Download both files again (your `.env` stays; re-apply any change you made to the two files), then pull the images and recreate the agent so the collector reads its new config:
+
 ```bash
 cd /opt/oneuptime-proxmox-agent
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
+
+Installed it with Docker Compose in a folder of your own? Run the same commands there, without the `cd`.
 
 ## Uninstalling the Agent
 
@@ -300,9 +308,9 @@ OneUptime auto-registers Proxmox clusters by `proxmox.cluster.name`, taken from 
 
 The agent's `docker-compose.yml` also runs the **Proxmox AI agent**, `oneuptime-proxmox-ai-agent` (image `oneuptime/resource-ai-agent:release`). While OneUptime AI investigates an incident or alert on this cluster it runs read-only `pvesh` commands through it — `pvesh get /cluster/status`, `pvesh get /nodes/pve1/qemu/101/status/current`, `pvesh get /nodes/pve1/tasks --errors 1 --limit 20` — and, only if you allow it, applies fixes such as starting or rebooting a guest. There is no `pvesh` binary in it: each command becomes exactly one call to the Proxmox VE API at `PVE_HOST`, with a token from the same `.env`. It registers as the cluster named `PROXMOX_CLUSTER_NAME`, like the collector, and shows up on the cluster's **AI → AI agent** page in OneUptime.
 
-- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cluster with it, and the cluster's **Overview** shows the agent's status. To stop, turn investigation off under **What AI may do** on the AI agent page, or leave the agent out.
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cluster with it, and the cluster's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or leave the agent out.
 - **The API token is the hard limit.** Investigations use the collector's PVEAuditor token (`PVE_API_TOKEN_ID` / `PVE_API_TOKEN_SECRET`), which can read and nothing else; if you run your own exporter and have no token in `.env`, add one. Fixes need a token of the AI agent's own that may power guests (`VM.PowerMgmt`, for example the `PVEVMUser` role on `/vms` or on one pool), set as `ONEUPTIME_AI_PVE_API_TOKEN_ID` / `ONEUPTIME_AI_PVE_API_TOKEN_SECRET`.
-- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (VMIDs such as `100,101`, and `<node>/<service>` for node services) limits what a fix may touch. If the agent runs in a guest of this cluster, put that guest's VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`. Then choose on the AI agent page whether each fix needs a person's approval.
+- It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`; `ONEUPTIME_AI_WRITE_TARGETS` (VMIDs such as `100,101`, and `<node>/<service>` for node services) limits what a fix may touch. If the agent runs in a guest of this cluster, put that guest's VMID in `ONEUPTIME_AI_PROTECTED_TARGETS`. `ONEUPTIME_AI_FIXES` in the same `.env` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - Like the exporter, it does not verify the API's self-signed certificate unless you set `PVE_VERIFY_SSL=true` or point `PVE_CA_FILE` at the cluster's CA (`/etc/pve/pve-root-ca.pem`, mounted into the container).
 - It runs as UID 1000 with no capabilities and a read-only root filesystem, and never reads `/access`, opens a console or changes configuration. Delete the `oneuptime-proxmox-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
 

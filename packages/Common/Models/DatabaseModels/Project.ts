@@ -1537,6 +1537,69 @@ export default class Project extends TenantModel {
   public enableAi?: boolean = undefined;
 
   /*
+   * The project's own daily limits on OneUptime AI, a ceiling above the
+   * incident and alert limits: see Types/AI/ProjectAiDailyLimits. Both are
+   * unset (no limit) until someone sets one, and only the people who may
+   * turn AI on or off may set them - a project owner, or someone with
+   * Manage Billing - since they decide what AI may cost the project. A
+   * project is never created with one: new projects have no limits, like
+   * every other AI limit.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Token Limit",
+    description:
+      "The most tokens OneUptime AI may use in this project each UTC day, across every AI feature: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, workflows, runbooks and Slack or Microsoft Teams questions. Once it is reached, new AI work is refused until midnight UTC. The incident and alert daily limits still apply under it. Unset means no limit; a limit is a whole number of at least 1 (to turn AI off, use Enable AI).",
+    example: 200000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailyTokenLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily AI Spend Limit (USD)",
+    description:
+      "OneUptime Cloud: the most AI credits, in whole US dollars, OneUptime AI may spend in this project each UTC day. Only calls billed to the project's AI credits count, so it never stops AI that runs on the project's own LLM provider. Once it is reached, billed AI work is refused until midnight UTC. Ignored where AI is not billed (self-hosted). Unset means no limit; a limit is at least 1 (to turn AI off, use Enable AI).",
+    example: 25,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiDailySpendLimitInUSD?: number = undefined;
+
+  /*
    * The per-feature AI switches below (this one down to
    * autoArchiveNonActionableExceptions) are ON for projects created from
    * now on, and their column default stays OFF on purpose. ProjectService's
@@ -2934,7 +2997,7 @@ export default class Project extends TenantModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "ResellerPlanId",
+    manyToOneRelationColumn: "resellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
     hideColumnInDocumentation: true,

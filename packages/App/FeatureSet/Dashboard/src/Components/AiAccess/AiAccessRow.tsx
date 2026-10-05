@@ -15,27 +15,28 @@ import React, { ReactElement, ReactNode } from "react";
  * effect, and the every-mode protections, folded away until asked for.
  */
 
+/*
+ * A setting has two looks only: off is gray, on is green, whatever the
+ * mode (see AiAccessBadgeTone). Red (danger) is for an AI agent that
+ * stopped working, never a setting, and amber stays for what needs doing.
+ * Every class here has a dark-theme rule in Theme.css (App/Tests/
+ * Dashboard/AiAccessDarkMode.test.ts).
+ */
 const BADGE_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
-  off: "bg-gray-50 text-gray-600 ring-gray-500/20",
-  on: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  automatic: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
-  bypass: "bg-amber-50 text-amber-800 ring-amber-600/30",
-  danger: "bg-red-50 text-red-700 ring-red-600/20",
+  off: "bg-gray-50 text-gray-600 ring-gray-200",
+  on: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  danger: "bg-red-50 text-red-700 ring-red-200",
 };
 
 const BADGE_DOT_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
-  off: "bg-gray-400",
+  off: "bg-gray-300",
   on: "bg-emerald-500",
-  automatic: "bg-indigo-500",
-  bypass: "bg-amber-500",
   danger: "bg-red-500",
 };
 
 const ROW_ICON_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   off: "bg-gray-100 text-gray-500",
   on: "bg-emerald-50 text-emerald-600",
-  automatic: "bg-indigo-50 text-indigo-600",
-  bypass: "bg-amber-50 text-amber-600",
   danger: "bg-red-50 text-red-600",
 };
 
@@ -115,6 +116,54 @@ export function AiAccessRow(props: AiAccessRowProps): ReactElement {
   );
 }
 
+/*
+ * Where investigation and fixes are set, above the rows. While the agent
+ * sets them (a lock: they are read-only here) it says where, and the
+ * card's Change button shows the command that changes them. For an agent
+ * that could carry them but does not yet, it says they are chosen here and
+ * offers to show how to move them to the agent.
+ */
+export function AiAccessSetBy(props: {
+  text: string;
+  isSetByAgent: boolean;
+  actionText?: string | undefined;
+  onAction?: (() => void) | undefined;
+  dataTestId: string;
+}): ReactElement {
+  return (
+    <div
+      className="mb-5 flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 sm:flex-row sm:items-start sm:gap-3"
+      data-testid={props.dataTestId}
+      data-set-by-agent={props.isSetByAgent ? "true" : "false"}
+    >
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+        <Icon
+          icon={props.isSetByAgent ? IconProp.Lock : IconProp.CommandLine}
+          className="mt-0.5 h-4 w-4 flex-none text-gray-500"
+        />
+        <p
+          className="min-w-0 text-sm leading-6 text-gray-700"
+          data-testid={`${props.dataTestId}-text`}
+        >
+          {props.text}
+        </p>
+      </div>
+      {props.actionText && props.onAction ? (
+        <button
+          type="button"
+          onClick={props.onAction}
+          className="flex-none self-start rounded-md text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 sm:pl-2"
+          data-testid={`${props.dataTestId}-action`}
+        >
+          {props.actionText}
+        </button>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+}
+
 // The rows, divided by a hairline.
 export function AiAccessRows(props: { children: ReactNode }): ReactElement {
   return (
@@ -161,10 +210,30 @@ export function AiAccessAllowlist(props: {
   title: string;
   patterns: ReadonlyArray<string>;
   dataTestId: string;
+  /*
+   * An edit action beside the title, for a page whose Change button opens
+   * something else (the agent sets the modes; the allowlist stays here).
+   */
+  editText?: string | undefined;
+  onEdit?: (() => void) | undefined;
 }): ReactElement {
   return (
     <div data-testid={props.dataTestId}>
-      <p className="text-xs font-medium text-gray-700">{props.title}</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="text-xs font-medium text-gray-700">{props.title}</p>
+        {props.editText && props.onEdit ? (
+          <button
+            type="button"
+            onClick={props.onEdit}
+            className="rounded-md text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+            data-testid={`${props.dataTestId}-edit`}
+          >
+            {props.editText}
+          </button>
+        ) : (
+          <></>
+        )}
+      </div>
       {props.patterns.length > 0 ? (
         <>
           <p className="mt-0.5 text-xs leading-5 text-gray-500">
@@ -244,7 +313,7 @@ export function AiAccessPermissionNote(props: {
 }): ReactElement {
   return (
     <div
-      className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2.5"
+      className="flex gap-3 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2.5"
       data-testid={props.dataTestId}
     >
       <Icon

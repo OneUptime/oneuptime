@@ -128,8 +128,12 @@ describe("host asset attributes are wired end to end (issue #3866)", () => {
 
     test("a resource processor is shown, wired into the metrics pipeline", () => {
       expect(generated()).toContain("resource/oneuptime-hardware");
+      /*
+       * After the config's own `resource`, which reports the collector's
+       * version: the fragment's pipeline replaces the config's, so it keeps it.
+       */
       expect(generated()).toContain(
-        "processors: [resourcedetection, resource/oneuptime-hardware, batch]",
+        "processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]",
       );
     });
 

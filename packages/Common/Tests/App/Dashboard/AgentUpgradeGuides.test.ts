@@ -5,6 +5,7 @@ import {
   AGENT_KINDS,
   AgentKind,
   AgentLatestVersionSource,
+  HOST_COLLECTOR_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   AgentUpgradeGuide,
@@ -72,6 +73,54 @@ import {
   RUNNER_IMAGE,
   getRunnerUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
+import {
+  PROXMOX_AGENT_INSTALL_DIR,
+  PROXMOX_AGENT_RAW_URL,
+  PROXMOX_CONNECT_METHODS,
+  ProxmoxAgentInstallMethod,
+  ProxmoxConnectMethod,
+  getProxmoxAgentDownloadCommand,
+  getProxmoxAgentRecreateCommand,
+  getProxmoxSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
+  CEPH_AGENT_INSTALL_DIR,
+  CEPH_AGENT_RAW_URL,
+  CEPH_INSTALL_METHODS,
+  CephInstallMethod,
+  getCephAgentDownloadCommand,
+  getCephAgentRecreateCommand,
+  getCephSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  VMWARE_AGENT_INSTALL_DIR,
+  VMWARE_AGENT_RAW_URL,
+  VMWARE_AGENT_RECREATE_COMMAND,
+  VMWARE_INSTALL_METHODS,
+  VMwareInstallMethod,
+  getVMwareAgentDownloadCommand,
+  getVMwareAgentUpgradeCommand,
+  getVMwareSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  HOST_COLLECTOR_METHODS,
+  HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
+  HOST_INSTALL_METHODS,
+  HostCollectorMethod,
+  HostInstallMethod,
+  getHostCollectorMethodsForOsType,
+  getHostCollectorUpgradeCommand,
+  getHostSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import {
+  COMPOSE_DIRECTORY_COMMENT,
+  getResourceAiAgentInstall,
+  getResourceAiAgentServiceName,
+  getResourceAiAgentUpgradeCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import AiResourceType, {
+  ALL_AI_RESOURCE_TYPES,
+} from "../../../Types/ResourceAiAgent/AiResourceType";
 
 /*
  * The dialog beside an outdated agent version says how to upgrade THAT kind
@@ -145,14 +194,33 @@ function expectCommandsFromGuide(
   }
 }
 
-function upgradeTopicOf(guide: SetupGuideContent): SetupGuideTopic {
+function upgradeTopicOf(
+  guide: SetupGuideContent,
+  title: string = "Upgrade or uninstall the agent",
+): SetupGuideTopic {
   const topic: SetupGuideTopic | undefined = (guide.advanced || []).find(
     (candidate: SetupGuideTopic): boolean => {
-      return candidate.title === "Upgrade or uninstall the agent";
+      return candidate.title === title;
     },
   );
   expect(topic).toBeDefined();
   return topic as SetupGuideTopic;
+}
+
+function labelsOf(guide: AgentUpgradeGuide): Array<string> {
+  return guide.methods.map((method: AgentUpgradeMethod): string => {
+    return method.label;
+  });
+}
+
+// The code blocks of a topic's markdown, trimmed, in order.
+function topicCodeBlocks(topic: SetupGuideTopic): Array<string> {
+  return getSetupGuideCodeBlocks({
+    steps: [],
+    advanced: [topic],
+  }).map((block: string): string => {
+    return block.trim();
+  });
 }
 
 describe("which kinds have an upgrade guide", () => {
@@ -185,6 +253,9 @@ describe("which kinds have an upgrade guide", () => {
     const contexts: Array<Parameters<typeof getAgentUpgradeGuide>[1]> = [
       {},
       { databaseEngine: "postgresql", databaseRunsInKubernetes: true },
+      { hostOsType: "linux" },
+      { hostOsType: "windows" },
+      { hostOsType: "darwin" },
     ];
     for (const kind of Object.values(AgentKind)) {
       for (const context of contexts) {
@@ -213,6 +284,44 @@ describe("which kinds have an upgrade guide", () => {
         }
       }
     }
+  });
+});
+
+/*
+ * Where a step needs the setup guide (a command only the guide can fill in,
+ * with a key picked there), the dialog links to it when the page passes the
+ * guide's route. App/Tests/Dashboard/AgentVersionDisplayGuard.test.ts holds
+ * every page drawing one of these kinds to passing setupGuideRoute, with the
+ * same list: change both together.
+ */
+describe("the kinds whose upgrade needs the setup guide", () => {
+  const NEEDS_SETUP_GUIDE: Array<AgentKind> = [
+    AgentKind.DockerAgent,
+    AgentKind.PodmanAgent,
+    AgentKind.DatabaseAgent,
+    AgentKind.HostCollector,
+  ];
+
+  test("are exactly these, in every context", () => {
+    const contexts: Array<Parameters<typeof getAgentUpgradeGuide>[1]> = [
+      {},
+      { databaseEngine: "postgresql", databaseRunsInKubernetes: true },
+      { hostOsType: "windows" },
+    ];
+    const needing: Set<AgentKind> = new Set();
+    for (const kind of Object.values(AgentKind)) {
+      for (const context of contexts) {
+        for (const method of getAgentUpgradeGuide(kind, context)?.methods ||
+          []) {
+          for (const step of method.steps) {
+            if (step.needsSetupGuide) {
+              needing.add(kind);
+            }
+          }
+        }
+      }
+    }
+    expect([...needing].sort()).toEqual([...NEEDS_SETUP_GUIDE].sort());
   });
 });
 
@@ -564,5 +673,525 @@ describe("Runner: the image again, then the setup command on the same page", () 
     expect(last.code).toBeUndefined();
     expect(last.needsSetupGuide).toBeFalsy();
     expect(last.description).toContain("Setup Instructions");
+  });
+});
+
+/*
+ * A resource's AI agent (oneuptime/resource-ai-agent), drawn on every
+ * resource's AI agent page: its compose service pulled and recreated, as
+ * the page's install instructions started it.
+ */
+describe("Resource AI agent: its compose service pulled and recreated", () => {
+  test("without the resource, every service of the docker-compose.yml it sits in", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent);
+    expect(
+      guide.methods.map((method: AgentUpgradeMethod) => {
+        return method.label;
+      }),
+    ).toEqual(["Docker Compose"]);
+    expect(codesOf(guide.methods[0]!)).toEqual([
+      `${COMPOSE_DIRECTORY_COMMENT}\ndocker compose pull\ndocker compose up -d`,
+    ]);
+  });
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: pulls and recreates exactly the service the install instructions start",
+    (resourceType: AiResourceType) => {
+      const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+        resourceType,
+      });
+      const compose: AgentUpgradeMethod =
+        guide.methods[guide.methods.length - 1]!;
+      const service: string = getResourceAiAgentServiceName(resourceType);
+      const code: string = codesOf(compose)[0]!;
+
+      expect(code).toBe(getResourceAiAgentUpgradeCommand(resourceType));
+      expect(code).toContain(`compose pull ${service}`);
+      // The same start the install instructions give, from the same place.
+      const start: string = getResourceAiAgentInstall({
+        resourceType,
+        resourceId: "id",
+      }).startCommand;
+      expect(code.endsWith(start.split("\n").pop()!)).toBe(true);
+      expect(code.split("\n")[0]).toBe(start.split("\n")[0]);
+    },
+  );
+
+  test("Podman hosts use Podman Compose", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+      resourceType: AiResourceType.PodmanHost,
+    });
+    const compose: AgentUpgradeMethod =
+      guide.methods[guide.methods.length - 1]!;
+    expect(compose.label).toBe("Podman Compose");
+    expect(codesOf(compose)[0]).toContain("podman compose pull");
+  });
+
+  test.each([AiResourceType.DockerHost, AiResourceType.PodmanHost])(
+    "%s: the collector's install script, which starts the agent as a container, comes first",
+    (resourceType: AiResourceType) => {
+      const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+        resourceType,
+      });
+      expect(guide.methods[0]!.label).toBe("Install script");
+      expect(guide.methods[0]!.steps[0]!.title).toBe(
+        "Run the install script again",
+      );
+      expect(guide.methods).toHaveLength(2);
+    },
+  );
+
+  test("a resource whose collector's compose file ships the agent has the Compose way only", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.ResourceAiAgent, {
+      resourceType: AiResourceType.ProxmoxCluster,
+    });
+    expect(guide.methods).toHaveLength(1);
+    expect(codesOf(guide.methods[0]!)[0]).toContain(
+      "cd /opt/oneuptime-proxmox-agent",
+    );
+  });
+});
+
+/*
+ * The Proxmox and Ceph agents: the stock collector and a config, pinned in
+ * the docker-compose.yml beside it. Installed with the install script or
+ * with Docker Compose, they upgrade the same way in the folder that holds
+ * them: both files again (the pin and the version stamp live in them), then
+ * the images pulled and the containers recreated, because the collector
+ * reads its config only when it starts.
+ */
+describe.each([
+  {
+    name: "Proxmox",
+    kind: AgentKind.ProxmoxAgent,
+    installDir: PROXMOX_AGENT_INSTALL_DIR,
+    rawUrl: PROXMOX_AGENT_RAW_URL,
+    methods: PROXMOX_CONNECT_METHODS.filter(
+      (option: SetupGuideOption<ProxmoxConnectMethod>): boolean => {
+        return option.key !== "native-push";
+      },
+    ) as Array<SetupGuideOption<string>>,
+    download: (method: string): string => {
+      return getProxmoxAgentDownloadCommand(
+        method as ProxmoxAgentInstallMethod,
+      );
+    },
+    recreate: (method: string): string => {
+      return getProxmoxAgentRecreateCommand(
+        method as ProxmoxAgentInstallMethod,
+      );
+    },
+    setupGuide: (method: string): SetupGuideContent => {
+      return getProxmoxSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        hasApiKey: true,
+        method: method as ProxmoxConnectMethod,
+      });
+    },
+  },
+  {
+    name: "Ceph",
+    kind: AgentKind.CephAgent,
+    installDir: CEPH_AGENT_INSTALL_DIR,
+    rawUrl: CEPH_AGENT_RAW_URL,
+    methods: CEPH_INSTALL_METHODS as Array<SetupGuideOption<string>>,
+    download: (method: string): string => {
+      return getCephAgentDownloadCommand(method as CephInstallMethod);
+    },
+    recreate: (method: string): string => {
+      return getCephAgentRecreateCommand(method as CephInstallMethod);
+    },
+    setupGuide: (method: string): SetupGuideContent => {
+      return getCephSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        hasApiKey: true,
+        method: method as CephInstallMethod,
+      });
+    },
+  },
+])(
+  "$name agent: the files again, then the containers recreated",
+  (agent: {
+    name: string;
+    kind: AgentKind;
+    installDir: string;
+    rawUrl: string;
+    methods: Array<SetupGuideOption<string>>;
+    download: (method: string) => string;
+    recreate: (method: string) => string;
+    setupGuide: (method: string) => SetupGuideContent;
+  }) => {
+    const guide: AgentUpgradeGuide = guideFor(agent.kind);
+
+    test("the tabs are the setup guide's agent install methods, in its order", () => {
+      expect(labelsOf(guide)).toEqual(
+        agent.methods.map((option: SetupGuideOption<string>): string => {
+          return option.label;
+        }),
+      );
+      expect(labelsOf(guide)).toEqual(["Install script", "Docker Compose"]);
+    });
+
+    test.each(["install-script", "docker-compose"])(
+      "%s: the files, then the recreate, each the guide's own upgrade block",
+      (key: string) => {
+        const label: string =
+          key === "install-script" ? "Install script" : "Docker Compose";
+        const method: AgentUpgradeMethod = methodLabelled(guide, label);
+        expect(codesOf(method)).toEqual([
+          agent.download(key),
+          agent.recreate(key),
+        ]);
+        expect(
+          method.steps.map((step: AgentUpgradeStep) => {
+            return step.title;
+          }),
+        ).toEqual([
+          "Download the latest files",
+          "Pull the latest images and recreate the agent",
+        ]);
+        // Nothing here needs a key, so nothing sends the reader to the guide.
+        expect(
+          method.steps.some((step: AgentUpgradeStep): boolean => {
+            return Boolean(step.needsSetupGuide);
+          }),
+        ).toBe(false);
+
+        const setupGuide: SetupGuideContent = agent.setupGuide(key);
+        expectCommandsFromGuide(method, setupGuide);
+        expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
+          expect.arrayContaining([agent.download(key), agent.recreate(key)]),
+        );
+      },
+    );
+
+    test("the install script's folder is entered first; a Compose install runs where it is", () => {
+      for (const code of codesOf(methodLabelled(guide, "Install script"))) {
+        expect(code.split("\n")[0]).toBe(`cd ${agent.installDir}`);
+      }
+      for (const code of codesOf(methodLabelled(guide, "Docker Compose"))) {
+        expect(code).not.toContain("cd ");
+      }
+    });
+
+    test("both files are downloaded again, from the agent's own folder of the repository", () => {
+      const download: string = agent.download("docker-compose");
+      expect(download).toBe(
+        [
+          `curl -fsSLO ${agent.rawUrl}/docker-compose.yml`,
+          `curl -fsSLO ${agent.rawUrl}/otel-collector-config.yaml`,
+        ].join("\n"),
+      );
+      // The same files the guide's own Compose install downloads.
+      const compose: string = getSetupGuideMarkdown(
+        agent.setupGuide("docker-compose"),
+      );
+      expect(compose).toContain(download);
+    });
+
+    test("the recreate pulls and forces new containers, so the new config is read", () => {
+      expect(agent.recreate("docker-compose")).toBe(
+        "docker compose pull\ndocker compose up -d --force-recreate",
+      );
+    });
+  },
+);
+
+test("a Proxmox cluster on the native push runs no agent, so its guide has nothing to upgrade", () => {
+  const markdown: string = getSetupGuideMarkdown(
+    getProxmoxSetupGuide({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      hasApiKey: true,
+      method: "native-push",
+    }),
+  );
+  expect(markdown).not.toContain("Upgrade or uninstall the agent");
+  expect(markdown).not.toContain("docker compose");
+});
+
+/*
+ * The VMware agent's install script reuses the .env it finds and recreates
+ * the containers, so running it again is the upgrade; a Docker Compose
+ * install takes both files again itself.
+ */
+describe("VMware agent: the install script again, or the files again", () => {
+  const guide: AgentUpgradeGuide = guideFor(AgentKind.VMwareAgent);
+
+  test("the tabs are the setup guide's own install methods, in its order", () => {
+    expect(labelsOf(guide)).toEqual(
+      VMWARE_INSTALL_METHODS.map(
+        (option: SetupGuideOption<VMwareInstallMethod>): string => {
+          return option.label;
+        },
+      ),
+    );
+  });
+
+  test.each(
+    VMWARE_INSTALL_METHODS.map(
+      (option: SetupGuideOption<VMwareInstallMethod>) => {
+        return [option.key, option.label];
+      },
+    ),
+  )(
+    "%s: every command is the guide's own upgrade block",
+    (key: string, label: string) => {
+      const setupGuide: SetupGuideContent = getVMwareSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        hasApiKey: true,
+        method: key as VMwareInstallMethod,
+      });
+      const method: AgentUpgradeMethod = methodLabelled(guide, label);
+      expectCommandsFromGuide(method, setupGuide);
+      expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
+        expect.arrayContaining(codesOf(method)),
+      );
+    },
+  );
+
+  test("the script tab runs the install script with no key or URL: it reuses the .env", () => {
+    const script: AgentUpgradeMethod = methodLabelled(guide, "Install script");
+    expect(codesOf(script)).toEqual([getVMwareAgentUpgradeCommand()]);
+    expect(getVMwareAgentUpgradeCommand()).toBe(
+      `curl -sSL ${VMWARE_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
+    );
+    // A key or URL on the command would override what .env holds.
+    expect(getVMwareAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
+  });
+
+  test("the install script reuses the .env and recreates the containers it starts", () => {
+    const script: string = fs.readFileSync(
+      path.join(REPO_ROOT, "agents/VMwareAgent/install.sh"),
+      "utf8",
+    );
+    expect(script).toContain("reusing it.");
+    expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
+    expect(script).toContain(
+      `INSTALL_DIR="\${INSTALL_DIR:-${VMWARE_AGENT_INSTALL_DIR}}"`,
+    );
+  });
+
+  test("the Compose tab downloads both files, then pulls and recreates", () => {
+    expect(codesOf(methodLabelled(guide, "Docker Compose"))).toEqual([
+      getVMwareAgentDownloadCommand(),
+      VMWARE_AGENT_RECREATE_COMMAND,
+    ]);
+    expect(VMWARE_AGENT_RECREATE_COMMAND).toBe(
+      "docker compose pull\ndocker compose up -d --force-recreate",
+    );
+  });
+});
+
+/*
+ * A host's collector: the upstream otelcol-contrib installed one of six
+ * ways, running the host guide's config.yaml, which stamps the release it is
+ * for. The upgrade saves that config again from the guide (it holds the
+ * ingestion key) and installs the new release over the old, per install
+ * method; the tabs are the methods the host's OS can have.
+ */
+describe("Host collector: the config again, then the new release, per install method", () => {
+  const LABELS: Record<string, string> = {};
+  for (const option of HOST_INSTALL_METHODS) {
+    LABELS[option.key] = option.label;
+  }
+
+  function labelsFor(methods: Array<HostCollectorMethod>): Array<string> {
+    return methods.map((method: HostCollectorMethod): string => {
+      return LABELS[method] as string;
+    });
+  }
+
+  test("an unknown OS gets every method that installs a collector, labelled and ordered like the guide's picker", () => {
+    const guide: AgentUpgradeGuide = guideFor(AgentKind.HostCollector);
+    expect(labelsOf(guide)).toEqual(
+      HOST_INSTALL_METHODS.filter(
+        (option: SetupGuideOption<HostInstallMethod>): boolean => {
+          return option.key !== "kubernetes";
+        },
+      ).map((option: SetupGuideOption<HostInstallMethod>): string => {
+        return option.label;
+      }),
+    );
+    expect(labelsOf(guide)).toEqual(labelsFor([...HOST_COLLECTOR_METHODS]));
+  });
+
+  test.each([
+    ["linux", ["docker", "linux-deb", "linux-rpm", "linux-tarball"]],
+    ["Linux", ["docker", "linux-deb", "linux-rpm", "linux-tarball"]],
+    ["windows", ["windows"]],
+    ["darwin", ["macos"]],
+    ["freebsd", [...HOST_COLLECTOR_METHODS]],
+    ["", [...HOST_COLLECTOR_METHODS]],
+  ])("os.type %p offers %p", (osType: string, methods: Array<string>) => {
+    expect(getHostCollectorMethodsForOsType(osType)).toEqual(methods);
+    expect(
+      labelsOf(guideFor(AgentKind.HostCollector, { hostOsType: osType })),
+    ).toEqual(labelsFor(methods as Array<HostCollectorMethod>));
+  });
+
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )(
+    "%s: the config from the guide first, then the guide's own upgrade command",
+    (key: string) => {
+      const method: AgentUpgradeMethod = methodLabelled(
+        guideFor(AgentKind.HostCollector),
+        LABELS[key] as string,
+      );
+      expect(method.steps).toHaveLength(2);
+
+      const [config, install] = method.steps as [
+        AgentUpgradeStep,
+        AgentUpgradeStep,
+      ];
+      expect(config.title).toBe("Save the new config");
+      expect(config.needsSetupGuide).toBe(true);
+      expect(config.code).toBeUndefined();
+
+      expect(install.title).toBe("Install the new release");
+      expect(install.code).toBe(
+        getHostCollectorUpgradeCommand(key as HostCollectorMethod),
+      );
+      expect(install.language).toBe(key === "windows" ? "powershell" : "bash");
+
+      const setupGuide: SetupGuideContent = getHostSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        method: key as HostCollectorMethod,
+      });
+      expectCommandsFromGuide(method, setupGuide);
+      expect(
+        topicCodeBlocks(
+          upgradeTopicOf(setupGuide, HOST_COLLECTOR_UPGRADE_TOPIC_TITLE),
+        ),
+      ).toEqual([install.code]);
+    },
+  );
+
+  test("the Kubernetes option installs the Kubernetes agent, so it has no collector upgrade", () => {
+    expect(HOST_COLLECTOR_METHODS).not.toContain("kubernetes");
+  });
+});
+
+/*
+ * What each host upgrade command does, against the install it upgrades: the
+ * pinned release, over the same paths, the new config put where the install
+ * put it, and the collector restarted on both.
+ */
+describe("the host upgrade commands", () => {
+  function installOf(method: HostCollectorMethod): string {
+    return getHostSetupGuide({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      method: method,
+    })
+      .steps.map((step: { markdown?: string | undefined }): string => {
+        return step.markdown || "";
+      })
+      .join("\n");
+  }
+
+  test.each(
+    HOST_COLLECTOR_METHODS.map((method: string) => {
+      return [method];
+    }),
+  )("%s installs the pinned release", (method: string) => {
+    const upgrade: string = getHostCollectorUpgradeCommand(
+      method as HostCollectorMethod,
+    );
+    expect(upgrade).toContain(HOST_COLLECTOR_VERSION);
+    expect(upgrade).not.toContain("latest");
+  });
+
+  test("Docker removes the container the install named, then runs the install's own docker run", () => {
+    const upgrade: string = getHostCollectorUpgradeCommand("docker");
+    const [remove, ...run] = upgrade.split("\n");
+    expect(remove).toBe("docker rm -f otel-collector");
+    expect(installOf("docker")).toContain(run.join("\n"));
+    expect(run.join("\n")).toContain("--name otel-collector");
+  });
+
+  test("Debian keeps the installed config without a prompt, then replaces it and restarts", () => {
+    const upgrade: string = getHostCollectorUpgradeCommand("linux-deb");
+    expect(upgrade).toContain(
+      "sudo dpkg -i --force-confold /tmp/otelcol-contrib.deb",
+    );
+    expect(upgrade).toContain(
+      "sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml",
+    );
+    expect(upgrade).toContain("sudo systemctl restart otelcol-contrib");
+  });
+
+  test("RHEL upgrades the package in place, then replaces the config and restarts", () => {
+    const upgrade: string = getHostCollectorUpgradeCommand("linux-rpm");
+    expect(upgrade).toContain("sudo rpm -Uvh /tmp/otelcol-contrib.rpm");
+    expect(upgrade).toContain(
+      "sudo install -m 0644 config.yaml /etc/otelcol-contrib/config.yaml",
+    );
+    expect(upgrade).toContain("sudo systemctl restart otelcol-contrib");
+  });
+
+  test.each([
+    [
+      "linux-tarball",
+      "sudo systemctl stop otelcol-contrib",
+      "sudo tar -xzf /tmp/otelcol.tar.gz -C /opt/otelcol-contrib",
+      "sudo systemctl start otelcol-contrib",
+    ],
+    [
+      "macos",
+      "sudo launchctl unload /Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plist",
+      "sudo tar -xzf /tmp/otelcol-contrib.tar.gz -C /usr/local/otelcol-contrib",
+      "sudo launchctl load -w /Library/LaunchDaemons/com.oneuptime.otelcol-contrib.plist",
+    ],
+    [
+      "windows",
+      "Stop-Service otelcol-contrib",
+      "tar -xf $tar -C $dest",
+      "Start-Service otelcol-contrib",
+    ],
+  ])(
+    "%s stops the collector before its binary is replaced, and starts it after",
+    (method: string, stop: string, replace: string, start: string) => {
+      const upgrade: string = getHostCollectorUpgradeCommand(
+        method as HostCollectorMethod,
+      );
+      const stopAt: number = upgrade.indexOf(stop);
+      const replaceAt: number = upgrade.indexOf(replace);
+      const startAt: number = upgrade.indexOf(start);
+      expect(stopAt).toBeGreaterThan(-1);
+      expect(replaceAt).toBeGreaterThan(stopAt);
+      expect(startAt).toBeGreaterThan(replaceAt);
+      // The binary goes where the install unpacked it.
+      expect(installOf(method as HostCollectorMethod)).toContain(replace);
+    },
+  );
+
+  test.each([
+    ["linux-deb", "/etc/otelcol-contrib/config.yaml"],
+    ["linux-rpm", "/etc/otelcol-contrib/config.yaml"],
+    ["linux-tarball", "/opt/otelcol-contrib/config.yaml"],
+    ["macos", "/etc/otelcol-contrib/config.yaml"],
+  ])(
+    "%s puts the new config where the install put the first one",
+    (method: string, destination: string) => {
+      const line: string = `sudo install -m 0644 config.yaml ${destination}`;
+      expect(
+        getHostCollectorUpgradeCommand(method as HostCollectorMethod),
+      ).toContain(line);
+      expect(installOf(method as HostCollectorMethod)).toContain(line);
+    },
+  );
+
+  test("Windows copies the new config next to the binary, as the install does", () => {
+    const line: string = 'Copy-Item config.yaml "$dest\\config.yaml" -Force';
+    expect(getHostCollectorUpgradeCommand("windows")).toContain(line);
+    expect(installOf("windows")).toContain(line);
   });
 });

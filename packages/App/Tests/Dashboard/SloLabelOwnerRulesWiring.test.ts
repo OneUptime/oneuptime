@@ -271,8 +271,12 @@ describe("SLO Owner Rules page form", () => {
   });
 
   test("picks people and teams in one owners picker, saying what a match does", () => {
+    /*
+     * Required of a new rule; an Edit form does not insist, so a rule that
+     * adds nothing can still be renamed or switched off.
+     */
     expect(shared).toContain(
-      'getOwnersFormField<TEntity>({ stepId: "owners", required: true, description: OWNER_RULE_OWNERS_DESCRIPTION,',
+      'getOwnersFormField<TEntity>({ stepId: "owners", required: true, doNotRequireWhenEditing: true, description: OWNER_RULE_OWNERS_DESCRIPTION,',
     );
     // No dropdown per kind any more.
     expect(code).not.toContain("ownerTeams");

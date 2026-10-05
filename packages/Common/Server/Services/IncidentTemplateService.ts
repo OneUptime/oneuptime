@@ -21,10 +21,10 @@ import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import {
@@ -323,31 +323,36 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * Each relation by both of its names: the API takes the ID column and the
+   * relation alike, and the template's cards write the relation. A write
+   * may carry both; each is checked, and the two must agree.
+   */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
     return [
-      {
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "initialIncidentStateId",
+        relation: "initialIncidentState",
         modelName: "Incident State",
-        id:
-          resolveReferenceId(data.initialIncidentStateId) ||
-          resolveReferenceId(data.initialIncidentState),
         service: IncidentStateService,
-      },
-      {
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
         modelName: "Incident Severity",
-        id:
-          resolveReferenceId(data.incidentSeverityId) ||
-          resolveReferenceId(data.incidentSeverity),
         service: IncidentSeverityService,
-      },
-      {
+      }),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
         modelName: "Monitor Status",
-        id:
-          resolveReferenceId(data.changeMonitorStatusToId) ||
-          resolveReferenceId(data.changeMonitorStatusTo),
         service: MonitorStatusService,
-      },
+      }),
     ];
   }
 

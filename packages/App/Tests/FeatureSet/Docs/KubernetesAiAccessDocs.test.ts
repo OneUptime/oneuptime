@@ -18,6 +18,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
 import { REMEDIATION_MODE_SHORT_NAMES } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSettings";
 import {
+  AI_AGENT_APPLY_SETTINGS_COMMAND,
   AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND,
   AI_AGENT_INSTALL_COMMAND,
   AI_AGENT_PAGE,
@@ -244,9 +245,10 @@ describe("Kubernetes AI agent setup commands", () => {
     }
   });
 
-  it("offers exactly the three shared commands on the cluster's AI agent page", () => {
+  it("offers exactly the shared commands on the cluster's AI agent page", () => {
     expect(getAiAgentHelmCommands()).toEqual({
       install: AI_AGENT_INSTALL_COMMAND,
+      applySettings: AI_AGENT_APPLY_SETTINGS_COMMAND,
       enableRemediationScoped: AI_AGENT_SCOPED_WRITE_COMMAND,
       enableRemediation: AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND,
     });
@@ -330,16 +332,23 @@ describe("Kubernetes AI agent setup commands", () => {
         expect(blocks[0]).not.toContain("aiAgent.remediation");
         expect(
           blocks.slice(1).some((block: string): boolean => {
-            return block.includes("--set aiAgent.remediation.enabled=true");
+            return block.includes("--set aiAgent.fixes=ask-for-approval");
           }),
         ).toBe(true);
+        // aiAgent.fixes replaces the deprecated write switch everywhere.
+        for (const block of blocks) {
+          expect({
+            block,
+            deprecated: block.includes("aiAgent.remediation.enabled"),
+          }).toEqual({ block, deprecated: false });
+        }
       });
 
       it("offers a cluster-wide command that resets a stored namespace list", () => {
         expect(
           blocks.some((block: string): boolean => {
             return (
-              block.includes("--set aiAgent.remediation.enabled=true") &&
+              block.includes("--set aiAgent.fixes=ask-for-approval") &&
               block.includes(EMPTY_LIST_RESET_FLAG)
             );
           }),

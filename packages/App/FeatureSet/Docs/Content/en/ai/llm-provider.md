@@ -19,6 +19,8 @@ If you are using **OneUptime SaaS** (cloud-hosted version), you can use the **Gl
 
 If you prefer to use your own API keys or a specific provider, you can still configure a custom LLM Provider following the instructions below.
 
+The Global LLM Provider is paid from the project's AI credits. To cap what AI may spend each day, set a **Daily AI Spend Limit (USD)** under **Project Settings → AI Features → More settings**; a **Daily AI Token Limit** there caps tokens on any provider, your own included. See [the project's own daily limits](/docs/ai/ai-sre#the-projects-own-daily-limits).
+
 OneUptime SaaS can only reach LLM endpoints on the public internet. It cannot connect to a model on your private network, such as a self-hosted Ollama or vLLM server. To use a model you run yourself, self-host OneUptime on a network that can reach it, or expose the model at a public endpoint — see [Choosing a Base URL for a Self-Hosted Model](#choosing-a-base-url-for-a-self-hosted-model).
 
 ## Self-Hosted: Zero-Config via Environment Variables

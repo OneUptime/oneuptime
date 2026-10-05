@@ -110,8 +110,9 @@ jobs:
       # catches all three — and it is the only check that runs the same
       # collector binary the agent images are built FROM.
       #
-      # Runs the pinned collector image over the four agent configs and over
-      # both collector ConfigMaps rendered out of the kubernetes-agent chart.
+      # Runs the pinned collector image over the Docker, Podman, Docker Swarm,
+      # VMware, Proxmox and Ceph agent configs, every Database agent config,
+      # and both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh
       # `validate` proves the agent's OTTL parses; this proves what it DOES.
       # It runs the Kubernetes agent's filter/ebpf-unlinked-db exactly as the

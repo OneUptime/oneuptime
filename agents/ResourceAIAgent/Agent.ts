@@ -44,6 +44,11 @@ import {
   RESOURCE_AI_AGENT_IMAGE_REPOSITORY,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
 } from "./Common/Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+} from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * The resource AI agent, start to finish. One process serves ONE resource
@@ -630,6 +635,16 @@ export default class ResourceAiAgent {
       reachable: posture.reachable,
       version: posture.toolVersion || null,
     });
+
+    if (posture.aiSettings) {
+      Logger.info(`What OneUptime AI may do on this ${info.displayName}`, {
+        investigation: posture.aiSettings.investigation ? "on" : "off",
+        fixes: AGENT_AI_FIXES_SETTING_VALUES[posture.aiSettings.fixes],
+        setBy: posture.aiSettings.isConfigured
+          ? `this agent's .env (${AI_INVESTIGATION_ENV}, ${AI_FIXES_ENV})`
+          : `the agent's defaults: the .env sets neither ${AI_INVESTIGATION_ENV} nor ${AI_FIXES_ENV}, so a ${info.displayName} whose settings were chosen on its AI agent page keeps them`,
+      });
+    }
 
     if (!posture.reachable) {
       Logger.warn(

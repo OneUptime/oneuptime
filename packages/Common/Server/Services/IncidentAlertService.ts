@@ -26,6 +26,7 @@ import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthor
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/IncidentAlert";
@@ -561,8 +562,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.incidentId = incidentId;
-    createBy.data.alertId = alertId;
+    RelationIdUtil.stamp(data, ["incidentId", "incident"], incidentId);
+    RelationIdUtil.stamp(data, ["alertId", "alert"], alertId);
 
     if (!createBy.props.isRoot) {
       /*
@@ -611,12 +612,11 @@ export class Service extends ProjectReferencesService<Model> {
        * to name somebody else as the one who linked the alert.
        */
       if (createBy.props.userId) {
-        createBy.data.createdByUserId = createBy.props.userId;
+        RelationIdUtil.stamp(data, CREATED_BY_USER_KEYS, createBy.props.userId);
       } else {
         delete createBy.data.createdByUserId;
+        delete createBy.data.createdByUser;
       }
-
-      delete createBy.data.createdByUser;
     }
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({

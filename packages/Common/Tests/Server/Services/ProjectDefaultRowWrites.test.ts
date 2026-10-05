@@ -268,6 +268,9 @@ beforeEach(() => {
   getJestSpyOn(FileService, "makeRecordFilePublic").mockResolvedValue(
     undefined,
   );
+  getJestSpyOn(FileService, "makeStoredIconsPublic").mockResolvedValue(
+    undefined,
+  );
 });
 
 afterEach(() => {
