@@ -25176,5 +25176,15 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "اینکه هوش مصنوعی اینجا چه کاری مجاز است انجام دهد در پیکربندی {{agent}} تنظیم شده است، پس همان‌جا تغییر می‌کند، نه در این صفحه. انتخاب کنید هوش مصنوعی چه کاری مجاز است انجام دهد، سپس فرمان زیر را اجرا کنید. OneUptime به‌محض راه‌اندازی دوباره عامل آن را اعمال می‌کند.",
   "With Compose: in the .env next to your docker-compose.yml.": "با Compose: در فایل .env کنار docker-compose.yml شما.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true یا false: اینکه هوش مصنوعی هنگام بررسی می‌تواند فرمان‌های فقط‌خواندنی اجرا کند یا نه. آن (یا متغیر بعدی) را تنظیم کنید تا صفحه عامل هوش مصنوعی از عامل پیروی کند، به‌صورت فقط‌خواندنی. خالی: پیش‌فرض عامل، روشن.",
-  "Is Public": "عمومی است"
+  "Is Public": "عمومی است",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "config.yaml را دوباره از راهنمای راه‌اندازی کپی کنید، با کلید دریافتی که آنجا برمی‌گزینید: نسخه تازه را گزارش می‌کند. هر تغییری را که در فایل خودتان داده بودید به آن منتقل کنید.",
+  "Download the latest files and recreate the agent, or stop and remove it.": "دانلود تازه‌ترین فایل‌ها و ساختن دوباره عامل، یا متوقف کردن و حذف آن.",
+  "Install the new release": "نصب نسخه تازه",
+  "Install the release OneUptime pins, with the config that reports it.": "نصب نسخه‌ای که OneUptime تثبیت کرده، همراه با پیکربندی‌ای که آن را گزارش می‌کند.",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "آن را روی ماشینی اجرا کنید که عامل روی آن کار می‌کند. بی‌آنکه چیزی را دوباره بپرسد از .env شما استفاده می‌کند، تازه‌ترین فایل‌ها را دانلود می‌کند و عامل را دوباره می‌سازد.",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "این را در پوشه عامل اجرا کنید. فایل .env شما نگه داشته می‌شود؛ هر تغییری را که در docker-compose.yml یا otel-collector-config.yaml داده بودید دوباره اعمال کنید.",
+  "Run this in the folder that holds the new config.yaml.": "این را در پوشه‌ای اجرا کنید که config.yaml تازه در آن است.",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "این را روی ماشینی اجرا کنید که عامل روی آن کار می‌کند. فایل .env شما نگه داشته می‌شود؛ هر تغییری را که در docker-compose.yml یا otel-collector-config.yaml داده بودید دوباره اعمال کنید.",
+  "Save the new config": "ذخیره پیکربندی تازه",
+  "macOS": "macOS"
 }

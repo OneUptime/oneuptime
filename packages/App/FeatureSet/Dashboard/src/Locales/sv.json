@@ -25176,5 +25176,15 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "Vad AI får göra här anges i konfigurationen för {{agent}}, så det ändras där, inte på den här sidan. Välj vad AI får göra och kör sedan kommandot nedan. OneUptime tillämpar det så snart agenten startar om.",
   "With Compose: in the .env next to your docker-compose.yml.": "Med Compose: i .env bredvid din docker-compose.yml.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true eller false: om AI får köra skrivskyddade kommandon medan den undersöker. Ange den (eller nästa) så följer AI-agentsidan agenten, skrivskyddad. Tom: agentens standard, på.",
-  "Is Public": "Är offentlig"
+  "Is Public": "Är offentlig",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "Kopiera config.yaml från installationsguiden igen, med den inmatningsnyckel du väljer där: den anger den nya versionen. För över de ändringar du gjort i din egen.",
+  "Download the latest files and recreate the agent, or stop and remove it.": "Hämta de senaste filerna och återskapa agenten, eller stoppa och ta bort den.",
+  "Install the new release": "Installera den nya versionen",
+  "Install the release OneUptime pins, with the config that reports it.": "Installera versionen som OneUptime låser, med konfigurationen som anger den.",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "Kör det på maskinen där agenten körs. Det återanvänder din .env utan att fråga något igen, hämtar de senaste filerna och återskapar agenten.",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "Kör detta i agentens mapp. Din .env behålls; tillämpa på nytt de ändringar du gjort i docker-compose.yml eller otel-collector-config.yaml.",
+  "Run this in the folder that holds the new config.yaml.": "Kör detta i mappen som innehåller den nya config.yaml.",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "Kör detta på maskinen där agenten körs. Din .env behålls; tillämpa på nytt de ändringar du gjort i docker-compose.yml eller otel-collector-config.yaml.",
+  "Save the new config": "Spara den nya konfigurationen",
+  "macOS": "macOS"
 }

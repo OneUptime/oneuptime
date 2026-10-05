@@ -14,7 +14,10 @@ import {
   VMWARE_AI_AGENT_CONTAINER,
   VMWARE_EXAMPLE_VCENTER_NAME,
   VMWARE_INSTALL_METHODS,
+  VMWARE_AGENT_RECREATE_COMMAND,
   VMwareInstallMethod,
+  getVMwareAgentDownloadCommand,
+  getVMwareAgentUpgradeCommand,
   getVMwareEnvFile,
   getVMwareInstallScriptCommand,
   getVMwareSetupGuide,
@@ -485,7 +488,10 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
         checked++;
       }
     }
-    expect(checked).toBeGreaterThanOrEqual(4);
+    // Syslog, labels and uninstall, plus the pull and recreate of a Compose upgrade.
+    expect(checked).toBeGreaterThanOrEqual(
+      method === "install-script" ? 3 : 4,
+    );
     if (method === "docker-compose") {
       expect(markdown).not.toContain(VMWARE_AGENT_INSTALL_DIR);
     }
@@ -507,6 +513,14 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
     expect(ai).toContain("(/docs/ai/infrastructure-ai-agents#vmware-vcenter)");
   });
 
+  /*
+   * The collector image is pinned in docker-compose.yml and the config
+   * stamps the pin as the agent's version, so pulling alone never moves the
+   * agent forward. The install script reuses the .env it finds, so running
+   * it again is the upgrade; a Compose install downloads both files again
+   * and recreates the agent. The dialog beside an outdated version shows
+   * the same blocks (AgentUpgradeGuides.test.ts).
+   */
   test("the upgrade topic refreshes the pinned files the way this method can", () => {
     const upgrade: string = topicTitled(
       guide.advanced,
@@ -514,12 +528,26 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
     ).markdown;
     if (method === "install-script") {
       expect(upgrade).toContain("re-run the install script");
+      expect(upgrade).toContain(
+        codeBlock("bash", getVMwareAgentUpgradeCommand()),
+      );
+      expect(upgrade).toContain("reuses every value in your existing `.env`");
+      expect(upgrade).not.toContain("curl -fsSLO");
     } else {
       expect(upgrade).toContain(
-        "download `docker-compose.yml` and `otel-collector-config.yaml` again",
+        "Download `docker-compose.yml` and `otel-collector-config.yaml` again",
       );
+      expect(upgrade).toContain(
+        codeBlock("bash", getVMwareAgentDownloadCommand()),
+      );
+      expect(upgrade).toContain(codeBlock("bash", VMWARE_AGENT_RECREATE_COMMAND));
+      expect(
+        upgrade.indexOf(getVMwareAgentDownloadCommand()),
+      ).toBeLessThan(upgrade.indexOf(VMWARE_AGENT_RECREATE_COMMAND));
+      expect(upgrade).toContain("pulling alone does not move the agent forward");
       expect(upgrade).not.toContain("install script");
     }
+    expect(upgrade).toContain("**Agent Version**");
   });
 
   test("links to the VMware agent and monitor documentation", () => {
@@ -968,6 +996,28 @@ describe("drift guards against agents/VMwareAgent", () => {
         new RegExp(`if \\[ -z "\\$${name}" \\]; then\\s*\\n\\s*read -rp`),
       );
     }
+  });
+
+  /*
+   * A re-run is the upgrade, and a new config file alone does not make
+   * Compose recreate a running container: the script forces it, so the
+   * collector starts on the new config and reports its new version.
+   */
+  test("the install script recreates the containers it starts", () => {
+    expect(readAgentFile("install.sh")).toMatch(
+      /^docker compose up -d --force-recreate$/m,
+    );
+  });
+
+  test("the config reports the pin the compose file runs", () => {
+    const image: string = composeFile()["services"]["oneuptime-vmware-agent"][
+      "image"
+    ];
+    expect(image).toMatch(/^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/);
+    const pin: string = image.split(":")[1] as string;
+    expect(VMWARE_AGENT_COLLECTOR_CONFIG).toContain(
+      `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,
+    );
   });
 
   test("the install script installs where the guide says and asks what it says", () => {

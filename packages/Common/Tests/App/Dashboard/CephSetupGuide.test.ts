@@ -15,6 +15,8 @@ import {
   CEPH_INSTALL_METHODS,
   CephInstallMethod,
   DEFAULT_CEPH_INSTALL_METHOD,
+  getCephAgentDownloadCommand,
+  getCephAgentRecreateCommand,
   getCephInstallScriptCommand,
   getCephSetupGuide,
   resolveCephInstallMethod,
@@ -429,6 +431,38 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
     ).toContain(codeBlock("yaml", CEPH_AGENT_COLLECTOR_CONFIG));
   });
 
+  /*
+   * The collector image is pinned in docker-compose.yml and the config
+   * stamps the pin as the agent's version, so the upgrade is both files
+   * again and a recreate (Compose recreates a container for a new image,
+   * never for a new config file). The dialog beside an outdated version
+   * shows the same two blocks (AgentUpgradeGuides.test.ts).
+   */
+  test("the upgrade downloads both pinned files again, then pulls and recreates the agent", () => {
+    const upgrade: string = topicTitled(
+      guide.advanced,
+      "Upgrade or uninstall the agent",
+    ).markdown;
+    const download: string = getCephAgentDownloadCommand(method);
+    const recreate: string = getCephAgentRecreateCommand(method);
+
+    expect(upgrade).toContain(codeBlock("bash", download));
+    expect(upgrade).toContain(codeBlock("bash", recreate));
+    expect(upgrade.indexOf(download)).toBeLessThan(upgrade.indexOf(recreate));
+    expect(download).toContain(
+      `curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml`,
+    );
+    expect(download).toContain(
+      `curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+    );
+    expect(recreate.endsWith("docker compose up -d --force-recreate")).toBe(
+      true,
+    );
+    expect(upgrade).toContain("pulling alone does not move the agent forward");
+    expect(upgrade).toContain("your `.env` stays");
+    expect(upgrade).toContain("**Agent Version**");
+  });
+
   test("commands in the agent's folder run where this method installs it", () => {
     const upgrade: string = topicTitled(
       guide.advanced,
@@ -438,7 +472,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
       expect(upgrade).toContain(
         codeBlock(
           "bash",
-          `cd ${CEPH_AGENT_INSTALL_DIR}\ndocker compose pull\ndocker compose up -d`,
+          `cd ${CEPH_AGENT_INSTALL_DIR}\ndocker compose pull\ndocker compose up -d --force-recreate`,
         ),
       );
       expect(upgrade).toContain(
@@ -456,7 +490,10 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
       }
     } else {
       expect(upgrade).toContain(
-        codeBlock("bash", "docker compose pull\ndocker compose up -d"),
+        codeBlock(
+          "bash",
+          "docker compose pull\ndocker compose up -d --force-recreate",
+        ),
       );
       expect(upgrade).toContain("the one with `docker-compose.yml`");
       expect(markdown).not.toContain(CEPH_AGENT_INSTALL_DIR);
@@ -647,7 +684,13 @@ describe("the install script", () => {
   test("shows none of the Docker Compose instructions", () => {
     const guide: SetupGuideContent = guideFor("install-script");
     const markdown: string = getSetupGuideMarkdown(guide);
-    expect(markdown).not.toContain("curl -fsSLO");
+    expect(stepsText(guide)).not.toContain("curl -fsSLO");
+    // The files are downloaded by hand only to upgrade, in the script's folder.
+    for (const block of getSetupGuideCodeBlocks(guide)) {
+      if (block.includes("curl -fsSLO")) {
+        expect(block.trim()).toBe(getCephAgentDownloadCommand("install-script"));
+      }
+    }
     expect(markdown).not.toContain("mkdir oneuptime-ceph-agent");
     expect(markdown).not.toContain(
       `CEPH_CLUSTER_NAME=${CEPH_EXAMPLE_CLUSTER_NAME}`,
@@ -936,6 +979,29 @@ describe("drift guards against agents/CephAgent", () => {
     });
     expect(containers).toContain(CEPH_AGENT_CONTAINER);
     expect(containers).toContain(CEPH_AI_AGENT_CONTAINER);
+  });
+
+  /*
+   * The agent reports the collector it pins (oneuptime.agent.version): the
+   * compose file must run exactly that collector, never :latest, which
+   * would make the reported version a guess.
+   */
+  test("runs the pinned collector, and its config reports the pin", () => {
+    const compose: Record<string, any> = yaml.load(
+      readAgentFile("docker-compose.yml"),
+    ) as Record<string, any>;
+    const image: string = compose["services"]["oneuptime-ceph-agent"]["image"];
+    expect(image).toMatch(/^otel\/opentelemetry-collector-contrib:\d+\.\d+\.\d+$/);
+    const pin: string = image.split(":")[1] as string;
+    expect(CEPH_AGENT_COLLECTOR_CONFIG).toContain(
+      `      - key: oneuptime.agent.version\n        value: "${pin}"\n        action: upsert\n`,
+    );
+  });
+
+  test("the install script recreates the containers, so a re-run starts the new config", () => {
+    expect(readAgentFile("install.sh")).toMatch(
+      /^docker compose up -d --force-recreate$/m,
+    );
   });
 
   test("the AI agent's client, keyring folder and status port are the compose file's", () => {

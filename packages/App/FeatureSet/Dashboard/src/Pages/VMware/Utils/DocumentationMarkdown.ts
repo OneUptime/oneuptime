@@ -797,7 +797,7 @@ ${codeBlock("bash", VMWARE_AGENT_RECREATE_COMMAND)}`;
   return {
     title: "Upgrade or uninstall the agent",
     summary:
-      "Get the latest files and recreate the agent, or stop and remove it.",
+      "Download the latest files and recreate the agent, or stop and remove it.",
     markdown: `${upgrade}
 
 The config reports the collector version it pins as the vCenter's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.

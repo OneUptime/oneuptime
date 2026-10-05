@@ -25176,5 +25176,15 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "ここで AI に許可する操作は {{agent}} の設定で指定されているため、このページではなくそちらで変更します。AI に許可する操作を選び、下のコマンドを実行してください。エージェントが再起動するとすぐに OneUptime が適用します。",
   "With Compose: in the .env next to your docker-compose.yml.": "Compose の場合: docker-compose.yml の隣にある .env で。",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true または false: 調査中に AI が読み取り専用のコマンドを実行できるかどうか。これ（または次の変数）を設定すると、AI エージェントのページはエージェントに従い、読み取り専用になります。空の場合はエージェントの既定値（オン）です。",
-  "Is Public": "公開"
+  "Is Public": "公開",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "セットアップガイドから config.yaml をもう一度コピーします。そこで選んだ取り込みキーが入り、新しいバージョンを報告します。自分の config.yaml に加えた変更も反映してください。",
+  "Download the latest files and recreate the agent, or stop and remove it.": "最新のファイルをダウンロードしてエージェントを作り直すか、停止して削除します。",
+  "Install the new release": "新しいリリースをインストールする",
+  "Install the release OneUptime pins, with the config that reports it.": "OneUptime が固定しているリリースを、それを報告する設定と一緒にインストールします。",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "エージェントが動いているマシンで実行します。何も聞き直さずに .env をそのまま使い、最新のファイルをダウンロードしてエージェントを作り直します。",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "エージェントのフォルダーで実行します。.env はそのままです。docker-compose.yml や otel-collector-config.yaml に加えた変更があれば適用し直してください。",
+  "Run this in the folder that holds the new config.yaml.": "新しい config.yaml があるフォルダーで実行してください。",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "エージェントが動いているマシンで実行します。.env はそのままです。docker-compose.yml や otel-collector-config.yaml に加えた変更があれば適用し直してください。",
+  "Save the new config": "新しい設定を保存する",
+  "macOS": "macOS"
 }

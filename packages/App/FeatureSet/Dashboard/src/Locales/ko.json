@@ -25176,5 +25176,15 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "여기서 AI가 할 수 있는 작업은 {{agent}}의 구성에서 설정되므로, 이 페이지가 아니라 그곳에서 변경합니다. AI가 할 수 있는 작업을 고른 다음 아래 명령을 실행하세요. 에이전트가 다시 시작되는 즉시 OneUptime이 적용합니다.",
   "With Compose: in the .env next to your docker-compose.yml.": "Compose를 사용하는 경우: docker-compose.yml 옆의 .env에서.",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 또는 false: 조사하는 동안 AI가 읽기 전용 명령을 실행할 수 있는지 여부. 이 변수(또는 다음 변수)를 설정하면 AI 에이전트 페이지가 에이전트를 따르며 읽기 전용이 됩니다. 비어 있으면 에이전트 기본값(켜짐)입니다.",
-  "Is Public": "공개 여부"
+  "Is Public": "공개 여부",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "설정 가이드에서 config.yaml을 다시 복사하세요. 그곳에서 선택한 수집 키가 들어가며 새 버전을 보고합니다. 직접 변경한 내용이 있으면 옮겨 오세요.",
+  "Download the latest files and recreate the agent, or stop and remove it.": "최신 파일을 내려받아 에이전트를 다시 만들거나, 중지하고 제거합니다.",
+  "Install the new release": "새 릴리스 설치",
+  "Install the release OneUptime pins, with the config that reports it.": "OneUptime이 고정한 릴리스를 그 버전을 보고하는 설정과 함께 설치합니다.",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "에이전트가 실행되는 머신에서 실행하세요. 다시 묻지 않고 .env를 재사용하며, 최신 파일을 내려받아 에이전트를 다시 만듭니다.",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "에이전트 폴더에서 실행하세요. .env는 그대로 유지됩니다. docker-compose.yml이나 otel-collector-config.yaml에 했던 변경 사항은 다시 적용하세요.",
+  "Run this in the folder that holds the new config.yaml.": "새 config.yaml이 있는 폴더에서 실행하세요.",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "에이전트가 실행되는 머신에서 실행하세요. .env는 그대로 유지됩니다. docker-compose.yml이나 otel-collector-config.yaml에 했던 변경 사항은 다시 적용하세요.",
+  "Save the new config": "새 설정 저장",
+  "macOS": "macOS"
 }

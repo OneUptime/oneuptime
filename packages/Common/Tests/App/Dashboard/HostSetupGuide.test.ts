@@ -4,13 +4,19 @@ import path from "path";
 import yaml from "js-yaml";
 import {
   DEFAULT_HOST_INSTALL_METHOD,
+  HOST_COLLECTOR_METHODS,
+  HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
   HOST_INSTALL_METHODS,
+  HostCollectorMethod,
   HostInstallMethod,
   NATIVE_LINUX_INSTALL_METHODS,
+  getHostCollectorCommandLanguage,
   getHostCollectorConfig,
+  getHostCollectorUpgradeCommand,
   getHostSetupGuide,
   resolveHostInstallMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import { HOST_COLLECTOR_VERSION } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import { MIN_OTELCOL_CONTRIB_VERSION } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnits";
 import {
   KUBERNETES_AGENT_HELM_RELEASE,
@@ -377,6 +383,7 @@ describe.each(CONFIG_FILE_METHODS)(
         "Record the serial number, make, model and firmware version",
         "Tag the host with project labels",
         "What gets reported",
+        HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
       ]) {
         expect(titles.includes(title)).toBe(true);
       }
@@ -543,10 +550,31 @@ describe("the shared collector config", () => {
     expect(config["service"]["pipelines"]).toEqual({
       metrics: {
         receivers: ["hostmetrics"],
-        processors: ["resourcedetection", "batch"],
+        processors: ["resourcedetection", "resource", "batch"],
         exporters: ["otlphttp/oneuptime"],
       },
     });
+  });
+
+  /*
+   * The host's agent version: the config stamps the collector release the
+   * guide installs, which OneUptime shows as the host's Agent Version and
+   * compares with the release it pins (AgentKind.HostCollector).
+   */
+  test("stamps the release the guide installs as oneuptime.agent.version, and nothing else", () => {
+    expect(config["processors"]["resource"]).toEqual({
+      attributes: [
+        {
+          key: "oneuptime.agent.version",
+          value: HOST_COLLECTOR_VERSION,
+          action: "upsert",
+        },
+      ],
+    });
+    // A string, so YAML can never read the version as a number.
+    expect(getHostCollectorConfig({ oneuptimeUrl: URL, apiKey: KEY })).toContain(
+      `value: "${HOST_COLLECTOR_VERSION}"`,
+    );
   });
 
   test("matches what the docs site tells people editing the generated config", () => {
@@ -561,6 +589,7 @@ describe("the shared collector config", () => {
     );
     expect(Object.keys(config["processors"]).sort()).toEqual([
       "batch",
+      "resource",
       "resourcedetection",
     ]);
     expect(Object.keys(config["exporters"])).toEqual(["otlphttp/oneuptime"]);
@@ -623,6 +652,11 @@ describe("every config fragment names only components that exist", () => {
       // resourcedetection stamps host.name, which is what attaches a host.
       if (metrics!["processors"]) {
         expect(metrics!["processors"][0]).toBe("resourcedetection");
+        /*
+         * A fragment's pipeline replaces the config's, so it keeps the
+         * processor that reports the collector's version.
+         */
+        expect(metrics!["processors"]).toContain("resource");
       }
     }
   });
@@ -673,7 +707,9 @@ describe("the Linux package installs", () => {
       expect(install).toContain(
         "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}",
       );
-      expect(install).toContain("VERSION=${VERSION##*/v}");
+      // The release the config reports, never whatever is newest that day.
+      expect(install).toContain(`VERSION=${HOST_COLLECTOR_VERSION} `);
+      expect(install).not.toContain("releases/latest");
     }
   });
 
@@ -726,7 +762,7 @@ describe("the systemd receiver", () => {
       ).toBe(false);
       expect(fragment["service"]["pipelines"]["metrics"]).toEqual({
         receivers: ["hostmetrics", "systemd"],
-        processors: ["resourcedetection", "batch"],
+        processors: ["resourcedetection", "resource", "batch"],
       });
     },
   );
@@ -1179,5 +1215,67 @@ describe("the guide's claims match ingest", () => {
     );
     // otlphttp appends /v1/metrics to the endpoint it is given.
     expect(routes).toContain('"/otlp/v1/metrics"');
+  });
+});
+
+/*
+ * The guide's "Upgrade the collector" topic: what the sign beside an
+ * outdated host agent version opens (the dialog shows the same command,
+ * AgentUpgradeGuides.test.ts). The config stamps the release it is for, so
+ * the upgrade is the config saved again, then the pinned release installed
+ * over the old one.
+ */
+describe("upgrading the collector", () => {
+  test.each(HOST_COLLECTOR_METHODS.map((method: string) => {
+    return [method];
+  }))(
+    "%s: the topic saves the config again, then runs the method's own upgrade",
+    (method: string) => {
+      const topic: SetupGuideTopic | undefined = topicTitled(
+        guideFor(method as HostInstallMethod).advanced,
+        HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
+      );
+      expect(topic).toBeDefined();
+      const markdown: string = topic!.markdown;
+      const language: string = getHostCollectorCommandLanguage(
+        method as HostCollectorMethod,
+      );
+
+      expect(codeBlocksOf(markdown, language)).toEqual([
+        `${getHostCollectorUpgradeCommand(method as HostCollectorMethod)}\n`,
+      ]);
+      expect(markdown).toContain("Save the config from step 2 again");
+      expect(markdown).toContain("**Agent Version**");
+      expect(markdown).toContain("`oneuptime.agent.version`");
+      // The config comes before the release that reads it.
+      expect(markdown.indexOf("Save the config")).toBeLessThan(
+        markdown.indexOf("```"),
+      );
+    },
+  );
+
+  test("it is the last Advanced topic, after the config-editing ones", () => {
+    for (const method of HOST_COLLECTOR_METHODS) {
+      const titles: Array<string> = topicTitles(
+        guideFor(method as HostInstallMethod).advanced,
+      );
+      expect(titles[titles.length - 1]).toBe(HOST_COLLECTOR_UPGRADE_TOPIC_TITLE);
+    }
+  });
+
+  test("the Kubernetes option, which installs the Kubernetes agent, has no collector upgrade", () => {
+    expect(
+      topicTitles(guideFor("kubernetes").advanced),
+    ).not.toContain(HOST_COLLECTOR_UPGRADE_TOPIC_TITLE);
+  });
+
+  test("the hardware fragment's note names every processor the config already has", () => {
+    const topic: SetupGuideTopic | undefined = topicTitled(
+      guideFor("windows").advanced,
+      "Record the serial number, make, model and firmware version",
+    );
+    expect(topic!.markdown).toContain(
+      "alongside `resourcedetection:`, `resource:` and `batch:`",
+    );
   });
 });

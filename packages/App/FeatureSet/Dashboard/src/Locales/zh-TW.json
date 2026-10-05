@@ -25176,5 +25176,15 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "AI 在此處可以執行的操作由 {{agent}} 的設定決定，因此需要在那裡變更，而不是在此頁面上。選擇 AI 可以執行的操作，然後執行下面的命令。代理程式重新啟動後，OneUptime 會立即套用。",
   "With Compose: in the .env next to your docker-compose.yml.": "使用 Compose 時：在您的 docker-compose.yml 旁邊的 .env 中。",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 或 false：AI 在調查時是否可以執行唯讀命令。設定它（或下一個變數）後，AI 代理程式頁面會跟隨代理程式，以唯讀方式顯示。空白：代理程式的預設值，開啟。",
-  "Is Public": "是否公開"
+  "Is Public": "是否公開",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "從設定指南重新複製 config.yaml，並使用你在那裡選擇的擷取金鑰：它會回報新版本。把你對自己設定做過的變更也複製過去。",
+  "Download the latest files and recreate the agent, or stop and remove it.": "下載最新檔案並重新建立代理程式，或者停止並移除它。",
+  "Install the new release": "安裝新版本",
+  "Install the release OneUptime pins, with the config that reports it.": "安裝 OneUptime 固定的版本，以及回報該版本的設定。",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "在代理程式所在的機器上執行。它會沿用你的 .env，不再詢問任何內容，下載最新檔案並重新建立代理程式。",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "在代理程式的資料夾中執行。你的 .env 會保留；請重新套用你對 docker-compose.yml 或 otel-collector-config.yaml 做過的變更。",
+  "Run this in the folder that holds the new config.yaml.": "在包含新 config.yaml 的資料夾中執行。",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "在代理程式所在的機器上執行。你的 .env 會保留；請重新套用你對 docker-compose.yml 或 otel-collector-config.yaml 做過的變更。",
+  "Save the new config": "儲存新設定",
+  "macOS": "macOS"
 }

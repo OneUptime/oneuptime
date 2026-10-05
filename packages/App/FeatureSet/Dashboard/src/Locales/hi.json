@@ -25176,5 +25176,15 @@
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "यहाँ AI क्या कर सकता है, यह {{agent}} के कॉन्फ़िगरेशन में सेट है, इसलिए इसे वहीं बदला जाता है, इस पेज पर नहीं। चुनें कि AI क्या कर सकता है, फिर नीचे दी गई कमांड चलाएँ। एजेंट के फिर से शुरू होते ही OneUptime इसे लागू कर देता है।",
   "With Compose: in the .env next to your docker-compose.yml.": "Compose के साथ: आपकी docker-compose.yml के बगल वाली .env में।",
   "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true या false: क्या AI जाँच के दौरान केवल-पढ़ने वाली कमांड चला सकता है। इसे (या अगले को) सेट करें, तो AI एजेंट पेज एजेंट के अनुसार चलता है, केवल-पढ़ने के रूप में। खाली: एजेंट का डिफ़ॉल्ट, चालू।",
-  "Is Public": "सार्वजनिक है"
+  "Is Public": "सार्वजनिक है",
+  "Copy config.yaml from the setup guide again, with the ingestion key you pick there: it reports the new version. Copy across any change you made to yours.": "सेटअप गाइड से config.yaml फिर से कॉपी करें, वहाँ चुनी गई ingestion key के साथ: यह नया संस्करण बताता है। अपनी फ़ाइल में किए गए बदलाव इसमें भी ले आएँ।",
+  "Download the latest files and recreate the agent, or stop and remove it.": "नवीनतम फ़ाइलें डाउनलोड करें और एजेंट को फिर से बनाएँ, या उसे रोककर हटा दें।",
+  "Install the new release": "नई रिलीज़ इंस्टॉल करें",
+  "Install the release OneUptime pins, with the config that reports it.": "OneUptime द्वारा तय की गई रिलीज़ को, उसे बताने वाली config के साथ इंस्टॉल करें।",
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.": "इसे उस मशीन पर चलाएँ जिस पर एजेंट चलता है। यह बिना कुछ दोबारा पूछे आपकी .env फिर से इस्तेमाल करता है, नवीनतम फ़ाइलें डाउनलोड करता है और एजेंट को फिर से बनाता है।",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "इसे एजेंट के फ़ोल्डर में चलाएँ। आपकी .env बनी रहती है; docker-compose.yml या otel-collector-config.yaml में किए गए बदलाव दोबारा लागू करें।",
+  "Run this in the folder that holds the new config.yaml.": "इसे उस फ़ोल्डर में चलाएँ जिसमें नई config.yaml है।",
+  "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.": "इसे उस मशीन पर चलाएँ जिस पर एजेंट चलता है। आपकी .env बनी रहती है; docker-compose.yml या otel-collector-config.yaml में किए गए बदलाव दोबारा लागू करें।",
+  "Save the new config": "नई config सहेजें",
+  "macOS": "macOS"
 }
