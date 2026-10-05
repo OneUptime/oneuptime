@@ -8,6 +8,7 @@ import {
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import UserService from "../../../Server/Services/UserService";
 import Response from "../../../Server/Utils/Response";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
@@ -43,6 +44,13 @@ jest.mock("../../../Server/Services/FileService", () => {
 jest.mock("../../../Server/Middleware/UserAuthorization", () => {
   return {
     getAccessTokenFromExpressRequest: jest.fn(),
+    getUserTenantAccessPermissionWithTenantId: jest.fn(),
+  };
+});
+
+jest.mock("../../../Server/Services/UserService", () => {
+  return {
+    isUserBlocked: jest.fn(),
   };
 });
 
@@ -55,17 +63,24 @@ jest.mock("../../../Server/Utils/JsonWebToken", () => {
 const TOKEN_ROUTE: string = "/file/image/access-token/:token";
 const ID_ROUTE: string = "/file/image/:imageId";
 
+const PROJECT_ID: ObjectID = new ObjectID(
+  "e7c4f2a1-0000-4000-8000-0000000000aa",
+);
+const USER_ID: ObjectID = new ObjectID("e7c4f2a1-0000-4000-8000-0000000000bb");
+
 type BuildFileFunction = (isPublic: unknown) => File;
 
 /*
- * The route only ever reads file/fileType/isPublic, and isPublic is
- * deliberately typed loose here so the varchar-era value (the STRING
- * "false") can be fed through the gate as well as a real boolean.
+ * The route reads the file's bytes, its isPublic and its owners, and
+ * isPublic is deliberately typed loose here so the varchar-era value (the
+ * STRING "false") can be fed through the gate as well as a real boolean.
+ * Every file belongs to PROJECT_ID.
  */
 const buildFile: BuildFileFunction = (isPublic: unknown): File => {
   const file: File = new File();
   file.file = Buffer.from("png-bytes");
   file.fileType = MimeType.png;
+  file.projectId = PROJECT_ID;
   (file as unknown as { isPublic: unknown }).isPublic = isPublic;
   return file;
 };
@@ -80,7 +95,7 @@ const callRoute: CallRouteFunction = async (
   params: Record<string, string>,
 ): Promise<void> => {
   const req: ExpressRequest = { params } as unknown as ExpressRequest;
-  const res: ExpressResponse = {} as ExpressResponse;
+  const res: ExpressResponse = { set: jest.fn() } as unknown as ExpressResponse;
   const next: NextFunction = (() => {}) as NextFunction;
 
   await mockRouter.match("GET", uri).handlerFunction(req, res, next);
@@ -95,8 +110,20 @@ const setAuthenticated: SetAuthenticatedFunction = (
     UserMiddleware.getAccessTokenFromExpressRequest as unknown as jest.Mock
   ).mockReturnValue(isAuthenticated ? "a-token" : undefined);
   (JSONWebToken.decode as unknown as jest.Mock).mockReturnValue({
-    userId: isAuthenticated ? new ObjectID("user-id") : undefined,
+    userId: isAuthenticated ? USER_ID : undefined,
+    isMasterAdmin: false,
   });
+};
+
+type SetMemberFunction = (isMember: boolean) => void;
+
+// Whether the signed-in user can open the file's project.
+const setMember: SetMemberFunction = (isMember: boolean): void => {
+  (
+    UserMiddleware.getUserTenantAccessPermissionWithTenantId as unknown as jest.Mock
+  ).mockResolvedValue(
+    (isMember ? { projectId: PROJECT_ID, permissions: [] } : null) as never,
+  );
 };
 
 describe("FileAPI access control", () => {
@@ -107,6 +134,10 @@ describe("FileAPI access control", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setAuthenticated(false);
+    setMember(false);
+    (UserService.isUserBlocked as unknown as jest.Mock).mockResolvedValue(
+      false as never,
+    );
   });
 
   describe("token route — anonymous callers", () => {
@@ -196,8 +227,9 @@ describe("FileAPI access control", () => {
   });
 
   describe("token route — authenticated callers", () => {
-    it("serves a private file to a valid session", async () => {
+    it("serves a private file to a member of its project", async () => {
       setAuthenticated(true);
+      setMember(true);
       (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue(
         buildFile(false) as never,
       );
@@ -206,6 +238,45 @@ describe("FileAPI access control", () => {
 
       expect(Response.sendFileResponse).toHaveBeenCalled();
       expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+
+      // Asked about the file's own project, for the signed-in user.
+      expect(
+        UserMiddleware.getUserTenantAccessPermissionWithTenantId,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: PROJECT_ID,
+          userId: USER_ID,
+        }),
+      );
+    });
+
+    it("refuses a private file to a valid session that cannot open its project", async () => {
+      setAuthenticated(true);
+      setMember(false);
+      (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue(
+        buildFile(false) as never,
+      );
+
+      await callRoute(TOKEN_ROUTE, { token: "abc123" });
+
+      expect(Response.sendFileResponse).not.toHaveBeenCalled();
+      expect(Response.sendErrorResponse).toHaveBeenCalled();
+    });
+
+    it("refuses a private file to a member whose account is blocked", async () => {
+      setAuthenticated(true);
+      setMember(true);
+      (UserService.isUserBlocked as unknown as jest.Mock).mockResolvedValue(
+        true as never,
+      );
+      (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue(
+        buildFile(false) as never,
+      );
+
+      await callRoute(TOKEN_ROUTE, { token: "abc123" });
+
+      expect(Response.sendFileResponse).not.toHaveBeenCalled();
+      expect(Response.sendErrorResponse).toHaveBeenCalled();
     });
 
     it("refuses a private file when the session token has no userId", async () => {
@@ -286,8 +357,9 @@ describe("FileAPI access control", () => {
      * enumerable ObjectID, so a session is deliberately NOT enough to reach a
      * private file through it. Private inline images use the token route.
      */
-    it("refuses a private file even to a valid session", async () => {
+    it("refuses a private file even to a member of its project", async () => {
       setAuthenticated(true);
+      setMember(true);
       (FileService.findOneById as unknown as jest.Mock).mockResolvedValue(
         buildFile(false) as never,
       );
