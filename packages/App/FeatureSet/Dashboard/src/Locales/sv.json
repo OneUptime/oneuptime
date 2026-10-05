@@ -25175,5 +25175,6 @@
   "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.": "Vill du att AI föreslår korrigeringar? Klicka på Ändra för att få kommandot som slår på dem i agenten.",
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "Vad AI får göra här anges i konfigurationen för {{agent}}, så det ändras där, inte på den här sidan. Välj vad AI får göra och kör sedan kommandot nedan. OneUptime tillämpar det så snart agenten startar om.",
   "With Compose: in the .env next to your docker-compose.yml.": "Med Compose: i .env bredvid din docker-compose.yml.",
-  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true eller false: om AI får köra skrivskyddade kommandon medan den undersöker. Ange den (eller nästa) så följer AI-agentsidan agenten, skrivskyddad. Tom: agentens standard, på."
+  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true eller false: om AI får köra skrivskyddade kommandon medan den undersöker. Ange den (eller nästa) så följer AI-agentsidan agenten, skrivskyddad. Tom: agentens standard, på.",
+  "Is Public": "Är offentlig"
 }

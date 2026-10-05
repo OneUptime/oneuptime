@@ -25175,5 +25175,6 @@
   "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.": "Quer que a IA proponha correções? Clique em Alterar para obter o comando que as ativa no agente.",
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "O que a IA pode fazer aqui é definido na configuração de {{agent}}, então é alterado lá, não nesta página. Escolha o que a IA pode fazer e execute o comando abaixo. O OneUptime aplica assim que o agente reinicia.",
   "With Compose: in the .env next to your docker-compose.yml.": "Com o Compose: no .env ao lado do seu docker-compose.yml.",
-  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true ou false: se a IA pode executar comandos somente leitura enquanto investiga. Defina-a (ou a próxima) e a página do agente de IA segue o agente, somente leitura. Vazia: o padrão do agente, ativado."
+  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true ou false: se a IA pode executar comandos somente leitura enquanto investiga. Defina-a (ou a próxima) e a página do agente de IA segue o agente, somente leitura. Vazia: o padrão do agente, ativado.",
+  "Is Public": "É público"
 }

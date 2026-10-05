@@ -25175,5 +25175,6 @@
   "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.": "希望 AI 提出修复建议？点击“更改”获取在代理中开启修复的命令。",
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "AI 在此处可以执行的操作由 {{agent}} 的配置设置，因此需要在那里更改，而不是在此页面上。选择 AI 可以执行的操作，然后运行下面的命令。代理重新启动后，OneUptime 会立即应用。",
   "With Compose: in the .env next to your docker-compose.yml.": "使用 Compose 时：在您的 docker-compose.yml 旁边的 .env 中。",
-  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 或 false：AI 在调查时是否可以运行只读命令。设置它（或下一个变量）后，AI 代理页面会跟随代理，以只读方式显示。为空：代理的默认值，开启。"
+  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 或 false：AI 在调查时是否可以运行只读命令。设置它（或下一个变量）后，AI 代理页面会跟随代理，以只读方式显示。为空：代理的默认值，开启。",
+  "Is Public": "是否公开"
 }

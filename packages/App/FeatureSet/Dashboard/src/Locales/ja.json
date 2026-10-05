@@ -25175,5 +25175,6 @@
   "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.": "AI に修正を提案させますか？「変更」をクリックすると、エージェントで修正をオンにするコマンドが表示されます。",
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "ここで AI に許可する操作は {{agent}} の設定で指定されているため、このページではなくそちらで変更します。AI に許可する操作を選び、下のコマンドを実行してください。エージェントが再起動するとすぐに OneUptime が適用します。",
   "With Compose: in the .env next to your docker-compose.yml.": "Compose の場合: docker-compose.yml の隣にある .env で。",
-  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true または false: 調査中に AI が読み取り専用のコマンドを実行できるかどうか。これ（または次の変数）を設定すると、AI エージェントのページはエージェントに従い、読み取り専用になります。空の場合はエージェントの既定値（オン）です。"
+  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true または false: 調査中に AI が読み取り専用のコマンドを実行できるかどうか。これ（または次の変数）を設定すると、AI エージェントのページはエージェントに従い、読み取り専用になります。空の場合はエージェントの既定値（オン）です。",
+  "Is Public": "公開"
 }
