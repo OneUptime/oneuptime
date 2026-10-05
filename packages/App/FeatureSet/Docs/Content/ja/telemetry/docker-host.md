@@ -91,6 +91,8 @@ docker logs -f oneuptime-docker-agent
 
 ## エージェントのアップグレード
 
+エージェントが OneUptime より古い場合、Docker ホストの **概要** にある **エージェントバージョン** の横に警告サインが表示されます。それを選ぶと、これらのコマンドが表示されます。
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

@@ -18,6 +18,12 @@ export interface ResourceOverviewChip {
 export interface ResourceOverviewDetailRow {
   label: string;
   value: string | undefined;
+  /*
+   * How the value is drawn when it is more than text - an agent version with
+   * its upgrade sign (AgentVersion). Drawn only while `value` is set, so an
+   * empty row still reads "—".
+   */
+  element?: ReactElement | undefined;
   mono?: boolean | undefined;
 }
 
@@ -453,7 +459,9 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                       row.mono === false ? "" : "font-mono"
                     }`}
                   >
-                    {row.value && row.value.length > 0 ? row.value : "—"}
+                    {row.value && row.value.length > 0
+                      ? row.element || row.value
+                      : "—"}
                   </dd>
                 </div>
               );

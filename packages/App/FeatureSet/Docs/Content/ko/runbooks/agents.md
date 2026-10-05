@@ -64,6 +64,15 @@ docker run --name oneuptime-runner --restart unless-stopped \
 - 호스트에서 `curl`로 OneUptime URL에 닿는지 확인.
 - ID와 키가 공백 없이 복사됐는지 확인.
 
+### 5. 에이전트를 최신 상태로 유지
+
+에이전트가 OneUptime보다 오래된 버전을 실행 중이면, 해당 페이지의 **런북 에이전트 버전** 옆에 경고 표시가 나타납니다. 이를 선택하면 업그레이드 방법을 볼 수 있습니다: 새 이미지를 pull하고 컨테이너를 제거한 다음, 2단계의 설치 명령을 다시 실행합니다. Kubernetes 에이전트 chart가 설치한 에이전트는 대신 chart로 업그레이드합니다.
+
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
+
 ## 단계를 에이전트에 향하게 하기
 
 Runbook에서 Bash 또는 JavaScript 단계를 추가합니다. 폼에는 현재 프로젝트의 모든 에이전트(연결/끊김 표시 포함)가 나열된 **Runbook 에이전트** 드롭다운이 있습니다:

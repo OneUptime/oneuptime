@@ -91,6 +91,8 @@ docker logs -f oneuptime-docker-agent
 
 ## एजेंट को अपग्रेड करना
 
+जब एजेंट आपके OneUptime से पुराना होता है, तो Docker होस्ट के **अवलोकन** पर **एजेंट संस्करण** के पास एक चेतावनी चिह्न दिखता है। ये कमांड देखने के लिए उसे चुनें।
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

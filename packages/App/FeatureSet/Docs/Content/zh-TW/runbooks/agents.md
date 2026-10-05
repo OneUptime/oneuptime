@@ -64,6 +64,15 @@ docker run --name oneuptime-runner --restart unless-stopped \
 - 以 `curl` 確認該主機能連到您的 OneUptime URL。
 - 確認 ID 與金鑰在複製時沒有夾帶空白字元。
 
+### 5. 讓代理程式保持最新
+
+當代理程式執行的版本比你的 OneUptime 舊時，其頁面上的 **操作手冊代理程式版本** 旁會出現警告標誌。選取它即可查看升級方式：拉取新映像檔並移除容器，然後重新執行步驟 2 的安裝命令。由 Kubernetes 代理程式的 chart 安裝的代理程式，則改用該 chart 升級。
+
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
+
 ## 將步驟指向代理程式
 
 在您的 runbook 中，新增一個 Bash 或 JavaScript 步驟。表單上有一個 **Runbook Agent** 下拉選單，列出目前專案中的每一個代理程式（並附有已連線／未連線的指示）：
