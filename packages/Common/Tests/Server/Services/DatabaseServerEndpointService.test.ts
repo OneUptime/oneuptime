@@ -778,6 +778,68 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
   });
 
   /*
+   * The project check every service runs (ProjectReferencesService) leaves
+   * the database to this service, so a person hears the same sentence for a
+   * database of another project, one that does not exist and one they may
+   * not edit. The check is real here: the project has DATABASE_ID only.
+   */
+  describe("the project check and the service's own answer agree", () => {
+    const MISSING_DATABASE_ID: ObjectID = new ObjectID(
+      "33333333-3333-4333-8333-333333333333",
+    );
+
+    beforeEach(() => {
+      addDatabase({ id: OTHER_DATABASE_ID, projectId: OTHER_PROJECT_ID });
+      stubProjectDirectory({
+        projectId: PROJECT_ID,
+        records: { DatabaseServer: [DATABASE_ID.toString()] },
+        elsewhere: [OTHER_DATABASE_ID.toString()],
+      });
+    });
+
+    test.each([
+      ["another project's database", OTHER_DATABASE_ID],
+      ["a database that does not exist", MISSING_DATABASE_ID],
+    ])(
+      "a person naming %s hears what a database they may not edit gets",
+      async (_case: string, databaseId: ObjectID) => {
+        await expect(
+          DatabaseServerEndpointService.create({
+            data: aliasRequest("orders-db.example.com", {
+              databaseServerId: databaseId,
+            }),
+            props: memberProps(),
+          }),
+        ).rejects.toThrow(
+          "Database not found, or you do not have permission to edit it.",
+        );
+        expect(save).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a root write may name only the project's database", async () => {
+      for (const databaseId of [OTHER_DATABASE_ID, MISSING_DATABASE_ID]) {
+        const data: DatabaseServerEndpoint = aliasRequest(
+          "orders-db.example.com:5432",
+          { databaseServerId: databaseId },
+        );
+        data.projectId = PROJECT_ID;
+
+        await expect(
+          DatabaseServerEndpointService.create({
+            data: data,
+            props: { isRoot: true },
+          }),
+        ).rejects.toThrow(
+          `This database endpoint references records that are not in this project: Database "${databaseId.toString()}". Please pick values from this project and try again.`,
+        );
+      }
+
+      expect(save).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
    * Adding an endpoint decides which traffic a database's pages show, and
    * that no other database can claim it: it is an edit of that database, so
    * a label- or Owned-scoped editor may only do it on the rows they edit.

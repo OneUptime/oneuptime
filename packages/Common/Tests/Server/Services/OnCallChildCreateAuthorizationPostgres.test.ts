@@ -134,6 +134,7 @@ describePostgres(
       "Project",
       "User",
       "Team",
+      "TeamMember",
       "Label",
       "OnCallDutyPolicy",
       "OnCallDutyPolicyLabel",
@@ -237,6 +238,15 @@ describePostgres(
           [id.toString(), projectId.toString(), id.toString()],
         );
       }
+      // The user a rule pages is a member of the project (ProjectReferencesService).
+      await database.query(
+        `INSERT INTO "${schema}"."TeamMember" ("version", "projectId", "teamId", "userId", "hasAcceptedInvitation") VALUES (1, $1, $2, $3, true)`,
+        [
+          projectId.toString(),
+          targetTeamId.toString(),
+          targetUserId.toString(),
+        ],
+      );
       for (const [id, name] of [
         [developmentLabelId, "Development"],
         [productionLabelId, "Production"],
@@ -707,5 +717,87 @@ describePostgres(
         });
       },
     );
+
+    /*
+     * What a rule pages is the project's own, read from the real tables:
+     * the user must have a membership in the project, and the team must be
+     * one of its teams. Someone with no membership and another project's
+     * team are refused in the same words.
+     */
+    describe("who a rule pages", () => {
+      const strangerId: ObjectID = ObjectID.generate();
+      const otherProjectTeamId: ObjectID = ObjectID.generate();
+
+      beforeEach(async () => {
+        await database.query(
+          `INSERT INTO "${schema}"."User" ("_id", "version", "email", "slug") VALUES ($1, 1, $2, $3)`,
+          [
+            strangerId.toString(),
+            `${strangerId.toString()}@example.invalid`,
+            strangerId.toString(),
+          ],
+        );
+        await database.query(
+          `INSERT INTO "${schema}"."Team" ("_id", "version", "projectId", "name", "slug") VALUES ($1, 1, $2, 'Synthetic other team', $3)`,
+          [
+            otherProjectTeamId.toString(),
+            otherProjectId.toString(),
+            otherProjectTeamId.toString(),
+          ],
+        );
+      });
+
+      test("a member is paged; someone with no membership is refused", async () => {
+        const member: BaseModel = await services["user"].create({
+          data: child("user", developmentPolicyId, developmentRuleId),
+          props: memberProps(),
+        });
+        expect(member.id).toBeDefined();
+
+        const data: BaseModel = child(
+          "user",
+          developmentPolicyId,
+          developmentRuleId,
+        );
+        data.setColumnValue("userId", strangerId);
+
+        const before: unknown = await storedRows("user");
+        await expect(
+          services["user"].create({ data, props: memberProps() }),
+        ).rejects.toThrow(
+          `references records that are not in this project: User "${strangerId.toString()}"`,
+        );
+        expect(await storedRows("user")).toEqual(before);
+      });
+
+      test("another project's team is refused like a team that does not exist", async () => {
+        const refusalFor: (teamId: ObjectID) => Promise<string> = async (
+          teamId: ObjectID,
+        ): Promise<string> => {
+          const data: BaseModel = child(
+            "team",
+            developmentPolicyId,
+            developmentRuleId,
+          );
+          data.setColumnValue("teamId", teamId);
+
+          try {
+            await services["team"].create({ data, props: memberProps() });
+          } catch (error) {
+            return (error as Error).message
+              .split(teamId.toString())
+              .join("<id>");
+          }
+
+          throw new Error("The team was not refused.");
+        };
+
+        const foreign: string = await refusalFor(otherProjectTeamId);
+        expect(foreign).toContain(
+          "references records that are not in this project",
+        );
+        expect(await refusalFor(ObjectID.generate())).toBe(foreign);
+      });
+    });
   },
 );

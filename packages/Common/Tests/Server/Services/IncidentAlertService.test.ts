@@ -25,7 +25,9 @@ import Query from "../../../Server/Types/Database/Query";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
-import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReferenceException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
@@ -518,6 +520,109 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
       }).not.toThrow();
     },
   );
+});
+
+/*
+ * The project check every service runs (ProjectReferencesService) leaves the
+ * two ends to this service's own hook, so the answer a member gets for an
+ * alert of another project, or one that does not exist, is the one a hidden
+ * alert gets - never a different sentence. Here the checks run for real
+ * against a project directory: the project has INCIDENT_ID and ALERT_ID,
+ * ALERT_ID_2 is another project's, and ALERT_ID_3 is nobody's.
+ */
+describe("the project check and the service's own answer agree", () => {
+  const HIDDEN: string =
+    "The alert to link does not exist in this project, or you do not have access to it.";
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      // quiet
+    }) as never);
+    jest.spyOn(logger, "debug").mockImplementation((() => {
+      // quiet
+    }) as never);
+    stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: {
+        Incident: [INCIDENT_ID.toString()],
+        Alert: [ALERT_ID.toString()],
+      },
+      elsewhere: [ALERT_ID_2.toString()],
+    });
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+  });
+
+  test.each([
+    ["another project's alert", ALERT_ID_2, OTHER_PROJECT_ID],
+    ["an alert that does not exist", ALERT_ID_3, null],
+  ])(
+    "a member linking %s hears what a hidden alert gets",
+    async (_case: string, alertId: ObjectID, alertProject: ObjectID | null) => {
+      jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(
+          (alertProject ? buildAlert(alertProject) : null) as never,
+        );
+
+      await expect(
+        callHook("onBeforeCreate", {
+          data: buildLink({ alertId: alertId }),
+          props: userProps(Permission.ProjectMember),
+        } as CreateBy<IncidentAlert>),
+      ).rejects.toThrow(HIDDEN);
+    },
+  );
+
+  test("a link written as root may name only the project's incident and alert", async () => {
+    for (const alertId of [ALERT_ID_2, ALERT_ID_3]) {
+      await expect(
+        callHook("onBeforeCreate", {
+          data: buildLink({ alertId: alertId }),
+          props: { isRoot: true },
+        } as CreateBy<IncidentAlert>),
+      ).rejects.toThrow(
+        `This incident alert link references records that are not in this project: Alert "${alertId.toString()}". Please pick values from this project and try again.`,
+      );
+    }
+
+    await expect(
+      callHook("onBeforeCreate", {
+        data: buildLink(),
+        props: { isRoot: true },
+      } as CreateBy<IncidentAlert>),
+    ).resolves.toBeDefined();
+  });
+
+  test("a workflow may not point a link at another project's alert", async () => {
+    // The link holds nothing the update names.
+    jest.spyOn(IncidentAlertService, "findBy").mockResolvedValue([] as never);
+
+    const update: (alertId: ObjectID) => Promise<unknown> = (
+      alertId: ObjectID,
+    ): Promise<unknown> => {
+      return callHook("onBeforeUpdate", {
+        query: { _id: "0194a1e7-0000-4000-8000-0000000000d1" },
+        data: { alertId: alertId },
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<IncidentAlert>);
+    };
+
+    for (const alertId of [ALERT_ID_2, ALERT_ID_3]) {
+      await expect(update(alertId)).rejects.toThrow(
+        `Alert "${alertId.toString()}"`,
+      );
+      await expect(update(alertId)).rejects.toBeInstanceOf(
+        ProjectScopedReferenceException,
+      );
+    }
+
+    await expect(update(ALERT_ID)).resolves.toBeDefined();
+  });
 });
 
 describe("feed entries", () => {

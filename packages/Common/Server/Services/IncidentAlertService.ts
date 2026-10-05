@@ -22,6 +22,7 @@ import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivac
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import AlertStateChangeAuthorization from "../Utils/Alert/AlertStateChangeAuthorization";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
+import ProjectReferenceCheck from "../Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -396,6 +397,17 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The incident and the alert are checked by this service's own create
+   * hook: read as the caller, so a private one they cannot open, one of
+   * another project and one that does not exist all get the same answer,
+   * and pinned to the project for every write. A generic check first would
+   * answer the last two in other words than the first.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["incident", "alert"];
+  }
+
+  /*
    * A link row reveals both of its ends, so it is only visible to a user who
    * can see the private incident AND the private alert. The two filters write
    * different keys (incidentId / alertId) and compose. Relation joins
@@ -482,6 +494,16 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * Nobody can change a link's ends (their columns take no update), but a
+     * workflow writes as root: an incident or alert it names is held to the
+     * project like any other reference an update adds.
+     */
+    await ProjectReferenceCheck.validateUpdate({
+      service: this,
+      updateBy: updateBy,
+    });
 
     updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
     return { updateBy, carryForward: null };

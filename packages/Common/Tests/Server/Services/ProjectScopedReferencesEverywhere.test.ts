@@ -141,6 +141,10 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
   "AlertEpisodeService.ts": "AlertEpisodeService.test.ts",
   "IncidentService.ts":
     "IncidentService.test.ts and the cross-project reference guards",
+  "IncidentAlertService.ts":
+    "IncidentAlertService.test.ts and IncidentAlertPostgres.test.ts (read as the caller: private, foreign and missing answered alike)",
+  "DatabaseServerEndpointService.ts":
+    "DatabaseServerEndpointService.test.ts and DatabaseServerSqlPostgres.test.ts (a database they may not edit, a foreign and a missing one answered alike; root writes get the project check)",
   "IncidentEpisodeService.ts": "IncidentEpisodeService.test.ts",
   "IncidentTemplateService.ts": "IncidentTemplateService.test.ts",
   "ScheduledMaintenanceService.ts": "ScheduledMaintenanceService.test.ts",
