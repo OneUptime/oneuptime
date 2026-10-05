@@ -18,6 +18,7 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "./ProjectScopedReferenceValidator";
+import RelationNames from "./RelationNames";
 
 /*
  * Every reference a record writes - each many-to-many list (a rule's owner
@@ -148,7 +149,7 @@ export default class ProjectReferenceCheck {
       columns.push({
         column: column,
         idColumn: isRelation
-          ? ProjectReferenceCheck.getIdColumn(model, column, metadata)
+          ? RelationNames.getIdColumn(model, column, metadata)
           : undefined,
         isList: isList,
         modelName: metadata.title || referencedModel.singularName || column,
@@ -161,27 +162,6 @@ export default class ProjectReferenceCheck {
     referenceColumnsByModel.set(model.constructor, columns);
 
     return columns;
-  }
-
-  /*
-   * The id column a relation is written through. A few user-owned models
-   * (UserNotificationRule, the notification methods) name the relation
-   * itself as its id column in the metadata - `user` for `user` - while the
-   * column holding the id is `userId`; reading the relation twice would miss
-   * a payload that sends the id.
-   */
-  private static getIdColumn(
-    model: DatabaseBaseModel,
-    column: string,
-    metadata: TableColumnMetadata,
-  ): string | undefined {
-    const idColumn: string | undefined = metadata.manyToOneRelationColumn;
-
-    if (idColumn === column && model.hasColumn(`${column}Id`)) {
-      return `${column}Id`;
-    }
-
-    return idColumn;
   }
 
   /*

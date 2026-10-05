@@ -171,10 +171,12 @@ function isSiteWrite(dataKeys: Array<string>): boolean {
 
 /*
  * The site a payload moves the device to, or null when it clears the site (or
- * carries no resolvable id).
+ * carries no resolvable id). readConsistent for the reason the references
+ * below use it: a payload writing `siteId` and `site` at different sites
+ * would have one of them acted on and the other stored, so it is refused.
  */
 function readSiteIdFromData(data: Record<string, unknown>): ObjectID | null {
-  return RelationIdUtil.read(data, SITE_KEYS);
+  return RelationIdUtil.readConsistent(data, SITE_KEYS, "Network Site");
 }
 
 // Both spellings of "the monitor that reports this device's health".
@@ -1213,8 +1215,11 @@ export class Service extends ProjectReferencesService<Model> {
      * write shape every UI create takes.
      */
     const createProjectId: ObjectID | undefined =
-      createBy.data.projectId ||
-      createBy.data.project?.id ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "Project",
+      ) ||
       createBy.props.tenantId ||
       undefined;
 
@@ -1311,7 +1316,11 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (inheritedProbeId) {
-        createBy.data.probeId = inheritedProbeId;
+        RelationIdUtil.stamp(
+          createBy.data as unknown as Record<string, unknown>,
+          PROBE_KEYS,
+          inheritedProbeId,
+        );
       }
     }
 
@@ -1848,7 +1857,11 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     if (inheritedProbeId) {
-      data.updateBy.data.probeId = inheritedProbeId;
+      RelationIdUtil.stamp(
+        data.updateBy.data as unknown as Record<string, unknown>,
+        PROBE_KEYS,
+        inheritedProbeId,
+      );
     }
   }
 

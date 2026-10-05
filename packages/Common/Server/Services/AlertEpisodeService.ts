@@ -34,8 +34,9 @@ import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import AlertSeverityService from "./AlertSeverityService";
 import ProjectScopedReferenceValidator, {
-  resolveReferenceId,
+  getWrittenRelationReferences,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import AlertEpisodeMemberService from "./AlertEpisodeMemberService";
 import AlertEpisodeOwnerUserService from "./AlertEpisodeOwnerUserService";
 import AlertEpisodeOwnerTeamService from "./AlertEpisodeOwnerTeamService";
@@ -59,6 +60,16 @@ import AlertEpisodePrivacyRuleEngineService from "./AlertEpisodePrivacyRuleEngin
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import ProjectService from "./ProjectService";
+
+/*
+ * The two names of an episode's state, ID column first. A write may name it
+ * under either, and the two must agree (RelationIdUtil.readConsistent), so
+ * the state the service acts on is the state stored.
+ */
+const ALERT_STATE_KEYS: Array<string> = [
+  "currentAlertStateId",
+  "currentAlertState",
+];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -117,26 +128,28 @@ export class Service extends ProjectReferencesService<Model> {
      * project here leaves that project undeletable in exactly the same way.
      * onBeforeCreate overwrites currentAlertStateId with this project's
      * created state, which leaves the severity as the only create-reachable
-     * column — but an update can write either.
+     * column — but an update can write either. Each by both of its names:
+     * every name that holds an id is checked, and two that disagree are
+     * refused.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: updateBy.props.tenantId,
       subject: "alert episode",
       references: [
-        {
+        ...getWrittenRelationReferences({
+          payload: updateBy.data,
+          idColumn: "currentAlertStateId",
+          relation: "currentAlertState",
           modelName: "Alert State",
-          id:
-            resolveReferenceId(updateBy.data.currentAlertStateId) ||
-            resolveReferenceId(updateBy.data.currentAlertState),
           service: AlertStateService,
-        },
-        {
+        }),
+        ...getWrittenRelationReferences({
+          payload: updateBy.data,
+          idColumn: "alertSeverityId",
+          relation: "alertSeverity",
           modelName: "Alert Severity",
-          id:
-            resolveReferenceId(updateBy.data.alertSeverityId) ||
-            resolveReferenceId(updateBy.data.alertSeverity),
           service: AlertSeverityService,
-        },
+        }),
       ],
     });
 
@@ -187,20 +200,27 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    createBy.data.currentAlertStateId = alertState.id;
+    /*
+     * Every episode starts in the project's created state, whatever state the
+     * write named under either name: stamp leaves no other name of it to be
+     * stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ALERT_STATE_KEYS,
+      alertState.id,
+    );
 
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "alert episode",
-      references: [
-        {
-          modelName: "Alert Severity",
-          id:
-            resolveReferenceId(createBy.data.alertSeverityId) ||
-            resolveReferenceId(createBy.data.alertSeverity),
-          service: AlertSeverityService,
-        },
-      ],
+      references: getWrittenRelationReferences({
+        payload: createBy.data,
+        idColumn: "alertSeverityId",
+        relation: "alertSeverity",
+        modelName: "Alert Severity",
+        service: AlertSeverityService,
+      }),
     });
 
     // Auto-generate episode number
@@ -1158,16 +1178,23 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      ALERT_STATE_KEYS,
+      "Alert State",
+    );
+
     // Handle state changes
-    if (
-      onUpdate.updateBy.data.currentAlertStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    if (updatedAlertStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeEpisodeState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           episodeId: itemId,
-          alertStateId: onUpdate.updateBy.data.currentAlertStateId as ObjectID,
+          alertStateId: updatedAlertStateId,
           notifyOwners: true,
           rootCause: "State was changed when the episode was updated.",
           props: {

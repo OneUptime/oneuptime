@@ -1141,7 +1141,7 @@ describe("Incident docs", () => {
         /this\.modelService\.create\(\{[\s\S]*?props:\s*\{\s*isRoot:\s*true,/,
       );
       expect(readSource(INCIDENT_SERVICE_FILE)).toMatch(
-        /if \(createBy\.data\.currentIncidentStateId\) \{[\s\S]*?\} else if \(createBy\.data\.createdIncidentTemplateId\) \{/,
+        /if \(pickedIncidentStateId\) \{[\s\S]*?\} else if \(incidentTemplateId\) \{/,
       );
     });
 

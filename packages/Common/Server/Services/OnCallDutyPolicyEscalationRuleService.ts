@@ -21,6 +21,7 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { getDefaultEscalationRuleName } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -49,6 +50,12 @@ interface RuleMove {
   onCallDutyPolicyId: ObjectID;
   projectId: ObjectID;
 }
+
+// The two names of the policy a rule belongs to, ID column first.
+const ON_CALL_DUTY_POLICY_KEYS: Array<string> = [
+  "onCallDutyPolicyId",
+  "onCallDutyPolicy",
+];
 
 export class Service extends OnCallDutyPolicyChildService<Model> {
   @CaptureSpan()
@@ -864,14 +871,36 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * The policy the rule is added to, under either of its names (the two
+     * must agree), read once: the free-plan count, the order and the default
+     * name all go by it, and it is written back under the ID column alone so
+     * the rule is stored on the policy they counted.
+     */
+    const onCallDutyPolicyId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ON_CALL_DUTY_POLICY_KEYS,
+      "On-Call Policy",
+    );
+
+    if (!onCallDutyPolicyId) {
+      throw new BadDataException(
+        "Status Page Resource onCallDutyPolicyId is required",
+      );
+    }
+
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ON_CALL_DUTY_POLICY_KEYS,
+      onCallDutyPolicyId,
+    );
+
     if (IsBillingEnabled && createBy.props.currentPlan === PlanType.Free) {
       // then check no of policies and if it is more than one, return error
       const count: PositiveNumber = await this.countBy({
         query: {
           projectId: createBy.data.projectId!,
-          onCallDutyPolicyId:
-            createBy.data.onCallDutyPolicyId! ||
-            createBy.data.onCallDutyPolicy?._id,
+          onCallDutyPolicyId: onCallDutyPolicyId,
         },
         props: {
           isRoot: true,
@@ -885,15 +914,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       }
     }
 
-    if (!createBy.data.onCallDutyPolicyId) {
-      throw new BadDataException(
-        "Status Page Resource onCallDutyPolicyId is required",
-      );
-    }
-
     if (!createBy.data.order) {
       const query: Query<Model> = {
-        onCallDutyPolicyId: createBy.data.onCallDutyPolicyId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
       };
 
       const count: PositiveNumber = await this.countBy({
@@ -917,7 +940,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     if (!createBy.data.name || !createBy.data.name.toString().trim()) {
       createBy.data.name = getDefaultEscalationRuleName(
         await this.getLevelOfNewRule({
-          onCallDutyPolicyId: createBy.data.onCallDutyPolicyId,
+          onCallDutyPolicyId: onCallDutyPolicyId,
           order: createBy.data.order,
         }),
       );

@@ -44,13 +44,29 @@ const makeTeam: MakeTeamFunction = (data: {
 describe("resolveAttachmentProjectId", () => {
   const projectId: ObjectID = ObjectID.generate();
 
-  test("should prefer an explicit projectId", () => {
+  test("should read the same project under both of its names", () => {
+    const same: Project = new Project();
+    same.id = projectId;
+
+    expect(
+      resolveAttachmentProjectId({ projectId, project: same })?.toString(),
+    ).toEqual(projectId.toString());
+  });
+
+  test("should refuse a project named twice, differently, naming both fields", () => {
+    /*
+     * The two are one column and the relation is what would be stored, so
+     * the teams would be checked against one project and the attachment
+     * saved on the other.
+     */
     const other: Project = new Project();
     other.id = ObjectID.generate();
 
-    expect(
-      resolveAttachmentProjectId({ projectId, project: other })?.toString(),
-    ).toEqual(projectId.toString());
+    expect(() => {
+      return resolveAttachmentProjectId({ projectId, project: other });
+    }).toThrow(
+      "Conflicting Project references were provided. projectId and project are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
   });
 
   test("should fall back to the project relation's id", () => {

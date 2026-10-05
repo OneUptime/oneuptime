@@ -145,9 +145,10 @@ const buildMonitorSource: BuildMonitorSourceFunction = (data: {
     ) as JSONObject,
     readSourceIdsFromRecord: (record: any): Array<ObjectID> => {
       if (!isMany) {
-        const monitorId: ObjectID | null = RelationIdUtil.read(
+        const monitorId: ObjectID | null = RelationIdUtil.readConsistent(
           record as Record<string, unknown>,
           ["monitorId", "monitor"],
+          "Monitor",
         );
 
         return monitorId ? [monitorId] : [];
@@ -178,9 +179,10 @@ const buildMonitorSource: BuildMonitorSourceFunction = (data: {
           return null;
         }
 
-        const monitorId: ObjectID | null = RelationIdUtil.read(
+        const monitorId: ObjectID | null = RelationIdUtil.readConsistent(
           payload as Record<string, unknown>,
           info.relationDataKeys,
+          "Monitor",
         );
 
         return monitorId ? [monitorId] : [];

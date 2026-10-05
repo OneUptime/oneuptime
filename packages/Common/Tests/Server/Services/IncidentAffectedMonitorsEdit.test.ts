@@ -1243,18 +1243,65 @@ describe("IncidentService.onBeforeUpdate: which monitors an update adds and remo
     expect(carryForward.newMonitorChangeStatusIdTo).toBeUndefined();
   });
 
-  test("a status sent is not a clear, even next to a null relation", async () => {
-    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
-      await runBeforeUpdate(
+  test("a status sent beside a cleared relation is refused: the two names disagree", async () => {
+    /*
+     * One name clears the status and the other sets it, and which of the two
+     * is stored depends on the shape of the write - so neither is guessed.
+     */
+    await expect(
+      runBeforeUpdate(
         makeUpdateBy({
           changeMonitorStatusTo: null,
           changeMonitorStatusToId: DEGRADED,
+        }),
+      ),
+    ).rejects.toThrow(
+      "Conflicting Monitor Status references were provided. changeMonitorStatusToId and changeMonitorStatusTo are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+  });
+
+  test("a status sent under the relation alone is the status written", async () => {
+    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
+      await runBeforeUpdate(
+        makeUpdateBy({
+          changeMonitorStatusTo: { _id: DEGRADED },
         }),
       ),
     );
 
     expect(carryForward.isChangeMonitorStatusToCleared).toBe(false);
     expect(String(carryForward.newMonitorChangeStatusIdTo)).toBe(DEGRADED);
+  });
+
+  test("the same status under both names is the status written", async () => {
+    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
+      await runBeforeUpdate(
+        makeUpdateBy({
+          changeMonitorStatusTo: { _id: DEGRADED },
+          changeMonitorStatusToId: DEGRADED.toUpperCase(),
+        }),
+      ),
+    );
+
+    expect(carryForward.isChangeMonitorStatusToCleared).toBe(false);
+    expect(String(carryForward.newMonitorChangeStatusIdTo).toLowerCase()).toBe(
+      DEGRADED.toLowerCase(),
+    );
+  });
+
+  test("a clear under both names records clearing the status", async () => {
+    const carryForward: MonitorCarryForward = monitorCarryForwardOf(
+      await runBeforeUpdate(
+        makeUpdateBy({
+          monitors: [MONITOR_A, MONITOR_B],
+          changeMonitorStatusTo: null,
+          changeMonitorStatusToId: null,
+        }),
+      ),
+    );
+
+    expect(carryForward.isChangeMonitorStatusToCleared).toBe(true);
+    expect(carryForward.newMonitorChangeStatusIdTo).toBeUndefined();
   });
 
   test.each([

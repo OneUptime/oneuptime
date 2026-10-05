@@ -3,6 +3,7 @@ import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscri
 import Model from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import Query from "../Types/Database/Query";
@@ -34,10 +35,15 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
-      const templateId: ObjectID | undefined =
-        createBy.data.statusPageSubscriberNotificationTemplateId ||
-        createBy.data.statusPageSubscriberNotificationTemplate?.id ||
-        undefined;
+      // The template, under either of its names (the two must agree).
+      const templateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        [
+          "statusPageSubscriberNotificationTemplateId",
+          "statusPageSubscriberNotificationTemplate",
+        ],
+        "Status Page Subscriber Notification Template",
+      );
 
       await this.assertCanLink({
         templateIds: templateId ? [templateId] : [],
