@@ -299,7 +299,7 @@ export default class TeamPermission extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

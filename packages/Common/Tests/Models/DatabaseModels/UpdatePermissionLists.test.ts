@@ -38,6 +38,12 @@ import { describe, expect, test } from "@jest/globals";
  * the permissions a team can grant inside a project: the user's own
  * (Current User) and the global ones are not about editing a project's
  * records.
+ *
+ * Who may set a column when a record is made is decided the same way, by
+ * the record's create list and the column's: every relation is held to its
+ * ID column's create list as well as its update list (the last describe).
+ * A column's create list naming another record's permission is
+ * PermissionCatalogueCoverage's to catch.
  */
 
 type ModelWithAccessLists = {
@@ -337,6 +343,8 @@ interface RelationAndIdColumn {
   idColumn: string;
   relationList: Array<Permission>;
   idColumnList: Array<Permission>;
+  relationCreateList: Array<Permission>;
+  idColumnCreateList: Array<Permission>;
 }
 
 const DATABASE_MODELS: Array<BaseModel> = (
@@ -376,6 +384,8 @@ function relationsWithIdColumns(model: BaseModel): Array<RelationAndIdColumn> {
       idColumn: idColumn,
       relationList: sortedCopy(accessLists[column]?.update || []),
       idColumnList: sortedCopy(accessLists[idColumn]?.update || []),
+      relationCreateList: sortedCopy(accessLists[column]?.create || []),
+      idColumnCreateList: sortedCopy(accessLists[idColumn]?.create || []),
     });
   }
 
@@ -410,6 +420,13 @@ function findRelation(
 
 function haveOneList(relation: RelationAndIdColumn): boolean {
   return relation.relationList.join(",") === relation.idColumnList.join(",");
+}
+
+function haveOneCreateList(relation: RelationAndIdColumn): boolean {
+  return (
+    relation.relationCreateList.join(",") ===
+    relation.idColumnCreateList.join(",")
+  );
 }
 
 /*
@@ -459,6 +476,35 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
       "An event's monitor status is picked when the event is created: its Affected Resources Edit does not ask it, and the docs say so, while the ID stays writable over the API as it always was. Whether it may change afterwards is a question about events, not templates.",
   },
 ];
+
+/*
+ * Relations whose two create lists differ on purpose. The list may only
+ * shrink: an entry whose lists have come to agree fails below, so it is
+ * removed with its reason.
+ */
+const RELATIONS_CREATED_APART: Array<RelationsLeftApart> = [
+  {
+    tableName: "UserTotpAuth",
+    relations: ["user"],
+    reason:
+      "One spelling in, as for the notification rule methods: nobody may send the owner as the relation. The service writes userId itself, from the signed-in user, before the column check, so the ID column keeps Current User; the owner is checked as the signer's own (CreatePermission.checkCreateOwnership).",
+  },
+  {
+    tableName: "UserWebAuthn",
+    relations: ["user"],
+    reason:
+      "One spelling in, as for an authenticator app: nobody may send the owner as the relation. The service writes userId itself, from the signed-in user, before the column check, so the ID column keeps Current User; the owner is checked as the signer's own (CreatePermission.checkCreateOwnership).",
+  },
+];
+
+function isCreatedApart(relation: RelationAndIdColumn): boolean {
+  return RELATIONS_CREATED_APART.some((entry: RelationsLeftApart) => {
+    return (
+      entry.tableName === relation.tableName &&
+      entry.relations.includes(relation.relation)
+    );
+  });
+}
 
 function isLeftApart(relation: RelationAndIdColumn): boolean {
   return RELATIONS_LEFT_APART.some((entry: RelationsLeftApart) => {
@@ -522,6 +568,91 @@ describe("a relation and its ID column", () => {
       expect(found.relationList).toContain(editPermission as Permission);
     },
   );
+
+  /*
+   * Create the same way: a record made with the relation named
+   * (`currentUserOnRoster: { _id }`) is checked against the relation's
+   * create list, one made with the ID column against the column's. A wider
+   * list on one name lets somebody set by that name what the other refuses
+   * them - the person on an on-call roster, which the schedule decides
+   * itself; who deleted a permission row - and a narrower one only hides
+   * the column from whatever writes by that name. Where the two differed,
+   * the narrower list was kept. The authenticators' owner is kept apart on
+   * purpose (RELATIONS_CREATED_APART).
+   *
+   * A service that reads a reference into its ID column
+   * (RelationIdUtil.readIntoIdColumn) leaves both names on the write, so
+   * both lists are checked: with one list, the answer is the one either
+   * name alone would get.
+   */
+  test("share one create list", () => {
+    const apart: Array<string> = ALL_RELATIONS.filter(
+      (relation: RelationAndIdColumn) => {
+        return !isCreatedApart(relation) && !haveOneCreateList(relation);
+      },
+    ).map((relation: RelationAndIdColumn): string => {
+      return `${relation.tableName}.${relation.relation} [${relation.relationCreateList.join(", ")}] / ${relation.idColumn} [${relation.idColumnCreateList.join(", ")}]`;
+    });
+
+    expect(apart).toEqual([]);
+  });
+
+  test.each([
+    ["Monitor", "currentMonitorStatus"],
+    ["OnCallDutyPolicySchedule", "currentUserOnRoster"],
+    ["OnCallDutyPolicySchedule", "nextUserOnRoster"],
+    ["TeamPermission", "deletedByUser"],
+    ["ApiKeyPermission", "deletedByUser"],
+    ["DataMigration", "createdByUser"],
+    ["RunbookCredential", "createdByUser"],
+    ["StatusPageAnnouncementTemplate", "createdByUser"],
+    ["StatusPageSubscriberNotificationTemplate", "createdByUser"],
+    ["StatusPageSubscriberNotificationTemplateStatusPage", "createdByUser"],
+    ["StatusPageSCIM", "createdByUser"],
+    ["ProjectSCIM", "createdByUser"],
+  ])(
+    "%s.%s is created by the same people under either name",
+    (tableName: string, relation: string) => {
+      const found: RelationAndIdColumn = findRelation(tableName, relation);
+
+      expect(found.relationCreateList).toEqual(found.idColumnCreateList);
+    },
+  );
+
+  test("nobody names the person on an on-call roster, or who deleted a row, when making it", () => {
+    for (const [tableName, relation] of [
+      ["OnCallDutyPolicySchedule", "currentUserOnRoster"],
+      ["OnCallDutyPolicySchedule", "nextUserOnRoster"],
+      ["TeamPermission", "deletedByUser"],
+      ["ApiKeyPermission", "deletedByUser"],
+    ]) {
+      expect(findRelation(tableName!, relation!).relationCreateList).toEqual(
+        [],
+      );
+    }
+  });
+
+  test("an authenticator's owner can be sent only as its ID, which the service writes itself", () => {
+    for (const tableName of ["UserTotpAuth", "UserWebAuthn"]) {
+      const found: RelationAndIdColumn = findRelation(tableName, "user");
+
+      expect(found.relationCreateList).toEqual([]);
+      expect(found.idColumnCreateList).toEqual([Permission.CurrentUser]);
+    }
+  });
+
+  test("every relation created apart still differs, and says why", () => {
+    for (const entry of RELATIONS_CREATED_APART) {
+      expect(entry.reason.length).toBeGreaterThan(40);
+
+      for (const relation of entry.relations) {
+        expect([
+          `${entry.tableName}.${relation}`,
+          haveOneCreateList(findRelation(entry.tableName, relation)),
+        ]).toEqual([`${entry.tableName}.${relation}`, false]);
+      }
+    }
+  });
 
   test("every relation left apart still differs, and says why", () => {
     for (const entry of RELATIONS_LEFT_APART) {

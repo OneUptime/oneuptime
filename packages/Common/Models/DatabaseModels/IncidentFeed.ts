@@ -563,7 +563,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.IncidentAdmin,
       Permission.IncidentMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -573,7 +573,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })
@@ -607,7 +607,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.IncidentAdmin,
       Permission.IncidentMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -617,7 +617,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })
@@ -642,7 +642,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.ProjectMember,
       Permission.IncidentAdmin,
       Permission.IncidentMember,
-      Permission.CreateScheduledMaintenanceFeed,
+      Permission.CreateIncidentFeed,
     ],
     read: [
       Permission.ProjectOwner,
@@ -652,7 +652,7 @@ export default class IncidentFeed extends BaseModel {
       Permission.IncidentAdmin,
       Permission.IncidentMember,
       Permission.IncidentViewer,
-      Permission.ReadScheduledMaintenanceFeed,
+      Permission.ReadIncidentFeed,
     ],
     update: [],
   })

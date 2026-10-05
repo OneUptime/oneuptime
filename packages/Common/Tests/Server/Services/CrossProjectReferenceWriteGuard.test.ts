@@ -274,6 +274,12 @@ describe("cross-project reference guard on write", () => {
        * it and the guard silently passed.
        */
       spyOnValidator();
+      /*
+       * Writing a severity also has onBeforeUpdate read the severity each
+       * matched incident holds, so its side effects follow a real change
+       * only. Unrelated to the guard — stub it out.
+       */
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([] as never);
 
       await callHook(IncidentService, "onBeforeUpdate", {
         data: { incidentSeverity: SEVERITY_ID.toString() },
@@ -293,6 +299,12 @@ describe("cross-project reference guard on write", () => {
 
     test("update catches the relation-object shape", async () => {
       spyOnValidator();
+      /*
+       * Writing a severity also has onBeforeUpdate read the severity each
+       * matched incident holds, so its side effects follow a real change
+       * only. Unrelated to the guard — stub it out.
+       */
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([] as never);
 
       await callHook(IncidentService, "onBeforeUpdate", {
         data: { incidentSeverity: { _id: SEVERITY_ID.toString() } },
@@ -414,6 +426,12 @@ describe("cross-project reference guard on write", () => {
 
     test("update checks state, severity and monitor status", async () => {
       spyOnValidator();
+      /*
+       * Writing a severity also has onBeforeUpdate read the severity each
+       * matched alert holds, so its side effects follow a real change only.
+       * Unrelated to the guard — stub it out.
+       */
+      jest.spyOn(AlertService, "findBy").mockResolvedValue([] as never);
 
       await callHook(AlertService, "onBeforeUpdate", {
         data: {

@@ -9,6 +9,7 @@ import SmsService from "./SmsService";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
@@ -70,10 +71,22 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * Whose number this is: the user the write names under either name, or
+     * - when it names nobody - the person adding it, whom CreatePermission
+     * stamps as the owner after this hook.
+     */
+    const userId: ObjectID | undefined =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["userId", "user"],
+        "User",
+      ) || createBy.props.userId;
+
     // Check if user already has a verified phone number for this project
     const existingVerifiedNumber: Model | null = await this.findOneBy({
       query: {
-        userId: createBy.data.userId!,
+        userId: userId!,
         projectId: createBy.data.projectId!,
         isVerified: true,
       },

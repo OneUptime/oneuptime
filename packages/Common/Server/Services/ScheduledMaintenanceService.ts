@@ -770,27 +770,16 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       }
     }
 
-    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnEventCreated if it's being updated
-    if (
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated !==
-      undefined
-    ) {
-      if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
-        false
-      ) {
-        updateBy.data.subscriberNotificationStatusOnEventScheduled =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
-      } else if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnEventCreated ===
-        true
-      ) {
-        updateBy.data.subscriberNotificationStatusOnEventScheduled =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
-    }
+    /*
+     * Notifying subscribers that the event was scheduled
+     * (shouldStatusPageSubscribersBeNotifiedOnEventCreated) is decided when
+     * it is created. An update that writes it - only root and master admins
+     * can - leaves the 'scheduled' message alone: re-sending the value the
+     * event holds used to send that message to every subscriber again, and
+     * turning it on does not send a message the event was created without.
+     * Turned off, a message still queued is skipped by the job that would
+     * send it, which reads the flag.
+     */
 
     await this.validateProjectScopedReferences(updateBy);
 

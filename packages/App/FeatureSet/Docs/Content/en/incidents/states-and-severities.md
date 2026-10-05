@@ -105,6 +105,8 @@ Two differences from states:
 
 Where severity does more than describe: on **Incidents → Rules → On-Call Rules**, a rule's **Incident Severities** field is a match criterion. Listing **Critical Incident** there is how "page the database team for anything critical" gets expressed — the on-call policy lives on the rule, not on the severity.
 
+**Changing an incident's severity** — under **Edit** on the incident's **Incident Details** card, through the API or Terraform (`incidentSeverityId`), with a workflow or with the AI tools — does the same four things whichever way it is sent: the incident feed gets an **Incident updated** entry that names the new severity, the incident's SLA deadlines are worked out again, its reminder rule is matched again, and the incident metrics count one severity change. Saving the severity the incident already has does none of them, so editing only the title of an incident leaves its SLA deadlines, reminders and severity-change count as they were. An alert's severity works the same way for its feed entry and its reminders.
+
 ## Moving an incident through its states
 
 There are four ways an incident changes state:

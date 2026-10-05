@@ -42,18 +42,16 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
-    // Set notification status based on shouldStatusPageSubscribersBeNotified if it's being updated
-    if (updateBy.data.shouldStatusPageSubscribersBeNotified !== undefined) {
-      if (updateBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        updateBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this announcement.";
-      } else if (updateBy.data.shouldStatusPageSubscribersBeNotified === true) {
-        updateBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
-    }
+    /*
+     * Notifying subscribers about the announcement
+     * (shouldStatusPageSubscribersBeNotified) is decided when it is created.
+     * An update that writes it - only root and master admins can - leaves
+     * that message alone: re-sending the value the announcement holds used
+     * to send it to every subscriber again, and turning it on does not send
+     * a message the announcement was created without. Turned off, a message
+     * still queued is skipped by the job that would send it, which reads the
+     * flag.
+     */
 
     /*
      * An edit tells subscribers nothing unless the editor asked for it on this

@@ -289,6 +289,109 @@ describe("RelationIdUtil.stamp", () => {
   });
 });
 
+describe("RelationIdUtil.readIntoIdColumn", () => {
+  it("writes the id a relation-only write names into the ID column, and keeps the relation", () => {
+    const relation: { _id: string } = { _id: SITE_ID.toString() };
+    const data: Record<string, unknown> = { site: relation, name: "Core" };
+
+    const id: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data,
+      SITE_KEYS,
+      "Network Site",
+    );
+
+    expect(id?.toString()).toBe(SITE_ID.toString());
+    expect((data["siteId"] as ObjectID).toString()).toBe(SITE_ID.toString());
+    // The relation stays: both names now hold the same id.
+    expect(data["site"]).toBe(relation);
+    expect(
+      RelationIdUtil.readConsistent(
+        data,
+        SITE_KEYS,
+        "Network Site",
+      )?.toString(),
+    ).toBe(SITE_ID.toString());
+  });
+
+  it("reads a relation that is a model, as a create's payload holds it", () => {
+    const data: Record<string, unknown> = {
+      site: { id: SITE_ID, _id: SITE_ID.toString() },
+    };
+
+    expect(
+      RelationIdUtil.readIntoIdColumn(
+        data,
+        SITE_KEYS,
+        "Network Site",
+      )?.toString(),
+    ).toBe(SITE_ID.toString());
+    expect(String(data["siteId"])).toBe(SITE_ID.toString());
+  });
+
+  it("leaves an ID column the write already holds as it is", () => {
+    const sent: ObjectID = new ObjectID(SITE_ID.toString().toUpperCase());
+    const data: Record<string, unknown> = {
+      siteId: sent,
+      site: { _id: SITE_ID.toString() },
+    };
+
+    RelationIdUtil.readIntoIdColumn(data, SITE_KEYS, "Network Site");
+
+    expect(data["siteId"]).toBe(sent);
+  });
+
+  it("leaves a write that names nothing as it was", () => {
+    const data: Record<string, unknown> = { name: "Core" };
+
+    expect(
+      RelationIdUtil.readIntoIdColumn(data, SITE_KEYS, "Network Site"),
+    ).toBeNull();
+    expect(Object.keys(data)).toEqual(["name"]);
+  });
+
+  it("leaves a clear as it was, under the name it came by", () => {
+    const data: Record<string, unknown> = { site: null };
+
+    expect(
+      RelationIdUtil.readIntoIdColumn(data, SITE_KEYS, "Network Site"),
+    ).toBeNull();
+    expect("siteId" in data).toBe(false);
+    expect(data["site"]).toBeNull();
+  });
+
+  it("refuses two names that disagree, and writes nothing", () => {
+    const data: Record<string, unknown> = {
+      siteId: SITE_ID,
+      site: { _id: OTHER_SITE_ID.toString() },
+    };
+
+    expect(() => {
+      RelationIdUtil.readIntoIdColumn(data, SITE_KEYS, "Network Site");
+    }).toThrow(
+      new BadDataException(
+        RelationIdUtil.getConflictMessage("Network Site", SITE_KEYS),
+      ),
+    );
+    expect(data["siteId"]).toBe(SITE_ID);
+  });
+
+  it("refuses a relation beside a cleared ID column", () => {
+    expect(() => {
+      RelationIdUtil.readIntoIdColumn(
+        { siteId: null, site: { _id: SITE_ID.toString() } },
+        SITE_KEYS,
+        "Network Site",
+      );
+    }).toThrow(BadDataException);
+  });
+
+  it("answers null for no payload at all", () => {
+    expect(
+      RelationIdUtil.readIntoIdColumn(undefined, SITE_KEYS, "Network Site"),
+    ).toBeNull();
+  });
+});
+
 describe("RelationIdUtil.getConflictMessage", () => {
   it("names the reference and the fields the write sent", () => {
     expect(

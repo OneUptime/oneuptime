@@ -66,6 +66,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import Phone from "../../Types/Phone";
 import SMS from "../../Types/SMS/SMS";
@@ -5399,22 +5400,24 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * `createBy.data.userId` alone is enough HERE, and only because
-     * onBeforeCreate has already folded the `user` relation into it. Read on
-     * its own — before that reduction existed — this line was a bypass: a
-     * payload spelling the owner as `user: { _id: <somebody else> }` left the
-     * scalar empty, fell through to props.userId, and every check below was
-     * answered about the actor while the row was written for the victim. If
-     * that fold is ever moved or removed, this line becomes wrong again.
+     * The owner under either of its names. onBeforeCreate has already folded
+     * the `user` relation into `userId`, but this reads both all the same, so
+     * the checks below never depend on that order: a payload spelling the
+     * owner as `user: { _id }` alone is answered about that user, never about
+     * the actor.
      *
      * The fallback to props.userId is a different thing and stays: an omitted
      * ownership column means "for myself". CreatePermission stamps props.userId
      * onto it, but it does so AFTER this hook has run, so the value is not on
-     * the model yet and reading data.userId alone would treat every ordinary
+     * the model yet and reading the owner alone would treat every ordinary
      * self-service create as an unowned row.
      */
     const ruleOwnerUserId: ObjectID | undefined =
-      createBy.data.userId || createBy.props.userId;
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["userId", "user"],
+        "User",
+      ) || createBy.props.userId;
 
     if (!ruleOwnerUserId) {
       throw new BadDataException(

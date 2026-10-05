@@ -53,6 +53,7 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ReferenceChange from "../Utils/Database/ReferenceChange";
 import CreatedByUser from "../Utils/Database/CreatedByUser";
 import {
   getAffectedResourceColumns,
@@ -204,6 +205,12 @@ type UpdateCarryForward = Dictionary<{
    */
   isChangeMonitorStatusToCleared?: boolean | undefined;
   statusPageScopeChange?: StatusPageScopeCarryForward | undefined;
+  /*
+   * The severity the incident held before the update (null: none), read only
+   * when the update writes one, so onUpdateSuccess runs the severity's side
+   * effects for a real change only (recordSeverityBeforeUpdate).
+   */
+  severityIdBeforeUpdate?: string | null | undefined;
 }>;
 
 /*
@@ -723,27 +730,19 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnIncidentCreated if it's being updated
-    if (
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !==
-      undefined
-    ) {
-      if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        false
-      ) {
-        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        updateBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this incident.";
-      } else if (
-        updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true
-      ) {
-        updateBy.data.subscriberNotificationStatusOnIncidentCreated =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
-    }
+    await this.recordSeverityBeforeUpdate(updateBy, carryForward);
+
+    /*
+     * Notifying subscribers that the incident was created
+     * (shouldStatusPageSubscribersBeNotifiedOnIncidentCreated) is decided
+     * when it is declared. An update that writes it - only root and master
+     * admins can - leaves the 'created' message alone: re-sending the value
+     * the incident holds used to send that message to every status page
+     * again, and turning it on does not send a message the incident was
+     * declared without. Turned off, a message still queued is skipped by
+     * the job that would send it, which reads the flag. Retry, Resend and
+     * the API's Pending are how the message is sent again.
+     */
 
     await this.queueCreatedNotificationResendToAllStatusPagesIfRequested(
       updateBy,
@@ -821,6 +820,59 @@ export class Service extends ProjectReferencesService<Model> {
   // A monitor's id as getMonitorIdsInUpdate writes it, for comparing the two.
   private getMonitorIdForComparison(monitor: Monitor): string {
     return (monitor._id?.toString() || "").trim().toLowerCase();
+  }
+
+  /*
+   * A severity change records itself in the incident feed, recalculates the
+   * SLA deadlines, re-matches the reminder rule and counts in the
+   * SeverityChange metric (onUpdateSuccess). Updates often write back the
+   * severity an incident holds - the dashboard's Incident Details card sends
+   * it with every save, and an API client or a workflow may write the whole
+   * incident - so the severity each incident the update matches holds is
+   * read here, before the write, for onUpdateSuccess to act on a real change
+   * only (ReferenceChange). One read, of that column alone, and only when
+   * the update writes a severity, under either of its names.
+   */
+  private async recordSeverityBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+    carryForward: UpdateCarryForward,
+  ): Promise<void> {
+    const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      SEVERITY_KEYS,
+      "Incident Severity",
+    );
+
+    if (!writtenSeverityId) {
+      return;
+    }
+
+    const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        incidentSeverityId: true,
+      },
+    });
+
+    for (const incident of incidents) {
+      if (!incident.id) {
+        continue;
+      }
+
+      const incidentId: string = incident.id.toString();
+
+      carryForward[incidentId] = {
+        monitorsRemoved: [],
+        monitorsAdded: [],
+        oldChangeMonitorStatusIdTo: undefined,
+        newMonitorChangeStatusIdTo: undefined,
+        ...carryForward[incidentId],
+        severityIdBeforeUpdate: incident.incidentSeverityId
+          ? incident.incidentSeverityId.toString()
+          : null,
+      };
+    }
   }
 
   /*
@@ -1034,10 +1086,14 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Whether an update itself asks for the 'created' notification to go out
    * again: it sets the status to Pending - the API route of resending it,
-   * and the dashboard's Retry - turns notifying on creation on, which
-   * onBeforeUpdate maps to Pending, or asks for it to be sent to every
-   * status page again (IncidentCreatedResend, the dashboard's Resend). Read
-   * before any hook adds a Pending of its own.
+   * and the dashboard's Retry - or asks for it to be sent to every status
+   * page again (IncidentCreatedResend, the dashboard's Resend). Read before
+   * any hook adds a Pending of its own.
+   *
+   * Writing shouldStatusPageSubscribersBeNotifiedOnIncidentCreated is no
+   * such request, whatever its value: a client writing the whole incident
+   * back sends it as true, and that emptied the record of told pages and
+   * sent the message to every page again.
    */
   private isCreatedNotificationResendRequested(
     updateBy: UpdateBy<Model>,
@@ -1045,8 +1101,6 @@ export class Service extends ProjectReferencesService<Model> {
     return (
       updateBy.data.subscriberNotificationStatusOnIncidentCreated ===
         StatusPageSubscriberNotificationStatus.Pending ||
-      updateBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated ===
-        true ||
       IncidentCreatedResend.isRequested(updateBy.miscDataProps)
     );
   }
@@ -1241,9 +1295,10 @@ export class Service extends ProjectReferencesService<Model> {
    * runs after this hook.
    *
    * An update that sets the status itself - the API route of resetting it to
-   * Pending, or the notify-on-create flag above - is left alone. An update
-   * that matches several incidents queues only when every one of them
-   * qualifies, because the write applies the same data to all of them.
+   * Pending - is left alone. Notifying on creation is read as the update
+   * leaves it, so one that turns it off in the same write queues nothing.
+   * An update that matches several incidents queues only when every one of
+   * them qualifies, because the write applies the same data to all of them.
    */
   private async queueCreatedNotificationOnPublishIfRequested(
     updateBy: UpdateBy<Model>,
@@ -1292,8 +1347,13 @@ export class Service extends ProjectReferencesService<Model> {
               : incident.isPrivate,
           subscriberNotificationStatusOnIncidentCreated:
             incident.subscriberNotificationStatusOnIncidentCreated,
+          // As this update leaves it, like the privacy above.
           shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-            incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+            this.getValueAfterUpdate(
+              updateBy.data
+                .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+            ),
           // The pages it is limited to once this update is written.
           statusPages:
             updateBy.data.statusPages !== undefined
@@ -1603,7 +1663,11 @@ export class Service extends ProjectReferencesService<Model> {
             subscriberNotificationStatusOnIncidentCreated:
               incident.subscriberNotificationStatusOnIncidentCreated,
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated:
-              incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              this.getValueAfterUpdate(
+                updateBy.data
+                  .shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+                incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+              ),
             isVisibleOnStatusPage: this.getValueAfterUpdate(
               updateBy.data.isVisibleOnStatusPage,
               incident.isVisibleOnStatusPage,
@@ -1697,8 +1761,9 @@ export class Service extends ProjectReferencesService<Model> {
    * write (getRecordToSeedOnQueue): the job then tells only the added pages.
    *
    * An update that sets the status itself - the API route of resetting it to
-   * Pending, the notify-on-create flag, or publishing a hidden incident - is
-   * left alone. An update that matches several incidents queues only when it
+   * Pending, or publishing a hidden incident - is left alone. Notifying on
+   * creation is read as the update leaves it, like the visibility and the
+   * privacy. An update that matches several incidents queues only when it
    * may for every one of them, because the write applies the same data to
    * all. For the same reason it cannot write a record that differs between
    * them, or overwrite the record of an incident that has one, and is refused
@@ -4064,23 +4129,20 @@ ${incident.remediationNotes || "No remediation notes provided."}
       );
 
     /*
-     * The severity's feed entry, SLA recalculation, reminder refresh and
-     * metric follow a severity written as the relation, which is how the
-     * dashboard's forms send it, as they always have. They do not compare it
-     * with the severity the incident had, so they would repeat for every
-     * write that re-sends the ID column unchanged. The id they act on is the
-     * one stored: both names, read together.
+     * The severity the update wrote, under either of its names: the
+     * dashboard's forms send the relation, the API, Terraform, workflows and
+     * the AI tools the ID column, and onBeforeUpdate refused two that
+     * disagree. Its feed entry, SLA recalculation, reminder refresh and
+     * metric run for each incident whose severity this changed - compared
+     * with the severity it held before the write (recordSeverityBeforeUpdate)
+     * - so writing back the severity an incident holds runs none of them.
      */
-    const updatedIncidentSeverityId: ObjectID | null = RelationIdUtil.isPresent(
-      onUpdate.updateBy.data as unknown as Record<string, unknown>,
-      ["incidentSeverity"],
-    )
-      ? RelationIdUtil.readConsistent(
-          onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          SEVERITY_KEYS,
-          "Incident Severity",
-        )
-      : null;
+    const writtenIncidentSeverityId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        SEVERITY_KEYS,
+        "Incident Severity",
+      );
 
     if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
@@ -4170,28 +4232,29 @@ ${incident.remediationNotes || "No remediation notes provided."}
           });
         }
 
-        // Re-evaluate reminder schedule when reminders are enabled or disabled for this incident
-        if (
+        const isSeverityChanged: boolean = ReferenceChange.isChanged({
+          writtenId: writtenIncidentSeverityId,
+          idBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.severityIdBeforeUpdate,
+        });
+
+        /*
+         * The reminder rule is matched on the severity and the labels, and
+         * reminders can be switched on or off. One refresh covers whatever
+         * of those the update changed: each refresh restarts the interval.
+         */
+        const shouldRefreshReminders: boolean =
+          isSeverityChanged ||
           Object.prototype.hasOwnProperty.call(
             updatedIncidentData,
             "enableReminders",
-          )
-        ) {
-          try {
-            await this.refreshReminderSchedule({
-              incidentId: incidentId,
-              projectId: projectId,
-            });
-          } catch (reminderError) {
-            logger.error(
-              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
+          ) ||
+          // Any labels change re-matches the rule, clearing them included.
+          Boolean(
+            updatedIncidentData.labels &&
+              Array.isArray(updatedIncidentData.labels),
+          );
 
         // emit postmortem completion time metric when postmortemPostedAt is set
         if (
@@ -4458,35 +4521,11 @@ ${labels
           }
         }
 
-        /*
-         * Re-match reminder rule on any labels change (including clearing all
-         * labels), since labels can change which reminder rule matches.
-         */
-        if (
-          updatedIncidentData.labels &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          try {
-            await this.refreshReminderSchedule({
-              incidentId: incidentId,
-              projectId: projectId,
-            });
-          } catch (reminderError) {
-            logger.error(
-              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
-
-        if (updatedIncidentSeverityId) {
+        if (isSeverityChanged && writtenIncidentSeverityId) {
           const incidentSeverity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
               query: {
-                _id: updatedIncidentSeverityId,
+                _id: writtenIncidentSeverityId,
               },
               select: {
                 name: true,
@@ -4511,22 +4550,6 @@ ${incidentSeverity.name}
             } catch (slaError) {
               logger.error(
                 `SLA recalculation failed in IncidentService.onUpdateSuccess: ${slaError}`,
-                {
-                  projectId: projectId?.toString(),
-                  incidentId: incidentId?.toString(),
-                } as LogAttributes,
-              );
-            }
-
-            // Re-match reminder rule when severity changes
-            try {
-              await this.refreshReminderSchedule({
-                incidentId: incidentId,
-                projectId: projectId,
-              });
-            } catch (reminderError) {
-              logger.error(
-                `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
                 {
                   projectId: projectId?.toString(),
                   incidentId: incidentId?.toString(),
@@ -4607,6 +4630,23 @@ ${incidentSeverity.name}
                 } as LogAttributes,
               );
             }
+          }
+        }
+
+        if (shouldRefreshReminders) {
+          try {
+            await this.refreshReminderSchedule({
+              incidentId: incidentId,
+              projectId: projectId,
+            });
+          } catch (reminderError) {
+            logger.error(
+              `Reminder rescheduling failed in IncidentService.onUpdateSuccess: ${reminderError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
           }
         }
 

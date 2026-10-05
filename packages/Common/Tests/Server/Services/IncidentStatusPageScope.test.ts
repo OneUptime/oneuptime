@@ -1511,13 +1511,18 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
     expect(data).not.toHaveProperty("statusPagesNotifiedOnCreation");
   });
 
-  test("turning notifying on creation on (root) resends to every page", async () => {
+  test("writing notifying on creation (root) is no resend: the message and its record are left alone", async () => {
     storedIncidents = [
       storedIncident({
         statusPagesNotifiedOnCreation: [PAGE_A],
       }),
     ];
 
+    /*
+     * A client writing the whole incident back sends the flag as true. That
+     * used to queue the 'created' message and empty the record, so every
+     * page heard it again (NotifyFlagUpdateNoResend.test.ts).
+     */
     const { data } = await runBeforeUpdate(
       scopeUpdate({
         data: {
@@ -1527,10 +1532,10 @@ describe("IncidentService.onBeforeUpdate: a resend of the 'created' notification
       }),
     );
 
-    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
-      StatusPageSubscriberNotificationStatus.Pending,
-    );
-    expect(data["statusPagesNotifiedOnCreation"]).toEqual([]);
+    expect(
+      data["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBeUndefined();
+    expect(data["statusPagesNotifiedOnCreation"]).toBeUndefined();
   });
 
   test("a bulk resend empties the record when any matched incident would reach nobody", async () => {
