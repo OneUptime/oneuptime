@@ -4049,14 +4049,22 @@ ${incident.remediationNotes || "No remediation notes provided."}
     }
 
     /*
-     * The state the update wrote, under either of its names: onBeforeUpdate
-     * refused two that disagree, so this reads one value.
+     * The state and the severity the update wrote, each under either of its
+     * names: onBeforeUpdate refused two that disagree, so each reads one
+     * value.
      */
     const updatedIncidentStateId: ObjectID | null =
       RelationIdUtil.readConsistent(
         onUpdate.updateBy.data as unknown as Record<string, unknown>,
         CURRENT_STATE_KEYS,
         "Incident State",
+      );
+
+    const updatedIncidentSeverityId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        SEVERITY_KEYS,
+        "Incident Severity",
       );
 
     if (updatedIncidentStateId && onUpdate.updateBy.props.tenantId) {
@@ -4459,16 +4467,11 @@ ${labels
           }
         }
 
-        if (
-          updatedIncidentData.incidentSeverity &&
-          (updatedIncidentData.incidentSeverity as any)._id
-        ) {
+        if (updatedIncidentSeverityId) {
           const incidentSeverity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
               query: {
-                _id: new ObjectID(
-                  (updatedIncidentData.incidentSeverity as any)?._id.toString(),
-                ),
+                _id: updatedIncidentSeverityId,
               },
               select: {
                 name: true,
