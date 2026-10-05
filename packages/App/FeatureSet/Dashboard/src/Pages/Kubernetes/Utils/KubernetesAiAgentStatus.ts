@@ -86,6 +86,13 @@ export const AI_AGENT_SILENT_TEXT: string = `The AI agent has not checked in for
 export const ASK_PROJECT_ADMIN_TEXT: string = "Ask a project owner or admin.";
 
 /*
+ * The route a cluster's AI access status is read from, with { clusterId }:
+ * the AI agent page, and the Overview's two cards that show it.
+ */
+export const KUBERNETES_AI_ACCESS_STATUS_ROUTE: string =
+  "/kubernetes-cluster/ai-access/status";
+
+/*
  * The status as the route returns it, or null when the body is not one.
  * Only the fields every render reads are checked; the rest are optional in
  * the contract and read defensively where they are used.

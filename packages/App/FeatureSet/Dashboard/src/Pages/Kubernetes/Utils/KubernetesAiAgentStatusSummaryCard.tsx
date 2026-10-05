@@ -4,7 +4,10 @@ import AiAgentStatusSummaryCard from "../../../Components/AiAccess/AiAgentStatus
 import useAiAgentAccessStatus, {
   AiAgentAccessStatusRead,
 } from "../../../Components/AiAccess/useAiAgentAccessStatus";
-import { parseStatus } from "./KubernetesAiAgentStatus";
+import {
+  KUBERNETES_AI_ACCESS_STATUS_ROUTE,
+  parseStatus,
+} from "./KubernetesAiAgentStatus";
 import {
   getKubernetesAiAgentStatusSummary,
   getKubernetesAiAgentStatusSummaryDescription,
@@ -22,25 +25,33 @@ import React, { FunctionComponent, ReactElement } from "react";
  * card (KubernetesAiAgentOverviewCard) says only the first of the three.
  */
 
-export const KUBERNETES_AI_ACCESS_STATUS_ROUTE: string =
-  "/kubernetes-cluster/ai-access/status";
+export { KUBERNETES_AI_ACCESS_STATUS_ROUTE };
 
 export interface ComponentProps {
   clusterId: ObjectID;
   // The Overview's refresh signal: the status is read again when it changes.
   refreshToken?: number | undefined;
+  /*
+   * The status the Overview already read for its summary row's card: the
+   * card shows that read and makes none of its own, so the two never
+   * disagree and the cluster's status is read once.
+   */
+  read?: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> | undefined;
 }
 
 const KubernetesAiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const read: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
+  const ownRead: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
     useAiAgentAccessStatus<KubernetesClusterAiAccessStatus>({
       route: KUBERNETES_AI_ACCESS_STATUS_ROUTE,
       body: { clusterId: props.clusterId.toString() },
       parse: parseStatus,
       refreshToken: props.refreshToken,
+      isEnabled: !props.read,
     });
+  const read: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
+    props.read || ownRead;
 
   return (
     <AiAgentStatusSummaryCard
