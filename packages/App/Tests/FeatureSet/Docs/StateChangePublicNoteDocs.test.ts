@@ -174,6 +174,12 @@ describe("what the English guides promise", () => {
     );
   });
 
+  test("through the API, the flag decides for both, and left out the change notifies and its note does not", () => {
+    expect(scheduledMaintenance).toContain(
+      "`shouldStatusPageSubscribersBeNotified` decides for both (left out, the state change notifies and its note does not).",
+    );
+  });
+
   test("each guide points at the other event, which works the same way", () => {
     expect(scheduledMaintenance).toContain(
       "Incidents work the same way; see [Incident States & Severities](/docs/incidents/states-and-severities#telling-status-page-subscribers-about-a-state-change).",
