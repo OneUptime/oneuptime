@@ -24,6 +24,15 @@ const POPUP_GAP_PX: number = 4;
 const POPUP_VIEWPORT_PADDING_PX: number = 8;
 const POPUP_MIN_USEFUL_HEIGHT_PX: number = 160;
 
+/*
+ * Marks the element a popup that asks to stay inside its surroundings
+ * (stayInsideBoundary) is kept within: a dialog's or a side panel's scrolling
+ * body, so the popup covers the fields around its own and never the dialog's
+ * header, its Cancel and Save buttons, or the page behind it.
+ */
+export const ANCHORED_POPUP_BOUNDARY_ATTRIBUTE: string =
+  "data-anchored-popup-boundary";
+
 const FOCUSABLE_SELECTOR: string =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -64,6 +73,164 @@ export const shouldAnchoredPopupOpenAbove: (data: {
   );
 };
 
+export interface AnchoredPopupBox {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export interface AnchoredPopupPlacementResult
+  extends AnchoredFieldPopupPosition {
+  placement: AnchoredFieldPopupPlacement;
+  // False when the boundary was too small to be useful and the window was used.
+  isInsideBoundary: boolean;
+}
+
+/*
+ * Where a popup that stays inside its surroundings goes, worked out from
+ * boxes alone so every rule can be tested (Tests/UI/Components/Forms/
+ * AnchoredFieldPopupBoundary.test.ts).
+ *
+ *   - The room it has is the window, less a margin, cut down to the
+ *     boundary - the dialog body the field sits in - when there is one.
+ *   - It opens on its preferred side when its whole content fits there, on
+ *     the other side when it fits there instead, and otherwise on the side
+ *     with more room, scrolling inside its own box. The old rule flipped only
+ *     when the preferred side had less than 160px, so a color picker at the
+ *     foot of the Create Label dialog, with the window's room below it, opened
+ *     downwards across the dialog's buttons and out of the dialog.
+ *   - A boundary with less than a useful height on either side (a short
+ *     dialog) would leave a sliver, so the window is used instead.
+ *   - Across, it starts at the anchor's left edge and is moved left or
+ *     narrowed until it fits.
+ */
+export const placeAnchoredPopupInBounds: (data: {
+  anchor: AnchoredPopupBox;
+  viewportWidth: number;
+  viewportHeight: number;
+  boundary?: AnchoredPopupBox | null | undefined;
+  popupWidth: number;
+  // The height of the popup's content, all of it.
+  popupHeight: number;
+  popupMaxHeight: number;
+  preferredPlacement: AnchoredFieldPopupPlacement;
+}) => AnchoredPopupPlacementResult = (data: {
+  anchor: AnchoredPopupBox;
+  viewportWidth: number;
+  viewportHeight: number;
+  boundary?: AnchoredPopupBox | null | undefined;
+  popupWidth: number;
+  popupHeight: number;
+  popupMaxHeight: number;
+  preferredPlacement: AnchoredFieldPopupPlacement;
+}): AnchoredPopupPlacementResult => {
+  const viewportBounds: AnchoredPopupBox = {
+    top: POPUP_VIEWPORT_PADDING_PX,
+    left: POPUP_VIEWPORT_PADDING_PX,
+    right: Math.max(
+      POPUP_VIEWPORT_PADDING_PX,
+      data.viewportWidth - POPUP_VIEWPORT_PADDING_PX,
+    ),
+    bottom: Math.max(
+      POPUP_VIEWPORT_PADDING_PX,
+      data.viewportHeight - POPUP_VIEWPORT_PADDING_PX,
+    ),
+  };
+
+  const neededHeight: number = Math.max(
+    0,
+    Math.min(data.popupHeight, data.popupMaxHeight),
+  );
+
+  type SpacesFunction = (bounds: AnchoredPopupBox) => {
+    above: number;
+    below: number;
+  };
+
+  const spacesIn: SpacesFunction = (
+    bounds: AnchoredPopupBox,
+  ): { above: number; below: number } => {
+    return {
+      above: Math.max(0, data.anchor.top - POPUP_GAP_PX - bounds.top),
+      below: Math.max(0, bounds.bottom - data.anchor.bottom - POPUP_GAP_PX),
+    };
+  };
+
+  let bounds: AnchoredPopupBox = viewportBounds;
+  let isInsideBoundary: boolean = false;
+
+  if (data.boundary) {
+    const inside: AnchoredPopupBox = {
+      top: Math.max(viewportBounds.top, data.boundary.top + POPUP_GAP_PX),
+      left: Math.max(viewportBounds.left, data.boundary.left + POPUP_GAP_PX),
+      right: Math.min(viewportBounds.right, data.boundary.right - POPUP_GAP_PX),
+      bottom: Math.min(
+        viewportBounds.bottom,
+        data.boundary.bottom - POPUP_GAP_PX,
+      ),
+    };
+    const insideSpaces: { above: number; below: number } = spacesIn(inside);
+    const usefulHeight: number = Math.min(
+      neededHeight,
+      POPUP_MIN_USEFUL_HEIGHT_PX,
+    );
+
+    if (
+      inside.right > inside.left &&
+      inside.bottom > inside.top &&
+      Math.max(insideSpaces.above, insideSpaces.below) >= usefulHeight
+    ) {
+      bounds = inside;
+      isInsideBoundary = true;
+    }
+  }
+
+  const spaces: { above: number; below: number } = spacesIn(bounds);
+  const preferred: AnchoredFieldPopupPlacement = data.preferredPlacement;
+  const other: AnchoredFieldPopupPlacement =
+    preferred === "below" ? "above" : "below";
+
+  type SpaceOnFunction = (placement: AnchoredFieldPopupPlacement) => number;
+
+  const spaceOn: SpaceOnFunction = (
+    placement: AnchoredFieldPopupPlacement,
+  ): number => {
+    return placement === "below" ? spaces.below : spaces.above;
+  };
+
+  let placement: AnchoredFieldPopupPlacement = preferred;
+
+  if (
+    spaceOn(preferred) < neededHeight &&
+    (spaceOn(other) >= neededHeight || spaceOn(other) > spaceOn(preferred))
+  ) {
+    placement = other;
+  }
+
+  const width: number = Math.max(
+    0,
+    Math.min(data.popupWidth, bounds.right - bounds.left),
+  );
+  const left: number = Math.min(
+    Math.max(data.anchor.left, bounds.left),
+    Math.max(bounds.left, bounds.right - width),
+  );
+
+  return {
+    placement,
+    isInsideBoundary,
+    top: placement === "below" ? data.anchor.bottom + POPUP_GAP_PX : undefined,
+    bottom:
+      placement === "above"
+        ? data.viewportHeight - data.anchor.top + POPUP_GAP_PX
+        : undefined,
+    left,
+    width,
+    maxHeight: Math.min(data.popupMaxHeight, spaceOn(placement)),
+  };
+};
+
 export interface AnchoredFieldPopupOptions {
   // Intrinsic width of the popup, used to clamp it inside the viewport.
   popupWidth: number;
@@ -78,9 +245,23 @@ export interface AnchoredFieldPopupOptions {
   /*
    * Changes when the anchor may have moved while the popup stays open - the
    * Owners page's add button moves along as owners are added in front of it -
-   * so the popup is placed against it again.
+   * so the popup is placed against it again. Also when the popup's own
+   * content grows, for a popup that stays inside its boundary.
    */
   repositionKey?: string | number | undefined;
+  /*
+   * Keep the popup inside the dialog or side panel body around its anchor
+   * (ANCHORED_POPUP_BOUNDARY_ATTRIBUTE) as well as inside the window, and
+   * choose its side by the height of its content (placeAnchoredPopupInBounds).
+   */
+  stayInsideBoundary?: boolean | undefined;
+  /*
+   * The control that takes focus when the popup is opened from the keyboard,
+   * instead of its first one - the picked color of a swatch grid.
+   */
+  getInitialFocusElement?:
+    | ((popup: HTMLElement) => HTMLElement | null)
+    | undefined;
 }
 
 export interface AnchoredFieldPopup {
@@ -119,9 +300,15 @@ const getFocusableElements: GetFocusableElementsFunction = (
   return Array.from(
     container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
   ).filter((element: HTMLElement) => {
+    /*
+     * tabindex="-1" takes a control out of the Tab order - the unpicked
+     * swatches of a radio group, which the arrow keys reach - so it is
+     * neither where focus lands on open nor an end of the Tab cycle.
+     */
     return (
       !element.hasAttribute("disabled") &&
-      element.getAttribute("aria-hidden") !== "true"
+      element.getAttribute("aria-hidden") !== "true" &&
+      element.getAttribute("tabindex") !== "-1"
     );
   });
 };
@@ -133,7 +320,14 @@ type UseAnchoredFieldPopupFunction = (
 const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
   options: AnchoredFieldPopupOptions,
 ): AnchoredFieldPopup => {
-  const { popupWidth, popupMaxHeight, repositionKey } = options;
+  const { popupWidth, popupMaxHeight, repositionKey, stayInsideBoundary } =
+    options;
+  const getInitialFocusElementRef: React.MutableRefObject<
+    AnchoredFieldPopupOptions["getInitialFocusElement"]
+  > = useRef<AnchoredFieldPopupOptions["getInitialFocusElement"]>(
+    options.getInitialFocusElement,
+  );
+  getInitialFocusElementRef.current = options.getInitialFocusElement;
   const preferredPlacement: AnchoredFieldPopupPlacement =
     options.preferredPlacement || "below";
 
@@ -164,7 +358,11 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       return;
     }
 
-    (getFocusableElements(popup)[0] || popup).focus();
+    (
+      getInitialFocusElementRef.current?.(popup) ||
+      getFocusableElements(popup)[0] ||
+      popup
+    ).focus();
   }, []);
 
   const closePopup: (shouldReturnFocus?: boolean) => void = useCallback(
@@ -257,6 +455,36 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
     }
 
     const anchorRect: DOMRect = anchorRef.current.getBoundingClientRect();
+
+    if (stayInsideBoundary) {
+      const boundaryElement: Element | null = anchorRef.current.closest(
+        `[${ANCHORED_POPUP_BOUNDARY_ATTRIBUTE}]`,
+      );
+      // All of the content, even while a maxHeight is cutting it short.
+      const contentHeight: number = popupRef.current?.scrollHeight || 0;
+      const placed: AnchoredPopupPlacementResult = placeAnchoredPopupInBounds({
+        anchor: anchorRect,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        boundary: boundaryElement
+          ? boundaryElement.getBoundingClientRect()
+          : null,
+        popupWidth,
+        popupHeight: contentHeight > 0 ? contentHeight : popupMaxHeight,
+        popupMaxHeight,
+        preferredPlacement,
+      });
+
+      setPopupPosition({
+        bottom: placed.bottom,
+        left: placed.left,
+        maxHeight: placed.maxHeight,
+        top: placed.top,
+        width: placed.width,
+      });
+      return;
+    }
+
     const availableWidth: number = Math.max(
       0,
       window.innerWidth - POPUP_VIEWPORT_PADDING_PX * 2,
@@ -297,7 +525,7 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       top: shouldOpenAbove ? undefined : anchorRect.bottom + POPUP_GAP_PX,
       width,
     });
-  }, [popupWidth, popupMaxHeight, preferredPlacement]);
+  }, [popupWidth, popupMaxHeight, preferredPlacement, stayInsideBoundary]);
 
   useLayoutEffect(() => {
     if (!isPopupOpen) {

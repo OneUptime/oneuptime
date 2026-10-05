@@ -66,7 +66,11 @@ import {
   hasTemplateVariables,
 } from "../../../../Types/Template/TemplateVariable";
 import useTranslateValue from "../../../Utils/Translation";
-import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 
 /*
@@ -76,6 +80,17 @@ import useTranslator from "../../../Utils/UseTranslator";
  */
 export const TIMEZONE_DESCRIPTION_TEMPLATE: string =
   "This is in your timezone - {{abbreviation}} ({{timezone}}).";
+
+/*
+ * Under a color field that says nothing of its own. The column's own
+ * description ("Color of this resource in Hex (#32a852 for example)") is
+ * written for API readers and is not shown on a form (BasicModelForm): the
+ * swatches are the field, and the reader only needs to know they can also
+ * choose a color of their own.
+ */
+export const COLOR_FIELD_DESCRIPTION: string = translationKey(
+  "Pick a color, or choose your own.",
+);
 
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
@@ -395,6 +410,13 @@ const FormField: <T extends GenericObject>(
       props.field.description;
 
     if (
+      props.field.fieldType === FormFieldSchemaType.Color &&
+      !fieldDescription
+    ) {
+      fieldDescription = COLOR_FIELD_DESCRIPTION;
+    }
+
+    if (
       props.field.fieldType === FormFieldSchemaType.DateTime ||
       props.field.fieldType === FormFieldSchemaType.Time
     ) {
@@ -586,13 +608,18 @@ const FormField: <T extends GenericObject>(
                 props.setFieldValue(props.fieldName, value);
                 props.setFieldTouched(props.fieldName, true);
               }}
-              tabIndex={0}
+              /*
+               * A required color has no "No color": one is always picked,
+               * and a Create form starts with one (CreateFormDefaults).
+               */
+              isClearable={!required}
+              disabled={props.isDisabled || props.field.disabled}
               placeholder={translatedPlaceholder || ""}
-              initialValue={
-                props.currentValues &&
-                (props.currentValues as any)[props.fieldName]
-                  ? (props.currentValues as any)[props.fieldName]
-                  : ""
+              // The form holds the value; the field shows exactly that.
+              value={
+                (props.currentValues &&
+                  (props.currentValues as any)[props.fieldName]) ||
+                ""
               }
             />
           )}

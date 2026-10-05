@@ -55,7 +55,6 @@ const ServiceSettings: FunctionComponent<
             description: "Choose a color for your service.",
             fieldType: FormFieldSchemaType.Color,
             required: true,
-            placeholder: "15",
           },
           {
             field: {
