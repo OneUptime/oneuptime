@@ -10,6 +10,7 @@ import {
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -149,6 +150,10 @@ import IncidentSubscriberAudience, {
   IncidentSubscriberAudienceExclusionReason,
   IncidentSubscriberAudienceResult,
 } from "../../../Types/StatusPage/IncidentSubscriberAudience";
+import SubscriberNotificationPreview, {
+  SubscriberEmailTemplateChoiceReason,
+  SubscriberNotificationPreviewEvent,
+} from "../../../Types/StatusPage/SubscriberNotificationPreview";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const TEMPLATE_ID: string = "66666666-6666-4666-8666-000000000001";
@@ -977,8 +982,14 @@ describe("the notify box on the summary step", () => {
 
   const VALUE_TEST_ID: string = "incident-create-notify-subscribers-value";
   const PREVIEW_TEST_ID: string = "incident-create-preview-notification";
+  const LINE_TEST_ID: string = "incident-create-notify-subscribers-line";
 
-  test("ticked, on a monitor: Yes, who it reaches, and the preview", async () => {
+  /*
+   * "This preview notification button is quite big. Can we please improve
+   * the UI?" The preview is a small 'Preview' link on the Yes's own line -
+   * "Yes · Preview" - and who it reaches is said under them.
+   */
+  test("ticked, on a monitor: Yes and Preview on one line, who it reaches under them", async () => {
     await renderCreate();
 
     await renderElement(
@@ -989,16 +1000,119 @@ describe("the notify box on the summary step", () => {
       }),
     );
 
-    expect(screen.getByTestId(VALUE_TEST_ID)).toHaveTextContent("Yes");
+    const line: HTMLElement = screen.getByTestId(LINE_TEST_ID);
+    const value: HTMLElement = screen.getByTestId(VALUE_TEST_ID);
+    const preview: HTMLElement = screen.getByTestId(PREVIEW_TEST_ID);
+
+    expect(value).toHaveTextContent("Yes");
+    // The value, then its preview, and nothing else on the line.
+    expect(Array.from(line.children)).toEqual([value, preview]);
+    expect(line).toHaveClass("flex", "flex-wrap", "items-center");
+
+    // A small link: one word on screen, a name that says what it previews.
+    expect(preview.tagName).toBe("BUTTON");
+    expect(preview.textContent).toBe("Preview");
+    expect(preview).toHaveAccessibleName("Preview notification");
+    expect(preview).toHaveAttribute("aria-haspopup", "dialog");
+    expect(preview).toHaveClass("text-sm", "text-indigo-600");
+    expect(preview).not.toHaveClass("border");
+    expect(preview).not.toHaveClass("w-full");
+    expect(preview).not.toHaveAttribute("aria-disabled");
+
+    // Who it reaches, under the line rather than on it.
     expect(
       await screen.findByText("Site 03 (up to 41 email)", undefined, {
         timeout: SUBSCRIBER_AUDIENCE_DEBOUNCE_MS + 1000,
       }),
     ).toBeInTheDocument();
+    const audience: HTMLElement = screen.getByTestId(
+      "incident-create-subscriber-audience",
+    );
+    expect(line).not.toContainElement(audience);
     expect(
-      screen.getByTestId("incident-create-subscriber-audience"),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId(PREVIEW_TEST_ID)).toBeInTheDocument();
+      line.compareDocumentPosition(audience) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("Preview opens the email of the incident as it is being declared", async () => {
+    postMock.mockImplementation((async (request: { url: unknown }) => {
+      if (String(request.url).endsWith("/preview")) {
+        return new HTTPResponse<JSONObject>(
+          200,
+          SubscriberNotificationPreview.toJSON({
+            event: SubscriberNotificationPreviewEvent.IncidentCreated,
+            nothingSentReason: null,
+            statusPages: [
+              {
+                statusPageId: SITE_03,
+                name: "Site 03",
+                subscriberCounts: {
+                  ...IncidentSubscriberAudience.getEmptyCounts(),
+                  email: 41,
+                },
+                subject: "[Incident] Checkout failing",
+                html: "<html><body><h1>Checkout failing</h1></body></html>",
+                templateChoice: {
+                  usesCustomTemplate: false,
+                  reason: SubscriberEmailTemplateChoiceReason.NoCustomTemplate,
+                },
+              },
+            ],
+            audience: IncidentSubscriberAudience.fromJSON(
+              audienceResponse().data as JSONObject,
+            ),
+          }),
+          {},
+        );
+      }
+
+      return audienceResponse();
+    }) as never);
+
+    await renderCreate();
+
+    await renderElement(
+      fieldFor(NOTIFY_FIELD).getSummaryElement!({
+        title: "Checkout failing",
+        description: "Payments fail.",
+        monitors: [MONITOR_ID],
+        statusPages: [SITE_03],
+        [NOTIFY_FIELD]: true,
+      }),
+    );
+
+    fireEvent.click(screen.getByTestId(PREVIEW_TEST_ID));
+
+    const body: HTMLElement = await screen.findByTestId(
+      "subscriber-notification-preview-body",
+    );
+    expect(within(body).getByTestId("subscriber-notification-preview-subject"))
+      .toHaveTextContent("[Incident] Checkout failing");
+
+    const previewRequests: Array<{ url: unknown; data: JSONObject }> =
+      postMock.mock.calls
+        .map((call: Array<unknown>): { url: unknown; data: JSONObject } => {
+          return call[0] as { url: unknown; data: JSONObject };
+        })
+        .filter((request: { url: unknown }): boolean => {
+          return String(request.url).endsWith(
+            "/subscriber-notification-preview/preview",
+          );
+        });
+
+    expect(previewRequests).toHaveLength(1);
+    expect(previewRequests[0]!.data).toMatchObject({
+      event: SubscriberNotificationPreviewEvent.IncidentCreated,
+      incident: {
+        title: "Checkout failing",
+        description: "Payments fail.",
+        monitorIds: [MONITOR_ID],
+        statusPageIds: [SITE_03],
+        isPrivate: false,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      },
+    });
   });
 
   test("ticked by default: Yes", async () => {
@@ -1029,6 +1143,10 @@ describe("the notify box on the summary step", () => {
       screen.queryByTestId("incident-create-subscriber-audience"),
     ).toBeNull();
     expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
+    // The Yes alone on its line.
+    expect(Array.from(screen.getByTestId(LINE_TEST_ID).children)).toEqual([
+      screen.getByTestId(VALUE_TEST_ID),
+    ]);
     expect(postMock).not.toHaveBeenCalled();
     expectNoRemovedAudienceText();
   });
@@ -1051,6 +1169,10 @@ describe("the notify box on the summary step", () => {
       screen.queryByTestId("incident-create-subscriber-audience"),
     ).toBeNull();
     expect(screen.queryByTestId(PREVIEW_TEST_ID)).toBeNull();
+    // The No alone on its line.
+    expect(Array.from(screen.getByTestId(LINE_TEST_ID).children)).toEqual([
+      screen.getByTestId(VALUE_TEST_ID),
+    ]);
     expect(postMock).not.toHaveBeenCalled();
     expectNoRemovedAudienceText();
   });
