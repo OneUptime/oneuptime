@@ -351,9 +351,11 @@ export interface KubernetesClusterAiAccessStatus {
   isInvestigationEnabled: boolean;
   /*
    * Where isInvestigationEnabled and remediationMode are set (see
-   * AgentAiSettingsSource): "agent" when the cluster's Kubernetes AI agent
-   * reports them from its configuration (aiAgent.investigation,
-   * aiAgent.fixes) and OneUptime applies them; "oneuptime" otherwise.
+   * AgentAiSettingsSource): "agent_configuration" when the cluster's
+   * Kubernetes AI agent reports them from its chart values
+   * (aiAgent.investigation, aiAgent.fixes), "agent_defaults" when it
+   * reports its defaults for a cluster nobody chose them for — OneUptime
+   * applies what the agent reports in both — and "oneuptime" otherwise.
    * Absent from a server older than the setting, which reads as
    * "oneuptime".
    */

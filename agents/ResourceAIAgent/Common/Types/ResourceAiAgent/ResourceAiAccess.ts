@@ -480,11 +480,12 @@ export interface ResourceAiAccessStatus {
   aiRemediationMode: ResourceAiRemediationMode;
   /*
    * Where isAiInvestigationEnabled and aiRemediationMode are set (see
-   * AgentAiSettingsSource): "agent" when the resource's AI agent reports
-   * them from its configuration (ONEUPTIME_AI_INVESTIGATION,
-   * ONEUPTIME_AI_FIXES) and OneUptime applies them; "oneuptime" otherwise.
-   * Absent from a server older than the setting, which reads as
-   * "oneuptime".
+   * AgentAiSettingsSource): "agent_configuration" when the resource's AI
+   * agent reports them from its configuration (ONEUPTIME_AI_INVESTIGATION,
+   * ONEUPTIME_AI_FIXES), "agent_defaults" when it reports its defaults for
+   * a resource nobody chose them for — OneUptime applies what the agent
+   * reports in both — and "oneuptime" otherwise. Absent from a server
+   * older than the setting, which reads as "oneuptime".
    */
   aiSettingsSource?: AgentAiSettingsSource | undefined;
   /*

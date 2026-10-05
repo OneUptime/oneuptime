@@ -1768,6 +1768,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             return getResourceAiAgentSettingsInstructions({
               resourceType: descriptor.resourceType,
               choice,
+              doesAgentReportSettings: Boolean(agent?.posture?.aiSettings),
             });
           }}
           onClose={() => {

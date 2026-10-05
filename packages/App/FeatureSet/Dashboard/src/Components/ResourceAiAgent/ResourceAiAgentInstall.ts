@@ -1069,32 +1069,53 @@ export const RESOURCE_AI_SETTINGS_ENV_STEP_TITLE: string = translationKey(
 export const RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE: string =
   translationKey("Restart the agent");
 
+export const RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE: string = translationKey(
+  "Upgrade and restart the agent",
+);
+
 /*
  * How to set this choice where the resource's AI agent runs, for the
  * "Change what AI may do" dialog: the .env lines, then the restart that
  * reads them — the same .env and restart the write-access instructions
  * use. A collector usually installed with install.sh (plain containers) is
  * told first how to do it there.
+ *
+ * An agent that does not report these settings is older than them and
+ * would ignore the lines: its restart pulls the newer image first (the AI
+ * agent version's own upgrade command), and install.sh pulls it anyway.
  */
 export function getResourceAiAgentSettingsInstructions(data: {
   resourceType: AiResourceType;
   choice: AgentAiSettingsChoice;
+  // False for an agent older than these settings (it reports none).
+  doesAgentReportSettings: boolean;
 }): AgentAiSettingsInstructions {
   const spec: InstallSpec = INSTALL_SPECS[data.resourceType];
   const service: string = getResourceAiAgentServiceName(data.resourceType);
+  const isAgentOlder: boolean = !data.doesAgentReportSettings;
 
   const intro: Array<{ text: string; dataTestId: string }> = spec.directory
     ? []
     : [
         {
-          text: translateTemplate(
-            "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
-            {
-              collectorName: translatableTerm(spec.collectorName),
-              runtime: spec.runtime,
-              service: service,
-            },
-          ),
+          text: isAgentOlder
+            ? translateTemplate(
+                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it pulls the newer agent and starts it with them. Started the agent with {{runtime}} run? Pull {{image}}, remove the agent ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
+                {
+                  collectorName: translatableTerm(spec.collectorName),
+                  runtime: spec.runtime,
+                  service: service,
+                  image: RESOURCE_AI_AGENT_IMAGE,
+                },
+              )
+            : translateTemplate(
+                "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it starts the agent again with them. Started the agent with {{runtime}} run? Remove it ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.",
+                {
+                  collectorName: translatableTerm(spec.collectorName),
+                  runtime: spec.runtime,
+                  service: service,
+                },
+              ),
           dataTestId: "agent-ai-settings-installer-note",
         },
       ];
@@ -1143,17 +1164,32 @@ export function getResourceAiAgentSettingsInstructions(data: {
           },
         ],
       },
-      {
-        title: RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
-        dataTestId: "agent-ai-settings-step-restart",
-        ways: [
-          {
-            label: RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
-            code: composeCommand(data.resourceType, `up -d ${service}`),
-            dataTestId: "agent-ai-settings-restart",
+      isAgentOlder
+        ? {
+            title: RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+            description: translateTemplate(
+              "This agent is older than these settings and would ignore them, so pull the newer image as you restart it:",
+            ),
+            dataTestId: "agent-ai-settings-step-restart",
+            ways: [
+              {
+                label: RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+                code: getResourceAiAgentUpgradeCommand(data.resourceType),
+                dataTestId: "agent-ai-settings-restart",
+              },
+            ],
+          }
+        : {
+            title: RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+            dataTestId: "agent-ai-settings-step-restart",
+            ways: [
+              {
+                label: RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+                code: composeCommand(data.resourceType, `up -d ${service}`),
+                dataTestId: "agent-ai-settings-restart",
+              },
+            ],
           },
-        ],
-      },
     ],
     notes,
   };

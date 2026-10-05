@@ -51,10 +51,13 @@ import {
   getAiInvestigationOffSentence,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import {
+  COMPOSE_DIRECTORY_COMMENT,
+  RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
   getResourceAiAgentSettingsEnv,
+  getResourceAiAgentUpgradeCommand,
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
@@ -1743,12 +1746,26 @@ describe("What AI may do", () => {
  * the restart — nothing is saved here. The allowlist stays OneUptime's.
  */
 describe("What AI may do, set by the agent", () => {
+  // An agent new enough to report what it was set to.
+  function reportingAgent(): ResourceAiAgentSummary {
+    return makeAgent({
+      posture: makePosture({
+        aiSettings: {
+          investigation: true,
+          fixes: "RequireApproval",
+          isConfigured: true,
+        },
+      }),
+    });
+  }
+
   function agentSetStatus(
     overrides: Partial<ResourceAiAccessStatus> = {},
   ): ResourceAiAccessStatus {
     return makeStatus({
       aiSettingsSource: "agent_configuration",
       aiRemediationMode: ResourceAiRemediationMode.RequireApproval,
+      agent: reportingAgent(),
       gaps: [],
       ...overrides,
     });
@@ -1793,9 +1810,12 @@ describe("What AI may do, set by the agent", () => {
         fixes: "RequireApproval",
       }),
     );
+    // The agent reads these settings already: a plain restart, no pull.
     expect(
       codeIn(within(dialog).getByTestId("agent-ai-settings-restart")),
-    ).toContain("compose up -d oneuptime-docker-ai-agent");
+    ).toBe(
+      `${COMPOSE_DIRECTORY_COMMENT}\ndocker compose up -d oneuptime-docker-ai-agent`,
+    );
     // A Docker host's collector is usually installed with install.sh.
     expect(
       within(dialog).getByTestId("agent-ai-settings-installer-note"),
@@ -1925,6 +1945,52 @@ describe("What AI may do, set by the agent", () => {
       "data-source",
       "oneuptime",
     );
+  });
+
+  test("chosen here, with an agent older than the settings: Show how pulls the newer image as it restarts", async () => {
+    // makeAgent's posture reports no settings: an older agent.
+    serve(makeStatus({ aiSettingsSource: "oneuptime" }));
+    openAgentPage();
+
+    fireEvent.click(await findTestId("ai-access-set-by-action"));
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    const step: HTMLElement = within(dialog).getByTestId(
+      "agent-ai-settings-step-restart",
+    );
+    expect(dialog).toHaveTextContent(RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE);
+    expect(codeIn(within(step).getByTestId("agent-ai-settings-restart"))).toBe(
+      getResourceAiAgentUpgradeCommand(AiResourceType.DockerHost),
+    );
+    expect(
+      within(dialog).getByTestId("agent-ai-settings-installer-note"),
+    ).toHaveTextContent("it pulls the newer agent");
+  });
+
+  test("chosen here, with an agent that reports them: Show how only restarts it", async () => {
+    serve(
+      makeStatus({
+        aiSettingsSource: "oneuptime",
+        agent: makeAgent({
+          posture: makePosture({
+            aiSettings: {
+              investigation: true,
+              fixes: "Disabled",
+              isConfigured: false,
+            },
+          }),
+        }),
+      }),
+    );
+    openAgentPage();
+
+    fireEvent.click(await findTestId("ai-access-set-by-action"));
+    const dialog: HTMLElement = await findTestId("agent-ai-settings-dialog");
+    expect(dialog).not.toHaveTextContent(
+      RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+    );
+    expect(
+      codeIn(within(dialog).getByTestId("agent-ai-settings-restart")),
+    ).not.toContain("pull");
   });
 
   test("negative control: no agent yet, no line", async () => {

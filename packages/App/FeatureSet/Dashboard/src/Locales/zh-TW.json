@@ -25051,5 +25051,8 @@
   "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.": "希望 AI 提出修正建議？點擊「變更」取得在代理程式中開啟修正的命令。",
   "What AI may do here is set in the {{agent}}'s configuration, so it is changed there, not on this page. Pick what AI may do, then run the command below. OneUptime applies it as soon as the agent restarts.": "AI 在此處可以執行的操作由 {{agent}} 的設定決定，因此需要在那裡變更，而不是在此頁面上。選擇 AI 可以執行的操作，然後執行下面的命令。代理程式重新啟動後，OneUptime 會立即套用。",
   "With Compose: in the .env next to your docker-compose.yml.": "使用 Compose 時：在您的 docker-compose.yml 旁邊的 .env 中。",
-  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 或 false：AI 在調查時是否可以執行唯讀命令。設定它（或下一個變數）後，AI 代理程式頁面會跟隨代理程式，以唯讀方式顯示。空白：代理程式的預設值，開啟。"
+  "true or false: whether AI may run read-only commands while it investigates. Set it (or the next one) and the AI agent page follows the agent, read-only. Empty: the agent's default, on.": "true 或 false：AI 在調查時是否可以執行唯讀命令。設定它（或下一個變數）後，AI 代理程式頁面會跟隨代理程式，以唯讀方式顯示。空白：代理程式的預設值，開啟。",
+  "Installed the {{collectorName}} with install.sh? Run it again with these set in its environment: it pulls the newer agent and starts it with them. Started the agent with {{runtime}} run? Pull {{image}}, remove the agent ({{runtime}} rm -f {{service}}) and start it again with them as -e flags.": "使用 install.sh 安裝了 {{collectorName}}？在其環境中設定這些值後再次執行：它會拉取較新的代理程式並以這些值啟動。使用 {{runtime}} run 啟動了代理程式？拉取 {{image}}，移除代理程式（{{runtime}} rm -f {{service}}），然後以 -e 參數傳入這些值再次啟動。",
+  "This agent is older than these settings and would ignore them, so pull the newer image as you restart it:": "此代理程式早於這些設定，會忽略它們，因此請在重新啟動時拉取較新的映像：",
+  "Upgrade and restart the agent": "升級並重新啟動代理程式"
 }

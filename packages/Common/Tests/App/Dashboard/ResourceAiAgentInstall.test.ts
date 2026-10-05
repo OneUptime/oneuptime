@@ -6,6 +6,8 @@ import {
   COMPOSE_DIRECTORY_COMMENT,
   RESOURCE_AI_AGENT_IMAGE,
   RESOURCE_AI_PROTECTED_TARGETS_ENV,
+  RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+  RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
   ResourceAiAgentInstall,
   ResourceAiAgentInstallVariable,
   ResourceAiAgentWriteAccessCommands,
@@ -18,6 +20,7 @@ import {
   getResourceAiAgentSettingsEnv,
   getResourceAiAgentSettingsInstructions,
   getResourceAiAgentStatusCommand,
+  getResourceAiAgentUpgradeCommand,
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
   toComposeEnvironmentEntry,
@@ -980,6 +983,7 @@ describe("what AI may do, set where the agent runs", () => {
       getResourceAiAgentSettingsInstructions({
         resourceType: AiResourceType.DockerHost,
         choice: { investigation: true, fixes: "Automatic" },
+        doesAgentReportSettings: true,
       });
 
     expect(instructions.intro?.[0]?.text).toContain(
@@ -1014,6 +1018,11 @@ describe("what AI may do, set where the agent runs", () => {
     expect(instructions.notes[0]!.text).toContain(
       RESOURCE_AI_WRITE_TARGETS_ENV,
     );
+    // An agent that reads these settings already: a plain restart.
+    expect(instructions.steps[1]!.title).toBe(
+      RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+    );
+    expect(instructions.intro?.[0]?.text).not.toContain("Pull");
   });
 
   test("a collector with an install directory: the .env there, and no install.sh note", () => {
@@ -1021,6 +1030,7 @@ describe("what AI may do, set where the agent runs", () => {
       getResourceAiAgentSettingsInstructions({
         resourceType: AiResourceType.ProxmoxCluster,
         choice: { investigation: false, fixes: "Disabled" },
+        doesAgentReportSettings: true,
       });
 
     expect(instructions.intro).toEqual([]);
@@ -1039,6 +1049,7 @@ describe("what AI may do, set where the agent runs", () => {
       getResourceAiAgentSettingsInstructions({
         resourceType: AiResourceType.DatabaseServer,
         choice: { investigation: true, fixes: "RequireApproval" },
+        doesAgentReportSettings: true,
       });
 
     expect(
@@ -1046,5 +1057,69 @@ describe("what AI may do, set where the agent runs", () => {
         return note.dataTestId;
       }),
     ).toContain("agent-ai-settings-write-disclosure");
+  });
+
+  /*
+   * An agent older than these settings reports none and would ignore the
+   * .env lines: its restart pulls the newer image first — the AI agent
+   * version's own upgrade command — and the plain-container note says to
+   * pull it too (install.sh pulls it anyway).
+   */
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s, an agent older than the settings: the restart pulls the newer image",
+    (type: AiResourceType) => {
+      const instructions: AgentAiSettingsInstructions =
+        getResourceAiAgentSettingsInstructions({
+          resourceType: type,
+          choice: { investigation: true, fixes: "RequireApproval" },
+          doesAgentReportSettings: false,
+        });
+      const service: string = getResourceAiAgentServiceName(type);
+
+      // The same .env lines first.
+      expect(instructions.steps[0]!.ways[0]!.code).toBe(
+        getResourceAiAgentSettingsEnv({
+          investigation: true,
+          fixes: "RequireApproval",
+        }),
+      );
+      expect(instructions.steps[1]!.title).toBe(
+        RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+      );
+      expect(instructions.steps[1]!.description).toContain(
+        "older than these settings",
+      );
+      const restart: string = instructions.steps[1]!.ways[0]!.code!;
+      expect(restart).toBe(getResourceAiAgentUpgradeCommand(type));
+      // Pull, then recreate: in that order, for this service only.
+      expect(restart.indexOf(`compose pull ${service}`)).toBeGreaterThan(-1);
+      expect(restart.indexOf(`compose up -d ${service}`)).toBeGreaterThan(
+        restart.indexOf(`compose pull ${service}`),
+      );
+    },
+  );
+
+  test("a Docker host with an older agent: the plain-container note pulls the image too", () => {
+    const note: string | undefined = getResourceAiAgentSettingsInstructions({
+      resourceType: AiResourceType.DockerHost,
+      choice: { investigation: true, fixes: "Disabled" },
+      doesAgentReportSettings: false,
+    }).intro?.[0]?.text;
+
+    expect(note).toContain("it pulls the newer agent");
+    expect(note).toContain(`Pull ${RESOURCE_AI_AGENT_IMAGE}`);
+    expect(note).toContain("docker rm -f oneuptime-docker-ai-agent");
+  });
+
+  test("a Proxmox cluster with an older agent: pull and recreate in its install directory", () => {
+    expect(
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.ProxmoxCluster,
+        choice: { investigation: true, fixes: "Disabled" },
+        doesAgentReportSettings: false,
+      }).steps[1]!.ways[0]!.code,
+    ).toBe(
+      "cd /opt/oneuptime-proxmox-agent\ndocker compose pull oneuptime-proxmox-ai-agent\ndocker compose up -d oneuptime-proxmox-ai-agent",
+    );
   });
 });
