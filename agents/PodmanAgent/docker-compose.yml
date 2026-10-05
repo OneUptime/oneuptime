@@ -53,6 +53,15 @@ services:
       - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman
       - PODMAN_HOST_NAME=${PODMAN_HOST_NAME:-podman-host}
       # "true" lets OneUptime AI apply fixes; anything else keeps it read-only.
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION
+      # (true or false) and ONEUPTIME_AI_FIXES (off, ask-for-approval,
+      # automatic or bypass-approval; fixes also need
+      # ONEUPTIME_AI_ALLOW_WRITES=true). Set either and the AI agent page in
+      # OneUptime follows them, read-only; leave both empty for the agent's
+      # defaults (investigation on, fixes Ask for approval when writes are
+      # allowed, else off).
+      - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
       - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
       # Comma-separated container-name globs fixes may touch (e.g. web-*,api-*).
       - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}

@@ -1046,11 +1046,20 @@
     },
     "aiAgent": {
       "type": "object",
-      "description": "Kubernetes AI agent: one small pod that lets OneUptime AI run read-only kubectl on this cluster while it investigates incidents and alerts and, with remediation.enabled, policy-checked kubectl fixes. On by default.",
+      "description": "Kubernetes AI agent: one small pod that lets OneUptime AI run read-only kubectl on this cluster while it investigates incidents and alerts and, with fixes, policy-checked kubectl fixes. On by default.",
       "properties": {
         "enabled": {
           "type": "boolean",
           "description": "Deploy the Kubernetes AI agent (default true) with read-only RBAC (get/list/watch, pod logs and the access reviews kubectl auth can-i needs), bound cluster-wide. It connects with oneuptime.apiKey (a key with a Pinned Service Name cannot register it) and clusterName, and needs a OneUptime server of this chart's version or newer. Set false to turn it off; the deprecated aiAccess.enabled is not read."
+        },
+        "investigation": {
+          "type": "boolean",
+          "description": "Whether OneUptime AI runs read-only kubectl (get, describe, logs, events, top) on this cluster while it investigates an incident or alert; false: it investigates with the data OneUptime already has. The cluster's AI → Agent page shows it and offers no way to change it there. Unset by default: a release that sets neither investigation nor fixes lets the agent use its defaults (investigation on), which OneUptime applies only to a cluster whose settings nobody chose on its AI → Agent page."
+        },
+        "fixes": {
+          "type": ["string", "boolean"],
+          "enum": ["", "off", "ask-for-approval", "automatic", "bypass-approval", false],
+          "description": "What OneUptime AI does when it finds a fix: off (never proposes or runs a change; the agent stays read-only), ask-for-approval (a person approves the exact kubectl plan before it runs), automatic (safe changes run on their own, riskier ones ask) or bypass-approval (every change the policy allows runs on its own; a write in kube-system, kube-public or kube-node-lease, a drain, a taint and a patch of a node still wait for a person). Every level but off grants the write RBAC remediation.enabled describes, bound where remediation.namespaces says, and off grants none, whatever remediation.enabled says. The cluster's AI → Agent page shows it and offers no way to change it there. A bare YAML off is the boolean false and reads as off. Unset by default: then remediation.enabled decides the write RBAC, and the agent's default is ask-for-approval with it and off without, which OneUptime applies only to a cluster whose settings nobody chose on its AI → Agent page."
         },
         "remediation": {
           "type": "object",
@@ -1058,7 +1067,7 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. Patch/update on workloads, pods and CronJobs (and create on Jobs) in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets, so this is bound only in remediation.namespaces when that lists any, and cluster-wide otherwise; the command policy, not RBAC, refuses pod-template security patches, set serviceaccount, create deployment/cronjob/job --image, expose --overrides and patch bodies that are not JSON, while set image stays a riskier change a human approves unless the cluster bypasses approvals or its allowlist names it; in every mode it never runs a write in kube-system, kube-public or kube-node-lease, a drain, a taint or a patch of a node without a human. Never secrets, exec, attach, port-forward, CRDs or RBAC writes. The agent refuses writes locally when this is off. A cluster whose agent connects for the first time with this on starts in ask-for-approval, unless AI settings were already picked on its AI agent page (they are kept as chosen). Unset: a stored aiAccess.enabled plus aiAccess.remediation.enabled carries over, else false."
+              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. Patch/update on workloads, pods and CronJobs (and create on Jobs) in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets, so this is bound only in remediation.namespaces when that lists any, and cluster-wide otherwise; the command policy, not RBAC, refuses pod-template security patches, set serviceaccount, create deployment/cronjob/job --image, expose --overrides and patch bodies that are not JSON, while set image stays a riskier change a human approves unless the cluster bypasses approvals or its allowlist names it; in every mode it never runs a write in kube-system, kube-public or kube-node-lease, a drain, a taint or a patch of a node without a human. Never secrets, exec, attach, port-forward, CRDs or RBAC writes. The agent refuses writes locally when this is off. Deprecated by aiAgent.fixes, and read only while aiAgent.fixes is unset: then the agent's default fixes are ask-for-approval with this on and off without. Unset: a stored aiAccess.enabled plus aiAccess.remediation.enabled carries over, else false."
             },
             "namespaces": {
               "type": "array",
@@ -1145,7 +1154,7 @@
         },
         "extraEnv": {
           "type": "array",
-          "description": "Extra environment variables for the agent container, as Kubernetes EnvVar objects (use --set-string for values), e.g. HTTPS_PROXY and NO_PROXY for an egress proxy. Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_API_KEY, ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_AI_AGENT_POD_NAMESPACE, HOME, KUBECACHEDIR, PORT) fail the render. Unset: a stored aiAccess.extraEnv carries over; clear it with --set-json 'aiAgent.extraEnv=[]' (--set passes [] as a string, which is refused).",
+          "description": "Extra environment variables for the agent container, as Kubernetes EnvVar objects (use --set-string for values), e.g. HTTPS_PROXY and NO_PROXY for an egress proxy. Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_API_KEY, ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_AI_AGENT_POD_NAMESPACE, ONEUPTIME_AI_INVESTIGATION, ONEUPTIME_AI_FIXES, HOME, KUBECACHEDIR, PORT) fail the render. Unset: a stored aiAccess.extraEnv carries over; clear it with --set-json 'aiAgent.extraEnv=[]' (--set passes [] as a string, which is refused).",
           "items": {
             "type": "object",
             "required": ["name"],

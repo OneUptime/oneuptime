@@ -71,6 +71,16 @@ import {
   parseResourceAiAgentPosture,
   parseResourceAiRemediationMode,
 } from "../../Types/ResourceAiAgent/ResourceAiAccess";
+import {
+  AGENT_AI_FIXES_LABELS,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiSettings,
+  AgentAiSettingsSource,
+  getAgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+  isSameAgentAiSettings,
+} from "../../Types/AI/AgentAiSettings";
 import crypto from "crypto";
 
 /*
@@ -251,6 +261,22 @@ export interface ResourceAiAgentRegistrationResult {
   // The resource's name in OneUptime (its row's name, else its identity).
   resourceName: string;
   admission: ResourceAiAgentRegistrationAdmission;
+}
+
+/*
+ * What the agent's reported settings changed on its resource: where the
+ * settings are set (see AgentAiSettingsSource), and each setting that
+ * moved, from and to. Nothing moved when neither is set.
+ */
+export interface ResourceAiAgentSettingsApplied {
+  source: AgentAiSettingsSource;
+  investigation?: { from: boolean; to: boolean } | undefined;
+  remediationMode?:
+    | {
+        from: ResourceAiRemediationMode;
+        to: ResourceAiRemediationMode;
+      }
+    | undefined;
 }
 
 /*
@@ -1047,12 +1073,25 @@ export class Service extends DatabaseService<Model> {
      * registration, or the agent never receives a key the row now demands
      * (see applyFirstConnectionDefaultsSafely). The feed items are safe
      * already — the resource feed services never throw.
+     *
+     * What AI may do: the agent's own settings when they decide here, else
+     * — an agent too old to report them, a resource an operator configured
+     * — the first-connection defaults, which leave a configured resource
+     * alone.
      */
-    const defaultsApplied: ResourceAiAgentDefaultsApplied =
-      await this.applyFirstConnectionDefaultsSafely({
+    const settingsApplied: ResourceAiAgentSettingsApplied | null =
+      await this.applyReportedAiSettingsSafely({
         resource,
-        allowWrites: posture.allowWrites === true,
+        reported: posture.aiSettings,
       });
+
+    const defaultsApplied: ResourceAiAgentDefaultsApplied =
+      settingsApplied && isAgentAiSettingsSourceAgent(settingsApplied.source)
+        ? { turnedOnInvestigation: false }
+        : await this.applyFirstConnectionDefaultsSafely({
+            resource,
+            allowWrites: posture.allowWrites === true,
+          });
 
     if (admission === "created") {
       await this.writeConnectedFeedItem({
@@ -1061,6 +1100,12 @@ export class Service extends DatabaseService<Model> {
         posture,
         agentVersion,
         defaultsApplied,
+        settingsApplied,
+      });
+    } else if (Service.didApplyAiSettings(settingsApplied)) {
+      await this.writeAiSettingsFeedItem({
+        resource,
+        applied: settingsApplied!,
       });
     } else if (Service.didApplyDefaults(defaultsApplied)) {
       await this.writeDefaultsFeedItem({ resource, posture, defaultsApplied });
@@ -1237,6 +1282,231 @@ export class Service extends DatabaseService<Model> {
     defaults: ResourceAiAgentDefaultsApplied,
   ): boolean {
     return defaults.turnedOnInvestigation || Boolean(defaults.remediationMode);
+  }
+
+  /*
+   * ------------------------------------------------------------------
+   * What AI may do, as the agent's configuration sets it
+   * ------------------------------------------------------------------
+   *
+   * The agent reports aiSettings (investigation, fixes, and whether its
+   * .env names them) on registration and every heartbeat. When they decide
+   * (getAiSettingsSource), OneUptime writes them to the resource's
+   * isAiInvestigationEnabled and aiRemediationMode — the columns every
+   * enforcement point already reads — so what OneUptime allows is exactly
+   * what the agent's configuration allows, never more.
+   * ResourceAiAccessSettings refuses an operator's change to either column
+   * while they decide.
+   */
+
+  // Where a resource's investigation and fixes are set.
+  public getAiSettingsSource(data: {
+    reported: AgentAiSettings | undefined;
+    resource: Pick<ResourceAiAgentResource, "aiAccessConfiguredAt">;
+  }): AgentAiSettingsSource {
+    return getAgentAiSettingsSource({
+      reported: data.reported,
+      isChosenInOneUptime: Boolean(data.resource.aiAccessConfiguredAt),
+      // A resource is only ever reached through its own agent.
+      isAgentTheExecutor: true,
+    });
+  }
+
+  // What writing `reported` to the resource would change, without writing it.
+  public getAiSettingsChanges(data: {
+    reported: AgentAiSettings;
+    resource: Pick<
+      ResourceAiAgentResource,
+      "isAiInvestigationEnabled" | "aiRemediationMode"
+    >;
+  }): Omit<ResourceAiAgentSettingsApplied, "source"> {
+    const currentInvestigation: boolean =
+      data.resource.isAiInvestigationEnabled === true;
+    const currentMode: ResourceAiRemediationMode =
+      parseResourceAiRemediationMode(data.resource.aiRemediationMode);
+    const reportedMode: ResourceAiRemediationMode =
+      parseResourceAiRemediationMode(data.reported.fixes);
+
+    return {
+      ...(currentInvestigation !== data.reported.investigation
+        ? {
+            investigation: {
+              from: currentInvestigation,
+              to: data.reported.investigation,
+            },
+          }
+        : {}),
+      ...(currentMode !== reportedMode
+        ? { remediationMode: { from: currentMode, to: reportedMode } }
+        : {}),
+    };
+  }
+
+  public static didApplyAiSettings(
+    applied: ResourceAiAgentSettingsApplied | null,
+  ): boolean {
+    return Boolean(applied?.investigation || applied?.remediationMode);
+  }
+
+  /*
+   * Write the agent's reported settings to its resource when they decide
+   * there. A root write, which the resource services neither gate nor
+   * mark: aiAccessConfiguredAt stays as it is, because nobody chose these
+   * on the AI agent page. The agent's defaults are written only while the
+   * resource is still unconfigured, in the same statement. Returns null
+   * when the agent reported nothing.
+   */
+  @CaptureSpan()
+  public async applyReportedAiSettings(data: {
+    resource: ResourceAiAgentResource;
+    reported: AgentAiSettings | undefined;
+  }): Promise<ResourceAiAgentSettingsApplied | null> {
+    const { resource, reported } = data;
+
+    if (!reported || !resource.id) {
+      return null;
+    }
+
+    const source: AgentAiSettingsSource = this.getAiSettingsSource({
+      reported,
+      resource,
+    });
+
+    if (!isAgentAiSettingsSourceAgent(source)) {
+      return { source };
+    }
+
+    const changes: Omit<ResourceAiAgentSettingsApplied, "source"> =
+      this.getAiSettingsChanges({ reported, resource });
+
+    if (!changes.investigation && !changes.remediationMode) {
+      return { source };
+    }
+
+    const updated: number = await Service.getResourceBinding(
+      resource.resourceType,
+    )
+      .getService()
+      .updateOneBy({
+        query: {
+          _id: resource.id.toString(),
+          ...(resource.projectId ? { projectId: resource.projectId } : {}),
+          ...(source === "agent_defaults"
+            ? { aiAccessConfiguredAt: QueryHelper.isNull() }
+            : {}),
+        },
+        data: {
+          ...(changes.investigation
+            ? { isAiInvestigationEnabled: changes.investigation.to }
+            : {}),
+          ...(changes.remediationMode
+            ? { aiRemediationMode: changes.remediationMode.to }
+            : {}),
+        },
+        props: { isRoot: true },
+      } as never);
+
+    /*
+     * Nothing landed. For the defaults, the condition failed: an operator
+     * chose the settings a moment ago, so they are OneUptime's now. For a
+     * configuration, the resource row is gone.
+     */
+    if (updated === 0) {
+      return { source: source === "agent_defaults" ? "oneuptime" : source };
+    }
+
+    if (changes.investigation) {
+      resource.isAiInvestigationEnabled = changes.investigation.to;
+    }
+    if (changes.remediationMode) {
+      resource.aiRemediationMode = changes.remediationMode.to;
+    }
+
+    logger.info(
+      `ResourceAiAgent: applied the ${
+        source === "agent_configuration" ? "configured" : "default"
+      } AI settings of the ${
+        AI_RESOURCE_TYPE_INFO[resource.resourceType].agentDisplayName
+      } to ${AI_RESOURCE_TYPE_INFO[resource.resourceType].displayName} ${resource.id.toString()} (${[
+        changes.investigation
+          ? `investigation ${changes.investigation.to ? "on" : "off"}`
+          : "",
+        changes.remediationMode ? `fixes ${changes.remediationMode.to}` : "",
+      ]
+        .filter(Boolean)
+        .join(", ")}).`,
+    );
+
+    return { source, ...changes };
+  }
+
+  /*
+   * applyReportedAiSettings for a request whose real work is already
+   * written: a failure is logged and reported as "nothing applied"; the
+   * next registration, or the heartbeat's periodic check, applies them.
+   */
+  private async applyReportedAiSettingsSafely(data: {
+    resource: ResourceAiAgentResource;
+    reported: AgentAiSettings | undefined;
+  }): Promise<ResourceAiAgentSettingsApplied | null> {
+    try {
+      return await this.applyReportedAiSettings(data);
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not apply the agent's AI settings to ${
+          data.resource.resourceType
+        } ${data.resource.id?.toString()}; the next registration or check tries again: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Where each of these resources' settings are set, for the update hook
+   * that refuses an operator's change while the agent decides: one read of
+   * their agent rows. Keyed by resource id (lowercase); a resource with no
+   * agent row reads "oneuptime".
+   */
+  @CaptureSpan()
+  public async getAiSettingsSourcesForResources(data: {
+    projectId: ObjectID;
+    resourceType: AiResourceType;
+    resources: Array<{
+      id: ObjectID;
+      aiAccessConfiguredAt?: Date | string | null | undefined;
+    }>;
+  }): Promise<Map<string, AgentAiSettingsSource>> {
+    const agents: Map<string, Model> = await this.findAgentsForResources({
+      projectId: data.projectId,
+      resourceType: data.resourceType,
+      resourceIds: data.resources.map(
+        (resource: { id: ObjectID }): ObjectID => {
+          return resource.id;
+        },
+      ),
+    });
+
+    const sources: Map<string, AgentAiSettingsSource> = new Map<
+      string,
+      AgentAiSettingsSource
+    >();
+
+    for (const resource of data.resources) {
+      const resourceId: string = resource.id.toString().toLowerCase();
+      const agent: Model | undefined = agents.get(resourceId);
+
+      sources.set(
+        resourceId,
+        this.getAiSettingsSource({
+          reported: agent
+            ? parseResourceAiAgentPosture(agent.posture)?.aiSettings
+            : undefined,
+          resource,
+        }),
+      );
+    }
+
+    return sources;
   }
 
   /*
@@ -2042,6 +2312,49 @@ export class Service extends DatabaseService<Model> {
       data: update as never,
     });
 
+    /*
+     * What AI may do, as the agent reports it: applied when it differs from
+     * what the agent reported last, and re-checked whenever the periodic
+     * check above read the resource anyway (something else may have moved
+     * its settings). A new .env restarts the agent, which registers again
+     * and applies it at once.
+     */
+    const reportedSettings: AgentAiSettings | undefined = posture?.aiSettings;
+
+    if (
+      reportedSettings &&
+      (resource ||
+        !isSameAgentAiSettings(reportedSettings, storedPosture?.aiSettings))
+    ) {
+      const current: ResourceAiAgentResource | null | undefined =
+        resource || (await this.findAgentResourceSafely(data.agent));
+
+      if (current) {
+        resource = current;
+
+        const settingsApplied: ResourceAiAgentSettingsApplied | null =
+          await this.applyReportedAiSettingsSafely({
+            resource: current,
+            reported: reportedSettings,
+          });
+
+        if (Service.didApplyAiSettings(settingsApplied)) {
+          await this.writeAiSettingsFeedItem({
+            resource: current,
+            applied: settingsApplied!,
+          });
+        }
+
+        // The agent decides; the first-connection defaults never apply.
+        if (
+          settingsApplied &&
+          isAgentAiSettingsSourceAgent(settingsApplied.source)
+        ) {
+          return;
+        }
+      }
+    }
+
     const writesAppeared: boolean =
       posture?.allowWrites === true && storedPosture?.allowWrites !== true;
 
@@ -2344,6 +2657,7 @@ export class Service extends DatabaseService<Model> {
     posture: ResourceAiAgentPosture;
     agentVersion?: string | undefined;
     defaultsApplied: ResourceAiAgentDefaultsApplied;
+    settingsApplied?: ResourceAiAgentSettingsApplied | null | undefined;
   }): Promise<void> {
     const info: AiResourceTypeInfo =
       AI_RESOURCE_TYPE_INFO[data.resource.resourceType];
@@ -2357,10 +2671,30 @@ export class Service extends DatabaseService<Model> {
       `🤖 The ${info.agentDisplayName} connected (${Service.describeWriteAccess(
         data.posture,
       )}).`,
-      isInvestigationOn
-        ? `AI can now use it to investigate this ${noun}.`
-        : `Investigating through the agent is off for this ${noun}; turn it on on the ${noun}'s AI agent page.`,
     ];
+
+    if (
+      data.settingsApplied &&
+      isAgentAiSettingsSourceAgent(data.settingsApplied.source)
+    ) {
+      sentences.push(
+        `What AI may do here follows the agent's ${
+          data.settingsApplied.source === "agent_configuration"
+            ? "configuration"
+            : "defaults"
+        }: investigation ${isInvestigationOn ? "on" : "off"}, fixes ${
+          AGENT_AI_FIXES_LABELS[
+            parseResourceAiRemediationMode(data.resource.aiRemediationMode)
+          ]
+        }. Change it with ${AI_INVESTIGATION_ENV} and ${AI_FIXES_ENV} where the agent runs; the ${noun}'s AI agent page shows how.`,
+      );
+    } else {
+      sentences.push(
+        isInvestigationOn
+          ? `AI can now use it to investigate this ${noun}.`
+          : `Investigating through the agent is off for this ${noun}; turn it on on the ${noun}'s AI agent page.`,
+      );
+    }
 
     if (data.defaultsApplied.remediationMode) {
       sentences.push(
@@ -2384,6 +2718,56 @@ export class Service extends DatabaseService<Model> {
         `**Version**: ${data.posture.toolVersion || "not detected"}`,
         `**Reachable**: ${reachability}`,
       ].join("\n\n"),
+    });
+  }
+
+  /*
+   * The agent's settings changed what AI may do on the resource (a new
+   * ONEUPTIME_AI_INVESTIGATION / ONEUPTIME_AI_FIXES). A setting never
+   * changes silently: the item says what moved and where it is set.
+   */
+  private async writeAiSettingsFeedItem(data: {
+    resource: ResourceAiAgentResource;
+    applied: ResourceAiAgentSettingsApplied;
+  }): Promise<void> {
+    const info: AiResourceTypeInfo =
+      AI_RESOURCE_TYPE_INFO[data.resource.resourceType];
+    const noun: string = describeResourceInSentence(data.resource.resourceType);
+    const changes: Array<string> = [];
+
+    if (data.applied.investigation) {
+      changes.push(
+        `investigation ${data.applied.investigation.from ? "on" : "off"} → ${
+          data.applied.investigation.to ? "on" : "off"
+        }`,
+      );
+    }
+
+    if (data.applied.remediationMode) {
+      changes.push(
+        `fixes ${AGENT_AI_FIXES_LABELS[data.applied.remediationMode.from]} → ${
+          AGENT_AI_FIXES_LABELS[data.applied.remediationMode.to]
+        }`,
+      );
+    }
+
+    if (changes.length === 0) {
+      return;
+    }
+
+    await Service.getResourceBinding(data.resource.resourceType).writeFeedItem({
+      resourceId: data.resource.id,
+      projectId: data.resource.projectId,
+      displayColor: Blue500,
+      feedInfoInMarkdown: `🤖 The ${info.agentDisplayName}'s ${
+        data.applied.source === "agent_configuration"
+          ? "configuration"
+          : "defaults"
+      } changed what AI may do on this ${noun}: ${changes.join("; ")}.`,
+      moreInformationInMarkdown:
+        data.applied.source === "agent_configuration"
+          ? `Set with **${AI_INVESTIGATION_ENV}** and **${AI_FIXES_ENV}** where the agent runs. The ${noun}'s AI agent page shows them, with how to change them.`
+          : `Neither **${AI_INVESTIGATION_ENV}** nor **${AI_FIXES_ENV}** is set where the agent runs, so its defaults apply: investigation on, and fixes Ask for approval when it may change things (${RESOURCE_AI_ALLOW_WRITES_ENV}=true), else Off. Set them to choose; the ${noun}'s AI agent page shows how.`,
     });
   }
 

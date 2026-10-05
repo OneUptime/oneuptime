@@ -6,6 +6,8 @@ import {
   COMPOSE_DIRECTORY_COMMENT,
   RESOURCE_AI_AGENT_IMAGE,
   RESOURCE_AI_PROTECTED_TARGETS_ENV,
+  RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+  RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
   ResourceAiAgentInstall,
   ResourceAiAgentInstallVariable,
   ResourceAiAgentWriteAccessCommands,
@@ -15,11 +17,26 @@ import {
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
   getResourceAiAgentServiceName,
+  getResourceAiAgentSettingsEnv,
+  getResourceAiAgentSettingsInstructions,
   getResourceAiAgentStatusCommand,
+  getResourceAiAgentUpgradeCommand,
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
   toComposeEnvironmentEntry,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import {
+  AgentAiSettingsInstructions,
+  AgentAiSettingsStep,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AgentAiSettingsInstructions";
+import {
+  AGENT_AI_FIXES_MODES,
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiFixesMode,
+  resolveAgentAiSettings,
+} from "../../../Types/AI/AgentAiSettings";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
@@ -857,4 +874,252 @@ describe("the write switch", () => {
       expect(disclosure).toContain("OneUptime still holds the line");
     },
   );
+});
+
+/*
+ * What OneUptime AI may do is the agent's own setting: the snippet passes
+ * both variables from the .env (the collectors' compose files do too, both
+ * ways — see "the snippet matches what the collectors ship"), the
+ * variables table names them, and the "Change what AI may do" dialog shows
+ * the .env lines for each option, then the restart.
+ */
+type AgentAiSettingsNote = AgentAiSettingsInstructions["notes"][number];
+
+describe("what AI may do, set where the agent runs", () => {
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the snippet passes both settings from the .env, empty by default",
+    (type: AiResourceType) => {
+      const environment: Record<string, string> = environmentOf(
+        snippetService(type),
+      );
+
+      expect(environment[AI_INVESTIGATION_ENV]).toBe(
+        `\${${AI_INVESTIGATION_ENV}:-}`,
+      );
+      expect(environment[AI_FIXES_ENV]).toBe(`\${${AI_FIXES_ENV}:-}`);
+    },
+  );
+
+  test("the variables table names both, and what they take", () => {
+    const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+      resourceType: AiResourceType.DockerHost,
+      resourceId: RESOURCE_ID,
+    });
+    const variable: (name: string) => ResourceAiAgentInstallVariable = (
+      name: string,
+    ): ResourceAiAgentInstallVariable => {
+      const found: ResourceAiAgentInstallVariable | undefined =
+        install.variables.find((candidate: ResourceAiAgentInstallVariable) => {
+          return candidate.name === name;
+        });
+      expect(found).toBeDefined();
+      return found!;
+    };
+
+    expect(variable(AI_INVESTIGATION_ENV).description).toContain(
+      "true or false",
+    );
+    for (const mode of AGENT_AI_FIXES_MODES) {
+      expect(variable(AI_FIXES_ENV).description).toContain(
+        AGENT_AI_FIXES_SETTING_VALUES[mode],
+      );
+    }
+    // Both sit right before the write switch they work with.
+    const names: Array<string> = install.variables.map(
+      (candidate: ResourceAiAgentInstallVariable) => {
+        return candidate.name;
+      },
+    );
+    expect(names.indexOf(AI_FIXES_ENV)).toBe(
+      names.indexOf(RESOURCE_AI_ALLOW_WRITES_ENV) - 1,
+    );
+    expect(names.indexOf(AI_INVESTIGATION_ENV)).toBe(
+      names.indexOf(AI_FIXES_ENV) - 1,
+    );
+  });
+
+  test.each(
+    AGENT_AI_FIXES_MODES.flatMap((fixes: AgentAiFixesMode) => {
+      return [
+        [true, fixes],
+        [false, fixes],
+      ] as Array<[boolean, AgentAiFixesMode]>;
+    }),
+  )(
+    "investigation %s, fixes %s: the .env lines the agent reads back as exactly that",
+    (investigation: boolean, fixes: AgentAiFixesMode) => {
+      const env: string = getResourceAiAgentSettingsEnv({
+        investigation,
+        fixes,
+      });
+      const lines: Record<string, string> = {};
+      for (const line of env.split("\n")) {
+        const at: number = line.indexOf("=");
+        lines[line.slice(0, at)] = line.slice(at + 1);
+      }
+
+      // The agent's own reading of these lines.
+      const resolved: ReturnType<typeof resolveAgentAiSettings> =
+        resolveAgentAiSettings({
+          investigationSetting: lines[AI_INVESTIGATION_ENV],
+          fixesSetting: lines[AI_FIXES_ENV],
+          allowWrites: lines[RESOURCE_AI_ALLOW_WRITES_ENV] === "true",
+          allowWritesName: RESOURCE_AI_ALLOW_WRITES_ENV,
+        });
+
+      expect(resolved.settings).toEqual({
+        investigation,
+        fixes,
+        isConfigured: true,
+      });
+      // Writes exactly when fixes are on, and no warning either way.
+      expect(resolved.allowWrites).toBe(fixes !== "Disabled");
+      expect(resolved.warnings).toEqual([]);
+    },
+  );
+
+  test("a Docker host: how to do it with install.sh first, then the .env and the restart", () => {
+    const instructions: AgentAiSettingsInstructions =
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.DockerHost,
+        choice: { investigation: true, fixes: "Automatic" },
+        doesAgentReportSettings: true,
+      });
+
+    expect(instructions.intro?.[0]?.text).toContain(
+      "Docker agent with install.sh",
+    );
+    expect(instructions.intro?.[0]?.text).toContain(
+      "docker rm -f oneuptime-docker-ai-agent",
+    );
+    expect(
+      instructions.steps.map((step: AgentAiSettingsStep) => {
+        return step.ways[0]?.code;
+      }),
+    ).toEqual([
+      getResourceAiAgentSettingsEnv({
+        investigation: true,
+        fixes: "Automatic",
+      }),
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.DockerHost,
+        resourceId: RESOURCE_ID,
+      }).startCommand,
+    ]);
+    // Fixes on: which containers they may change, and what writes amount to.
+    expect(
+      instructions.notes.map((note: AgentAiSettingsNote) => {
+        return note.dataTestId;
+      }),
+    ).toEqual([
+      "agent-ai-settings-write-targets-note",
+      "agent-ai-settings-write-disclosure",
+    ]);
+    expect(instructions.notes[0]!.text).toContain(
+      RESOURCE_AI_WRITE_TARGETS_ENV,
+    );
+    // An agent that reads these settings already: a plain restart.
+    expect(instructions.steps[1]!.title).toBe(
+      RESOURCE_AI_SETTINGS_RESTART_STEP_TITLE,
+    );
+    expect(instructions.intro?.[0]?.text).not.toContain("Pull");
+  });
+
+  test("a collector with an install directory: the .env there, and no install.sh note", () => {
+    const instructions: AgentAiSettingsInstructions =
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.ProxmoxCluster,
+        choice: { investigation: false, fixes: "Disabled" },
+        doesAgentReportSettings: true,
+      });
+
+    expect(instructions.intro).toEqual([]);
+    expect(instructions.steps[0]!.description).toContain(
+      "/opt/oneuptime-proxmox-agent",
+    );
+    expect(instructions.steps[1]!.ways[0]!.code).toBe(
+      "cd /opt/oneuptime-proxmox-agent\ndocker compose up -d oneuptime-proxmox-ai-agent",
+    );
+    // Fixes off: nothing about write access.
+    expect(instructions.notes).toEqual([]);
+  });
+
+  test("a database server has no write targets to name, only the disclosure", () => {
+    const instructions: AgentAiSettingsInstructions =
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.DatabaseServer,
+        choice: { investigation: true, fixes: "RequireApproval" },
+        doesAgentReportSettings: true,
+      });
+
+    expect(
+      instructions.notes.map((note: AgentAiSettingsNote) => {
+        return note.dataTestId;
+      }),
+    ).toContain("agent-ai-settings-write-disclosure");
+  });
+
+  /*
+   * An agent older than these settings reports none and would ignore the
+   * .env lines: its restart pulls the newer image first — the AI agent
+   * version's own upgrade command — and the plain-container note says to
+   * pull it too (install.sh pulls it anyway).
+   */
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s, an agent older than the settings: the restart pulls the newer image",
+    (type: AiResourceType) => {
+      const instructions: AgentAiSettingsInstructions =
+        getResourceAiAgentSettingsInstructions({
+          resourceType: type,
+          choice: { investigation: true, fixes: "RequireApproval" },
+          doesAgentReportSettings: false,
+        });
+      const service: string = getResourceAiAgentServiceName(type);
+
+      // The same .env lines first.
+      expect(instructions.steps[0]!.ways[0]!.code).toBe(
+        getResourceAiAgentSettingsEnv({
+          investigation: true,
+          fixes: "RequireApproval",
+        }),
+      );
+      expect(instructions.steps[1]!.title).toBe(
+        RESOURCE_AI_SETTINGS_UPGRADE_STEP_TITLE,
+      );
+      expect(instructions.steps[1]!.description).toContain(
+        "older than these settings",
+      );
+      const restart: string = instructions.steps[1]!.ways[0]!.code!;
+      expect(restart).toBe(getResourceAiAgentUpgradeCommand(type));
+      // Pull, then recreate: in that order, for this service only.
+      expect(restart.indexOf(`compose pull ${service}`)).toBeGreaterThan(-1);
+      expect(restart.indexOf(`compose up -d ${service}`)).toBeGreaterThan(
+        restart.indexOf(`compose pull ${service}`),
+      );
+    },
+  );
+
+  test("a Docker host with an older agent: the plain-container note pulls the image too", () => {
+    const note: string | undefined = getResourceAiAgentSettingsInstructions({
+      resourceType: AiResourceType.DockerHost,
+      choice: { investigation: true, fixes: "Disabled" },
+      doesAgentReportSettings: false,
+    }).intro?.[0]?.text;
+
+    expect(note).toContain("it pulls the newer agent");
+    expect(note).toContain(`Pull ${RESOURCE_AI_AGENT_IMAGE}`);
+    expect(note).toContain("docker rm -f oneuptime-docker-ai-agent");
+  });
+
+  test("a Proxmox cluster with an older agent: pull and recreate in its install directory", () => {
+    expect(
+      getResourceAiAgentSettingsInstructions({
+        resourceType: AiResourceType.ProxmoxCluster,
+        choice: { investigation: true, fixes: "Disabled" },
+        doesAgentReportSettings: false,
+      }).steps[1]!.ways[0]!.code,
+    ).toBe(
+      "cd /opt/oneuptime-proxmox-agent\ndocker compose pull oneuptime-proxmox-ai-agent\ndocker compose up -d oneuptime-proxmox-ai-agent",
+    );
+  });
 });

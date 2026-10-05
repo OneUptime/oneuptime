@@ -428,8 +428,13 @@ export function getResourceAiAccessSettingsInitialValues(
  * allowlist: an admin edits it freely; an editor without the admin set gets
  *            it only when there is something to remove, and may only remove
  *            (allowlistRemoveOnly).
+ * investigationAndFixes: false while the resource's AI agent sets the
+ *            investigation switch and the fixes modes (its .env does; the
+ *            server refuses a change here): the form then edits the
+ *            allowlist alone. Offered when left out.
  */
 export interface ResourceAiAccessOfferedFields {
+  investigationAndFixes?: boolean | undefined;
   allowlist: boolean;
   allowlistRemoveOnly: boolean;
 }
@@ -437,11 +442,14 @@ export interface ResourceAiAccessOfferedFields {
 export function getResourceAiAccessOfferedFields(data: {
   saved: ResourceAiAccessSavedSettings;
   canConfigureUnattended: boolean;
+  // The resource's AI agent sets investigation and fixes.
+  isSetByAgent?: boolean | undefined;
 }): ResourceAiAccessOfferedFields {
   const savedAllowlist: SavedResourceAllowlist =
     normalizeSavedResourceAllowlist(data.saved.aiCommandAllowlist);
 
   return {
+    ...(data.isSetByAgent ? { investigationAndFixes: false } : {}),
     allowlist:
       data.canConfigureUnattended ||
       savedAllowlist.patterns.length > 0 ||
@@ -543,21 +551,24 @@ export function getResourceAiAccessSettingsChanges(data: {
 }): JSONObject {
   const changes: JSONObject = {};
 
-  const isInvestigationEnabled: boolean =
-    data.values.isAiInvestigationEnabled === true;
-  if (isInvestigationEnabled !== data.saved.isAiInvestigationEnabled) {
-    changes["isAiInvestigationEnabled"] = isInvestigationEnabled;
-  }
+  // Never sent while the agent sets them: the form does not offer them.
+  if (data.offered.investigationAndFixes !== false) {
+    const isInvestigationEnabled: boolean =
+      data.values.isAiInvestigationEnabled === true;
+    if (isInvestigationEnabled !== data.saved.isAiInvestigationEnabled) {
+      changes["isAiInvestigationEnabled"] = isInvestigationEnabled;
+    }
 
-  const mode: string | null = readDropdownId(data.values.aiRemediationMode);
-  if (
-    mode &&
-    Object.values(ResourceAiRemediationMode).includes(
-      mode as ResourceAiRemediationMode,
-    ) &&
-    mode !== data.saved.aiRemediationMode
-  ) {
-    changes["aiRemediationMode"] = mode;
+    const mode: string | null = readDropdownId(data.values.aiRemediationMode);
+    if (
+      mode &&
+      Object.values(ResourceAiRemediationMode).includes(
+        mode as ResourceAiRemediationMode,
+      ) &&
+      mode !== data.saved.aiRemediationMode
+    ) {
+      changes["aiRemediationMode"] = mode;
+    }
   }
 
   if (data.offered.allowlist) {

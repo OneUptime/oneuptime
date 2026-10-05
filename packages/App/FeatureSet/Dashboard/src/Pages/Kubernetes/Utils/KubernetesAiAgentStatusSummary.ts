@@ -10,7 +10,7 @@ import {
   AiAgentOverviewState,
   getAiAgentAttention,
   getAiAgentCardState,
-  getAiAgentMetaParts,
+  getAiAgentMeta,
   getAiAgentOverviewState,
   getAiAgentStateSentence,
 } from "./KubernetesAiAgentStatus";
@@ -29,6 +29,7 @@ import {
   AiAgentConnectionState,
   AiAgentStatusSummary,
   getAiAgentConnectionBadge,
+  getAiAgentConnectionDetails,
   getAiAgentConnectionSentence,
 } from "../../../Components/AiAccess/AiAgentStatusSummary";
 import {
@@ -122,7 +123,7 @@ export function getKubernetesAiAgentStatusSummary(
       getKubernetesAiAgentConnectionState(status),
     ),
     connectionSentence: getConnectionSentence(status, now),
-    connectionDetails: getAiAgentMetaParts(status),
+    connectionDetails: getAiAgentConnectionDetails(getAiAgentMeta(status)),
     investigation: getAiInvestigationBadge(isInvestigationEnabled),
     investigationSentence: isInvestigationEnabled
       ? INVESTIGATION_ON_SENTENCE

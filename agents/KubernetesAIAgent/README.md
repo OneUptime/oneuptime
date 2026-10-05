@@ -7,7 +7,7 @@ It is installed by the Kubernetes agent Helm chart (`HelmChart/Public/kubernetes
 ## What it may do
 
 - **Read (default).** The chart gives the agent's ServiceAccount a read-only ClusterRole: list and describe resources, read logs and events. OneUptime AI is never allowed to read Secrets.
-- **Change things (opt-in).** Only when you install the chart with `--set aiAgent.remediation.enabled=true`. You can limit changes to some namespaces with `aiAgent.remediation.namespaces` and turn node operations (cordon, drain, taint) off with `aiAgent.remediation.nodeOperations=false`. Whether AI proposes fixes, and whether a person must approve them, is set on the cluster's AI → Agent page.
+- **Change things (opt-in).** Only when the chart sets `aiAgent.fixes` to a level other than `off` — `ask-for-approval`, `automatic` or `bypass-approval` — which also grants the write RBAC (the older `aiAgent.remediation.enabled=true` does the same while `aiAgent.fixes` is unset). You can limit changes to some namespaces with `aiAgent.remediation.namespaces` and turn node operations (cordon, drain, taint) off with `aiAgent.remediation.nodeOperations=false`. `aiAgent.investigation` and `aiAgent.fixes` decide what OneUptime AI may do: the agent reports them, OneUptime applies them, and the cluster's AI → Agent page shows them read-only.
 
 Before anything runs, the agent checks every command itself, whatever the server sent:
 
@@ -44,7 +44,9 @@ The chart sets all of these; you normally only touch `aiAgent.*` chart values.
 | `ONEUPTIME_API_KEY` | — (required) | The chart's API key (a telemetry ingestion key of the project). |
 | `ONEUPTIME_KUBERNETES_CLUSTER_NAME` | — (required) | The chart's `clusterName`. The agent only runs commands for this cluster. |
 | `ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION` | — | Shown on the AI → Agent page. |
-| `ONEUPTIME_KUBECTL_ALLOW_WRITES` | off | `true` allows changes (`aiAgent.remediation.enabled`). Anything else means read-only. |
+| `ONEUPTIME_AI_INVESTIGATION` | — (on) | `true` or `false` (`aiAgent.investigation`): whether OneUptime AI runs read-only `kubectl` while it investigates. |
+| `ONEUPTIME_AI_FIXES` | — | `off`, `ask-for-approval`, `automatic` or `bypass-approval` (`aiAgent.fixes`). Empty: `ask-for-approval` when writes are allowed, else `off`. Any level but `off` also needs `ONEUPTIME_KUBECTL_ALLOW_WRITES=true`, which the chart sets with it; `off` keeps the agent read-only whatever that says. |
+| `ONEUPTIME_KUBECTL_ALLOW_WRITES` | off | `true` allows changes (`aiAgent.fixes` other than `off`, or `aiAgent.remediation.enabled`). Anything else means read-only. |
 | `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` | all | Comma-separated namespaces changes may land in (`aiAgent.remediation.namespaces`). Empty means the whole cluster. |
 | `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` | off | `true` allows cordon, drain, taint and node changes (`aiAgent.remediation.nodeOperations`). |
 | `ONEUPTIME_AI_AGENT_POD_NAMESPACE` | — | The pod's namespace (downward API). The agent never changes anything in it. |

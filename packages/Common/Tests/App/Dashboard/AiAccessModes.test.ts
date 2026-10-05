@@ -1,12 +1,16 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  AGENT_AI_SETTINGS_DIALOG_INTRO,
+  AGENT_AI_SETTINGS_INVESTIGATION_OPTIONS,
   AI_ACCESS_FIXES_ROW_TITLE,
   AI_ACCESS_INVESTIGATION_ROW_TITLE,
   AI_ACCESS_PROTECTIONS_TITLE,
   AI_FIXES_MODE_ICONS,
   AI_FIXES_MODE_TONES,
+  AI_FIXES_OFF_AGENT_SET_HINT,
   AiAccessBadge,
   AiFixesMode,
+  readAiSettingsSource,
   formatAiAccessProtections,
   getAiAccessCardDescription,
   getAiFixesBadge,
@@ -51,12 +55,33 @@ describe("the fixes modes", () => {
     );
   });
 
-  test("each has its own tone, and the tones rise with how much runs unasked", () => {
+  /*
+   * "When fixes are enabled, why does it show in yellow? That makes me
+   * think that fixes are not enabled." A badge says whether a setting is
+   * on: every on mode reads on, and what each does is in its words and its
+   * icon — never a warning colour.
+   */
+  test("Off reads off, and every mode that applies fixes reads on", () => {
     expect(
       MODES_BY_AUTONOMY.map((mode: AiFixesMode): string => {
         return AI_FIXES_MODE_TONES[mode];
       }),
-    ).toEqual(["off", "on", "automatic", "bypass"]);
+    ).toEqual(["off", "on", "on", "on"]);
+  });
+
+  test("Bypass approval reads on, like Ask for approval: its words say the rest", () => {
+    expect(
+      getAiFixesBadge({
+        mode: "BypassApproval",
+        shortNames: RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
+      }),
+    ).toEqual({ text: "Bypass approval", tone: "on" });
+    expect(
+      getAiFixesBadge({
+        mode: "Automatic",
+        shortNames: REMEDIATION_MODE_SHORT_NAMES,
+      }).tone,
+    ).toBe(getAiInvestigationBadge(true).tone);
   });
 
   test("each has its own icon, and every icon is a real one", () => {
@@ -214,6 +239,56 @@ describe("the Change modal's mode cards", () => {
         shortNames: REMEDIATION_MODE_SHORT_NAMES,
       }),
     ).toBe("Off (current)");
+  });
+});
+
+describe("where the settings are set", () => {
+  test.each([
+    ["agent_configuration", "agent_configuration"],
+    ["agent_defaults", "agent_defaults"],
+    ["oneuptime", "oneuptime"],
+    // An older server sends nothing; an unknown value is no agent's.
+    [undefined, "oneuptime"],
+    [null, "oneuptime"],
+    ["agent", "oneuptime"],
+    [42, "oneuptime"],
+  ])("%j reads as %s", (value: unknown, expected: string) => {
+    expect(readAiSettingsSource(value)).toBe(expected);
+  });
+
+  test("the change dialog's intro names the agent for every source", () => {
+    for (const intro of Object.values(AGENT_AI_SETTINGS_DIALOG_INTRO)) {
+      expect(intro).toContain("{{agent}}");
+      expect(intro).toContain("run the command below");
+    }
+    // Set by the agent: changed there, not here.
+    expect(AGENT_AI_SETTINGS_DIALOG_INTRO.agent_configuration).toContain(
+      "not on this page",
+    );
+    // Its defaults: its configuration names neither.
+    expect(AGENT_AI_SETTINGS_DIALOG_INTRO.agent_defaults).toContain(
+      "sets neither setting",
+    );
+    // Chosen here: they can move to the agent, and the page then follows.
+    expect(AGENT_AI_SETTINGS_DIALOG_INTRO.oneuptime).toContain("read-only");
+  });
+
+  test("the investigation choices say what each does", () => {
+    expect(AGENT_AI_SETTINGS_INVESTIGATION_OPTIONS.on.title).toBe("On");
+    expect(AGENT_AI_SETTINGS_INVESTIGATION_OPTIONS.on.description).toContain(
+      "read-only commands",
+    );
+    expect(AGENT_AI_SETTINGS_INVESTIGATION_OPTIONS.off.title).toBe("Off");
+    expect(AGENT_AI_SETTINGS_INVESTIGATION_OPTIONS.off.description).toContain(
+      "runs no commands",
+    );
+  });
+
+  test("the fixes-off hint for settings the agent sets sends the reader to Change, for the command", () => {
+    expect(AI_FIXES_OFF_AGENT_SET_HINT).toContain("Click Change");
+    expect(AI_FIXES_OFF_AGENT_SET_HINT).toContain("command");
+    // Never "choose Ask for approval": the page cannot save it.
+    expect(AI_FIXES_OFF_AGENT_SET_HINT).not.toContain("choose");
   });
 });
 

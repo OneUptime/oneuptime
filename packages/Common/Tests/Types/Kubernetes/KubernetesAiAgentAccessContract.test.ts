@@ -52,6 +52,15 @@ const SOURCE_PATH: string = path.resolve(
   "../../../Types/Kubernetes/KubernetesClusterAiAccess.ts",
 );
 
+// The one file it may import: the agents' shared AI settings contract.
+const AI_SETTINGS_SOURCE_PATH: string = path.resolve(
+  __dirname,
+  "../../../Types/AI/AgentAiSettings.ts",
+);
+
+const IMPORT_STATEMENT_REGEX: RegExp =
+  /^\s*import\s[\s\S]*?from\s+"([^"]+)";/gm;
+
 const COMPLETE_POSTURE: Record<string, unknown> = {
   clusterIdentifier: "prod-us",
   inCluster: true,
@@ -64,8 +73,28 @@ const COMPLETE_POSTURE: Record<string, unknown> = {
 };
 
 describe("KubernetesClusterAiAccess.ts stays copyable into the agent", () => {
-  it("has no imports and no requires", () => {
+  /*
+   * The agent carries a byte-identical copy of this file and of the one it
+   * imports (Types/AI/AgentAiSettings.ts, the agents' AI settings
+   * contract), and builds without the rest of Common.
+   */
+  it("imports only the agents' AI settings contract, and requires nothing", () => {
     const source: string = fs.readFileSync(SOURCE_PATH, "utf8");
+
+    expect(
+      Array.from(source.matchAll(IMPORT_STATEMENT_REGEX)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ).toEqual(["../AI/AgentAiSettings"]);
+    expect(source).not.toMatch(/\brequire\(/);
+    expect(source).not.toMatch(/^\s*export\s+\*\s+from\s/m);
+    expect(source).not.toMatch(/^\s*export\s+\{[^}]*\}\s+from\s/m);
+  });
+
+  it("the AI settings contract it imports imports nothing at all", () => {
+    const source: string = fs.readFileSync(AI_SETTINGS_SOURCE_PATH, "utf8");
 
     expect(source).not.toMatch(/^\s*import\s/m);
     expect(source).not.toMatch(/\brequire\(/);
@@ -244,6 +273,37 @@ describe("parseKubernetesRunnerPosture is a thin wrapper over the bare parser", 
     expect(fromRunner).toEqual(fromAgent);
     expect(Object.keys(fromRunner!).sort()).toEqual(
       Object.keys(fromAgent!).sort(),
+    );
+  });
+
+  /*
+   * What AI may do on a cluster is set by its Kubernetes AI agent's
+   * configuration only. A Runner's host info that claims settings is read
+   * without them, so a Runner can never make OneUptime allow more.
+   */
+  it("a Runner's posture never carries AI settings, whatever its host info claims", () => {
+    const claimed: Record<string, unknown> = {
+      ...COMPLETE_POSTURE,
+      aiSettings: {
+        investigation: true,
+        fixes: "BypassApproval",
+        isConfigured: true,
+      },
+    };
+
+    expect(parseKubernetesAgentPosture(claimed)?.aiSettings).toEqual({
+      investigation: true,
+      fixes: "BypassApproval",
+      isConfigured: true,
+    });
+    expect(
+      parseKubernetesRunnerPosture({ kubernetes: claimed }),
+    ).not.toHaveProperty("aiSettings");
+  });
+
+  it("a posture without AI settings has no aiSettings key at all (an older agent's)", () => {
+    expect(parseKubernetesAgentPosture(COMPLETE_POSTURE)).not.toHaveProperty(
+      "aiSettings",
     );
   });
 });

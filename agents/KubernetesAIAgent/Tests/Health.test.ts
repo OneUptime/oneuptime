@@ -93,6 +93,11 @@ test("/status reports registration, heartbeat, the last error and a missing API"
     writeNamespaces: ["web"],
     podNamespace: "oneuptime-agent",
     kubectlVersion: "v1.36.4",
+    aiSettings: {
+      investigation: true,
+      fixes: "RequireApproval",
+      isConfigured: false,
+    },
   };
 
   const response: HealthResponse = await get("/status");

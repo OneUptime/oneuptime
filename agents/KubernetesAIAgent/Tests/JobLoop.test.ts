@@ -54,6 +54,7 @@ const POSTURE: AgentPosture = {
   allowWrites: false,
   allowNodeOperations: false,
   writeNamespaces: [],
+  aiSettings: { investigation: true, fixes: "Disabled", isConfigured: false },
 };
 
 interface RefusalCase {
@@ -492,7 +493,7 @@ describe("the job loop", () => {
             clusterIdentifier: "prod-us",
           },
         },
-        message: /installed read-only.*aiAgent\.remediation\.enabled=true/,
+        message: /installed read-only.*aiAgent\.fixes=ask-for-approval/,
       },
       {
         name: "a write outside the allowed namespaces",

@@ -10,6 +10,7 @@ import {
   AI_AGENT_STATUS_SUMMARY_OPEN_TEXT,
   AI_AGENT_STATUS_SUMMARY_TITLE,
   AI_AGENT_STATUS_UNAVAILABLE_TEXT,
+  AI_AGENT_VERSION_DETAIL,
   AiAgentStatusSummary,
 } from "./AiAgentStatusSummary";
 import Route from "Common/Types/API/Route";
@@ -18,9 +19,10 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * The "AI agent" card at the bottom of a resource's Overview: three rows —
@@ -46,6 +48,12 @@ export interface ComponentProps {
   agentPageRoute: Route;
   summary: AiAgentStatusSummary | null;
   isLoading: boolean;
+  /*
+   * The agent's version, drawn by the caller with the shared AgentVersion
+   * (which knows the kind of agent), for the place the summary keeps for it
+   * in the Connection row's details. Undefined: no version to show.
+   */
+  versionElement?: ReactElement | undefined;
 }
 
 const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
@@ -64,6 +72,31 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
 
   const translate: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
+  };
+
+  // The details line's parts, the version drawn where the summary keeps it.
+  const renderConnectionDetails: (
+    details: Array<string>,
+  ) => Array<ReactElement> = (details: Array<string>): Array<ReactElement> => {
+    return details.flatMap((part: string): Array<ReactElement> => {
+      if (part !== AI_AGENT_VERSION_DETAIL) {
+        return [<span key={`detail-${part}`}>{part}</span>];
+      }
+
+      return props.versionElement
+        ? [
+            <span
+              key="agent-version"
+              data-testid={`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-agent-version`}
+            >
+              <TranslatedSentence
+                template="agent {{version}}"
+                slots={{ version: props.versionElement }}
+              />
+            </span>,
+          ]
+        : [];
+    });
   };
 
   const openLink: ReactElement = (
@@ -103,6 +136,10 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
       );
     }
 
+    const connectionDetails: Array<ReactElement> = renderConnectionDetails(
+      summary.connectionDetails,
+    );
+
     return (
       <div className="space-y-5">
         {summary.attention ? (
@@ -138,13 +175,22 @@ const AiAgentStatusSummaryCard: FunctionComponent<ComponentProps> = (
             sentence={translate(summary.connectionSentence)}
             dataTestId={`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection`}
           >
-            {summary.connectionDetails.length > 0 ? (
-              <p
+            {connectionDetails.length > 0 ? (
+              <div
                 className="text-xs text-gray-500"
                 data-testid={`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-details`}
               >
-                {summary.connectionDetails.join(" · ")}
-              </p>
+                {connectionDetails.map(
+                  (part: ReactElement, index: number): ReactElement => {
+                    return (
+                      <Fragment key={`connection-detail-${index}`}>
+                        {index > 0 ? " · " : ""}
+                        {part}
+                      </Fragment>
+                    );
+                  },
+                )}
+              </div>
             ) : null}
           </AiAccessRow>
           <AiAccessRow

@@ -13,7 +13,7 @@ import {
   AiAgentCardState,
   getAiAgentAttention,
   getAiAgentCardState,
-  getAiAgentMetaParts,
+  getAiAgentMeta,
   getAiAgentOverviewState,
   getAiAgentStateSentence,
   parseStatus,
@@ -28,8 +28,10 @@ import {
   getAiInvestigationOffSentence,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import {
+  AI_AGENT_VERSION_DETAIL,
   AiAgentConnectionState,
   AiAgentStatusSummary,
+  getAiAgentConnectionDetails,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAgentStatusSummary";
 import {
   KubernetesAiAccessGap,
@@ -284,7 +286,7 @@ describe("the cluster Overview's AI agent card, in every state the AI agent page
 
     test("shows the AI agent page's meta line under it", () => {
       expect(summary.connectionDetails).toEqual(
-        getAiAgentMetaParts(item.status),
+        getAiAgentConnectionDetails(getAiAgentMeta(item.status)),
       );
     });
 
@@ -305,9 +307,22 @@ describe("the cluster Overview's AI agent card, in every state the AI agent page
     ).connectionDetails;
 
     expect(details[0]).toMatch(/^last seen /);
-    expect(details).toContain("agent v14.1.0");
+    /*
+     * The version's place, right after "last seen": the card draws it with
+     * AgentVersion, never as words.
+     */
+    expect(details[1]).toBe(AI_AGENT_VERSION_DETAIL);
+    expect(details.join(" ")).not.toContain("14.1.0");
     expect(details).toContain("kubectl v1.31.2");
     expect(details).toContain("Read-only");
+  });
+
+  test("a cluster reached through a Runner keeps no place for the agent's version", () => {
+    for (const status of [legacyStatus(), advancedStatus()]) {
+      expect(
+        getKubernetesAiAgentStatusSummary(status, NOW).connectionDetails,
+      ).not.toContain(AI_AGENT_VERSION_DETAIL);
+    }
   });
 
   test("nothing installed: nothing under it, and what OneUptime AI cannot do", () => {
