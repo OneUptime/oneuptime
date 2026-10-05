@@ -25223,5 +25223,6 @@
   "Adds nothing": "Tilføjer intet",
   "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Denne regel tilføjer intet, når den matcher. Rediger den for at vælge, hvad den tilføjer, eller slet den.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Når denne regel matcher, tilføjes disse etiketter. Etiketter, der allerede er tilføjet, tilføjes ikke to gange. Lad feltet stå tomt, hvis reglen kun nedarver etiketter.",
-  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Når denne regel matcher, tilføjes disse personer og teams som ejere. Ejere, der allerede er tildelt, tilføjes ikke to gange. Lad feltet stå tomt, hvis reglen kun nedarver ejere."
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Når denne regel matcher, tilføjes disse personer og teams som ejere. Ejere, der allerede er tildelt, tilføjes ikke to gange. Lad feltet stå tomt, hvis reglen kun nedarver ejere.",
+  "Inherit Owners From Monitor": "Nedarv ejere fra overvågning"
 }

@@ -282,14 +282,12 @@ describe("the owner rules page's owners", () => {
     expect(owners).toHaveLength(1);
     expect(owners[0]!["stepId"]).toBe("owners");
     /*
-     * A new rule that adds no owner cannot be saved; an Edit form - which
-     * holds the saved rule's _id - does not insist, so a rule saved before
-     * the form asked can still be renamed or switched off.
+     * A new rule that adds no owner cannot be saved; an Edit form does not
+     * insist (ModelForm reads doNotRequireWhenEditing), so a rule saved
+     * before the form asked can still be renamed or switched off.
      */
-    expect(owners[0]!["required"]({})).toBe(true);
-    expect(
-      owners[0]!["required"]({ _id: "66666666-6666-4666-8666-666666666666" }),
-    ).toBe(false);
+    expect(owners[0]!["required"]).toBe(true);
+    expect(owners[0]!["doNotRequireWhenEditing"]).toBe(true);
     expect(owners[0]!["title"]).toBe("Owners");
     expect(owners[0]!["description"]).toBe(OWNER_RULE_OWNERS_DESCRIPTION);
     expect(owners[0]!["fieldType"]).toBe(FormFieldSchemaType.PeoplePicker);

@@ -25223,5 +25223,6 @@
   "Adds nothing": "Voegt niets toe",
   "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "Deze regel voegt niets toe wanneer hij overeenkomt. Bewerk hem om te kiezen wat hij toevoegt, of verwijder hem.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "Wanneer deze regel overeenkomt, worden deze labels toegevoegd. Labels die al zijn toegevoegd, worden niet twee keer toegevoegd. Laat dit leeg als de regel alleen labels overneemt.",
-  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Wanneer deze regel overeenkomt, worden deze personen en teams als eigenaren toegevoegd. Eigenaren die al zijn toegewezen, worden niet twee keer toegevoegd. Laat dit leeg als de regel alleen eigenaren overneemt."
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Wanneer deze regel overeenkomt, worden deze personen en teams als eigenaren toegevoegd. Eigenaren die al zijn toegewezen, worden niet twee keer toegevoegd. Laat dit leeg als de regel alleen eigenaren overneemt.",
+  "Inherit Owners From Monitor": "Eigenaren overnemen van monitor"
 }

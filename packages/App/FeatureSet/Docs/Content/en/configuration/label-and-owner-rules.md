@@ -20,14 +20,14 @@ A new rule has to add something: at least one label (or owner) or, on an inciden
 
 Incident, alert and scheduled maintenance rules can also hand on what the resources an event touches carry. Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches:
 
-- **Inherit Labels From Monitors** — every label of the incident's monitors is attached to the incident too. An alert has one monitor, so on an alert rule the switch is **Inherit Labels From Monitor**.
+- **Inherit Labels From Monitors** — every label of the incident's monitors is attached to the incident too. An alert has one monitor, so on an alert rule the switch is **Inherit Labels From Monitor** (and on an alert owner rule, **Inherit Owners From Monitor**).
 - **Inherit Labels From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
 
 Owner rules have the same six for owners (**Inherit Owners From Monitors** and so on). While no switch is on, the folded section says what it is for; on a rule that inherits, it opens on its own. A rule that inherits can leave **Labels to Add** (or **Owners**) empty: it adds what it inherits. Episode rules have no inherit switches.
 
 ## Editing a rule
 
-A rule's edit form has the same two steps and adds the **Enabled** switch. It does not insist on what the rule adds: rules saved before the form asked — through the API, Terraform, an import or the old form — may add nothing at all, and such a rule can still be renamed, switched off or deleted. The list marks a rule that adds nothing **Adds nothing** beside its status. Edit it to choose what it adds, or delete it.
+A rule's edit form has the same two steps and adds the **Enabled** switch. It does not insist on what the rule adds: rules saved before the form asked — through the API, Terraform, an import or the old form — may add nothing at all, and such a rule can still be renamed, switched off or deleted. The list marks a rule that adds nothing **Adds nothing** beside its status, and so does the rule's own page. Edit it to choose what it adds, or delete it.
 
 ## When rules run
 

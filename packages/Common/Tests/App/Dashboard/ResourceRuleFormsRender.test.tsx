@@ -989,7 +989,7 @@ const INHERITING_PAGES: Array<InheritingPageCase> = [
     Page: AlertOwnerRules,
     kind: "owners",
     foldTitle: "Inherit Owners",
-    monitorsSwitch: "Inherit Owners From Monitors",
+    monitorsSwitch: "Inherit Owners From Monitor",
     summary: "Optionally assign owners from related entities to the alert.",
   },
   {

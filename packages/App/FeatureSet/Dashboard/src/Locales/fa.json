@@ -25223,5 +25223,6 @@
   "Adds nothing": "چیزی نمی‌افزاید",
   "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.": "این قاعده هنگام مطابقت چیزی نمی‌افزاید. آن را ویرایش کنید تا انتخاب کنید چه چیزی بیفزاید، یا آن را حذف کنید.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice. Leave it empty if the rule only inherits labels.": "وقتی این قاعده مطابقت کند، این برچسب‌ها افزوده می‌شوند. برچسب‌هایی که از قبل افزوده شده‌اند دوباره افزوده نمی‌شوند. اگر قاعده فقط برچسب‌ها را به ارث می‌برد، این را خالی بگذارید.",
-  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "وقتی این قاعده مطابقت کند، این افراد و تیم‌ها به‌عنوان مالک افزوده می‌شوند. مالکانی که از قبل تعیین شده‌اند دوباره افزوده نمی‌شوند. اگر قاعده فقط مالکان را به ارث می‌برد، این را خالی بگذارید."
+  "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "وقتی این قاعده مطابقت کند، این افراد و تیم‌ها به‌عنوان مالک افزوده می‌شوند. مالکانی که از قبل تعیین شده‌اند دوباره افزوده نمی‌شوند. اگر قاعده فقط مالکان را به ارث می‌برد، این را خالی بگذارید.",
+  "Inherit Owners From Monitor": "به ارث بردن مالکان از مانیتور"
 }

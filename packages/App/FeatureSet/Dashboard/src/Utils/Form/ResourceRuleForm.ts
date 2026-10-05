@@ -67,11 +67,13 @@ import {
  * form whose rule inherits something.
  *
  * Only a NEW rule must add something. An Edit form asks for nothing it adds
- * (the field reads "(Optional)" there): rules saved before the form asked -
- * through the API, Terraform, an import, or the old form - may add nothing,
- * and such a rule can still be renamed, switched off or deleted without
- * first being given labels or owners. Their tables say "Adds nothing" beside
- * the rule's status (Common/UI/Components/RuleRun/RuleAction).
+ * (the field reads "(Optional)" there - Field.doNotRequireWhenEditing, which
+ * ModelForm reads, as it knows whether it creates or edits): rules saved
+ * before the form asked - through the API, Terraform, an import, or the old
+ * form - may add nothing, and such a rule can still be renamed, switched off
+ * or deleted without first being given labels or owners. Their tables and
+ * their own pages say "Adds nothing" (Common/UI/Components/RuleRun/
+ * RuleAction).
  *
  * How a page uses it (the step ids are written out on the page's own
  * criteria fields, so the form scanner of the guards can place them):
@@ -155,21 +157,6 @@ export const RULE_ENABLED_DESCRIPTION: string = translationKey(
 export const OWNER_RULE_NOTIFY_OWNERS_DESCRIPTION: string = translationKey(
   "Notify owners when they are added by this rule. Disable to add silently.",
 );
-
-/**
- * Whether the form creates a rule, rather than editing a saved one. An Edit
- * form starts from the saved rule, so it holds the rule's _id; a Create form
- * never does.
- */
-export const isNewRule: (values: unknown) => boolean = (
-  values: unknown,
-): boolean => {
-  if (!values || typeof values !== "object") {
-    return true;
-  }
-
-  return !(values as Record<string, unknown>)["_id"];
-};
 
 /*
  * THE EVENTS A RULE CAN INHERIT FOR.
@@ -309,7 +296,7 @@ export const OWNER_INHERITANCE_WORDING: Record<
     sectionDescription: translationKey(
       "Optionally assign owners from related entities to the alert.",
     ),
-    monitorsTitle: translationKey("Inherit Owners From Monitors"),
+    monitorsTitle: translationKey("Inherit Owners From Monitor"),
     monitors: translationKey(
       "Assign every owner of the alert's monitor as an owner of the alert.",
     ),
@@ -600,25 +587,51 @@ export const followPicksWithRuleName: <TEntity>(
 };
 
 /**
- * Whether a new inheriting rule must still name its labels: it adds nothing
- * else until one of its Inherit Labels switches is on. An Edit form never
- * insists (see isNewRule).
+ * Whether an inheriting rule must still name its labels: it adds nothing
+ * else until one of its Inherit Labels switches is on. Asked of a new rule
+ * only - the field is doNotRequireWhenEditing.
  */
 export const isLabelPickRequired: (values: unknown) => boolean = (
   values: unknown,
 ): boolean => {
-  return (
-    isNewRule(values) && !isAnyColumnSwitchedOn(values, INHERITED_LABEL_COLUMNS)
-  );
+  return !isAnyColumnSwitchedOn(values, INHERITED_LABEL_COLUMNS);
 };
 
 // The same for owners, and the Inherit Owners switches.
 export const isOwnerPickRequired: (values: unknown) => boolean = (
   values: unknown,
 ): boolean => {
-  return (
-    isNewRule(values) && !isAnyColumnSwitchedOn(values, INHERITED_OWNER_COLUMNS)
-  );
+  return !isAnyColumnSwitchedOn(values, INHERITED_OWNER_COLUMNS);
+};
+
+/*
+ * The labels a label rule adds, picked from the project's labels: required
+ * of a new rule (or, on an inheriting rule, while it inherits nothing), never
+ * of an Edit form, and naming the rule after the picks.
+ */
+const getLabelsToAddField: <TEntity>(options: {
+  description: string;
+  required: boolean | ((values: FormValues<TEntity>) => boolean);
+}) => Field<TEntity> = <TEntity>(options: {
+  description: string;
+  required: boolean | ((values: FormValues<TEntity>) => boolean);
+}): Field<TEntity> => {
+  return {
+    field: { labelsToAdd: true } as unknown as SelectFormFields<TEntity>,
+    title: "Labels to Add",
+    description: options.description,
+    stepId: "labels",
+    fieldType: FormFieldSchemaType.MultiSelectDropdown,
+    dropdownModal: {
+      type: Label,
+      labelField: "name",
+      valueField: "_id",
+    },
+    required: options.required,
+    doNotRequireWhenEditing: true,
+    placeholder: "Select labels",
+    onChange: followPicksWithRuleName<TEntity>(getLabelRuleName),
+  };
 };
 
 /**
@@ -754,21 +767,10 @@ export const getLabelRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
   TEntity,
 >(): Array<Field<TEntity>> => {
   return [
-    {
-      field: { labelsToAdd: true } as unknown as SelectFormFields<TEntity>,
-      title: "Labels to Add",
+    getLabelsToAddField<TEntity>({
       description: LABEL_RULE_LABELS_DESCRIPTION,
-      stepId: "labels",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
-      required: isNewRule,
-      placeholder: "Select labels",
-      onChange: followPicksWithRuleName<TEntity>(getLabelRuleName),
-    },
+      required: true,
+    }),
     ...getLabelRuleNameAndMoreFields<TEntity>(),
   ];
 };
@@ -785,7 +787,8 @@ export const getOwnerRuleActionFields: <TEntity>() => Array<Field<TEntity>> = <
   return [
     getOwnersFormField<TEntity>({
       stepId: "owners",
-      required: isNewRule,
+      required: true,
+      doNotRequireWhenEditing: true,
       description: OWNER_RULE_OWNERS_DESCRIPTION,
       onChange: followPicksWithRuleName<TEntity>(getOwnerRuleName),
     }),
@@ -824,21 +827,10 @@ export const getInheritingLabelRuleActionFields: <TEntity>(
   };
 
   return [
-    {
-      field: { labelsToAdd: true } as unknown as SelectFormFields<TEntity>,
-      title: "Labels to Add",
+    getLabelsToAddField<TEntity>({
       description: LABEL_RULE_INHERITING_LABELS_DESCRIPTION,
-      stepId: "labels",
-      fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownModal: {
-        type: Label,
-        labelField: "name",
-        valueField: "_id",
-      },
       required: isLabelPickRequired,
-      placeholder: "Select labels",
-      onChange: followPicksWithRuleName<TEntity>(getLabelRuleName),
-    },
+    }),
     {
       field: {
         inheritLabelsFromMonitors: true,
@@ -939,6 +931,7 @@ export const getInheritingOwnerRuleActionFields: <TEntity>(
     getOwnersFormField<TEntity>({
       stepId: "owners",
       required: isOwnerPickRequired,
+      doNotRequireWhenEditing: true,
       description: OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
       onChange: followPicksWithRuleName<TEntity>(getOwnerRuleName),
     }),

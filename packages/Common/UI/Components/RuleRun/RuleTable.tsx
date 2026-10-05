@@ -11,7 +11,6 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
-import { Yellow } from "../../../Types/BrandColors";
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import { BulkActionProps } from "../ModelTable/BaseModelTable";
@@ -19,15 +18,13 @@ import Column from "../ModelTable/Column";
 import ModelTable, {
   ComponentProps as ModelTableComponentProps,
 } from "../ModelTable/ModelTable";
-import Pill from "../Pill/Pill";
 import {
   doesRuleAddNothing,
   getRuleActionColumns,
   getRuleActionSelect,
-  RULE_ADDS_NOTHING_TEXT,
-  RULE_ADDS_NOTHING_TOOLTIP,
   RuleActionColumns,
 } from "./RuleAction";
+import RuleAddsNothingPill from "./RuleAddsNothingPill";
 import {
   RULE_ENABLED_COLUMN,
   withRuleEnabledOnEditOnly,
@@ -35,7 +32,7 @@ import {
 import RuleView from "./RuleView";
 import RunRuleNowModal from "./RunRuleNowModal";
 import getRunRulesBulkAction from "./RunRulesBulkAction";
-import React, { Fragment, ReactElement, useState } from "react";
+import React, { Fragment, ReactElement, useMemo, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends ModelTableComponentProps<TBaseModel> {
@@ -102,13 +99,7 @@ function withAddsNothingMarker<TBaseModel extends BaseModel>(
         return (
           <span className="inline-flex flex-wrap items-center gap-1.5">
             {status}
-            <span data-testid="rule-adds-nothing">
-              <Pill
-                color={Yellow}
-                text={RULE_ADDS_NOTHING_TEXT}
-                tooltip={RULE_ADDS_NOTHING_TOOLTIP}
-              />
-            </span>
+            <RuleAddsNothingPill />
           </span>
         );
       },
@@ -143,6 +134,53 @@ const RuleTable: <TBaseModel extends BaseModel>(
   const ruleType: RuleRunType | null = RuleRunTypeUtil.fromTableName(
     model.tableName,
   );
+
+  /*
+   * A label or owner rule's table reads what each rule adds, so a rule that
+   * adds nothing says so beside its status. Only for a viewer who may read
+   * all of it: selecting a column one may not read fails the whole list
+   * (PermissionGate.canReadColumn), and a rule is never said to add nothing
+   * from part of what it adds.
+   */
+  const ruleAction: RuleActionColumns | null = useMemo(() => {
+    return getRuleActionColumns(new props.modelType());
+  }, [props.modelType]);
+
+  const canReadRuleAction: boolean = Boolean(
+    ruleAction &&
+      [...ruleAction.listColumns, ...ruleAction.switchColumns].every(
+        (column: string): boolean => {
+          return PermissionGate.canReadColumn(model, column);
+        },
+      ),
+  );
+
+  const readsRuleAction: RuleActionColumns | null =
+    ruleAction && canReadRuleAction ? ruleAction : null;
+
+  /*
+   * Kept as they are until the page's own change: the table works its
+   * columns out again whenever it is handed new ones, and this table draws
+   * again for its own reasons too (the Run Now dialog opening).
+   */
+  const columns: ModelTableComponentProps<TBaseModel>["columns"] =
+    useMemo(() => {
+      return readsRuleAction
+        ? withAddsNothingMarker<TBaseModel>(
+            tableProps.columns || [],
+            readsRuleAction,
+          )
+        : tableProps.columns;
+    }, [tableProps.columns, readsRuleAction]);
+
+  const selectMoreFields: Select<TBaseModel> | undefined = useMemo(() => {
+    return readsRuleAction
+      ? ({
+          ...(tableProps.selectMoreFields || {}),
+          ...getRuleActionSelect(readsRuleAction),
+        } as Select<TBaseModel>)
+      : tableProps.selectMoreFields;
+  }, [tableProps.selectMoreFields, readsRuleAction]);
 
   if (viewRuleId) {
     return (
@@ -227,33 +265,12 @@ const RuleTable: <TBaseModel extends BaseModel>(
       : tableProps.formFields,
   };
 
-  /*
-   * A label or owner rule's table reads what each rule adds, so a rule that
-   * adds nothing says so beside its status. Only for a viewer who may read
-   * all of it: selecting a column one may not read fails the whole list
-   * (PermissionGate.canReadColumn), and a rule is never said to add nothing
-   * from part of what it adds.
-   */
-  const ruleAction: RuleActionColumns | null = getRuleActionColumns(model);
+  if (readsRuleAction) {
+    ruleTableProps.columns = columns;
 
-  const canReadRuleAction: boolean = Boolean(
-    ruleAction &&
-      [...ruleAction.listColumns, ...ruleAction.switchColumns].every(
-        (column: string): boolean => {
-          return PermissionGate.canReadColumn(model, column);
-        },
-      ),
-  );
-
-  if (ruleAction && canReadRuleAction) {
-    ruleTableProps.selectMoreFields = {
-      ...(tableProps.selectMoreFields || {}),
-      ...getRuleActionSelect(ruleAction),
-    } as Select<TBaseModel>;
-    ruleTableProps.columns = withAddsNothingMarker<TBaseModel>(
-      tableProps.columns || [],
-      ruleAction,
-    );
+    if (selectMoreFields) {
+      ruleTableProps.selectMoreFields = selectMoreFields;
+    }
   }
 
   const isViewable: boolean =

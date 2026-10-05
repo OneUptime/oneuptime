@@ -545,11 +545,8 @@ describe("the shared label and owner rule form", () => {
       : Boolean(field.required);
   };
 
-  // A Create form's values, and an Edit form's: the saved rule, _id and all.
+  // A new rule's values: nothing picked, nothing inherited.
   const NEW_RULE: FormValues<AnyEntity> = {};
-  const SAVED_RULE: FormValues<AnyEntity> = {
-    _id: "66666666-6666-4666-8666-666666666666",
-  } as FormValues<AnyEntity>;
 
   test("a new label rule cannot be saved without a label to add, nor without a name", () => {
     const fields: Array<Field<AnyEntity>> =
@@ -610,10 +607,11 @@ describe("the shared label and owner rule form", () => {
         },
       )!;
 
+      // ModelForm leaves a doNotRequireWhenEditing field optional on Edit.
       expect(isRequired(picker, NEW_RULE)).toBe(true);
-      expect(isRequired(picker, SAVED_RULE)).toBe(false);
+      expect(picker.doNotRequireWhenEditing).toBe(true);
       expect(isRequired(name, NEW_RULE)).toBe(true);
-      expect(isRequired(name, SAVED_RULE)).toBe(true);
+      expect(name.doNotRequireWhenEditing).toBeUndefined();
     }
   });
 

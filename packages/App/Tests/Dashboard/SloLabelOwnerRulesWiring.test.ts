@@ -276,7 +276,7 @@ describe("SLO Owner Rules page form", () => {
      * adds nothing can still be renamed or switched off.
      */
     expect(shared).toContain(
-      'getOwnersFormField<TEntity>({ stepId: "owners", required: isNewRule, description: OWNER_RULE_OWNERS_DESCRIPTION,',
+      'getOwnersFormField<TEntity>({ stepId: "owners", required: true, doNotRequireWhenEditing: true, description: OWNER_RULE_OWNERS_DESCRIPTION,',
     );
     // No dropdown per kind any more.
     expect(code).not.toContain("ownerTeams");

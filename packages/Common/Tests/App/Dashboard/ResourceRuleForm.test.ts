@@ -16,7 +16,6 @@ import {
   INHERIT_OWNERS_SECTION_ID,
   InheritingRuleRecord,
   isLabelPickRequired,
-  isNewRule,
   isOwnerPickRequired,
   LABEL_INHERITANCE_WORDING,
   LABEL_RULE_INHERITING_LABELS_DESCRIPTION,
@@ -71,11 +70,8 @@ type FieldByKeyFunction = (
   key: string,
 ) => Field<Entity>;
 
-// A Create form's values, and an Edit form's: the saved rule, _id and all.
+// A new rule's values: nothing picked, nothing inherited.
 const NEW_RULE: FormValues<Entity> = {} as FormValues<Entity>;
-const SAVED_RULE: FormValues<Entity> = {
-  _id: "66666666-6666-4666-8666-666666666666",
-} as FormValues<Entity>;
 
 type IsRequiredFunction = (
   field: Field<Entity>,
@@ -529,39 +525,48 @@ describe("the owner rule form", () => {
  * Edit does not, so a rule saved before the form asked - one that adds
  * nothing - can still be renamed, switched off or deleted.
  */
-describe("a new rule, and a saved one", () => {
-  test("a form is creating a rule until it holds a saved rule's _id", () => {
-    expect(isNewRule({})).toBe(true);
-    expect(isNewRule(undefined)).toBe(true);
-    expect(isNewRule(null)).toBe(true);
-    expect(isNewRule({ name: "Add production" })).toBe(true);
-    expect(isNewRule({ _id: "" })).toBe(true);
-    expect(isNewRule(SAVED_RULE)).toBe(false);
-  });
+describe("a new rule, and an Edit form", () => {
+  const EVERY_FORM: Array<Array<Field<Entity>>> = [
+    getLabelRuleActionFields<Entity>(),
+    getOwnerRuleActionFields<Entity>(),
+    getInheritingLabelRuleActionFields<Entity>("incident"),
+    getInheritingOwnerRuleActionFields<Entity>("alert"),
+    getInheritingLabelRuleActionFields<Entity>("scheduledMaintenance"),
+    getInheritingOwnerRuleActionFields<Entity>("scheduledMaintenance"),
+  ];
 
-  test("only a new rule must name what it adds", () => {
-    for (const fields of [
-      getLabelRuleActionFields<Entity>(),
-      getOwnerRuleActionFields<Entity>(),
-    ]) {
+  /*
+   * ModelForm, which knows whether it creates or edits, leaves a
+   * doNotRequireWhenEditing field optional on an Edit form
+   * (ModelFormDoNotRequireWhenEditing.test.tsx draws both).
+   */
+  test("only a new rule must name what it adds: the picker is not required on Edit", () => {
+    for (const fields of EVERY_FORM) {
       const picker: Field<Entity> = fields[0]!;
 
       expect(isRequired(picker, NEW_RULE)).toBe(true);
-      expect(isRequired(picker, SAVED_RULE)).toBe(false);
+      expect(picker.doNotRequireWhenEditing).toBe(true);
     }
   });
 
   test("the name is asked of both: a rule is always called something", () => {
-    for (const fields of [
-      getLabelRuleActionFields<Entity>(),
-      getOwnerRuleActionFields<Entity>(),
-      getInheritingLabelRuleActionFields<Entity>("incident"),
-      getInheritingOwnerRuleActionFields<Entity>("alert"),
-    ]) {
+    for (const fields of EVERY_FORM) {
       const name: Field<Entity> = fieldByKey(fields, "name");
 
       expect(isRequired(name, NEW_RULE)).toBe(true);
-      expect(isRequired(name, SAVED_RULE)).toBe(true);
+      expect(name.doNotRequireWhenEditing).toBeUndefined();
+    }
+  });
+
+  test("no other field of the step leaves its requirement to the form type", () => {
+    for (const fields of EVERY_FORM) {
+      expect(
+        fields
+          .filter((field: Field<Entity>): boolean => {
+            return Boolean(field.doNotRequireWhenEditing);
+          })
+          .map(keyOf),
+      ).toHaveLength(1);
     }
   });
 });
@@ -694,7 +699,7 @@ describe.each(RECORDS)(
       ).toBe(true);
 
       // An Edit form never insists.
-      expect(isRequired(labels, SAVED_RULE)).toBe(false);
+      expect(labels.doNotRequireWhenEditing).toBe(true);
     });
 
     test("names the rule after the labels it adds, as every label rule does", () => {
@@ -780,7 +785,18 @@ describe.each(RECORDS)(
           return wording[key];
         }),
       );
-      expect(switches[0]!.title).toBe("Inherit Owners From Monitors");
+      expect(switches[0]!.title).toBe(wording.monitorsTitle);
+      expect(
+        switches.slice(1).map((field: Field<Entity>) => {
+          return field.title;
+        }),
+      ).toEqual([
+        "Inherit Owners From Hosts",
+        "Inherit Owners From Kubernetes Clusters",
+        "Inherit Owners From Docker Hosts",
+        "Inherit Owners From Podman Hosts",
+        "Inherit Owners From Services",
+      ]);
     });
 
     test("a new rule must add an owner, or inherit some", () => {
@@ -802,7 +818,7 @@ describe.each(RECORDS)(
           inheritLabelsFromMonitors: true,
         } as FormValues<Entity>),
       ).toBe(true);
-      expect(isRequired(owners, SAVED_RULE)).toBe(false);
+      expect(owners.doNotRequireWhenEditing).toBe(true);
     });
   },
 );
@@ -817,6 +833,15 @@ describe("the words of the inheriting forms", () => {
     );
     expect(LABEL_INHERITANCE_WORDING.scheduledMaintenance.monitorsTitle).toBe(
       "Inherit Labels From Monitors",
+    );
+    expect(OWNER_INHERITANCE_WORDING.alert.monitorsTitle).toBe(
+      "Inherit Owners From Monitor",
+    );
+    expect(OWNER_INHERITANCE_WORDING.incident.monitorsTitle).toBe(
+      "Inherit Owners From Monitors",
+    );
+    expect(OWNER_INHERITANCE_WORDING.scheduledMaintenance.monitorsTitle).toBe(
+      "Inherit Owners From Monitors",
     );
     expect(LABEL_INHERITANCE_WORDING.alert.monitors).toContain(
       "the alert's monitor ",

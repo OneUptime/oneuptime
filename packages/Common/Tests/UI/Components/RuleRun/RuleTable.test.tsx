@@ -627,4 +627,47 @@ describe("RuleTable, for a rule that adds nothing", () => {
       "inheritLabelsFromServices",
     ]);
   });
+
+  /*
+   * The table works its columns out again whenever it is handed new ones.
+   * This table draws again for its own reasons - the Run Now dialog opening
+   * - and must not hand over new columns each time it does.
+   */
+  it("hands the table the same columns and select until the page changes them", async () => {
+    const props: Record<string, any> = tableProps();
+
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(props as any)}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    const first: Record<string, any> = lastTableProps();
+
+    const runNow: {
+      onClick: (
+        item: MonitorLabelRule,
+        onCompleteAction: () => void,
+        onError: (error: Error) => void,
+      ) => void;
+    } = first["actionButtons"].find((button: { title: string }) => {
+      return button.title === "Run Now";
+    });
+
+    const rule: MonitorLabelRule = new MonitorLabelRule();
+    rule._id = RULE_ID;
+    rule.name = "Tag production";
+
+    // Opening the Run Now dialog draws the table again.
+    await act(async () => {
+      runNow.onClick(rule, jest.fn(), jest.fn());
+    });
+
+    const second: Record<string, any> = lastTableProps();
+
+    expect(second).not.toBe(first);
+    expect(second["columns"]).toBe(first["columns"]);
+    expect(second["selectMoreFields"]).toBe(first["selectMoreFields"]);
+  });
 });
