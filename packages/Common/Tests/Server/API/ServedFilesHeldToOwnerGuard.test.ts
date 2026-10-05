@@ -10,15 +10,23 @@ import ts from "typescript";
  * person's picture are served by routes that read the record and send the
  * file it points at. Writes accept only a record's own files
  * (FileOwnership), but a route must not trust whatever wrote the row: each
- * one checks the owner again as it reads. This scans every server route
- * that sends a stored file's bytes and requires, for each send:
+ * one checks the owner again as it reads. The image routes (FileAPI) answer
+ * by the file alone - an inline image's access token, a public icon's id -
+ * and hold it to the people who may see it (FileViewerAccess). This scans
+ * every server route that sends a stored file's bytes and requires, for
+ * each send:
  *
  *   - Response.sendFileResponse(req, res, file): `file` is a local variable
- *     set from FileOwnership.keepProjectFile / findProjectAttachment, or the
- *     send sits inside an `if` that asks FileOwnership.isFileOfProject /
- *     isFileOfUser;
+ *     set from FileOwnership.keepProjectFile / findProjectAttachment or
+ *     FileViewerAccess.findReadableFile / findPublicFile, or the send sits
+ *     inside an `if` that asks FileOwnership.isFileOfProject / isFileOfUser;
  *   - DashboardAPI.getFileAsBase64JSONObject(file): `file` is
  *     FileOwnership.keepProjectFile(...).
+ *
+ * And it lists every server file that reads a stored file's bytes at all
+ * (`file: true` in a select): each must be a known reader that holds the
+ * file to its owner (BYTE_READERS), so a new way of handing out a file's
+ * bytes cannot appear without saying how it does.
  *
  * A route that is right to serve a file by other means goes in
  * ALLOWED_FILES with its reason; the guard fails when an entry no longer
@@ -39,21 +47,55 @@ const SCAN_ROOTS: Array<string> = [
 const ALLOWED_FILES: Record<string, string> = {
   // The definition of sendFileResponse itself.
   "packages/Common/Server/Utils/Response.ts": "defines sendFileResponse",
-  /*
-   * Serves a file by its unguessable access token (inline images), or by
-   * id only once it is public - never a record's file on the record's
-   * behalf. What may become public is held to the record's project where
-   * a file is made public (FileService.makeRecordFilePublic,
-   * InlineImageAccessTokenSync).
-   */
-  "packages/Common/Server/API/FileAPI.ts":
-    "serves files by access token or public flag",
 };
 
 const HOLDING_CALLS: ReadonlySet<string> = new Set<string>([
   "FileOwnership.keepProjectFile",
   "FileOwnership.findProjectAttachment",
+  // The image routes: a public file to anyone, a private one to its project.
+  "FileViewerAccess.findReadableFile",
+  // The id-based image route: public files only.
+  "FileViewerAccess.findPublicFile",
 ]);
+
+/*
+ * Every server file that reads a stored file's bytes, and the check it
+ * holds them to before they leave it. A file that starts reading bytes
+ * fails the guard until it is listed here, with how it is held.
+ */
+const BYTE_READERS: Record<string, string> = {
+  /*
+   * The image routes' reads: a file's owners first, its bytes only once the
+   * person asking may see it (keepReadableFile), or only a public file's.
+   */
+  "packages/Common/Server/Utils/File/FileViewerAccess.ts":
+    "await this.keepReadableFile(",
+  "packages/Common/Server/API/StatusPageAPI.ts":
+    "FileOwnership.keepProjectFile",
+  "packages/Common/Server/API/DashboardAPI.ts": "FileOwnership.keepProjectFile",
+  "packages/Common/Server/API/UserAPI.ts": "FileOwnership.isFileOfUser",
+  "packages/Common/Server/Services/FormService.ts":
+    "FileOwnership.keepProjectFile",
+  "packages/Common/Server/API/AlertInternalNoteAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/IncidentAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/IncidentEpisodePublicNoteAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/IncidentInternalNoteAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/IncidentPublicNoteAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/ScheduledMaintenanceInternalNoteAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/ScheduledMaintenancePublicNoteAPI.ts":
+    "FileOwnership.findProjectAttachment",
+  "packages/Common/Server/API/StatusPageAnnouncementAPI.ts":
+    "FileOwnership.findProjectAttachment",
+};
+
+// A select of a stored file's bytes: `file: true`.
+const BYTES_SELECT: RegExp = /\bfile:\s*true\b/;
 
 const HOLDING_CONDITIONS: Array<string> = [
   "FileOwnership.isFileOfProject(",
@@ -299,6 +341,7 @@ describe("every file a route serves is held to its owner first", () => {
       expect.arrayContaining([
         "packages/Common/Server/API/AlertInternalNoteAPI.ts",
         "packages/Common/Server/API/DashboardAPI.ts",
+        "packages/Common/Server/API/FileAPI.ts",
         "packages/Common/Server/API/IncidentAPI.ts",
         "packages/Common/Server/API/IncidentEpisodePublicNoteAPI.ts",
         "packages/Common/Server/API/IncidentInternalNoteAPI.ts",
@@ -317,6 +360,64 @@ describe("every file a route serves is held to its owner first", () => {
         return served.file === "packages/Common/Server/API/StatusPageAPI.ts";
       }).length,
     ).toBe(8);
+
+    // The access-token image route and the id-based one.
+    expect(
+      SERVED.filter((served: ServedFile): boolean => {
+        return served.file === "packages/Common/Server/API/FileAPI.ts";
+      }).length,
+    ).toBe(2);
+  });
+
+  test("the image routes hold every file they send to the people who may see it", () => {
+    const sends: Array<ServedFile> = SERVED.filter(
+      (served: ServedFile): boolean => {
+        return served.file === "packages/Common/Server/API/FileAPI.ts";
+      },
+    );
+
+    expect(sends.length).toBe(2);
+
+    for (const send of sends) {
+      expect({ send: send.send, held: send.held }).toEqual({
+        send: send.send,
+        held: true,
+      });
+    }
+  });
+
+  test("every server file that reads a stored file's bytes is a known reader that holds them to their owner", () => {
+    const readers: Array<string> = SCAN_ROOTS.flatMap(
+      (root: string): Array<string> => {
+        return listSourceFiles(root);
+      },
+    )
+      .filter((file: string): boolean => {
+        /*
+         * Server code only: a frontend's src/ runs in the browser, on what
+         * the API already handed it.
+         */
+        return (
+          !toRelativePath(file).includes("/src/") &&
+          BYTES_SELECT.test(fs.readFileSync(file, "utf8"))
+        );
+      })
+      .map(toRelativePath)
+      .sort();
+
+    expect(readers).toEqual(Object.keys(BYTE_READERS).sort());
+
+    for (const [reader, holdingCheck] of Object.entries(BYTE_READERS)) {
+      const text: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, reader),
+        "utf8",
+      );
+
+      expect({ reader, holds: text.includes(holdingCheck) }).toEqual({
+        reader,
+        holds: true,
+      });
+    }
   });
 
   test("each send serves a file held to its owner", () => {

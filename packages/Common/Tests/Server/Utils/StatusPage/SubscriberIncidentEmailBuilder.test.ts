@@ -48,6 +48,7 @@ jest.mock("../../../../Server/Utils/Logger", () => {
   };
 });
 
+import File from "../../../../Models/DatabaseModels/File";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
@@ -129,8 +130,18 @@ function incident(title: string = "Checkout requests failing"): Incident {
   return row;
 }
 
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
+
 function statusPage(
-  options: { smtp?: boolean; logo?: boolean; isPublic?: boolean } = {},
+  options: {
+    smtp?: boolean;
+    logo?: boolean;
+    // The project the logo was uploaded in; the page's own by default.
+    logoProjectId?: ObjectID | null;
+    isPublic?: boolean;
+  } = {},
 ): StatusPage {
   const page: StatusPage = new StatusPage();
   page._id = STATUS_PAGE_ID;
@@ -141,7 +152,19 @@ function statusPage(
   page.showIncidentsOnStatusPage = true;
 
   if (options.logo) {
-    page.logoFileId = ObjectID.generate();
+    // Read as getStatusPagesToSendNotification reads it: with its project.
+    const logo: File = new File();
+    logo._id = ObjectID.generate().toString();
+
+    const logoProjectId: ObjectID | null =
+      options.logoProjectId === undefined ? PROJECT_ID : options.logoProjectId;
+
+    if (logoProjectId) {
+      logo.projectId = logoProjectId;
+    }
+
+    page.logoFileId = new ObjectID(logo._id);
+    page.logoFile = logo;
   }
 
   if (options.smtp) {
@@ -369,6 +392,24 @@ describe("the default email", () => {
 
     expect(vars["logoUrl"]).toBe("");
     expect(vars["isPublicStatusPage"]).toBe("false");
+  });
+
+  test("a logo the page's logo route would not serve - another project's, or one with no project: no logo, not a broken one", async () => {
+    for (const logoProjectId of [OTHER_PROJECT_ID, null]) {
+      const { pageEmail } = await build({
+        event: SubscriberIncidentEmailEvent.IncidentCreated,
+        page: statusPage({ logo: true, logoProjectId: logoProjectId }),
+      });
+
+      const vars: JSONObject = pageEmail.forSubscriber({
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      }).envelope.vars as JSONObject;
+
+      expect({ logoProjectId, logoUrl: vars["logoUrl"] }).toEqual({
+        logoProjectId,
+        logoUrl: "",
+      });
+    }
   });
 
   test("a public note: the note template and subject, with the note instead of the description", async () => {

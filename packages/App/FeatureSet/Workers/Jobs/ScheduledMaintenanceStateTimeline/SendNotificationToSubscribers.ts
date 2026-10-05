@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -48,6 +47,7 @@ import SlackUtil from "Common/Server/Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubscriberWebhook";
 import StatusPageResourceUtil from "Common/Server/Utils/StatusPageResource";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -261,8 +261,6 @@ RunCron(
 
           const statusPageName: string =
             statuspage.pageTitle || statuspage.name || "Status Page";
-          const statusPageIdString: string | null =
-            statuspage.id?.toString() || statuspage._id?.toString() || null;
 
           const scheduledEventDetailsUrl: string =
             event.id && statusPageURL
@@ -625,13 +623,11 @@ RunCron(
                       statusPageName: statusPageName,
                       statusPageUrl: statusPageURL,
                       detailsUrl: scheduledEventDetailsUrl,
-                      logoUrl:
-                        statuspage.logoFileId && statusPageIdString
-                          ? new URL(httpProtocol, host)
-                              .addRoute(StatusPageApiRoute)
-                              .addRoute(`/logo/${statusPageIdString}`)
-                              .toString()
-                          : "",
+                      logoUrl: StatusPageEmailLogo.getLogoUrl({
+                        statusPage: statuspage,
+                        host: host,
+                        httpProtocol: httpProtocol,
+                      }),
                       isPublicStatusPage: statuspage.isPublicStatusPage
                         ? "true"
                         : "false",

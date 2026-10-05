@@ -117,7 +117,6 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import DatabaseConfig from "../DatabaseConfig";
 import CookieUtil from "../Utils/Cookie";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
@@ -147,6 +146,7 @@ import StatusPagesListingMonitorsBuilder, {
   StatusPagesListingMonitorsRequest,
 } from "../Utils/StatusPage/StatusPagesListingMonitorsBuilder";
 import FileOwnership from "../Utils/File/FileOwnership";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -3355,8 +3355,6 @@ export default class StatusPageAPI extends BaseAPI<
         if (subscriberEmail) {
           const host: Hostname = await DatabaseConfig.getHost();
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-          const statusPageIdString: string | null =
-            statusPage.id?.toString() || statusPage._id?.toString() || null;
 
           if (manageEmailTemplate?.templateBody && statusPage.smtpConfig) {
             // The body is HTML, so the (plain-text) values are escaped into it.
@@ -3399,13 +3397,11 @@ export default class StatusPageAPI extends BaseAPI<
                 vars: {
                   statusPageName: statusPageNameStr,
                   statusPageUrl: statusPageURL,
-                  logoUrl:
-                    statusPage.logoFileId && statusPageIdString
-                      ? new URL(httpProtocol, host)
-                          .addRoute(StatusPageApiRoute)
-                          .addRoute(`/logo/${statusPageIdString}`)
-                          .toString()
-                      : "",
+                  logoUrl: StatusPageEmailLogo.getLogoUrl({
+                    statusPage: statusPage,
+                    host: host,
+                    httpProtocol: httpProtocol,
+                  }),
                   isPublicStatusPage: statusPage.isPublicStatusPage
                     ? "true"
                     : "false",
