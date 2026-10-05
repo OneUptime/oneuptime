@@ -275,7 +275,10 @@ export default class OwnerRuleAssignment {
       return true;
     }
 
-    if (teamId && !(await OwnerRuleAssignment.isTeamInProject(teamId, projectId))) {
+    if (
+      teamId &&
+      !(await OwnerRuleAssignment.isTeamInProject(teamId, projectId))
+    ) {
       return false;
     }
 

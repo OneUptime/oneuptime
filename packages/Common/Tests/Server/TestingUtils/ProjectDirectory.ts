@@ -46,7 +46,11 @@ export interface ProjectDirectory {
 
 export interface ProjectDirectoryStub {
   // Each findIdsInProject call: the model's table name, project and ids.
-  recordLookups: Array<{ model: string; projectId: string; ids: Array<string> }>;
+  recordLookups: Array<{
+    model: string;
+    projectId: string;
+    ids: Array<string>;
+  }>;
   memberLookups: Array<{ projectId: string; userIds: Array<string> }>;
 }
 
@@ -74,90 +78,96 @@ export function stubProjectDirectory(
 
   jest
     .spyOn(ProjectScopedReferenceValidator, "findIdsInProject")
-    .mockImplementation(async (data: {
-      service: DatabaseService<DatabaseBaseModel>;
-      projectId: ObjectID;
-      ids: Array<string>;
-    }): Promise<Set<string>> => {
-      const model: string = data.service.getModel().tableName || "";
+    .mockImplementation(
+      async (data: {
+        service: DatabaseService<DatabaseBaseModel>;
+        projectId: ObjectID;
+        ids: Array<string>;
+      }): Promise<Set<string>> => {
+        const model: string = data.service.getModel().tableName || "";
 
-      stub.recordLookups.push({
-        model: model,
-        projectId: data.projectId.toString(),
-        ids: [...data.ids],
-      });
+        stub.recordLookups.push({
+          model: model,
+          projectId: data.projectId.toString(),
+          ids: [...data.ids],
+        });
 
-      if (!isTheProject(data.projectId)) {
-        return new Set<string>();
-      }
+        if (!isTheProject(data.projectId)) {
+          return new Set<string>();
+        }
 
-      const known: Set<string> | null = directory.records
-        ? lower(directory.records[model] || [])
-        : null;
+        const known: Set<string> | null = directory.records
+          ? lower(directory.records[model] || [])
+          : null;
 
-      return new Set<string>(
-        data.ids
-          .map((id: string): string => {
-            return id.toLowerCase();
-          })
-          .filter((id: string): boolean => {
-            return known ? known.has(id) : true;
-          }),
-      );
-    });
+        return new Set<string>(
+          data.ids
+            .map((id: string): string => {
+              return id.toLowerCase();
+            })
+            .filter((id: string): boolean => {
+              return known ? known.has(id) : true;
+            }),
+        );
+      },
+    );
 
   jest
     .spyOn(ProjectScopedReferenceValidator, "findProjectMemberIds")
-    .mockImplementation(async (data: {
-      projectId: ObjectID;
-      userIds: Array<string>;
-    }): Promise<Set<string>> => {
-      stub.memberLookups.push({
-        projectId: data.projectId.toString(),
-        userIds: [...data.userIds],
-      });
+    .mockImplementation(
+      async (data: {
+        projectId: ObjectID;
+        userIds: Array<string>;
+      }): Promise<Set<string>> => {
+        stub.memberLookups.push({
+          projectId: data.projectId.toString(),
+          userIds: [...data.userIds],
+        });
 
-      if (!isTheProject(data.projectId)) {
-        return new Set<string>();
-      }
+        if (!isTheProject(data.projectId)) {
+          return new Set<string>();
+        }
 
-      const members: Set<string> | null = directory.members
-        ? lower(directory.members)
-        : null;
+        const members: Set<string> | null = directory.members
+          ? lower(directory.members)
+          : null;
 
-      return new Set<string>(
-        data.userIds
-          .map((id: string): string => {
-            return id.toLowerCase();
-          })
-          .filter((id: string): boolean => {
-            return members ? members.has(id) : true;
-          }),
-      );
-    });
+        return new Set<string>(
+          data.userIds
+            .map((id: string): string => {
+              return id.toLowerCase();
+            })
+            .filter((id: string): boolean => {
+              return members ? members.has(id) : true;
+            }),
+        );
+      },
+    );
 
   jest
     .spyOn(ProjectScopedReferenceValidator, "findExistingIds")
-    .mockImplementation(async (data: {
-      service: DatabaseService<DatabaseBaseModel>;
-      ids: Array<string>;
-    }): Promise<Set<string>> => {
-      const model: string = data.service.getModel().tableName || "";
-      const existing: Set<string> = lower([
-        ...(directory.elsewhere || []),
-        ...((directory.records && directory.records[model]) || []),
-      ]);
+    .mockImplementation(
+      async (data: {
+        service: DatabaseService<DatabaseBaseModel>;
+        ids: Array<string>;
+      }): Promise<Set<string>> => {
+        const model: string = data.service.getModel().tableName || "";
+        const existing: Set<string> = lower([
+          ...(directory.elsewhere || []),
+          ...((directory.records && directory.records[model]) || []),
+        ]);
 
-      return new Set<string>(
-        data.ids
-          .map((id: string): string => {
-            return id.toLowerCase();
-          })
-          .filter((id: string): boolean => {
-            return existing.has(id);
-          }),
-      );
-    });
+        return new Set<string>(
+          data.ids
+            .map((id: string): string => {
+              return id.toLowerCase();
+            })
+            .filter((id: string): boolean => {
+              return existing.has(id);
+            }),
+        );
+      },
+    );
 
   return stub;
 }

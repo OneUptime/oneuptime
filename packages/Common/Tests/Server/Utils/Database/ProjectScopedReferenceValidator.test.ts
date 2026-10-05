@@ -186,7 +186,8 @@ const severityReference: (
   return {
     modelName: "Incident Severity",
     id: id,
-    service: IncidentSeverityService as unknown as DatabaseService<DatabaseBaseModel>,
+    service:
+      IncidentSeverityService as unknown as DatabaseService<DatabaseBaseModel>,
     ...(mustExist === undefined ? {} : { mustExist: mustExist }),
   };
 };
@@ -218,7 +219,10 @@ const mockMemberships: (members: Array<string>) => jest.Mock = (
   }) as unknown as jest.Mock;
 
   jest
-    .spyOn(ProjectScopedReferenceValidator.getLookupService(TeamMember), "findBy")
+    .spyOn(
+      ProjectScopedReferenceValidator.getLookupService(TeamMember),
+      "findBy",
+    )
     .mockImplementation(findBy as never);
 
   return findBy;
@@ -543,9 +547,10 @@ describe("ProjectScopedReferenceValidator", () => {
     });
 
     // Any membership row: the query does not ask for an accepted invitation.
-    expect(
-      Object.keys(callOf(memberships, 0).query).sort(),
-    ).toEqual(["projectId", "userId"]);
+    expect(Object.keys(callOf(memberships, 0).query).sort()).toEqual([
+      "projectId",
+      "userId",
+    ]);
   });
 
   it("answers a user with no membership like a user id that matches nothing, even with mustExist false", async () => {
@@ -572,7 +577,10 @@ describe("ProjectScopedReferenceValidator", () => {
   it("does not count a membership read back from another project", async () => {
     // A lookup that ignores the project it was asked about.
     jest
-      .spyOn(ProjectScopedReferenceValidator.getLookupService(TeamMember), "findBy")
+      .spyOn(
+        ProjectScopedReferenceValidator.getLookupService(TeamMember),
+        "findBy",
+      )
       .mockImplementation((async (): Promise<Array<TeamMember>> => {
         const membership: TeamMember = new TeamMember();
         membership.userId = new ObjectID(OWN_USER_ID);
@@ -605,7 +613,11 @@ describe("ProjectScopedReferenceValidator", () => {
       ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: PROJECT_ID,
         references: [
-          { modelName: "Data Migration", id: OWN_SEVERITY_ID, service: service },
+          {
+            modelName: "Data Migration",
+            id: OWN_SEVERITY_ID,
+            service: service,
+          },
         ],
       }),
     ).resolves.toBeUndefined();
@@ -870,9 +882,9 @@ describe("ProjectScopedReferenceValidator lookups", () => {
 
     expect(ProjectScopedReferenceValidator.getLookupService(Team)).toBe(teams);
     expect(teams.getModel()).toBeInstanceOf(Team);
-    expect(ProjectScopedReferenceValidator.getLookupService(TeamMember)).not.toBe(
-      teams,
-    );
+    expect(
+      ProjectScopedReferenceValidator.getLookupService(TeamMember),
+    ).not.toBe(teams);
   });
 
   it("knows a person by their model", () => {

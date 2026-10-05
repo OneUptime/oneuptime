@@ -2262,9 +2262,7 @@ describe("cross-project relation guard on write", () => {
         );
 
         for (const list of templateCase.lists) {
-          expect(message).toContain(
-            `${list.modelName} "${list.foreignId}"`,
-          );
+          expect(message).toContain(`${list.modelName} "${list.foreignId}"`);
         }
       });
 

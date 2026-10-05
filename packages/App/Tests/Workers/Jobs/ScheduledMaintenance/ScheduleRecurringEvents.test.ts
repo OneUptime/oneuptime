@@ -145,7 +145,10 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { filterUsableInProject: jest.fn() },
+      default: {
+        filterUsableInProject: jest.fn(),
+        keepIdsInProject: jest.fn(),
+      },
     };
   },
 );
@@ -287,6 +290,13 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     (TeamMemberService.isUserMemberOfProject as jest.Mock).mockResolvedValue(
       true as never,
     );
+
+    // ...and every team one of the project's (OwnerRuleAssignment.createOwner).
+    (
+      ProjectScopedReferenceValidator.keepIdsInProject as jest.Mock
+    ).mockImplementation((async (data: { ids: Array<string> }) => {
+      return data.ids;
+    }) as never);
   });
 
   test("carries every affected resource from the template onto the recurrence", async () => {
@@ -637,6 +647,35 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
         { projectId: PROJECT_ID.toString(), userId: USER_A.toString() },
         { projectId: PROJECT_ID.toString(), userId: USER_B.toString() },
       ]);
+    });
+
+    test("a template team that is not one of the project's teams is not copied onto the new event", async () => {
+      /*
+       * A template saved before its owner lists were checked can still name
+       * another project's team. createOwner reads the team pinned to the
+       * event's project and skips it; the people are still copied.
+       */
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockResolvedValue({} as never);
+      (
+        ProjectScopedReferenceValidator.keepIdsInProject as jest.Mock
+      ).mockResolvedValue([] as never);
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        ScheduledMaintenanceOwnerTeamService.create,
+      ).not.toHaveBeenCalled();
+      expect(userIdsWritten()).toEqual([USER_A.toString(), USER_B.toString()]);
+      expect(logger.error).not.toHaveBeenCalled();
+
+      const asked: { projectId: ObjectID; ids: Array<string> } = (
+        ProjectScopedReferenceValidator.keepIdsInProject as jest.Mock
+      ).mock.calls[0]![0] as { projectId: ObjectID; ids: Array<string> };
+
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.ids).toEqual([TEAM_A.toString()]);
     });
 
     test("any other owner failure is still reported", async () => {

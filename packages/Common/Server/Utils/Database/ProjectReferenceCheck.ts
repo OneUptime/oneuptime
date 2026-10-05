@@ -131,8 +131,7 @@ export default class ProjectReferenceCheck {
         column: column,
         idColumn: isRelation ? metadata.manyToOneRelationColumn : undefined,
         isList: isList,
-        modelName:
-          metadata.title || referencedModel.singularName || column,
+        modelName: metadata.title || referencedModel.singularName || column,
         service: ProjectScopedReferenceValidator.getLookupService(
           metadata.modelType,
         ) as unknown as DatabaseService<DatabaseBaseModel>,
@@ -191,7 +190,9 @@ export default class ProjectReferenceCheck {
 
     const projectId: ObjectID | undefined =
       data.createBy.props.tenantId ||
-      ProjectReferenceCheck.toObjectID(resolveReferenceId(record[tenantColumn]));
+      ProjectReferenceCheck.toObjectID(
+        resolveReferenceId(record[tenantColumn]),
+      );
 
     const references: Array<ProjectScopedReference> = [];
 
@@ -274,9 +275,7 @@ export default class ProjectReferenceCheck {
     const subject: string = ProjectReferenceCheck.getSubject(model);
     const tenantId: ObjectID | undefined = data.updateBy.props.tenantId;
 
-    const readHeldIds: (
-      columns: Array<string>,
-    ) => Promise<HeldRelationIds> = (
+    const readHeldIds: (columns: Array<string>) => Promise<HeldRelationIds> = (
       columns: Array<string>,
     ): Promise<HeldRelationIds> => {
       return ProjectScopedReferenceValidator.getHeldRelationIds({
@@ -334,7 +333,8 @@ export default class ProjectReferenceCheck {
       throw new ProjectScopedReferenceException(
         ProjectScopedReferenceValidator.getRefusalMessage({
           subject: subject,
-          described: ProjectScopedReferenceValidator.describeReferences(refused),
+          described:
+            ProjectScopedReferenceValidator.describeReferences(refused),
         }),
       );
     }
@@ -348,11 +348,9 @@ export default class ProjectReferenceCheck {
     for (const [projectId, held] of heldIds) {
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: new ObjectID(projectId),
-        references: references.filter(
-          (reference: ColumnReference): boolean => {
-            return !isHeld(held, reference);
-          },
-        ),
+        references: references.filter((reference: ColumnReference): boolean => {
+          return !isHeld(held, reference);
+        }),
         subject: subject,
       });
     }

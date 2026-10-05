@@ -6,7 +6,6 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentGroupingRule from "../../../Models/DatabaseModels/IncidentGroupingRule";
 import Team from "../../../Models/DatabaseModels/Team";
-import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
 import AlertEpisodeOwnerTeamService from "../../../Server/Services/AlertEpisodeOwnerTeamService";
@@ -104,18 +103,6 @@ function team(id: string): Team {
   const item: Team = new Team();
   item._id = id;
   return item;
-}
-
-// The ids a QueryHelper.any(...) operator asks for.
-function idsIn(value: unknown): Array<string> {
-  const operator: { objectLiteralParameters?: Record<string, unknown> } =
-    value as { objectLiteralParameters?: Record<string, unknown> };
-
-  const ids: unknown = Object.values(operator.objectLiteralParameters || {})[0];
-
-  return ((ids as Array<unknown>) || []).map((id: unknown): string => {
-    return String(id);
-  });
 }
 
 // What the directory was asked: teams by the project, members by the project.
@@ -816,9 +803,11 @@ describe.each(RULE_SERVICES)("$label", (ruleService: RuleServiceCase) => {
     );
   });
 
-  test.each(ruleService.lists.map((list: RuleList): [string, RuleList] => {
-    return [list.column, list];
-  }))(
+  test.each(
+    ruleService.lists.map((list: RuleList): [string, RuleList] => {
+      return [list.column, list];
+    }),
+  )(
     "refuses another project's record in %s",
     async (_column: string, list: RuleList) => {
       const message: string = await refusal(

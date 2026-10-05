@@ -13,7 +13,6 @@ import User from "../../../../Models/DatabaseModels/User";
 import { JSONObject, ObjectType } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 /*
  * Regression test for a support report: a customer could not create an API
@@ -335,7 +334,7 @@ describe("MonitorStepsProjectValidator load order", () => {
       referenceValidator = requireReferenceValidator();
     });
 
-    const memberLookup: SpyInstance = jest
+    const memberLookup: ReturnType<typeof jest.spyOn> = jest
       .spyOn(referenceValidator!, "findProjectMemberIds")
       .mockResolvedValue(
         new Set<string>([ID_BY_MODEL[MonitorStepsReferenceModel.User]]),
@@ -425,7 +424,7 @@ describe("MonitorStepsProjectValidator load order", () => {
 
     const userId: string = ID_BY_MODEL[MonitorStepsReferenceModel.User];
 
-    const memberLookup: SpyInstance = jest
+    const memberLookup: ReturnType<typeof jest.spyOn> = jest
       .spyOn(referenceValidator!, "findProjectMemberIds")
       .mockResolvedValue(new Set<string>([userId]));
 

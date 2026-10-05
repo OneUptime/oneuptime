@@ -96,8 +96,8 @@ export class Service extends ProjectReferencesService<Model> {
     const references: Array<ProjectScopedReference> = [];
 
     for (const entry of assignments) {
-      const assignment: Partial<EpisodeMemberRoleAssignment> =
-        (entry || {}) as Partial<EpisodeMemberRoleAssignment>;
+      const assignment: Partial<EpisodeMemberRoleAssignment> = (entry ||
+        {}) as Partial<EpisodeMemberRoleAssignment>;
 
       const userId: string =
         resolveReferenceId(assignment.userId)?.toString().trim() || "";

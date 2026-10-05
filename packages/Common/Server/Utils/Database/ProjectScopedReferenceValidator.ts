@@ -349,8 +349,10 @@ export default class ProjectScopedReferenceValidator {
     references: Array<ProjectScopedReference>,
   ): Array<string> {
     const described: Array<string> = [];
-    const seen: Map<DatabaseService<DatabaseBaseModel>, Set<string>> =
-      new Map();
+    const seen: Map<
+      DatabaseService<DatabaseBaseModel>,
+      Set<string>
+    > = new Map();
 
     for (const reference of references) {
       const id: string = reference.id?.toString().trim() || "";
