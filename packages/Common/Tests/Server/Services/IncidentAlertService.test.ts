@@ -292,7 +292,7 @@ describe("onBeforeCreate: what a link must reference", () => {
   test("a root link to another project's record is refused by the project check", async () => {
     validator.mockRejectedValue(
       new BadDataException(
-        "This incident alert link references records that belong to a different project",
+        "This incident alert link references records that are not in this project",
       ) as never,
     );
 
@@ -302,7 +302,7 @@ describe("onBeforeCreate: what a link must reference", () => {
         incidentId: INCIDENT_ID,
         alertId: ALERT_ID,
       }),
-    ).rejects.toThrow("belong to a different project");
+    ).rejects.toThrow("not in this project");
   });
 
   test("a root link does not read the ends as a user", async () => {

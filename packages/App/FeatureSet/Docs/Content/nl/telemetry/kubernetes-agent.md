@@ -348,6 +348,8 @@ Labels worden hoofdletterongevoelig gematcht, dus een bestaand handmatig aangema
 
 ## De Agent upgraden
 
+Als de agent ouder is dan je OneUptime, verschijnt er een waarschuwingsteken naast **Agentversie** in de **Clusterdetails** van het cluster. Selecteer het om dit commando te zien.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

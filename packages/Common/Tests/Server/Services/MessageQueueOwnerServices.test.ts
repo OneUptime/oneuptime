@@ -33,6 +33,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * The queue owner join services and the rule CRUD services.
@@ -95,6 +96,8 @@ function newTeamOwner(): MessageQueueOwnerTeam {
 }
 
 beforeEach(() => {
+  // The teams, users and records these writes name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
   jest.spyOn(logger, "warn").mockImplementation(() => {
     return undefined as never;
   });

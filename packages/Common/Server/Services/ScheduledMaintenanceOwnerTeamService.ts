@@ -1,6 +1,6 @@
 import Team from "../../Models/DatabaseModels/Team";
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import TeamService from "./TeamService";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
@@ -15,7 +15,7 @@ import logger from "../Utils/Logger";
 import ScheduledMaintenanceService from "./ScheduledMaintenanceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

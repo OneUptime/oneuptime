@@ -37,6 +37,8 @@ import ResourceOverview, {
   ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -803,7 +805,13 @@ const RumApplicationOverview: FunctionComponent<
     { label: "App Name (service.name)", value: a.appIdentifier },
     { label: "Client Type", value: a.clientType },
     { label: "SDK Language (telemetry.sdk.language)", value: a.sdkLanguage },
-    { label: "SDK Version", value: a.agentVersion },
+    {
+      label: "SDK Version",
+      value: a.agentVersion,
+      element: (
+        <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />
+      ),
+    },
     ...(recordingHealthValue
       ? [{ label: "Recording health", value: recordingHealthValue }]
       : []),

@@ -287,9 +287,16 @@ describe("cluster overview: hero, cards and tables", () => {
   test("the hero's count chips carry one (i), and only when a count chip is shown", () => {
     const chips: string = between(
       OVERVIEW,
-      "{specChips.length > 0 && (",
+      "{(specChips.length > 0 || Boolean(cluster.agentVersion)) && (",
       "</div> )}",
     );
+
+    // The agent's chip is AgentVersion's own, after the spec chips and before the (i).
+    const agentChip: number = chips.indexOf(
+      '<AgentVersion kind={AgentKind.ProxmoxAgent} version={cluster.agentVersion} variant="chip" />',
+    );
+    expect(agentChip).toBeGreaterThan(chips.indexOf("{specChips.map("));
+    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && ("));
 
     expect(chips).toMatch(
       tooltipPattern(

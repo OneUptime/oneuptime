@@ -43,6 +43,7 @@ import {
   ResourceAiRemediationMode,
 } from "../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Contract under test - the rule engine writes down what it did with every
@@ -204,11 +205,11 @@ function alert(): Alert {
 
 interface Harness {
   saved: Array<AutoRemediationDecision>;
-  monitorReads: jest.SpiedFunction<typeof MonitorService.findBy>;
-  clusterStatuses: jest.SpiedFunction<
+  monitorReads: SpyInstance<typeof MonitorService.findBy>;
+  clusterStatuses: SpyInstance<
     typeof KubernetesClusterAiAccessService.getStatusesForSubject
   >;
-  resourceStatuses: jest.SpiedFunction<
+  resourceStatuses: SpyInstance<
     typeof ResourceAiAccessService.getStatusesForSubject
   >;
 }
@@ -602,7 +603,7 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
     });
 
     it("says a cluster already has a round, and leaves the resources to it", async () => {
-      const startCluster: jest.SpiedFunction<
+      const startCluster: SpyInstance<
         EngineInternals["startClusterCommandRun"]
       > = jest.spyOn(engine, "startClusterCommandRun").mockResolvedValue(true);
       const existingRound: AutoRemediationSuggestion = Object.assign(
@@ -662,7 +663,7 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
 
   describe("infrastructure resources", () => {
     it("says what each linked resource did: off, blocked, chosen, and not chosen", async () => {
-      const startResource: jest.SpiedFunction<
+      const startResource: SpyInstance<
         EngineInternals["startResourceCommandRun"]
       > = jest.spyOn(engine, "startResourceCommandRun").mockResolvedValue(true);
       const harness: Harness = mockEngine({
@@ -792,8 +793,9 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
     });
 
     it("names the rule and each runbook it proposed", async () => {
-      const suggest: jest.SpiedFunction<EngineInternals["suggestRunbook"]> =
-        jest.spyOn(engine, "suggestRunbook").mockResolvedValue(undefined);
+      const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
+        .spyOn(engine, "suggestRunbook")
+        .mockResolvedValue(undefined);
       const harness: Harness = mockEngine({
         rules: [
           rule({
@@ -861,9 +863,8 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
     });
 
     it("says a Full Auto rule proposed instead of starting once its circuit breaker tripped", async () => {
-      const autoExecute: jest.SpiedFunction<
-        EngineInternals["autoExecuteRunbook"]
-      > = jest.spyOn(engine, "autoExecuteRunbook").mockResolvedValue(true);
+      const autoExecute: SpyInstance<EngineInternals["autoExecuteRunbook"]> =
+        jest.spyOn(engine, "autoExecuteRunbook").mockResolvedValue(true);
       jest.spyOn(engine, "suggestRunbook").mockResolvedValue(undefined);
       const harness: Harness = mockEngine({
         rules: [rule({ executionMode: AutoRemediationExecutionMode.FullAuto })],
@@ -1022,14 +1023,13 @@ describe("AutoRemediationRuleEngineService on a new incident or alert", () => {
   });
 
   it("evaluates a new incident at once when no investigation was queued", async () => {
-    const apply: jest.SpiedFunction<
+    const apply: SpyInstance<
       typeof AutoRemediationRuleEngineService.applyRulesToIncident
     > = jest
       .spyOn(AutoRemediationRuleEngineService, "applyRulesToIncident")
       .mockResolvedValue(undefined);
-    const create: jest.SpiedFunction<
-      typeof AutoRemediationDecisionService.create
-    > = jest.spyOn(AutoRemediationDecisionService, "create");
+    const create: SpyInstance<typeof AutoRemediationDecisionService.create> =
+      jest.spyOn(AutoRemediationDecisionService, "create");
 
     await AutoRemediationRuleEngineService.onIncidentCreated({
       incident: incident(),
@@ -1041,7 +1041,7 @@ describe("AutoRemediationRuleEngineService on a new incident or alert", () => {
   });
 
   it("records that a new incident's remediation waits for its investigation", async () => {
-    const apply: jest.SpiedFunction<
+    const apply: SpyInstance<
       typeof AutoRemediationRuleEngineService.applyRulesToIncident
     > = jest.spyOn(AutoRemediationRuleEngineService, "applyRulesToIncident");
     const harness: Harness = mockEngine({});
@@ -1063,7 +1063,7 @@ describe("AutoRemediationRuleEngineService on a new incident or alert", () => {
   });
 
   it("evaluates a new alert at once, or records that it waits", async () => {
-    const apply: jest.SpiedFunction<
+    const apply: SpyInstance<
       typeof AutoRemediationRuleEngineService.applyRulesToAlert
     > = jest
       .spyOn(AutoRemediationRuleEngineService, "applyRulesToAlert")

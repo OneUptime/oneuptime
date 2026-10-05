@@ -211,7 +211,7 @@ describe("AutoRemediationDecisionHelper.toJSON", () => {
       AutoRemediationDecisionHelper.parseEntries([
         AutoRemediationDecisionHelper.toJSON(entry),
       ])[0],
-    ).toMatchObject(entry);
+    ).toMatchObject({ ...entry });
   });
 });
 

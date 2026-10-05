@@ -47,6 +47,19 @@ docker compose up -d
 
 The cluster appears in OneUptime within a few minutes, and the resource list pages (Nodes, Services, Tasks, Stacks, Networks, Secrets, Configs, Volumes) populate after the first inventory snapshot (≤ 5 minutes).
 
+## Upgrading the agent
+
+Run the install script again on the manager node and answer with the same URL, key and cluster name. It downloads the latest files, pulls the images and restarts the agent:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+sh install.sh
+```
+
+With Docker Compose, download the three files again (then re-apply any change you made to `docker-compose.yml`) and run `docker compose pull` and `docker compose up -d` in the agent's folder. The collector version is pinned in the files, so pulling alone does not move the agent forward.
+
+The agent reports the collector version it runs. When that is older than the version this OneUptime release pins, a warning sign appears beside the agent's version on the cluster's **Overview**. Select it to see these commands.
+
 ## What gets collected
 
 | Signal                                                                       | Source                               | Powers                                     |
