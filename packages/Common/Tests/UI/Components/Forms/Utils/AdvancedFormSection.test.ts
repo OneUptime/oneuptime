@@ -471,9 +471,9 @@ describe("isFormFieldValueSet", () => {
     };
 
     // Its carrier, compared with its default, would never say it is set.
-    expect(isFormFieldValueSet({ ...REOPEN, getFoldedValue: undefined }, on)).toBe(
-      false,
-    );
+    expect(
+      isFormFieldValueSet({ ...REOPEN, getFoldedValue: undefined }, on),
+    ).toBe(false);
 
     expect(isFormFieldValueSet(REOPEN, on)).toBe(true);
     expect(isFormFieldValueSet(REOPEN, off)).toBe(false);
@@ -522,9 +522,9 @@ describe("isFormFieldValueSet", () => {
       true,
     );
     // Its own value, changed from its default, is not what counts.
-    expect(isFormFieldValueSet(line, { legacyDefaultAssignee: "changed" })).toBe(
-      false,
-    );
+    expect(
+      isFormFieldValueSet(line, { legacyDefaultAssignee: "changed" }),
+    ).toBe(false);
   });
 
   test("a people picker still counts its picks, whatever else it says", () => {

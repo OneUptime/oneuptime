@@ -111,9 +111,11 @@ describe("the docs on the grouping rule form", () => {
         expect(position).toBeGreaterThan(-1);
       }
 
-      expect([...groups].sort((a: number, b: number) => {
-        return a - b;
-      })).toEqual(groups);
+      expect(
+        [...groups].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ).toEqual(groups);
 
       // The chips, as the folded header writes them.
       expect(settings).toContain("On-Call Duty Policies: 2");
@@ -132,9 +134,7 @@ describe("the docs on the grouping rule form", () => {
     expect(settings).toContain(
       "Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step.",
     );
-    expect(settings).toContain(
-      "so editing a rule never hides what it does",
-    );
+    expect(settings).toContain("so editing a rule never hides what it does");
     // No three steps to walk through any more.
     expect(settings).not.toContain("adds three steps");
     expect(settings).not.toContain("walks through them without asking");

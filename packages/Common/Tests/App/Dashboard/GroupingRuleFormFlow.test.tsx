@@ -165,6 +165,10 @@ import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "../../../UI/Components/Modal/Modal";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const WAIT_TIMEOUT: number = 20000;
 
@@ -406,28 +410,17 @@ async function foldMoreFields(): Promise<void> {
   });
 }
 
-function readItems(onlySet: boolean): Array<string> {
-  return within(moreFieldsHeader())
-    .queryAllByTestId("folded-section-item")
-    .filter((item: HTMLElement): boolean => {
-      return !onlySet || item.getAttribute("data-item-set") === "true";
-    })
-    .map((item: HTMLElement): string => {
-      return (item.textContent || "").trim();
-    });
-}
-
 /*
  * What the folded header lists, as read on screen: names, and the set ones
  * with what they are set to ("On-Call Duty Policies: 1").
  */
 function foldedItems(): Array<string> {
-  return readItems(false);
+  return listedNames(moreFieldsHeader());
 }
 
 // The chips: what the rule has set.
 function foldedChips(): Array<string> {
-  return readItems(true);
+  return setChips(moreFieldsHeader());
 }
 
 // "7 more": the unset names the header leaves out.
@@ -831,7 +824,9 @@ describe("creating a grouping rule", () => {
     expect(minutesInput("resolve-delay-setting")).toHaveValue(5);
 
     await foldMoreFields();
-    expect(foldedChips()).toEqual(["Wait before resolving an episode: 5 minutes"]);
+    expect(foldedChips()).toEqual([
+      "Wait before resolving an episode: 5 minutes",
+    ]);
 
     await openMoreFields();
     await act(async (): Promise<void> => {
@@ -870,7 +865,9 @@ describe("creating a grouping rule", () => {
       expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "true");
     });
     await waitFor(() => {
-      expect(screen.getByTestId("resolve-delay-setting-error")).toHaveTextContent(
+      expect(
+        screen.getByTestId("resolve-delay-setting-error"),
+      ).toHaveTextContent(
         "Enter a whole number of minutes between 1 and 525600.",
       );
     });

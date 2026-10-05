@@ -717,8 +717,8 @@ describe.each(PAGES)(
       );
       expect(sections.size).toBe(1);
 
-      const section: FormFieldCollapsibleSection<any> = folded[0]!
-        .collapsibleSection!;
+      const section: FormFieldCollapsibleSection<any> =
+        folded[0]!.collapsibleSection!;
       expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
       expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
       expect(section.title).toBe("More fields");
@@ -776,8 +776,24 @@ describe.each(PAGES)(
         ["description", "Details"],
       ]);
 
-      // Under the headings, every field with no help of its own is a switch
-      // or a box whose title says it all.
+      /*
+       * The headings group them; they do not explain them. Every field in
+       * the fold still says what it does - a line of help of its own, or a
+       * control that draws its title and help itself (the lifecycle
+       * switches, the old default assignee's line) - except the rule's
+       * Description, whose title says it all.
+       */
+      const unexplained: Array<string> = drawnOnStep("grouping")
+        .filter((field: ModelField<any>) => {
+          return (
+            Boolean(field.collapsibleSection) &&
+            !field.description &&
+            !field.customElementDrawsOwnLabel
+          );
+        })
+        .map(formKey);
+
+      expect(unexplained).toEqual(["description"]);
       expect(findByFormKey("onCallDutyPolicies").description).toBe(
         "On-call policies to fire when an episode is created by this rule.",
       );
@@ -815,7 +831,10 @@ describe.each(PAGES)(
           field.getFoldedValue!({ [enabledColumn]: true, [minutesColumn]: 45 }),
         ).toBe(said);
         expect(
-          field.getFoldedValue!({ [enabledColumn]: true, [minutesColumn]: 180 }),
+          field.getFoldedValue!({
+            [enabledColumn]: true,
+            [minutesColumn]: 180,
+          }),
         ).toBe("3 hours");
         // Off, or on with 0 minutes the engines ignore: not set.
         expect(
@@ -845,9 +864,7 @@ describe.each(PAGES)(
         LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
       );
 
-      expect(line.getFoldedValue?.({ defaultAssignToTeamId: "team" })).toBe(
-        "",
-      );
+      expect(line.getFoldedValue?.({ defaultAssignToTeamId: "team" })).toBe("");
       expect(line.getFoldedValue?.({ defaultAssignToUser: { _id: "u" } })).toBe(
         "",
       );

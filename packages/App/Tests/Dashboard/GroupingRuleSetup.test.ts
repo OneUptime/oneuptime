@@ -1353,9 +1353,7 @@ describe("getMinutesSettingFoldedValue", () => {
 
   test("says the engines' fallback for a setting that has one", () => {
     // The time window's hour: not folded today, but read the same way.
-    expect(folded(true, 0, ENGINE_FALLBACK_TIME_WINDOW_MINUTES)).toBe(
-      "1 hour",
-    );
+    expect(folded(true, 0, ENGINE_FALLBACK_TIME_WINDOW_MINUTES)).toBe("1 hour");
   });
 
   test("says minutes saved before the box had a ceiling, as the engines use them", () => {
@@ -1413,7 +1411,11 @@ describe("getMinutesSettingFoldedValue", () => {
         getNewGroupingRuleValues({ kind, translate: english }),
         ...GROUPING_RULE_TEMPLATES.map(
           (template: GroupingRuleTemplate): GroupingRuleValues => {
-            return getTemplateRuleValues({ template, kind, translate: english });
+            return getTemplateRuleValues({
+              template,
+              kind,
+              translate: english,
+            });
           },
         ),
       ];
@@ -1491,9 +1493,10 @@ describe("episode owners and the old default assignee", () => {
   });
 
   test("a rule that still has the old pair is told so, and one that settled it is not", () => {
-    expect(getLegacyDefaultAssignee({ defaultAssignToUserId: USER })).toEqual(
-      { userId: USER, teamId: null },
-    );
+    expect(getLegacyDefaultAssignee({ defaultAssignToUserId: USER })).toEqual({
+      userId: USER,
+      teamId: null,
+    });
     expect(
       getLegacyDefaultAssignee({ defaultAssignToTeamId: new ObjectID(TEAM) }),
     ).toEqual({ userId: null, teamId: TEAM });

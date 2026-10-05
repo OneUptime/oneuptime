@@ -874,7 +874,10 @@ describe("BasicForm More fields with a custom element that keeps its value elsew
 
     await moreFieldsButton();
 
-    expect(listedNames()).toEqual(["Reopen recently resolved episodes", "Note"]);
+    expect(listedNames()).toEqual([
+      "Reopen recently resolved episodes",
+      "Note",
+    ]);
     expect(setChips()).toEqual([]);
     expect(screen.queryByText("Configured")).toBeNull();
   });
@@ -889,18 +892,20 @@ describe("BasicForm More fields with a custom element that keeps its value elsew
 
     await user.click(header);
     await user.click(screen.getByTestId("reopen-toggle"));
-    expect(screen.getByTestId("reopen-toggle")).toHaveTextContent(
-      "Reopen: on",
-    );
+    expect(screen.getByTestId("reopen-toggle")).toHaveTextContent("Reopen: on");
 
     await user.click(header);
-    expect(setChips()).toEqual(["Reopen recently resolved episodes: 30 minutes"]);
+    expect(setChips()).toEqual([
+      "Reopen recently resolved episodes: 30 minutes",
+    ]);
     expect(screen.getByTestId("folded-section-icon")).toHaveClass(
       "bg-indigo-50",
     );
 
-    // Off again: its carrier now holds what the control handed over last,
-    // but the values it edits say it is off - no chip.
+    /*
+     * Off again: its carrier now holds what the control handed over last,
+     * but the values it edits say it is off - no chip.
+     */
     await user.click(header);
     await user.click(screen.getByTestId("reopen-toggle"));
     await user.click(header);
