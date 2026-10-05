@@ -1,4 +1,4 @@
-import { TurnOnResourceAiInvestigationByDefault1797800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797800000000-TurnOnResourceAiInvestigationByDefault";
+import { TurnOnResourceAiInvestigationByDefault1797900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797900000000-TurnOnResourceAiInvestigationByDefault";
 import ObjectID from "../../../../Types/ObjectID";
 import { ALL_AI_RESOURCE_TYPES } from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -249,7 +249,7 @@ describePostgres(
 
       // The tables as they were BEFORE the migration, whether or not the source ran it.
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new TurnOnResourceAiInvestigationByDefault1797800000000().down(
+        await new TurnOnResourceAiInvestigationByDefault1797900000000().down(
           queryRunner,
         );
       });
@@ -278,7 +278,7 @@ describePostgres(
       }
 
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new TurnOnResourceAiInvestigationByDefault1797800000000().up(
+        await new TurnOnResourceAiInvestigationByDefault1797900000000().up(
           queryRunner,
         );
       });
@@ -294,7 +294,7 @@ describePostgres(
 
       // And back down, to see what a rollback keeps.
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new TurnOnResourceAiInvestigationByDefault1797800000000().down(
+        await new TurnOnResourceAiInvestigationByDefault1797900000000().down(
           queryRunner,
         );
       });
@@ -400,7 +400,7 @@ describePostgres(
 
       // ...and up() again gives a new resource investigation on.
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new TurnOnResourceAiInvestigationByDefault1797800000000().up(
+        await new TurnOnResourceAiInvestigationByDefault1797900000000().up(
           queryRunner,
         );
       });

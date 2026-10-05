@@ -72,7 +72,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 `kubernetes-agent` in `oneuptime-agent` is the release name and namespace the dashboard's install instructions use; if you installed the agent with other names, use yours (`helm list -A | grep kubernetes-agent` shows them). Without `helm repo update`, Helm may resolve the chart you installed from, which does not know `aiAgent` and fails with `Additional property aiAgent is not allowed`. On a self-hosted OneUptime, upgrade OneUptime before the chart — see [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent). To run the chart without the AI agent, pass `--set aiAgent.enabled=false`.
 
-**Test connection** on the AI agent page runs `kubectl version` and `kubectl auth can-i --list` through the agent and shows the results: what it can reach and what it may do. If the page says the agent is not connected, read its log with `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. A key with a **Pinned Service Name** cannot register the agent — give the chart a key without one. When the server refuses a registration, the log says whether the refusal clears on its own (a previous agent pod that still reports in, or the old in-cluster Runner still shutting down during an upgrade) or what to change. **Reset agent** on the AI agent page makes the server forget the agent's key; the pod reconnects on its own within a few minutes.
+**Test connection**, in the **⋯** menu next to the agent's status on the AI agent page, runs `kubectl version` and `kubectl auth can-i --list` through the agent and shows the results: what it can reach and what it may do. If the page says the agent is not connected, read its log with `kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100`. A key with a **Pinned Service Name** cannot register the agent — give the chart a key without one. When the server refuses a registration, the log says whether the refusal clears on its own (a previous agent pod that still reports in, or the old in-cluster Runner still shutting down during an upgrade) or what to change. **Reset agent**, in the same menu, makes the server forget the agent's key once you confirm it; the pod reconnects on its own within a few minutes.
 
 The Kubernetes AI agent is not a Runner and never appears under Runbooks → Runners. It only ever uses its own ServiceAccount, so OneUptime never hands it a credential, it is never used as a Bash/SSH host for runbooks, and it is never accepted as an auto-remediation rule's command Runner.
 
@@ -104,6 +104,17 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 Replace `{web,api}` with the namespaces AI may fix. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector included — with `namespaces "api" not found`. Create it first, or take it off the list; take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the list stored on the release, so to go back to cluster-wide pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), as the second command does — not `={}`, which Helm reads as one empty name and the chart refuses. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes (a drain, a taint or a patch of a node still waits for a human).
 
 Then choose how fixes run under **What AI may do** on the AI agent page. If nobody has chosen AI settings for the cluster yet, granting write access starts fixes in **Ask for approval**. Otherwise the cluster keeps the mode its AI agent page shows (**Off** until someone changes it), because the server never flips a switch an operator owns: pick the mode there after the upgrade. The only project switch fixes need is **Enable AI** (Project Settings > AI > AI Features), which is on unless someone turned it off.
+
+### Which incidents a cluster's fixes act on
+
+A cluster's fixes need no Auto Remediation Rule: OneUptime AI fixes every incident and alert the cluster is linked to, in the mode its AI agent page sets. What it is not linked to, it does not touch — however clearly the cause sits in the cluster. An incident or alert is linked to a cluster when:
+
+- the telemetry it was raised from names the cluster (a metric, log or trace monitor on the cluster's data);
+- its monitor is a Kubernetes monitor of the cluster;
+- its monitor is linked to the cluster under **Monitor → Overview → Linked Resources** — the way to link a website, API or synthetic monitor to the cluster that serves what it checks;
+- someone picked the cluster under **Other Affected Resources** when declaring it (picking a linked monitor adds it there for you).
+
+Each incident and alert says on its **Remediation** card whether it was linked to a cluster and what the cluster's fixes did; see [What auto-remediation did](#what-auto-remediation-did). The same holds for an infrastructure resource and its AI agent.
 
 ### Who may change it
 
@@ -150,7 +161,7 @@ The cluster's **AI Insights** page (AI → Insights) shows what OneUptime AI inv
 
 ### Through a Runner instead (advanced)
 
-A cluster that does not run the chart — one that sends Kubernetes telemetry some other way — can give OneUptime AI kubectl access through a Runner you run (Runbooks → Runners). Bind the Runner and a Kubernetes credential (API server URL + ServiceAccount token, under Runbooks → Runner Credentials) to the cluster with the API or Terraform (the cluster's **AI Access Runner** and **AI Access Credential**), and turn on **Runs AI Remediation Commands** for that Runner. Fixes through a Runner need no project switch beyond **Enable AI**. To limit where such a Runner may write, start it with `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (and `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` to keep fixes off nodes): the Runner reports those limits, so OneUptime refuses a fix outside them when it is proposed or approved, before it reaches the Runner, and the Runner refuses it again. A cluster bound to a Runner keeps using it even when the Kubernetes AI agent is installed; the AI agent page then shows which Runner and credential it goes through and, once the AI agent is connected, offers **Switch to the AI agent**.
+A cluster that does not run the chart — one that sends Kubernetes telemetry some other way — can give OneUptime AI kubectl access through a Runner you run (Runbooks → Runners). Bind the Runner and a Kubernetes credential (API server URL + ServiceAccount token, under Runbooks → Runner Credentials) to the cluster with the API or Terraform (the cluster's **AI Access Runner** and **AI Access Credential**), and turn on **Runs AI Remediation Commands** for that Runner. Fixes through a Runner need no project switch beyond **Enable AI**. To limit where such a Runner may write, start it with `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (and `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` to keep fixes off nodes): the Runner reports those limits, so OneUptime refuses a fix outside them when it is proposed or approved, before it reaches the Runner, and the Runner refuses it again. A cluster bound to a Runner keeps using it even when the Kubernetes AI agent is installed; the AI agent page then shows which Runner and credential it goes through and, once the AI agent is connected, offers **Switch to the AI agent** in the **⋯** menu next to the agent's status.
 
 Clusters set up with an earlier chart (`aiAccess.enabled=true`) reach OneUptime AI through the previous in-cluster Runner until the chart is upgraded. The upgrade replaces that Runner with the Kubernetes AI agent and carries its settings over — see [Upgrading the Agent](/docs/telemetry/kubernetes-agent#upgrading-the-agent).
 
@@ -181,7 +192,20 @@ If the project uses auto-remediation rules (rules under **Incidents > Rules > Au
 
 An investigation that fails, expires, or goes stale still releases remediation — the deferral delays remediation until the outcome is known; it never cancels it.
 
+While remediation waits, the incident's or alert's **Remediation** card says so, and shows what happened once the investigation settles.
+
 Auto-remediation does depend on **Enable AI** (Project Settings > AI > AI Features), the project's one AI switch: with it off, no auto-remediation rule runs — not even one that starts a runbook without AI — and no cluster or resource is fixed.
+
+## What auto-remediation did
+
+Every incident and alert has a **Remediation** card that says what auto-remediation did with it — including when it did nothing. Each time the engine evaluates the incident or alert, it records one line per way it can be fixed:
+
+- **Each Kubernetes cluster it is linked to** — OneUptime AI started a fix (and whether it asks for approval or runs on its own); fixes are off on the cluster; fixes are on but blocked, with the reason and the next step the cluster's AI agent page gives; the cluster already has a fix for it; or the fix could not start.
+- **Each infrastructure resource it is linked to** — the same, and that another linked resource got the one AI fix an incident gets.
+- **The Auto Remediation Rules** — none is set up, none matched (and how many were checked), or what each matching rule did: proposed or started a runbook, had AI compose commands or pick a runbook, or could not, and why.
+- **The project** — **Enable AI** is off, so nothing runs; the incident already has the most fixes it can get; or the evaluation stopped on an error.
+
+When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with a link to each of its monitors, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the Auto Remediation Rules, the AI settings or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed.
 
 ## Cost controls
 

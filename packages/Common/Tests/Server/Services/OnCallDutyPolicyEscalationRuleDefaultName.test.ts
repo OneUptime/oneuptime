@@ -314,16 +314,35 @@ describe("a rule created with a name", () => {
 });
 
 describe("the rest of the create hook", () => {
-  test("still makes room for a rule inserted in the middle", async () => {
+  test("makes room for a rule inserted in the middle only once it is saved", async () => {
     rulesInPolicy = 3;
     rulesBeforeOrder = 1;
 
-    const { createBy } = makeRule({ order: 2 });
+    const { createBy, rule } = makeRule({ order: 2 });
     await runOnBeforeCreate(createBy);
 
+    // Nothing is moved before the rule exists.
+    expect(EscalationRuleService.findBy).not.toHaveBeenCalled();
+    expect(EscalationRuleService.updateOneBy).not.toHaveBeenCalled();
+
+    rule._id = "30000000-0000-4000-8000-000000000001";
+
+    await (
+      EscalationRuleService as unknown as {
+        onCreateSuccess: (
+          onCreate: OnCreate<OnCallDutyPolicyEscalationRule>,
+          createdItem: OnCallDutyPolicyEscalationRule,
+        ) => Promise<OnCallDutyPolicyEscalationRule>;
+      }
+    ).onCreateSuccess({ createBy, carryForward: null }, rule);
+
+    // The rules of the same policy, in the rule's own project.
     expect(EscalationRuleService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({ onCallDutyPolicyId: POLICY_ID }),
+        query: expect.objectContaining({
+          onCallDutyPolicyId: POLICY_ID,
+          projectId: PROJECT_ID,
+        }),
       }),
     );
   });

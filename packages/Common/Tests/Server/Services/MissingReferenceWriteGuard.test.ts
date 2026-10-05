@@ -110,7 +110,7 @@ function spyOnValidator(rejects?: boolean): void {
       );
 
       if (rejects && hasId) {
-        throw new Error("references records that do not exist");
+        throw new Error("references records that are not in this project");
       }
     }) as never);
 }
@@ -205,7 +205,7 @@ describe("missing-reference guard on write", () => {
           },
           props: {},
         }),
-      ).rejects.toThrow("do not exist");
+      ).rejects.toThrow("not in this project");
     });
 
     test("create falls back to the write's tenant when the row carries no project", async () => {
@@ -269,7 +269,7 @@ describe("missing-reference guard on write", () => {
           },
           props: {},
         }),
-      ).rejects.toThrow("do not exist");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -314,7 +314,7 @@ describe("missing-reference guard on write", () => {
           },
           props: {},
         }),
-      ).rejects.toThrow("do not exist");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -369,7 +369,7 @@ describe("missing-reference guard on write", () => {
           },
           props: {},
         }),
-      ).rejects.toThrow("do not exist");
+      ).rejects.toThrow("not in this project");
     });
   });
 
@@ -536,7 +536,7 @@ describe("missing-reference guard on write", () => {
           "validateMonitorStepsBelongToProject",
         )
         .mockImplementation((async (): Promise<void> => {
-          throw new Error("references records that do not exist");
+          throw new Error("references records that are not in this project");
         }) as never);
 
       await expect(
@@ -546,7 +546,7 @@ describe("missing-reference guard on write", () => {
           },
           props: { tenantId: PROJECT_ID },
         }),
-      ).rejects.toThrow("do not exist");
+      ).rejects.toThrow("not in this project");
     });
 
     test("update hands over what the template currently stores", async () => {

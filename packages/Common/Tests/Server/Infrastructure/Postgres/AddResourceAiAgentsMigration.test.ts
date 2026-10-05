@@ -1,5 +1,5 @@
 import { AddResourceAiAgents1796300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796300000000-AddResourceAiAgents";
-import { TurnOnResourceAiInvestigationByDefault1797800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797800000000-TurnOnResourceAiInvestigationByDefault";
+import { TurnOnResourceAiInvestigationByDefault1797900000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797900000000-TurnOnResourceAiInvestigationByDefault";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
@@ -114,7 +114,7 @@ interface MovedDefault {
 const DEFAULTS_MOVED_LATER: Array<MovedDefault> = [
   {
     property: "isAiInvestigationEnabled",
-    migration: new TurnOnResourceAiInvestigationByDefault1797800000000(),
+    migration: new TurnOnResourceAiInvestigationByDefault1797900000000(),
   },
 ];
 

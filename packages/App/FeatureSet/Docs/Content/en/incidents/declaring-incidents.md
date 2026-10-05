@@ -61,6 +61,8 @@ The monitors come first, on their own, because status pages see an incident thro
 - **Change Monitor Status to** — optional, and shown only once at least one monitor is picked. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. Declaring from a template that sets one starts with the template's status, shown as soon as you pick a monitor. With no monitor picked no status is saved, the template's included; remove the last monitor and the field goes away until you pick another, which brings your choice back. A monitor's status is shared by every status page that lists it, so with status pages picked under **More fields**, the form reminds you that the change also shows on the pages you did not pick.
 - **Other Affected Resources** — a second search box for everything else the incident affects: hosts, Kubernetes clusters, Docker and Podman hosts, Proxmox, Ceph and Docker Swarm clusters, vCenters, IoT fleets, databases and services — everything besides monitors that the incident's own **Affected Resources** card offers. Under the hood these are separate relations on the incident (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` and more), but the form collapses them into one picker.
 
+A monitor can say what it watches — **Monitor → Overview → Linked Resources**, the same kinds of resources as **Other Affected Resources**. Pick such a monitor and what it is linked to is added to **Other Affected Resources** right away, and a line under the field names what was added. Remove anything you do not want before you declare: nothing is added again for that monitor while you stay on the form, and taking the monitor off leaves what it added. The same happens when a monitor comes from a template or from the page you declared on, and on **Create Alert** and **Schedule Maintenance**.
+
 The incident's **Affected Resources** card asks the same way when you edit it later: **Monitors**, **Change Monitor Status to** once there is a monitor, then **Other Affected Resources**. Saving an incident with no monitor left keeps the status it had.
 
 Under **More fields**:
@@ -147,6 +149,8 @@ Each entry has:
 For the full list of `{{variable}}` placeholders you can use in the title, description and remediation notes, see [Incident & Alert Templating](/docs/monitor/incident-alert-templating).
 
 Incidents created this way are tagged by the server: `isCreatedAutomatically` is set, `createdCriteriaId` records which criteria filter fired, and `createdByProbe` records which probe saw it. Everything else about them behaves exactly like a hand-declared incident.
+
+An incident a monitor declares is linked to what the monitor watches: whatever its configuration names (the host of a host monitor, the cluster of a Kubernetes monitor, the services of a logs monitor) and everything under its **Linked Resources**. A website or API monitor's configuration names no infrastructure, so link it to the cluster, hosts or database behind the site: its incidents are then on those resources' pages, and OneUptime AI can investigate them there and the cluster's or resource's AI fix can act on them (see [AI SRE](/docs/ai/ai-sre#which-incidents-a-clusters-fixes-act-on)). Alerts a monitor creates are linked the same way.
 
 ## Declaring through the API
 

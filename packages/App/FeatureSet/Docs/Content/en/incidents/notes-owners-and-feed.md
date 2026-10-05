@@ -185,6 +185,8 @@ Open **Team → Owners** in the incident side menu. The **Owners** card shows a 
 
 Owner users and owner teams are separate records — adding a team makes every member of that team an owner for notification purposes without listing them individually.
 
+Only your project's own teams and members can be owners. The picker offers only them, and owners added through the API, Terraform or a workflow are held to the same: a team from another project, or someone who is not a member of the project, is refused.
+
 ## How owners get assigned
 
 There are four routes onto the owners list:

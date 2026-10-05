@@ -4,7 +4,7 @@ OneUptime AI can look at more than your telemetry while it investigates an incid
 
 These agents are the **resource AI agents**. Each resource's dashboard page has an **AI** section with two pages:
 
-- **AI agent** — whether the agent is connected, what AI may do on the resource (investigate, and how fixes run), anything that needs attention with the step that fixes it, **Test connection** and **Reset agent**.
+- **AI agent** — whether the agent is connected, what AI may do on the resource (investigate, and how fixes run), anything that needs attention with the step that fixes it, and, in the **⋯** menu next to the agent's status, **Test connection** and **Reset agent**.
 - **Insights** — what OneUptime AI investigated and changed on the resource: each investigation with its incident or alert, each fix it proposed or ran, and every command it sent through the agent.
 
 The resource's **Overview** ends with an **AI agent** card that sums the AI agent page up: whether the agent is connected, whether investigation is on, how fixes run (**Off**, **Ask for approval**, **Automatic** or **Bypass approval**) and what needs attention, with a link to the AI agent page, where they are changed.
@@ -40,7 +40,7 @@ Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appe
 
 Database servers: the Database AI agent has diagnostics for PostgreSQL, MySQL (and MariaDB and Percona Server), Redis (and Valkey, KeyDB and Dragonfly) and MongoDB. For any other engine it runs nothing and says so on the database's AI agent page.
 
-**Test connection** on the AI agent page runs these read-only commands through the agent and shows their output:
+**Test connection**, in the **⋯** menu next to the agent's status on the AI agent page, runs these read-only commands through the agent and shows their output in the agent's card:
 
 | Resource             | Test connection runs                                 |
 | -------------------- | ---------------------------------------------------- |
@@ -116,7 +116,7 @@ It authenticates with the project's telemetry ingestion key — the first one se
 
 **Investigation** is on for every resource from the start, so OneUptime AI investigates with the agent as soon as it connects. The agent's first connection also makes sure investigation is on and, if the agent allows writes (`ONEUPTIME_AI_ALLOW_WRITES=true`), sets **Fixes** to **Ask for approval**. It does this only on a resource whose AI settings nobody has changed yet: once someone saves them on the AI agent page, the agent never changes them again, so a resource whose **Investigate** switch someone turned off stays off.
 
-**Reset agent** on the AI agent page makes OneUptime forget the agent's key; whatever held it is locked out, and the real agent registers again within a few minutes. The agent needs a OneUptime server of the same version as its image, or newer.
+**Reset agent**, in the same **⋯** menu on the AI agent page, makes OneUptime forget the agent's key once you confirm it; whatever held it is locked out, and the real agent registers again within a few minutes. The agent needs a OneUptime server of the same version as its image, or newer.
 
 ## What an investigation may run
 

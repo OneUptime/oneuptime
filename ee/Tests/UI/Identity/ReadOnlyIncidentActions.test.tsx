@@ -259,8 +259,10 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { SCIM_SAVE_ACCESS_NOTICE_TEST_ID } from "../../../Dashboard/Identity/Components/ScimSaveAccessNotice";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -539,6 +541,24 @@ const settle: () => Promise<void> = async (): Promise<void> => {
   });
 };
 
+const signInWith: (permission: Permission) => void = (
+  permission: Permission,
+): void => {
+  PermissionUtil.setProjectPermissions({
+    _type: "UserTenantAccessPermission",
+    projectId: new ObjectID(PROJECT_ID),
+    permissions: [
+      {
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+        scope: PermissionScope.All,
+        _type: "UserPermission",
+      },
+    ],
+  });
+};
+
 beforeEach(() => {
   billingEnabledForTest = false;
   mockLicenseFetch.mockReset();
@@ -555,11 +575,21 @@ beforeEach(() => {
   jest
     .spyOn(ModelAPI, "updateById")
     .mockImplementation(fakeUpdateById as never);
+
+  /*
+   * A project owner: Settings > SCIM offers Reset Bearer Token only to
+   * someone who could invite people to every team
+   * (Dashboard/Identity/ScimSaveAccess). A project admin's screen is checked
+   * on its own below.
+   */
+  window.localStorage.clear();
+  signInWith(Permission.ProjectOwner);
 });
 
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+  window.localStorage.clear();
 });
 
 const rowOf: (table: string, id: string) => HTMLElement = (
@@ -810,6 +840,106 @@ describe.each(SCIM_CASES)("Reset Bearer Token: $name", (scimCase: ScimCase) => {
       expectTokenRotation(updateCalls[0]);
     },
   );
+});
+
+/*
+ * Resetting a project SCIM connection's bearer token is a save the server
+ * takes only from someone who could invite people to every team: the token
+ * is what the identity provider adds people to teams with. A project admin
+ * is not offered it - read-only or not - and is told who can; a status
+ * page's SCIM has no teams, so its reset stays theirs.
+ */
+describe("Reset Bearer Token for a project admin", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    signInWith(Permission.ProjectAdmin);
+  });
+
+  test.each([
+    ["read-only", READ_ONLY_LICENSE],
+    ["a valid license", { status: "valid", licenseValid: true }],
+  ])(
+    "Settings > SCIM, %s: no reset, and the screen says who can",
+    async (_name: string, payload: JSONObject) => {
+      const scimCase: ScimCase = SCIM_CASES[0]!;
+
+      answerLicense(payload);
+      seedScim(scimCase);
+
+      await renderScreen(scimCase);
+
+      expect(resetButtons(scimCase)).toHaveLength(0);
+      expect(
+        within(rowOf(scimCase.table, ENABLED_ROW_ID)).getByRole("button", {
+          name: "View SCIM URLs",
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(READ_ONLY_ACTIONS_NOTICE_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(updateCalls).toEqual([]);
+
+      // The URLs dialog shows the addresses, and no token.
+      await act(async () => {
+        fireEvent.click(
+          within(rowOf(scimCase.table, ENABLED_ROW_ID)).getByRole("button", {
+            name: "View SCIM URLs",
+          }),
+        );
+      });
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+
+      expect(modal).toHaveTextContent("SCIM Base URL");
+      expect(
+        within(modal).queryByTestId("scim-bearer-token-section"),
+      ).not.toBeInTheDocument();
+      expect(modal).not.toHaveTextContent(OLD_BEARER_TOKEN);
+    },
+  );
+
+  test("Settings > SCIM, for a project owner: the URLs dialog shows the token", async () => {
+    window.localStorage.clear();
+    signInWith(Permission.ProjectOwner);
+
+    const scimCase: ScimCase = SCIM_CASES[0]!;
+
+    answerLicense({ status: "valid", licenseValid: true });
+    seedScim(scimCase);
+
+    await renderScreen(scimCase);
+
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf(scimCase.table, ENABLED_ROW_ID)).getByRole("button", {
+          name: "View SCIM URLs",
+        }),
+      );
+    });
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    expect(
+      within(modal).getByTestId("scim-bearer-token-section"),
+    ).toBeInTheDocument();
+  });
+
+  test("Status page > SCIM, read-only: the reset stays on offer", async () => {
+    const scimCase: ScimCase = SCIM_CASES[1]!;
+
+    answerLicense(READ_ONLY_LICENSE);
+    seedScim(scimCase);
+
+    await renderScreen(scimCase);
+
+    expect(resetButtons(scimCase)).toHaveLength(1);
+    expect(
+      screen.queryByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
 });
 
 /*

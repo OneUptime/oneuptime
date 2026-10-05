@@ -3536,11 +3536,10 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     expect(IncidentService.create).not.toHaveBeenCalled();
     expect(view.deletes).toEqual([]);
     /*
-     * The operator log does name it, with the class it was refused as: a
-     * BadDataException with the same message, so API callers see no change.
+     * The operator log has its id - never its name - with the class it was
+     * refused as: a BadDataException with the same message API callers get.
      */
-    const reason: string =
-      'This incident references records that belong to a different project: Monitor "Payments API". Please pick values from this project and try again.';
+    const reason: string = `This incident references records that are not in this project: Monitor "${foreignMonitor.id!.toString()}". Please pick values from this project and try again.`;
     expect(loggedErrors).toEqual([
       `Could not create an incident from Microsoft Teams: ProjectScopedReferenceException: ${reason}`,
       `Error: ${reason}`,
@@ -4126,7 +4125,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
       ],
     ]);
     expect(ScheduledMaintenanceService.create).not.toHaveBeenCalled();
-    const reason: string = `This scheduled maintenance event references records that do not exist: Label "${deletedLabelId}". Please pick values that exist in this project and try again.`;
+    const reason: string = `This scheduled maintenance event references records that are not in this project: Label "${deletedLabelId}". Please pick values from this project and try again.`;
     expect(loggedErrors).toEqual([
       `Could not create a scheduled maintenance event from Microsoft Teams: ProjectScopedReferenceException: ${reason}`,
       `Error: ${reason}`,

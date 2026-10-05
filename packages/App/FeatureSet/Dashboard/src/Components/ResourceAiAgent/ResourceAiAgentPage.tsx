@@ -101,6 +101,11 @@ import {
   AiAccessRow,
   AiAccessRows,
 } from "../AiAccess/AiAccessRow";
+import { AiAgentAction, getAiAgentActions } from "../AiAccess/AiAgentActions";
+import {
+  AiAgentTestProgress,
+  getAiAgentCardButtons,
+} from "../AiAccess/AiAgentActionsMenu";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -170,8 +175,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * descriptor so one component serves every resource type:
  *
  *  A. "<Resource> AI agent": the connection, with the install instructions
- *     or the logs command where they are the next step, a connection test,
- *     and the admin action (reset the agent).
+ *     or the logs command where they are the next step. Its status sits in
+ *     the header with one ⋯ beside it for the connection test and the admin
+ *     action (reset the agent) - ../AiAccess/AiAgentActions.ts.
  *  B. "Needs attention": the server's gaps as ONE item, only when there
  *     are any — a headline saying what AI cannot do here, then one short
  *     step per gap with its action. The page never builds a readiness
@@ -1193,59 +1199,32 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     }
   };
 
-  const agentButtons: Array<ReactElement> = [];
-
   /*
-   * There is nothing to test before an agent registered. Without edit
-   * permission the button stays, locked, with the reason in its tooltip;
-   * it is dropped only when there is nothing honest to say (the permission
-   * snapshot has not landed).
+   * The agent card's ⋯. There is nothing to test or reset before an agent
+   * registered.
    */
-  if (hasAgent && (testGate.isAllowed || testGate.disabledReason)) {
-    agentButtons.push(
-      <Button
-        key="test"
-        title="Test connection"
-        icon={IconProp.Play}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        isLoading={isTesting}
-        disabled={isTesting || !testGate.isAllowed}
-        tooltip={
-          testGate.isAllowed
-            ? undefined
-            : getResourceAccessTestPermissionRequirement(descriptor)
-        }
-        dataTestId="ai-agent-test-button"
-        onClick={() => {
-          if (!testGate.isAllowed || !hasAgent) {
-            return;
-          }
-          runTest().catch(() => {
-            // handled inside runTest
-          });
-        }}
-      />,
-    );
-  }
-
-  if (hasAgent && canResetResourceAiAgent()) {
-    agentButtons.push(
-      <Button
-        key="reset"
-        title="Reset agent"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        disabled={isActing}
-        dataTestId="ai-agent-reset-button"
-        onClick={() => {
-          setConfirmationError("");
-          setIsConfirmingReset(true);
-        }}
-      />,
-    );
-  }
+  const agentActions: Array<AiAgentAction> = getAiAgentActions({
+    testConnection: {
+      hasTarget: hasAgent,
+      gate: testGate,
+      permissionRequirement:
+        getResourceAccessTestPermissionRequirement(descriptor),
+      isRunning: isTesting,
+      onRun: (): void => {
+        runTest().catch(() => {
+          // handled inside runTest
+        });
+      },
+    },
+    resetAgent: {
+      isOffered: hasAgent && canResetResourceAiAgent(),
+      onClick: (): void => {
+        setConfirmationError("");
+        setIsConfirmingReset(true);
+      },
+    },
+    isActing,
+  });
 
   const settingsButtons: Array<ReactElement> =
     settingsGate.isAllowed || settingsGate.disabledReason
@@ -1332,7 +1311,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             />
           </span>
         }
-        buttons={agentButtons}
+        buttons={getAiAgentCardButtons(agentActions)}
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-900" data-testid="ai-agent-sentence">
@@ -1425,6 +1404,8 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+
+          {isTesting ? <AiAgentTestProgress /> : <></>}
 
           {testError ? (
             <Alert

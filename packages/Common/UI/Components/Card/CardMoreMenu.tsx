@@ -4,6 +4,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   children: Array<ReactElement>;
+  /*
+   * The button's accessible name, for a ⋯ that holds one thing's actions
+   * (an AI agent's Test connection and Reset agent) rather than a list's
+   * options. Left out, it is "More options", like a table's and a feed's.
+   */
+  ariaLabel?: string | undefined;
+  dataTestId?: string | undefined;
 }
 
 /*
@@ -14,14 +21,19 @@ export interface ComponentProps {
  * possible visible to the user."
  *
  * Every card header's ⋯ is this one component - an outlined button with three
- * dots, named "More options" - so a table's and a feed's are the same button,
- * and stay so.
+ * dots, named "More options" unless the card names it - so a table's and a
+ * feed's are the same button, and stay so.
  */
 const CardMoreMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <MoreMenu menuIcon={IconProp.EllipsisHorizontal} text="">
+    <MoreMenu
+      menuIcon={IconProp.EllipsisHorizontal}
+      text=""
+      ariaLabel={props.ariaLabel}
+      dataTestId={props.dataTestId}
+    >
       {props.children}
     </MoreMenu>
   );

@@ -40,6 +40,8 @@ import {
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
 } from "../../TightenOnly/TightenOnlyUpdates";
+import { canCurrentUserSaveScimConnections } from "../../ScimSaveAccess";
+import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
 
 /*
  * Settings > SCIM: the project's SCIM connections and their logs.
@@ -50,6 +52,12 @@ import {
  * Once it is saved, the dialog with the SCIM URLs and the bearer token to
  * give the identity provider opens straight away: that is the next thing to
  * do.
+ *
+ * A connection can change the members of any team, so only someone who
+ * could invite people to every team - a project owner - may add one, change
+ * one, or see or reset its bearer token (../../ScimSaveAccess; the server
+ * lets only a project owner read the token). Everyone else who can see the
+ * page is told so instead of being offered what the server would refuse.
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -78,6 +86,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
     LicensedFeature.SCIM,
   );
   const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(licenseMode);
+
+  // Adding, changing or resetting a connection: a project owner's to do.
+  const canSaveConnections: boolean = canCurrentUserSaveScimConnections();
 
   const [showResetSuccessModal, setShowResetSuccessModal] =
     useState<boolean>(false);
@@ -118,7 +129,11 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         mode={licenseMode}
         feature={LicensedFeature.SCIM}
       />
-      <ReadOnlyActionsNotice mode={licenseMode} />
+      {canSaveConnections ? (
+        <ReadOnlyActionsNotice mode={licenseMode} />
+      ) : (
+        <ScimSaveAccessNotice />
+      )}
       <Tabs
         tabs={[
           {
@@ -137,8 +152,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   tableId: "settings-project-scim-table",
                 }}
                 isDeleteable={true}
-                isEditable={!isReadOnly}
-                isCreateable={!isReadOnly}
+                isEditable={!isReadOnly && canSaveConnections}
+                isCreateable={!isReadOnly && canSaveConnections}
                 showRefreshButton={true}
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
@@ -195,7 +210,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                 ]}
                 selectMoreFields={{
-                  bearerToken: true,
+                  // Only a project owner may read the token at all.
+                  ...(canSaveConnections ? { bearerToken: true } : {}),
                   createdAt: true,
                   updatedAt: true,
                   enablePushGroups: true,
@@ -228,20 +244,24 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       setShowSCIMUrlId(item.id?.toString() || "");
                     },
                   },
-                  {
-                    title: "Reset Bearer Token",
-                    buttonStyleType: ButtonStyleType.OUTLINE,
-                    icon: IconProp.Refresh,
-                    onClick: async (
-                      item: ProjectSCIM,
-                      onCompleteAction: () => void,
-                      _onError: (error: Error) => void,
-                    ) => {
-                      onCompleteAction();
-                      setResetSCIMId(item.id?.toString() || "");
-                      setShowResetModal(true);
-                    },
-                  },
+                  ...(canSaveConnections
+                    ? [
+                        {
+                          title: "Reset Bearer Token",
+                          buttonStyleType: ButtonStyleType.OUTLINE,
+                          icon: IconProp.Refresh,
+                          onClick: async (
+                            item: ProjectSCIM,
+                            onCompleteAction: () => void,
+                            _onError: (error: Error) => void,
+                          ) => {
+                            onCompleteAction();
+                            setResetSCIMId(item.id?.toString() || "");
+                            setShowResetModal(true);
+                          },
+                        },
+                      ]
+                    : []),
                 ]}
               />
             ),
@@ -308,21 +328,26 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   </p>
                 </div>
 
-                <div className="border-t pt-4">
-                  <p className="font-medium text-gray-700 mb-1">
-                    Bearer Token:
-                  </p>
-                  <div className="mb-2">
-                    <HiddenText
-                      text={currentSCIMConfig.bearerToken || ""}
-                      isCopyable={true}
-                    />
+                {canSaveConnections && (
+                  <div
+                    className="border-t pt-4"
+                    data-testid="scim-bearer-token-section"
+                  >
+                    <p className="font-medium text-gray-700 mb-1">
+                      Bearer Token:
+                    </p>
+                    <div className="mb-2">
+                      <HiddenText
+                        text={currentSCIMConfig.bearerToken || ""}
+                        isCopyable={true}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Use this bearer token for authentication in your identity
+                      provider SCIM configuration.
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Use this bearer token for authentication in your identity
-                    provider SCIM configuration.
-                  </p>
-                </div>
+                )}
               </div>
             </div>
           }

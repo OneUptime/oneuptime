@@ -32,6 +32,13 @@ import User from "./User";
  * person can still pick the team or the role by hand, and the server
  * explains its own refusal. That is why a row whose kind is unknown counts
  * as a block here and never as an allow.
+ *
+ * canGrantTeamPermission weighs one of a team's own rows at the scope and
+ * labels it has, as the server does when someone is added to the team: the
+ * single sign-on provider forms use it to say, before saving, which picked
+ * teams the server would refuse (people who sign in with a provider join its
+ * teams, so its teams meet the same ceiling - Server/Utils
+ * /SsoProviderTeamGrant).
  */
 
 export interface PermissionRows {
@@ -53,7 +60,11 @@ export const isUnrestrictedPermission: IsUnrestrictedFunction = (
     return true;
   }
 
-  if (permission.scope === PermissionScope.Owned) {
+  /*
+   * Owned never does, and neither does a scope this copy does not know: the
+   * server counts only All, and Labels or no scope without labels.
+   */
+  if (permission.scope && permission.scope !== PermissionScope.Labels) {
     return false;
   }
 
@@ -113,6 +124,146 @@ export const canGrantPermission: CanGrantPermissionFunction = (data: {
   }
 
   return holdsUnblocked(data);
+};
+
+/*
+ * One permission row of a team, as joining the team hands it on: the
+ * permission, the scope it is held at, and the labels it is limited to.
+ * Allow and block rows alike are handed on with the team, and both are
+ * weighed the same way (TeamPermissionService.assertCanGrantTeamPermissions).
+ */
+export interface TeamPermissionGrant {
+  permission: Permission;
+  scope?: PermissionScope | undefined;
+  labelIds?: Array<string> | undefined;
+}
+
+type CallerRowCoversFunction = (data: {
+  callerRow: UserPermission;
+  grant: TeamPermissionGrant;
+}) => boolean;
+
+/*
+ * Whether one of the caller's allow rows reaches as far as the grant does:
+ * a project-wide row reaches anything, and a label-limited row reaches a
+ * grant limited to labels it holds every one of. Ids are compared as text,
+ * as the server compares them (TeamPermissionService.permissionCoversGrant).
+ */
+const callerRowCovers: CallerRowCoversFunction = (data: {
+  callerRow: UserPermission;
+  grant: TeamPermissionGrant;
+}): boolean => {
+  if (isUnrestrictedPermission(data.callerRow)) {
+    return true;
+  }
+
+  const grantLabelIds: Array<string> = data.grant.labelIds || [];
+
+  if (
+    !isLabelScopedGrant(data.grant) ||
+    data.callerRow.scope === PermissionScope.Owned
+  ) {
+    return false;
+  }
+
+  const callerLabelIds: Set<string> = new Set<string>(
+    (data.callerRow.labelIds || []).map((labelId: unknown): string => {
+      return String(labelId);
+    }),
+  );
+
+  return grantLabelIds.every((labelId: string): boolean => {
+    return callerLabelIds.has(labelId);
+  });
+};
+
+type IsLabelScopedGrantFunction = (grant: TeamPermissionGrant) => boolean;
+
+// A grant limited to some labels: it carries labels, at a scope that uses them.
+const isLabelScopedGrant: IsLabelScopedGrantFunction = (
+  grant: TeamPermissionGrant,
+): boolean => {
+  return (
+    (grant.labelIds || []).length > 0 &&
+    grant.scope !== PermissionScope.All &&
+    grant.scope !== PermissionScope.Owned
+  );
+};
+
+type CanGrantTeamPermissionFunction = (data: {
+  grant: TeamPermissionGrant;
+  rows: PermissionRows;
+}) => boolean;
+
+/**
+ * Whether someone holding `rows` may hand on one permission row of a team,
+ * at the scope and labels the row has: the server's grant ceiling exactly
+ * (TeamPermissionService.assertCanGrantPermission), where canGrantPermission
+ * answers only for a grant to the whole project.
+ *
+ *   - a project owner may hand on anything, unless something blocks their
+ *     ProjectOwner;
+ *   - anyone else needs the same permission at an equal or broader reach -
+ *     project-wide, or limited to every label the row is limited to - and no
+ *     block on it that reaches what the row grants.
+ */
+export const canGrantTeamPermission: CanGrantTeamPermissionFunction = (data: {
+  grant: TeamPermissionGrant;
+  rows: PermissionRows;
+}): boolean => {
+  if (
+    holdsUnblocked({
+      permission: Permission.ProjectOwner,
+      rows: data.rows,
+    })
+  ) {
+    return true;
+  }
+
+  const isHeld: boolean = data.rows.allow.some(
+    (row: UserPermission): boolean => {
+      return (
+        row.permission === data.grant.permission &&
+        callerRowCovers({ callerRow: row, grant: data.grant })
+      );
+    },
+  );
+
+  if (!isHeld) {
+    return false;
+  }
+
+  const grantLabelIds: Array<string> = data.grant.labelIds || [];
+  const isLabelScoped: boolean = isLabelScopedGrant(data.grant);
+
+  const isBlocked: boolean = data.rows.block.some(
+    (row: UserPermission): boolean => {
+      if (row.permission !== data.grant.permission) {
+        return false;
+      }
+
+      const blockedLabelIds: Array<string> = (row.labelIds || []).map(
+        (labelId: unknown): string => {
+          return String(labelId);
+        },
+      );
+
+      if (
+        !isLabelScoped ||
+        row.scope === PermissionScope.All ||
+        row.scope === PermissionScope.Owned ||
+        blockedLabelIds.length === 0
+      ) {
+        return true;
+      }
+
+      return blockedLabelIds.some((labelId: string): boolean => {
+        return grantLabelIds.includes(labelId);
+      });
+    },
+  );
+
+  return !isBlocked;
 };
 
 type IsBlockedFromAnyFunction = (data: {
@@ -238,6 +389,26 @@ export default class GrantablePermission {
 
     return permissions.every((permission: Permission): boolean => {
       return canGrantPermission({ permission: permission, rows: rows });
+    });
+  }
+
+  /*
+   * Whether the signed-in user may add someone to a team with these
+   * permission rows, each at the scope and labels it has
+   * (canGrantTeamPermission). A team with no rows is handed on by anyone; a
+   * master admin may hand on any team, as on the server.
+   */
+  public static canCurrentUserGrantTeam(
+    grants: Array<TeamPermissionGrant>,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return true;
+    }
+
+    const rows: PermissionRows = this.getCurrentUserPermissionRows();
+
+    return grants.every((grant: TeamPermissionGrant): boolean => {
+      return canGrantTeamPermission({ grant: grant, rows: rows });
     });
   }
 }
