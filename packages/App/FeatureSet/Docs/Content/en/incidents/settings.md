@@ -12,7 +12,6 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 
 | Page                     | What you do there                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **AI**                   | Switch what OneUptime AI does on its own on or off — investigating new incidents, drafting postmortems, opening fix and missing-telemetry pull requests — each saving as soon as you flip it. Which incidents are investigated and the optional limits AI works under are folded under **More settings**; none apply until you set them. See [AI SRE](/docs/ai/ai-sre). |
 | **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
@@ -24,9 +23,11 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
 | **Number Prefix**        | The text in front of incident and episode numbers, such as `INC-` in `INC-42`.               |
 
+What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, drafting postmortems and opening fix and missing-telemetry pull requests on or off, each saving as soon as you flip it; which incidents are investigated, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Auto Remediation Rules** are next to it, with **Insights** and **Logs**: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
+
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. Forms that let people outside your team report incidents are a product of their own: see [Forms](/docs/forms/index).
 
-Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
+Expand **Rules** and you get eight more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
 
 ## Incident templates
 
@@ -428,13 +429,13 @@ Both are on for new projects; a project created before they were on by default k
 
 ## Rules that run when an incident is created
 
-**Incidents → Rules** holds nine rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
+**Incidents → Rules** holds eight rule engines, and **Incidents → AI** a ninth, **Auto Remediation Rules**. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
 
 - **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place. Covered in detail below.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
-- **Auto Remediation Rules** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
+- **Auto Remediation Rules**, under **AI** — propose or start remediation runbooks when an incident matches. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
 - **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.
@@ -449,6 +450,14 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 **A new rule starts on.** Creating a rule does not ask whether it should be enabled: it starts enabled, exactly as one created through the API or Terraform does, and every other switch on the form starts the way the API would store it — **Notify Owners** on an owner rule is on, for example. To pause a rule without deleting it, switch **Enabled** off on its edit form; the list shows a green **Enabled** or red **Disabled** pill for each rule. Grouping rules are the exception: their create form shows the **Enabled** switch, already on.
 
 **A rule names only your project's records.** The monitors, labels, severities, on-call policies, roles and teams a rule picks are your project's, and the people are its members — the form's pickers offer nothing else. Rules saved through the API, Terraform or a workflow are held to the same: a rule that names a record from another project, a record that does not exist, or someone who is not a member of the project is refused, and the error names the field and the id. Editing a rule checks only what the edit adds, so a rule that names someone who has since left the project can still be saved. When a rule runs, it adds only your project's own teams as owners and pages only your project's own on-call policies.
+
+## Incident label and owner rules
+
+**Incidents → Rules → Label Rules** attaches labels to new incidents that match, and **Owner Rules** adds owner users and teams to them. **Alerts → Rules** and **Scheduled Maintenance → Rules** have the same two pages and work the same way. Creating a rule takes two steps: **Match**, the conditions an incident must meet, then **Labels** (or **Owners**), what the rule adds. Its **Name** is filled in from what you pick until you type a name of your own, and the optional **Description** (and an owner rule's **Notify Owners**) waits under **More fields**.
+
+**A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty; a new rule that neither names nor inherits anything cannot be saved. Episode rules, on the **Episode Rules** tab, have no inherit switches.
+
+**Older rules that add nothing** — saved before the form asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
 
 ## Incident grouping rules
 

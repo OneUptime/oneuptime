@@ -80,8 +80,8 @@ jest.mock("react-i18next", () => {
 
 /*
  * The project's AI settings pages, rendered for real with the network and
- * the permission snapshot stubbed: Incidents → Settings → AI, Alerts →
- * Settings → AI, AI → Insights → Settings and Project Settings → AI
+ * the permission snapshot stubbed: Incidents → AI → Settings, Alerts →
+ * AI → Settings, AI → Insights → Settings and Project Settings → AI
  * Features.
  *
  * Every AI behaviour on them is a switch that saves the moment it is
@@ -285,14 +285,14 @@ async function runPendingEffects(): Promise<void> {
 function openIncidentPage(): void {
   openPage(
     <IncidentAISettings {...PAGE_PROPS} />,
-    `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
+    `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
   );
 }
 
 function openAlertPage(): void {
   openPage(
     <AlertAISettings {...PAGE_PROPS} />,
-    `/dashboard/${PROJECT_ID}/alerts/settings/ai`,
+    `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
   );
 }
 
@@ -378,7 +378,7 @@ function detailValue(title: string): string {
   return (row?.textContent || "").replace(title, "").trim();
 }
 
-describe("Incidents → Settings → AI", () => {
+describe("Incidents → AI → Settings", () => {
   test("every AI behaviour is a switch, in order, with what the project has", async () => {
     stored = projectWith({
       enableAutomaticPostmortemDraft: false,
@@ -808,7 +808,7 @@ describe("Incidents → Settings → AI", () => {
   });
 });
 
-describe("Alerts → Settings → AI", () => {
+describe("Alerts → AI → Settings", () => {
   test("its switches are the alert behaviours, with no postmortem", async () => {
     stored = projectWith({ enableAutomaticAlertCodeFixes: false });
 

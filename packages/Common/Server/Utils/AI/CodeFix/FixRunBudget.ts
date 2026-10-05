@@ -197,8 +197,8 @@ export default class FixRunBudget {
         : "Daily Alert AI Fix Task Limit";
     const settingsLocation: string =
       lane === "incident"
-        ? "Incidents > Settings > AI"
-        : "Alerts > Settings > AI";
+        ? "Incidents > AI > Settings"
+        : "Alerts > AI > Settings";
     const laneLabel: string = `${lane} AI`;
 
     if (decision.paused) {

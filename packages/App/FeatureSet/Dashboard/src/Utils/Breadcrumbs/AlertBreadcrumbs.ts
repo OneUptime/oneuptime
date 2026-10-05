@@ -189,18 +189,31 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
 
     /*
      * The trail names the side-menu section a page actually lives in —
-     * otherwise the header says "Settings" while the menu highlights "Rules".
-     * AI is a Settings page; auto-remediation rules are rules.
+     * otherwise the header says "Settings" while the menu highlights "AI".
+     * The AI settings and the auto-remediation rules are pages of the AI
+     * section.
      */
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_AI_INSIGHTS, [
+      "Project",
+      "Alerts",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_AI_LOGS, [
+      "Project",
+      "Alerts",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_AI, [
       "Project",
       "Alerts",
-      "Settings",
       "AI",
+      "Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-      ["Project", "Alerts", "Rules", "Auto Remediation Rules"],
+      ["Project", "Alerts", "AI", "Auto Remediation Rules"],
     ),
 
     // Alert Rules

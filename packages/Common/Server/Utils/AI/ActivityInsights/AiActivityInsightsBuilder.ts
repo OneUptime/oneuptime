@@ -57,6 +57,12 @@ import SeriesLabelDisplay, {
  *     next older one that has either.
  *   - Runs without an incident or alert (an insight's triage) count in the
  *     totals and the trend only: there is no problem to file them under.
+ *
+ * The incidents' and alerts' pages build theirs here too
+ * (IncidentAlertAiInsightsBuilder): their scope has no parts of its own, so
+ * they ask for no hotspots, and the attention items only their rows can say
+ * (incidents AI skipped, a monitor behind most investigations) come in as
+ * extraAttention, ranked with the rest.
  */
 
 // The incident or alert an investigation was about, as the reader read it.
@@ -65,6 +71,8 @@ export interface AiActivitySubjectInput {
   id: string;
   title?: string | undefined;
   number?: number | undefined;
+  // The number with the project's prefix ("INC-42"), when the reader read it.
+  numberWithPrefix?: string | undefined;
   // What raised it: an alert's monitor, an incident's monitors.
   monitorIds: Array<string>;
   seriesLabels?: JSONObject | undefined;
@@ -114,6 +122,22 @@ export interface AiActivityInsightsInput {
   scopeNames: ReadonlyArray<string>;
   // The reader could not read everything the window held.
   isPartial: boolean;
+  /*
+   * Every incident or alert the rows are about that the caller may read, by
+   * id, so an attention item can link one AI did not investigate in the
+   * window (a fix's). The investigations' own subjects when left out.
+   */
+  subjects?: Map<string, AiActivitySubjectInput> | undefined;
+  /*
+   * False for a scope with no parts of its own (a project's incidents or
+   * alerts): no hotspots, and no Hotspot attention item.
+   */
+  includeHotspots?: boolean | undefined;
+  /*
+   * Attention items a reader worked out from rows only it reads (the
+   * incidents' and alerts' coverage and monitors), ranked with the rest.
+   */
+  extraAttention?: Array<AiActivityAttentionItem> | undefined;
 }
 
 /*
@@ -151,13 +175,15 @@ const SEVERITY_RANK: Record<AiActivityAttentionSeverity, number> = {
 
 const KIND_RANK: Record<AiActivityAttentionKind, number> = {
   [AiActivityAttentionKind.FixesFailed]: 0,
-  [AiActivityAttentionKind.RecurringProblem]: 1,
-  [AiActivityAttentionKind.PreventiveInsight]: 2,
-  [AiActivityAttentionKind.FixesAwaitingApproval]: 3,
-  [AiActivityAttentionKind.InvestigationsFailed]: 4,
-  [AiActivityAttentionKind.CommandsTimedOut]: 5,
-  [AiActivityAttentionKind.FindingsRejected]: 6,
-  [AiActivityAttentionKind.Hotspot]: 7,
+  [AiActivityAttentionKind.InvestigationsNotStarted]: 1,
+  [AiActivityAttentionKind.RecurringProblem]: 2,
+  [AiActivityAttentionKind.PreventiveInsight]: 3,
+  [AiActivityAttentionKind.FixesAwaitingApproval]: 4,
+  [AiActivityAttentionKind.InvestigationsFailed]: 5,
+  [AiActivityAttentionKind.CommandsTimedOut]: 6,
+  [AiActivityAttentionKind.FindingsRejected]: 7,
+  [AiActivityAttentionKind.Hotspot]: 8,
+  [AiActivityAttentionKind.MonitorHotspot]: 9,
 };
 
 const FAILED_RUN_STATUSES: ReadonlyArray<string> = [
@@ -202,6 +228,9 @@ function toSubject(input: AiActivitySubjectInput): AiActivitySubject {
     id: input.id,
     ...(input.title ? { title: input.title } : {}),
     ...(input.number !== undefined ? { number: input.number } : {}),
+    ...(input.numberWithPrefix
+      ? { numberWithPrefix: input.numberWithPrefix }
+      : {}),
   };
 }
 
@@ -465,7 +494,7 @@ export default class AiActivityInsightsBuilder {
     const subjects: Map<string, AiActivitySubjectInput> = new Map<
       string,
       AiActivitySubjectInput
-    >();
+    >(input.subjects || []);
 
     for (const run of runs) {
       if (run.subject && !subjects.has(run.subject.id)) {
@@ -478,10 +507,8 @@ export default class AiActivityInsightsBuilder {
         return this.buildProblem(group, fixes, input);
       },
     );
-    const hotspots: Array<AiActivityHotspot> = this.buildHotspots(
-      groups,
-      input,
-    );
+    const hotspots: Array<AiActivityHotspot> =
+      input.includeHotspots === false ? [] : this.buildHotspots(groups, input);
     const fixOutcomes: AiActivityFixOutcomes = this.buildFixOutcomes(fixes);
 
     const totals: AiActivityInsightsTotals = {
@@ -1124,6 +1151,9 @@ export default class AiActivityInsightsBuilder {
         object: { name: topHotspot.name, value: topHotspot.value },
       });
     }
+
+    // 9. What only the reader's own rows could say.
+    items.push(...(data.input.extraAttention || []));
 
     return items
       .sort(

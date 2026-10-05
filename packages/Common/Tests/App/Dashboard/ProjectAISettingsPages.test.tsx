@@ -409,7 +409,7 @@ describe("who may change Enable AI", () => {
 /*
  * The shared gate the cards of Project settings use in place of
  * CardModelDetail's table-level one: the AI limit cards under Advanced on
- * Incidents and Alerts → Settings → AI, Linked Alerts and the number
+ * Incidents and Alerts → AI → Settings, Linked Alerts and the number
  * prefixes. (A switch gates itself the same way, on its own column:
  * PermissionGate.checkColumnUpdate.)
  */
@@ -822,7 +822,7 @@ describe("settings menu, route and breadcrumbs", () => {
   });
 });
 
-describe("Incidents → Settings → AI", () => {
+describe("Incidents → AI → Settings", () => {
   const POSTMORTEM_SWITCH: string =
     "Draft a postmortem when an incident resolves";
 
@@ -837,7 +837,7 @@ describe("Incidents → Settings → AI", () => {
         currentProject={null}
         hasPaymentMethod={true}
       />,
-      `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
+      `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
     );
   }
 

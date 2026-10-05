@@ -12,7 +12,6 @@ Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni*
 
 | Pagina                     | Che cosa ci fate                                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| **IA**                   | Attivate o disattivate l'indagine automatica, le correzioni automatiche del codice e le bozze di post-mortem, e impostate i limiti facoltativi entro cui lavora l'IA: nessuno si applica finché non lo impostate. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Stato incidente**       | Aggiungete, rinominate, ricolorate e riordinate gli stati che un incidente attraversa.                       |
 | **Gravità incidente**    | Aggiungete, rinominate, ricolorate e riordinate i livelli di gravità.                                            |
 | **Modelli di incidenti**   | Precompilate un incidente intero — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
@@ -22,9 +21,11 @@ Aprite **Incidenti** nella navigazione a sinistra, poi espandete **Impostazioni*
 | **Ruoli incidente**       | Definite i ruoli a cui assegnate chi risponde, per esempio Incident Commander.                       |
 | **Prefisso del numero**        | I prefissi dei numeri di incidente e di episodio.                                           |
 
+Ciò che OneUptime AI fa da solo non si imposta qui: ha una sezione propria, **Incidenti → IA**, su percorsi che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'indagine automatica, le correzioni automatiche del codice e le bozze di post-mortem, e raccoglie i limiti facoltativi entro cui lavora l'IA: nessuno si applica finché non lo impostate. Accanto ci sono le **Regole di rimedio automatico**, con **Informazioni** e **Registri**: ciò che l'IA ha imparato dai vostri incidenti e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
+
 **Stato incidente** e **Gravità incidente** sono trattati a fondo in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte dai **Modelli di incidenti**.
 
-Espandete **Regole** e ottenete altre nove schermate: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di rimedio automatico**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Reminder Rules**. Le trovate più avanti.
+Espandete **Regole** e ottenete altre otto schermate: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA** e **Reminder Rules**. Le trovate più avanti.
 
 ## Modelli di incidenti
 
@@ -116,13 +117,13 @@ Un nuovo prefisso vale solo per gli incidenti e gli episodi creati dopo. Quelli 
 
 ## Le regole che scattano alla creazione di un incidente
 
-**Incidenti → Regole** contiene nove motori di regole. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
+**Incidenti → Regole** contiene otto motori di regole, e **Incidenti → IA** un nono, le **Regole di rimedio automatico**. Fanno tutti lo stesso mestiere — guardano un incidente nell'istante in cui viene creato e agiscono se corrisponde — ma si distinguono per che cosa fanno e per come si risolvono più regole che corrispondono insieme.
 
 - **Regole di raggruppamento** — raggruppano incidenti correlati in episodi. Le regole vengono valutate in ordine di priorità; i numeri di priorità più bassi vanno per primi.
 - **Regole di reperibilità** — eseguono le policy di reperibilità per gli incidenti corrispondenti. Trattate in dettaglio più sotto.
 - **Regole del proprietario** — assegnano i proprietari automaticamente.
 - **Regole di runbook** — avviano un [runbook](/docs/runbooks/index) quando un incidente corrisponde.
-- **Regole di rimedio automatico** — propongono o avviano runbook di rimedio quando un incidente corrisponde. Se per l'incidente è in coda un'indagine IA, partono quando questa termina, con la sua analisi in mano. Vedete [AI SRE](/docs/ai/ai-sre).
+- **Regole di rimedio automatico**, sotto **IA** — propongono o avviano runbook di rimedio quando un incidente corrisponde. Se per l'incidente è in coda un'indagine IA, partono quando questa termina, con la sua analisi in mano. Vedete [AI SRE](/docs/ai/ai-sre).
 - **Regole di privacy** — decidono se un incidente corrispondente è privato.
 - **Regole etichette** — applicano le etichette automaticamente.
 - **Regole SLA** — tracciano i tempi di risposta e di risoluzione. Le regole vengono valutate in ordine; i numeri d'ordine più bassi vanno per primi.

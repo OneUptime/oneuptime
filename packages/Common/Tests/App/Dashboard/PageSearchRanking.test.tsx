@@ -298,6 +298,30 @@ describe("the breadcrumb tells pages apart and narrows a search", () => {
     expect(listed).not.toContain("Owner Rules — Incidents › Rules");
   });
 
+  /*
+   * The AI section of Incidents and Alerts has a page called Settings too;
+   * naming AI finds it, and naming neither product's settings page leaves
+   * it after Incidents > Settings.
+   */
+  test("'incident ai settings' and 'alert ai settings' open each product's AI settings", () => {
+    expect(rows("incident ai settings")[0]).toBe("Settings — Incidents › AI");
+    expect(rows("alert ai settings")[0]).toBe("Settings — Alerts › AI");
+    expect(rows("incident settings")).toContain("Settings — Incidents › AI");
+  });
+
+  test("the AI section's Insights and Logs are found by the product and the page", () => {
+    expect(rows("incident ai insights")[0]).toBe("Insights — Incidents › AI");
+    expect(rows("alert ai insights")[0]).toBe("Insights — Alerts › AI");
+    expect(rows("incident ai logs")[0]).toBe("Logs — Incidents › AI");
+    expect(rows("alert ai logs")[0]).toBe("Logs — Alerts › AI");
+    expect(rows("recurring problems")).toEqual(
+      expect.arrayContaining([
+        "Insights — Incidents › AI",
+        "Insights — Alerts › AI",
+      ]),
+    );
+  });
+
   test("'user settings' opens User Settings, then its own pages", () => {
     const listed: Array<string> = rows("user settings");
 

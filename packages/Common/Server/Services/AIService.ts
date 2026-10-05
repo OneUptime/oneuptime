@@ -1114,8 +1114,8 @@ export class Service extends BaseService {
 
       if (budget.exhausted) {
         const settingsLocation: string = request.incidentId
-          ? "Incidents > Settings > AI"
-          : "Alerts > Settings > AI";
+          ? "Incidents > AI > Settings"
+          : "Alerts > AI > Settings";
         const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;
