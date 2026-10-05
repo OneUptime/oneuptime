@@ -1,6 +1,7 @@
 import { jest } from "@jest/globals";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -199,4 +200,20 @@ export function stubProjectDirectory(
     );
 
   return stub;
+}
+
+/*
+ * For a suite about a service's own rules - what it refuses, what it reads,
+ * in which order - rather than the references it names: the generic check
+ * every ProjectReferencesService runs first is let through, so it adds no
+ * lookups of its own. ProjectScopedReferencesEverywhere holds every service
+ * to that check.
+ */
+export function stubGenericReferenceCheck(): void {
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
 }

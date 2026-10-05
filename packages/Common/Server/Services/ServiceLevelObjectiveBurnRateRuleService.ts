@@ -228,13 +228,13 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The severities, the on-call policies, the labels and the owners the
-   * rule copies onto what it opens are checked by this service's own hooks
-   * below, with their own words. The SLO it belongs to is checked by
-   * ProjectReferencesService, on update as well as on create.
+   * The SLO the rule belongs to, the severities, the on-call policies, the
+   * labels and the owners the rule copies onto what it opens are checked by
+   * this service's own hooks below, with their own words - the SLO first, on
+   * create and on update (a workflow can move a rule; a person cannot).
    */
   protected override getRelationsCheckedByService(): Array<string> {
-    return ["alertSeverity", "incidentSeverity"];
+    return ["serviceLevelObjective", "alertSeverity", "incidentSeverity"];
   }
 
   protected override getListsCheckedByService(): Array<string> {
@@ -481,6 +481,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     await this.validateOutputsOnUpdate(updateBy);
+
+    await this.validateServiceLevelObjectiveOnUpdate(updateBy);
 
     await this.validateSeverityReferencesOnUpdate(updateBy);
 
@@ -1388,6 +1390,45 @@ export class Service extends ProjectReferencesService<Model> {
         },
       ],
     });
+  }
+
+  /*
+   * The SLO is create-only for people (its column's update list is empty),
+   * but a workflow writes as root, so moving a rule to another SLO is checked
+   * exactly as creating it there: pinned to each project the update touches,
+   * a foreign SLO answered like a missing one.
+   */
+  private async validateServiceLevelObjectiveOnUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Dictionary<unknown> = (updateBy.data ||
+      {}) as unknown as Dictionary<unknown>;
+
+    const serviceLevelObjectives: Array<unknown> = [
+      data["serviceLevelObjectiveId"],
+      data["serviceLevelObjective"],
+    ];
+
+    if (
+      SloRecordReferenceValidator.getReferencedIds(serviceLevelObjectives)
+        .length === 0
+    ) {
+      return;
+    }
+
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
+        {
+          projectId: projectId,
+          serviceLevelObjectives: serviceLevelObjectives,
+          subject: "SLO burn rate rule",
+        },
+      );
+    }
   }
 
   /*

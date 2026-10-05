@@ -693,14 +693,17 @@ export class Service extends ProjectReferencesService<Model> {
       props: { isRoot: true },
     });
 
-    if (!parent) {
+    /*
+     * The hook's project check (ProjectReferencesService) has already
+     * refused a parent that is not this project's. Should one get here all
+     * the same, another project's type reads like one that does not exist.
+     */
+    if (
+      !parent ||
+      !parent.projectId ||
+      !sameId(parent.projectId, data.projectId)
+    ) {
       throw new BadDataException("Parent Network Site Type not found.");
-    }
-
-    if (!parent.projectId || !sameId(parent.projectId, data.projectId)) {
-      throw new BadDataException(
-        "Parent Network Site Type must belong to the same project.",
-      );
     }
 
     if (parent.isUnitLevel === true) {

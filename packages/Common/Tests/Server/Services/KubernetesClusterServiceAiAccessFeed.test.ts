@@ -21,6 +21,15 @@ import Permission, {
 } from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Who changed what OneUptime AI may do on a Kubernetes cluster.
@@ -178,6 +187,7 @@ describe("KubernetesClusterService AI access feed", () => {
       service,
       "writeKubernetesClusterUpdatedFeed",
     );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

@@ -24,6 +24,15 @@ import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The invitation half of GHSA-qg84-6hrg-mr5g.
@@ -191,6 +200,7 @@ beforeEach(() => {
       "updateSubscriptionSeatsByUniqueTeamMembersInProject",
     )
     .mockResolvedValue(undefined as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -201,6 +211,7 @@ describe("TeamMemberService.onBeforeCreate - inviting somebody with no account y
   beforeEach(() => {
     // Nobody by this address: the invite creates the row.
     findUserSpy.mockResolvedValue(null);
+    stubProjectDirectory({});
   });
 
   test("mints a registration token bound to the invited address", async () => {
@@ -234,6 +245,7 @@ describe("TeamMemberService.onBeforeCreate - inviting somebody who was invited b
   beforeEach(() => {
     // The row exists from an earlier invitation, and still has no password.
     findUserSpy.mockResolvedValue(unclaimedUser());
+    stubProjectDirectory({});
   });
 
   test("still treats them as somebody who has to register", async () => {
@@ -263,6 +275,7 @@ describe("TeamMemberService.onBeforeCreate - inviting somebody who was invited b
 describe("TeamMemberService.onBeforeCreate - inviting somebody who already has an account", () => {
   beforeEach(() => {
     findUserSpy.mockResolvedValue(registeredUser());
+    stubProjectDirectory({});
   });
 
   test("sends them to sign in", async () => {

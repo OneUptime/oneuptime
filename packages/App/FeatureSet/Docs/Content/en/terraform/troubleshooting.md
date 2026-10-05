@@ -15,6 +15,7 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 | Provider errors at `terraform plan` startup about a missing API key | No `api_key` attribute and no `ONEUPTIME_API_KEY` env var | Set one of them |
 | `no matching version found for oneuptime/oneuptime` | Exact-version pin on a version that was never published | Use a pessimistic constraint like `~> 11.0` |
 | Data source error: no match / more than one match | Name lookup found zero or multiple resources | Fix the name, or look up by `id` |
+| `references records that are not in this project` | An ID copied from another project's configuration, or one of a resource that has been deleted | Use the ID of your project's own record — see below |
 | `x509: certificate signed by unknown authority` (self-hosted) | Instance serves a TLS certificate Terraform's host does not trust | Install the CA on the machine running Terraform |
 | Connection refused / 404s on every API call (self-hosted) | Wrong `oneuptime_url` (path suffix, wrong port, http vs https) | Set `oneuptime_url` to the bare instance origin, e.g. `https://oneuptime.example.com` |
 | Monitor JSON from the dashboard rejected | Dashboard-exported JSON pasted as Terraform configuration | Rebuild as HCL — see below |
@@ -44,6 +45,16 @@ The provider derives the project from the key itself. A master key carries no pr
 
 - **402 Payment Required** — you hit a resource limit of your OneUptime plan (for example the monitor cap on a free tier). Terraform surfaces the API error as-is. Either upgrade the plan in Project Settings > Billing, or trim the configuration.
 - **403 Forbidden on specific resource types** — the project API key lacks permission for that type. Keys have per-resource-type permissions; a key that can manage Monitors cannot create Status Pages unless granted. Edit the key in **Project Settings > API Keys** and add Create/Read/Update/Delete for the missing type. Import needs Read at minimum.
+
+## "references records that are not in this project"
+
+Every ID a resource names — a monitor's labels, a status page group's status page, a network device's site, an on-call rule's teams — must be a record of the project your API key belongs to. An ID of another project's record and an ID that does not exist get the same answer, which names the field and the ID:
+
+```text
+This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
+```
+
+It usually means an ID was copied from another project's configuration or state, or the record was deleted outside Terraform. Refer to the record through its resource or a data source in the same configuration (`oneuptime_label.critical.id`) instead of a literal ID, and apply again. Someone named as a user must be a member of the project.
 
 ## "no matching version found" from the registry
 

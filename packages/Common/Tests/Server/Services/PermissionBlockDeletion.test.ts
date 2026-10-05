@@ -30,6 +30,15 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 jest.mock("../../../Server/Utils/PasswordHash", () => {
   return { __esModule: true, default: class PasswordHashStub {} };
@@ -291,6 +300,7 @@ describe.each(serviceCases)(
         AccessTokenService,
         "refreshUserTenantAccessPermission",
       ).mockResolvedValue(undefined);
+      stubProjectDirectory({});
     });
 
     afterEach(() => {

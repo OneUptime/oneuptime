@@ -189,6 +189,26 @@ export function resolveReferenceId(
 }
 
 /*
+ * A column of a row read back, whether the row arrives as a model or as a
+ * plain object (a raw read, a projection).
+ */
+export function readRowColumn(row: unknown, column: string): unknown {
+  if (!row || typeof row !== "object") {
+    return undefined;
+  }
+
+  const model: { getValue?: (column: string) => unknown } = row as {
+    getValue?: (column: string) => unknown;
+  };
+
+  if (typeof model.getValue === "function") {
+    return model.getValue(column);
+  }
+
+  return (row as Dictionary<unknown>)[column];
+}
+
+/*
  * The list form of resolveReferenceId, for many-to-many payloads. The list
  * reaches a hook as model instances (API create, workers), `{ _id }` objects,
  * ObjectIDs or bare uuid strings (API update), and an entry with no id cannot
@@ -623,7 +643,7 @@ export default class ProjectScopedReferenceValidator {
 
       for (const record of records) {
         const projectId: string = normalizeId(
-          record.getValue<ObjectID>(tenantColumnName)?.toString() || "",
+          readRowColumn(record, tenantColumnName)?.toString() || "",
         );
 
         if (!projectId) {
@@ -631,7 +651,7 @@ export default class ProjectScopedReferenceValidator {
         }
 
         const heldByRecord: Set<string> = new Set(
-          resolveReferenceIds(record.getValue(column)).map(
+          resolveReferenceIds(readRowColumn(record, column)).map(
             (id: ObjectID | string) => {
               return normalizeId(id.toString());
             },
@@ -833,7 +853,7 @@ export default class ProjectScopedReferenceValidator {
 
     for (const record of records) {
       const recordProjectId: string = normalizeId(
-        record.getValue<ObjectID>(tenantColumnName)?.toString() || "",
+        readRowColumn(record, tenantColumnName)?.toString() || "",
       );
 
       if (recordProjectId !== projectId) {

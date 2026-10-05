@@ -117,6 +117,17 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * OneUptime's own writes to an SLO are the monitor rule engine's
+   * membership sync, which attaches and releases the monitors it read pinned
+   * to the SLO's own project, and the evaluator's numbers - neither names a
+   * record anyone typed. An SLO written by an API call or a workflow is
+   * checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

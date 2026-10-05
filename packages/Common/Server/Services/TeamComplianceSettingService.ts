@@ -103,6 +103,17 @@ export class TeamComplianceSettingService extends ProjectReferencesService<Model
     super(Model);
   }
 
+  /*
+   * The severities are checked by this service's own hooks
+   * (assertSeveritiesBelongToProject), after the rule type has dropped the
+   * options it does not use - a stray severity on a rule that does not read
+   * one is cleared rather than refused. The team is checked by
+   * ProjectReferencesService.
+   */
+  protected override getListsCheckedByService(): Array<string> {
+    return ["incidentSeverities", "alertSeverities"];
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

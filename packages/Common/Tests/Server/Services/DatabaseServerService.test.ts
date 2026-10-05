@@ -60,6 +60,15 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
 import crypto from "crypto";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * DatabaseServerService - the Databases product's root service.
@@ -290,6 +299,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     ).mockResolvedValue("claimed");
     deleteBy = getJestSpyOn(service, "deleteBy").mockResolvedValue(1);
     sideEffects = mockSideEffects();
+    stubProjectDirectory({});
   });
 
   test("computes identity from the engine and canonical endpoint, and stamps 'manual'", async () => {
@@ -496,6 +506,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
         KubernetesClusterService,
         "findBy",
       ).mockResolvedValue(clusterRows(["prod-eu", "staging"]));
+      stubProjectDirectory({});
     });
 
     test("is refused in a project with clusters, naming the qualified form and the project's clusters", async () => {
@@ -1158,6 +1169,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     deleteBy = getJestSpyOn(service, "deleteBy").mockResolvedValue(1);
     rawQuery = mockRawQuery([]);
     sideEffects = mockSideEffects();
+    stubProjectDirectory({});
   });
 
   test("returns the row that owns the endpoint, without creating anything", async () => {
@@ -1831,6 +1843,7 @@ describe("DatabaseServerService - the Created feed item of a discovered workload
       PodmanHostService,
       "findOneById",
     ).mockResolvedValue({ name: "podman-1" } as never);
+    stubProjectDirectory({});
   });
 
   async function writeCreatedFeed(row: DatabaseServer): Promise<any> {
@@ -2243,6 +2256,7 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
 
     rawQuery = mockRawQuery([]);
     mockSideEffects();
+    stubProjectDirectory({});
   });
 
   test("finds the workload's own row and refreshes it - without touching the collector status", async () => {
@@ -2729,6 +2743,7 @@ describe("DatabaseServerService liveness", () => {
     findOneById = getJestSpyOn(service, "findOneById").mockResolvedValue(null);
     rawQuery = mockRawQuery([]);
     mockSideEffects();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -3085,6 +3100,7 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
   beforeEach(() => {
     silenceLogs();
     feed = mockSideEffects().feed;
+    stubProjectDirectory({});
   });
 
   test("archives in ONE statement that checks every 'untouched' condition itself", async () => {
@@ -3515,6 +3531,7 @@ describe("DatabaseServerService.deleteClientSocketDatabaseServers", () => {
   beforeEach(() => {
     logs = silenceLogs();
     deleteBy = getJestSpyOn(service, "deleteBy").mockResolvedValue(1);
+    stubProjectDirectory({});
   });
 
   test("selects only untouched, trace-created rows whose own port is ephemeral", async () => {
@@ -3859,6 +3876,7 @@ describe("DatabaseServerService.onUpdateSuccess", () => {
       "updateColumnsByIdWithoutHooks",
     ).mockResolvedValue(undefined);
     getJestSpyOn(service, "findOneById").mockResolvedValue(databaseRow());
+    stubProjectDirectory({});
   });
 
   /*

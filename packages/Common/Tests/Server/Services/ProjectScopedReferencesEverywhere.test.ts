@@ -146,6 +146,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
   "ScheduledMaintenanceService.ts": "ScheduledMaintenanceService.test.ts",
   "ScheduledMaintenanceTemplateService.ts":
     "ScheduledMaintenanceTemplateService.test.ts",
+  "KubernetesClusterService.ts":
+    "KubernetesClusterAiAccessBindingGuard.test.ts (the AI access Runner and credential, pinned to the project)",
   "MonitorService.ts":
     "MonitorService.test.ts, MonitorDependency suites and MonitorTemplate suites",
   "MonitorSecretService.ts": "MonitorSecretService.test.ts",
@@ -157,6 +159,8 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "NetworkSiteService.test.ts (ProbeService.isProbeAttachableToProject)",
   "ServiceLevelObjectiveBurnRateRuleService.ts":
     "ServiceLevelObjectiveBurnRateRuleService.test.ts",
+  "TeamComplianceSettingService.ts":
+    "TeamComplianceSettingService.test.ts (severities, after the rule type drops the options it does not use)",
   "TeamMemberService.ts":
     "the invited user is not a member until the row exists (TeamMemberService.test.ts)",
 };
@@ -191,6 +195,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "ScheduledMaintenanceFeedService.ts",
   "ServiceFeedService.ts",
   "ServiceLevelObjectiveFeedService.ts",
+  "ServiceLevelObjectiveService.ts",
   "SmsLogService.ts",
   "TelegramLogService.ts",
   "VMwareVCenterFeedService.ts",
@@ -372,7 +377,7 @@ function loadService(file: string): DatabaseService<DatabaseBaseModel> {
  */
 function findServiceFiles(modelCase: ModelCase): Array<string> {
   const files: Array<string> = [];
-  const tableName: string | undefined = new modelCase.modelType().tableName;
+  const tableName: string | null = new modelCase.modelType().tableName;
 
   for (const [file, source] of serviceSources) {
     const imported: RegExpMatchArray | null = source.match(
@@ -527,11 +532,12 @@ function servicesOf(file: string): DatabaseService<DatabaseBaseModel> {
   return loadService(file);
 }
 
-beforeEach(() => {
-  /*
-   * The project has the "own" ids, by the table each column points at, and
-   * the users among them as members. No "foreign" id is anywhere in it.
-   */
+/*
+ * The project has the "own" ids, by the table each column points at, and
+ * the users among them as members. No "foreign" id is anywhere in it; the
+ * ids in `elsewhere` are records of some other project.
+ */
+function stubTheProject(elsewhere: Array<string> = []): void {
   const records: Record<string, Array<string>> = {};
   const members: Array<string> = [];
 
@@ -552,7 +558,17 @@ beforeEach(() => {
     projectId: PROJECT_ID,
     records: records,
     members: members,
+    elsewhere: elsewhere,
   });
+}
+
+// An id no record has, in any project.
+function missingIdFor(index: number): string {
+  return idFor("d1d1d1d1", index);
+}
+
+beforeEach(() => {
+  stubTheProject();
 });
 
 afterEach(() => {
@@ -687,83 +703,74 @@ describe("services whose rows name the project's records", () => {
       return serviceCase.file;
     });
 
-    expect(trusting.sort()).toEqual([...SERVICES_TRUSTING_SERVER_WRITES].sort());
+    expect(trusting.sort()).toEqual(
+      [...SERVICES_TRUSTING_SERVER_WRITES].sort(),
+    );
   });
 
   test.each(
     CHECKED_CASES.map((serviceCase: ServiceCase) => {
       return [serviceCase.file];
     }),
-  )(
-    "%s names only its own references as checked by itself",
-    (file: string) => {
-      const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
-      const references: Array<ProjectReferenceColumn> =
-        ProjectReferenceCheck.getReferenceColumns(service.getModel());
+  )("%s names only its own references as checked by itself", (file: string) => {
+    const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
+    const references: Array<ProjectReferenceColumn> =
+      ProjectReferenceCheck.getReferenceColumns(service.getModel());
 
-      for (const relation of declared(
-        service,
-        "getRelationsCheckedByService",
-      )) {
-        expect({
-          file,
-          relation,
-          isRelation: references.some(
-            (column: ProjectReferenceColumn): boolean => {
-              return column.column === relation && !column.isList;
-            },
-          ),
-        }).toEqual({ file, relation, isRelation: true });
-      }
+    for (const relation of declared(service, "getRelationsCheckedByService")) {
+      expect({
+        file,
+        relation,
+        isRelation: references.some(
+          (column: ProjectReferenceColumn): boolean => {
+            return column.column === relation && !column.isList;
+          },
+        ),
+      }).toEqual({ file, relation, isRelation: true });
+    }
 
-      for (const list of declared(service, "getListsCheckedByService")) {
-        expect({
-          file,
-          list,
-          isList: references.some((column: ProjectReferenceColumn): boolean => {
-            return column.column === list && column.isList;
-          }),
-        }).toEqual({ file, list, isList: true });
-      }
-    },
-  );
+    for (const list of declared(service, "getListsCheckedByService")) {
+      expect({
+        file,
+        list,
+        isList: references.some((column: ProjectReferenceColumn): boolean => {
+          return column.column === list && column.isList;
+        }),
+      }).toEqual({ file, list, isList: true });
+    }
+  });
 
   test.each(
     CHECKED_CASES.map((serviceCase: ServiceCase) => {
       return [serviceCase.file];
     }),
-  )(
-    "%s calls the base hooks first from its own",
-    (file: string) => {
-      const source: string = serviceSources.get(file) || "";
+  )("%s calls the base hooks first from its own", (file: string) => {
+    const source: string = serviceSources.get(file) || "";
 
-      for (const hook of ["onBeforeCreate", "onBeforeUpdate"]) {
-        const signature: RegExp = new RegExp(
-          `override async ${hook}\\(\\s*(\\w+)[^)]*\\)[^{]*\\{\\s*`,
-        );
-        const match: RegExpExecArray | null = signature.exec(source);
+    for (const hook of ["onBeforeCreate", "onBeforeUpdate"]) {
+      const signature: RegExp = new RegExp(
+        `override async ${hook}\\(\\s*(\\w+)[^)]*\\)[^{]*\\{\\s*`,
+      );
+      const match: RegExpExecArray | null = signature.exec(source);
 
-        if (!match) {
-          continue;
-        }
-
-        const body: string = source.slice(match.index + match[0].length);
-
-        // The first statement - after any comment - is the base hook.
-        const firstStatement: string = body
-          .replace(/^(\s*\/\*[\s\S]*?\*\/\s*|\s*\/\/[^\n]*\n)*/, "")
-          .trimStart();
-
-        expect({
-          file,
-          hook,
-          first: firstStatement.startsWith(
-            `await super.${hook}(${match[1]});`,
-          ),
-        }).toEqual({ file, hook, first: true });
+      if (!match) {
+        continue;
       }
-    },
-  );
+
+      const body: string = source.slice(match.index + match[0].length);
+
+      // The first statement - after any comment - is the base hook.
+      const firstStatement: string = body
+        .replace(/^(\s*\/\*[\s\S]*?\*\/\s*|\s*\/\/[^\n]*\n)*/, "")
+        .trimStart();
+
+      expect({
+        file,
+        hook,
+        first: firstStatement.startsWith(`await super.${hook}(${match[1]});`),
+      }).toEqual({ file, hook, first: true });
+    }
+  });
 
   test.each(
     CHECKED_CASES.map((serviceCase: ServiceCase) => {
@@ -873,6 +880,110 @@ describe("services whose rows name the project's records", () => {
       );
 
       expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+    },
+  );
+
+  test.each(
+    CHECKED_CASES.map((serviceCase: ServiceCase) => {
+      return [serviceCase.file];
+    }),
+  )(
+    "%s answers a record that does not exist exactly as one of another project",
+    async (file: string) => {
+      const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
+      const columns: Array<ProjectReferenceColumn> =
+        genericallyCheckedColumns(service);
+
+      if (columns.length === 0) {
+        return;
+      }
+
+      // The "foreign" ids are another project's records; the missing ones are nobody's.
+      stubTheProject(
+        columns.map((_column: ProjectReferenceColumn, index: number) => {
+          return foreignIdFor(index);
+        }),
+      );
+
+      const foreign: unknown = await refusalOf(
+        callHook(service, "onBeforeCreate", {
+          data: recordWith(service, payloadWith(columns, foreignIdFor)),
+          props: USER_PROPS,
+        }),
+      );
+      const missing: unknown = await refusalOf(
+        callHook(service, "onBeforeCreate", {
+          data: recordWith(service, payloadWith(columns, missingIdFor)),
+          props: USER_PROPS,
+        }),
+      );
+
+      expect(foreign).toBeInstanceOf(ProjectScopedReferenceException);
+      expect(missing).toBeInstanceOf(ProjectScopedReferenceException);
+
+      // Word for word the same answer, but for the ids it names.
+      expect(
+        (missing as Error).message.split("d1d1d1d1").join("f1f1f1f1"),
+      ).toBe((foreign as Error).message);
+    },
+  );
+
+  test.each(
+    CHECKED_CASES.map((serviceCase: ServiceCase) => {
+      return [serviceCase.file];
+    }),
+  )(
+    "%s lets an update save back what its record already holds",
+    async (file: string) => {
+      const service: DatabaseService<DatabaseBaseModel> = servicesOf(file);
+      const columns: Array<ProjectReferenceColumn> =
+        genericallyCheckedColumns(service);
+
+      if (columns.length === 0) {
+        return;
+      }
+
+      // The record has held these "foreign" ids since before they were checked.
+      const held: Record<string, unknown> = {};
+
+      columns.forEach((column: ProjectReferenceColumn, index: number) => {
+        held[column.column] = column.isList
+          ? [{ _id: foreignIdFor(index) }]
+          : { _id: foreignIdFor(index) };
+      });
+
+      jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([recordWith(service, held)] as never);
+
+      // The base class's hook: the service's own may read the database.
+      const baseHook: HookFunction = (
+        ProjectReferencesService.prototype as unknown as Record<
+          string,
+          HookFunction
+        >
+      )["onBeforeUpdate"]!;
+
+      const update: (data: Record<string, unknown>) => Promise<unknown> = (
+        data: Record<string, unknown>,
+      ): Promise<unknown> => {
+        return baseHook.call(service, {
+          query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
+          data: data,
+          props: USER_PROPS,
+          limit: 1,
+          skip: 0,
+        });
+      };
+
+      await expect(
+        update(payloadWith(columns, foreignIdFor)),
+      ).resolves.toBeDefined();
+
+      // What it holds exempts nothing else.
+      await expect(
+        update(payloadWith(columns, missingIdFor)),
+      ).rejects.toBeInstanceOf(ProjectScopedReferenceException);
     },
   );
 

@@ -49,7 +49,11 @@ export class Service extends ProjectReferencesService<Model> {
    * below, with ProjectScopedReferenceValidator and its own words.
    */
   protected override getRelationsCheckedByService(): Array<string> {
-    return ["initialIncidentState", "incidentSeverity", "changeMonitorStatusTo"];
+    return [
+      "initialIncidentState",
+      "incidentSeverity",
+      "changeMonitorStatusTo",
+    ];
   }
 
   protected override getListsCheckedByService(): Array<string> {

@@ -275,6 +275,17 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
+  /*
+   * The AI access Runner and credential are checked by this service's own
+   * hooks (validateAiAccessBindingsBelongToProject): pinned to the project,
+   * the credential to a Kubernetes one, another project's answered like a
+   * missing one. Everything else a cluster names - its labels - is checked
+   * by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["aiAccessRunner", "aiAccessCredential"];
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,

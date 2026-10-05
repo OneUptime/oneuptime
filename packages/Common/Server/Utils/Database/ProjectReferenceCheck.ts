@@ -14,6 +14,7 @@ import ProjectScopedReferenceValidator, {
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedReferenceException,
+  readRowColumn,
   resolveReferenceId,
   resolveReferenceIds,
 } from "./ProjectScopedReferenceValidator";
@@ -557,7 +558,7 @@ export default class ProjectReferenceCheck {
 
       for (const record of records) {
         const projectId: string = normalizeId(
-          record.getValue<ObjectID>(tenantColumn)?.toString() || "",
+          readRowColumn(record, tenantColumn)?.toString() || "",
         );
 
         if (!projectId) {
@@ -566,7 +567,7 @@ export default class ProjectReferenceCheck {
 
         const heldByRecord: Set<string> = new Set<string>(
           jsonColumn
-            .getReferences(record.getValue(jsonColumn.column))
+            .getReferences(readRowColumn(record, jsonColumn.column))
             .map((reference: ProjectScopedReference): string => {
               return normalizeId(reference.id?.toString() || "");
             }),

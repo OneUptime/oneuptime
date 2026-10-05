@@ -302,21 +302,23 @@ class NetworkDeviceLabelRuleEngineServiceClass
      * checked can still name another project's label, and the run attaches
      * as root. A rule left with none says so, as one with no labels does.
      */
-    const labelIdsToAdd: Array<string> = await RuleRecordScope.keepIdsInProject({
-      projectId: data.projectId,
-      ids: (rule.labelsToAdd || [])
-        .map((label: Label) => {
-          return label.id?.toString() || "";
-        })
-        .filter((id: string) => {
-          return id !== "";
-        }),
-      modelType: Label,
-      description: `labels of network device label rule ${data.ruleId.toString()}`,
-      logAttributes: {
-        projectId: data.projectId.toString(),
-      } as LogAttributes,
-    });
+    const labelIdsToAdd: Array<string> = await RuleRecordScope.keepIdsInProject(
+      {
+        projectId: data.projectId,
+        ids: (rule.labelsToAdd || [])
+          .map((label: Label) => {
+            return label.id?.toString() || "";
+          })
+          .filter((id: string) => {
+            return id !== "";
+          }),
+        modelType: Label,
+        description: `labels of network device label rule ${data.ruleId.toString()}`,
+        logAttributes: {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      },
+    );
 
     if (labelIdsToAdd.length === 0) {
       throw new BadDataException(

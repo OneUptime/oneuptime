@@ -24,6 +24,7 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import Query from "../../../Server/Types/Database/Query";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -53,6 +54,15 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * IncidentAlertService owns the alert <-> incident link. Every refusal and
@@ -178,12 +188,24 @@ beforeEach(() => {
   validator = jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
     .mockResolvedValue(undefined as never);
+  /*
+   * These tests count the service's own lookups. The generic check every
+   * service runs first (ProjectReferencesService) is held to by
+   * ProjectScopedReferencesEverywhere.
+   */
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
   jest.spyOn(logger, "error").mockImplementation((() => {
     // quiet
   }) as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {
     // quiet
   }) as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -348,6 +370,7 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
     alertRead = jest
       .spyOn(AlertService, "findOneById")
       .mockResolvedValue(buildAlert() as never);
+    stubProjectDirectory({});
   });
 
   function create(
@@ -532,6 +555,7 @@ describe("feed entries", () => {
     sync = jest
       .spyOn(IncidentAlertService, "syncAlertWithLinkedIncidentState")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   function created(data: Partial<IncidentAlert> = {}): IncidentAlert {
@@ -1311,6 +1335,7 @@ describe("validateAlertIdsForNewIncident", () => {
           return alertRow(new ObjectID(id));
         });
       }) as never);
+    stubProjectDirectory({});
   });
 
   function validate(
@@ -1627,6 +1652,7 @@ describe("linkAlertsToIncident while an incident is declared", () => {
       }): Promise<IncidentAlert> => {
         return args.data;
       }) as never);
+    stubProjectDirectory({});
   });
 
   test("marks every link as declared with the incident", async () => {
@@ -1751,6 +1777,7 @@ describe("the one incident entry for an incident declared from alerts", () => {
       incidentFeed = jest
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
+      stubProjectDirectory({});
     });
 
     test("reads the alerts as root, pinned to the project, with their privacy", async () => {
@@ -1923,6 +1950,7 @@ describe("copyAlertOwnersToIncident", () => {
     addOwners = jest
       .spyOn(IncidentService, "addOwners")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   function copy(
@@ -2158,6 +2186,7 @@ describe("a duplicate caught by the unique index answers like the unique-togethe
       countBy = jest
         .spyOn(IncidentAlertService, "countBy")
         .mockResolvedValue(new PositiveNumber(0) as never);
+      stubProjectDirectory({});
     });
 
     function createLink(): Promise<IncidentAlert> {

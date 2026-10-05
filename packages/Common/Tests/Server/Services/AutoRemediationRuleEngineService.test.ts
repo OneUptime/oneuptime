@@ -30,6 +30,15 @@ import {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test — the auto-remediation rule engine that runs as the
@@ -171,6 +180,7 @@ describe("AutoRemediationRuleEngineService", () => {
     jest
       .spyOn(AlertFeedService, "createAlertFeedItem")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -402,6 +412,7 @@ describe("AutoRemediationRuleEngineService", () => {
         .mockResolvedValue({
           id: ObjectID.generate(),
         } as unknown as LlmProvider);
+      stubProjectDirectory({});
     });
 
     it("creates a Planning suggestion and enqueues a RemediationPlan run — never FullAuto", async () => {

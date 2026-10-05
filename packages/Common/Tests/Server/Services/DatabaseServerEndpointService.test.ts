@@ -40,6 +40,15 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * DatabaseServerEndpointService - the one-owner-per-endpoint table.
@@ -599,6 +608,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       DatabaseServerFeedService,
       "createDatabaseServerFeedItem",
     ).mockResolvedValue(undefined);
+    stubProjectDirectory({});
   });
 
   test("canonicalizes what was typed and forces a removable user alias", async () => {
@@ -1195,6 +1205,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       ).mockResolvedValue(
         "[Database PostgreSQL orders-db.example.com:5432](/db)",
       );
+      stubProjectDirectory({});
     });
 
     test("an alias a person adds is an edit on the database's Feed, naming the endpoint and who added it", async () => {
@@ -1599,6 +1610,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
       ).mockResolvedValue(
         "[Database PostgreSQL orders-db.example.com:5432](/db)",
       );
+      stubProjectDirectory({});
     });
 
     test("an alias a person removes is an edit on its database's Feed, naming the endpoint and who removed it", async () => {
@@ -1735,6 +1747,7 @@ describe("DatabaseServerEndpointService - endpoint lifecycle", () => {
         service,
         "updateColumnsByIdWithoutHooks",
       ).mockResolvedValue(undefined);
+      stubProjectDirectory({});
     });
 
     test("a match after more than an hour moves lastMatchedAt to now, without bumping updatedAt", async () => {

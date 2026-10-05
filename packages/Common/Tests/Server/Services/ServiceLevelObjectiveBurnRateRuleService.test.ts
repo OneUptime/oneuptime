@@ -22,6 +22,31 @@ import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+
+/*
+ * These tests count this service's own lookups. The generic reference check
+ * every service runs first (ProjectReferencesService) is held to by
+ * ProjectScopedReferencesEverywhere, so it is stubbed out here.
+ */
+function stubDirectoryAndGenericCheck(): void {
+  stubProjectDirectory({});
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
+}
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubDirectoryAndGenericCheck();
+});
 
 /*
  * Contract under test for ServiceLevelObjectiveBurnRateRuleService:
@@ -277,6 +302,7 @@ beforeEach(() => {
       "validateServiceLevelObjectivesBelongToProject",
     )
     .mockResolvedValue(undefined);
+  stubDirectoryAndGenericCheck();
 });
 
 describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate", () => {
@@ -668,6 +694,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - severity ref
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -814,6 +841,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate", () => {
 
   beforeEach(() => {
     findBySpy = jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy");
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1052,6 +1080,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - what the rul
 
   beforeEach(() => {
     findBySpy = jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy");
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1397,6 +1426,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - severity ref
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1600,6 +1630,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService - numeric columns supplied as
 
   beforeEach(() => {
     findBySpy = jest.spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy");
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2056,6 +2087,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule", ()
     timelineCreateSpy = jest
       .spyOn(AlertStateTimelineService, "create")
       .mockResolvedValue(new AlertStateTimeline());
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2342,6 +2374,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule",
     timelineCreateSpy = jest
       .spyOn(IncidentStateTimelineService, "create")
       .mockResolvedValue(new IncidentStateTimeline());
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2650,6 +2683,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsAndIncidents
         "resolveOpenIncidentsForRule",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -2763,6 +2797,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onUpdateSuccess", () => {
     loggerErrorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -3075,6 +3110,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onUpdateSuccess forgets what 
     jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -3187,6 +3223,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeDelete", () => {
         "resolveOpenAlertsAndIncidentsForRule",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {

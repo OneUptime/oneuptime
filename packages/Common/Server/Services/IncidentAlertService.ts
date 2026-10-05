@@ -7,7 +7,6 @@ import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
-import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
