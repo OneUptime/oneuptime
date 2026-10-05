@@ -639,6 +639,78 @@ describe("RunRunbook state machine", () => {
     expect(last.failureReason).toContain("Analyze");
   });
 
+  test("a run resumed after an approval picks up from Scheduled and leaves a step skipped ahead of time alone", async () => {
+    /*
+     * What the step routes hand the loop when a person approves the step the
+     * run was paused on: that step Completed, a later automated step skipped
+     * ahead of time, and the execution queued again as Scheduled. It has run
+     * before, so startedAt is already set.
+     */
+    runHttpStepMock.mockResolvedValue({ success: true, output: "posted" });
+
+    const approved: RunbookStepExecutionState = {
+      step: makeStep(RunbookStepType.Manual),
+      status: RunbookStepExecutionStatus.Completed,
+    };
+    const skippedAhead: RunbookStepExecutionState = {
+      step: makeStep(RunbookStepType.Bash),
+      status: RunbookStepExecutionStatus.Skipped,
+    };
+    const next: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.HttpRequest),
+    );
+
+    const updateSpy: jest.SpyInstance = await run(
+      makeExecution([approved, skippedAhead, next], {
+        status: RunbookExecutionStatus.Scheduled,
+        startedAt: new Date(),
+      }),
+    );
+
+    const first: UpdateCall = getUpdates(updateSpy)[0]!;
+    expect(first.status).toBe(RunbookExecutionStatus.Running);
+    expect(first.startedAt).toBeUndefined();
+
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(skippedAhead.status).toBe(RunbookStepExecutionStatus.Skipped);
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+    expect(next.status).toBe(RunbookStepExecutionStatus.Completed);
+    expect(lastStatusUpdate(updateSpy).status).toBe(
+      RunbookExecutionStatus.Completed,
+    );
+  });
+
+  test("a resumed run stops again at the next gate it reaches", async () => {
+    /*
+     * The gate the routes refuse to pre-approve: still Pending when the run
+     * is resumed past the step before it, so the loop pauses on it.
+     */
+    const approved: RunbookStepExecutionState = {
+      step: makeStep(RunbookStepType.Manual),
+      status: RunbookStepExecutionStatus.Completed,
+    };
+    const l2Approval: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.Manual, { title: "L2 approval" }),
+    );
+    const remediation: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.Bash),
+    );
+
+    const updateSpy: jest.SpyInstance = await run(
+      makeExecution([approved, l2Approval, remediation], {
+        status: RunbookExecutionStatus.Scheduled,
+        startedAt: new Date(),
+      }),
+    );
+
+    expect(l2Approval.status).toBe(RunbookStepExecutionStatus.WaitingForUser);
+    expect(remediation.status).toBe(RunbookStepExecutionStatus.Pending);
+    expect(runBashStepMock).not.toHaveBeenCalled();
+    expect(lastStatusUpdate(updateSpy).status).toBe(
+      RunbookExecutionStatus.WaitingForManualStep,
+    );
+  });
+
   test("a WaitingForUser step on resume re-persists the pause and stops", async () => {
     const waiting: RunbookStepExecutionState = {
       step: makeStep(RunbookStepType.Manual),
