@@ -909,25 +909,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       );
     }
 
-    // check if there's one member in the team.
+    /*
+     * Check if there's one member in the team. The members' on-call time logs
+     * are closed once they are actually removed (onDeleteSuccess), so a
+     * removal refused here leaves them on call.
+     */
     for (const member of members) {
-      OnCallDutyPolicyTimeLogService.endTimeForUser({
-        projectId: member.projectId!,
-        userId: member.userId!,
-        /*
-         * scope to the team being left so the user's still-active logs from
-         * other teams, direct escalation assignments, and schedule rosters stay
-         * open (audit F17).
-         */
-        teamId: member.teamId!,
-        endsAt: OneUptimeDate.getCurrentDate(),
-      }).catch((err: Error) => {
-        logger.error(err, {
-          projectId: member.projectId?.toString(),
-          userId: member.userId?.toString(),
-        } as LogAttributes);
-      });
-
       if (member.team?.shouldHaveAtLeastOneMember) {
         if (!member.hasAcceptedInvitation) {
           continue;
@@ -967,7 +954,13 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<TeamMember>,
+    itemIdsBeforeDelete?: Array<ObjectID>,
   ): Promise<OnDelete<TeamMember>> {
+    this.endOnCallTimeLogsOfRemovedMembers(
+      onDelete.carryForward as Array<TeamMember>,
+      itemIdsBeforeDelete,
+    );
+
     /*
      * remove-user-from-project deletes every membership of one user in one
      * deleteBy, so the same (user, project) can appear several times here;
@@ -1085,6 +1078,53 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     }
 
     return onDelete;
+  }
+
+  /*
+   * A removed member's open on-call time logs for the team they left end
+   * now. Only for the memberships the delete removed (DatabaseService hands
+   * their ids to onDeleteSuccess); called without them, every member read
+   * before the delete counts. Fire and forget, as before: a failure is
+   * logged.
+   */
+  private endOnCallTimeLogsOfRemovedMembers(
+    members: Array<TeamMember>,
+    removedIds: Array<ObjectID> | undefined,
+  ): void {
+    const removed: Set<string> | null = removedIds
+      ? new Set(
+          removedIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        )
+      : null;
+
+    for (const member of members || []) {
+      if (removed && (!member.id || !removed.has(member.id.toString()))) {
+        continue;
+      }
+
+      if (!member.projectId || !member.userId) {
+        continue;
+      }
+
+      OnCallDutyPolicyTimeLogService.endTimeForUser({
+        projectId: member.projectId,
+        userId: member.userId,
+        /*
+         * scope to the team being left so the user's still-active logs from
+         * other teams, direct escalation assignments, and schedule rosters stay
+         * open (audit F17).
+         */
+        teamId: member.teamId!,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(err, {
+          projectId: member.projectId?.toString(),
+          userId: member.userId?.toString(),
+        } as LogAttributes);
+      });
+    }
   }
 
   /**

@@ -47,7 +47,7 @@ const RUNS_A_WRITE_HOOK: RegExp =
 
 // A call that charges, mails, messages or changes something outside OneUptime.
 const OUTSIDE_CALL: RegExp =
-  /\b(MailService\.sendMail|SmsService\.sendSms|CallService\.makeCall|NotificationService\.recharge\w*|BillingService\.(?!is|get|has|validate|find)\w+|WorkspaceNotificationRuleService\.archive\w*|GreenlockUtil\.orderCert)\s*\(/g;
+  /\b(MailService\.sendMail|SmsService\.sendSms|CallService\.makeCall|NotificationService\.recharge\w*|BillingService\.(?!is|get|has|validate|find)\w+|WorkspaceNotificationRuleService\.archive\w*|GreenlockUtil\.orderCert|\w+FeedService\.create\w*FeedItem|OnCallDutyPolicyTimeLogService\.end\w*)\s*\(/g;
 
 /*
  * Every hook that may still write before the permission check, and why.
@@ -55,6 +55,8 @@ const OUTSIDE_CALL: RegExp =
  */
 const CASCADE_REASON: string =
   "Deletes the rows that reference the deleted one first. DatabaseService has already narrowed the delete to the rows the caller may delete, so only their children go.";
+const FEED_REASON: string =
+  "Records the removal in the on-call policy's feed (and its workspace channel) while the row can still be read. DatabaseService has already narrowed the delete to the rows the caller may delete, and nothing in the hook refuses after it.";
 const TIMELINE_REASON: string =
   "Joins the neighbours of the deleted timeline entry so the timeline has no gap. DatabaseService has already narrowed the delete to the entries the caller may delete.";
 
@@ -73,6 +75,14 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
     CASCADE_REASON +
     " Every device's monitors are proved deletable by the caller before the first one goes.",
   "OnCallDutyPolicyEscalationRuleService.ts#onBeforeDelete": CASCADE_REASON,
+  "OnCallDutyPolicyEscalationRuleScheduleService.ts#onBeforeDelete":
+    FEED_REASON,
+  "OnCallDutyPolicyEscalationRuleTeamService.ts#onBeforeDelete": FEED_REASON,
+  "OnCallDutyPolicyEscalationRuleUserService.ts#onBeforeDelete":
+    FEED_REASON + " It also closes the removed user's on-call time log.",
+  "OnCallDutyPolicyUserOverrideService.ts#onBeforeDelete": FEED_REASON,
+  "OnCallDutyPolicyScheduleService.ts#onBeforeDelete":
+    "Closes the on-call time logs of the schedule being deleted. DatabaseService has already narrowed the delete to the schedules the caller may delete, and nothing in the hook refuses after it.",
   "OnCallDutyPolicyService.ts#onBeforeDelete":
     "Archives the workspace channels of the policy being deleted. DatabaseService has already narrowed the delete to the policies the caller may delete.",
   "ProjectCallSMSConfigService.ts#onBeforeDelete":
