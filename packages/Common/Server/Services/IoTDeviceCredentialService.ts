@@ -84,9 +84,10 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * The project the credential is saved in: the request's, which
-     * DatabaseService stamps on the row after this hook, else the one a
-     * write without a project on the request names.
+     * The project the credential is saved in: the request's - which
+     * DatabaseService has written on the row before the hooks, and writes
+     * again after them - else the one a write without a project on the
+     * request names.
      */
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId || undefined;

@@ -95,6 +95,13 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Service version is required.");
     }
 
+    // The service under either of its names, kept in the ID column for the saved row.
+    RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      SERVICE_KEYS,
+      "Service",
+    );
+
     await this.assertReleaseHasRoomFor(createBy);
 
     createBy.data.sizeInBytes = Buffer.byteLength(content, "utf8");
@@ -122,15 +129,15 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<void> {
     /*
-     * The release the map is saved in: the request's project, which
-     * DatabaseService stamps on the row after this hook (else the one a
-     * write without a project on the request names), and the service under
-     * either of its names - kept in the ID column for the saved row.
+     * The release the map is saved in: the request's project - which
+     * DatabaseService has written on the row before the hooks, and writes
+     * again after them - else the one a write without a project on the
+     * request names, and the service under either of its names.
      */
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId || undefined;
     const serviceId: ObjectID | undefined =
-      RelationIdUtil.readIntoIdColumn(
+      RelationIdUtil.readConsistent(
         createBy.data as unknown as Record<string, unknown>,
         SERVICE_KEYS,
         "Service",

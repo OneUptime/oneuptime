@@ -25,7 +25,8 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  * by under either of its names. A write that named the status page only by
  * the relation used to reach the first two as a write naming no page: the
  * link limit was skipped, and the name was checked among the groups of no
- * page. Two names that disagree are refused.
+ * page. A request whose two names disagree is refused before the hooks; a
+ * write OneUptime makes itself is read as it was named and refused nothing.
  */
 
 const STATUS_PAGE_ID: string = "0193c0de-d0d0-4aaa-8bbb-0000000000a1";
@@ -42,6 +43,16 @@ type Checks = {
 
 function checksOf(service: unknown): Checks {
   return service as Checks;
+}
+
+// The service's create(), with a payload the test builds loosely.
+function createWith(
+  service: unknown,
+  createBy: { data: unknown; props: Record<string, unknown> },
+): Promise<unknown> {
+  return (
+    service as { create: (createBy: unknown) => Promise<unknown> }
+  ).create(createBy);
 }
 
 function queries(countBy: SpyInstance): Array<Record<string, unknown>> {
@@ -129,16 +140,16 @@ describe.each([
       ).resolves.toBeUndefined();
     });
 
-    test("a page named differently under its two names is refused before counting", async () => {
+    test("a request naming the page differently under its two names is refused before anything is counted", async () => {
       const countBy: SpyInstance = getJestSpyOn(service, "countBy");
 
       await expect(
-        checksOf(service).checkTotalItemsBy({
+        createWith(service, {
           data: link({
             statusPageId: new ObjectID(STATUS_PAGE_ID),
             statusPage: { _id: OTHER_STATUS_PAGE_ID },
           }),
-          props: { isRoot: true },
+          props: { isRoot: true, tenantId: PROJECT_ID },
         }),
       ).rejects.toThrow(
         RelationIdUtil.getConflictMessage("Status Page", [
@@ -147,6 +158,23 @@ describe.each([
         ]),
       );
       expect(countBy).not.toHaveBeenCalled();
+    });
+
+    test("a write OneUptime makes itself, naming the page two ways, is counted for the page its ID column names", async () => {
+      const countBy: SpyInstance = getJestSpyOn(
+        service,
+        "countBy",
+      ).mockResolvedValue(new PositiveNumber(0) as never);
+
+      await checksOf(service).checkTotalItemsBy({
+        data: link({
+          statusPageId: new ObjectID(STATUS_PAGE_ID),
+          statusPage: { _id: OTHER_STATUS_PAGE_ID },
+        }),
+        props: { isRoot: true },
+      });
+
+      expect(String(queries(countBy)[0]!["statusPageId"])).toBe(STATUS_PAGE_ID);
     });
 
     test("a link naming no page is not counted", async () => {
@@ -204,16 +232,21 @@ describe("a group's name is unique on the status page named either way", () => {
     ).resolves.toBeDefined();
   });
 
-  test("a page named differently under its two names is refused", async () => {
-    await expect(
-      checksOf(StatusPageGroupService).checkUniqueColumnBy({
-        data: group({
-          statusPageId: new ObjectID(STATUS_PAGE_ID),
-          statusPage: { _id: OTHER_STATUS_PAGE_ID },
-        }),
-        props: { isRoot: true },
+  test("a write OneUptime makes itself, naming the page two ways, is checked on the page its ID column names", async () => {
+    const countBy: SpyInstance = getJestSpyOn(
+      StatusPageGroupService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(0) as never);
+
+    await checksOf(StatusPageGroupService).checkUniqueColumnBy({
+      data: group({
+        statusPageId: new ObjectID(STATUS_PAGE_ID),
+        statusPage: { _id: OTHER_STATUS_PAGE_ID },
       }),
-    ).rejects.toThrow("Conflicting Status Page references were provided.");
+      props: { isRoot: true },
+    });
+
+    expect(String(queries(countBy)[0]!["statusPageId"])).toBe(STATUS_PAGE_ID);
   });
 
   test("a workflow named by the relation scopes the name, and the project is read as it is", async () => {
@@ -270,14 +303,127 @@ describe("an owner row is unique for its record, its team named either way", () 
     expect(String(queries(countBy)[0]!["teamId"])).toBe(TEAM_ID);
   });
 
-  test("a team named differently under its two names is refused", async () => {
+  test("a write OneUptime makes itself, naming the team two ways, is looked for as its ID column names", async () => {
+    const countBy: SpyInstance = getJestSpyOn(
+      IncidentOwnerTeamService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(0) as never);
+
+    await checksOf(IncidentOwnerTeamService).checkUniqueColumnsTogether(
+      owner({
+        teamId: new ObjectID(TEAM_ID),
+        team: { _id: STATUS_PAGE_ID },
+      }),
+    );
+
+    expect(String(queries(countBy)[0]!["teamId"])).toBe(TEAM_ID);
+  });
+
+  test("a project named only by its relation is part of the key", async () => {
+    const countBy: SpyInstance = getJestSpyOn(
+      IncidentOwnerTeamService,
+      "countBy",
+    ).mockResolvedValue(new PositiveNumber(1) as never);
+
     await expect(
       checksOf(IncidentOwnerTeamService).checkUniqueColumnsTogether(
         owner({
+          projectId: undefined,
+          project: { _id: PROJECT_ID.toString() },
           teamId: new ObjectID(TEAM_ID),
-          team: { _id: STATUS_PAGE_ID },
         }),
       ),
-    ).rejects.toThrow("Conflicting Team references were provided.");
+    ).rejects.toThrow("This team is already an owner of this incident.");
+
+    expect(String(queries(countBy)[0]!["projectId"])).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+});
+
+/*
+ * A create naming a record only by its relation has the id in the ID column
+ * too, before the hooks: they, the checks after them and the success hook
+ * reading the saved row see the record the create names.
+ */
+describe("a create naming a record by its relation alone", () => {
+  // What the create's hooks were handed; the create stops there.
+  async function payloadTheHooksSee(
+    data: Record<string, unknown>,
+    props: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    let seen: Record<string, unknown> = {};
+
+    getJestSpyOn(
+      StatusPageHeaderLinkService,
+      "onBeforeCreate",
+    ).mockImplementation((createBy: { data: Record<string, unknown> }) => {
+      seen = { ...createBy.data };
+      return Promise.reject(
+        new Error("stopped after the hooks were handed it"),
+      );
+    });
+
+    await expect(
+      createWith(StatusPageHeaderLinkService, {
+        data: Object.assign(new StatusPageHeaderLink(), {
+          title: "Docs",
+          ...data,
+        }),
+        props: props,
+      }),
+    ).rejects.toThrow("stopped after the hooks were handed it");
+
+    return seen;
+  }
+
+  test("reaches the hooks with the record in its ID column, and the relation kept", async () => {
+    const seen: Record<string, unknown> = await payloadTheHooksSee(
+      { statusPage: { _id: STATUS_PAGE_ID } },
+      { isRoot: true, tenantId: PROJECT_ID },
+    );
+
+    expect(String(seen["statusPageId"])).toBe(STATUS_PAGE_ID);
+    expect(seen["statusPage"]).toEqual({ _id: STATUS_PAGE_ID });
+  });
+
+  test("a write OneUptime makes itself is filled the same way", async () => {
+    const seen: Record<string, unknown> = await payloadTheHooksSee(
+      { statusPage: { _id: STATUS_PAGE_ID }, projectId: PROJECT_ID },
+      { isRoot: true },
+    );
+
+    expect(String(seen["statusPageId"])).toBe(STATUS_PAGE_ID);
+  });
+
+  test("an ID column the create sets is left as it is", async () => {
+    const seen: Record<string, unknown> = await payloadTheHooksSee(
+      {
+        statusPageId: new ObjectID(STATUS_PAGE_ID),
+        statusPage: { _id: OTHER_STATUS_PAGE_ID },
+        projectId: PROJECT_ID,
+      },
+      { isRoot: true },
+    );
+
+    expect(String(seen["statusPageId"])).toBe(STATUS_PAGE_ID);
+  });
+
+  test("a relation naming nothing fills nothing", async () => {
+    const seen: Record<string, unknown> = await payloadTheHooksSee(
+      { statusPage: null },
+      { isRoot: true, tenantId: PROJECT_ID },
+    );
+
+    expect(seen["statusPageId"]).toBeUndefined();
+  });
+
+  test("the project's relation is left to the project stamp", async () => {
+    const seen: Record<string, unknown> = await payloadTheHooksSee(
+      { project: { _id: OTHER_STATUS_PAGE_ID } },
+      { isRoot: true },
+    );
+
+    expect(seen["projectId"]).toBeUndefined();
   });
 });

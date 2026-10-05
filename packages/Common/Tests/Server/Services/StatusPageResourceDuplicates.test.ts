@@ -587,6 +587,31 @@ describe("StatusPageResourceService duplicate rules", () => {
       ).resolves.toBeDefined();
     });
 
+    it("takes the monitor it already has, sent in another case, as unchanged", async () => {
+      // Postgres reads a uuid back in lower case; a form may send it in upper.
+      const storedMonitorId: ObjectID = new ObjectID(
+        "abcdefab-cdef-4abc-8def-abcdefabcdef",
+      );
+
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({ id: resourceId(1), monitorId: storedMonitorId }),
+        makeResource({ id: resourceId(2), monitorId: storedMonitorId }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          updateBy({
+            id: resourceId(1),
+            monitor: new ObjectID(storedMonitorId.toString().toUpperCase()),
+            displayName: "Renamed",
+          }),
+        ),
+      ).resolves.toBeDefined();
+
+      // One read: the resource being updated. No duplicate lookup after it.
+      expect(mocks.findOneBy).toHaveBeenCalledTimes(1);
+    });
+
     it("looks for the duplicate by status page and the new monitor", async () => {
       const mocks: ReturnType<typeof mockService> = mockService([
         makeResource({ id: resourceId(1), monitorId: OTHER_MONITOR_ID }),

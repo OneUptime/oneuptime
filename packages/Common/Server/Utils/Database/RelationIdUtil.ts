@@ -177,6 +177,12 @@ export default class RelationIdUtil {
    * it. The relation stays: the two names now hold the same id, which is
    * what TypeORM stores, and each is still held to its own permission list.
    *
+   * DatabaseService.create fills the ID column of every create this way
+   * before its hooks run (fillIdColumnsFromRelations); a hook reads through
+   * here all the same, so its rule holds whatever handed it the payload, and
+   * a write OneUptime makes itself naming two different records is refused
+   * here too.
+   *
    * A write that names nothing, or clears the reference, is left as it was.
    */
   public static readIntoIdColumn(

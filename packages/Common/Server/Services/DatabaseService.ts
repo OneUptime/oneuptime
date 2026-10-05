@@ -102,7 +102,7 @@ import type AuditLogServiceType from "./AuditLogService";
 import EnableAuditLogOn from "../../Types/BaseDatabase/EnableAuditLogOn";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import RelationNames, { RelationName } from "../Utils/Database/RelationNames";
+import RelationNames from "../Utils/Database/RelationNames";
 import ListOrderMaintainer, {
   ListOrderCreatePlan,
   ListOrderScope,
@@ -1688,6 +1688,45 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * A create that names a record only by its relation - `statusPage: { _id }`,
+   * which the dashboard's forms send - gets that id in the ID column
+   * (`statusPageId`) as well, before the hooks. TypeORM stores the relation's
+   * id without setting the ID column on the row it hands back, so a hook
+   * reading the ID column, a success hook reading the saved row, and the
+   * checks after the hooks would otherwise see a create that names nothing.
+   * The relation stays, so the two names hold the same id, which is what
+   * TypeORM stores. Each name is still checked against its own create list,
+   * and a relation and its ID column share one (UpdatePermissionLists).
+   *
+   * An ID column the create sets already is left as it is: a request whose
+   * two names disagree has been refused just before this, and a write
+   * OneUptime makes itself is saved as it was named. The project (the tenant
+   * relation) is not one of these: it is stamped from the request.
+   */
+  private fillIdColumnsFromRelations(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const reference of RelationNames.getSingleRelations(this.model)) {
+      if (record[reference.idColumn] !== undefined) {
+        continue;
+      }
+
+      const id: ObjectID | null = RelationIdUtil.read(record, [
+        reference.relation,
+      ]);
+
+      if (id) {
+        record[reference.idColumn] = id;
+      }
+    }
+  }
+
+  /*
    * Who created a record is the person making the request:
    * sanitizeCreateOrUpdate stamps `createdByUserId` with props.userId. The
    * `createdByUser` relation is that same column, and TypeORM stores a
@@ -2163,6 +2202,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     // One reference, one value, whichever name it is sent under. See the helper.
     this.assertRelationNamesAgree(createBy.data, createBy.props);
+
+    // A record named only by its relation, in its ID column too. See the helper.
+    this.fillIdColumnsFromRelations(createBy.data);
 
     const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
       ? { createBy, carryForward: [] }
@@ -2964,13 +3006,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * What a write gives one column, for a check that runs before it is saved.
-   * A reference's ID column is one database column with its relation, and
-   * a write may name the reference under either (the dashboard's forms send
-   * the relation), so for an ID column this is the id the write names under
-   * either name - two that disagree are refused, as everywhere
-   * (RelationIdUtil.readConsistent) - or the column's own value when the
-   * write names the reference by neither. Any other column is read as it is.
+   * What a write gives one column, for a check that runs before it is saved
+   * (a limit, a name unique in its scope, keys unique together). An ID
+   * column is one database column with the relation stored in it, and a
+   * write may name the record under either, so for an ID column this is its
+   * own value when it holds an id, else the id of that relation - the
+   * project's relation included, for a write OneUptime makes itself that
+   * names its project that way. Any other column is read as it is.
+   *
+   * Nothing is refused here. A request whose two names disagree is refused
+   * before the hooks (assertRelationNamesAgree), a create naming a record
+   * only by the relation has its ID column filled there too
+   * (fillIdColumnsFromRelations), and a hook writes a reference with
+   * RelationIdUtil.stamp, which leaves one name. A write OneUptime makes
+   * itself is left alone there, and here too.
    */
   private getWrittenColumnValue(
     data: TBaseModel | PartialEntity<TBaseModel>,
@@ -2981,24 +3030,35 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       unknown
     >;
 
-    const reference: RelationName | undefined =
-      RelationNames.getSingleRelations(this.model).find(
-        (candidate: RelationName): boolean => {
-          return candidate.idColumn === columnName;
-        },
-      );
+    const value: unknown = record[columnName];
 
-    if (!reference) {
-      return record[columnName];
+    if (RelationValueUtil.getRelationId(value)) {
+      return value;
     }
 
-    const id: ObjectID | null = RelationIdUtil.readConsistent(
-      record,
-      [reference.idColumn, reference.relation],
-      reference.title,
-    );
+    const relationColumn: string | undefined =
+      this.getRelationStoredIn(columnName);
 
-    return id || record[columnName];
+    const relationId: string | null = relationColumn
+      ? RelationValueUtil.getRelationId(record[relationColumn])
+      : null;
+
+    return relationId ? new ObjectID(relationId) : value;
+  }
+
+  // The relation stored in `columnName` (`project` in `projectId`), if any.
+  private getRelationStoredIn(columnName: string): string | undefined {
+    return this.model
+      .getTableColumns()
+      .columns.find((column: string): boolean => {
+        const metadata: TableColumnMetadata =
+          this.model.getTableColumnMetadata(column);
+
+        return (
+          metadata.type === TableColumnType.Entity &&
+          metadata.manyToOneRelationColumn === columnName
+        );
+      });
   }
 
   @CaptureSpan()

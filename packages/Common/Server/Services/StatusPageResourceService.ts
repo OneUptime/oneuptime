@@ -529,15 +529,27 @@ export class Service extends ProjectReferencesService<Model> {
        * the monitor included - even when all the operator changed was the
        * display name. Checking an unchanged target would refuse those saves
        * on a status page that already carries a duplicate from before this
-       * rule existed, which would leave both of its rows uneditable.
+       * rule existed, which would leave both of its rows uneditable. The ids
+       * are compared in any case, as Postgres compares them: the form may
+       * send one in a case other than the one the database reads back.
        */
+      const isSameId: (
+        sent: ObjectID | null,
+        stored: ObjectID | null,
+      ) => boolean = (
+        sent: ObjectID | null,
+        stored: ObjectID | null,
+      ): boolean => {
+        return (
+          !sent ||
+          sent.toString().trim().toLowerCase() ===
+            (stored?.toString() || "").trim().toLowerCase()
+        );
+      };
+
       const isTargetUnchanged: boolean =
-        (!updatedTarget.monitorId ||
-          updatedTarget.monitorId.toString() ===
-            currentTarget.monitorId?.toString()) &&
-        (!updatedTarget.monitorGroupId ||
-          updatedTarget.monitorGroupId.toString() ===
-            currentTarget.monitorGroupId?.toString());
+        isSameId(updatedTarget.monitorId, currentTarget.monitorId) &&
+        isSameId(updatedTarget.monitorGroupId, currentTarget.monitorGroupId);
 
       if (
         resourceBeingUpdated?.statusPageId &&

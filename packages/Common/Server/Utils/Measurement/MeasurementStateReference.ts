@@ -1,4 +1,3 @@
-import BadDataException from "../../../Types/Exception/BadDataException";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RelationIdUtil from "../Database/RelationIdUtil";
@@ -103,44 +102,31 @@ export default class MeasurementStateReference {
 
   /*
    * The one state the names a request sent hold, or undefined when they
-   * hold none (or clear it). Two different states, or a state beside a
-   * clear, are refused with the words every reference is refused with.
-   * The same id in any case is one id.
+   * hold none (or clear it), read by RelationIdUtil.readConsistent - the
+   * rule every reference is read by: two different states, or a state
+   * beside a clear, are refused, and the same id in any case is one id.
+   * Each value is first put in a shape readConsistent reads: its id (getId
+   * also reads an ObjectID as JSON), or null when it holds none.
    */
   private static readAgreeing(
     names: Array<{ key: string; value: unknown }>,
   ): string | undefined {
-    const keysSent: Array<string> = [];
-    const ids: Map<string, string> = new Map();
-    let isCleared: boolean = false;
+    const payload: Record<string, unknown> = {};
 
     for (const name of names) {
-      if (name.value === undefined) {
-        continue;
-      }
-
-      keysSent.push(name.key);
-
-      const id: string | undefined = MeasurementStateReference.getId(
-        name.value,
-      );
-
-      if (!id) {
-        isCleared = true;
-        continue;
-      }
-
-      if (!ids.has(id.toLowerCase())) {
-        ids.set(id.toLowerCase(), id);
+      if (name.value !== undefined) {
+        payload[name.key] = MeasurementStateReference.getId(name.value) ?? null;
       }
     }
 
-    if (ids.size > 1 || (isCleared && ids.size > 0)) {
-      throw new BadDataException(
-        RelationIdUtil.getConflictMessage("State", keysSent),
-      );
-    }
+    const id: ObjectID | null = RelationIdUtil.readConsistent(
+      payload,
+      names.map((name: { key: string }): string => {
+        return name.key;
+      }),
+      "State",
+    );
 
-    return ids.values().next().value;
+    return id ? id.toString() : undefined;
   }
 }

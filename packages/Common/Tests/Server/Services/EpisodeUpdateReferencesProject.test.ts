@@ -4,7 +4,9 @@ import UserService from "../../../Server/Services/UserService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReferenceException,
+  ProjectScopedSingleRelation,
 } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -30,7 +32,9 @@ type SpyInstance = ReturnType<typeof getJestSpyOn>;
  * project of every episode the update changes: the request's project, or,
  * for an update with none on its request (one OneUptime makes itself, a
  * master admin's), each episode's own. Checking them against "the
- * request's project" alone checked nothing for those updates.
+ * request's project" alone checked nothing for those updates. There, an id
+ * every matched episode of the project already holds is left alone, as the
+ * generic reference check leaves it: writing it back attaches nothing new.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -294,10 +298,10 @@ describe.each(CASES)(
 );
 
 describe.each(CASES)("$name updated in a project", (testCase: EpisodeCase) => {
-  test("is checked against the request's project, without reading the episodes' projects", async () => {
-    const readProjects: SpyInstance = getJestSpyOn(
+  test("is checked against the request's project, without reading the episodes", async () => {
+    const readHeld: SpyInstance = getJestSpyOn(
       ProjectScopedReferenceValidator,
-      "getProjectIdsOfRecords",
+      "getHeldRelationIds",
     );
 
     const outcome: unknown = await onBeforeUpdate(
@@ -307,7 +311,7 @@ describe.each(CASES)("$name updated in a project", (testCase: EpisodeCase) => {
     );
 
     expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
-    expect(readProjects).not.toHaveBeenCalled();
+    expect(readHeld).not.toHaveBeenCalled();
   });
 
   test("goes on for its own project's severity", async () => {
@@ -322,104 +326,85 @@ describe.each(CASES)("$name updated in a project", (testCase: EpisodeCase) => {
 });
 
 describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
-  const SEVERITY_REFERENCE: (id: string) => {
-    modelName: string;
-    id: string;
-    service: DatabaseService<DatabaseBaseModel>;
-  } = (id: string) => {
-    return {
-      modelName: "Incident Severity",
-      id: id,
-      service: ProjectScopedReferenceValidator.getLookupService(
-        IncidentSeverity,
-      ) as unknown as DatabaseService<DatabaseBaseModel>,
-    };
+  const SEVERITY: ProjectScopedSingleRelation = {
+    idColumn: "incidentSeverityId",
+    relation: "incidentSeverity",
+    modelName: "Incident Severity",
+    service: ProjectScopedReferenceValidator.getLookupService(
+      IncidentSeverity,
+    ) as unknown as DatabaseService<DatabaseBaseModel>,
   };
 
-  test("reads nothing for an update that names no reference", async () => {
-    const findBy: SpyInstance = getJestSpyOn(IncidentEpisodeService, "findBy");
-
-    await ProjectScopedReferenceValidator.validateUpdateReferences({
+  function validate(data: {
+    payload: Record<string, unknown>;
+    props: Record<string, unknown>;
+    skip?: number | undefined;
+    limit?: number | undefined;
+  }): Promise<void> {
+    return ProjectScopedReferenceValidator.validateUpdateReferences({
       service: IncidentEpisodeService,
       updateBy: {
-        data: {},
+        data: data.payload,
         query: { _id: EPISODE_ID },
-        props: { isRoot: true },
+        skip: data.skip ?? 0,
+        limit: data.limit ?? 1,
+        props: data.props,
       } as never,
-      references: [],
+      relations: [SEVERITY],
+      subject: "incident episode",
     });
+  }
+
+  // An episode of `projectId` holding `severityId` (null: none).
+  function episodeHolding(
+    id: string,
+    projectId: ObjectID,
+    severityId: string | null,
+  ): DatabaseBaseModel {
+    const row: DatabaseBaseModel = episode(IncidentEpisode, id, projectId);
+
+    if (severityId) {
+      const severity: IncidentSeverity = new IncidentSeverity();
+      severity._id = severityId;
+      row.setColumnValue("incidentSeverity", severity);
+    }
+
+    return row;
+  }
+
+  test("reads nothing for an update that names none of its relations", async () => {
+    const findBy: SpyInstance = getJestSpyOn(IncidentEpisodeService, "findBy");
+
+    await validate({ payload: { title: "Renamed" }, props: { isRoot: true } });
 
     expect(findBy).not.toHaveBeenCalled();
   });
 
-  test("reads each matched record's project once, in any case", async () => {
-    jest
-      .spyOn(IncidentEpisodeService, "findBy")
-      .mockResolvedValue([
-        episode(IncidentEpisode, EPISODE_ID, PROJECT_ID),
-        episode(
-          IncidentEpisode,
-          OTHER_EPISODE_ID,
-          new ObjectID(PROJECT_ID.toString().toUpperCase()),
-        ),
-      ] as never);
+  test("refuses two names that disagree before reading anything", async () => {
+    const findBy: SpyInstance = getJestSpyOn(IncidentEpisodeService, "findBy");
 
-    const projectIds: Array<ObjectID> =
-      await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
-        service:
-          IncidentEpisodeService as unknown as DatabaseService<DatabaseBaseModel>,
-        query: { _id: EPISODE_ID } as never,
-      });
-
-    expect(
-      projectIds.map((id: ObjectID): string => {
-        return id.toString().toLowerCase();
+    await expect(
+      validate({
+        payload: {
+          incidentSeverityId: new ObjectID(OWN_SEVERITY),
+          incidentSeverity: { _id: FOREIGN_SEVERITY },
+        },
+        props: { isRoot: true },
       }),
-    ).toEqual([PROJECT_ID.toString().toLowerCase()]);
-  });
-
-  test("a record's project is read as root, so the read is not narrowed to the caller", async () => {
-    const findBy: SpyInstance = getJestSpyOn(
-      IncidentEpisodeService,
-      "findBy",
-    ).mockResolvedValue([]);
-
-    await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
-      service:
-        IncidentEpisodeService as unknown as DatabaseService<DatabaseBaseModel>,
-      query: { _id: EPISODE_ID } as never,
-    });
-
-    expect(findBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
-    expect(findBy.mock.calls[0]![0].select).toEqual({
-      _id: true,
-      projectId: true,
-    });
-  });
-
-  test("a model with no project has no projects to read", async () => {
-    const findBy: SpyInstance = getJestSpyOn(UserService, "findBy");
-
-    expect(
-      await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
-        service: UserService as unknown as DatabaseService<DatabaseBaseModel>,
-        query: {} as never,
-      }),
-    ).toEqual([]);
+    ).rejects.toThrow(
+      RelationIdUtil.getConflictMessage("Incident Severity", [
+        "incidentSeverityId",
+        "incidentSeverity",
+      ]),
+    );
     expect(findBy).not.toHaveBeenCalled();
   });
 
   test("refuses another project's record against the request's project", async () => {
     await expect(
-      ProjectScopedReferenceValidator.validateUpdateReferences({
-        service: IncidentEpisodeService,
-        updateBy: {
-          data: {},
-          query: { _id: EPISODE_ID },
-          props: { tenantId: PROJECT_ID },
-        } as never,
-        references: [SEVERITY_REFERENCE(FOREIGN_SEVERITY)],
-        subject: "incident episode",
+      validate({
+        payload: { incidentSeverityId: new ObjectID(FOREIGN_SEVERITY) },
+        props: { tenantId: PROJECT_ID },
       }),
     ).rejects.toThrow(ProjectScopedReferenceException);
   });
@@ -428,21 +413,86 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferences", () => {
     jest
       .spyOn(IncidentEpisodeService, "findBy")
       .mockResolvedValue([
-        episode(IncidentEpisode, EPISODE_ID, PROJECT_ID),
+        episodeHolding(EPISODE_ID, PROJECT_ID, null),
       ] as never);
 
     await expect(
-      ProjectScopedReferenceValidator.validateUpdateReferences({
-        service: IncidentEpisodeService,
-        updateBy: {
-          data: {},
-          query: { _id: EPISODE_ID },
-          props: { isRoot: true },
-        } as never,
-        references: [SEVERITY_REFERENCE(OWN_SEVERITY)],
-        subject: "incident episode",
+      validate({
+        payload: { incidentSeverity: { _id: OWN_SEVERITY } },
+        props: { isRoot: true },
       }),
     ).resolves.toBeUndefined();
+  });
+
+  test("reads the records the update writes, as root: its query, skip and limit", async () => {
+    const findBy: SpyInstance = getJestSpyOn(
+      IncidentEpisodeService,
+      "findBy",
+    ).mockResolvedValue([]);
+
+    await validate({
+      payload: { incidentSeverityId: new ObjectID(OWN_SEVERITY) },
+      props: { isRoot: true },
+      skip: 5,
+      limit: 20,
+    });
+
+    const read: Record<string, unknown> = findBy.mock.calls[0]![0];
+
+    expect(read["query"]).toEqual({ _id: EPISODE_ID });
+    expect(read["skip"]).toBe(5);
+    expect(read["limit"]).toBe(20);
+    expect(read["props"]).toEqual({ isRoot: true });
+    expect(read["select"]).toEqual({
+      _id: true,
+      projectId: true,
+      incidentSeverity: { _id: true },
+    });
+  });
+
+  test("an id every matched record of the project already holds is left alone", async () => {
+    jest
+      .spyOn(IncidentEpisodeService, "findBy")
+      .mockResolvedValue([
+        episodeHolding(EPISODE_ID, PROJECT_ID, FOREIGN_SEVERITY),
+        episodeHolding(OTHER_EPISODE_ID, PROJECT_ID, FOREIGN_SEVERITY),
+      ] as never);
+
+    await expect(
+      validate({
+        payload: { incidentSeverityId: new ObjectID(FOREIGN_SEVERITY) },
+        props: { isRoot: true },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  test("an id only some of the matched records hold is checked", async () => {
+    jest
+      .spyOn(IncidentEpisodeService, "findBy")
+      .mockResolvedValue([
+        episodeHolding(EPISODE_ID, PROJECT_ID, FOREIGN_SEVERITY),
+        episodeHolding(OTHER_EPISODE_ID, PROJECT_ID, null),
+      ] as never);
+
+    await expect(
+      validate({
+        payload: { incidentSeverityId: new ObjectID(FOREIGN_SEVERITY) },
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(ProjectScopedReferenceException);
+  });
+
+  test("an id a record holds in the request's project is still checked", async () => {
+    // The request's project decides, as it did before: no held ids are read.
+    const findBy: SpyInstance = getJestSpyOn(IncidentEpisodeService, "findBy");
+
+    await expect(
+      validate({
+        payload: { incidentSeverityId: new ObjectID(FOREIGN_SEVERITY) },
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(ProjectScopedReferenceException);
+    expect(findBy).not.toHaveBeenCalled();
   });
 
   test("the severity models stay the lookups the episodes use", () => {
