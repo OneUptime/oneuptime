@@ -181,7 +181,7 @@ Bruk i stedet en privat adresse eller et internt vertsnavn:
 
 OpenAI-kompatible servere følger de samme reglene med sin egen port og `/v1`-sti, f.eks. `http://vllm:8000/v1`, eller `http://192.168.1.20:1234/v1` for LM Studio. I likhet med en native Ollama-installasjon lytter LM Studio bare på `127.0.0.1` til du slår på **Serve on Local Network** i serverinnstillingene.
 
-**Private adresser fungerer på selvhostede installasjoner.** En selvhostet OneUptime kan nå private nettverksadresser, som `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` og IPv6 `fc00::/7`, med mindre du setter `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, som avviser dem slik OneUptime Cloud gjør.
+**Private adresser fungerer på selvhostede installasjoner.** En selvhostet OneUptime kan nå private nettverksadresser, som `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` og IPv6 `fc00::/7`, med mindre du setter `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, som avviser dem slik OneUptime Cloud gjør. Innstillingen gjelder ikke for en global LLM-leverandør, som en administrator konfigurerer (med `GLOBAL_LLM_PROVIDER_*`-variablene eller i Admin Dashboard) i stedet for et prosjekt: den kan likevel nå private adresser. Loopback- og link-local-adresser avvises fortsatt for alle leverandører.
 
 **OneUptime Cloud (SaaS) kan ikke nå private nettverk.** Den avviser private nettverksadresser, og vertsnavn som løses opp til dem, for alle LLM-leverandører. For å bruke en modell som kjører på din egen infrastruktur, må du enten selvhoste OneUptime på et nettverk som når den, eller eksponere modellen på et offentlig tilgjengelig endepunkt. Beskytt et offentlig endepunkt med en API-nøkkel: leverandøren **Ollama** sender ingen påloggingsinformasjon, mens **OpenAI-kompatibel** sender API-nøkkelen som bearer-token (Ollama tilbyr også et OpenAI-kompatibelt API under `/v1`, så den kan stå bak en omvendt proxy som sjekker nøkkelen).
 
@@ -238,6 +238,8 @@ Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
+
+Når fakturering er slått på, eller når `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` er satt (`outboundConnections.blockPrivateNetwork: true` i Helm-verdiene), kan en leverandør som et prosjekt selv eier, ikke nå denne adressen i klyngen, fordi den løses opp til en privat klynge-IP. Opprett heller leverandøren i Admin Dashboard under **Innstillinger** > **Globale LLM-leverandører**, med de samme feltene: en global LLM-leverandør kan nå den adressen.
 
 Se [vLLM-veiledningen for Helm-chartet](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) for GPU-planlegging, sperrede modeller og justeringsalternativer.
 

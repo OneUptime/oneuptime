@@ -181,7 +181,7 @@ OneUptime 會把這個 `options` 物件合併到它送給 Ollama 的選項中，
 
 與 OpenAI 相容的伺服器也遵循相同規則，使用各自的連接埠與 `/v1` 路徑，例如 `http://vllm:8000/v1`，或 LM Studio 的 `http://192.168.1.20:1234/v1`。和原生安裝的 Ollama 一樣，LM Studio 在您於其伺服器設定中開啟 **Serve on Local Network** 之前，只會監聽 `127.0.0.1`。
 
-**自行託管的部署可以使用私有位址。** 自行託管的 OneUptime 可以連到私有網路位址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 與 IPv6 `fc00::/7`，除非您設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，這會讓它們像在 OneUptime Cloud 上一樣被拒絕。
+**自行託管的部署可以使用私有位址。** 自行託管的 OneUptime 可以連到私有網路位址，例如 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`、`100.64.0.0/10` 與 IPv6 `fc00::/7`，除非您設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`，這會讓它們像在 OneUptime Cloud 上一樣被拒絕。此設定不適用於 Global LLM Provider：Global LLM Provider 由管理員（透過 `GLOBAL_LLM_PROVIDER_*` 變數或在管理儀表板中）設定，而不是由專案設定，因此仍可連到私有位址。無論哪個供應商，回送位址與連結本機位址都仍會被拒絕。
 
 **OneUptime Cloud（SaaS）無法連到私有網路。** 對所有 LLM 供應商，它都會拒絕私有網路位址，以及解析到這些位址的主機名稱。若要使用在您自己基礎設施上執行的模型，請在能連到該模型的網路中自行託管 OneUptime，或將模型公開在可公開存取的端點上。請用 API 金鑰保護公用端點：**Ollama** 供應商不會送出任何憑證，而 **OpenAI Compatible** 會把 API 金鑰當成 Bearer 權杖送出（Ollama 也在 `/v1` 下提供與 OpenAI 相容的 API，因此可以放在會檢查金鑰的反向代理之後）。
 
@@ -238,6 +238,8 @@ Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
+
+若啟用了計費，或設定了 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（在 Helm values 中為 `outboundConnections.blockPrivateNetwork: true`），專案自有的供應商就無法連到這個叢集內部位址，因為它會解析為叢集的私有 IP。請改在管理儀表板的 **設定** > **全域 LLM 供應商** 中，用相同的欄位建立該供應商：Global LLM Provider 可以連到這個位址。
 
 請參閱 [Helm chart 的 vLLM 指南](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)，以了解 GPU 排程、受限模型與調校選項。
 

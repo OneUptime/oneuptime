@@ -25,10 +25,10 @@ import path from "path";
  * inside Docker Compose or Kubernetes localhost is the OneUptime container
  * anyway. These hold every Base URL the guides, the forms and
  * config.example.env suggest to what the guard lets through on a self-hosted
- * install; hold the guide's account of the policy, and the refusals it
- * quotes, to the guard and LLMService; and hold its in-cluster vLLM URL and
- * num_ctx advice to the Helm chart and the Ollama request that make them
- * true.
+ * install; hold the guide's account of the policy, the refusals it quotes,
+ * and the private addresses it says a Global LLM Provider still reaches, to
+ * the guard and LLMService; and hold its in-cluster vLLM URL and num_ctx
+ * advice to the Helm chart and the Ollama request that make them true.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -51,6 +51,17 @@ const BASE_URL_FORMS: Array<string> = [
   "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviderView.tsx",
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index.tsx",
 ];
+
+// Where the Admin Dashboard lists Global LLM Providers, and its labels.
+const ADMIN_LLM_PROVIDERS_PAGE: string =
+  "App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index.tsx";
+const ADMIN_DASHBOARD_LOCALES_DIR: string = path.join(
+  PACKAGES_ROOT,
+  "App/FeatureSet/AdminDashboard/src/Locales",
+);
+
+// The guides quote the dashboards in English in these languages.
+const ENGLISH_LABEL_LANGUAGES: Array<string> = ["en", "fa"];
 
 // The Additional Parameters every language's guide shows for Ollama.
 const NUM_CTX_EXAMPLE: string = '{ "options": { "num_ctx": 16384 } }';
@@ -83,6 +94,25 @@ const jsYaml: JsYamlModule = require(
 
 function readPage(language: string, page: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, language, page), "utf8");
+}
+
+// What the Admin Dashboard draws for a label, by its key, in that language.
+function adminDashboardLabel(language: string, key: string): string {
+  const locale: string = ENGLISH_LABEL_LANGUAGES.includes(language)
+    ? "en"
+    : language;
+  let label: unknown = JSON.parse(
+    fs.readFileSync(
+      path.join(ADMIN_DASHBOARD_LOCALES_DIR, `${locale}.json`),
+      "utf8",
+    ),
+  );
+
+  for (const part of key.split(".")) {
+    label = (label as JSONObject | undefined)?.[part];
+  }
+
+  return typeof label === "string" ? label : "";
 }
 
 /*
@@ -140,6 +170,14 @@ function addressInside(range: string): string {
 function mockOllamaReply(): ReturnType<typeof jest.spyOn> {
   return jest.spyOn(API, "post").mockResolvedValue({
     jsonData: { message: { content: "OK" } },
+  } as unknown as HTTPResponse<JSONObject>) as ReturnType<typeof jest.spyOn>;
+}
+
+function mockOpenAICompatibleReply(): ReturnType<typeof jest.spyOn> {
+  return jest.spyOn(API, "post").mockResolvedValue({
+    jsonData: {
+      choices: [{ message: { content: "OK" }, finish_reason: "stop" }],
+    },
   } as unknown as HTTPResponse<JSONObject>) as ReturnType<typeof jest.spyOn>;
 }
 
@@ -280,6 +318,176 @@ describe("the guide's account of the egress policy is the guard's", () => {
         "`/api/chat`",
       ]) {
         expect(markdown).toContain(fact);
+      }
+    },
+  );
+});
+
+/*
+ * BILLING_ENABLED and DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES refuse private
+ * addresses only to the providers projects configure. LLMService exempts a
+ * Global LLM Provider no project owns, whose Base URL an administrator set
+ * (LLMServiceGlobalProviderEgress.test.ts pins that for every wire format).
+ * The guide says so where it names the switch, and sends anyone who wires the
+ * Helm chart's vLLM up by hand to the Admin Dashboard when either switch is
+ * on: the vLLM Service's name resolves to a private ClusterIP.
+ */
+describe("the guide's account of the Global LLM Provider exemption is LLMService's", () => {
+  startEachTestOnSelfHostedEgressPolicy();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const PRIVATE_ADDRESS_SWITCHES: Array<string> = [
+    "BILLING_ENABLED",
+    "DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES",
+  ];
+
+  // The guide's in-cluster vLLM example, and a ClusterIP its Service name resolves to.
+  const IN_CLUSTER_VLLM_BASE_URL: string =
+    "http://oneuptime-vllm.default.svc.cluster.local:8000/v1";
+  const VLLM_CLUSTER_IP: string = "10.96.14.21";
+
+  function completeWith(
+    baseUrl: string,
+    isGlobalProvider: boolean,
+  ): Promise<unknown> {
+    return LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: baseUrl,
+        modelName: "Qwen/Qwen2.5-1.5B-Instruct",
+        isGlobalProvider: isGlobalProvider,
+      },
+      messages: [{ role: "user", content: "hi" }],
+    });
+  }
+
+  function resolveToClusterIp(): void {
+    jest
+      .spyOn(dns.promises, "lookup")
+      .mockResolvedValue([{ address: VLLM_CLUSTER_IP, family: 4 }] as never);
+  }
+
+  // From the manual vLLM steps to the end of their section.
+  function manualVllmSteps(markdown: string): string {
+    const start: number = markdown.indexOf(
+      "`vllm.globalProvider.enabled: false`",
+    );
+    const end: number = markdown.indexOf("\n## ", start);
+
+    return start === -1
+      ? ""
+      : markdown.slice(start, end === -1 ? undefined : end);
+  }
+
+  test("the guide's in-cluster vLLM example is the one held here", () => {
+    expect(readPage("en", LLM_PROVIDER_PAGE)).toContain(
+      `Base URL: ${IN_CLUSTER_VLLM_BASE_URL}\n`,
+    );
+  });
+
+  test.each(PRIVATE_ADDRESS_SWITCHES)(
+    "with %s=true, a project's own provider cannot reach the in-cluster vLLM",
+    async (variable: string) => {
+      process.env[variable] = "true";
+      resolveToClusterIp();
+      const post: ReturnType<typeof jest.spyOn> = refuseEveryRequest();
+
+      await expect(
+        completeWith(IN_CLUSTER_VLLM_BASE_URL, false),
+      ).rejects.toThrow(UNREACHABLE_REFUSAL);
+
+      expect(post).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(PRIVATE_ADDRESS_SWITCHES)(
+    "with %s=true, a Global LLM Provider reaches the in-cluster vLLM",
+    async (variable: string) => {
+      process.env[variable] = "true";
+      resolveToClusterIp();
+      const post: ReturnType<typeof jest.spyOn> = mockOpenAICompatibleReply();
+
+      await completeWith(IN_CLUSTER_VLLM_BASE_URL, true);
+
+      expect(post).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test.each(["http://127.0.0.1:8000/v1", "http://169.254.169.254/v1"])(
+    "a Global LLM Provider is refused %s all the same",
+    async (baseUrl: string) => {
+      const post: ReturnType<typeof jest.spyOn> = refuseEveryRequest();
+
+      await expect(completeWith(baseUrl, true)).rejects.toThrow(
+        ADDRESS_REFUSAL,
+      );
+
+      expect(post).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the chart's outboundConnections.blockPrivateNetwork sets DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES", () => {
+    const helpers: string = fs.readFileSync(
+      path.join(CHART_DIR, "templates/_helpers.tpl"),
+      "utf8",
+    );
+
+    expect(helpers).toMatch(
+      /- name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES\n\s*value: .*\(\$\.Values\.outboundConnections\)\.blockPrivateNetwork\b/,
+    );
+  });
+
+  test("the Admin Dashboard creates Global LLM Providers under Settings > Global LLM Providers", () => {
+    const page: string = fs.readFileSync(
+      path.join(PACKAGES_ROOT, ADMIN_LLM_PROVIDERS_PAGE),
+      "utf8",
+    );
+    const settings: number = page.indexOf('t("breadcrumbs.settings")');
+
+    expect(settings).toBeGreaterThan(-1);
+    expect(page.indexOf('t("breadcrumbs.globalLlmProviders")')).toBeGreaterThan(
+      settings,
+    );
+    expect(page).toContain("item.isGlobalLlm = true;");
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s says so where it names the switch, and in the manual vLLM steps",
+    (language: string) => {
+      const markdown: string = readPage(language, LLM_PROVIDER_PAGE);
+      const switchParagraphs: Array<string> = markdown
+        .split("\n")
+        .filter((line: string): boolean => {
+          return (
+            line.includes("`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`") &&
+            line.includes("`fc00::/7`")
+          );
+        });
+      const globalProvidersPage: string = [
+        adminDashboardLabel(language, "breadcrumbs.settings"),
+        adminDashboardLabel(language, "breadcrumbs.globalLlmProviders"),
+      ]
+        .map((label: string): string => {
+          return `**${label}**`;
+        })
+        .join(" > ");
+      const steps: string = manualVllmSteps(markdown);
+
+      expect(switchParagraphs).toHaveLength(1);
+      expect(switchParagraphs[0]).toContain("`GLOBAL_LLM_PROVIDER_*`");
+
+      for (const fact of [
+        "`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`",
+        "`outboundConnections.blockPrivateNetwork: true`",
+        globalProvidersPage,
+      ]) {
+        expect({ fact, inSteps: steps.includes(fact) }).toEqual({
+          fact,
+          inSteps: true,
+        });
       }
     },
   );
