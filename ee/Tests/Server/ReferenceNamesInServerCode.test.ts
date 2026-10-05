@@ -8,6 +8,7 @@ import RelationNames, {
 import {
   OneNameRead,
   ScanFinding,
+  extendsAnyOf,
   findOneNameReads,
   findReferenceWrites,
   findSingleNameReads,
@@ -50,12 +51,18 @@ function relative(file: string): string {
   return path.relative(EE_SERVER_DIRECTORY, file);
 }
 
-// A service of one database model: the model it extends a service of.
+/*
+ * A database service: a class extending one of the service bases core's
+ * services extend. An API class (`extends BaseAPI<Model, Service>`) calls a
+ * service; it is not one.
+ */
 function isDatabaseService(text: string): boolean {
-  return (
-    Boolean(modelFileOf(text)) ||
-    /extends\s+(DatabaseService|ProjectReferencesService)\s*</.test(text)
-  );
+  return extendsAnyOf(text, [
+    "DatabaseService",
+    "ProjectReferencesService",
+    "AnalyticsDatabaseService",
+    "OnCallDutyPolicyChildService",
+  ]);
 }
 
 function referencesOf(modelFile: string): Array<RelationName> {
@@ -191,5 +198,29 @@ describe("the detectors read ee's import style", () => {
         'import TeamService from "Common/Server/Services/TeamService";\nexport default class TeamComplianceService {}',
       ),
     ).toBe(false);
+  });
+
+  test("an API class of a model is not one", () => {
+    expect(
+      isDatabaseService(
+        'import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";\nexport default class EnterpriseLicenseAPI extends BaseAPI<EnterpriseLicense, Service> {}',
+      ),
+    ).toBe(false);
+  });
+
+  test("a class named in a comment is not one", () => {
+    expect(
+      isDatabaseService(
+        'import Team from "Common/Models/DatabaseModels/Team";\n/* This used to be `class TeamAPI extends BaseAPI<Team>`. */\nexport const router: unknown = null;',
+      ),
+    ).toBe(false);
+  });
+
+  test("a class extending a database service with no model of its own is one", () => {
+    expect(
+      isDatabaseService(
+        'import DatabaseService from "Common/Server/Services/DatabaseService";\nexport class Service<T> extends DatabaseService<T> {}',
+      ),
+    ).toBe(true);
   });
 });

@@ -326,6 +326,42 @@ describe("the scan sees a reference read under one name alone", () => {
   });
 });
 
+describe("the scan knows which model a service serves", () => {
+  test.each([
+    [
+      "a core service, importing the model relatively",
+      'import Model from "../../Models/DatabaseModels/StatusPageGroup";\nexport class Service extends ProjectReferencesService<Model> {}',
+      "StatusPageGroup",
+    ],
+    [
+      "an ee service, importing the model through the package",
+      'import Team from "Common/Models/DatabaseModels/Team";\nexport class Service extends DatabaseService<Team> {}',
+      "Team",
+    ],
+    [
+      "a model in a folder",
+      'import Model from "../../Models/DatabaseModels/Workspace/WorkspaceSetting";\nclass Service extends DatabaseService<Model> {}',
+      "Workspace/WorkspaceSetting",
+    ],
+  ])("%s", (_shape: string, code: string, expected: string) => {
+    expect(modelFileOf(code)).toBe(expected);
+  });
+
+  test.each([
+    [
+      "a class named only in a comment",
+      'import Team from "Common/Models/DatabaseModels/Team";\n/* It used to be `class TeamAPI extends BaseAPI<Team>`. */\nexport const router: unknown = null;',
+    ],
+    [
+      "a type argument that is not a model",
+      'import Model from "../../Types/Something";\nexport class Service extends DatabaseService<Model> {}',
+    ],
+    ["no class at all", "export const value: number = 1;"],
+  ])("none for %s", (_shape: string, code: string) => {
+    expect(modelFileOf(code)).toBeNull();
+  });
+});
+
 /*
  * A read of one name alone that is right where it is, and why. The list may
  * only shrink: an entry that no longer matches a read fails below, so it is

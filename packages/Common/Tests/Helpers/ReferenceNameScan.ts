@@ -1143,24 +1143,102 @@ export function findReferenceWrites(
  * model it imports and extends a service of (`extends DatabaseService<Model>`
  * or any service base class of one model). Core services import models
  * relatively (`../../Models/DatabaseModels/X`), ee services through the
- * package (`Common/Models/DatabaseModels/X`). Null for anything else.
+ * package (`Common/Models/DatabaseModels/X`). Read from the syntax, so a
+ * class named in a comment is not one. Null for anything else.
  */
-export function modelFileOf(source: string): string | null {
+const MODEL_IMPORT: RegExp =
+  /^(?:(?:\.\.\/)+|Common\/)Models\/DatabaseModels\/([\w/]+)$/;
+
+export function modelFileOf(text: string): string | null {
+  const source: ts.SourceFile = parse("Service.ts", text);
   const imports: Map<string, string> = new Map();
 
-  for (const match of source.matchAll(
-    /import (\w+)(?:,\s*\{[^}]*\})? from "(?:(?:\.\.\/)+|Common\/)Models\/DatabaseModels\/([\w/]+)";/g,
-  )) {
-    imports.set(match[1]!, match[2]!);
+  for (const statement of source.statements) {
+    if (
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.importClause?.name
+    ) {
+      const match: RegExpMatchArray | null =
+        statement.moduleSpecifier.text.match(MODEL_IMPORT);
+
+      if (match) {
+        imports.set(statement.importClause.name.text, match[1]!);
+      }
+    }
   }
 
-  const extended: RegExpMatchArray | null = source.match(
-    /class \w+ extends \w+<(\w+)>/,
-  );
+  let modelFile: string | null = null;
 
-  if (!extended) {
-    return null;
-  }
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (modelFile) {
+      return;
+    }
 
-  return imports.get(extended[1]!) || null;
+    if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
+      for (const clause of node.heritageClauses || []) {
+        if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
+          continue;
+        }
+
+        for (const type of clause.types) {
+          const argument: ts.TypeNode | undefined = type.typeArguments?.[0];
+
+          if (
+            argument &&
+            ts.isTypeReferenceNode(argument) &&
+            ts.isIdentifier(argument.typeName) &&
+            imports.has(argument.typeName.text)
+          ) {
+            modelFile = imports.get(argument.typeName.text)!;
+            return;
+          }
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return modelFile;
+}
+
+/*
+ * Whether a class in `text` extends one of `baseNames` (`DatabaseService`),
+ * read from the syntax.
+ */
+export function extendsAnyOf(text: string, baseNames: Array<string>): boolean {
+  const source: ts.SourceFile = parse("Module.ts", text);
+  let found: boolean = false;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
+      for (const clause of node.heritageClauses || []) {
+        if (
+          clause.token === ts.SyntaxKind.ExtendsKeyword &&
+          clause.types.some((type: ts.ExpressionWithTypeArguments): boolean => {
+            return (
+              ts.isIdentifier(type.expression) &&
+              baseNames.includes(type.expression.text)
+            );
+          })
+        ) {
+          found = true;
+          return;
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
 }
