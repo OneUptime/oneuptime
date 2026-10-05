@@ -15,11 +15,13 @@ import {
  * The service owns the throttle; what this file protects is the layer above
  * it, which is where the two mistakes that matter live:
  *
- *   - The route must be behind UserMiddleware and must check access with the
- *     CALLER'S props, not with isRoot. Every other read on this route runs as
- *     root (it has to - the row carries fields the caller may not read), so
- *     the one scoped query is the whole tenancy boundary. Lose it and the
- *     route reissues certificates for any domain id in the fleet.
+ *   - The route must be behind UserMiddleware and must ask, with the
+ *     CALLER'S props, what an update of the domain asks: reissuing replaces
+ *     the domain's certificate, a change, so it takes the domain's edit
+ *     permissions and the domain must be inside the caller's update scope
+ *     (CustomDomainRoutes.getChangeRefusal; the permission matrix is
+ *     CustomDomainChangePermission.test.ts). Every other read on this route
+ *     runs as root, so that scoped query is the whole tenancy boundary.
  *   - A caller who is refused must never reach the CA. Anything that spends
  *     the shared Let's Encrypt allowance before the access check is a way for
  *     a stranger to spend it.
@@ -101,6 +103,9 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import Permission from "../../../Types/Permission";
+import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
+import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -121,6 +126,8 @@ type Surface = {
   service: typeof StatusPageDomainService | typeof DashboardDomainService;
   // Module path re-required by the "custom domains switched off" case below.
   apiModulePath: string;
+  // What somebody who may read and edit this kind of domain holds.
+  editorPermissions: Array<Permission>;
 };
 
 const surfaces: Array<[string, Surface]> = [
@@ -134,6 +141,10 @@ const surfaces: Array<[string, Surface]> = [
       route: "/status-page-domain/reissue-ssl/:id",
       service: StatusPageDomainService,
       apiModulePath: "../../../Server/API/StatusPageDomainAPI",
+      editorPermissions: [
+        Permission.ReadStatusPageDomain,
+        Permission.EditStatusPageDomain,
+      ],
     },
   ],
   [
@@ -146,15 +157,18 @@ const surfaces: Array<[string, Surface]> = [
       route: "/dashboard-domain/reissue-ssl/:id",
       service: DashboardDomainService,
       apiModulePath: "../../../Server/API/DashboardDomainAPI",
+      editorPermissions: [
+        Permission.ReadDashboardDomain,
+        Permission.EditDashboardDomain,
+      ],
     },
   ],
 ];
 
 describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
-  const callerProps: DatabaseCommonInteractionProps = {
-    userId: ObjectID.generate(),
-    tenantId: ObjectID.generate(),
-  } as DatabaseCommonInteractionProps;
+  const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
+    permissions: surface.editorPermissions,
+  });
 
   let domainId: ObjectID;
 
@@ -225,7 +239,7 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
   });
 
   describe("access control", () => {
-    test("scopes the existence check to the caller's own props", async () => {
+    test("looks for the domain inside the caller's update scope", async () => {
       const countSpy: MockedFn = jest
         .spyOn(surface.service, "countBy")
         .mockResolvedValue(new PositiveNumber(1)) as unknown as MockedFn;
@@ -236,17 +250,25 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
 
       expect(countSpy).toHaveBeenCalledTimes(1);
 
-      const countArgs: { query: { _id: string }; props: unknown } = countSpy
-        .mock.calls[0]![0] as { query: { _id: string }; props: unknown };
+      const countArgs: {
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } = countSpy.mock.calls[0]![0] as {
+        query: Record<string, unknown>;
+        props: Record<string, unknown>;
+      };
 
-      expect(countArgs.query._id).toBe(domainId.toString());
+      expect(countArgs.query["_id"]).toBe(domainId.toString());
 
       /*
-       * The whole tenancy boundary. isRoot here would make every domain id in
-       * the fleet reissuable by any signed-in user.
+       * The whole tenancy boundary: the count runs as root on a query the
+       * caller's own props narrowed to their project, as an update of the
+       * domain would be narrowed.
        */
-      expect(countArgs.props).toBe(callerProps);
-      expect((countArgs.props as { isRoot?: boolean }).isRoot).toBeFalsy();
+      expect(JSON.stringify(countArgs.query["projectId"])).toContain(
+        callerProps.tenantId!.toString(),
+      );
+      expect(countArgs.props).toEqual({ isRoot: true });
     });
 
     test("a domain the caller cannot see is refused and never reaches the CA", async () => {
@@ -276,7 +298,7 @@ describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
       const error: Error = sendErrorResponseMock.mock
         .calls[0]![2] as unknown as Error;
 
-      expect(error.message).toContain("does not exist or user does not have");
+      expect(error.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
     });
   });
 

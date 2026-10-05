@@ -20,8 +20,10 @@ import {
  * .orderCertOnceCnameIsVerified) and answers with what happens to the
  * certificate next. What this pins:
  *
- *   - the access check still uses the caller's own props, and a refused
- *     caller never reaches the CA;
+ *   - Check now changes the domain, so it takes what editing the domain
+ *     takes (CustomDomainRoutes.getChangeRefusal; the permission matrix is
+ *     CustomDomainChangePermission.test.ts), and a refused caller never
+ *     reaches the CA;
  *   - a record that is not found orders nothing, and says which record to
  *     look for;
  *   - a record that is found orders through the shared order path, which
@@ -119,6 +121,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
+import Permission from "../../../Types/Permission";
+import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
+import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -145,10 +150,13 @@ type DomainRow = {
   cnameVerificationToken?: string;
 };
 
-const callerProps: DatabaseCommonInteractionProps = {
-  userId: ObjectID.generate(),
-  tenantId: ObjectID.generate(),
-} as DatabaseCommonInteractionProps;
+// Somebody who may read and edit the project's status page domains.
+const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
+  permissions: [
+    Permission.ReadStatusPageDomain,
+    Permission.EditStatusPageDomain,
+  ],
+});
 
 let domainId: ObjectID;
 
@@ -336,19 +344,39 @@ describe("verify-cname (Check now)", () => {
     expect(error.message).toBe("The domain ID is not valid.");
   });
 
-  test("checks access with the caller's own props, and a domain they cannot see orders nothing", async () => {
+  /*
+   * Check now verifies the domain and orders its certificate: a change, so
+   * the domain is looked for inside the caller's update scope - their
+   * project, as an update of the domain narrows it - and a domain outside it
+   * orders nothing.
+   */
+  test("looks for the domain inside the caller's update scope, and a domain outside it orders nothing", async () => {
     const spies: Spies = setUp({ canSee: false });
 
     await callRoute(VERIFY_ROUTE);
 
-    const countArgs: { query: { _id: string }; props: unknown } = spies.countBy
-      .mock.calls[0]![0] as { query: { _id: string }; props: unknown };
+    const countArgs: {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = spies.countBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    };
 
-    expect(countArgs.query._id).toBe(domainId.toString());
-    expect(countArgs.props).toBe(callerProps);
+    expect(countArgs.query["_id"]).toBe(domainId.toString());
+    expect(JSON.stringify(countArgs.query["projectId"])).toContain(
+      callerProps.tenantId!.toString(),
+    );
+    expect(countArgs.props).toEqual({ isRoot: true });
+    expect(spies.findOneBy).not.toHaveBeenCalled();
     expect(spies.isCnameValid).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
-    expect(sendErrorResponseMock).toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
   });
 
   test("a record that is not found yet orders nothing, and says which record to look for", async () => {

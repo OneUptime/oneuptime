@@ -22,7 +22,10 @@ import {
  *     within it gets the last order's error: an order that fails leaves the
  *     domain unordered, so every click on a failing domain used to place
  *     another order against the account the whole installation shares;
- *   - nothing ordered is never reported as a success.
+ *   - nothing ordered is never reported as a success;
+ *   - ordering is a change, so it takes what editing the domain takes
+ *     (CustomDomainRoutes.getChangeRefusal; the permission matrix is
+ *     CustomDomainChangePermission.test.ts).
  */
 
 const mockCNameRecord: string = "dashboards.example.com";
@@ -97,6 +100,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import Permission from "../../../Types/Permission";
+import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
+import { customDomainCaller } from "./CustomDomainCallers";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -107,10 +113,10 @@ const sendErrorResponseMock: MockedFn =
 
 const ORDER_ROUTE: string = "/dashboard-domain/order-ssl/:id";
 
-const callerProps: DatabaseCommonInteractionProps = {
-  userId: ObjectID.generate(),
-  tenantId: ObjectID.generate(),
-} as DatabaseCommonInteractionProps;
+// Somebody who may read and edit the project's dashboard domains.
+const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
+  permissions: [Permission.ReadDashboardDomain, Permission.EditDashboardDomain],
+});
 
 let domainId: ObjectID;
 
@@ -239,18 +245,32 @@ describe("dashboard order-ssl", () => {
     );
   });
 
-  test("checks access with the caller's own props, and a domain they cannot see orders nothing", async () => {
+  test("looks for the domain inside the caller's update scope, and a domain outside it orders nothing", async () => {
     const spies: Spies = setUp({ canSee: false });
 
     await callRoute();
 
-    const countArgs: { props: unknown } = spies.countBy.mock.calls[0]![0] as {
-      props: unknown;
+    const countArgs: {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = spies.countBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: Record<string, unknown>;
     };
 
-    expect(countArgs.props).toBe(callerProps);
+    expect(countArgs.query["_id"]).toBe(domainId.toString());
+    expect(JSON.stringify(countArgs.query["projectId"])).toContain(
+      callerProps.tenantId!.toString(),
+    );
+    expect(countArgs.props).toEqual({ isRoot: true });
     expect(spies.claim).not.toHaveBeenCalled();
     expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
+
+    const error: Error = sendErrorResponseMock.mock
+      .calls[0]![2] as unknown as Error;
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toBe(DOMAIN_NOT_CHANGEABLE_MESSAGE);
   });
 
   test("orders through orderCertIfMissing, on demand, so a click and a sweep never order one name twice", async () => {

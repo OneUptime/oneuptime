@@ -191,6 +191,14 @@ The **Status** column says where each domain is on its way to HTTPS, in one of s
 
 If a row stays on "Waiting for DNS" long after you created the record, check that the record's name is the full domain and that its value matches your installation's CNAME record exactly. If it says it could not issue a free certificate, check for a CAA record that leaves out `letsencrypt.org` and, on a self-hosted install, that your server answers on port 80.
 
+## Who can check and reissue
+
+**Check now**, ordering a domain's certificate and **Reissue SSL** change the domain, so they need permission to edit it: **Edit Status Page Domain**, or a role that includes it (Project Owner, Project Admin, Project Member, Status Page Admin or Status Page Member).
+
+Someone who can only read the domain, such as a Viewer or a Status Page Viewer, still sees the **Status** column and the record to add in **DNS Setup**. For them **Check now** and **Reissue SSL** are locked, and say which permission they need. OneUptime keeps checking every domain and ordering its certificate on its own either way.
+
+The same goes for API keys. A key that can only read status page domains can't call `verify-cname`, `order-ssl` or `reissue-ssl` on `/status-page-domain`. Give it **Read Status Page Domain** and **Edit Status Page Domain** if it needs to.
+
 ## Powered by OneUptime
 
 The "Powered by OneUptime" line is not a branding-section setting. It is the last switch of the **What your status page shows** card on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`): **Show Powered By OneUptime Branding**, on by default. Turn it off to hide the line; it saves at once. On OneUptime Cloud, hiding it needs the **Scale** plan.
