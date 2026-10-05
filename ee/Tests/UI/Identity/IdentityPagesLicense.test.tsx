@@ -95,6 +95,7 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
       isEditable?: boolean;
       isDeleteable?: boolean;
       actionButtons?: Array<MockActionButton>;
+      selectMoreFields?: Record<string, unknown>;
     }): ReactElement => {
       const visibleActions: Array<string> = (props.actionButtons || [])
         .filter((button: MockActionButton) => {
@@ -111,6 +112,7 @@ jest.mock("Common/UI/Components/ModelTable/ModelTable", () => {
           data-editable={String(Boolean(props.isEditable))}
           data-deleteable={String(Boolean(props.isDeleteable))}
           data-actions={visibleActions.join("|")}
+          data-selects={Object.keys(props.selectMoreFields || {}).join("|")}
         />
       );
     },
@@ -538,6 +540,10 @@ describe("Settings > SCIM for a project admin", () => {
     expect(table).toHaveAttribute("data-editable", "false");
     expect(table).toHaveAttribute("data-deleteable", "true");
     expect(table.getAttribute("data-actions")).toBe("View SCIM URLs");
+    // The server lets only a project owner read the token: it is not asked for.
+    expect(table.getAttribute("data-selects")?.split("|")).not.toContain(
+      "bearerToken",
+    );
     expect(
       screen.getByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
     ).toHaveTextContent(SCIM_SAVE_ACCESS_TITLE);
@@ -597,7 +603,7 @@ describe("Settings > SCIM for a project admin", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("a project owner sees no such notice", async () => {
+  test("a project owner sees no such notice, and the table reads the token for them", async () => {
     window.localStorage.clear();
     signInWith(Permission.ProjectOwner);
     answerLicense({ status: "valid", licenseValid: true });
@@ -608,5 +614,8 @@ describe("Settings > SCIM for a project admin", () => {
     expect(
       screen.queryByTestId(SCIM_SAVE_ACCESS_NOTICE_TEST_ID),
     ).not.toBeInTheDocument();
+    expect(
+      providerTable(settingsScreen).getAttribute("data-selects")?.split("|"),
+    ).toContain("bearerToken");
   });
 });

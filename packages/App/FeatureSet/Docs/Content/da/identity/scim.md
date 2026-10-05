@@ -19,7 +19,7 @@ Projekt-SCIM giver identitetsudbydere mulighed for at administrere teammedlemmer
 
 ### Opsætning af projekt-SCIM
 
-Kun en projektejer kan tilføje eller ændre et projekts SCIM-forbindelse eller nulstille dens bearer-token: Via SCIM kan din identitetsudbyder tilføje personer til ethvert team i projektet. Alle andre, der kan åbne **Projektindstillinger** > **Sikkerhed** > **SCIM**, kan stadig se og slette forbindelser.
+Kun en projektejer kan tilføje eller ændre et projekts SCIM-forbindelse eller se eller nulstille dens bearer-token: Via SCIM kan din identitetsudbyder tilføje personer til ethvert team i projektet. Alle andre, der kan åbne **Projektindstillinger** > **Sikkerhed** > **SCIM**, kan stadig se forbindelserne og slette dem.
 
 1. **Naviger til projektindstillinger**
 

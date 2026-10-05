@@ -19,7 +19,7 @@ Projekt-SCIM gör det möjligt för identitetsleverantörer att hantera teammedl
 
 ### Konfigurera projekt-SCIM
 
-Endast en projektägare kan lägga till eller ändra ett projekts SCIM-anslutning eller återställa dess bearer-token: via SCIM kan din identitetsleverantör lägga till personer i vilket team som helst i projektet. Alla andra som kan öppna **Projektinställningar** > **Säkerhet** > **SCIM** kan fortfarande visa och ta bort anslutningar.
+Endast en projektägare kan lägga till eller ändra ett projekts SCIM-anslutning eller visa eller återställa dess bearer-token: via SCIM kan din identitetsleverantör lägga till personer i vilket team som helst i projektet. Alla andra som kan öppna **Projektinställningar** > **Säkerhet** > **SCIM** kan fortfarande se anslutningarna och ta bort dem.
 
 1. **Navigera till projektinställningar**
 

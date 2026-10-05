@@ -57,13 +57,17 @@ import TeamService from "../../../Server/Services/TeamService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import SelectPermission from "../../../Server/Types/Database/Permissions/SelectPermission";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import Select from "../../../Server/Types/Database/Select";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import SsoProviderTeamGrant, {
   MAX_REFUSED_TEAM_NAMES,
+  SCIM_SAVE_REFUSAL_MESSAGE,
   SsoProviderKind,
   TEAMS_NOT_IN_PROJECT_MESSAGE,
   TEAMS_NOT_REFERENCES_MESSAGE,
+  TEAMS_WITHOUT_PROJECT_MESSAGE,
   getProviderTeamsRefusalMessage,
   joinTeamNames,
 } from "../../../Server/Utils/SsoProviderTeamGrant";
@@ -425,6 +429,7 @@ interface StubbedDatabase {
   teamReads: ReturnType<typeof getJestSpyOn>;
   permissionReads: ReturnType<typeof getJestSpyOn>;
   providerReads: Map<string, ReturnType<typeof getJestSpyOn>>;
+  createPermissionChecks: ReturnType<typeof getJestSpyOn>;
   updatePermissionChecks: ReturnType<typeof getJestSpyOn>;
 }
 
@@ -506,19 +511,24 @@ beforeEach(() => {
     }).map(toTeamModel);
   });
 
+  // A team's rows, read the same way for an invitation and for a provider.
   const permissionReads: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
     TeamPermissionService,
-    "findAllBy",
+    "findBy",
   ).mockImplementation(async (findBy: unknown) => {
     return teamPermissionRowsFor(findBy);
   });
 
-  // assertCanGrantTeamPermissions reads a team's rows with findBy.
-  getJestSpyOn(TeamPermissionService, "findBy").mockImplementation(
-    async (findBy: unknown) => {
-      return teamPermissionRowsFor(findBy);
-    },
-  );
+  /*
+   * The create's own permission check (every request makes it): here it lets
+   * the create through, as it does for a caller allowed to add providers.
+   */
+  const createPermissionChecks: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+    ModelPermission,
+    "checkCreatePermissions",
+  ).mockImplementation((): void => {
+    return undefined;
+  });
 
   /*
    * The update's own permission check (exercised by every request): here it
@@ -550,6 +560,7 @@ beforeEach(() => {
       ["oidc", stubProviderReads(ProjectOidcService, ProjectOIDC)],
       ["scim", stubProviderReads(ProjectSCIMService, ProjectSCIM)],
     ]),
+    createPermissionChecks,
     updatePermissionChecks,
   };
 });
@@ -592,6 +603,7 @@ const SAML: ProviderCase = {
   service: ProjectSsoService,
   make: (): BaseModel => {
     const provider: ProjectSSO = new ProjectSSO();
+    provider.projectId = PROJECT_ID;
     provider.name = "Okta";
     provider.issuerURL = "http://www.okta.com/exk1";
     provider.publicCertificate = "certificate";
@@ -606,6 +618,7 @@ const OIDC: ProviderCase = {
   service: ProjectOidcService,
   make: (): BaseModel => {
     const provider: ProjectOIDC = new ProjectOIDC();
+    provider.projectId = PROJECT_ID;
     provider.name = "Okta";
     provider.issuerURL = "https://dev-123456.okta.com/oauth2/default";
     provider.clientId = "client-id";
@@ -621,6 +634,7 @@ const SCIM: ProviderCase = {
   service: ProjectSCIMService,
   make: (): BaseModel => {
     const connection: ProjectSCIM = new ProjectSCIM();
+    connection.projectId = PROJECT_ID;
     connection.name = "Okta SCIM";
     return connection;
   },
@@ -875,11 +889,88 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
   test.each([
     ["a master admin", MASTER_ADMIN],
     ["root", ROOT],
-  ])("%s is not weighed at all", async (_name: string, caller: Caller) => {
-    await create(providerCase, [OWNERS, OTHER_PROJECTS_TEAM], propsFor(caller));
+  ])(
+    "%s is not weighed, but its teams must still be the project's own",
+    async (_name: string, caller: Caller) => {
+      await expect(
+        create(providerCase, [OWNERS, MEMBERS], propsFor(caller)),
+      ).resolves.toBeDefined();
 
+      expect(database.createPermissionChecks).not.toHaveBeenCalled();
+      expect(database.permissionReads).not.toHaveBeenCalled();
+      expect(database.teamReads).toHaveBeenCalledTimes(1);
+
+      const error: Error | null = await refusal(
+        create(providerCase, [OWNERS, OTHER_PROJECTS_TEAM], propsFor(caller)),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error?.message).toBe(TEAMS_NOT_IN_PROJECT_MESSAGE);
+    },
+  );
+
+  test("the create's own permission check comes first, and a refusal there reads nothing", async () => {
+    database.createPermissionChecks.mockImplementation((): void => {
+      throw new NotAuthorizedException("You may not add providers.");
+    });
+
+    const error: Error | null = await refusal(
+      create(providerCase, [OWNERS], propsFor(ADMIN_CALLER)),
+    );
+
+    expect(error?.message).toBe("You may not add providers.");
     expect(database.teamReads).not.toHaveBeenCalled();
     expect(database.permissionReads).not.toHaveBeenCalled();
+  });
+
+  test("the create's own permission check is asked with the provider being created", async () => {
+    await create(providerCase, [ADMIN], propsFor(ADMIN_CALLER));
+
+    expect(database.createPermissionChecks).toHaveBeenCalledTimes(1);
+
+    const [modelType, provider, props] = database.createPermissionChecks.mock
+      .calls[0] as [unknown, BaseModel, DatabaseCommonInteractionProps];
+
+    expect(modelType).toBe(providerCase.make().constructor);
+    expect(provider).toBeInstanceOf(providerCase.make().constructor);
+    expect(props.tenantId).toBe(PROJECT_ID);
+  });
+
+  test("a team id that is no id at all is refused before anything is read", async () => {
+    for (const value of ["abc", { _id: "not-a-uuid" }]) {
+      const provider: BaseModel = providerCase.make();
+      (provider as unknown as Record<string, unknown>)["teams"] = [value];
+
+      const error: Error | null = await refusal(
+        callHook(providerCase.service, "onBeforeCreate", {
+          data: provider,
+          props: propsFor(OWNER),
+        }),
+      );
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error?.message).toBe(TEAMS_NOT_REFERENCES_MESSAGE);
+    }
+
+    expect(database.teamReads).not.toHaveBeenCalled();
+  });
+
+  test("teams without a project to belong to are refused", async () => {
+    const provider: BaseModel = providerCase.make();
+    delete (provider as unknown as Record<string, unknown>)["projectId"];
+    (provider as unknown as Record<string, unknown>)["teams"] = [
+      toTeamModel(OWNERS),
+    ];
+
+    const error: Error | null = await refusal(
+      callHook(providerCase.service, "onBeforeCreate", {
+        data: provider,
+        props: propsFor(ROOT),
+      }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toBe(TEAMS_WITHOUT_PROJECT_MESSAGE);
   });
 
   test("the create still fills in the provider's defaults", async () => {
@@ -1066,13 +1157,13 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       ["a master admin", MASTER_ADMIN],
       ["root", ROOT],
     ])(
-      "by %s is not weighed, and is left exactly as asked",
+      "by %s that leaves the teams alone reads nothing, and is left exactly as asked",
       async (_name: string, caller: Caller) => {
         storeProvider([OWNERS]);
 
         const result: OnUpdate<BaseModel> = await update(
           providerCase,
-          { teams: [toTeamModel(OWNERS)] },
+          { name: "Renamed" },
           propsFor(caller),
         );
 
@@ -1080,9 +1171,122 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
           _id: PROVIDER_ID.toString(),
         });
         expect(database.updatePermissionChecks).not.toHaveBeenCalled();
+        expect(
+          database.providerReads.get(providerCase.key),
+        ).not.toHaveBeenCalled();
         expect(database.teamReads).not.toHaveBeenCalled();
       },
     );
+
+    test.each([
+      ["a master admin", MASTER_ADMIN],
+      ["root", ROOT],
+    ])(
+      "by %s that writes teams is not weighed, but its teams must be the project's own",
+      async (_name: string, caller: Caller) => {
+        storeProvider([MEMBERS]);
+
+        const result: OnUpdate<BaseModel> = await update(
+          providerCase,
+          { teams: [toTeamModel(OWNERS)] },
+          propsFor(caller),
+        );
+
+        // Not narrowed to the weighed rows: nothing about it was weighed.
+        expect(result.updateBy.query).toEqual({
+          _id: PROVIDER_ID.toString(),
+        });
+        expect(database.updatePermissionChecks).not.toHaveBeenCalled();
+        expect(database.permissionReads).not.toHaveBeenCalled();
+
+        const error: Error | null = await refusal(
+          update(
+            providerCase,
+            { teams: [toTeamModel(OTHER_PROJECTS_TEAM)] },
+            propsFor(caller),
+          ),
+        );
+
+        expect(error).toBeInstanceOf(BadDataException);
+        expect(error?.message).toBe(TEAMS_NOT_IN_PROJECT_MESSAGE);
+      },
+    );
+
+    test("of many providers weighs each project and set of teams once", async () => {
+      providers.push(
+        { id: PROVIDER_ID, projectId: PROJECT_ID, teams: [ADMIN] },
+        {
+          id: new ObjectID("5e000000-0000-4000-8000-0000000002a1"),
+          projectId: PROJECT_ID,
+          teams: [ADMIN],
+        },
+        {
+          id: new ObjectID("5e000000-0000-4000-8000-0000000002a2"),
+          projectId: PROJECT_ID,
+          teams: [READERS],
+        },
+      );
+
+      const updateBy: UpdateBy<BaseModel> = {
+        query: {},
+        data: { name: "Renamed" },
+        props: propsFor(ADMIN_IN_MEMBERS),
+        skip: 0,
+        limit: 10,
+      } as unknown as UpdateBy<BaseModel>;
+
+      const result: OnUpdate<BaseModel> = (await callHook(
+        providerCase.service,
+        "onBeforeUpdate",
+        updateBy,
+      )) as OnUpdate<BaseModel>;
+
+      // Two sets of teams: Admin (twice) and Readers.
+      expect(database.teamReads).toHaveBeenCalledTimes(2);
+      expect((result.updateBy.query as Record<string, unknown>)["_id"]).toEqual(
+        {
+          anyOf: [
+            PROVIDER_ID.toString().toLowerCase(),
+            "5e000000-0000-4000-8000-0000000002a1",
+            "5e000000-0000-4000-8000-0000000002a2",
+          ],
+        },
+      );
+    });
+
+    test("in the request's project spelled in upper case is weighed as usual", async () => {
+      storeProvider([ADMIN]);
+
+      const props: DatabaseCommonInteractionProps = propsFor(ADMIN_CALLER);
+      const upperCaseTenant: ObjectID = new ObjectID(
+        PROJECT_ID.toString().toUpperCase(),
+      );
+      props.tenantId = upperCaseTenant;
+      props.userTenantAccessPermission = {
+        [upperCaseTenant.toString()]: {
+          ...props.userTenantAccessPermission![PROJECT_ID.toString()]!,
+          projectId: upperCaseTenant,
+        },
+      };
+
+      await expect(
+        update(providerCase, { name: "Renamed" }, props),
+      ).resolves.toBeDefined();
+
+      storeProvider([OWNERS]);
+      providers.shift();
+
+      const error: Error | null = await refusal(
+        update(providerCase, { name: "Renamed" }, props),
+      );
+
+      expect(error?.message).toBe(
+        getProviderTeamsRefusalMessage({
+          kind: providerCase.kind,
+          teamNames: ["Owners"],
+        }),
+      );
+    });
 
     test("of a provider in another project is refused without naming its teams", async () => {
       providers.push({
@@ -1129,12 +1333,7 @@ describe(SCIM.label, () => {
       }
 
       expect(error).toBeInstanceOf(NotAuthorizedException);
-      expect(error?.message).toBe(
-        getProviderTeamsRefusalMessage({
-          kind: SsoProviderKind.Scim,
-          teamNames: teamNames(beyond),
-        }),
-      );
+      expect(error?.message).toBe(SCIM_SAVE_REFUSAL_MESSAGE);
     },
   );
 
@@ -1145,8 +1344,16 @@ describe(SCIM.label, () => {
     );
 
     expect(error?.message).toBe(
-      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, and Owners, Members, Frontend and Responders give more access than you have. Ask a project owner to save it.",
+      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a project owner to save it.",
     );
+  });
+
+  test("someone who is not a project owner is refused without reading a single team's permissions", async () => {
+    await refusal(create(SCIM, [ADMIN], propsFor(ADMIN_IN_MEMBERS)));
+
+    // The default teams are still checked to be the project's own.
+    expect(database.teamReads).toHaveBeenCalledTimes(1);
+    expect(database.permissionReads).not.toHaveBeenCalled();
   });
 
   test("a project owner may create one, with or without default teams", async () => {
@@ -1221,6 +1428,78 @@ describe(SCIM.label, () => {
       update(SCIM, { bearerToken: "b".repeat(64) }, propsFor(caller)),
     ).resolves.toBeDefined();
     expect(database.teamReads).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The bearer token is what the identity provider adds people to teams with,
+ * and the Groups endpoints reach every team, so reading it takes the access
+ * saving the connection takes: Project Owner.
+ */
+describe("a SCIM connection's bearer token", () => {
+  function canSelectToken(caller: Caller): boolean {
+    try {
+      SelectPermission.checkSelectPermission(
+        ProjectSCIM,
+        { bearerToken: true } as Select<ProjectSCIM>,
+        propsFor(caller),
+      );
+      return true;
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        return false;
+      }
+
+      throw err;
+    }
+  }
+
+  test("is readable by a project owner only", () => {
+    expect(
+      new ProjectSCIM().getColumnAccessControlFor("bearerToken")?.read,
+    ).toEqual([Permission.ProjectOwner]);
+  });
+
+  test.each(
+    CALLERS.filter((caller: Caller): boolean => {
+      return !caller.isRoot && !caller.isMasterAdmin;
+    }).map((caller: Caller): [string, Caller] => {
+      return [caller.name, caller];
+    }),
+  )("selected by %s", (_name: string, caller: Caller) => {
+    const holdsProjectOwner: boolean = (caller.rows || []).some(
+      (row: UserPermission): boolean => {
+        return (
+          row.permission === Permission.ProjectOwner && !row.isBlockPermission
+        );
+      },
+    );
+
+    expect(canSelectToken(caller)).toBe(holdsProjectOwner);
+  });
+
+  test("the rest of a connection stays readable by everyone who could read it", () => {
+    expect(() => {
+      SelectPermission.checkSelectPermission(
+        ProjectSCIM,
+        {
+          name: true,
+          teams: { _id: true },
+          enablePushGroups: true,
+        } as Select<ProjectSCIM>,
+        propsFor(callerNamed("a project admin")),
+      );
+    }).not.toThrow();
+  });
+
+  test("a custom role that reads SSO settings may no longer read it", () => {
+    expect(
+      canSelectToken({
+        name: "a settings reader",
+        rows: [allow(Permission.ReadProjectSSO)],
+        grantable: [],
+      }),
+    ).toBe(false);
   });
 });
 
@@ -1363,14 +1642,9 @@ describe("the refusal's wording", () => {
     );
   });
 
-  test("SCIM says why every team counts", () => {
-    expect(
-      getProviderTeamsRefusalMessage({
-        kind: SsoProviderKind.Scim,
-        teamNames: ["Owners"],
-      }),
-    ).toBe(
-      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, and Owners gives more access than you have. Ask a project owner to save it.",
+  test("SCIM says why every team counts, and who can save it", () => {
+    expect(SCIM_SAVE_REFUSAL_MESSAGE).toBe(
+      "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a project owner to save it.",
     );
   });
 

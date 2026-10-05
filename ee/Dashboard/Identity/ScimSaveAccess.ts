@@ -14,8 +14,9 @@ import GrantablePermission from "Common/UI/Utils/GrantablePermission";
  * exactly who may hand on Project Owner (GrantablePermission).
  *
  * Settings > SCIM offers Create, Edit and Reset Bearer Token only to them,
- * and tells everyone else why (ScimSaveAccessNotice). Viewing and deleting
- * connections stays as it was.
+ * and shows them alone the bearer token - the server lets only a project
+ * owner read it - telling everyone else why (ScimSaveAccessNotice). Seeing
+ * and deleting connections stays as it was.
  *
  * React-free: the page and the tests read it.
  */

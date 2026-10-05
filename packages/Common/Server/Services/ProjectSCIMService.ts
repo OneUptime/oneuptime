@@ -27,6 +27,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     await SsoProviderTeamGrant.assertCanCreate({
       kind: SsoProviderKind.Scim,
+      modelType: Model,
       provider: createBy.data,
       props: createBy.props,
     });

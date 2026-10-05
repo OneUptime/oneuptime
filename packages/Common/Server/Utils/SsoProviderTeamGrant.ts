@@ -37,16 +37,20 @@ import CaptureSpan from "./Telemetry/CaptureSpan";
  *                   certificate or client decide who arrives in those teams
  *                   as surely as the teams decide what they arrive to.
  *   SCIM            every team in the project, because its Groups endpoints
- *                   reach them all; its default teams must also be the
- *                   project's own.
+ *                   reach them all. Every project has its Owners team, which
+ *                   holds Project Owner and cannot be changed, so that is
+ *                   someone who may hand on any permission: a project owner.
  *
- * Teams of another project are refused outright: sign-in would write a
- * membership of this project into a team of that one.
+ * The caller's own permission to create or edit the provider is checked
+ * first, so nobody learns which teams exist from a save they may not make.
  *
- * Root (the server's own writes, such as sign-in recording a tested
- * provider) and master admins are not weighed, as for invitations. Only
- * saves are: a provider saved before this rule keeps adding people to its
- * teams until it is saved again.
+ * Teams of another project, or ids that name no team, are refused for every
+ * caller, master admins and the server's own writes included: sign-in would
+ * write a membership of this project into a team of that one.
+ *
+ * Root (the server's own writes) and master admins are not otherwise
+ * weighed, as for invitations. Only saves are: a provider saved before this
+ * rule keeps adding people to its teams until it is saved again.
  *
  * The Dashboard mirrors the ceiling to say which teams a form would be
  * refused (Common/UI/Utils/GrantablePermission), but this is the check.
@@ -74,6 +78,12 @@ export const TEAMS_NOT_IN_PROJECT_MESSAGE: string =
 export const TEAMS_NOT_REFERENCES_MESSAGE: string =
   "Teams must be given by their IDs.";
 
+export const TEAMS_WITHOUT_PROJECT_MESSAGE: string =
+  "Teams can only be picked for a provider that belongs to a project.";
+
+export const SCIM_SAVE_REFUSAL_MESSAGE: string =
+  "You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, including Owners. Ask a project owner to save it.";
+
 // "Owners", "Owners and Members", "Owners, Members and Admin", capped.
 export const joinTeamNames: (names: Array<string>) => string = (
   names: Array<string>,
@@ -93,8 +103,8 @@ export const joinTeamNames: (names: Array<string>) => string = (
 };
 
 /*
- * What the person saving a provider is told when its teams are beyond their
- * access: which teams, why, and what to do instead.
+ * What the person saving a SAML or OIDC provider is told when its teams are
+ * beyond their access: which teams, why, and what to do instead.
  */
 export const getProviderTeamsRefusalMessage: (data: {
   kind: SsoProviderKind;
@@ -105,12 +115,6 @@ export const getProviderTeamsRefusalMessage: (data: {
 }): string => {
   const names: string = joinTeamNames(data.teamNames);
   const isOneTeam: boolean = data.teamNames.length === 1;
-
-  if (data.kind === SsoProviderKind.Scim) {
-    return `You can't save this SCIM connection, because your identity provider can add people to any team in this project through SCIM, and ${names} ${
-      isOneTeam ? "gives" : "give"
-    } more access than you have. Ask a project owner to save it.`;
-  }
 
   return `You can't save this ${PROVIDER_NAMES[data.kind]} while it adds people to ${names}, because ${
     isOneTeam ? `${names} gives` : "those teams give"
@@ -128,11 +132,13 @@ interface ProviderRecord {
   teams?: unknown;
 }
 
+type ModelType = { new (): BaseModel };
+
 export default class SsoProviderTeamGrant {
   /*
    * The team ids a relation value names, in any shape it reaches a hook in
    * (models, `{ _id }` objects, id strings). No teams at all is none; an
-   * element that names no team is refused rather than skipped.
+   * element that names no team id is refused rather than skipped.
    */
   public static getTeamIds(teams: unknown): Array<ObjectID> {
     if (teams === undefined || teams === null) {
@@ -141,7 +147,12 @@ export default class SsoProviderTeamGrant {
 
     const ids: Array<string> | null = RelationValueUtil.getRelationIdSet(teams);
 
-    if (!ids) {
+    if (
+      !ids ||
+      !ids.every((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+    ) {
       throw new BadDataException(TEAMS_NOT_REFERENCES_MESSAGE);
     }
 
@@ -150,9 +161,51 @@ export default class SsoProviderTeamGrant {
     });
   }
 
+  /*
+   * The teams these ids name, oldest first, refused unless every one of them
+   * is a team of `projectId`. Asked of every caller.
+   */
+  private static async findProjectTeams(data: {
+    projectId: ObjectID | undefined;
+    teamIds: Array<ObjectID>;
+  }): Promise<Array<Team>> {
+    if (data.teamIds.length === 0) {
+      return [];
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException(TEAMS_WITHOUT_PROJECT_MESSAGE);
+    }
+
+    const teams: Array<Team> = await TeamService.findAllBy({
+      query: {
+        _id: QueryHelper.any(data.teamIds),
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        name: true,
+        createdAt: true,
+      },
+      sort: {
+        createdAt: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (teams.length !== data.teamIds.length) {
+      throw new BadDataException(TEAMS_NOT_IN_PROJECT_MESSAGE);
+    }
+
+    return teams;
+  }
+
   /**
    * Throws unless the caller could add someone to every team a provider of
-   * `kind` in `projectId` reaches with `teams` (its teams after the save).
+   * `kind` in `projectId` reaches with `teams` (its teams after the save),
+   * and unless those teams are the project's own.
    */
   @CaptureSpan()
   public static async assertCanSaveTeams(data: {
@@ -161,87 +214,63 @@ export default class SsoProviderTeamGrant {
     teams: unknown;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
+    const teamIds: Array<ObjectID> = SsoProviderTeamGrant.getTeamIds(
+      data.teams,
+    );
+
     if (data.props.isRoot || data.props.isMasterAdmin) {
+      await SsoProviderTeamGrant.findProjectTeams({
+        projectId: data.projectId,
+        teamIds: teamIds,
+      });
+
       return;
     }
 
     const projectId: ObjectID | undefined = data.projectId;
+    const tenantId: ObjectID | undefined = data.props.tenantId;
 
     if (
       !projectId ||
-      !data.props.tenantId ||
-      data.props.tenantId.toString().toLowerCase() !==
-        projectId.toString().toLowerCase()
+      !tenantId ||
+      tenantId.toString().toLowerCase() !== projectId.toString().toLowerCase()
     ) {
       throw new NotAuthorizedException(
         getProviderOutsideProjectMessage(data.kind),
       );
     }
 
-    const teamIds: Array<ObjectID> = SsoProviderTeamGrant.getTeamIds(
-      data.teams,
-    );
-
     const providerTeams: Array<Team> =
-      teamIds.length === 0
-        ? []
-        : await TeamService.findAllBy({
-            query: {
-              _id: QueryHelper.any(teamIds),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-              name: true,
-              createdAt: true,
-            },
-            sort: {
-              createdAt: SortOrder.Ascending,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-    if (providerTeams.length !== teamIds.length) {
-      throw new BadDataException(TEAMS_NOT_IN_PROJECT_MESSAGE);
-    }
+      await SsoProviderTeamGrant.findProjectTeams({
+        projectId: projectId,
+        teamIds: teamIds,
+      });
 
     // A project owner may hand on any team: nothing more to read.
     if (TeamPermissionService.canGrantEveryPermission(data.props)) {
       return;
     }
 
-    const teamsReached: Array<Team> =
-      data.kind === SsoProviderKind.Scim
-        ? await TeamService.findAllBy({
-            query: {
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-              name: true,
-              createdAt: true,
-            },
-            sort: {
-              createdAt: SortOrder.Ascending,
-            },
-            props: {
-              isRoot: true,
-            },
-          })
-        : providerTeams;
+    /*
+     * A SCIM connection reaches every team, Owners among them, and only an
+     * owner may hand on Owners' Project Owner: anyone else is refused
+     * without weighing team by team.
+     */
+    if (data.kind === SsoProviderKind.Scim) {
+      throw new NotAuthorizedException(SCIM_SAVE_REFUSAL_MESSAGE);
+    }
 
     const refusedTeamIds: Array<ObjectID> =
       await TeamPermissionService.findTeamsCallerCannotGrant({
-        teamIds: teamsReached
+        teamIds: providerTeams
           .map((team: Team): ObjectID | null => {
             return team.id;
           })
           .filter((teamId: ObjectID | null): teamId is ObjectID => {
             return Boolean(teamId);
           }),
-        projectId: projectId,
+        // The request's own spelling of the project, which it was checked by.
+        projectId: tenantId,
         props: data.props,
       });
 
@@ -258,7 +287,7 @@ export default class SsoProviderTeamGrant {
     throw new NotAuthorizedException(
       getProviderTeamsRefusalMessage({
         kind: data.kind,
-        teamNames: teamsReached
+        teamNames: providerTeams
           .filter((team: Team): boolean => {
             return refused.has(team.id?.toString().toLowerCase() || "");
           })
@@ -270,24 +299,33 @@ export default class SsoProviderTeamGrant {
   }
 
   /*
-   * A provider's onBeforeCreate. The row is written to the request's project
-   * whatever the payload says (DatabaseService stamps the tenant over it), so
-   * that is the project whose teams count.
+   * A provider's onBeforeCreate. The caller's permission to create the
+   * provider at all is checked before anything is read. The row is written
+   * to the request's project whatever the payload says (DatabaseService
+   * stamps the tenant over it), so that is the project whose teams count;
+   * without one, the payload's own.
    */
   @CaptureSpan()
   public static async assertCanCreate(data: {
     kind: SsoProviderKind;
+    modelType: ModelType;
     provider: BaseModel;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    if (data.props.isRoot || data.props.isMasterAdmin) {
-      return;
+    const record: ProviderRecord = data.provider as unknown as ProviderRecord;
+
+    if (!data.props.isRoot && !data.props.isMasterAdmin) {
+      ModelPermission.checkCreatePermissions(
+        data.modelType,
+        data.provider,
+        data.props,
+      );
     }
 
     await SsoProviderTeamGrant.assertCanSaveTeams({
       kind: data.kind,
-      projectId: data.props.tenantId,
-      teams: (data.provider as unknown as ProviderRecord).teams,
+      projectId: data.props.tenantId || record.projectId,
+      teams: record.teams,
       props: data.props,
     });
   }
@@ -296,9 +334,13 @@ export default class SsoProviderTeamGrant {
    * A provider's onBeforeUpdate. The rows are found with the caller's own
    * update permission first (so nobody learns about a provider they may not
    * edit), then read again by id alone, so a filter in the query cannot hide
-   * some of a row's teams. Each row's teams after the save are weighed: the
-   * ones the update writes, or the ones the row has. The write is then held
-   * to exactly the rows that were weighed.
+   * some of a row's teams. Each row's teams after the save are weighed - the
+   * ones the update writes, or the ones the row has - once per project and
+   * set of teams. The write is then held to exactly the rows that were
+   * weighed.
+   *
+   * Root and master admins are weighed only when the update writes teams,
+   * and then only for the teams being the project's own.
    */
   @CaptureSpan()
   public static async checkUpdate<TModel extends BaseModel>(data: {
@@ -307,17 +349,26 @@ export default class SsoProviderTeamGrant {
     updateBy: UpdateBy<TModel>;
   }): Promise<UpdateBy<TModel>> {
     const updateBy: UpdateBy<TModel> = data.updateBy;
+    const isPrivileged: boolean = Boolean(
+      updateBy.props.isRoot || updateBy.props.isMasterAdmin,
+    );
 
-    if (updateBy.props.isRoot || updateBy.props.isMasterAdmin) {
+    const updatedTeams: unknown = (updateBy.data as unknown as ProviderRecord)
+      .teams;
+    const writesTeams: boolean = updatedTeams !== undefined;
+
+    if (isPrivileged && !writesTeams) {
       return updateBy;
     }
 
-    updateBy.query = await ModelPermission.checkUpdateQueryPermissions(
-      data.service.modelType,
-      updateBy.query,
-      updateBy.data,
-      updateBy.props,
-    );
+    if (!isPrivileged) {
+      updateBy.query = await ModelPermission.checkUpdateQueryPermissions(
+        data.service.modelType,
+        updateBy.query,
+        updateBy.data,
+        updateBy.props,
+      );
+    }
 
     const selectedRows: Array<TModel> = await data.service.findAllBy({
       query: updateBy.query,
@@ -339,10 +390,6 @@ export default class SsoProviderTeamGrant {
         return Boolean(rowId);
       });
 
-    const updatedTeams: unknown = (updateBy.data as unknown as ProviderRecord)
-      .teams;
-    const writesTeams: boolean = updatedTeams !== undefined;
-
     if (selectedIds.length > 0) {
       const rows: Array<TModel> = await data.service.findAllBy({
         query: {
@@ -351,32 +398,55 @@ export default class SsoProviderTeamGrant {
         select: {
           _id: true,
           projectId: true,
-          teams: {
-            _id: true,
-          },
+          ...(writesTeams
+            ? {}
+            : {
+                teams: {
+                  _id: true,
+                },
+              }),
         } as unknown as Select<TModel>,
         props: {
           isRoot: true,
         },
       });
 
+      const weighed: Set<string> = new Set<string>();
+
       for (const row of rows) {
         const record: ProviderRecord = row as unknown as ProviderRecord;
+        const teams: unknown = writesTeams ? updatedTeams : record.teams || [];
+        const key: string = [
+          record.projectId?.toString().toLowerCase() || "",
+          ...SsoProviderTeamGrant.getTeamIds(teams).map(
+            (teamId: ObjectID): string => {
+              return teamId.toString();
+            },
+          ),
+        ].join("|");
+
+        if (weighed.has(key)) {
+          continue;
+        }
+
+        weighed.add(key);
 
         await SsoProviderTeamGrant.assertCanSaveTeams({
           kind: data.kind,
           projectId: record.projectId,
-          teams: writesTeams ? updatedTeams : record.teams || [],
+          teams: teams,
           props: updateBy.props,
         });
       }
     }
 
-    updateBy.query = {
-      ...updateBy.query,
-      _id: QueryHelper.any(selectedIds),
-    } as Query<TModel>;
-    updateBy.skip = 0;
+    if (!isPrivileged) {
+      updateBy.query = {
+        ...updateBy.query,
+        _id: QueryHelper.any(selectedIds),
+      } as Query<TModel>;
+      updateBy.skip = 0;
+    }
 
     return updateBy;
   }

@@ -16,7 +16,7 @@ import React, {
 } from "react";
 import {
   SsoTeamGrant,
-  fetchSsoTeamGrants,
+  fetchSsoTeamGrantsOnce,
   getTeamsBeyondGrant,
 } from "./SsoTeamGrants";
 
@@ -49,7 +49,7 @@ const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    fetchSsoTeamGrants({ projectId })
+    fetchSsoTeamGrantsOnce({ projectId })
       .then((found: Array<SsoTeamGrant>) => {
         if (isMounted) {
           setGrants(found);

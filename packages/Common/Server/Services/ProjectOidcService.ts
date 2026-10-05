@@ -32,6 +32,7 @@ export class Service extends DatabaseService<Model> {
 
     await SsoProviderTeamGrant.assertCanCreate({
       kind: SsoProviderKind.Oidc,
+      modelType: Model,
       provider: createBy.data,
       props: createBy.props,
     });

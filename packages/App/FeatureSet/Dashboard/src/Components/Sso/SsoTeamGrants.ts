@@ -245,6 +245,63 @@ export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
   });
 };
 
+/*
+ * How long the note keeps what it read for a project. The Teams field's
+ * footer is drawn afresh whenever the form comes back to its step, and a
+ * project's teams do not change between two clicks of Next and Back.
+ */
+export const SSO_TEAM_GRANTS_CACHE_TTL_MS: number = 30000;
+
+interface CachedSsoTeamGrants {
+  readAt: number;
+  grants: Promise<Array<SsoTeamGrant>>;
+}
+
+const cachedGrantsByProject: Map<string, CachedSsoTeamGrants> = new Map<
+  string,
+  CachedSsoTeamGrants
+>();
+
+/*
+ * fetchSsoTeamGrants for the signed-in user, read once per project for
+ * SSO_TEAM_GRANTS_CACHE_TTL_MS. A read that fails is not kept.
+ */
+export const fetchSsoTeamGrantsOnce: (data: {
+  projectId: ObjectID;
+  now?: (() => number) | undefined;
+}) => Promise<Array<SsoTeamGrant>> = (data: {
+  projectId: ObjectID;
+  now?: (() => number) | undefined;
+}): Promise<Array<SsoTeamGrant>> => {
+  const now: number = (data.now || Date.now)();
+  const key: string = data.projectId.toString().toLowerCase();
+  const cached: CachedSsoTeamGrants | undefined =
+    cachedGrantsByProject.get(key);
+
+  if (cached && now - cached.readAt < SSO_TEAM_GRANTS_CACHE_TTL_MS) {
+    return cached.grants;
+  }
+
+  const grants: Promise<Array<SsoTeamGrant>> = fetchSsoTeamGrants({
+    projectId: data.projectId,
+  });
+
+  cachedGrantsByProject.set(key, { readAt: now, grants: grants });
+
+  grants.catch(() => {
+    if (cachedGrantsByProject.get(key)?.grants === grants) {
+      cachedGrantsByProject.delete(key);
+    }
+  });
+
+  return grants;
+};
+
+// Forgets every project's grants (the tests start each case afresh).
+export const clearSsoTeamGrantsCache: () => void = (): void => {
+  cachedGrantsByProject.clear();
+};
+
 /**
  * The names of the picked teams the person filling in the form could not
  * put on the provider, in the order the project lists its teams. Empty

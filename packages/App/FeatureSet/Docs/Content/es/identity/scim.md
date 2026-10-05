@@ -19,7 +19,7 @@ El SCIM de proyectos permite que los proveedores de identidad gestionen los miem
 
 ### Configuración del SCIM de proyectos
 
-Solo un propietario del proyecto puede añadir o cambiar la conexión SCIM de un proyecto, o restablecer su token Bearer: mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo del proyecto. Cualquier otra persona que pueda abrir **Ajustes del proyecto** > **Seguridad** > **SCIM** todavía puede ver y eliminar conexiones.
+Solo un propietario del proyecto puede añadir o cambiar la conexión SCIM de un proyecto, o ver o restablecer su token Bearer: mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo del proyecto. Cualquier otra persona que pueda abrir **Ajustes del proyecto** > **Seguridad** > **SCIM** todavía puede ver las conexiones y eliminarlas.
 
 1. **Navegar a la configuración del proyecto**
 

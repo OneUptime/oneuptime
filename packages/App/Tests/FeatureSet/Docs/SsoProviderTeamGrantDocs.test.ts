@@ -6,15 +6,15 @@ import path from "path";
  * A project's SSO and SCIM providers are saved only with teams the person
  * saving them could invite someone to (Common/Server/Utils
  * /SsoProviderTeamGrant), and a SCIM connection, which can add people to any
- * team, only by a project owner. The guides say so where people set them
- * up, in every docs language:
+ * team, only by a project owner - who alone may see its bearer token. The
+ * guides say so where people set them up, in every docs language:
  *
  *   - Project SSO, SAML: the Teams bullet of the set-up steps;
  *   - Project SSO, OIDC: step 4, which picks the teams;
  *   - the closing notes: why, that every save checks again, and that
  *     providers saved earlier keep working;
  *   - SCIM: before the project set-up steps, who may add or change a
- *     connection and why.
+ *     connection or see its token, and why.
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -139,7 +139,7 @@ describe("in English", () => {
 
   it("the SCIM page says who may add or change a connection, and why, before the steps", () => {
     expect(scimLeadIn("en")).toBe(
-      "Only a project owner can add or change a project's SCIM connection, or reset its bearer token: through SCIM, your identity provider can add people to any team in the project. Everyone else who can open **Project Settings** > **Security** > **SCIM** can still view and delete connections.",
+      "Only a project owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project. Everyone else who can open **Project Settings** > **Security** > **SCIM** can still see the connections and delete them.",
     );
   });
 });

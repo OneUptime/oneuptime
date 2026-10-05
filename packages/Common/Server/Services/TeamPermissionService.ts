@@ -246,12 +246,35 @@ export class Service extends DatabaseService<Model> {
 
     this.assertProjectMatchesTenant(data.projectId, data.props);
 
-    const permissions: Array<Model> = await this.findBy({
+    const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
+      teamIds: [data.teamId],
+      projectId: data.projectId,
+    });
+
+    for (const permission of permissions) {
+      this.assertCanGrantTeamRow(permission, data.props);
+    }
+  }
+
+  /*
+   * Every allow and block row of these teams in `projectId`: what adding
+   * someone to them hands on. Read the same way for an invitation and for a
+   * provider's teams, so both are weighed against the same rows.
+   */
+  private async findRowsHandedOnWithTeams(data: {
+    teamIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    return await this.findBy({
       query: {
-        teamId: data.teamId,
+        teamId:
+          data.teamIds.length === 1
+            ? data.teamIds[0]!
+            : QueryHelper.any(data.teamIds),
         projectId: data.projectId,
       },
       select: {
+        teamId: true,
         permission: true,
         labels: {
           _id: true,
@@ -264,24 +287,27 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
 
-    for (const permission of permissions) {
-      this.assertCanGrantPermission({
-        permission: permission.permission!,
-        labelIds: this.getLabelIds(permission.labels),
-        scope: permission.scope,
-        props: data.props,
-      });
-    }
+  // One team row against the ceiling, as assertCanGrantPermission weighs it.
+  private assertCanGrantTeamRow(
+    row: Model,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    this.assertCanGrantPermission({
+      permission: row.permission!,
+      labelIds: this.getLabelIds(row.labels),
+      scope: row.scope,
+      props: props,
+    });
   }
 
   /**
    * Which of these teams the caller could not add someone to: the same
-   * ceiling as assertCanGrantTeamPermissions, answered for several teams at
-   * once and without stopping at the first refusal, so a save that hands
-   * several teams on (the teams of an SSO or SCIM provider, see
-   * Utils/SsoProviderTeamGrant) can name every team it refuses. Every allow
-   * and block row of a team is weighed exactly as an invitation weighs it.
+   * ceiling as assertCanGrantTeamPermissions, over the same rows, answered
+   * for several teams at once and without stopping at the first refusal, so
+   * a save that hands several teams on (the teams of an SSO provider, see
+   * Utils/SsoProviderTeamGrant) can name every team it refuses.
    *
    * Only rows of `projectId` are read, so the caller resolves the teams to
    * that project first. Nothing is refused to root or a master admin.
@@ -302,22 +328,9 @@ export class Service extends DatabaseService<Model> {
       return [];
     }
 
-    const permissions: Array<Model> = await this.findAllBy({
-      query: {
-        teamId: QueryHelper.any(data.teamIds),
-        projectId: data.projectId,
-      },
-      select: {
-        teamId: true,
-        permission: true,
-        labels: {
-          _id: true,
-        },
-        scope: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
+      teamIds: data.teamIds,
+      projectId: data.projectId,
     });
 
     const refusedTeamIds: Set<string> = new Set<string>();
@@ -332,12 +345,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       try {
-        this.assertCanGrantPermission({
-          permission: permission.permission!,
-          labelIds: this.getLabelIds(permission.labels),
-          scope: permission.scope,
-          props: data.props,
-        });
+        this.assertCanGrantTeamRow(permission, data.props);
       } catch (err) {
         if (!(err instanceof NotAuthorizedException)) {
           throw err;

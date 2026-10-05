@@ -881,8 +881,51 @@ describe("Reset Bearer Token for a project admin", () => {
         screen.queryByTestId(READ_ONLY_ACTIONS_NOTICE_TEST_ID),
       ).not.toBeInTheDocument();
       expect(updateCalls).toEqual([]);
+
+      // The URLs dialog shows the addresses, and no token.
+      await act(async () => {
+        fireEvent.click(
+          within(rowOf(scimCase.table, ENABLED_ROW_ID)).getByRole("button", {
+            name: "View SCIM URLs",
+          }),
+        );
+      });
+
+      const modal: HTMLElement = await screen.findByTestId("modal");
+
+      expect(modal).toHaveTextContent("SCIM Base URL");
+      expect(
+        within(modal).queryByTestId("scim-bearer-token-section"),
+      ).not.toBeInTheDocument();
+      expect(modal).not.toHaveTextContent(OLD_BEARER_TOKEN);
     },
   );
+
+  test("Settings > SCIM, for a project owner: the URLs dialog shows the token", async () => {
+    window.localStorage.clear();
+    signInWith(Permission.ProjectOwner);
+
+    const scimCase: ScimCase = SCIM_CASES[0]!;
+
+    answerLicense({ status: "valid", licenseValid: true });
+    seedScim(scimCase);
+
+    await renderScreen(scimCase);
+
+    await act(async () => {
+      fireEvent.click(
+        within(rowOf(scimCase.table, ENABLED_ROW_ID)).getByRole("button", {
+          name: "View SCIM URLs",
+        }),
+      );
+    });
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    expect(
+      within(modal).getByTestId("scim-bearer-token-section"),
+    ).toBeInTheDocument();
+  });
 
   test("Status page > SCIM, read-only: the reset stays on offer", async () => {
     const scimCase: ScimCase = SCIM_CASES[1]!;

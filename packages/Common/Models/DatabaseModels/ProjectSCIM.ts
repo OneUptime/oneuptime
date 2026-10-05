@@ -222,17 +222,20 @@ export default class ProjectSCIM extends BaseModel {
   })
   public description?: string = undefined;
 
+  /*
+   * Read by a project owner only. The token is what the identity provider
+   * adds people to teams with - its Groups endpoints reach every team - so
+   * holding it takes the access that saving the connection takes
+   * (Server/Utils/SsoProviderTeamGrant). Master admins read it as they read
+   * everything.
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateProjectSSO,
     ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ReadProjectSSO,
-    ],
+    read: [Permission.ProjectOwner],
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

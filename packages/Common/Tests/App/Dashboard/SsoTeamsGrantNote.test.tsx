@@ -155,10 +155,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import {
+  SSO_TEAM_GRANTS_CACHE_TTL_MS,
   SsoTeamGrant,
   buildSsoTeamGrants,
   canSignedInUserGrantTeam,
+  clearSsoTeamGrantsCache,
   fetchSsoTeamGrants,
+  fetchSsoTeamGrantsOnce,
   getFormTeamIds,
   getTeamsBeyondGrant,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoTeamGrants";
@@ -337,6 +340,8 @@ beforeEach(() => {
   mockServer.lists = [];
   mockServer.failLists = false;
   mockServer.record = {};
+  // Each case signs in someone else: nothing read for another case is kept.
+  clearSsoTeamGrantsCache();
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
 
@@ -536,6 +541,51 @@ describe("which teams the person could hand on", () => {
     }).toThrow(NotAuthorizedException);
   });
 
+  test("the note reads a project's teams once while they are fresh, and again once they are not", async () => {
+    signIn(CALLERS[1]!);
+
+    let now: number = 1_000_000;
+    const clock: () => number = (): number => {
+      return now;
+    };
+
+    const first: Array<SsoTeamGrant> = await fetchSsoTeamGrantsOnce({
+      projectId: PROJECT_ID,
+      now: clock,
+    });
+    now += SSO_TEAM_GRANTS_CACHE_TTL_MS - 1;
+    const again: Array<SsoTeamGrant> = await fetchSsoTeamGrantsOnce({
+      projectId: PROJECT_ID,
+      now: clock,
+    });
+
+    // The team list and the permission rows, read once.
+    expect(mockServer.lists).toHaveLength(2);
+    expect(again).toBe(first);
+
+    now += 1;
+    await fetchSsoTeamGrantsOnce({ projectId: PROJECT_ID, now: clock });
+
+    expect(mockServer.lists).toHaveLength(4);
+  });
+
+  test("a read that fails is not kept", async () => {
+    signIn(CALLERS[1]!);
+    mockServer.failLists = true;
+
+    await expect(
+      fetchSsoTeamGrantsOnce({ projectId: PROJECT_ID }),
+    ).rejects.toThrow();
+
+    mockServer.failLists = false;
+
+    const grants: Array<SsoTeamGrant> = await fetchSsoTeamGrantsOnce({
+      projectId: PROJECT_ID,
+    });
+
+    expect(grants).toHaveLength(PROJECT_TEAMS.length);
+  });
+
   test("a master admin may hand on every team, as on the server", async () => {
     isMasterAdminForTest = true;
 
@@ -568,12 +618,14 @@ describe("side by side with the server", () => {
       },
     );
 
-    getJestSpyOn(TeamPermissionService, "findAllBy").mockImplementation(
+    // A team's rows, as the server reads them for a ceiling.
+    getJestSpyOn(TeamPermissionService, "findBy").mockImplementation(
       async (findBy: unknown): Promise<Array<TeamPermission>> => {
+        const teamIdQuery: unknown = (findBy as { query: { teamId: unknown } })
+          .query.teamId;
         const teamIds: Array<string> = (
-          (findBy as { query: { teamId: { anyOf: Array<string> } } }).query
-            .teamId as { anyOf: Array<string> }
-        ).anyOf;
+          teamIdQuery as { anyOf?: Array<string> }
+        ).anyOf || [String(teamIdQuery).toLowerCase()];
 
         return PROJECT_TEAMS.filter((team: FixtureTeam): boolean => {
           return teamIds.includes(idOf(team).toLowerCase());
@@ -865,6 +917,14 @@ describe("in the SAML provider form", () => {
     };
 
     await renderForm({ formType: FormType.Update });
+
+    // The stored provider has loaded before the form moves on.
+    await waitFor(() => {
+      expect(
+        (screen.getByPlaceholderText("Okta") as HTMLInputElement).value,
+      ).toBe("Okta");
+    });
+
     await goToSignIn();
 
     expect(

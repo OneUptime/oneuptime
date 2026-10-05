@@ -19,7 +19,7 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 
 ### Project-SCIM instellen
 
-Alleen een projecteigenaar kan de SCIM-verbinding van een project toevoegen of wijzigen, of het bearer-token ervan opnieuw instellen: via SCIM kan uw identiteitsprovider mensen toevoegen aan elk team in het project. Iedereen anders die **Projectinstellingen** > **Beveiliging** > **SCIM** kan openen, kan verbindingen nog steeds bekijken en verwijderen.
+Alleen een projecteigenaar kan de SCIM-verbinding van een project toevoegen of wijzigen, of het bearer-token ervan bekijken of opnieuw instellen: via SCIM kan uw identiteitsprovider mensen toevoegen aan elk team in het project. Iedereen anders die **Projectinstellingen** > **Beveiliging** > **SCIM** kan openen, kan de verbindingen nog steeds zien en verwijderen.
 
 1. **Navigeer naar Projectinstellingen**
 

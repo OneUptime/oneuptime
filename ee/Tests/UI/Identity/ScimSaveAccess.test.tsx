@@ -222,7 +222,10 @@ describe("what Settings > SCIM tells everyone else", () => {
     );
     expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain("any team in this project");
     expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain(
-      "You can still view and delete connections.",
+      "seeing or resetting its bearer token",
+    );
+    expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain(
+      "You can still see the connections and delete them.",
     );
   });
 
