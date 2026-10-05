@@ -42,6 +42,8 @@ import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsF
 import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
 import DashboardSloListComponentUtil from "./DashboardSloListComponent";
+import DashboardStorageArrayHardwareListComponentUtil from "./DashboardStorageArrayHardwareListComponent";
+import DashboardStorageArrayVolumeListComponentUtil from "./DashboardStorageArrayVolumeListComponent";
 import DashboardProxmoxNodeListComponentUtil from "./DashboardProxmoxNodeListComponent";
 import DashboardDockerSwarmNodeListComponentUtil from "./DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponentUtil from "./DashboardDockerSwarmServiceListComponent";
@@ -363,6 +365,22 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.CephPoolList) {
       return DashboardCephPoolListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.StorageArrayVolumeList
+    ) {
+      return DashboardStorageArrayVolumeListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (
+      dashboardComponentType === DashboardComponentType.StorageArrayHardwareList
+    ) {
+      return DashboardStorageArrayHardwareListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

@@ -40,6 +40,7 @@ import { ProxmoxClusterFeedEventType } from "../../../Models/DatabaseModels/Prox
 import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { ServiceFeedEventType } from "../../../Models/DatabaseModels/ServiceFeed";
 import { ServiceLevelObjectiveFeedEventType } from "../../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import { StorageArrayFeedEventType } from "../../../Models/DatabaseModels/StorageArrayFeed";
 import { VMwareVCenterFeedEventType } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -155,6 +156,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "ServiceLevelObjectiveFeed",
     enumName: "ServiceLevelObjectiveFeedEventType",
     eventTypes: Object.values(ServiceLevelObjectiveFeedEventType),
+  },
+  {
+    name: "StorageArrayFeed",
+    enumName: "StorageArrayFeedEventType",
+    eventTypes: Object.values(StorageArrayFeedEventType),
   },
   {
     name: "VMwareVCenterFeed",

@@ -22,6 +22,7 @@ import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
 import Service from "../../../../Models/DatabaseModels/Service";
+import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 
 /*
@@ -421,6 +422,7 @@ const MODEL_TYPES: Record<string, { new (): BaseModel }> = {
   CephCluster: CephCluster,
   ProxmoxCluster: ProxmoxCluster,
   VMwareVCenter: VMwareVCenter,
+  StorageArray: StorageArray,
   DockerSwarmCluster: DockerSwarmCluster,
   IoTFleet: IoTFleet,
   Service: Service,
@@ -564,6 +566,12 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     "VMware",
     "Index.tsx",
     "VMWARE_VCENTER_VIEW_SETTINGS",
+  ),
+  matchedOnName(
+    "StorageArray",
+    "StorageArray",
+    "Index.tsx",
+    "STORAGE_ARRAY_VIEW_SETTINGS",
   ),
   matchedOnName(
     "DockerSwarmCluster",

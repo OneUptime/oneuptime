@@ -329,6 +329,7 @@ describe("resource-scoped event overlay requests", (): void => {
     ["proxmoxClusterId", "proxmoxClusters"],
     ["vmwareVCenterId", "vmwareVCenters"],
     ["cephClusterId", "cephClusters"],
+    ["storageArrayId", "storageArrays"],
     ["dockerSwarmClusterId", "dockerSwarmClusters"],
     ["iotFleetId", "iotFleets"],
     ["databaseServerId", "databaseServers"],

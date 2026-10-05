@@ -1879,6 +1879,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "storage-arrays",
+    title: "Storage Arrays",
+    productPage: PageMap.STORAGE_ARRAYS,
+    icon: IconProp.StorageArray,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "Storage Arrays",
+        pages: [
+          allListPage(PageMap.STORAGE_ARRAYS, "All Storage Arrays"),
+          documentation(PageMap.STORAGE_ARRAYS_DOCUMENTATION),
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES,
+        archived: PageMap.STORAGE_ARRAYS_ARCHIVED,
+      }),
+    ],
+  },
+  {
     id: "network",
     title: "Network",
     productPage: PageMap.NETWORK_OVERVIEW,

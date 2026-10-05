@@ -31,6 +31,11 @@ const RESOURCES: Array<ArchivableResource> = [
   },
   { resource: "Host", model: "Host" },
   { resource: "Ceph", model: "CephCluster", overview: "Index.tsx" },
+  {
+    resource: "StorageArray",
+    model: "StorageArray",
+    overview: "Index.tsx",
+  },
   { resource: "VMware", model: "VMwareVCenter", overview: "Index.tsx" },
   { resource: "IoT", model: "IoTFleet", overview: "Index.tsx" },
   { resource: "Proxmox", model: "ProxmoxCluster", overview: "Index.tsx" },

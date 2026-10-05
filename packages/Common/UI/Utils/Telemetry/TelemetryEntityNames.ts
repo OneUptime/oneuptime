@@ -206,6 +206,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.CephCluster,
+  ServiceType.StorageArray,
   ServiceType.DockerSwarmCluster,
   ServiceType.VMwareVCenter,
   ServiceType.NetworkDevice,

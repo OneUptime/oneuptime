@@ -678,6 +678,30 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      title: t("navbar.items.storageArraysTitle", "Storage Arrays"),
+      keywords: [
+        "storage",
+        "san",
+        "nas",
+        "pure storage",
+        "everpure",
+        "flasharray",
+        "flashblade",
+        "volumes",
+      ],
+      description: t(
+        "navbar.items.storageArraysDescription",
+        "Monitor storage arrays such as Pure Storage FlashArray and FlashBlade.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STORAGE_ARRAYS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.STORAGE_ARRAYS],
+      icon: IconProp.StorageArray,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
       title: t("navbar.items.networkTitle", "Network"),
       keywords: [
         "snmp",

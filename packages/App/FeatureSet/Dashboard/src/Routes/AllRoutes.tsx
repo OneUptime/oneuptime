@@ -38,6 +38,7 @@ export { default as VMwareRoutes } from "./VMwareRoutes";
 export { default as IoTRoutes } from "./IoTRoutes";
 export { default as DockerSwarmRoutes } from "./DockerSwarmRoutes";
 export { default as CephRoutes } from "./CephRoutes";
+export { default as StorageArrayRoutes } from "./StorageArrayRoutes";
 export { default as HostRoutes } from "./HostRoutes";
 export { default as ServerlessRoutes } from "./ServerlessRoutes";
 export { default as CloudResourceRoutes } from "./CloudResourceRoutes";

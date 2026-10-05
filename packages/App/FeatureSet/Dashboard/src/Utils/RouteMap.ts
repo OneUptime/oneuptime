@@ -424,6 +424,46 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_ARCHIVED]: `archived`,
 };
 
+/*
+ * Detail routes (volumes/:subModelId, hosts/:subModelId, ...) carry the
+ * StorageArrayResource externalId — the object's own name on the array —
+ * percent-encoded as one path segment: FlashArray volume names contain `/`
+ * (volume groups) and `::` (pods).
+ */
+export const StorageArrayRoutePath: Dictionary<string> = {
+  [PageMap.STORAGE_ARRAY_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]: `${RouteParams.ModelID}/volumes/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_HOSTS]: `${RouteParams.ModelID}/hosts`,
+  [PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL]: `${RouteParams.ModelID}/hosts/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: `${RouteParams.ModelID}/replication`,
+  [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: `${RouteParams.ModelID}/hardware`,
+  [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL]: `${RouteParams.ModelID}/buckets/${RouteParams.SubModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.STORAGE_ARRAY_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.STORAGE_ARRAY_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.STORAGE_ARRAY_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.STORAGE_ARRAY_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.STORAGE_ARRAY_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.STORAGE_ARRAY_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.STORAGE_ARRAY_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.STORAGE_ARRAY_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.STORAGE_ARRAY_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.STORAGE_ARRAYS_DOCUMENTATION]: `documentation`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAYS_ARCHIVED]: `archived`,
+};
+
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
@@ -4624,6 +4664,202 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CEPH_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_ARCHIVED]
+    }`,
+  ),
+
+  // Storage Arrays
+
+  [PageMap.STORAGE_ARRAYS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/*`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUMES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_VOLUMES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_HOSTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_REPLICATION]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_HARDWARE]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_BUCKETS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_ARCHIVED]
     }`,
   ),
 

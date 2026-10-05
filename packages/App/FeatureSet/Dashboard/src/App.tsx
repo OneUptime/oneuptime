@@ -231,6 +231,9 @@ const DockerSwarmRoutes: LazyRoutes = lazy(() => {
 const CephRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/CephRoutes");
 });
+const StorageArrayRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/StorageArrayRoutes");
+});
 const HostRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/HostRoutes");
 });
@@ -795,6 +798,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.CEPH_ROOT]?.toString() || ""}
               element={<CephRoutes {...commonPageProps} />}
+            />
+
+            {/* Storage Arrays */}
+            <PageRoute
+              path={RouteMap[PageMap.STORAGE_ARRAYS_ROOT]?.toString() || ""}
+              element={<StorageArrayRoutes {...commonPageProps} />}
             />
 
             {/* Hosts */}
