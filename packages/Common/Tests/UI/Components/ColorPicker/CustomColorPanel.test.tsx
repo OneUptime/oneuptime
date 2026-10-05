@@ -180,10 +180,15 @@ describe("CustomColorPanel", () => {
       expect(Number(strip.getAttribute("aria-valuenow"))).toBeGreaterThan(200);
     });
 
-    test("puts the caret in the box when opened from the keyboard", () => {
-      const { codeBox } = renderPanel({ autoFocusCodeInput: true });
+    test("puts the caret in the box when opened from the keyboard, the code selected to type over", () => {
+      const { codeBox } = renderPanel({
+        autoFocusCodeInput: true,
+        value: "#3e409a",
+      });
 
       expect(document.activeElement).toBe(codeBox);
+      expect(codeBox.selectionStart).toBe(0);
+      expect(codeBox.selectionEnd).toBe("#3e409a".length);
     });
 
     test("leaves focus where it was when opened by pointer", () => {

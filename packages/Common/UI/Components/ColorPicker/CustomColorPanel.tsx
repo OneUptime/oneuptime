@@ -208,8 +208,13 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
   }, [props.value]);
 
   useEffect(() => {
+    /*
+     * Selected as well as focused, so the code typed next replaces the one
+     * shown rather than landing in front of it.
+     */
     if (props.autoFocusCodeInput) {
       codeInputRef.current?.focus();
+      codeInputRef.current?.select();
     }
   }, []);
 

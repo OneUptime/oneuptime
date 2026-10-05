@@ -37,14 +37,15 @@ const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "label";
 const startColor = params.has("color") ? params.get("color") : "#6366f1";
 
+// A Color is written as its code (JSON.stringify would use Color's toJSON).
 const toJSON = (values) => {
-  return JSON.stringify(
-    values,
-    (key, value) => {
-      return value instanceof Color ? value.toString() : value;
-    },
-    2,
-  );
+  const plain = {};
+
+  for (const [key, value] of Object.entries(values)) {
+    plain[key] = value instanceof Color ? value.toString() : value;
+  }
+
+  return JSON.stringify(plain, null, 2);
 };
 
 function LabelDialog() {
@@ -132,7 +133,10 @@ function OptionsDialog() {
       <p data-testid="dialog-state" className="text-xs">
         {isOpen ? "open" : "closed"}
       </p>
-      <pre data-testid="submitted" className="text-xs">
+      <pre
+        data-testid="submitted"
+        className="whitespace-pre-wrap break-all text-xs"
+      >
         {value}
       </pre>
       {isOpen ? (
