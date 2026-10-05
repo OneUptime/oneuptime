@@ -449,10 +449,21 @@ import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
+import URL from "../../../Types/API/URL";
+import { APP_API_URL } from "../../../UI/Config";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 const PROVIDER_ID: string = mockProviderRow._id;
+
+/*
+ * The one request the project's SSO page makes below Scale: whether the
+ * project requires SSO. Built from APP_API_URL as the page builds it, so
+ * the suite passes whatever HOST the environment sets (CI sets localhost).
+ */
+const PROJECT_READ_URL: string = URL.fromString(APP_API_URL.toString())
+  .addRoute(`/project/${PROJECT_ID}/get-item`)
+  .toString();
 
 /*
  * The "Require SSO for Login" switch cards, as the stand-in draws them: the
@@ -1021,9 +1032,7 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
        * still requires SSO, so it can be turned off (it does not here).
        */
       expect(allRequests()).toEqual(
-        pageCase.name === "Settings > SSO"
-          ? [`http://api/project/${PROJECT_ID}/get-item`]
-          : [],
+        pageCase.name === "Settings > SSO" ? [PROJECT_READ_URL] : [],
       );
     },
   );
@@ -1380,9 +1389,7 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
       ).toBe(true);
 
       // It asked only whether the project requires SSO, never for the license.
-      expect(allRequests()).toEqual([
-        `http://api/project/${PROJECT_ID}/get-item`,
-      ]);
+      expect(allRequests()).toEqual([PROJECT_READ_URL]);
       expect(apiFetch.mock.calls[0]![0]).toEqual(
         expect.objectContaining({
           data: { select: { requireSsoForLogin: true } },

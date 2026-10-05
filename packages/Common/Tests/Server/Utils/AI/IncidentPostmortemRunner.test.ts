@@ -5,6 +5,7 @@ import IncidentFeedService from "../../../../Server/Services/IncidentFeedService
 import IncidentService from "../../../../Server/Services/IncidentService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import LlmLogService from "../../../../Server/Services/LlmLogService";
 import logger from "../../../../Server/Utils/Logger";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
@@ -80,16 +81,19 @@ describe("AIIncidentPostmortemRunner.isEnabledForProject", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads the project as root with the AI switch and the draft's own switch", async () => {
+  it("reads the project as root with the AI switch, the draft's own switch and the project's daily AI limits, once", async () => {
     const find: jest.SpyInstance = mockProject(draftOn());
 
     await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID);
 
+    expect(find).toHaveBeenCalledTimes(1);
     expect(find).toHaveBeenCalledWith({
       id: PROJECT_ID,
       select: {
         enableAi: true,
         enableAutomaticPostmortemDraft: true,
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
       },
       props: { isRoot: true },
     });
@@ -191,6 +195,49 @@ describe("AIIncidentPostmortemRunner.isEnabledForProject", () => {
     expect(blocker).toHaveBeenCalledWith(
       expect.objectContaining({ projectId: PROJECT_ID }),
     );
+  });
+
+  /*
+   * The project's own daily AI limits gate the draft the way they gate an
+   * investigation: past one, the draft call would be refused - and logged
+   * as an error - for every incident resolved until midnight UTC, so it is
+   * skipped quietly instead.
+   */
+  it("is off once the project has reached its own daily AI limit", async () => {
+    mockProject(draftOn({ aiDailyTokenLimit: 5000 }));
+    jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: 5000,
+      billedCostInUSDCents: 0,
+    });
+
+    expect(
+      await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+    ).toBe(false);
+  });
+
+  it("is on while there is room under the project's daily AI limit", async () => {
+    mockProject(draftOn({ aiDailyTokenLimit: 5000 }));
+    jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: 4999,
+      billedCostInUSDCents: 0,
+    });
+
+    expect(
+      await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+    ).toBe(true);
+  });
+
+  it("with no daily AI limit set, counts nothing", async () => {
+    mockProject(draftOn());
+    const usage: jest.SpyInstance = jest.spyOn(
+      LlmLogService,
+      "getProjectUsageSince",
+    );
+
+    expect(
+      await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+    ).toBe(true);
+    expect(usage).not.toHaveBeenCalled();
   });
 });
 
