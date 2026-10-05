@@ -19,6 +19,8 @@ import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaint
 import StatusPageAnnouncementService from "../../../Server/Services/StatusPageAnnouncementService";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import File from "../../../Models/DatabaseModels/File";
+import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -37,6 +39,43 @@ const FILE_ID: string = "11111111-1111-4111-8111-111111111111";
 const ICON_FILE_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
+// The probe or AI agent the icon tests write, and the project it belongs to.
+const RECORD_ID: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
+const ICON_PROJECT_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+const FOREIGN_ICON_FILE_ID: ObjectID = new ObjectID(
+  "77777777-7777-4777-8777-777777777777",
+);
+const UNOWNED_ICON_FILE_ID: ObjectID = new ObjectID(
+  "88888888-8888-4888-8888-888888888888",
+);
+
+// Who each icon file belongs to: ICON_FILE_ID is ICON_PROJECT_ID's own.
+const ICON_OWNERS: Record<string, FileOwners> = {
+  [ICON_FILE_ID.toString()]: {
+    projectId: ICON_PROJECT_ID,
+    createdByUserId: null,
+  },
+  [FOREIGN_ICON_FILE_ID.toString()]: {
+    projectId: new ObjectID("99999999-9999-4999-8999-999999999999"),
+    createdByUserId: null,
+  },
+  [UNOWNED_ICON_FILE_ID.toString()]: { projectId: null, createdByUserId: null },
+};
+
+interface IconService {
+  findBy: (...args: Array<unknown>) => Promise<unknown>;
+}
+
+interface IconCase {
+  name: string;
+  service: IconService;
+  build: () => Probe | AIAgent;
+}
+
 const TOKEN: string = "abc123def456";
 const NOTE_WITH_IMAGE: string = `Here is what broke: ![shot](https://example.com/file/image/access-token/${TOKEN})`;
 
@@ -147,6 +186,72 @@ describe("publish-time inline image visibility", () => {
       );
 
       expect(filesMadePublic()).toEqual([FILE_ID]);
+    });
+
+    /*
+     * A token travels with the markdown it is pasted into: a note publishes
+     * only the images of its own project.
+     */
+    it("publishes an image of the note's own project, and never another project's", async () => {
+      const note: IncidentPublicNote = new IncidentPublicNote();
+      note.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+      note.incidentId = new ObjectID("44444444-4444-4444-8444-444444444444");
+      note.projectId = new ObjectID("55555555-5555-4555-8555-555555555555");
+      note.note = NOTE_WITH_IMAGE;
+
+      jest.spyOn(FileService, "findOneBy").mockResolvedValue({
+        _id: FILE_ID,
+        projectId: new ObjectID("55555555-5555-4555-8555-555555555555"),
+      } as never);
+
+      await callHook(IncidentPublicNoteService, "onCreateSuccess", {}, note);
+
+      expect(filesMadePublic()).toEqual([FILE_ID]);
+
+      (FileService.updateOneById as unknown as jest.Mock).mockClear();
+
+      jest.spyOn(FileService, "findOneBy").mockResolvedValue({
+        _id: FILE_ID,
+        projectId: new ObjectID("99999999-9999-4999-8999-999999999999"),
+      } as never);
+
+      await callHook(IncidentPublicNoteService, "onCreateSuccess", {}, note);
+
+      expect(FileService.updateOneById).not.toHaveBeenCalled();
+    });
+
+    it("never publishes another project's image when a note is edited", async () => {
+      const note: IncidentPublicNote = new IncidentPublicNote();
+      note.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+      note.incidentId = new ObjectID("44444444-4444-4444-8444-444444444444");
+      note.projectId = new ObjectID("55555555-5555-4555-8555-555555555555");
+      note.note = NOTE_WITH_IMAGE;
+      note.incident = {
+        id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+        projectId: new ObjectID("55555555-5555-4555-8555-555555555555"),
+        incidentNumber: 1,
+      } as never;
+
+      jest.spyOn(IncidentPublicNoteService, "findBy").mockResolvedValue([note]);
+      jest.spyOn(FileService, "findOneBy").mockResolvedValue({
+        _id: FILE_ID,
+        projectId: new ObjectID("99999999-9999-4999-8999-999999999999"),
+      } as never);
+
+      await callHook(
+        IncidentPublicNoteService,
+        "onUpdateSuccess",
+        {
+          updateBy: {
+            query: {},
+            data: { note: NOTE_WITH_IMAGE },
+            props: { isRoot: true },
+          },
+        },
+        [],
+      );
+
+      expect(FileService.updateOneById).not.toHaveBeenCalled();
     });
 
     it("does not touch any file when the note has no inline images", async () => {
@@ -348,6 +453,43 @@ describe("publish-time inline image visibility", () => {
       expect(filesMadePublic()).toEqual([FILE_ID]);
     });
 
+    it("never publishes another project's image, on create or edit", async () => {
+      const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
+      announcement.id = new ObjectID("33333333-3333-4333-8333-333333333333");
+      announcement.projectId = new ObjectID(
+        "55555555-5555-4555-8555-555555555555",
+      );
+      announcement.description = NOTE_WITH_IMAGE;
+
+      jest.spyOn(FileService, "findOneBy").mockResolvedValue({
+        _id: FILE_ID,
+        projectId: new ObjectID("99999999-9999-4999-8999-999999999999"),
+      } as never);
+      const findBy: jest.SpyInstance = jest
+        .spyOn(StatusPageAnnouncementService, "findBy")
+        .mockResolvedValue([announcement]);
+
+      await callHook(
+        StatusPageAnnouncementService,
+        "onCreateSuccess",
+        {},
+        announcement,
+      );
+      await callHook(
+        StatusPageAnnouncementService,
+        "onUpdateSuccess",
+        { updateBy: { query: {}, data: { description: NOTE_WITH_IMAGE } } },
+        [],
+      );
+
+      expect(FileService.updateOneById).not.toHaveBeenCalled();
+      // The edit reads each announcement's project to hold its images to.
+      expect(
+        (findBy.mock.calls[0]![0] as { select: Record<string, unknown> })
+          .select,
+      ).toMatchObject({ description: true, projectId: true });
+    });
+
     it("does not touch any file when the description has no inline images", async () => {
       const announcement: StatusPageAnnouncement = new StatusPageAnnouncement();
       announcement.id = new ObjectID("33333333-3333-4333-8333-333333333333");
@@ -368,82 +510,185 @@ describe("publish-time inline image visibility", () => {
    * Probe and AI agent icons are the only readers of the id-based image
    * route, which serves public files only. They upload through the file
    * picker, which marks uploads private — so attaching one has to publish it
-   * or the icon 404s.
+   * or the icon 404s. Only a file of the record's own project is published,
+   * and after an update only the icon the record holds now: a record never
+   * makes another project's file readable by everyone.
    */
-  describe("intentionally public icons", () => {
-    it("publishes a probe icon on create", async () => {
-      const probe: Probe = new Probe();
-      probe.id = new ObjectID("33333333-3333-4333-8333-333333333333");
-      probe.iconFileId = ICON_FILE_ID;
+  describe.each([
+    {
+      name: "probe",
+      service: ProbeService as unknown as IconService,
+      build: (): Probe | AIAgent => {
+        return new Probe();
+      },
+    },
+    {
+      name: "AI agent",
+      service: AIAgentService as unknown as IconService,
+      build: (): Probe | AIAgent => {
+        return new AIAgent();
+      },
+    },
+  ])("intentionally public icons: $name", ({ service, build }: IconCase) => {
+    beforeEach(() => {
+      jest
+        .spyOn(FileService, "getFileOwners")
+        .mockImplementation((async (
+          fileIds: Array<ObjectID>,
+        ): Promise<Map<string, FileOwners>> => {
+          const owners: Map<string, FileOwners> = new Map();
 
-      await callHook(ProbeService, "onCreateSuccess", {}, probe);
+          for (const fileId of fileIds) {
+            const key: string = fileId.toString().toLowerCase();
 
-      expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
+            if (ICON_OWNERS[key]) {
+              owners.set(key, ICON_OWNERS[key]!);
+            }
+          }
+
+          return owners;
+        }) as never);
     });
 
-    it("publishes a probe icon when it is swapped out", async () => {
+    function record(data: {
+      projectId?: ObjectID;
+      iconFileId?: ObjectID;
+      iconFile?: ObjectID;
+    }): Probe | AIAgent {
+      const item: Probe | AIAgent = build();
+      item.id = RECORD_ID;
+
+      if (data.projectId) {
+        item.projectId = data.projectId;
+      }
+
+      if (data.iconFileId) {
+        item.iconFileId = data.iconFileId;
+      }
+
+      if (data.iconFile) {
+        const file: File = new File();
+        file.id = data.iconFile;
+        item.iconFile = file;
+      }
+
+      return item;
+    }
+
+    async function update(data: Record<string, unknown>): Promise<void> {
       await callHook(
-        ProbeService,
+        service,
         "onUpdateSuccess",
         {
-          updateBy: { query: {}, data: { iconFileId: ICON_FILE_ID } },
+          updateBy: { query: { _id: RECORD_ID.toString() }, data: data },
           carryForward: null,
         },
-        [],
+        [RECORD_ID],
+      );
+    }
+
+    it("publishes a global record's icon on create", async () => {
+      await callHook(
+        service,
+        "onCreateSuccess",
+        {},
+        record({ iconFileId: ICON_FILE_ID }),
       );
 
       expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
     });
 
-    it("leaves files alone when a probe update does not touch the icon", async () => {
+    it("publishes a project record's icon on create when it is the project's own", async () => {
       await callHook(
-        ProbeService,
-        "onUpdateSuccess",
-        {
-          updateBy: { query: {}, data: { name: "Renamed probe" } },
-          carryForward: null,
-        },
-        [],
+        service,
+        "onCreateSuccess",
+        {},
+        record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
       );
+
+      expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
+    });
+
+    it("publishes an icon written as the relation, as the dashboard writes it", async () => {
+      await callHook(
+        service,
+        "onCreateSuccess",
+        {},
+        record({ projectId: ICON_PROJECT_ID, iconFile: ICON_FILE_ID }),
+      );
+
+      expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
+    });
+
+    it("never publishes another project's file, or one with no project, on create", async () => {
+      for (const fileId of [FOREIGN_ICON_FILE_ID, UNOWNED_ICON_FILE_ID]) {
+        await callHook(
+          service,
+          "onCreateSuccess",
+          {},
+          record({ projectId: ICON_PROJECT_ID, iconFileId: fileId }),
+        );
+      }
 
       expect(FileService.updateOneById).not.toHaveBeenCalled();
     });
 
-    it("publishes an AI agent icon on create", async () => {
-      const agent: AIAgent = new AIAgent();
-      agent.id = new ObjectID("33333333-3333-4333-8333-333333333333");
-      agent.iconFileId = ICON_FILE_ID;
+    it("publishes the icon the record holds after an update", async () => {
+      const findBy: jest.SpyInstance = jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([
+          record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
+        ] as never);
 
-      await callHook(AIAgentService, "onCreateSuccess", {}, agent);
+      await update({ iconFile: { _id: ICON_FILE_ID.toString() } });
+
+      expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
+
+      const read: {
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      } = findBy.mock.calls[0]![0] as {
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      };
+
+      expect(read.select).toMatchObject({ projectId: true, iconFileId: true });
+      expect(read.props).toEqual({ isRoot: true });
+    });
+
+    it("publishes what the record holds, not what the update said", async () => {
+      jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([
+          record({ projectId: ICON_PROJECT_ID, iconFileId: ICON_FILE_ID }),
+        ] as never);
+
+      await update({ iconFileId: FOREIGN_ICON_FILE_ID });
 
       expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
     });
 
-    it("publishes an AI agent icon when it is swapped out", async () => {
-      await callHook(
-        AIAgentService,
-        "onUpdateSuccess",
-        {
-          updateBy: { query: {}, data: { iconFileId: ICON_FILE_ID } },
-          carryForward: null,
-        },
-        [],
-      );
+    it("never publishes another project's file after an update", async () => {
+      jest
+        .spyOn(service, "findBy")
+        .mockResolvedValue([
+          record({
+            projectId: ICON_PROJECT_ID,
+            iconFileId: FOREIGN_ICON_FILE_ID,
+          }),
+        ] as never);
 
-      expect(filesMadePublic()).toEqual([ICON_FILE_ID.toString()]);
+      await update({ iconFileId: FOREIGN_ICON_FILE_ID });
+
+      expect(FileService.updateOneById).not.toHaveBeenCalled();
     });
 
-    it("leaves files alone when an agent update does not touch the icon", async () => {
-      await callHook(
-        AIAgentService,
-        "onUpdateSuccess",
-        {
-          updateBy: { query: {}, data: { description: "Renamed" } },
-          carryForward: null,
-        },
-        [],
-      );
+    it("leaves files alone when an update does not touch the icon", async () => {
+      const findBy: jest.SpyInstance = jest.spyOn(service, "findBy");
 
+      await update({ name: "Renamed", description: "Renamed" });
+
+      expect(findBy).not.toHaveBeenCalled();
       expect(FileService.updateOneById).not.toHaveBeenCalled();
     });
   });

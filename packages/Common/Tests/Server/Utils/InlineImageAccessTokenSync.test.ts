@@ -1,9 +1,11 @@
 import {
   extractImageAccessTokens,
+  mayChangeImageVisibility,
   setIsPublicForMarkdownImages,
   syncIsPublicForMarkdownImages,
 } from "../../../Server/Utils/InlineImageAccessTokenSync";
 import FileService from "../../../Server/Services/FileService";
+import ObjectID from "../../../Types/ObjectID";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 jest.mock("../../../Server/Services/FileService", () => {
@@ -28,6 +30,14 @@ jest.mock("../../../Server/Utils/Logger", () => {
 const urlFor: (token: string) => string = (token: string): string => {
   return `https://example.com/file/image/access-token/${token}`;
 };
+
+// The project of the note whose markdown is synced.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
 
 describe("extractImageAccessTokens", () => {
   it("returns nothing for empty, null or undefined markdown", () => {
@@ -78,7 +88,7 @@ describe("setIsPublicForMarkdownImages", () => {
   });
 
   it("does nothing when the markdown has no inline images", async () => {
-    await setIsPublicForMarkdownImages("no images here", true);
+    await setIsPublicForMarkdownImages("no images here", true, PROJECT_ID);
 
     expect(FileService.findOneBy).not.toHaveBeenCalled();
     expect(FileService.updateOneById).not.toHaveBeenCalled();
@@ -92,6 +102,7 @@ describe("setIsPublicForMarkdownImages", () => {
     await setIsPublicForMarkdownImages(
       `![a](${urlFor("aaa111")}) ![b](${urlFor("bbb222")})`,
       true,
+      PROJECT_ID,
     );
 
     expect(FileService.updateOneById).toHaveBeenCalledTimes(2);
@@ -107,7 +118,11 @@ describe("setIsPublicForMarkdownImages", () => {
       _id: "11111111-1111-1111-1111-111111111111",
     } as never);
 
-    await setIsPublicForMarkdownImages(`![a](${urlFor("aaa111")})`, false);
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      false,
+      PROJECT_ID,
+    );
 
     expect(
       (FileService.updateOneById as unknown as jest.Mock).mock.calls[0]?.[0],
@@ -121,7 +136,11 @@ describe("setIsPublicForMarkdownImages", () => {
       null as never,
     );
 
-    await setIsPublicForMarkdownImages(`![a](${urlFor("aaa111")})`, true);
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
 
     expect(FileService.updateOneById).not.toHaveBeenCalled();
   });
@@ -140,9 +159,129 @@ describe("setIsPublicForMarkdownImages", () => {
     await setIsPublicForMarkdownImages(
       `![a](${urlFor("aaa111")}) ![b](${urlFor("bbb222")})`,
       true,
+      PROJECT_ID,
     );
 
     expect(FileService.updateOneById).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads each image's project along with it", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: PROJECT_ID,
+    } as never);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
+
+    expect(
+      (FileService.findOneBy as unknown as jest.Mock).mock.calls[0]?.[0],
+    ).toMatchObject({
+      query: { imageAccessToken: "aaa111" },
+      select: { _id: true, projectId: true },
+      props: { isRoot: true },
+    });
+    expect(FileService.updateOneById).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A token travels with the markdown it is copied into: a note of one
+   * project must never make another project's image readable by everyone,
+   * nor private again under the status page that shows it.
+   */
+  it("never changes the visibility of another project's image", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: OTHER_PROJECT_ID,
+    } as never);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      false,
+      PROJECT_ID,
+    );
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      null,
+    );
+
+    expect(FileService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  it("changes the visibility of an image of the note's own project, in both directions", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: new ObjectID(PROJECT_ID.toString().toUpperCase()),
+    } as never);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      false,
+      PROJECT_ID,
+    );
+
+    expect(
+      (FileService.updateOneById as unknown as jest.Mock).mock.calls.map(
+        (call: Array<any>) => {
+          return call[0]?.data;
+        },
+      ),
+    ).toEqual([{ isPublic: true }, { isPublic: false }]);
+  });
+
+  /*
+   * Images uploaded before files recorded their project have none, and
+   * nothing says whose they are: they keep the behaviour they always had.
+   */
+  it("still changes an image uploaded before files recorded their project", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: null,
+    } as never);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
+
+    expect(FileService.updateOneById).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("mayChangeImageVisibility", () => {
+  it("allows the note's own project's images and images with no project", () => {
+    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, PROJECT_ID)).toBe(
+      true,
+    );
+    expect(mayChangeImageVisibility({}, PROJECT_ID)).toBe(true);
+    expect(mayChangeImageVisibility({ projectId: undefined }, null)).toBe(true);
+  });
+
+  it("refuses another project's images, and any image for a note of no project", () => {
+    expect(
+      mayChangeImageVisibility({ projectId: OTHER_PROJECT_ID }, PROJECT_ID),
+    ).toBe(false);
+    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, null)).toBe(
+      false,
+    );
+    expect(
+      mayChangeImageVisibility({ projectId: PROJECT_ID }, undefined),
+    ).toBe(false);
   });
 });
 
@@ -160,6 +299,7 @@ describe("syncIsPublicForMarkdownImages", () => {
       `![a](${urlFor("aaa111")})`,
       true,
       "test context",
+      PROJECT_ID,
     );
 
     expect(
@@ -167,6 +307,22 @@ describe("syncIsPublicForMarkdownImages", () => {
     ).toMatchObject({
       data: { isPublic: true },
     });
+  });
+
+  it("holds the note to its project like the unwrapped call", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: OTHER_PROJECT_ID,
+    } as never);
+
+    await syncIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      "test context",
+      PROJECT_ID,
+    );
+
+    expect(FileService.updateOneById).not.toHaveBeenCalled();
   });
 
   /*
@@ -179,6 +335,7 @@ describe("syncIsPublicForMarkdownImages", () => {
         123 as unknown as string,
         true,
         "test context",
+        PROJECT_ID,
       ),
     ).resolves.toBeUndefined();
   });
@@ -196,6 +353,7 @@ describe("syncIsPublicForMarkdownImages", () => {
         `![a](${urlFor("aaa111")})`,
         true,
         "test context",
+        PROJECT_ID,
       ),
     ).resolves.toBeUndefined();
   });
