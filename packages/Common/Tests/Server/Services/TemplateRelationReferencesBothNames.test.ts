@@ -5,8 +5,8 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import {
   getRelationAndIdColumnReferences,
   ProjectScopedReference,
-  ProjectScopedReferenceException,
 } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -32,7 +32,8 @@ import {
  * (`changeMonitorStatusToId`) and the relation (`changeMonitorStatusTo`).
  * The template's cards write the relation and the API takes either, so a
  * create or an update may carry both: each name that holds an id is
- * checked against the template's project.
+ * checked against the template's project, and two names that hold
+ * different values are refused before anything is read.
  *
  * The services' own hooks run; which records the project has is a stand-in
  * (stubProjectDirectory).
@@ -45,7 +46,11 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const OWN_STATUS_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000b1";
 const OTHER_OWN_STATUS_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000b2";
 const OWN_STATE_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000c1";
+const OTHER_OWN_STATE_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000c2";
 const OWN_SEVERITY_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000d1";
+const OTHER_OWN_SEVERITY_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000d2";
+// An id no record has, in any project.
+const MISSING_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000e9";
 
 const FOREIGN_STATUS_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000f1";
 const FOREIGN_STATE_ID: string = "0193c0de-b07b-4aaa-8bbb-0000000000f2";
@@ -58,8 +63,8 @@ beforeEach(() => {
     projectId: PROJECT_ID,
     records: {
       MonitorStatus: [OWN_STATUS_ID, OTHER_OWN_STATUS_ID],
-      IncidentState: [OWN_STATE_ID],
-      IncidentSeverity: [OWN_SEVERITY_ID],
+      IncidentState: [OWN_STATE_ID, OTHER_OWN_STATE_ID],
+      IncidentSeverity: [OWN_SEVERITY_ID, OTHER_OWN_SEVERITY_ID],
     },
   });
 });
@@ -163,7 +168,17 @@ interface RelationCase {
   modelName: string;
   table: string;
   ownId: string;
+  // Another record of the project, of the same kind.
+  otherOwnId: string;
   foreignId: string;
+}
+
+// A refusal for a write whose two names of the relation disagree.
+function conflictMessage(relation: RelationCase): string {
+  return RelationIdUtil.getConflictMessage(relation.modelName, [
+    relation.idColumn,
+    relation.relation,
+  ]);
 }
 
 const INCIDENT_TEMPLATE_RELATIONS: Array<RelationCase> = [
@@ -174,6 +189,7 @@ const INCIDENT_TEMPLATE_RELATIONS: Array<RelationCase> = [
     modelName: "Monitor Status",
     table: "MonitorStatus",
     ownId: OWN_STATUS_ID,
+    otherOwnId: OTHER_OWN_STATUS_ID,
     foreignId: FOREIGN_STATUS_ID,
   },
   {
@@ -183,6 +199,7 @@ const INCIDENT_TEMPLATE_RELATIONS: Array<RelationCase> = [
     modelName: "Incident State",
     table: "IncidentState",
     ownId: OWN_STATE_ID,
+    otherOwnId: OTHER_OWN_STATE_ID,
     foreignId: FOREIGN_STATE_ID,
   },
   {
@@ -192,6 +209,7 @@ const INCIDENT_TEMPLATE_RELATIONS: Array<RelationCase> = [
     modelName: "Incident Severity",
     table: "IncidentSeverity",
     ownId: OWN_SEVERITY_ID,
+    otherOwnId: OTHER_OWN_SEVERITY_ID,
     foreignId: FOREIGN_SEVERITY_ID,
   },
 ];
@@ -281,15 +299,15 @@ const WRITES: Array<[string, Write]> = [
 describe.each(SERVICES)("$kind", (service: TemplateServiceCase) => {
   describe.each(WRITES)("%s", (_write: string, write: Write) => {
     describe.each(service.relations)("$name", (relation: RelationCase) => {
-      test("another project's record behind one of the project's own, by the relation, is refused", async () => {
+      test("another project's record behind one of the project's own, by the relation, is refused before anything is read", async () => {
         await expect(
           write(service, {
             [relation.idColumn]: relation.ownId,
             [relation.relation]: { _id: relation.foreignId },
           }),
-        ).rejects.toThrow(
-          `This ${service.kind} references records that are not in this project: ${relation.modelName} "${relation.foreignId}".`,
-        );
+        ).rejects.toThrow(conflictMessage(relation));
+
+        expect(idsLookedUpIn(relation.table)).toEqual([]);
       });
 
       test("another project's record by the ID column, beside one of the project's own by the relation, is refused", async () => {
@@ -298,7 +316,47 @@ describe.each(SERVICES)("$kind", (service: TemplateServiceCase) => {
             [relation.idColumn]: relation.foreignId,
             [relation.relation]: { _id: relation.ownId },
           }),
-        ).rejects.toThrow(ProjectScopedReferenceException);
+        ).rejects.toThrow(conflictMessage(relation));
+
+        expect(idsLookedUpIn(relation.table)).toEqual([]);
+      });
+
+      test("two of the project's own records under the two names are refused as well: they disagree", async () => {
+        await expect(
+          write(service, {
+            [relation.idColumn]: relation.ownId,
+            [relation.relation]: { _id: relation.otherOwnId },
+          }),
+        ).rejects.toThrow(conflictMessage(relation));
+      });
+
+      test("a record under one name beside a clear under the other is refused", async () => {
+        await expect(
+          write(service, {
+            [relation.idColumn]: null,
+            [relation.relation]: { _id: relation.ownId },
+          }),
+        ).rejects.toThrow(conflictMessage(relation));
+      });
+
+      test("another project's record is refused with the same words as a record that does not exist", async () => {
+        const foreign: unknown = await write(service, {
+          [relation.relation]: { _id: relation.foreignId },
+        }).catch((error: Error) => {
+          return error.message;
+        });
+        const missing: unknown = await write(service, {
+          [relation.relation]: { _id: MISSING_ID },
+        }).catch((error: Error) => {
+          return error.message;
+        });
+
+        expect(foreign).toBe(
+          `This ${service.kind} references records that are not in this project: ${relation.modelName} "${relation.foreignId}". Please pick values from this project and try again.`,
+        );
+        expect(missing).toBe(
+          `This ${service.kind} references records that are not in this project: ${relation.modelName} "${MISSING_ID}". Please pick values from this project and try again.`,
+        );
       });
 
       test("another project's record by the relation alone is refused", async () => {
@@ -350,9 +408,8 @@ describe("incident template: every name of every relation in one write", () => {
       callHook(IncidentTemplateService, "onBeforeUpdate", {
         data: {
           changeMonitorStatusToId: OWN_STATUS_ID,
-          changeMonitorStatusTo: { _id: OTHER_OWN_STATUS_ID },
+          changeMonitorStatusTo: { _id: OWN_STATUS_ID },
           initialIncidentState: { _id: OWN_STATE_ID },
-          incidentSeverityId: OWN_SEVERITY_ID,
           incidentSeverity: { _id: FOREIGN_SEVERITY_ID },
         },
         query: {},
@@ -361,11 +418,28 @@ describe("incident template: every name of every relation in one write", () => {
     ).rejects.toThrow(`Incident Severity "${FOREIGN_SEVERITY_ID}"`);
   });
 
+  test("is refused whole when any relation's two names disagree", async () => {
+    await expect(
+      callHook(IncidentTemplateService, "onBeforeUpdate", {
+        data: {
+          changeMonitorStatusToId: OWN_STATUS_ID,
+          changeMonitorStatusTo: { _id: OWN_STATUS_ID },
+          incidentSeverityId: OWN_SEVERITY_ID,
+          incidentSeverity: { _id: FOREIGN_SEVERITY_ID },
+        },
+        query: {},
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "Conflicting Incident Severity references were provided. incidentSeverityId and incidentSeverity are names for the same field",
+    );
+  });
+
   test("passes when every one of them is the project's own", async () => {
     await callHook(IncidentTemplateService, "onBeforeUpdate", {
       data: {
         changeMonitorStatusToId: OWN_STATUS_ID,
-        changeMonitorStatusTo: { _id: OTHER_OWN_STATUS_ID },
+        changeMonitorStatusTo: { _id: OWN_STATUS_ID },
         initialIncidentState: { _id: OWN_STATE_ID },
         incidentSeverity: { _id: OWN_SEVERITY_ID },
       },
@@ -373,9 +447,7 @@ describe("incident template: every name of every relation in one write", () => {
       props: { tenantId: PROJECT_ID },
     });
 
-    expect(idsLookedUpIn("MonitorStatus").sort()).toEqual(
-      [OWN_STATUS_ID, OTHER_OWN_STATUS_ID].sort(),
-    );
+    expect(idsLookedUpIn("MonitorStatus")).toEqual([OWN_STATUS_ID]);
     expect(idsLookedUpIn("IncidentState")).toEqual([OWN_STATE_ID]);
     expect(idsLookedUpIn("IncidentSeverity")).toEqual([OWN_SEVERITY_ID]);
   });

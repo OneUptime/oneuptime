@@ -444,19 +444,20 @@ export class Service extends ProjectReferencesService<Model> {
    * only public files. The file picker uploads it private, so attaching
    * it to a probe is the point at which it becomes public - when it is a
    * file of the probe's own project (FileService.makeRecordFilePublic).
+   * The icon is read back from the saved row, like an update's: whichever
+   * name the create sent it under, that is the one stored.
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeRecordFilePublic({
-      fileId: RelationIdUtil.read(
-        createdItem as unknown as Record<string, unknown>,
-        ["iconFileId", "iconFile"],
-      ),
-      projectId: createdItem.projectId || null,
-    });
+    if (createdItem.id) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: [createdItem.id],
+      });
+    }
 
     return createdItem;
   }

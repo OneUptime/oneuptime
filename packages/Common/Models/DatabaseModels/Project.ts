@@ -2997,7 +2997,7 @@ export default class Project extends TenantModel {
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "ResellerPlanId",
+    manyToOneRelationColumn: "resellerPlanId",
     type: TableColumnType.Entity,
     modelType: ResellerPlan,
     hideColumnInDocumentation: true,

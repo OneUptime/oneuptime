@@ -1,4 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -384,14 +385,35 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
   ): Promise<OnCreate<MonitorProbe>> {
     await super.onBeforeCreate(createBy);
 
-    if (
-      (createBy.data.monitorId || createBy.data.monitor) &&
-      (createBy.data.probeId || createBy.data.probe)
-    ) {
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The monitor, the probe and the project, each under either of its names:
+     * the two must agree (RelationIdUtil.readConsistent), so the probe
+     * checked below is the probe attached.
+     */
+    const monitorId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      ["monitorId", "monitor"],
+      "Monitor",
+    );
+    const probeId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      ["probeId", "probe"],
+      "Probe",
+    );
+    const projectId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      ["projectId", "project"],
+      "Project",
+    );
+
+    if (monitorId && probeId) {
       const monitorProbe: MonitorProbe | null = await this.findOneBy({
         query: {
-          monitorId: createBy.data.monitorId! || createBy.data.monitor?.id,
-          probeId: createBy.data.probeId! || createBy.data.probe?.id,
+          monitorId: monitorId,
+          probeId: probeId,
         },
         select: {
           _id: true,
@@ -412,11 +434,6 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
      * tenant exactly like the monitor-create path does - otherwise another
      * project's probe can be attached to this monitor.
      */
-    const probeId: ObjectID | undefined | null =
-      createBy.data.probeId || createBy.data.probe?.id;
-    const projectId: ObjectID | undefined | null =
-      createBy.data.projectId || createBy.data.project?.id;
-
     if (probeId && projectId) {
       const isProbeAttachable: boolean =
         await ProbeService.isProbeAttachableToProject({
@@ -432,9 +449,6 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
     }
 
     // Check if the monitor type supports probes
-    const monitorId: ObjectID | undefined | null =
-      createBy.data.monitorId || createBy.data.monitor?.id;
-
     if (monitorId) {
       const monitor: Monitor | null = await MonitorService.findOneById({
         id: monitorId,

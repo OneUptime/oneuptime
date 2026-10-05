@@ -1,5 +1,6 @@
 import RelationIdUtil from "../../../../Server/Utils/Database/RelationIdUtil";
 import ObjectID from "../../../../Types/ObjectID";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 
 /*
  * Contract under test: a many-to-one reference reaches a service hook under
@@ -116,5 +117,193 @@ describe("RelationIdUtil.read", () => {
       ["parentSiteId", "parentSite"],
     );
     expect(id?.toString()).toBe(SITE_ID.toString());
+  });
+});
+
+/*
+ * readConsistent is how a check or a decision reads a reference: both names,
+ * and a write whose two names disagree is refused, because which of the two
+ * TypeORM stores depends on the shape of the write.
+ */
+describe("RelationIdUtil.readConsistent", () => {
+  const CONFLICT: string =
+    "Conflicting Network Site references were provided. siteId and site are names for the same field and must hold the same value: send only one of them, or the same id in each.";
+
+  function read(data: Record<string, unknown> | null): ObjectID | null {
+    return RelationIdUtil.readConsistent(data, SITE_KEYS, "Network Site");
+  }
+
+  it("reads the ID column alone", () => {
+    expect(read({ siteId: SITE_ID })?.toString()).toBe(SITE_ID.toString());
+  });
+
+  it("reads the relation alone, in every shape it arrives in", () => {
+    expect(read({ site: { _id: SITE_ID.toString() } })?.toString()).toBe(
+      SITE_ID.toString(),
+    );
+    expect(read({ site: SITE_ID.toString() })?.toString()).toBe(
+      SITE_ID.toString(),
+    );
+    expect(read({ site: SITE_ID })?.toString()).toBe(SITE_ID.toString());
+    expect(read({ site: { id: SITE_ID } })?.toString()).toBe(
+      SITE_ID.toString(),
+    );
+  });
+
+  it("reads the same id under both names as one id", () => {
+    expect(
+      read({ siteId: SITE_ID, site: { _id: SITE_ID.toString() } })?.toString(),
+    ).toBe(SITE_ID.toString());
+  });
+
+  it("reads one id in two cases as one id", () => {
+    expect(
+      read({
+        siteId: SITE_ID.toString().toUpperCase(),
+        site: { _id: SITE_ID.toString() },
+      })?.toString(),
+    ).toBe(SITE_ID.toString().toUpperCase());
+  });
+
+  it("reads a padded id as the id the database holds, alone or beside a clean one", () => {
+    const padded: string = `  ${SITE_ID.toString()} `;
+
+    expect(read({ siteId: padded })?.toString()).toBe(SITE_ID.toString());
+    expect(
+      read({ siteId: padded, site: { _id: SITE_ID.toString() } })?.toString(),
+    ).toBe(SITE_ID.toString());
+    expect(read({ site: { _id: padded } })?.toString()).toBe(
+      SITE_ID.toString(),
+    );
+  });
+
+  it("refuses two different ids, naming both fields", () => {
+    expect(() => {
+      return read({
+        siteId: SITE_ID,
+        site: { _id: OTHER_SITE_ID.toString() },
+      });
+    }).toThrow(CONFLICT);
+  });
+
+  it("refuses two different ids whichever name holds which", () => {
+    expect(() => {
+      return read({ siteId: OTHER_SITE_ID, site: SITE_ID.toString() });
+    }).toThrow(CONFLICT);
+  });
+
+  it("refuses an id beside a clear: which one is stored depends on the write", () => {
+    expect(() => {
+      return read({ siteId: SITE_ID, site: null });
+    }).toThrow(CONFLICT);
+    expect(() => {
+      return read({ siteId: null, site: { _id: SITE_ID.toString() } });
+    }).toThrow(CONFLICT);
+    expect(() => {
+      return read({ siteId: SITE_ID, site: {} });
+    }).toThrow(CONFLICT);
+    expect(() => {
+      return read({ siteId: "", site: { _id: SITE_ID.toString() } });
+    }).toThrow(CONFLICT);
+  });
+
+  it("refuses with a BadDataException, so the API answers 400", () => {
+    let error: unknown = null;
+
+    try {
+      read({ siteId: SITE_ID, site: { _id: OTHER_SITE_ID.toString() } });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toBeInstanceOf(BadDataException);
+  });
+
+  it("reads a clear under both names as a clear", () => {
+    expect(read({ siteId: null, site: null })).toBeNull();
+    expect(read({ site: null })).toBeNull();
+  });
+
+  it("reads nothing when the write leaves the reference alone", () => {
+    expect(read({ name: "Core Switch" })).toBeNull();
+    expect(read({ siteId: undefined, site: undefined })).toBeNull();
+    expect(read(null)).toBeNull();
+  });
+});
+
+describe("RelationIdUtil.isPresent", () => {
+  it("sees a value under either name, a clear included", () => {
+    expect(RelationIdUtil.isPresent({ siteId: SITE_ID }, SITE_KEYS)).toBe(true);
+    expect(RelationIdUtil.isPresent({ site: null }, SITE_KEYS)).toBe(true);
+  });
+
+  it("reads values, not keys: a model's unset columns are not written", () => {
+    expect(
+      RelationIdUtil.isPresent(
+        { siteId: undefined, site: undefined, name: "x" },
+        SITE_KEYS,
+      ),
+    ).toBe(false);
+    expect(RelationIdUtil.isPresent(null, SITE_KEYS)).toBe(false);
+  });
+});
+
+describe("RelationIdUtil.stamp", () => {
+  it("writes the id under the ID column and removes the relation", () => {
+    const data: Record<string, unknown> = {
+      site: { _id: OTHER_SITE_ID.toString() },
+      name: "Core Switch",
+    };
+
+    RelationIdUtil.stamp(data, SITE_KEYS, SITE_ID);
+
+    expect(data["siteId"]).toBe(SITE_ID);
+    expect("site" in data).toBe(false);
+    expect(data["name"]).toBe("Core Switch");
+  });
+
+  it("leaves one value for the reference, so reading it is consistent", () => {
+    const data: Record<string, unknown> = {
+      siteId: OTHER_SITE_ID,
+      site: OTHER_SITE_ID.toString(),
+    };
+
+    RelationIdUtil.stamp(data, SITE_KEYS, SITE_ID);
+
+    expect(
+      RelationIdUtil.readConsistent(
+        data,
+        SITE_KEYS,
+        "Network Site",
+      )?.toString(),
+    ).toBe(SITE_ID.toString());
+  });
+
+  it("can stamp a clear", () => {
+    const data: Record<string, unknown> = { site: SITE_ID.toString() };
+
+    RelationIdUtil.stamp(data, SITE_KEYS, null);
+
+    expect(data["siteId"]).toBeNull();
+    expect("site" in data).toBe(false);
+  });
+});
+
+describe("RelationIdUtil.getConflictMessage", () => {
+  it("names the reference and the fields the write sent", () => {
+    expect(
+      RelationIdUtil.getConflictMessage("Monitor Status", [
+        "changeMonitorStatusToId",
+        "changeMonitorStatusTo",
+      ]),
+    ).toBe(
+      "Conflicting Monitor Status references were provided. changeMonitorStatusToId and changeMonitorStatusTo are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+  });
+
+  it("lists more than two names", () => {
+    expect(
+      RelationIdUtil.getConflictMessage("Thing", ["a", "b", "c"]),
+    ).toContain("a, b and c are names for the same field");
   });
 });

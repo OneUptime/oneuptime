@@ -728,7 +728,9 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
           }),
           props: memberProps(),
         }),
-      ).rejects.toThrow("Conflicting database references were provided.");
+      ).rejects.toThrow(
+        /^Conflicting database references were provided\. databaseServerId and databaseServer are names for the same field/i,
+      );
       expect(save).not.toHaveBeenCalled();
       expect(findParent).not.toHaveBeenCalled();
     });

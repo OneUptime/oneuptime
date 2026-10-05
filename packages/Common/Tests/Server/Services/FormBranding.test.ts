@@ -760,7 +760,9 @@ describe.each([false, true])("with billing %s", (isBillingOn: boolean) => {
       );
 
       expect(error).toBeInstanceOf(BadDataException);
-      expect(error?.message).toBe("Conflicting logo references were provided.");
+      expect(error?.message).toBe(
+        "Conflicting logo references were provided. logoFileId and logoFile are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+      );
       expect(getFileFacts).not.toHaveBeenCalled();
     });
 

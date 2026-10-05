@@ -840,7 +840,10 @@ describe("KubernetesClusterService AI access binding guard", () => {
           aiAccessRunnerId: RUNNER_ID,
         }),
       );
-      expect(lastQuery(runnerLookup)["projectId"]).toBe(PROJECT_ID);
+      // The project as the relation names it, read under either name.
+      expect(String(lastQuery(runnerLookup)["projectId"])).toBe(
+        PROJECT_ID.toString(),
+      );
 
       await hooks().onBeforeCreate(
         createBy(

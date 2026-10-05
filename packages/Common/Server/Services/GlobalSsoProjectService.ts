@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/GlobalSsoProject";
 import Team from "../../Models/DatabaseModels/Team";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -150,7 +151,11 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (projectId) {
-      createBy.data.projectId = projectId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        projectId,
+      );
     }
 
     await validateGlobalProviderProjectTeams({

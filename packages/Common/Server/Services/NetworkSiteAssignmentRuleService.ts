@@ -19,7 +19,8 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 /*
  * The dashboard posts the `site` relation while server-side callers write the
- * `siteId` column; read whichever is present. See RelationIdUtil.
+ * `siteId` column; read whichever is present, and refuse a write whose two
+ * disagree, so the site checked is the site stored. See RelationIdUtil.
  */
 const SITE_KEYS: Array<string> = ["siteId", "site"];
 
@@ -39,7 +40,7 @@ const HOSTNAME_OPERATORS: ReadonlySet<RuleCriteriaOperator> = new Set([
 ]);
 
 function readSiteId(data: Record<string, unknown>): ObjectID | null {
-  return RelationIdUtil.read(data, SITE_KEYS);
+  return RelationIdUtil.readConsistent(data, SITE_KEYS, "Network Site");
 }
 
 export class Service extends ProjectReferencesService<Model> {
