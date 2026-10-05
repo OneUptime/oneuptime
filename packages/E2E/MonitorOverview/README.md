@@ -1,11 +1,13 @@
 # Monitor overview fixture
 
-An offline harness for the real monitor overview page, and its Monitoring Logs page:
+An offline harness for the real monitor overview page, its Monitoring Logs page, and Create
+Monitor:
 
 | Page | Route (from `RouteMap`) | Production components |
 |---|---|---|
 | Monitor overview | `MONITOR_VIEW` `/dashboard/:projectId/monitors/:id` | `Pages/Monitor/View/{Layout,Index}` and every card they mount (`Components/Monitor/Overview/*`, `SummaryView/Summary`, `MonitorFeed`, `EmbeddedMetricCard`, `OverviewCustomFields`, `DependencySuppressionWarning`) |
 | Monitoring Logs | `MONITOR_VIEW_LOGS` `/dashboard/:projectId/monitors/:id/logs` | `Pages/Monitor/View/{Layout,Logs}`: the real `AnalyticsModelTable` over `MonitorLog`, and the View Summary modal (`SummaryView/SummaryInfo`) |
+| Create Monitor | `MONITOR_CREATE` `/dashboard/:projectId/monitors/create` | `Pages/Monitor/Create`: the real `ModelForm`, the monitor type picker (`CardSelect`'s catalog layout), the criteria step (`Form/Monitor/MonitorSteps`) and Probes & Interval |
 
 `Fixture/server.js` bundles the production layout (ModelPage, side menu) and page with
 esbuild, serves them with the same Tailwind build, `tailwind.config` and `Theme.css`
@@ -143,6 +145,20 @@ is open; it stays folded on Monitoring Logs, and stays open there once the user 
 and on a phone it starts folded, a tap on its header opens it without closing the menu, and
 picking a page still closes the menu.
 
+`CreateMonitor.spec.ts` covers Create Monitor in a real browser: it opens on the six common
+monitor types as compact rows, two to a line on a desktop and one on a phone with nothing
+wider than the screen, with no category heading or count and the whole first step (Next
+included) on screen; More monitor types shows every other type under a plain heading and
+moves focus to the first new one; the keyboard searches, picks with Enter or Space (one tab
+stop for the rows, arrows between them), and Change then Escape keeps the type picked; a
+picked type shrinks to one line and the name moves up to meet it; a link's `?monitorType=`
+opens on that type; dark mode keeps the rows and summary on dark surfaces. Start to finish,
+a Website monitor's default criteria are folded, hidden from sight and from the keyboard,
+and stretch nothing below the form; no error shows until Next is pressed, and then right by
+Next; Probes & Interval opens on Every 5 Minutes; Create Monitor sends the type, name,
+interval, address and picked probe. A Manual monitor is created from its one step, with no
+interval.
+
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not
 model, and on any request the network fence had to abort.
 
@@ -150,7 +166,12 @@ model, and on any request the network fence had to abort.
 
 `window.__monitorOverviewFixture` holds `getItemRequests`, `listRequests` (analytics lists
 carry `analytics: true`), `countRequests`, `aggregateRequests`, `apiRequests` (with
-`headers`), `updates` and `unhandled`, plus `monitors` (id, name and secret key per type).
+`headers`), `updates`, `creates` (Create Monitor's create: the monitor's JSON and its misc
+data, such as the probes picked) and `unhandled`, plus `monitors` (id, name and secret key
+per type). A create is answered with the id `70000000-0000-4000-8000-000000000100`, whose
+page is a stub (`data-page="created-monitor"`). The workspace runs its own three probes and
+no global ones (`/probe/global-probes` answers an empty list), and has no on-call policies,
+incident roles, team members or telemetry services.
 
 ## Run it
 

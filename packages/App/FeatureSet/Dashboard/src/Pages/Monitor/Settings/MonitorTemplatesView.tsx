@@ -43,7 +43,7 @@ import MonitorStepsType from "Common/Types/Monitor/MonitorSteps";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
-import MonitorTypeUtil from "../../../Utils/MonitorType";
+import getMonitorTypeFormField from "../../../Utils/Form/Monitor/MonitorTypeFormField";
 import MonitorStepsForm from "../../../Components/Form/Monitor/MonitorSteps";
 import {
   getMonitorTemplateSyncFieldSummary,
@@ -777,21 +777,10 @@ const MonitorTemplatesView: FunctionComponent<
             required: false,
             placeholder: "Description",
           },
-          {
-            field: {
-              monitorType: true,
-            },
-            title: "Monitor Type",
+          // The same picker as Create Monitor (MonitorTypeFormField).
+          getMonitorTypeFormField<MonitorTemplate>({
             description: "What kind of monitor will this template produce?",
-            fieldType: FormFieldSchemaType.CardSelect,
-            required: true,
-            cardSelectOptions:
-              MonitorTypeUtil.monitorTypesAsCategorizedCardSelectOptions(),
-            cardSelectSearchable: true,
-            cardSelectSearchPlaceholder:
-              "Search monitor types - try ping, ssl, k8s, postgres",
-            cardSelectCollapsibleGroups: true,
-          },
+          }),
         ]}
         onSaveSuccess={(item: MonitorTemplate) => {
           if (item.monitorType) {
