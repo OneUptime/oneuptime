@@ -138,7 +138,7 @@ describe("the Overview's AI agent card in Japanese", () => {
     );
 
     expect(
-      within(card).getByRole("heading", { name: JA["AI agent"] }),
+      within(card).getByRole("heading", { name: JA["AI agent"]! }),
     ).toBeInTheDocument();
     expect(
       within(card)
@@ -173,7 +173,7 @@ describe("the Overview's AI agent card in Japanese", () => {
       JA["AI proposes fixes. A person approves each one before it runs."]!,
     );
     expect(
-      within(card).getByRole("link", { name: JA["Open the AI agent page"] }),
+      within(card).getByRole("link", { name: JA["Open the AI agent page"]! }),
     ).toBeInTheDocument();
   });
 
@@ -255,6 +255,68 @@ describe("the Overview's AI agent card in Japanese", () => {
         "The AI agent's status could not be loaded. Open the AI agent page to see it."
       ]!,
     );
+  });
+
+  /*
+   * The card's own labels — its title, row titles, badges, link and the
+   * sentences it adds — in every language the dashboard ships, not only
+   * Japanese. A few languages write the English word itself: German,
+   * Danish, Italian, Dutch, Portuguese and Swedish say "offline", French
+   * says "Investigation", Dutch says "Fixes".
+   */
+  test("every language the dashboard ships has its own words for the card's labels", () => {
+    const SAME_AS_ENGLISH: Record<string, Array<string>> = {
+      da: ["Offline"],
+      de: ["Offline"],
+      fr: ["Investigation"],
+      it: ["Offline"],
+      nl: ["Fixes", "Offline"],
+      pt: ["Offline"],
+      sv: ["Offline"],
+    };
+    const labels: Array<string> = [
+      "AI agent",
+      "Connection",
+      "Investigation",
+      "Fixes",
+      "Connected",
+      "Offline",
+      "Not installed",
+      "On",
+      "Off",
+      "Needs attention",
+      "Open the AI agent page",
+      "Ask for approval",
+      "Automatic",
+      "Bypass approval",
+      "The {{agent}} is connected.",
+      "The {{agent}} is offline.",
+      "The {{agent}} is not installed yet.",
+      "The AI agent's status could not be loaded. Open the AI agent page to see it.",
+    ];
+    const locales: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      })
+      .sort();
+
+    expect(locales.length).toBeGreaterThanOrEqual(16);
+
+    for (const locale of locales) {
+      const translations: Record<string, string> = readLocale(locale);
+      const english: Array<string> = labels.filter((label: string) => {
+        return !translations[label] || translations[label] === label;
+      });
+
+      expect({ locale, english }).toEqual({
+        locale,
+        english: SAME_AS_ENGLISH[locale] || [],
+      });
+    }
   });
 
   test("every string the card shows has its own Japanese wording", () => {
