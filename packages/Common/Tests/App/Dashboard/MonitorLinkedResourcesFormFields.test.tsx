@@ -8,6 +8,7 @@ import Field from "../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import type { Mock } from "jest-mock";
 
 /*
  * The Edit form of a monitor's Linked Resources card: one picker for
@@ -29,6 +30,8 @@ const OTHER_KEYS: Array<string> = [
   "databaseServers",
   "services",
 ];
+
+type SetNewFormValues = (values: FormValues<Monitor>) => void;
 
 function keyOf(field: Field<Monitor>): string {
   return Object.keys(field.field || {})[0]!;
@@ -66,8 +69,8 @@ describe("getMonitorLinkedResourcesFormFields", () => {
   });
 
   test("splits the picker's payload back into each relation", async () => {
-    const setNewFormValues: jest.Mock<(values: FormValues<Monitor>) => void> =
-      jest.fn();
+    const setNewFormValues: Mock<SetNewFormValues> =
+      jest.fn<SetNewFormValues>();
     const payload: AffectedResourcesPayload = {
       __affectedResourcesPayload: true,
       monitors: undefined,
@@ -113,8 +116,8 @@ describe("getMonitorLinkedResourcesFormFields", () => {
   });
 
   test("ignores a value that is not the picker's payload", async () => {
-    const setNewFormValues: jest.Mock<(values: FormValues<Monitor>) => void> =
-      jest.fn();
+    const setNewFormValues: Mock<SetNewFormValues> =
+      jest.fn<SetNewFormValues>();
 
     fields[0]!.onChange!(["h-1"], {} as FormValues<Monitor>, setNewFormValues);
     await Promise.resolve();

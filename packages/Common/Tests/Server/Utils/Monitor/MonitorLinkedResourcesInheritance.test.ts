@@ -41,6 +41,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A monitor can say what it watches (Monitor > Overview > Linked
@@ -151,7 +152,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
   let createdAlerts: Array<Alert> = [];
   let stepContext: SeriesResolvedResourceIds;
   let linkedContext: SeriesResolvedResourceIds;
-  let readLinks: jest.SpiedFunction<
+  let readLinks: SpyInstance<
     typeof MonitorResourceContextUtil.resolveLinkedResourcesForMonitor
   >;
 
@@ -404,23 +405,22 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
   }
 
   it("maps every kind of linked resource onto its resolved list", async () => {
-    const read: jest.SpiedFunction<
-      typeof LinkedAffectedResources.readForMonitors
-    > = jest
-      .spyOn(LinkedAffectedResources, "readForMonitors")
-      .mockResolvedValue([
-        linked(LinkedAffectedResourceType.Host, "h-1"),
-        linked(LinkedAffectedResourceType.KubernetesCluster, "k-1"),
-        linked(LinkedAffectedResourceType.DockerHost, "d-1"),
-        linked(LinkedAffectedResourceType.PodmanHost, "p-1"),
-        linked(LinkedAffectedResourceType.ProxmoxCluster, "px-1"),
-        linked(LinkedAffectedResourceType.VMwareVCenter, "v-1"),
-        linked(LinkedAffectedResourceType.CephCluster, "ceph-1"),
-        linked(LinkedAffectedResourceType.DockerSwarmCluster, "sw-1"),
-        linked(LinkedAffectedResourceType.IoTFleet, "iot-1"),
-        linked(LinkedAffectedResourceType.DatabaseServer, "db-1"),
-        linked(LinkedAffectedResourceType.Service, "svc-1"),
-      ]);
+    const read: SpyInstance<typeof LinkedAffectedResources.readForMonitors> =
+      jest
+        .spyOn(LinkedAffectedResources, "readForMonitors")
+        .mockResolvedValue([
+          linked(LinkedAffectedResourceType.Host, "h-1"),
+          linked(LinkedAffectedResourceType.KubernetesCluster, "k-1"),
+          linked(LinkedAffectedResourceType.DockerHost, "d-1"),
+          linked(LinkedAffectedResourceType.PodmanHost, "p-1"),
+          linked(LinkedAffectedResourceType.ProxmoxCluster, "px-1"),
+          linked(LinkedAffectedResourceType.VMwareVCenter, "v-1"),
+          linked(LinkedAffectedResourceType.CephCluster, "ceph-1"),
+          linked(LinkedAffectedResourceType.DockerSwarmCluster, "sw-1"),
+          linked(LinkedAffectedResourceType.IoTFleet, "iot-1"),
+          linked(LinkedAffectedResourceType.DatabaseServer, "db-1"),
+          linked(LinkedAffectedResourceType.Service, "svc-1"),
+        ]);
 
     const result: SeriesResolvedResourceIds =
       await MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
@@ -488,14 +488,13 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
   });
 
   it("reads nothing for a monitor without an id or a project", async () => {
-    const read: jest.SpiedFunction<
-      typeof LinkedAffectedResources.readForMonitors
-    > = jest.spyOn(LinkedAffectedResources, "readForMonitors");
+    const read: SpyInstance<typeof LinkedAffectedResources.readForMonitors> =
+      jest.spyOn(LinkedAffectedResources, "readForMonitors");
 
     const withoutProject: Monitor = websiteMonitor();
-    withoutProject.projectId = undefined;
+    delete withoutProject.projectId;
     const withoutId: Monitor = websiteMonitor();
-    withoutId._id = undefined;
+    delete withoutId._id;
 
     expect(
       await MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
@@ -621,7 +620,7 @@ describe("LinkedAffectedResources.readForMonitors", () => {
   });
 
   it("reads nothing for no monitors", async () => {
-    const findAllBy: jest.Mock<() => Promise<Array<Monitor>>> = jest.fn(
+    const findAllBy: Mock<() => Promise<Array<Monitor>>> = jest.fn(
       async (): Promise<Array<Monitor>> => {
         return [];
       },

@@ -25,6 +25,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The recorder the rule engine writes its decision with. Saving is
@@ -185,7 +186,7 @@ describe("AutoRemediationDecisionRecorder", () => {
 
   describe("the signal's monitors", () => {
     it("reads them once, deduped, capped and scoped to the project", async () => {
-      const read: jest.SpiedFunction<typeof MonitorService.findBy> = jest
+      const read: SpyInstance<typeof MonitorService.findBy> = jest
         .spyOn(MonitorService, "findBy")
         .mockResolvedValue([
           Object.assign(new Monitor(), {
@@ -228,7 +229,7 @@ describe("AutoRemediationDecisionRecorder", () => {
     });
 
     it("reads nothing for a signal without monitors", async () => {
-      const read: jest.SpiedFunction<typeof MonitorService.findBy> = jest.spyOn(
+      const read: SpyInstance<typeof MonitorService.findBy> = jest.spyOn(
         MonitorService,
         "findBy",
       );
