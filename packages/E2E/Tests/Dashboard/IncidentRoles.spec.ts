@@ -265,12 +265,17 @@ test.describe("Incident roles", () => {
        * picked - not Incident Commander's purple - and the icon is optional.
        * One page, so Create Incident Role is right there, and no Next.
        */
-      const colorBox: Locator = modal.getByPlaceholder(
-        "Please select color for this role.",
-        { exact: true },
+      const colorField: Locator = modal.getByTestId("color-picker");
+      await expect(colorField).toHaveAttribute(
+        "data-value",
+        /^#[0-9a-f]{6}$/,
       );
-      await expect(colorBox).toHaveValue(/^#[0-9a-f]{6}$/);
-      const pickedColor: string = await colorBox.inputValue();
+      // One of the swatches, ticked.
+      await expect(
+        colorField.getByRole("radio", { checked: true }),
+      ).toHaveCount(1);
+      const pickedColor: string =
+        (await colorField.getAttribute("data-value")) || "";
       expect(pickedColor).not.toBe("#a855f7");
       await expect(modal.getByTestId("modal-footer-next-button")).toHaveCount(
         0,
