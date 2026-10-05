@@ -490,7 +490,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
-        teamId: createBy.data.teamId!,
+        teamId: createdItem.teamId!,
         projectId: createBy.data.projectId!,
       },
       select: {

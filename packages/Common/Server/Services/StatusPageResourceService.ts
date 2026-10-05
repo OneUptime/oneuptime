@@ -9,6 +9,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -16,62 +17,21 @@ import Model from "../../Models/DatabaseModels/StatusPageResource";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 
-/**
- * The ways a create or update can name the resource's target. Everything
- * server side sets the foreign key column, but the dashboard's resource form
- * posts the relation - and the relation does NOT arrive in the same shape on
- * both write paths:
- *
- *   - create goes through BaseAPI.createItem, which revives the body with
- *     BaseModel.fromJSON, so `monitor` is a real Monitor and `monitor.id` is
- *     an ObjectID;
- *   - update goes through BaseAPI.updateItem, which only runs
- *     JSONFunctions.deserialize. That revives ObjectID/DateTime values, but
- *     never nested models, so `monitor` stays the plain `{ _id: "<uuid>" }`
- *     the browser sent and has no `id` at all.
- *
- * Reading only `.id` therefore silently saw nothing on every edit-form save,
- * which is the whole path the update guard exists for - so this accepts the
- * id however it arrives.
+/*
+ * The two names of each reference this service reads off a write itself, ID
+ * column first. Everything server side sets the ID column, while the
+ * dashboard's resource form posts the relation - a real Monitor on create
+ * (BaseModel.fromJSON), the plain `{ _id: "<uuid>" }` the browser sent on
+ * update - and RelationIdUtil reads either shape. The two names must agree
+ * (RelationIdUtil.readConsistent): the id checked is the id stored.
  */
-type StatusPageResourceTargetValue =
-  | ObjectID
-  | string
-  | { id?: unknown; _id?: unknown }
-  | null
-  | undefined;
-
-interface StatusPageResourceTargetInput {
-  monitorId?: StatusPageResourceTargetValue;
-  monitor?: StatusPageResourceTargetValue;
-  monitorGroupId?: StatusPageResourceTargetValue;
-  monitorGroup?: StatusPageResourceTargetValue;
-}
-
-function toTargetObjectID(
-  value: StatusPageResourceTargetValue,
-): ObjectID | null {
-  if (!value) {
-    return null;
-  }
-
-  if (value instanceof ObjectID) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    return new ObjectID(value);
-  }
-
-  if (typeof value === "object") {
-    return (
-      toTargetObjectID(value.id as StatusPageResourceTargetValue) ||
-      toTargetObjectID(value._id as StatusPageResourceTargetValue)
-    );
-  }
-
-  return null;
-}
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+const STATUS_PAGE_GROUP_KEYS: Array<string> = [
+  "statusPageGroupId",
+  "statusPageGroup",
+];
+const MONITOR_KEYS: Array<string> = ["monitorId", "monitor"];
+const MONITOR_GROUP_KEYS: Array<string> = ["monitorGroupId", "monitorGroup"];
 
 interface StatusPageResourceTarget {
   monitorId: ObjectID | null;
@@ -260,20 +220,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /**
-   * The id of the thing a resource points at, whichever way the caller
-   * expressed it. The dashboard's resource form posts the relation
-   * (`monitor: { _id }`) while everything server side sets the foreign key
-   * column, and both mean the same resource.
+   * The id of the thing a resource points at, under either of its names:
+   * the dashboard's resource form posts the relation (`monitor: { _id }`)
+   * while everything server side sets the ID column, and both mean the same
+   * resource. Two names that disagree are refused. A create also keeps the
+   * id in the ID column (`fillIdColumns`), so the saved row has it whichever
+   * name the write used.
    */
   private getResourceMonitorTarget(
-    data: StatusPageResourceTargetInput,
+    data: Record<string, unknown>,
+    fillIdColumns: boolean = false,
   ): StatusPageResourceTarget {
+    const read: (keys: Array<string>, title: string) => ObjectID | null = (
+      keys: Array<string>,
+      title: string,
+    ): ObjectID | null => {
+      return fillIdColumns
+        ? RelationIdUtil.readIntoIdColumn(data, keys, title)
+        : RelationIdUtil.readConsistent(data, keys, title);
+    };
+
     return {
-      monitorId:
-        toTargetObjectID(data.monitorId) || toTargetObjectID(data.monitor),
-      monitorGroupId:
-        toTargetObjectID(data.monitorGroupId) ||
-        toTargetObjectID(data.monitorGroup),
+      monitorId: read(MONITOR_KEYS, "Monitor"),
+      monitorGroupId: read(MONITOR_GROUP_KEYS, "Monitor Group"),
     };
   }
 
@@ -338,11 +307,31 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.statusPageId) {
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The status page and the group, each under either of its names, and
+     * kept in the ID column for the checks below and for the saved row:
+     * onCreateSuccess orders the list the row is in by them.
+     */
+    const statusPageId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createData,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    if (!statusPageId) {
       throw new BadDataException(
         "Status Page Resource statusPageId is required",
       );
     }
+
+    const statusPageGroupId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createData,
+      STATUS_PAGE_GROUP_KEYS,
+      "Status Page Group",
+    );
 
     const projectId: ObjectID | undefined =
       createBy.props.tenantId || createBy.data.projectId;
@@ -352,12 +341,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
-      createBy.data as unknown as StatusPageResourceTargetInput,
+      createData,
+      true,
     );
 
     if (
       await this.isResourceAlreadyOnStatusPage({
-        statusPageId: createBy.data.statusPageId,
+        statusPageId: statusPageId,
         projectId: projectId,
         monitorId: target.monitorId,
         monitorGroupId: target.monitorGroupId,
@@ -367,21 +357,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (!createBy.data.order) {
-      const query: Query<Model> = {
-        statusPageId: createBy.data.statusPageId,
-        projectId: projectId,
-        statusPageGroupId:
-          createBy.data.statusPageGroupId || QueryHelper.isNull(),
-      };
-
-      if (createBy.data.statusPageGroupId) {
-        (query as any)["statusPageGroupId"] = createBy.data.statusPageGroupId;
-      } else {
-        (query as any)["statusPageGroupId"] = QueryHelper.isNull();
-      }
-
       const count: PositiveNumber = await this.countBy({
-        query: query,
+        query: this.getOrderList({
+          statusPageId: statusPageId,
+          statusPageGroupId: statusPageGroupId,
+          projectId: projectId,
+        }),
         props: {
           isRoot: true,
         },
@@ -512,7 +493,7 @@ export class Service extends ProjectReferencesService<Model> {
      */
     const updatedTarget: StatusPageResourceTarget =
       this.getResourceMonitorTarget(
-        updateBy.data as unknown as StatusPageResourceTargetInput,
+        updateBy.data as unknown as Record<string, unknown>,
       );
 
     if (
@@ -538,26 +519,37 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-      const currentTarget: StatusPageResourceTarget =
-        this.getResourceMonitorTarget(
-          (resourceBeingUpdated ||
-            {}) as unknown as StatusPageResourceTargetInput,
-        );
+      const currentTarget: StatusPageResourceTarget = {
+        monitorId: resourceBeingUpdated?.monitorId || null,
+        monitorGroupId: resourceBeingUpdated?.monitorGroupId || null,
+      };
 
       /*
        * The edit form is a ModelForm, so it posts every field it collects -
        * the monitor included - even when all the operator changed was the
        * display name. Checking an unchanged target would refuse those saves
        * on a status page that already carries a duplicate from before this
-       * rule existed, which would leave both of its rows uneditable.
+       * rule existed, which would leave both of its rows uneditable. The ids
+       * are compared in any case, as Postgres compares them: the form may
+       * send one in a case other than the one the database reads back.
        */
+      const isSameId: (
+        sent: ObjectID | null,
+        stored: ObjectID | null,
+      ) => boolean = (
+        sent: ObjectID | null,
+        stored: ObjectID | null,
+      ): boolean => {
+        return (
+          !sent ||
+          sent.toString().trim().toLowerCase() ===
+            (stored?.toString() || "").trim().toLowerCase()
+        );
+      };
+
       const isTargetUnchanged: boolean =
-        (!updatedTarget.monitorId ||
-          updatedTarget.monitorId.toString() ===
-            currentTarget.monitorId?.toString()) &&
-        (!updatedTarget.monitorGroupId ||
-          updatedTarget.monitorGroupId.toString() ===
-            currentTarget.monitorGroupId?.toString());
+        isSameId(updatedTarget.monitorId, currentTarget.monitorId) &&
+        isSameId(updatedTarget.monitorGroupId, currentTarget.monitorGroupId);
 
       if (
         resourceBeingUpdated?.statusPageId &&

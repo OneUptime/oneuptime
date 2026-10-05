@@ -73,12 +73,19 @@ export class Service extends ProjectReferencesService<Model> {
      * (not cascaded) when the application is deleted - which is precisely
      * when the erasure still needs to run.
      */
+    // The application under either of its names (the two must agree).
+    const rumApplicationId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["rumApplicationId", "rumApplication"],
+      "RUM Application",
+    );
+
     if (
       requestType === RumSessionErasureRequestType.ByRumApplication &&
-      createBy.data.rumApplicationId &&
+      rumApplicationId &&
       !createBy.data.targetValue
     ) {
-      createBy.data.targetValue = createBy.data.rumApplicationId.toString();
+      createBy.data.targetValue = rumApplicationId.toString();
     }
 
     /*

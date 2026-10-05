@@ -809,13 +809,13 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      */
     if (createdItem.hasAcceptedInvitation) {
       await this.acceptPendingInvitationsInProject({
-        userId: onCreate.createBy.data.userId!,
+        userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
     }
 
     await this.refreshTokens(
-      onCreate.createBy.data.userId!,
+      createdItem.userId!,
       onCreate.createBy.data.projectId!,
     );
 
@@ -830,7 +830,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
      */
     if (createdItem.hasAcceptedInvitation) {
       await this.addDefaultNotificationSettingsAndRules({
-        userId: onCreate.createBy.data.userId!,
+        userId: createdItem.userId!,
         projectId: onCreate.createBy.data.projectId!,
       });
     }

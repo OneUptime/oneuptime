@@ -1,5 +1,6 @@
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import RelationIdUtil from "../Database/RelationIdUtil";
 
 /*
  * The state one end of a measurement is pinned to, when that end is "the
@@ -15,9 +16,12 @@ import ObjectID from "../../../Types/ObjectID";
  * The services read the state through here instead, from whichever of the
  * two a request sent.
  *
- * Read only: the request is saved as it was sent. Writing the id column
- * next to a relation that sets the same database column would have the
- * update name that column twice.
+ * Both are read, and a request naming two different states - or a state
+ * and a clear - is refused, as every reference is
+ * (RelationIdUtil.readConsistent): the two are one database column, and
+ * which of them is stored depends on the shape of the write.
+ *
+ * Read only: the request is saved as it was sent.
  */
 export default class MeasurementStateReference {
   /**
@@ -55,22 +59,26 @@ export default class MeasurementStateReference {
   }
 
   /**
-   * The state a new measurement names: its id column, or else its relation.
+   * The state a new measurement names, under either of its names: the id
+   * column or the relation.
    */
   public static getStateIdForCreate(data: {
     stateId: unknown;
     state: unknown;
+    // How a refusal names the two: "startIncidentStateId", "startIncidentState".
+    stateIdKey?: string | undefined;
+    stateKey?: string | undefined;
   }): string | undefined {
-    return (
-      MeasurementStateReference.getId(data.stateId) ||
-      MeasurementStateReference.getId(data.state)
-    );
+    return MeasurementStateReference.readAgreeing([
+      { key: data.stateIdKey || "stateId", value: data.stateId },
+      { key: data.stateKey || "state", value: data.state },
+    ]);
   }
 
   /**
    * The state a measurement names once an update is applied: what the
-   * update sets - the id column, or the relation, where null clears it - and
-   * otherwise the state it already had.
+   * update sets - under either name, where null clears it - and otherwise
+   * the state it already had.
    */
   public static getStateIdForUpdate(data: {
     update: Record<string, unknown>;
@@ -82,14 +90,43 @@ export default class MeasurementStateReference {
       return Object.prototype.hasOwnProperty.call(data.update, key);
     };
 
-    if (sets(data.stateIdKey)) {
-      return MeasurementStateReference.getId(data.update[data.stateIdKey]);
+    if (!sets(data.stateIdKey) && !sets(data.stateKey)) {
+      return MeasurementStateReference.getId(data.storedStateId);
     }
 
-    if (sets(data.stateKey)) {
-      return MeasurementStateReference.getId(data.update[data.stateKey]);
+    return MeasurementStateReference.readAgreeing([
+      { key: data.stateIdKey, value: data.update[data.stateIdKey] },
+      { key: data.stateKey, value: data.update[data.stateKey] },
+    ]);
+  }
+
+  /*
+   * The one state the names a request sent hold, or undefined when they
+   * hold none (or clear it), read by RelationIdUtil.readConsistent - the
+   * rule every reference is read by: two different states, or a state
+   * beside a clear, are refused, and the same id in any case is one id.
+   * Each value is first put in a shape readConsistent reads: its id (getId
+   * also reads an ObjectID as JSON), or null when it holds none.
+   */
+  private static readAgreeing(
+    names: Array<{ key: string; value: unknown }>,
+  ): string | undefined {
+    const payload: Record<string, unknown> = {};
+
+    for (const name of names) {
+      if (name.value !== undefined) {
+        payload[name.key] = MeasurementStateReference.getId(name.value) ?? null;
+      }
     }
 
-    return MeasurementStateReference.getId(data.storedStateId);
+    const id: ObjectID | null = RelationIdUtil.readConsistent(
+      payload,
+      names.map((name: { key: string }): string => {
+        return name.key;
+      }),
+      "State",
+    );
+
+    return id ? id.toString() : undefined;
   }
 }

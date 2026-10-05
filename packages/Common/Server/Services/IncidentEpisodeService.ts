@@ -148,26 +148,28 @@ export class Service extends ProjectReferencesService<Model> {
      * this project's created state, which leaves the severity as the only
      * create-reachable column — but an update can write either. Each by both
      * of its names: every name that holds an id is checked, and two that
-     * disagree are refused.
+     * disagree are refused - against the project of every episode the
+     * update changes, the request's or, for an update with none on it,
+     * each episode's own (where an id the episodes already hold is left
+     * alone).
      */
-    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
-      projectId: updateBy.props.tenantId,
+    await ProjectScopedReferenceValidator.validateUpdateReferences({
+      service: this,
+      updateBy: updateBy,
       subject: "incident episode",
-      references: [
-        ...getWrittenRelationReferences({
-          payload: updateBy.data,
+      relations: [
+        {
           idColumn: "currentIncidentStateId",
           relation: "currentIncidentState",
           modelName: "Incident State",
           service: IncidentStateService,
-        }),
-        ...getWrittenRelationReferences({
-          payload: updateBy.data,
+        },
+        {
           idColumn: "incidentSeverityId",
           relation: "incidentSeverity",
           modelName: "Incident Severity",
           service: IncidentSeverityService,
-        }),
+        },
       ],
     });
 

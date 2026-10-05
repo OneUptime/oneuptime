@@ -131,6 +131,12 @@ const CURRENT_MONITOR_STATUS_KEYS: Array<string> = [
   "currentMonitorStatus",
 ];
 
+// The network device an auto-provisioned monitor comes from, by both names.
+const AUTO_PROVISIONED_NETWORK_DEVICE_KEYS: Array<string> = [
+  "autoProvisionedNetworkDeviceId",
+  "autoProvisionedNetworkDevice",
+];
+
 /*
  * A global or shared probe can be attached to thousands of monitors. Work
  * that fans out per monitor (flag syncs, owner lookups) runs in batches of
@@ -1764,7 +1770,14 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.incomingEmailSecretKey = ObjectID.generate();
     }
 
-    if (createBy.data.autoProvisionedNetworkDeviceId) {
+    const autoProvisionedNetworkDeviceId: ObjectID | null =
+      RelationIdUtil.readIntoIdColumn(
+        createBy.data as unknown as Record<string, unknown>,
+        AUTO_PROVISIONED_NETWORK_DEVICE_KEYS,
+        "Auto-Provisioned Network Device",
+      );
+
+    if (autoProvisionedNetworkDeviceId) {
       if (!monitorTemplateId) {
         throw new BadDataException(
           "An auto-provisioned Network Device monitor must be linked to a monitor template.",
@@ -1779,7 +1792,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
         monitorSteps: createBy.data.monitorSteps,
-        networkDeviceId: createBy.data.autoProvisionedNetworkDeviceId,
+        networkDeviceId: autoProvisionedNetworkDeviceId,
       });
     }
 

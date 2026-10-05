@@ -1716,7 +1716,7 @@ export default class Monitor extends BaseModel {
       Permission.ProjectMember,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.CreateProjectIncident,
+      Permission.CreateProjectMonitor,
     ],
     read: [
       Permission.ProjectOwner,

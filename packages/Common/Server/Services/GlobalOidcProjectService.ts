@@ -179,8 +179,12 @@ export class Service extends DatabaseService<Model> {
       | undefined;
 
     if (teams && teams.length > 0) {
-      const explicitProjectId: ObjectID | undefined = updateBy.data
-        .projectId as unknown as ObjectID | undefined;
+      // A project the update names, under either of its names.
+      const explicitProjectId: ObjectID | null = RelationIdUtil.readConsistent(
+        updateBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "Project",
+      );
 
       if (explicitProjectId) {
         await validateGlobalProviderProjectTeams({
