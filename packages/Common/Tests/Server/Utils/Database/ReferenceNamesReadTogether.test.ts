@@ -1,338 +1,53 @@
 import fs from "fs";
 import path from "path";
-import ts from "typescript";
-import { describe, expect, test } from "@jest/globals";
+import DatabaseBaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import RelationNames, {
+  RelationName,
+} from "../../../../Server/Utils/Database/RelationNames";
+import {
+  OneNameRead,
+  ReferenceNamePair,
+  ScanFinding,
+  findOneNameReads,
+  findSingleNameReads,
+  listTypeScriptFiles,
+  modelFileOf,
+} from "../../../Helpers/ReferenceNameScan";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * A reference has two names a write can use - the relation (`monitor`) and
  * its ID column (`monitorId`) - and they are one database column. When a
  * write carries both, TypeORM stores the relation's id
  * (RelationNamePrecedence.test.ts). So server code that checks or acts on a
- * reference reads both names, through RelationIdUtil.readConsistent (or
+ * reference of a write reads both names, through
+ * RelationIdUtil.readConsistent (or readIntoIdColumn, or
  * getWrittenRelationReferences, built on it), which refuses a write whose two
- * names disagree - never one name with the other as a fallback:
+ * names disagree. Two ways of reading it are held out here:
  *
- *   resolveReferenceId(data.monitorId) || resolveReferenceId(data.monitor)
- *   resolveReferenceId(data.monitorId || data.monitor)
- *   createBy.data.monitorId || createBy.data.monitor?.id
- *   RelationIdUtil.read(data, ["monitorId", "monitor"])
+ *   - one name, with the other as a fallback (findSingleNameReads):
+ *       resolveReferenceId(data.monitorId) || resolveReferenceId(data.monitor)
+ *       createBy.data.domainId?.toString() || createBy.data.domain?._id
+ *     The first name that holds an id is read: a write naming one record
+ *     under one name and another record under the other has the first
+ *     checked and the second stored. Scanned over all of packages/Common/
+ *     Server; ee/Server is scanned by its twin in ee/Tests.
  *
- * Each of those reads the first name that holds an id: a write naming one
- * record under one name and another under the other has the first checked
- * and the second stored. This scans packages/Common/Server for all four
- * shapes. A read off a stored row (`incident.createdByUserId ||
- * incident.createdByUser?.id`) is not a write's and is left alone.
+ *   - one name alone (findOneNameReads): a hook that reads
+ *     `createBy.data.statusPageId` and never `statusPage` misses every write
+ *     that names the page by the relation - a duplicate check finds nothing,
+ *     a quota counts no release, a parent goes unchecked, a list is ordered
+ *     without its group. Scanned over every service of a model.
+ *
+ * The detectors live in Tests/Helpers/ReferenceNameScan.ts.
  */
 
 const SERVER_DIRECTORY: string = path.resolve(__dirname, "../../../../Server");
-
-/*
- * The expressions a hook reads a write's payload through. A read off any
- * other object - a row read back, a function argument - is not a write's.
- */
-const PAYLOAD_ROOTS: Array<string> = [
-  "createBy.data",
-  "updateBy.data",
-  "onCreate.createBy.data",
-  "onUpdate.updateBy.data",
-];
-
-export interface SingleNameRead {
-  file: string;
-  line: number;
-  text: string;
-}
-
-function listTypeScriptFiles(directory: string): Array<string> {
-  const files: Array<string> = [];
-
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const fullPath: string = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      if (entry.name !== "node_modules") {
-        files.push(...listTypeScriptFiles(fullPath));
-      }
-
-      continue;
-    }
-
-    if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
-      files.push(fullPath);
-    }
-  }
-
-  return files;
-}
-
-// Parentheses, `as` casts and non-null assertions do not change what is read.
-function unwrap(node: ts.Expression): ts.Expression {
-  let current: ts.Expression = node;
-
-  for (;;) {
-    if (
-      ts.isParenthesizedExpression(current) ||
-      ts.isAsExpression(current) ||
-      ts.isNonNullExpression(current) ||
-      ts.isTypeAssertionExpression(current)
-    ) {
-      current = current.expression;
-      continue;
-    }
-
-    return current;
-  }
-}
-
-interface MemberRead {
-  // The object read from, as written: "createBy.data".
-  object: string;
-  // The property read: "monitorId", or "monitor" for `monitor?.id`.
-  name: string;
-}
-
-/*
- * `a.b`, `a?.b`, `a["b"]`, and a relation read through its id (`a.b?.id`,
- * `a.b._id`) as the relation itself.
- */
-function readMember(
-  node: ts.Expression,
-  source: ts.SourceFile,
-): MemberRead | null {
-  const expression: ts.Expression = unwrap(node);
-
-  if (ts.isPropertyAccessExpression(expression)) {
-    const name: string = expression.name.text;
-
-    if (name === "id" || name === "_id") {
-      const relation: MemberRead | null = readMember(
-        expression.expression,
-        source,
-      );
-
-      if (relation) {
-        return relation;
-      }
-    }
-
-    return {
-      object: unwrap(expression.expression).getText(source),
-      name: name,
-    };
-  }
-
-  if (
-    ts.isElementAccessExpression(expression) &&
-    ts.isStringLiteralLike(expression.argumentExpression)
-  ) {
-    return {
-      object: unwrap(expression.expression).getText(source),
-      name: expression.argumentExpression.text,
-    };
-  }
-
-  return null;
-}
-
-// `monitorId` and `monitor`, in either order.
-function areTwoNamesOfOneReference(first: string, second: string): boolean {
-  return first === `${second}Id` || second === `${first}Id`;
-}
-
-// A call of resolveReferenceId, imported or qualified.
-const RESOLVE_REFERENCE_ID_CALLEE: RegExp = /(^|\.)resolveReferenceId$/;
-
-// A call of RelationIdUtil.read, which reads the first key holding an id.
-const FIRST_WINS_READ_CALLEE: RegExp = /(^|\.)RelationIdUtil\.read$/;
-
-// The argument of `resolveReferenceId(x)`, or null for anything else.
-function resolvedArgument(node: ts.Expression): ts.Expression | null {
-  const expression: ts.Expression = unwrap(node);
-
-  if (
-    ts.isCallExpression(expression) &&
-    expression.arguments.length === 1 &&
-    RESOLVE_REFERENCE_ID_CALLEE.test(
-      expression.expression.getText().replace(/\s+/g, ""),
-    )
-  ) {
-    return expression.arguments[0]!;
-  }
-
-  return null;
-}
-
-function isFallback(node: ts.Node): node is ts.BinaryExpression {
-  return (
-    ts.isBinaryExpression(node) &&
-    (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
-      node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
-  );
-}
-
-// The string entries of an array literal, or null when it holds anything else.
-function stringEntries(node: ts.Expression): Array<string> | null {
-  const expression: ts.Expression = unwrap(node);
-
-  if (!ts.isArrayLiteralExpression(expression)) {
-    return null;
-  }
-
-  const entries: Array<string> = [];
-
-  for (const element of expression.elements) {
-    if (!ts.isStringLiteralLike(element)) {
-      return null;
-    }
-
-    entries.push(element.text);
-  }
-
-  return entries;
-}
-
-// Every `const X = [...]` of string literals in a file, by name.
-function arrayConstants(source: ts.SourceFile): Map<string, Array<string>> {
-  const constants: Map<string, Array<string>> = new Map();
-
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer
-    ) {
-      const entries: Array<string> | null = stringEntries(node.initializer);
-
-      if (entries) {
-        constants.set(node.name.text, entries);
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(source);
-
-  return constants;
-}
-
-function holdsTwoNamesOfOneReference(keys: Array<string>): boolean {
-  return keys.some((first: string): boolean => {
-    return keys.some((second: string): boolean => {
-      return areTwoNamesOfOneReference(first, second);
-    });
-  });
-}
-
-/*
- * The places in `text` (one file's source) that read a reference's two
- * names first-wins. Exported for the self-test below.
- */
-export function findSingleNameReads(
-  fileName: string,
-  text: string,
-): Array<SingleNameRead> {
-  const source: ts.SourceFile = ts.createSourceFile(
-    fileName,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  const constants: Map<string, Array<string>> = arrayConstants(source);
-  const found: Array<SingleNameRead> = [];
-
-  // A fallback already reported as the argument of resolveReferenceId.
-  const reportedFallbacks: Set<ts.Node> = new Set();
-
-  const report: (node: ts.Node) => void = (node: ts.Node): void => {
-    found.push({
-      file: fileName,
-      line:
-        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-      text: node.getText(source).replace(/\s+/g, " ").slice(0, 160),
-    });
-  };
-
-  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
-    if (isFallback(node) && !reportedFallbacks.has(node)) {
-      const left: ts.Expression | null = resolvedArgument(node.left);
-      const right: ts.Expression | null = resolvedArgument(node.right);
-
-      // resolveReferenceId(a.xId) || resolveReferenceId(a.x)
-      if (left && right) {
-        const first: MemberRead | null = readMember(left, source);
-        const second: MemberRead | null = readMember(right, source);
-
-        if (
-          first &&
-          second &&
-          areTwoNamesOfOneReference(first.name, second.name)
-        ) {
-          report(node);
-        }
-      }
-
-      // createBy.data.xId || createBy.data.x?.id
-      const first: MemberRead | null = readMember(node.left, source);
-      const second: MemberRead | null = readMember(node.right, source);
-
-      if (
-        first &&
-        second &&
-        first.object === second.object &&
-        PAYLOAD_ROOTS.includes(first.object) &&
-        areTwoNamesOfOneReference(first.name, second.name)
-      ) {
-        report(node);
-      }
-    }
-
-    if (ts.isCallExpression(node)) {
-      // resolveReferenceId(a.xId || a.x)
-      const argument: ts.Expression | null = resolvedArgument(node);
-
-      if (argument && isFallback(unwrap(argument))) {
-        const fallback: ts.BinaryExpression = unwrap(
-          argument,
-        ) as ts.BinaryExpression;
-        const first: MemberRead | null = readMember(fallback.left, source);
-        const second: MemberRead | null = readMember(fallback.right, source);
-
-        if (
-          first &&
-          second &&
-          areTwoNamesOfOneReference(first.name, second.name)
-        ) {
-          report(node);
-          reportedFallbacks.add(fallback);
-        }
-      }
-
-      // RelationIdUtil.read(data, ["xId", "x"])
-      if (
-        FIRST_WINS_READ_CALLEE.test(
-          node.expression.getText(source).replace(/\s+/g, ""),
-        ) &&
-        node.arguments.length >= 2
-      ) {
-        const keysArgument: ts.Expression = unwrap(node.arguments[1]!);
-        const keys: Array<string> | null = ts.isIdentifier(keysArgument)
-          ? constants.get(keysArgument.text) || null
-          : stringEntries(keysArgument);
-
-        if (keys && holdsTwoNamesOfOneReference(keys)) {
-          report(node);
-        }
-      }
-    }
-
-    ts.forEachChild(node, visit);
-  };
-
-  visit(source);
-
-  return found;
-}
+const SERVICES_DIRECTORY: string = path.join(SERVER_DIRECTORY, "Services");
+const MODELS_DIRECTORY: string = path.resolve(
+  __dirname,
+  "../../../../Models/DatabaseModels",
+);
 
 describe("the scan sees every shape of a single-name read", () => {
   const SHAPES: Array<[string, string]> = [
@@ -376,6 +91,18 @@ describe("the scan sees every shape of a single-name read", () => {
       "RelationIdUtil.read with a constant holding them",
       'const SITE_KEYS: Array<string> = ["siteId", "site"];\nconst id = RelationIdUtil.read(data, SITE_KEYS);',
     ],
+    [
+      "the two names as text",
+      'const id = createBy.data.domainId?.toString() || createBy.data.domain?._id || "";',
+    ],
+    [
+      "any helper of one argument, given each name",
+      "const id = toTargetObjectID(data.monitorId) || toTargetObjectID(data.monitor);",
+    ],
+    [
+      "a qualified helper",
+      "const id = MeasurementStateReference.getId(data.stateId) || MeasurementStateReference.getId(data.state);",
+    ],
   ];
 
   test.each(SHAPES)("%s", (_shape: string, code: string) => {
@@ -403,6 +130,14 @@ describe("the scan sees every shape of a single-name read", () => {
     [
       "a model's own id",
       'const id = RelationIdUtil.read(monitor, ["_id", "id"]);',
+    ],
+    [
+      "two helpers, one for each name",
+      "const id = toObjectID(data.monitorId) || toIdString(data.monitor);",
+    ],
+    [
+      "one helper given the names of two objects",
+      "const id = toObjectID(first.monitorId) || toObjectID(second.monitor);",
     ],
   ];
 
@@ -432,11 +167,327 @@ describe("server code reads both names of a reference together", () => {
       return findSingleNameReads(
         path.relative(SERVER_DIRECTORY, file),
         fs.readFileSync(file, "utf8"),
-      ).map((read: SingleNameRead): string => {
+      ).map((read: ScanFinding): string => {
         return `${read.file}:${read.line}  ${read.text}`;
       });
     });
 
     expect(found).toEqual([]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * One name alone.
+ * ---------------------------------------------------------------------------
+ */
+
+const REFERENCES: Array<ReferenceNamePair> = [
+  { idColumn: "statusPageId", relation: "statusPage" },
+  { idColumn: "parentStatusPageGroupId", relation: "parentStatusPageGroup" },
+  { idColumn: "userId", relation: "user" },
+];
+
+function namesRead(code: string): Array<string> {
+  return findOneNameReads("Shape.ts", code, REFERENCES).map(
+    (read: OneNameRead): string => {
+      return read.name;
+    },
+  );
+}
+
+describe("the scan sees a reference read under one name alone", () => {
+  const ONE_NAME: Array<[string, string, Array<string>]> = [
+    [
+      "a create hook's check",
+      "class S { async onBeforeCreate(createBy: CreateBy<M>) { if (createBy.data.statusPageId) { await check(createBy.data.statusPageId); } } }",
+      ["statusPageId", "statusPageId"],
+    ],
+    [
+      "an update hook, bracket access through a cast",
+      'class S { async onBeforeUpdate(updateBy: UpdateBy<M>) { const v = (updateBy.data as any)["parentStatusPageGroupId"]; } }',
+      ["parentStatusPageGroupId"],
+    ],
+    [
+      "the relation alone, through its id",
+      "class S { async onBeforeCreate(createBy: CreateBy<M>) { const id = createBy.data.statusPage?._id; } }",
+      ["statusPage"],
+    ],
+    [
+      "a hook whose argument is named data",
+      "class S { async onBeforeCreate(data: CreateBy<M>) { log(data.data.statusPageId?.toString()); } }",
+      ["statusPageId"],
+    ],
+    [
+      "a name the hook gives the payload",
+      "class S { async onBeforeCreate(createBy: CreateBy<M>) { const payload = createBy.data as unknown as Record<string, unknown>; use(payload.statusPageId); } }",
+      ["statusPageId"],
+    ],
+    [
+      "a helper handed the create",
+      "class S { private async check(createBy: CreateBy<M>) { return count({ statusPageId: createBy.data.statusPageId }); } }",
+      ["statusPageId"],
+    ],
+    [
+      "a success hook reading the payload",
+      "class S { async onCreateSuccess(onCreate: OnCreate<M>, created: M) { refresh(onCreate.createBy.data.userId); } }",
+      ["userId"],
+    ],
+    [
+      "a read before the check that refuses an empty ID column",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { log(createBy.data.statusPageId); if (!createBy.data.statusPageId) { throw new Error("required"); } } }',
+      ["statusPageId"],
+    ],
+  ];
+
+  test.each(ONE_NAME)(
+    "%s",
+    (_shape: string, code: string, expected: Array<string>) => {
+      expect(namesRead(code)).toEqual(expected);
+    },
+  );
+
+  const BOTH_NAMES_OR_SETTLED: Array<[string, string]> = [
+    [
+      "readConsistent",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { const id = RelationIdUtil.readConsistent(createBy.data as any, ["statusPageId", "statusPage"], "Status Page"); } }',
+    ],
+    [
+      "both names handed to a validator",
+      "class S { async onBeforeCreate(createBy: CreateBy<M>) { await validate([createBy.data.userId, createBy.data.user]); } }",
+    ],
+    [
+      "the ID column after readIntoIdColumn",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { RelationIdUtil.readIntoIdColumn(createBy.data as any, ["statusPageId", "statusPage"], "Status Page"); await count({ statusPageId: createBy.data.statusPageId }); } }',
+    ],
+    [
+      "the ID column after readIntoIdColumn with a constant of the names",
+      'const KEYS: Array<string> = ["statusPageId", "statusPage"];\nclass S { async onBeforeCreate(createBy: CreateBy<M>) { RelationIdUtil.readIntoIdColumn(createBy.data as any, KEYS, "Status Page"); use(createBy.data.statusPageId); } }',
+    ],
+    [
+      "the ID column after stamp",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { RelationIdUtil.stamp(createBy.data as any, ["userId", "user"], id); use(createBy.data.userId); } }',
+    ],
+    [
+      "the ID column after a check that refuses it empty",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { if (!createBy.data.statusPageId) { throw new BadDataException("required"); } await count({ statusPageId: createBy.data.statusPageId }); } }',
+    ],
+    [
+      "the same check among others",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { if (!createBy.data.email || !createBy.data.statusPageId) { log("missing"); throw new BadDataException("required"); } use(createBy.data.statusPageId); } }',
+    ],
+    [
+      "the same check inside a try whose catch throws again",
+      'class S { async onBeforeCreate(createBy: CreateBy<M>) { try { if (!createBy.data.statusPageId) { throw new BadDataException("x"); } use(createBy.data.statusPageId); } catch (err) { release(); throw err; } } }',
+    ],
+    [
+      "a stored row",
+      "class S { async onCreateSuccess(onCreate: OnCreate<M>, createdItem: M) { use(createdItem.statusPageId); } }",
+    ],
+    [
+      "an assignment and a delete, which are writes",
+      "class S { async onBeforeCreate(createBy: CreateBy<M>) { createBy.data.statusPageId = id; delete createBy.data.statusPage; } }",
+    ],
+    [
+      "another object's column",
+      "class S { async onBeforeCreate(createBy: CreateBy<M>) { use(query.statusPageId); } }",
+    ],
+  ];
+
+  test.each(BOTH_NAMES_OR_SETTLED)(
+    "not flagged: %s",
+    (_shape: string, code: string) => {
+      expect(namesRead(code)).toEqual([]);
+    },
+  );
+
+  test("a settling call only covers what comes after it, in its own function", () => {
+    expect(
+      namesRead(
+        'class S { async onBeforeCreate(createBy: CreateBy<M>) { use(createBy.data.statusPageId); RelationIdUtil.readIntoIdColumn(createBy.data as any, ["statusPageId", "statusPage"], "x"); } async onBeforeUpdate(updateBy: UpdateBy<M>) { use(updateBy.data.statusPageId); } }',
+      ),
+    ).toEqual(["statusPageId", "statusPageId"]);
+  });
+
+  test("a check that does not always throw settles nothing", () => {
+    expect(
+      namesRead(
+        'class S { async onBeforeCreate(createBy: CreateBy<M>) { if (!createBy.data.statusPageId) { log("none"); } use(createBy.data.statusPageId); } }',
+      ),
+    ).toEqual(["statusPageId", "statusPageId"]);
+  });
+
+  test("a check inside a try whose catch swallows the throw settles nothing", () => {
+    expect(
+      namesRead(
+        'class S { async onBeforeCreate(createBy: CreateBy<M>) { try { if (!createBy.data.statusPageId) { throw new Error("x"); } } catch (err) { log(err); } use(createBy.data.statusPageId); } }',
+      ),
+    ).toEqual(["statusPageId", "statusPageId"]);
+  });
+});
+
+/*
+ * A read of one name alone that is right where it is, and why. The list may
+ * only shrink: an entry that no longer matches a read fails below, so it is
+ * removed with the reason it stood for.
+ */
+interface OneNameReadKept {
+  file: string;
+  functionName: string;
+  name: string;
+  reason: string;
+}
+
+const ONE_NAME_READS_KEPT: Array<OneNameReadKept> = [
+  {
+    file: "IncidentService.ts",
+    functionName: "onBeforeCreate",
+    name: "incidentSeverityId",
+    reason:
+      "Drops an ID column that holds an empty id (a stored template's severity deserializes to one) before the severity is read under both of its names, so the empty id is not taken for a clear beside a relation. It reads the column's own value, not the reference.",
+  },
+];
+
+// The single references of the model a service file serves, by its file name.
+function referencesOf(modelFile: string): Array<RelationName> {
+  const exported: unknown = (
+    jest.requireActual(path.join(MODELS_DIRECTORY, modelFile)) as {
+      default?: unknown;
+    }
+  ).default;
+
+  if (typeof exported !== "function") {
+    return [];
+  }
+
+  let model: unknown;
+
+  try {
+    model = new (exported as new () => unknown)();
+  } catch {
+    return [];
+  }
+
+  if (!(model instanceof DatabaseBaseModel)) {
+    return [];
+  }
+
+  return RelationNames.getSingleRelations(model);
+}
+
+interface ScannedService {
+  file: string;
+  references: Array<RelationName>;
+}
+
+function scanServices(): {
+  services: Array<ScannedService>;
+  reads: Array<OneNameRead>;
+} {
+  const services: Array<ScannedService> = [];
+  const reads: Array<OneNameRead> = [];
+
+  for (const file of fs.readdirSync(SERVICES_DIRECTORY).sort()) {
+    if (!file.endsWith(".ts")) {
+      continue;
+    }
+
+    const text: string = fs.readFileSync(
+      path.join(SERVICES_DIRECTORY, file),
+      "utf8",
+    );
+    const modelFile: string | null = modelFileOf(text);
+
+    if (!modelFile) {
+      continue;
+    }
+
+    const references: Array<RelationName> = referencesOf(modelFile);
+
+    if (references.length === 0) {
+      continue;
+    }
+
+    services.push({ file: file, references: references });
+    reads.push(...findOneNameReads(file, text, references));
+  }
+
+  return { services: services, reads: reads };
+}
+
+function isKept(read: OneNameRead): boolean {
+  return ONE_NAME_READS_KEPT.some((kept: OneNameReadKept): boolean => {
+    return (
+      kept.file === read.file &&
+      kept.functionName === read.functionName &&
+      kept.name === read.name
+    );
+  });
+}
+
+describe("a hook reads a reference of a write under both of its names", () => {
+  const scan: { services: Array<ScannedService>; reads: Array<OneNameRead> } =
+    scanServices();
+
+  test("the scan reads the services whose hooks check references", () => {
+    const scanned: Map<string, Array<string>> = new Map(
+      scan.services.map((service: ScannedService): [string, Array<string>] => {
+        return [
+          service.file,
+          service.references.map((reference: RelationName): string => {
+            return reference.idColumn;
+          }),
+        ];
+      }),
+    );
+
+    expect(scan.services.length).toBeGreaterThan(100);
+    expect(scanned.get("StatusPageGroupService.ts")).toContain(
+      "parentStatusPageGroupId",
+    );
+    expect(scanned.get("StatusPageResourceService.ts")).toContain(
+      "statusPageGroupId",
+    );
+    expect(scanned.get("StatusPagePrivateUserService.ts")).toContain(
+      "statusPageId",
+    );
+    expect(scanned.get("IoTDeviceCredentialService.ts")).toContain(
+      "iotFleetId",
+    );
+    expect(scanned.get("TelemetrySourceMapService.ts")).toContain("serviceId");
+    // The tenant column is DatabaseService's own.
+    expect(scanned.get("StatusPageGroupService.ts")).not.toContain(
+      "projectId",
+    );
+  });
+
+  test("no hook reads one name of a reference alone", () => {
+    expect(
+      scan.reads
+        .filter((read: OneNameRead): boolean => {
+          return !isKept(read);
+        })
+        .map((read: OneNameRead): string => {
+          return `${read.file}:${read.line} ${read.functionName} reads ${read.name} but never ${read.otherName}: ${read.text}`;
+        }),
+    ).toEqual([]);
+  });
+
+  test("every read kept on one name still happens, and says why", () => {
+    for (const kept of ONE_NAME_READS_KEPT) {
+      expect(kept.reason.length).toBeGreaterThan(40);
+      expect([
+        kept.file,
+        kept.functionName,
+        kept.name,
+        scan.reads.some((read: OneNameRead): boolean => {
+          return (
+            read.file === kept.file &&
+            read.functionName === kept.functionName &&
+            read.name === kept.name
+          );
+        }),
+      ]).toEqual([kept.file, kept.functionName, kept.name, true]);
+    }
   });
 });
