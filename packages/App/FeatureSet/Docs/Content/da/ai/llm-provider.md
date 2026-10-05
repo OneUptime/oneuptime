@@ -57,15 +57,15 @@ Synkroniseringen er deklarativ: Ændrer du variablerne, opdateres udbyderen ved 
 
 OneUptime understøtter i øjeblikket følgende LLM-udbydere:
 
-| Udbyder               | Beskrivelse                                                             | API-nøgle påkrævet | Base URL påkrævet     |
-| --------------------- | ----------------------------------------------------------------------- | ------------------ | --------------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo og andre OpenAI-modeller                   | Ja                 | Nej (bruger standard) |
-| **Azure OpenAI**      | OpenAI-modeller hostet på din Azure-deployment                          | Ja                 | Ja                    |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku og andre Claude-modeller | Ja                 | Nej (bruger standard) |
-| **Groq**              | Hurtig inferens til Llama, Mixtral og andre åbne modeller               | Ja                 | Nej (bruger standard) |
-| **Mistral**           | Mistrals hostede modeller                                               | Ja                 | Nej (bruger standard) |
-| **Ollama**            | Selvhostede open source-modeller som Llama 2, Mistral, CodeLlama osv.   | Nej                | Ja                    |
-| **OpenAI Compatible** | Enhver OpenAI-kompatibel server (vLLM, LocalAI, LM Studio osv.)         | Nej (valgfrit)     | Ja                    |
+| Udbyder               | Beskrivelse                                                               | API-nøgle påkrævet | Base URL påkrævet     |
+| --------------------- | ------------------------------------------------------------------------- | ------------------ | --------------------- |
+| **OpenAI**            | GPT-5.1 og andre OpenAI-modeller                                          | Ja                 | Nej (bruger standard) |
+| **Azure OpenAI**      | OpenAI-modeller hostet på din Azure-deployment                            | Ja                 | Ja                    |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 og andre Claude-modeller | Ja                 | Nej (bruger standard) |
+| **Groq**              | Hurtig inferens til Llama, Mixtral og andre åbne modeller                 | Ja                 | Nej (bruger standard) |
+| **Mistral**           | Mistrals hostede modeller                                                 | Ja                 | Nej (bruger standard) |
+| **Ollama**            | Selvhostede open source-modeller som Llama 3.1, Mistral, Qwen osv.        | Nej                | Ja                    |
+| **OpenAI Compatible** | Enhver OpenAI-kompatibel server (vLLM, LocalAI, LM Studio osv.)           | Nej (valgfrit)     | Ja                    |
 
 ## Opsætning af en LLM-udbyder
 
@@ -83,7 +83,7 @@ Udfyld følgende felter:
 - **Beskrivelse** (valgfrit): En beskrivelse til at identificere formålet med denne udbyder
 - **LLM-udbyder**: Vælg udbydertype (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
 - **API-nøgle**: Din API-nøgle (påkrævet for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfrit for Ollama og OpenAI-kompatible servere)
-- **Modelnavn**: Den specifikke model, der skal bruges (f.eks. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Modelnavn**: Den specifikke model, der skal bruges (f.eks. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **Basis-URL** (valgfrit): Brugerdefineret API-endpoint-URL (påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; valgfrit for andre)
 - **Flere felter**, klappet sammen under felterne ovenfor: **Indstil som standard**, som er slået til for en ny udbyder, fordi AI-funktioner kun bruger projektets standardudbyder, og **Yderligere parametre**, et valgfrit JSON-objekt med ekstra parametre, der sendes til udbyderen med hver anmodning (for eksempel `{"temperature": 0.2}`)
 
@@ -95,10 +95,8 @@ Udfyld følgende felter:
 2. Vælg **OpenAI** som LLM-udbyder
 3. Indtast din API-nøgle
 4. Vælg et modelnavn:
-   - `gpt-4o` – Mest kapabel model, bedst til komplekse opgaver
-   - `gpt-4o-mini` – Hurtigere og mere omkostningseffektiv
-   - `gpt-4-turbo` – God balance mellem kapacitet og hastighed
-   - `gpt-3.5-turbo` – Hurtig og økonomisk
+   - `gpt-5.1` – Anbefalet standard, stærk til værktøjskald og komplekse undersøgelser
+   - `gpt-5.1-mini` – Hurtigere og mere omkostningseffektiv
 
 **Eksempelkonfiguration:**
 
@@ -106,7 +104,7 @@ Udfyld følgende felter:
 Navn: Produktions-OpenAI
 LLM-udbyder: OpenAI
 API-nøgle: sk-xxxxxxxxxxxxxxxxxxxx
-Modelnavn: gpt-4o
+Modelnavn: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Modelnavn: gpt-4o
 2. Vælg **Anthropic** som LLM-udbyder
 3. Indtast din API-nøgle
 4. Vælg et modelnavn:
-   - `claude-3-opus-20240229` – Mest kapabel model
-   - `claude-3-sonnet-20240229` – God balance mellem intelligens og hastighed
-   - `claude-3-haiku-20240307` – Hurtigste og mest kompakte
-   - `claude-3-5-sonnet-20241022` – Seneste Sonnet-model
+   - `claude-sonnet-5` – Anbefalet standard, bedste balance mellem intelligens, hastighed og pris
+   - `claude-opus-5` – Mest kapabel model, til de sværeste undersøgelser
+   - `claude-haiku-4-5` – Hurtigste og mest omkostningseffektive
 
 **Eksempelkonfiguration:**
 
@@ -126,7 +123,7 @@ Modelnavn: gpt-4o
 Navn: Produktions-Anthropic
 LLM-udbyder: Anthropic
 API-nøgle: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Modelnavn: claude-3-5-sonnet-20241022
+Modelnavn: claude-sonnet-5
 ```
 
 ### Ollama (selvhostet)
@@ -253,7 +250,7 @@ Til enterprise-deployments eller ved brug af proxytjenester kan du angive en bru
 
 ## Bedste praksis
 
-1. **Brug beskrivende navne**: Navngiv dine udbydere tydeligt (f.eks. "Produktions-GPT-4", "Udviklings-Ollama")
+1. **Brug beskrivende navne**: Navngiv dine udbydere tydeligt (f.eks. "Produktions-OpenAI", "Udviklings-Ollama")
 2. **Sikr dine API-nøgler**: API-nøgler er krypteret i hvile, men undgå at dele dem
 3. **Test din konfiguration**: Efter opsætning skal du bekræfte, at udbyderen fungerer med AI-funktioner
 4. **Overvåg brugen**: Hold styr på API-brugen for at administrere omkostninger

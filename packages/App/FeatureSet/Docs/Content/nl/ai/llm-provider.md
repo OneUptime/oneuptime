@@ -57,15 +57,15 @@ De synchronisatie is declaratief: wijzigt u de variabelen, dan wordt de provider
 
 OneUptime ondersteunt momenteel de volgende LLM-providers:
 
-| Provider              | Beschrijving                                                              | API-sleutel vereist | Basis-URL vereist        |
-| --------------------- | ------------------------------------------------------------------------- | ------------------- | ------------------------ |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo en andere OpenAI-modellen                    | Ja                  | Nee (gebruikt standaard) |
-| **Azure OpenAI**      | OpenAI-modellen gehost op uw Azure-implementatie                          | Ja                  | Ja                       |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku en andere Claude-modellen  | Ja                  | Nee (gebruikt standaard) |
-| **Groq**              | Snelle inferentie voor Llama, Mixtral en andere open modellen             | Ja                  | Nee (gebruikt standaard) |
-| **Mistral**           | Door Mistral gehoste modellen                                             | Ja                  | Nee (gebruikt standaard) |
-| **Ollama**            | Zelf-gehoste open-source modellen zoals Llama 2, Mistral, CodeLlama, enz. | Nee                 | Ja                       |
-| **OpenAI Compatible** | Elke OpenAI-compatibele server (vLLM, LocalAI, LM Studio, enz.)           | Nee (optioneel)     | Ja                       |
+| Provider              | Beschrijving                                                               | API-sleutel vereist | Basis-URL vereist        |
+| --------------------- | -------------------------------------------------------------------------- | ------------------- | ------------------------ |
+| **OpenAI**            | GPT-5.1 en andere OpenAI-modellen                                          | Ja                  | Nee (gebruikt standaard) |
+| **Azure OpenAI**      | OpenAI-modellen gehost op uw Azure-implementatie                           | Ja                  | Ja                       |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 en andere Claude-modellen | Ja                  | Nee (gebruikt standaard) |
+| **Groq**              | Snelle inferentie voor Llama, Mixtral en andere open modellen              | Ja                  | Nee (gebruikt standaard) |
+| **Mistral**           | Door Mistral gehoste modellen                                              | Ja                  | Nee (gebruikt standaard) |
+| **Ollama**            | Zelf-gehoste open-source modellen zoals Llama 3.1, Mistral, Qwen, enz.     | Nee                 | Ja                       |
+| **OpenAI Compatible** | Elke OpenAI-compatibele server (vLLM, LocalAI, LM Studio, enz.)            | Nee (optioneel)     | Ja                       |
 
 ## Een LLM Provider instellen
 
@@ -83,7 +83,7 @@ Vul de volgende velden in:
 - **Beschrijving** (optioneel): Een omschrijving om het doel van deze provider te identificeren
 - **LLM-provider**: Selecteer het providertype (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama of OpenAI Compatible)
 - **API-sleutel**: Uw API-sleutel (vereist voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral; optioneel voor Ollama en OpenAI-compatibele servers)
-- **Modelnaam**: Het specifieke te gebruiken model (bijv. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Modelnaam**: Het specifieke te gebruiken model (bijv. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **Basis-URL** (optioneel): Aangepaste API-eindpunt-URL (vereist voor Azure OpenAI, Ollama en OpenAI Compatible; optioneel voor anderen)
 - **Meer velden**, ingeklapt onder de velden hierboven: **Instellen als standaard**, dat voor een nieuwe provider aan staat omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
@@ -95,10 +95,8 @@ Vul de volgende velden in:
 2. Selecteer **OpenAI** als LLM-provider
 3. Voer uw API-sleutel in
 4. Kies een modelnaam:
-   - `gpt-4o` - Meest capabele model, het beste voor complexe taken
-   - `gpt-4o-mini` - Sneller en kosteneffectiever
-   - `gpt-4-turbo` - Goede balans tussen capaciteit en snelheid
-   - `gpt-3.5-turbo` - Snel en economisch
+   - `gpt-5.1` - Aanbevolen standaard, sterk in tool calling en complexe onderzoeken
+   - `gpt-5.1-mini` - Sneller en kosteneffectiever
 
 **Voorbeeldconfiguratie:**
 
@@ -106,7 +104,7 @@ Vul de volgende velden in:
 Name: Production OpenAI
 LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
-Model Name: gpt-4o
+Model Name: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Model Name: gpt-4o
 2. Selecteer **Anthropic** als LLM-provider
 3. Voer uw API-sleutel in
 4. Kies een modelnaam:
-   - `claude-3-opus-20240229` - Meest capabele model
-   - `claude-3-sonnet-20240229` - Goede balans tussen intelligentie en snelheid
-   - `claude-3-haiku-20240307` - Snelst en meest compact
-   - `claude-3-5-sonnet-20241022` - Nieuwste Sonnet-model
+   - `claude-sonnet-5` - Aanbevolen standaard, beste balans tussen intelligentie, snelheid en kosten
+   - `claude-opus-5` - Meest capabele model, voor de moeilijkste onderzoeken
+   - `claude-haiku-4-5` - Snelst en meest kosteneffectief
 
 **Voorbeeldconfiguratie:**
 
@@ -126,7 +123,7 @@ Model Name: gpt-4o
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-3-5-sonnet-20241022
+Model Name: claude-sonnet-5
 ```
 
 ### Ollama (Zelf-gehost)
@@ -253,7 +250,7 @@ Voor enterprise-implementaties of bij gebruik van proxyservices kunt u een aange
 
 ## Best practices
 
-1. **Gebruik beschrijvende namen**: Benoem uw providers duidelijk (bijv. "Productie GPT-4", "Ontwikkeling Ollama")
+1. **Gebruik beschrijvende namen**: Benoem uw providers duidelijk (bijv. "Productie OpenAI", "Ontwikkeling Ollama")
 2. **Beveilig uw API-sleutels**: API-sleutels worden versleuteld opgeslagen, maar deel ze nooit
 3. **Test uw configuratie**: Controleer na het instellen of de provider werkt met AI-functies
 4. **Houd het gebruik bij**: Volg het API-gebruik om kosten te beheren

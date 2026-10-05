@@ -59,12 +59,12 @@ OneUptime supporta attualmente i seguenti provider LLM:
 
 | Provider              | Descrizione                                                              | Chiave API Richiesta | URL Base Richiesto      |
 | --------------------- | ------------------------------------------------------------------------ | -------------------- | ----------------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo e altri modelli OpenAI                      | Sì                   | No (usa il predefinito) |
+| **OpenAI**            | GPT-5.1 e altri modelli OpenAI                                           | Sì                   | No (usa il predefinito) |
 | **Azure OpenAI**      | Modelli OpenAI ospitati sul tuo deployment Azure                         | Sì                   | Sì                      |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e altri modelli Claude    | Sì                   | No (usa il predefinito) |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 e altri modelli Claude  | Sì                   | No (usa il predefinito) |
 | **Groq**              | Inferenza veloce per Llama, Mixtral e altri modelli open                 | Sì                   | No (usa il predefinito) |
 | **Mistral**           | Modelli ospitati da Mistral                                              | Sì                   | No (usa il predefinito) |
-| **Ollama**            | Modelli open-source self-hosted come Llama 2, Mistral, CodeLlama, ecc.   | No                   | Sì                      |
+| **Ollama**            | Modelli open-source self-hosted come Llama 3.1, Mistral, Qwen, ecc.      | No                   | Sì                      |
 | **OpenAI Compatible** | Qualsiasi server compatibile con OpenAI (vLLM, LocalAI, LM Studio, ecc.) | No (opzionale)       | Sì                      |
 
 ## Configurazione di un Provider LLM
@@ -83,7 +83,7 @@ Compila i seguenti campi:
 - **Descrizione** (opzionale): Una descrizione per identificare lo scopo di questo provider
 - **Provider LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
 - **Chiave API**: La tua chiave API (richiesta per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opzionale per Ollama e per i server compatibili con OpenAI)
-- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
 - **Altri campi**, chiuso sotto i campi qui sopra: **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità AI usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
 
@@ -95,10 +95,8 @@ Compila i seguenti campi:
 2. Seleziona **OpenAI** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
-   - `gpt-4o` - Modello più capace, ideale per compiti complessi
-   - `gpt-4o-mini` - Più veloce e conveniente
-   - `gpt-4-turbo` - Buon equilibrio tra capacità e velocità
-   - `gpt-3.5-turbo` - Veloce ed economico
+   - `gpt-5.1` - Predefinito consigliato, forte nel tool calling e nelle indagini complesse
+   - `gpt-5.1-mini` - Più veloce e conveniente
 
 **Esempio di Configurazione:**
 
@@ -106,7 +104,7 @@ Compila i seguenti campi:
 Nome: OpenAI Produzione
 Provider LLM: OpenAI
 Chiave API: sk-xxxxxxxxxxxxxxxxxxxx
-Nome del Modello: gpt-4o
+Nome del Modello: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Nome del Modello: gpt-4o
 2. Seleziona **Anthropic** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
-   - `claude-3-opus-20240229` - Modello più capace
-   - `claude-3-sonnet-20240229` - Buon equilibrio tra intelligenza e velocità
-   - `claude-3-haiku-20240307` - Il più veloce e compatto
-   - `claude-3-5-sonnet-20241022` - Ultimo modello Sonnet
+   - `claude-sonnet-5` - Predefinito consigliato, il miglior equilibrio tra intelligenza, velocità e costo
+   - `claude-opus-5` - Modello più capace, per le indagini più difficili
+   - `claude-haiku-4-5` - Il più veloce e conveniente
 
 **Esempio di Configurazione:**
 
@@ -126,7 +123,7 @@ Nome del Modello: gpt-4o
 Nome: Anthropic Produzione
 Provider LLM: Anthropic
 Chiave API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nome del Modello: claude-3-5-sonnet-20241022
+Nome del Modello: claude-sonnet-5
 ```
 
 ### Ollama (Self-Hosted)
@@ -253,7 +250,7 @@ Per distribuzioni enterprise o quando si utilizzano servizi proxy, puoi specific
 
 ## Best Practice
 
-1. **Usa nomi descrittivi**: Assegna nomi chiari ai tuoi provider (es. "GPT-4 Produzione", "Ollama Sviluppo")
+1. **Usa nomi descrittivi**: Assegna nomi chiari ai tuoi provider (es. "OpenAI Produzione", "Ollama Sviluppo")
 2. **Proteggi le tue chiavi API**: Le chiavi API sono crittografate a riposo, ma evita di condividerle
 3. **Testa la tua configurazione**: Dopo la configurazione, verifica che il provider funzioni con le funzionalità AI
 4. **Monitora l'utilizzo**: Tieni traccia dell'utilizzo delle API per gestire i costi

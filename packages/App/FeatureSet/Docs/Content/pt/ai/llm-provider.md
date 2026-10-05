@@ -57,15 +57,15 @@ A sincronização é declarativa: alterar as variáveis atualiza o provedor na p
 
 O OneUptime atualmente suporta os seguintes provedores de LLM:
 
-| Provedor              | Descrição                                                                       | Chave de API Necessária | URL Base Necessária |
-| --------------------- | ------------------------------------------------------------------------------- | ----------------------- | ------------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo e outros modelos OpenAI                            | Sim                     | Não (usa o padrão)  |
-| **Azure OpenAI**      | Modelos OpenAI hospedados na sua implantação Azure                              | Sim                     | Sim                 |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku e outros modelos Claude          | Sim                     | Não (usa o padrão)  |
-| **Groq**              | Inferência rápida para Llama, Mixtral e outros modelos abertos                  | Sim                     | Não (usa o padrão)  |
-| **Mistral**           | Modelos hospedados da Mistral                                                   | Sim                     | Não (usa o padrão)  |
-| **Ollama**            | Modelos de código aberto auto-hospedados como Llama 2, Mistral, CodeLlama, etc. | Não                     | Sim                 |
-| **OpenAI Compatible** | Qualquer servidor compatível com a OpenAI (vLLM, LocalAI, LM Studio, etc.)      | Não (opcional)          | Sim                 |
+| Provedor              | Descrição                                                                    | Chave de API Necessária | URL Base Necessária |
+| --------------------- | ---------------------------------------------------------------------------- | ----------------------- | ------------------- |
+| **OpenAI**            | GPT-5.1 e outros modelos OpenAI                                              | Sim                     | Não (usa o padrão)  |
+| **Azure OpenAI**      | Modelos OpenAI hospedados na sua implantação Azure                           | Sim                     | Sim                 |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 e outros modelos Claude     | Sim                     | Não (usa o padrão)  |
+| **Groq**              | Inferência rápida para Llama, Mixtral e outros modelos abertos               | Sim                     | Não (usa o padrão)  |
+| **Mistral**           | Modelos hospedados da Mistral                                                | Sim                     | Não (usa o padrão)  |
+| **Ollama**            | Modelos de código aberto auto-hospedados como Llama 3.1, Mistral, Qwen, etc. | Não                     | Sim                 |
+| **OpenAI Compatible** | Qualquer servidor compatível com a OpenAI (vLLM, LocalAI, LM Studio, etc.)   | Não (opcional)          | Sim                 |
 
 ## Configurando um Provedor de LLM
 
@@ -83,7 +83,7 @@ Preencha os seguintes campos:
 - **Descrição** (opcional): Uma descrição para ajudar a identificar o propósito deste provedor
 - **Provedor LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
 - **Chave de API**: Sua chave de API (obrigatória para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opcional para Ollama e servidores compatíveis com OpenAI)
-- **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **URL base** (opcional): URL do endpoint de API personalizado (obrigatória para Azure OpenAI, Ollama e OpenAI Compatible; opcional para outros)
 - **Mais campos**, recolhido abaixo dos campos acima: **Definir como padrão**, que vem ativado em um provedor novo porque os recursos de IA usam apenas o provedor padrão do projeto, e **Parâmetros adicionais**, um objeto JSON opcional com parâmetros extras enviados ao provedor em cada requisição (por exemplo, `{"temperature": 0.2}`)
 
@@ -95,10 +95,8 @@ Preencha os seguintes campos:
 2. Selecione **OpenAI** como o Provedor LLM
 3. Insira sua chave de API
 4. Escolha um nome de modelo:
-   - `gpt-4o` - Modelo mais capaz, melhor para tarefas complexas
-   - `gpt-4o-mini` - Mais rápido e mais econômico
-   - `gpt-4-turbo` - Bom equilíbrio entre capacidade e velocidade
-   - `gpt-3.5-turbo` - Rápido e econômico
+   - `gpt-5.1` - Padrão recomendado, forte em chamadas de ferramentas e investigações complexas
+   - `gpt-5.1-mini` - Mais rápido e mais econômico
 
 **Exemplo de Configuração:**
 
@@ -106,7 +104,7 @@ Preencha os seguintes campos:
 Nome: OpenAI de Produção
 Provedor LLM: OpenAI
 Chave de API: sk-xxxxxxxxxxxxxxxxxxxx
-Nome do Modelo: gpt-4o
+Nome do Modelo: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Nome do Modelo: gpt-4o
 2. Selecione **Anthropic** como o Provedor LLM
 3. Insira sua chave de API
 4. Escolha um nome de modelo:
-   - `claude-3-opus-20240229` - Modelo mais capaz
-   - `claude-3-sonnet-20240229` - Bom equilíbrio entre inteligência e velocidade
-   - `claude-3-haiku-20240307` - Mais rápido e mais compacto
-   - `claude-3-5-sonnet-20241022` - Modelo Sonnet mais recente
+   - `claude-sonnet-5` - Padrão recomendado, melhor equilíbrio entre inteligência, velocidade e custo
+   - `claude-opus-5` - Modelo mais capaz, para as investigações mais difíceis
+   - `claude-haiku-4-5` - O mais rápido e mais econômico
 
 **Exemplo de Configuração:**
 
@@ -126,7 +123,7 @@ Nome do Modelo: gpt-4o
 Nome: Anthropic de Produção
 Provedor LLM: Anthropic
 Chave de API: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Nome do Modelo: claude-3-5-sonnet-20241022
+Nome do Modelo: claude-sonnet-5
 ```
 
 ### Ollama (Auto-Hospedado)
@@ -253,7 +250,7 @@ Para implantações empresariais ou ao usar serviços de proxy, você pode espec
 
 ## Melhores Práticas
 
-1. **Use nomes descritivos**: Nomeie seus provedores claramente (ex.: "GPT-4 de Produção", "Ollama de Desenvolvimento")
+1. **Use nomes descritivos**: Nomeie seus provedores claramente (ex.: "OpenAI de Produção", "Ollama de Desenvolvimento")
 2. **Proteja suas chaves de API**: As chaves de API são criptografadas em repouso, mas evite compartilhá-las
 3. **Teste sua configuração**: Após a configuração, verifique se o provedor funciona com os recursos de IA
 4. **Monitore o uso**: Acompanhe o uso da API para gerenciar custos

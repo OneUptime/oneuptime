@@ -57,15 +57,15 @@ Synkroniseringen är deklarativ: ändrar du variablerna uppdateras leverantören
 
 OneUptime stöder för närvarande följande LLM-leverantörer:
 
-| Leverantör            | Beskrivning                                                                   | API-nyckel krävs | Bas-URL krävs           |
-| --------------------- | ----------------------------------------------------------------------------- | ---------------- | ----------------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo och andra OpenAI-modeller                        | Ja               | Nej (använder standard) |
-| **Azure OpenAI**      | OpenAI-modeller som är hostade i din Azure-driftsättning                      | Ja               | Ja                      |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku och andra Claude-modeller      | Ja               | Nej (använder standard) |
-| **Groq**              | Snabb inferens för Llama, Mixtral och andra öppna modeller                    | Ja               | Nej (använder standard) |
-| **Mistral**           | Mistrals hostade modeller                                                     | Ja               | Nej (använder standard) |
-| **Ollama**            | Egeninstallerade öppen källkods-modeller som Llama 2, Mistral, CodeLlama etc. | Nej              | Ja                      |
-| **OpenAI Compatible** | Valfri OpenAI-kompatibel server (vLLM, LocalAI, LM Studio etc.)               | Nej (valfritt)   | Ja                      |
+| Leverantör            | Beskrivning                                                                | API-nyckel krävs | Bas-URL krävs           |
+| --------------------- | -------------------------------------------------------------------------- | ---------------- | ----------------------- |
+| **OpenAI**            | GPT-5.1 och andra OpenAI-modeller                                          | Ja               | Nej (använder standard) |
+| **Azure OpenAI**      | OpenAI-modeller som är hostade i din Azure-driftsättning                   | Ja               | Ja                      |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 och andra Claude-modeller | Ja               | Nej (använder standard) |
+| **Groq**              | Snabb inferens för Llama, Mixtral och andra öppna modeller                 | Ja               | Nej (använder standard) |
+| **Mistral**           | Mistrals hostade modeller                                                  | Ja               | Nej (använder standard) |
+| **Ollama**            | Egeninstallerade öppen källkods-modeller som Llama 3.1, Mistral, Qwen etc. | Nej              | Ja                      |
+| **OpenAI Compatible** | Valfri OpenAI-kompatibel server (vLLM, LocalAI, LM Studio etc.)            | Nej (valfritt)   | Ja                      |
 
 ## Konfigurera en LLM-leverantör
 
@@ -83,7 +83,7 @@ Fyll i följande fält:
 - **Beskrivning** (valfritt): En beskrivning för att hjälpa till att identifiera syftet med denna leverantör
 - **LLM-leverantör**: Välj leverantörstyp (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
 - **API-nyckel**: Din API-nyckel (krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral; valfritt för Ollama och OpenAI-kompatibla servrar)
-- **Modellnamn**: Den specifika modell som ska användas (t.ex. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **Modellnamn**: Den specifika modell som ska användas (t.ex. `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **Bas-URL** (valfritt): Anpassad API-slutpunkts-URL (krävs för Azure OpenAI, Ollama och OpenAI Compatible; valfritt för andra)
 - **Fler fält**, ihopfälld under fälten ovan: **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
 
@@ -95,10 +95,8 @@ Fyll i följande fält:
 2. Välj **OpenAI** som LLM-leverantör
 3. Ange din API-nyckel
 4. Välj ett modellnamn:
-   - `gpt-4o` – Mest kapabel modell, bäst för komplexa uppgifter
-   - `gpt-4o-mini` – Snabbare och mer kostnadseffektiv
-   - `gpt-4-turbo` – Bra balans mellan kapacitet och hastighet
-   - `gpt-3.5-turbo` – Snabb och ekonomisk
+   - `gpt-5.1` – Rekommenderad standard, stark på verktygsanrop och komplexa utredningar
+   - `gpt-5.1-mini` – Snabbare och mer kostnadseffektiv
 
 **Exempelkonfiguration:**
 
@@ -106,7 +104,7 @@ Fyll i följande fält:
 Name: Production OpenAI
 LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
-Model Name: gpt-4o
+Model Name: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Model Name: gpt-4o
 2. Välj **Anthropic** som LLM-leverantör
 3. Ange din API-nyckel
 4. Välj ett modellnamn:
-   - `claude-3-opus-20240229` – Mest kapabel modell
-   - `claude-3-sonnet-20240229` – Bra balans mellan intelligens och hastighet
-   - `claude-3-haiku-20240307` – Snabbast och mest kompakt
-   - `claude-3-5-sonnet-20241022` – Senaste Sonnet-modellen
+   - `claude-sonnet-5` – Rekommenderad standard, bästa balansen mellan intelligens, hastighet och kostnad
+   - `claude-opus-5` – Mest kapabel modell, för de svåraste utredningarna
+   - `claude-haiku-4-5` – Snabbast och mest kostnadseffektiv
 
 **Exempelkonfiguration:**
 
@@ -126,7 +123,7 @@ Model Name: gpt-4o
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-3-5-sonnet-20241022
+Model Name: claude-sonnet-5
 ```
 
 ### Ollama (egeninstallerad)
@@ -253,7 +250,7 @@ För företagsdistributioner eller när du använder proxytjänster kan du ange 
 
 ## Bästa praxis
 
-1. **Använd beskrivande namn**: Namnge dina leverantörer tydligt (t.ex. "Produktion GPT-4", "Utveckling Ollama")
+1. **Använd beskrivande namn**: Namnge dina leverantörer tydligt (t.ex. "Produktion OpenAI", "Utveckling Ollama")
 2. **Skydda dina API-nycklar**: API-nycklar krypteras i vila, men dela dem inte
 3. **Testa din konfiguration**: Verifiera att leverantören fungerar med AI-funktioner efter konfiguration
 4. **Övervaka användning**: Håll koll på API-användningen för att hantera kostnader

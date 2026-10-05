@@ -57,15 +57,15 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 
-| 공급자                | 설명                                                               | API 키 필요 여부   | 기본 URL 필요 여부   |
-| --------------------- | ------------------------------------------------------------------ | ------------------ | -------------------- |
-| **OpenAI**            | GPT-4, GPT-4o, GPT-3.5 Turbo 및 기타 OpenAI 모델                   | 예                 | 아니요 (기본값 사용) |
-| **Azure OpenAI**      | Azure 배포에서 호스팅되는 OpenAI 모델                              | 예                 | 예                   |
-| **Anthropic**         | Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku 및 기타 Claude 모델 | 예                 | 아니요 (기본값 사용) |
-| **Groq**              | Llama, Mixtral 및 기타 오픈 모델을 위한 빠른 추론                  | 예                 | 아니요 (기본값 사용) |
-| **Mistral**           | Mistral의 호스팅 모델                                              | 예                 | 아니요 (기본값 사용) |
-| **Ollama**            | Llama 2, Mistral, CodeLlama 등과 같은 자체 호스팅 오픈 소스 모델   | 아니요             | 예                   |
-| **OpenAI Compatible** | OpenAI 호환 서버(vLLM, LocalAI, LM Studio 등)                      | 아니요 (선택 사항) | 예                   |
+| 공급자                | 설명                                                                 | API 키 필요 여부   | 기본 URL 필요 여부   |
+| --------------------- | -------------------------------------------------------------------- | ------------------ | -------------------- |
+| **OpenAI**            | GPT-5.1 및 기타 OpenAI 모델                                          | 예                 | 아니요 (기본값 사용) |
+| **Azure OpenAI**      | Azure 배포에서 호스팅되는 OpenAI 모델                                | 예                 | 예                   |
+| **Anthropic**         | Claude Sonnet 5, Claude Opus 5, Claude Haiku 4.5 및 기타 Claude 모델 | 예                 | 아니요 (기본값 사용) |
+| **Groq**              | Llama, Mixtral 및 기타 오픈 모델을 위한 빠른 추론                    | 예                 | 아니요 (기본값 사용) |
+| **Mistral**           | Mistral의 호스팅 모델                                                | 예                 | 아니요 (기본값 사용) |
+| **Ollama**            | Llama 3.1, Mistral, Qwen 등과 같은 자체 호스팅 오픈 소스 모델        | 아니요             | 예                   |
+| **OpenAI Compatible** | OpenAI 호환 서버(vLLM, LocalAI, LM Studio 등)                        | 아니요 (선택 사항) | 예                   |
 
 ## LLM 공급자 설정
 
@@ -83,7 +83,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 - **설명** (선택 사항): 이 공급자의 목적을 식별하는 데 도움이 되는 설명
 - **LLM 제공자**: 공급자 유형 선택 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama 또는 OpenAI Compatible)
 - **API 키**: API 키 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral의 경우 필수; Ollama 및 OpenAI 호환 서버의 경우 선택 사항)
-- **모델 이름**: 사용할 특정 모델 (예: `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **모델 이름**: 사용할 특정 모델 (예: `gpt-5.1`, `claude-sonnet-5`, `llama3.1`)
 - **기본 URL** (선택 사항): 커스텀 API 엔드포인트 URL (Azure OpenAI, Ollama, OpenAI Compatible의 경우 필수, 기타의 경우 선택 사항)
 - **추가 필드**(위 항목 아래에 접혀 있음): **기본값으로 설정**은 AI 기능이 프로젝트의 기본 공급자만 사용하므로 새 공급자에서는 켜져 있고, **추가 매개변수**는 요청할 때마다 공급자에게 보내는 추가 매개변수를 담은 선택 사항 JSON 객체입니다(예: `{"temperature": 0.2}`)
 
@@ -95,10 +95,8 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 2. LLM 제공자로 **OpenAI**를 선택합니다
 3. API 키를 입력합니다
 4. 모델 이름을 선택합니다:
-   - `gpt-4o` - 가장 유능한 모델, 복잡한 작업에 최적
-   - `gpt-4o-mini` - 더 빠르고 비용 효율적
-   - `gpt-4-turbo` - 기능과 속도의 균형이 좋음
-   - `gpt-3.5-turbo` - 빠르고 경제적
+   - `gpt-5.1` - 권장 기본값, 도구 호출과 복잡한 조사에 강함
+   - `gpt-5.1-mini` - 더 빠르고 비용 효율적
 
 **구성 예시:**
 
@@ -106,7 +104,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 이름: 프로덕션 OpenAI
 LLM 제공자: OpenAI
 API 키: sk-xxxxxxxxxxxxxxxxxxxx
-모델 이름: gpt-4o
+모델 이름: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ API 키: sk-xxxxxxxxxxxxxxxxxxxx
 2. LLM 제공자로 **Anthropic**을 선택합니다
 3. API 키를 입력합니다
 4. 모델 이름을 선택합니다:
-   - `claude-3-opus-20240229` - 가장 유능한 모델
-   - `claude-3-sonnet-20240229` - 지능과 속도의 균형이 좋음
-   - `claude-3-haiku-20240307` - 가장 빠르고 컴팩트한 모델
-   - `claude-3-5-sonnet-20241022` - 최신 Sonnet 모델
+   - `claude-sonnet-5` - 권장 기본값, 지능·속도·비용의 균형이 가장 좋음
+   - `claude-opus-5` - 가장 유능한 모델, 가장 어려운 조사용
+   - `claude-haiku-4-5` - 가장 빠르고 비용 효율적
 
 **구성 예시:**
 
@@ -126,7 +123,7 @@ API 키: sk-xxxxxxxxxxxxxxxxxxxx
 이름: 프로덕션 Anthropic
 LLM 제공자: Anthropic
 API 키: sk-ant-xxxxxxxxxxxxxxxxxxxx
-모델 이름: claude-3-5-sonnet-20241022
+모델 이름: claude-sonnet-5
 ```
 
 ### Ollama (자체 호스팅)
@@ -253,7 +250,7 @@ GPU 스케줄링, 게이트된 모델 및 튜닝 옵션에 대해서는 [Helm �
 
 ## 모범 사례
 
-1. **설명적인 이름 사용**: 공급자를 명확하게 이름 지정합니다 (예: "프로덕션 GPT-4", "개발 Ollama")
+1. **설명적인 이름 사용**: 공급자를 명확하게 이름 지정합니다 (예: "프로덕션 OpenAI", "개발 Ollama")
 2. **API 키 보안**: API 키는 저장 시 암호화되지만 공유하지 마십시오
 3. **구성 테스트**: 설정 후 공급자가 AI 기능과 함께 작동하는지 확인합니다
 4. **사용량 모니터링**: API 사용량을 추적하여 비용을 관리합니다

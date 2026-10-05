@@ -57,15 +57,15 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 OneUptime 目前支持以下 LLM 提供商：
 
-| 提供商                | 描述                                                              | 是否需要 API 密钥 | 是否需要基础 URL |
-| --------------------- | ----------------------------------------------------------------- | ----------------- | ---------------- |
-| **OpenAI**            | GPT-4、GPT-4o、GPT-3.5 Turbo 及其他 OpenAI 模型                   | 是                | 否（使用默认值） |
-| **Azure OpenAI**      | 部署在您的 Azure 环境中的 OpenAI 模型                             | 是                | 是               |
-| **Anthropic**         | Claude 3 Opus、Claude 3 Sonnet、Claude 3 Haiku 及其他 Claude 模型 | 是                | 否（使用默认值） |
-| **Groq**              | 针对 Llama、Mixtral 等开源模型的高速推理服务                      | 是                | 否（使用默认值） |
-| **Mistral**           | Mistral 托管的模型                                                | 是                | 否（使用默认值） |
-| **Ollama**            | 自托管开源模型，如 Llama 2、Mistral、CodeLlama 等                 | 否                | 是               |
-| **OpenAI Compatible** | 任何兼容 OpenAI 的服务器（vLLM、LocalAI、LM Studio 等）           | 否（可选）        | 是               |
+| 提供商                | 描述                                                                | 是否需要 API 密钥 | 是否需要基础 URL |
+| --------------------- | ------------------------------------------------------------------- | ----------------- | ---------------- |
+| **OpenAI**            | GPT-5.1 及其他 OpenAI 模型                                          | 是                | 否（使用默认值） |
+| **Azure OpenAI**      | 部署在您的 Azure 环境中的 OpenAI 模型                               | 是                | 是               |
+| **Anthropic**         | Claude Sonnet 5、Claude Opus 5、Claude Haiku 4.5 及其他 Claude 模型 | 是                | 否（使用默认值） |
+| **Groq**              | 针对 Llama、Mixtral 等开源模型的高速推理服务                        | 是                | 否（使用默认值） |
+| **Mistral**           | Mistral 托管的模型                                                  | 是                | 否（使用默认值） |
+| **Ollama**            | 自托管开源模型，如 Llama 3.1、Mistral、Qwen 等                      | 否                | 是               |
+| **OpenAI Compatible** | 任何兼容 OpenAI 的服务器（vLLM、LocalAI、LM Studio 等）             | 否（可选）        | 是               |
 
 ## 设置 LLM 提供商
 
@@ -83,7 +83,7 @@ OneUptime 目前支持以下 LLM 提供商：
 - **描述**（可选）：帮助标识此提供商用途的描述
 - **LLM 提供商**：选择提供商类型（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
 - **API 密钥**：您的 API 密钥（OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必填；Ollama 和兼容 OpenAI 的服务器可选）
-- **模型名称**：要使用的具体模型（例如 `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
+- **模型名称**：要使用的具体模型（例如 `gpt-5.1`、`claude-sonnet-5`、`llama3.1`）
 - **基础 URL**（可选）：自定义 API 端点 URL（Azure OpenAI、Ollama 和 OpenAI Compatible 必填，其他可选）
 - **更多字段**：收起在上方字段之下，包括 **设为默认**（新提供商默认开启，因为 AI 功能只使用项目的默认提供商）和 **附加参数**（可选的 JSON 对象，其中的额外参数会随每个请求发送给提供商，例如 `{"temperature": 0.2}`）
 
@@ -95,10 +95,8 @@ OneUptime 目前支持以下 LLM 提供商：
 2. 选择 **OpenAI** 作为 LLM 提供商
 3. 输入您的 API 密钥
 4. 选择模型名称：
-   - `gpt-4o` - 能力最强的模型，适合复杂任务
-   - `gpt-4o-mini` - 更快且更具成本效益
-   - `gpt-4-turbo` - 能力与速度的良好平衡
-   - `gpt-3.5-turbo` - 快速且经济实惠
+   - `gpt-5.1` - 推荐的默认模型，擅长工具调用和复杂调查
+   - `gpt-5.1-mini` - 更快且更具成本效益
 
 **示例配置：**
 
@@ -106,7 +104,7 @@ OneUptime 目前支持以下 LLM 提供商：
 Name: Production OpenAI
 LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
-Model Name: gpt-4o
+Model Name: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Model Name: gpt-4o
 2. 选择 **Anthropic** 作为 LLM 提供商
 3. 输入您的 API 密钥
 4. 选择模型名称：
-   - `claude-3-opus-20240229` - 能力最强的模型
-   - `claude-3-sonnet-20240229` - 智能与速度的良好平衡
-   - `claude-3-haiku-20240307` - 最快且最紧凑
-   - `claude-3-5-sonnet-20241022` - 最新的 Sonnet 模型
+   - `claude-sonnet-5` - 推荐的默认模型，智能、速度与成本的最佳平衡
+   - `claude-opus-5` - 能力最强的模型，适合最棘手的调查
+   - `claude-haiku-4-5` - 最快且最具成本效益
 
 **示例配置：**
 
@@ -126,7 +123,7 @@ Model Name: gpt-4o
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-3-5-sonnet-20241022
+Model Name: claude-sonnet-5
 ```
 
 ### Ollama（自托管）
@@ -253,7 +250,7 @@ API Key: (leave blank unless vllm.apiKey is set)
 
 ## 最佳实践
 
-1. **使用描述性名称**：清晰地命名您的提供商（例如"生产 GPT-4"、"开发 Ollama"）
+1. **使用描述性名称**：清晰地命名您的提供商（例如"生产 OpenAI"、"开发 Ollama"）
 2. **保护您的 API 密钥**：API 密钥在静态存储时已加密，但避免共享它们
 3. **测试您的配置**：设置完成后，验证提供商是否能正常用于 AI 功能
 4. **监控使用情况**：跟踪 API 使用情况以管理成本

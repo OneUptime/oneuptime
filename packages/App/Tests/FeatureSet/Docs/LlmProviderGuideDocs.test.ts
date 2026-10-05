@@ -1,7 +1,12 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import { describe, expect, test } from "@jest/globals";
+import API from "Common/Utils/API";
+import LLMService from "Common/Server/Utils/LLM/LLMService";
+import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
@@ -14,8 +19,9 @@ import path from "path";
  * So this reads every copy and holds it to what can be checked without
  * reading it: the English page's sections in the English page's order, the
  * same GLOBAL_LLM_PROVIDER_* variables and examples, the provider types the
- * startup sync accepts, and the provider form's fields under the names the
- * dashboard gives them in that language.
+ * startup sync accepts, the provider form's fields under the names the
+ * dashboard gives them in that language, and the models OneUptime itself
+ * asks for when a provider's Model Name is left blank.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -159,6 +165,85 @@ function hasBulletFor(markdown: string, label: string): boolean {
   return markdown.split("\n").some((line: string): boolean => {
     return line.startsWith(`- **${label}**`);
   });
+}
+
+/*
+ * A heading's section: the heading line and everything under it, up to the
+ * next heading of the same level or higher.
+ */
+function sectionOf(markdown: string, heading: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const start: number = lines.indexOf(heading);
+
+  if (start === -1) {
+    return "";
+  }
+
+  const level: number = heading.indexOf(" ");
+  let end: number = start + 1;
+  let inFence: boolean = false;
+
+  for (; end < lines.length; end++) {
+    if (FENCE.test(lines[end]!)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    const next: RegExpMatchArray | null = inFence
+      ? null
+      : lines[end]!.match(/^(#{1,6}) /);
+
+    if (next && next[1]!.length <= level) {
+      break;
+    }
+  }
+
+  return lines.slice(start, end).join("\n");
+}
+
+// The models a provider's section lists, in order.
+function listedModels(markdown: string, provider: string): Array<string> {
+  return [
+    ...sectionOf(markdown, `### ${provider}`).matchAll(/^ {3}- `([^`]+)` /gm),
+  ].map((match: RegExpMatchArray): string => {
+    return match[1]!;
+  });
+}
+
+// The model a provider section's example configuration uses.
+function exampleModel(markdown: string, provider: string): string {
+  const example: Array<string> = fencedLines(
+    sectionOf(markdown, `### ${provider}`),
+  );
+
+  return example[example.length - 1]?.split(": ")[1] || "";
+}
+
+// The model LLMService asks a provider for, given this provider config.
+async function modelRequestedBy(
+  llmProviderConfig: {
+    llmType: LlmType;
+    apiKey: string;
+    baseUrl: string;
+  },
+  reply: JSONObject,
+): Promise<string> {
+  const post: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(API, "post")
+    .mockResolvedValue({
+      jsonData: reply,
+    } as unknown as HTTPResponse<JSONObject>) as ReturnType<typeof jest.spyOn>;
+
+  await LLMService.getCompletion({
+    llmProviderConfig,
+    messages: [{ role: "user", content: "which incidents are active?" }],
+  });
+
+  const request: { data: JSONObject } = post.mock.calls[0]![0] as {
+    data: JSONObject;
+  };
+
+  return request.data["model"] as string;
 }
 
 // The cells after the variable's own, in the table row that documents it.
@@ -362,6 +447,121 @@ describe("every LLM provider guide says what is under More fields", () => {
       }
 
       expect(bullet).toContain('`{"temperature": 0.2}`');
+    },
+  );
+});
+
+describe("every LLM provider guide recommends the models OneUptime defaults to", () => {
+  startEachTestOnSelfHostedEgressPolicy();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  /*
+   * Model ids and names the guides used to recommend, long since retired,
+   * matched in any case: "gpt-4o", "Production GPT-4", "Claude 3 Opus".
+   */
+  const RETIRED_MODELS: Array<string> = [
+    "gpt-4",
+    "gpt-3.5",
+    "claude-3",
+    "claude 3",
+    "llama 2",
+    "codellama",
+  ];
+
+  test("with Model Name left blank, OpenAI and Anthropic are asked for the model the English page recommends first", async () => {
+    const english: string = readPage("en");
+
+    // A private address, which a self-hosted install reaches.
+    expect(
+      await modelRequestedBy(
+        {
+          llmType: LlmType.OpenAI,
+          apiKey: "sk-test",
+          baseUrl: "http://10.0.0.12:8000/v1",
+        },
+        { choices: [{ message: { content: "OK" }, finish_reason: "stop" }] },
+      ),
+    ).toBe(listedModels(english, "OpenAI")[0]);
+
+    jest.restoreAllMocks();
+
+    expect(
+      await modelRequestedBy(
+        {
+          llmType: LlmType.Anthropic,
+          apiKey: "sk-ant-test",
+          baseUrl: "http://10.0.0.12:8000/v1",
+        },
+        { content: [{ type: "text", text: "OK" }], stop_reason: "end_turn" },
+      ),
+    ).toBe(listedModels(english, "Anthropic")[0]);
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s lists the English page's models, and configures its example with the first",
+    (language: string) => {
+      const markdown: string = readPage(language);
+
+      for (const provider of ["OpenAI", "Anthropic"]) {
+        const listed: Array<string> = listedModels(markdown, provider);
+
+        expect({ provider, listed }).toEqual({
+          provider,
+          listed: listedModels(readPage("en"), provider),
+        });
+        expect({ provider, example: exampleModel(markdown, provider) }).toEqual(
+          { provider, example: listed[0] },
+        );
+      }
+
+      expect(listedModels(markdown, "OpenAI")).toEqual([
+        "gpt-5.1",
+        "gpt-5.1-mini",
+      ]);
+    },
+  );
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s gives the English page's Model Name examples",
+    (language: string) => {
+      const examplesIn: (markdown: string, label: string) => Array<string> = (
+        markdown: string,
+        label: string,
+      ): Array<string> => {
+        const bullet: string =
+          markdown.split("\n").find((line: string): boolean => {
+            return line.startsWith(`- **${label}**`);
+          }) || "";
+
+        return [...bullet.matchAll(/`([^`]+)`/g)].map(
+          (match: RegExpMatchArray): string => {
+            return match[1]!;
+          },
+        );
+      };
+
+      expect(
+        examplesIn(
+          readPage(language),
+          dashboardLabel(language, formFieldTitle("modelName")),
+        ),
+      ).toEqual(examplesIn(readPage("en"), formFieldTitle("modelName")));
+    },
+  );
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s names no retired model",
+    (language: string) => {
+      const markdown: string = readPage(language).toLowerCase();
+
+      expect(
+        RETIRED_MODELS.filter((model: string): boolean => {
+          return markdown.includes(model);
+        }),
+      ).toEqual([]);
     },
   );
 });

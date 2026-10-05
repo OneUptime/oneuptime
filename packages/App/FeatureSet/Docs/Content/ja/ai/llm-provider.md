@@ -57,15 +57,15 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 OneUptime は現在、以下の LLM プロバイダーをサポートしています。
 
-| プロバイダー          | 説明                                                                   | API キー必須   | ベース URL 必須          |
-| --------------------- | ---------------------------------------------------------------------- | -------------- | ------------------------ |
-| **OpenAI**            | GPT-4、GPT-4o、GPT-3.5 Turbo、その他の OpenAI モデル                   | はい           | いいえ（デフォルト使用） |
-| **Azure OpenAI**      | Azure デプロイメント上でホストされる OpenAI モデル                     | はい           | はい                     |
-| **Anthropic**         | Claude 3 Opus、Claude 3 Sonnet、Claude 3 Haiku、その他の Claude モデル | はい           | いいえ（デフォルト使用） |
-| **Groq**              | Llama、Mixtral、その他のオープンモデル向けの高速推論                   | はい           | いいえ（デフォルト使用） |
-| **Mistral**           | Mistral のホスト型モデル                                               | はい           | いいえ（デフォルト使用） |
-| **Ollama**            | Llama 2、Mistral、CodeLlama などのセルフホストオープンソースモデル     | いいえ         | はい                     |
-| **OpenAI Compatible** | OpenAI 互換サーバー全般（vLLM、LocalAI、LM Studio など）               | いいえ（任意） | はい                     |
+| プロバイダー          | 説明                                                                     | API キー必須   | ベース URL 必須          |
+| --------------------- | ------------------------------------------------------------------------ | -------------- | ------------------------ |
+| **OpenAI**            | GPT-5.1、その他の OpenAI モデル                                          | はい           | いいえ（デフォルト使用） |
+| **Azure OpenAI**      | Azure デプロイメント上でホストされる OpenAI モデル                       | はい           | はい                     |
+| **Anthropic**         | Claude Sonnet 5、Claude Opus 5、Claude Haiku 4.5、その他の Claude モデル | はい           | いいえ（デフォルト使用） |
+| **Groq**              | Llama、Mixtral、その他のオープンモデル向けの高速推論                     | はい           | いいえ（デフォルト使用） |
+| **Mistral**           | Mistral のホスト型モデル                                                 | はい           | いいえ（デフォルト使用） |
+| **Ollama**            | Llama 3.1、Mistral、Qwen などのセルフホストオープンソースモデル          | いいえ         | はい                     |
+| **OpenAI Compatible** | OpenAI 互換サーバー全般（vLLM、LocalAI、LM Studio など）                 | いいえ（任意） | はい                     |
 
 ## LLM プロバイダーのセットアップ
 
@@ -83,7 +83,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 - **説明**（任意）: このプロバイダーの目的を識別するための説明
 - **LLM プロバイダー**: プロバイダーの種類を選択（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama、または OpenAI Compatible）
 - **API キー**: API キー（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral では必須。Ollama と OpenAI 互換サーバーでは任意）
-- **モデル名**: 使用する特定のモデル（例: `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
+- **モデル名**: 使用する特定のモデル（例: `gpt-5.1`、`claude-sonnet-5`、`llama3.1`）
 - **ベース URL**（任意）: カスタム API エンドポイント URL（Azure OpenAI、Ollama、OpenAI Compatible では必須、その他では任意）
 - **その他の項目**（上記の項目の下に折りたたまれています）: **デフォルトに設定** は、AI 機能がプロジェクトのデフォルトプロバイダーしか使わないため、新しいプロバイダーではオンになっています。**追加パラメーター** は、すべてのリクエストでプロバイダーに送る追加パラメーターを指定する任意の JSON オブジェクトです（例: `{"temperature": 0.2}`）
 
@@ -95,10 +95,8 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 2. **LLM プロバイダー** として **OpenAI** を選択します
 3. API キーを入力します
 4. モデル名を選択します:
-   - `gpt-4o` - 最も高性能なモデル、複雑なタスクに最適
-   - `gpt-4o-mini` - より高速でコスト効率が高い
-   - `gpt-4-turbo` - 性能と速度のバランスが良い
-   - `gpt-3.5-turbo` - 高速で経済的
+   - `gpt-5.1` - 推奨のデフォルト。ツール呼び出しと複雑な調査に強い
+   - `gpt-5.1-mini` - より高速でコスト効率が高い
 
 **設定例:**
 
@@ -106,7 +104,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 Name: Production OpenAI
 LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
-Model Name: gpt-4o
+Model Name: gpt-5.1
 ```
 
 ### Anthropic
@@ -115,10 +113,9 @@ Model Name: gpt-4o
 2. **LLM プロバイダー** として **Anthropic** を選択します
 3. API キーを入力します
 4. モデル名を選択します:
-   - `claude-3-opus-20240229` - 最も高性能なモデル
-   - `claude-3-sonnet-20240229` - 知性と速度のバランスが良い
-   - `claude-3-haiku-20240307` - 最速でコンパクト
-   - `claude-3-5-sonnet-20241022` - 最新の Sonnet モデル
+   - `claude-sonnet-5` - 推奨のデフォルト。知性、速度、コストのバランスが最も良い
+   - `claude-opus-5` - 最も高性能なモデル。最も難しい調査向け
+   - `claude-haiku-4-5` - 最速でコスト効率が最も高い
 
 **設定例:**
 
@@ -126,7 +123,7 @@ Model Name: gpt-4o
 Name: Production Anthropic
 LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
-Model Name: claude-3-5-sonnet-20241022
+Model Name: claude-sonnet-5
 ```
 
 ### Ollama（セルフホスト）
@@ -253,7 +250,7 @@ GPU スケジューリング、ゲート付きモデル、チューニングオ�
 
 ## ベストプラクティス
 
-1. **わかりやすい名前を使用する**: プロバイダーを明確に命名します（例: "本番 GPT-4"、"開発 Ollama"）
+1. **わかりやすい名前を使用する**: プロバイダーを明確に命名します（例: "本番 OpenAI"、"開発 Ollama"）
 2. **API キーを安全に管理する**: API キーは保存時に暗号化されますが、共有しないようにしてください
 3. **設定をテストする**: セットアップ後、AI 機能でプロバイダーが正常に動作することを確認します
 4. **使用状況を監視する**: コストを管理するために API の使用状況を追跡します
