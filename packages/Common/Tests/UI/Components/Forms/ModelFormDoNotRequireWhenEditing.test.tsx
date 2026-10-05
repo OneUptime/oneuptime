@@ -89,6 +89,7 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HostLabelRule from "../../../../Models/DatabaseModels/HostLabelRule";
 import IncidentLabelRule from "../../../../Models/DatabaseModels/IncidentLabelRule";
 import Label from "../../../../Models/DatabaseModels/Label";
@@ -149,7 +150,7 @@ const INHERITING_FIELDS: Array<ModelField<IncidentLabelRule>> = [
   },
 ];
 
-async function renderForm<TModel extends HostLabelRule | IncidentLabelRule>(
+async function renderForm<TModel extends BaseModel>(
   modelType: { new (): TModel },
   fields: Array<ModelField<TModel>>,
   formType: FormType,
