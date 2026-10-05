@@ -75,6 +75,8 @@ Open the application and choose **Settings** to configure both overrides.
 
 Retention overrides are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan and above on OneUptime Cloud. Without them, the application's telemetry follows the project's default retention. Session Replay retention (below) is in every edition.
 
+On a lower Cloud plan, an override a trial left set keeps applying to new telemetry. The **Settings** page shows it under the upgrade card, with a **Remove Override** button that works on every plan: from then on the application follows the project's retention, and what is already stored keeps the retention it was stored with. Setting an override again needs the Scale plan.
+
 Session Replay recordings have their **own** retention, set on the application's _Replay Policy_ page (**Edit Policy → Limits**). It defaults to 7 days (1, 14, 30 and 90 are the other choices) — deliberately much shorter, because a recording is far more sensitive and far larger than a span. The **Settings** page shows it with the other retention settings (_Session replays are kept for 7 days._), and its **Edit on Replay Policy** button opens the policy. Setting a 90-day telemetry retention does not extend recordings, and the session's metadata (counts, signals, device) expires together with its footage; only the logs, spans and exceptions of that session follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
 
 RUM is often the highest-volume telemetry in a project, because it scales with your users rather than with your servers. A shorter retention here, with a longer one on backend services, is a common and sensible configuration.

@@ -974,7 +974,19 @@ export default class ScheduledMaintenanceTemplate extends BaseModel {
       Permission.ScheduledMaintenanceViewer,
       Permission.ReadScheduledMaintenanceTemplate,
     ],
-    update: [],
+    /*
+     * The same list as changeMonitorStatusToId: the two name one column. The
+     * template's Affected Resources card writes this name, and an empty list
+     * here dropped the field from its Edit for everyone but master admins.
+     */
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditScheduledMaintenanceTemplate,
+    ],
   })
   @TableColumn({
     manyToOneRelationColumn: "changeMonitorStatusToId",

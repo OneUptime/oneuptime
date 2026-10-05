@@ -3,8 +3,11 @@ import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/
 import SelectPermission from "../../../../../Server/Types/Database/Permissions/SelectPermission";
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
+import IncidentTemplate from "../../../../../Models/DatabaseModels/IncidentTemplate";
 import MetricType from "../../../../../Models/DatabaseModels/MetricType";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import MonitorStatus from "../../../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceTemplate from "../../../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -30,6 +33,10 @@ import { describe, expect, test } from "@jest/globals";
  *     and for changing, like the record.
  *   - Every column of a workflow takes Edit Workflow (or a project owner or
  *     admin); Delete Workflow deletes workflows and nothing more.
+ *   - A template's Change Monitor Status to (incident and scheduled
+ *     maintenance) and an incident template's Initial Incident State take
+ *     what renaming the template takes, by the relation the template's cards
+ *     write as by its ID column. The relation took nobody's.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -336,4 +343,174 @@ describe("Workflow", () => {
       );
     }).not.toThrow();
   });
+});
+
+describe("a template's Change Monitor Status to and Initial Incident State", () => {
+  interface TemplateRelation {
+    name: string;
+    modelType: { new (): BaseModel };
+    relation: string;
+    idColumn: string;
+    relatedModelType: { new (): BaseModel };
+    editors: Array<Permission>;
+    notEditors: Array<Permission>;
+    otherProductEditor: Permission;
+  }
+
+  const INCIDENT_TEMPLATE_EDITORS: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.IncidentAdmin,
+    Permission.IncidentMember,
+    Permission.EditIncidentTemplate,
+  ];
+
+  const INCIDENT_TEMPLATE_NOT_EDITORS: Array<Permission> = [
+    Permission.CreateIncidentTemplate,
+    Permission.ReadIncidentTemplate,
+    Permission.DeleteIncidentTemplate,
+    Permission.Viewer,
+    Permission.IncidentViewer,
+  ];
+
+  const RELATIONS: Array<TemplateRelation> = [
+    {
+      name: "IncidentTemplate.changeMonitorStatusTo",
+      modelType: IncidentTemplate,
+      relation: "changeMonitorStatusTo",
+      idColumn: "changeMonitorStatusToId",
+      relatedModelType: MonitorStatus,
+      editors: INCIDENT_TEMPLATE_EDITORS,
+      notEditors: INCIDENT_TEMPLATE_NOT_EDITORS,
+      otherProductEditor: Permission.EditScheduledMaintenanceTemplate,
+    },
+    {
+      name: "IncidentTemplate.initialIncidentState",
+      modelType: IncidentTemplate,
+      relation: "initialIncidentState",
+      idColumn: "initialIncidentStateId",
+      relatedModelType: IncidentState,
+      editors: INCIDENT_TEMPLATE_EDITORS,
+      notEditors: INCIDENT_TEMPLATE_NOT_EDITORS,
+      otherProductEditor: Permission.EditScheduledMaintenanceTemplate,
+    },
+    {
+      name: "ScheduledMaintenanceTemplate.changeMonitorStatusTo",
+      modelType: ScheduledMaintenanceTemplate,
+      relation: "changeMonitorStatusTo",
+      idColumn: "changeMonitorStatusToId",
+      relatedModelType: MonitorStatus,
+      editors: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.ScheduledMaintenanceAdmin,
+        Permission.ScheduledMaintenanceMember,
+        Permission.EditScheduledMaintenanceTemplate,
+      ],
+      notEditors: [
+        Permission.CreateScheduledMaintenanceTemplate,
+        Permission.ReadScheduledMaintenanceTemplate,
+        Permission.DeleteScheduledMaintenanceTemplate,
+        Permission.Viewer,
+        Permission.ScheduledMaintenanceViewer,
+      ],
+      otherProductEditor: Permission.EditIncidentTemplate,
+    },
+  ];
+
+  // What a form writes into the relation: the picked record, by its id.
+  function picked(modelType: { new (): BaseModel }): BaseModel {
+    const record: BaseModel = new modelType();
+    record._id = ObjectID.generate().toString();
+    return record;
+  }
+
+  test.each(RELATIONS)(
+    "$name is changed by exactly the template's editors",
+    (template: TemplateRelation) => {
+      expect(
+        whoMayUpdate(
+          template.modelType,
+          template.relation,
+          picked(template.relatedModelType),
+        ),
+      ).toEqual([...template.editors].sort());
+    },
+  );
+
+  test.each(RELATIONS)(
+    "$name takes exactly what renaming the template takes",
+    (template: TemplateRelation) => {
+      expect(
+        whoMayUpdate(
+          template.modelType,
+          template.relation,
+          picked(template.relatedModelType),
+        ),
+      ).toEqual(
+        whoMayUpdate(template.modelType, "templateName", "Renamed template"),
+      );
+    },
+  );
+
+  test.each(RELATIONS)(
+    "$name takes exactly what its ID column takes",
+    (template: TemplateRelation) => {
+      expect(
+        whoMayUpdate(
+          template.modelType,
+          template.relation,
+          picked(template.relatedModelType),
+        ),
+      ).toEqual(
+        whoMayUpdate(
+          template.modelType,
+          template.idColumn,
+          ObjectID.generate(),
+        ),
+      );
+    },
+  );
+
+  test.each(RELATIONS)(
+    "$name is cleared by the same people",
+    (template: TemplateRelation) => {
+      expect(whoMayUpdate(template.modelType, template.relation, null)).toEqual(
+        [...template.editors].sort(),
+      );
+    },
+  );
+
+  test.each(RELATIONS)(
+    "$name is not changed with a create, read or delete template permission, or a read-only role",
+    (template: TemplateRelation) => {
+      for (const permission of template.notEditors) {
+        expect([
+          permission,
+          mayUpdate({
+            modelType: template.modelType,
+            column: template.relation,
+            value: picked(template.relatedModelType),
+            permissions: [permission],
+          }),
+        ]).toEqual([permission, false]);
+      }
+    },
+  );
+
+  test.each(RELATIONS)(
+    "$name is not changed by the other product's template editors",
+    (template: TemplateRelation) => {
+      expect(
+        mayUpdate({
+          modelType: template.modelType,
+          column: template.relation,
+          value: picked(template.relatedModelType),
+          permissions: [template.otherProductEditor],
+        }),
+      ).toBe(false);
+    },
+  );
 });

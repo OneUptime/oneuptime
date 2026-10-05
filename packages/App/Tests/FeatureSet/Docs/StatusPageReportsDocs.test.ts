@@ -98,6 +98,14 @@ describe("Subscribers & Announcements (English): Email reports", () => {
     expect(section).toContain("**Growth** plan");
   });
 
+  it("says reports can always be switched off, on any plan, and that switching them on needs Growth", () => {
+    expect(section).toContain(
+      "turning reports on needs the **Growth** plan or above",
+    );
+    expect(section).toContain("Turning them off works on every plan");
+    expect(section).toContain("switching reports on again needs **Growth**");
+  });
+
   it("says what the API and Terraform get when they switch reports on without a schedule", () => {
     expect(section).toContain("**Through the API or Terraform**");
     expect(section).toContain("`isReportEnabled`");

@@ -7,7 +7,14 @@ import {
 import assert from "assert";
 import fs from "fs";
 import { AddressInfo } from "net";
-import { after, afterEach, before, beforeEach, describe, test } from "node:test";
+import {
+  after,
+  afterEach,
+  before,
+  beforeEach,
+  describe,
+  test,
+} from "node:test";
 import KubernetesAiAgent, { AgentOptions } from "../Agent";
 import AgentStatus, { AgentStatusSnapshot } from "../AgentStatus";
 import { ParsedConfig, parseConfig } from "../Config";
@@ -246,7 +253,10 @@ describe("the posture carries what the chart allows", () => {
   function postureFor(env: Record<string, string>): AgentPosture {
     return buildPosture({
       config: parse(env).config,
-      env: { KUBERNETES_SERVICE_HOST: "10.96.0.1", KUBERNETES_SERVICE_PORT: "443" },
+      env: {
+        KUBERNETES_SERVICE_HOST: "10.96.0.1",
+        KUBERNETES_SERVICE_PORT: "443",
+      },
       serviceAccount: serviceAccount.paths(),
       kubectlVersion: "v1.36.4",
     });

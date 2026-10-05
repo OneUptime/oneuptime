@@ -108,11 +108,21 @@ describe("the English sharing guide", () => {
 
   it("says which choices need a plan, and which do not", () => {
     expect(section).toContain(
-      "On OneUptime Cloud, sharing a dashboard, or making it private again, needs the **Growth** plan",
+      "On OneUptime Cloud, sharing a dashboard needs the **Growth** plan",
     );
     expect(section).toContain(
       "Moving between **Anyone with the link** and **Anyone with the link and a password**, and changing the password, works on every plan.",
     );
+  });
+
+  it("says a dashboard can always be made private again, on any plan, and what sharing again takes", () => {
+    expect(section).toContain(
+      "Making a dashboard private again — **Only people in this project** — works on every plan",
+    );
+    expect(section).toContain(
+      "the dialog says that sharing it again needs **Growth**",
+    );
+    expect(section).not.toContain("or making it private again, needs");
   });
 
   it("says what a choice stores, the rule the server keeps, and the locked state", () => {
@@ -144,7 +154,7 @@ describe("the English sharing guide", () => {
       "Under **More settings** on the **Sharing** page, the **IP Allowlist** card (the `ipWhitelist` column)",
     );
     expect(allowlist).toContain(
-      "It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud.",
+      "It saves on its own, apart from the choice, and changing it needs the **Scale** plan on OneUptime Cloud; emptying it works on every plan.",
     );
     expect(allowlist).toContain(
       "the folded **More settings** header shows **IP Allowlist** with the number of entries it holds",

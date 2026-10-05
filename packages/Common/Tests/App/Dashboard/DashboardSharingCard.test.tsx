@@ -31,8 +31,10 @@ import { getJestSpyOn } from "../../Spy";
  *   with the password switch on is the password choice, set or not - and
  *   without a password it says nobody can open the link, with Set Password.
  * - Picking another asks first; confirming writes only the columns that
- *   change (the public switch needs Growth to change, and a write carrying
- *   it is refused below Growth, changed or not). A move to the password
+ *   change (the public switch needs Growth to turn on, and a write carrying
+ *   it on is refused below Growth, changed or not; turning it off - making
+ *   the dashboard private again - works on every plan, and the dialog says
+ *   that sharing it again needs Growth). A move to the password
  *   asks for one in the same dialog when none is set, so the page never
  *   locks the link by itself.
  * - Under the public choice in force: the public link, opening in a new
@@ -89,6 +91,7 @@ import DashboardSharingCopy, {
   DASHBOARD_SHARING_CARD_TEST_ID,
   DASHBOARD_SHARING_CHANGE_PASSWORD_TEST_ID,
   DASHBOARD_SHARING_LOCKED_TEST_ID,
+  DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID,
   DASHBOARD_SHARING_SET_PASSWORD_TEST_ID,
   getDashboardAccessChoiceTestId,
   REMOVE_PASSWORD_CONFIRMATION_COPY,
@@ -1100,16 +1103,82 @@ describe("plans (OneUptime Cloud)", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
-  test("on Free, a public dashboard moves between the public choices, and only stopping the share needs Growth", async () => {
+  test("on Free, a dashboard a trial left public can always stop being shared: no plan for that, and the dialog says sharing it again needs Growth", async () => {
     plan = PlanType.Free;
     stored = { ...PUBLIC_DASHBOARD, hasMasterPassword: true };
 
     await renderCard();
 
+    // A paid feature can always be switched off: stopping needs no plan.
     expect(
-      within(row(DashboardAccess.ProjectOnly)).getByText("Growth Plan"),
-    ).toBeInTheDocument();
-    expect(choice(DashboardAccess.ProjectOnly)).toBeDisabled();
+      within(row(DashboardAccess.ProjectOnly)).queryByText("Growth Plan"),
+    ).not.toBeInTheDocument();
+    expect(choice(DashboardAccess.ProjectOnly)).toBeEnabled();
+
+    await pick(DashboardAccess.ProjectOnly);
+
+    expect(dialogTitle()).toBe(
+      DASHBOARD_ACCESS_CONFIRMATION_COPY[DashboardAccess.ProjectOnly].title,
+    );
+    expect(
+      screen.getByTestId(DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID),
+    ).toHaveTextContent(
+      "Your plan does not include “Anyone with the link”, so picking it again later needs the Growth plan.",
+    );
+
+    await submitDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The public switch back to its default, alone.
+    expect(sent()).toEqual([{ isPublicDashboard: false }]);
+    expect(checkedChoices()).toEqual([DashboardAccess.ProjectOnly]);
+
+    // Private now: sharing it again needs Growth, and cannot be picked.
+    for (const access of [
+      DashboardAccess.AnyoneWithLink,
+      DashboardAccess.AnyoneWithPassword,
+    ]) {
+      expect(within(row(access)).getByText("Growth Plan")).toBeInTheDocument();
+      expect(choice(access)).toBeDisabled();
+    }
+  });
+
+  test("on Free, a password-protected dashboard stops being shared with its password switch, and the dialog names the password choice", async () => {
+    plan = PlanType.Free;
+    stored = { ...PASSWORD_DASHBOARD };
+
+    await renderCard();
+
+    expect(choice(DashboardAccess.ProjectOnly)).toBeEnabled();
+
+    await pick(DashboardAccess.ProjectOnly);
+
+    expect(
+      screen.getByTestId(DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID),
+    ).toHaveTextContent(
+      "Your plan does not include “Anyone with the link and a password”, so picking it again later needs the Growth plan.",
+    );
+
+    await submitDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sent()).toEqual([
+      { isPublicDashboard: false, enableMasterPassword: false },
+    ]);
+  });
+
+  test("on Free, a public dashboard moves between the public choices with no plan, and its dialog says nothing about plans", async () => {
+    plan = PlanType.Free;
+    stored = { ...PUBLIC_DASHBOARD, hasMasterPassword: true };
+
+    await renderCard();
+
     expect(
       within(row(DashboardAccess.AnyoneWithPassword)).queryByText(
         "Growth Plan",
@@ -1118,6 +1187,11 @@ describe("plans (OneUptime Cloud)", () => {
     expect(choice(DashboardAccess.AnyoneWithPassword)).toBeEnabled();
 
     await pick(DashboardAccess.AnyoneWithPassword);
+
+    expect(
+      screen.queryByTestId(DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID),
+    ).not.toBeInTheDocument();
+
     await submitDialog();
 
     await waitFor(() => {
@@ -1126,6 +1200,38 @@ describe("plans (OneUptime Cloud)", () => {
 
     // No public switch in the write, so Free may make it.
     expect(sent()).toEqual([{ enableMasterPassword: true }]);
+  });
+
+  test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "on %s, stopping the share says nothing about plans: sharing again is included",
+    async (current: PlanType) => {
+      plan = current;
+      stored = { ...PUBLIC_DASHBOARD };
+
+      await renderCard();
+
+      await pick(DashboardAccess.ProjectOnly);
+
+      expect(dialogTitle()).toBe(
+        DASHBOARD_ACCESS_CONFIRMATION_COPY[DashboardAccess.ProjectOnly].title,
+      );
+      expect(
+        screen.queryByTestId(DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("with billing off (no plan), stopping the share says nothing about plans", async () => {
+    plan = null;
+    stored = { ...PUBLIC_DASHBOARD };
+
+    await renderCard();
+
+    await pick(DashboardAccess.ProjectOnly);
+
+    expect(
+      screen.queryByTestId(DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(

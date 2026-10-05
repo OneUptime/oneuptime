@@ -15,10 +15,24 @@ import RequireSsoForLoginSwitchCopy, {
  * button, because it locks everyone who is not signed in with SSO out of
  * the project, whoever flipped it included; turning it off saves at once
  * (see RequireSsoForLoginSwitchCopy).
+ *
+ * Below the Scale plan the SSO page is the plan's upsell, and the card is
+ * drawn under it only while the project still requires SSO
+ * (RequireSsoForLoginLeftover), so it can be turned off. `isPlanLeftover`
+ * then leaves out the line about the test link, which is not on that page,
+ * and locks the switch once it is off, saying the plan: requiring SSO
+ * again needs Scale, and its dialog would point at the missing test link.
  */
 
 export interface ComponentProps {
   projectId: ObjectID;
+  /*
+   * Drawn under the plan's upsell (RequireSsoForLoginLeftover), not on the
+   * SSO page with its providers and test link.
+   */
+  isPlanLeftover?: boolean | undefined;
+  // The project, already read with requireSsoForLogin: no second read.
+  initialProject?: Project | undefined;
 }
 
 export const getRequireSsoForLoginConfirmation: (
@@ -47,7 +61,11 @@ const RequireSsoForLoginCard: FunctionComponent<ComponentProps> = (
       modelId={props.projectId}
       column={REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN}
       cardTitle={RequireSsoForLoginSwitchCopy.cardTitle}
-      cardDescription={RequireSsoForLoginSwitchCopy.cardDescription}
+      cardDescription={
+        props.isPlanLeftover
+          ? undefined
+          : RequireSsoForLoginSwitchCopy.cardDescription
+      }
       title={RequireSsoForLoginSwitchCopy.switchTitle}
       getDescription={(isOn: boolean): string => {
         return isOn
@@ -56,6 +74,8 @@ const RequireSsoForLoginCard: FunctionComponent<ComponentProps> = (
       }}
       getConfirmation={getRequireSsoForLoginConfirmation}
       dataTestId={REQUIRE_SSO_FOR_LOGIN_SWITCH_TEST_ID}
+      initialItem={props.initialProject}
+      locksWhenPlanNeeded={props.isPlanLeftover}
     />
   );
 };

@@ -1,7 +1,10 @@
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
 import Permission, {
   PermissionHelper,
@@ -25,11 +28,16 @@ import { describe, expect, test } from "@jest/globals";
  *   - Workflow's update lists held Delete Workflow beside Edit Workflow.
  *     Editing a workflow, and running one by hand (the Workflow API reads
  *     the same list), takes Edit Workflow.
+ *   - an incident template's Change Monitor Status to and Initial Incident
+ *     State, and a scheduled maintenance template's Change Monitor Status
+ *     to, listed nobody on the relation and the template's editors on its
+ *     ID column (see the last rule).
  *
- * So every model, database and analytics, is held to three rules. They are
- * written over the permissions a team can grant inside a project: the
- * user's own (Current User) and the global ones are not about editing a
- * project's records.
+ * So every model, database and analytics, is held to three rules, and
+ * every database model to a fourth, about relations. They are written over
+ * the permissions a team can grant inside a project: the user's own
+ * (Current User) and the global ones are not about editing a project's
+ * records.
  */
 
 type ModelWithAccessLists = {
@@ -305,6 +313,237 @@ describe("update permission lists", () => {
         true,
       ]);
       expect(entry.reason.length).toBeGreaterThan(40);
+    }
+  });
+});
+
+/*
+ * A relation and its ID column - Change Monitor Status To and Change
+ * Monitor Status To ID - are two names for one database column, and an
+ * update writes it by either: the API takes both, and the dashboard's forms
+ * write the relation. A shorter list on one of the two keeps nobody from
+ * the column - they write it by the other name - it only hides the column
+ * from whatever writes by that name. A form leaves out a field its viewer
+ * may not update (ModelForm), so an incident template's Change Monitor
+ * Status to and Initial Incident State, and a scheduled maintenance
+ * template's Change Monitor Status to, were missing from their Edit for
+ * everybody but master admins, while the same people changed the column
+ * through its ID over the API.
+ */
+
+interface RelationAndIdColumn {
+  tableName: string;
+  relation: string;
+  idColumn: string;
+  relationList: Array<Permission>;
+  idColumnList: Array<Permission>;
+}
+
+const DATABASE_MODELS: Array<BaseModel> = (
+  AllModelTypes as Array<{ new (): BaseModel }>
+).map((modelType: { new (): BaseModel }): BaseModel => {
+  return new modelType();
+});
+
+function sortedCopy(permissions: Array<Permission>): Array<Permission> {
+  return [...permissions].sort();
+}
+
+// Every relation of a model whose ID column is one of the model's columns.
+function relationsWithIdColumns(model: BaseModel): Array<RelationAndIdColumn> {
+  const accessLists: Dictionary<ColumnAccessControl> =
+    model.getColumnAccessControlForAllColumns();
+  const columns: Array<string> = model.getTableColumns().columns;
+  const relations: Array<RelationAndIdColumn> = [];
+
+  for (const column of [...columns].sort()) {
+    const metadata: TableColumnMetadata | undefined =
+      model.getTableColumnMetadata(column);
+
+    if (
+      metadata?.type !== TableColumnType.Entity ||
+      !metadata.manyToOneRelationColumn ||
+      !columns.includes(metadata.manyToOneRelationColumn)
+    ) {
+      continue;
+    }
+
+    const idColumn: string = metadata.manyToOneRelationColumn;
+
+    relations.push({
+      tableName: model.tableName || "",
+      relation: column,
+      idColumn: idColumn,
+      relationList: sortedCopy(accessLists[column]?.update || []),
+      idColumnList: sortedCopy(accessLists[idColumn]?.update || []),
+    });
+  }
+
+  return relations;
+}
+
+const ALL_RELATIONS: Array<RelationAndIdColumn> = DATABASE_MODELS.flatMap(
+  (model: BaseModel): Array<RelationAndIdColumn> => {
+    return relationsWithIdColumns(model);
+  },
+);
+
+function findRelation(
+  tableName: string,
+  relation: string,
+): RelationAndIdColumn {
+  const found: RelationAndIdColumn | undefined = ALL_RELATIONS.find(
+    (candidate: RelationAndIdColumn) => {
+      return (
+        candidate.tableName === tableName && candidate.relation === relation
+      );
+    },
+  );
+
+  expect([`${tableName}.${relation}`, Boolean(found)]).toEqual([
+    `${tableName}.${relation}`,
+    true,
+  ]);
+
+  return found!;
+}
+
+function haveOneList(relation: RelationAndIdColumn): boolean {
+  return relation.relationList.join(",") === relation.idColumnList.join(",");
+}
+
+/*
+ * Relations whose two lists differ, each left as it is for a change of its
+ * own. The list may only shrink: an entry whose lists have come to agree
+ * fails below, so it is removed with the reason it stood for.
+ */
+interface RelationsLeftApart {
+  tableName: string;
+  relations: Array<string>;
+  reason: string;
+}
+
+const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
+  {
+    tableName: "UserNotificationRule",
+    relations: [
+      "userCall",
+      "userEmail",
+      "userMicrosoftTeams",
+      "userPush",
+      "userSlack",
+      "userSms",
+      "userTelegram",
+      "userWebhook",
+      "userWhatsApp",
+    ],
+    reason:
+      "On purpose, as the model explains above userCall: an administrator re-points a rule's method through the ID column only, so the check that the method is the rule owner's own has one spelling to validate.",
+  },
+  {
+    tableName: "Alert",
+    relations: ["monitorStatusWhenThisAlertWasCreated"],
+    reason:
+      "The monitor's status when the alert was raised, which the server writes. No form changes it; whether its ID should stay writable over the API is a question about alerts.",
+  },
+  {
+    tableName: "ApiKeyPermission",
+    relations: ["apiKey"],
+    reason:
+      "The API key a permission row belongs to. Here the relation is the writable name and the ID is not; whether a row may move to another key at all is a question about API keys.",
+  },
+  {
+    tableName: "Monitor",
+    relations: ["monitorTemplate"],
+    reason:
+      "The template a monitor was created from, which its sync follows. No form changes it through the relation; whether it may change after the monitor is created is a question about monitor templates.",
+  },
+  {
+    tableName: "ScheduledMaintenance",
+    relations: ["changeMonitorStatusTo"],
+    reason:
+      "An event's monitor status is picked when the event is created: its Affected Resources Edit does not ask it, and the docs say so, while the ID stays writable over the API as it always was. Whether it may change afterwards is a question about events, not templates.",
+  },
+];
+
+function isLeftApart(relation: RelationAndIdColumn): boolean {
+  return RELATIONS_LEFT_APART.some((entry: RelationsLeftApart) => {
+    return (
+      entry.tableName === relation.tableName &&
+      entry.relations.includes(relation.relation)
+    );
+  });
+}
+
+describe("a relation and its ID column", () => {
+  test("the sweep sees the relations of every model, and their ID columns", () => {
+    expect(ALL_RELATIONS.length).toBeGreaterThan(400);
+
+    expect(
+      findRelation("IncidentTemplate", "changeMonitorStatusTo").idColumn,
+    ).toBe("changeMonitorStatusToId");
+    expect(
+      findRelation("IncidentTemplate", "initialIncidentState").idColumn,
+    ).toBe("initialIncidentStateId");
+    expect(
+      findRelation("ScheduledMaintenanceTemplate", "changeMonitorStatusTo")
+        .idColumn,
+    ).toBe("changeMonitorStatusToId");
+  });
+
+  test("share one update list", () => {
+    const apart: Array<string> = ALL_RELATIONS.filter(
+      (relation: RelationAndIdColumn) => {
+        return !isLeftApart(relation) && !haveOneList(relation);
+      },
+    ).map((relation: RelationAndIdColumn): string => {
+      return `${relation.tableName}.${relation.relation} [${relation.relationList.join(", ")}] / ${relation.idColumn} [${relation.idColumnList.join(", ")}]`;
+    });
+
+    expect(apart).toEqual([]);
+  });
+
+  /*
+   * The three that were apart: changed by exactly the people who may edit
+   * the template, by either name.
+   */
+  test.each([
+    ["IncidentTemplate", "changeMonitorStatusTo", "EditIncidentTemplate"],
+    ["IncidentTemplate", "initialIncidentState", "EditIncidentTemplate"],
+    [
+      "ScheduledMaintenanceTemplate",
+      "changeMonitorStatusTo",
+      "EditScheduledMaintenanceTemplate",
+    ],
+  ])(
+    "%s.%s takes the template's own update list, by either name",
+    (tableName: string, relation: string, editPermission: string) => {
+      const found: RelationAndIdColumn = findRelation(tableName, relation);
+      const recordList: Array<Permission> = sortedCopy(
+        recordUpdateList(findModel(tableName)).permissions,
+      );
+
+      expect(found.relationList).toEqual(recordList);
+      expect(found.idColumnList).toEqual(recordList);
+      expect(found.relationList).toContain(editPermission as Permission);
+    },
+  );
+
+  test("every relation left apart still differs, and says why", () => {
+    for (const entry of RELATIONS_LEFT_APART) {
+      expect(entry.reason.length).toBeGreaterThan(40);
+
+      for (const relation of entry.relations) {
+        const found: RelationAndIdColumn = findRelation(
+          entry.tableName,
+          relation,
+        );
+
+        expect([`${entry.tableName}.${relation}`, haveOneList(found)]).toEqual([
+          `${entry.tableName}.${relation}`,
+          false,
+        ]);
+      }
     }
   });
 });

@@ -124,6 +124,31 @@ export const isEnterpriseFeatureEligible: (
 };
 
 /*
+ * Whether the current project is KNOWN to be on a plan below `requiredPlan`,
+ * on OneUptime Cloud: its plan has loaded and does not reach it. Not while
+ * the plan is unknown (not loaded yet, or one the Dashboard cannot read),
+ * and never with billing off. What a page draws under its upsell for a
+ * project below the plan - the switches a trial left on, which can always
+ * be switched off - waits for this, so a project on the plan never sees
+ * them flash, or reads anything for them, while its plan loads.
+ */
+export const isKnownToBeBelowPlan: (requiredPlan: PlanType) => boolean = (
+  requiredPlan: PlanType,
+): boolean => {
+  if (!BILLING_ENABLED) {
+    return false;
+  }
+
+  const currentPlan: PlanType | null = getCurrentPlanOrNull();
+
+  if (!currentPlan) {
+    return false;
+  }
+
+  return !isPlanAtLeast(requiredPlan, currentPlan);
+};
+
+/*
  * Whether the current project may use a feature that every edition includes
  * but OneUptime Cloud sells on a plan, such as single sign-on. Only the PLAN
  * decides, and only on the Cloud (billing on), where an unknown plan fails

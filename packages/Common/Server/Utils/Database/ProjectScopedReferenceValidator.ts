@@ -238,6 +238,37 @@ export function resolveReferenceIds(value: unknown): Array<ObjectID | string> {
 }
 
 /*
+ * The references a write makes through one relation, read from both of its
+ * names: the ID column (`changeMonitorStatusToId`) and the relation itself
+ * (`changeMonitorStatusTo`). The API takes either, and a payload may carry
+ * both, so each name that holds an id is a reference of its own and is
+ * checked; the same id under both is looked up once
+ * (validateReferencesBelongToProject).
+ */
+export function getRelationAndIdColumnReferences(data: {
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+  idColumnValue: unknown;
+  relationValue: unknown;
+}): Array<ProjectScopedReference> {
+  const references: Array<ProjectScopedReference> = [];
+
+  for (const value of [data.idColumnValue, data.relationValue]) {
+    const id: ObjectID | string | undefined = resolveReferenceId(value);
+
+    if (id && id.toString().trim()) {
+      references.push({
+        modelName: data.modelName,
+        id: id,
+        service: data.service,
+      });
+    }
+  }
+
+  return references;
+}
+
+/*
  * Thrown when a payload references records that are not the project's:
  * another project's, ones that do not exist, or users who are not members.
  * A BadDataException, so API callers see a 400 with the message; its own

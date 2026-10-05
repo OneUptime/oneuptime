@@ -80,6 +80,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * `${dataTestId}-details`.
    */
   dataTestId: string;
+  /*
+   * The record, already read by the page with the switch's column (and any
+   * `select`): the card starts from it instead of reading it again. Used
+   * only while it is the card's record.
+   */
+  initialItem?: TBaseModel | undefined;
+  // See ModelSwitchRow.
+  locksWhenPlanNeeded?: boolean | undefined;
 }
 
 interface ReadOptions {
@@ -114,6 +122,26 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
   const readRef: MutableRefObject<number> = useRef<number>(0);
 
   const modelIdString: string = props.modelId.toString();
+
+  // Shows a record read here, or handed in by the page (initialItem).
+  const showItem: (readItem: TBaseModel) => void = (
+    readItem: TBaseModel,
+  ): void => {
+    const value: boolean = isModelSwitchOn({
+      stored: (readItem as unknown as Record<string, unknown>)[props.column],
+      defaultValue: getColumnBooleanDefault(
+        new props.modelType(),
+        props.column,
+      ),
+      isInverted: props.isInverted,
+    });
+
+    setIsOn(value);
+    setIsSwitchOn(value);
+    setItem(readItem);
+    props.onLoaded?.(readItem);
+    props.onChange?.(value);
+  };
 
   const fetchItem: (options?: ReadOptions) => Promise<void> = async (
     options?: ReadOptions,
@@ -159,22 +187,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
         setItem(null);
         setError("Item not found");
       } else {
-        const value: boolean = isModelSwitchOn({
-          stored: (readItem as unknown as Record<string, unknown>)[
-            props.column
-          ],
-          defaultValue: getColumnBooleanDefault(
-            new props.modelType(),
-            props.column,
-          ),
-          isInverted: props.isInverted,
-        });
-
-        setIsOn(value);
-        setIsSwitchOn(value);
-        setItem(readItem);
-        props.onLoaded?.(readItem);
-        props.onChange?.(value);
+        showItem(readItem);
       }
     } catch (err) {
       if (read !== readRef.current || isQuiet) {
@@ -196,7 +209,17 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
   fetchItemRef.current = fetchItem;
 
   useEffect(() => {
-    void fetchItem();
+    // A record the page already read for this card needs no second read.
+    if (
+      props.initialItem &&
+      props.initialItem.id?.toString() === modelIdString
+    ) {
+      showItem(props.initialItem);
+      setError("");
+      setIsLoading(false);
+    } else {
+      void fetchItem();
+    }
 
     return () => {
       readRef.current += 1;
@@ -288,6 +311,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
               props.onSaved?.(value);
             }}
             dataTestId={props.dataTestId}
+            locksWhenPlanNeeded={props.locksWhenPlanNeeded}
           />
         </div>
         {getDetails()}
