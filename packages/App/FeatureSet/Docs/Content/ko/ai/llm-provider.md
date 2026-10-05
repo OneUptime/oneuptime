@@ -91,7 +91,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 ### OpenAI
 
 1. [OpenAI 플랫폼](https://platform.openai.com/api-keys)에서 API 키를 발급받습니다
-2. LLM 유형으로 **OpenAI**를 선택합니다
+2. LLM 제공자로 **OpenAI**를 선택합니다
 3. API 키를 입력합니다
 4. 모델 이름을 선택합니다:
    - `gpt-4o` - 가장 유능한 모델, 복잡한 작업에 최적
@@ -103,7 +103,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 
 ```
 이름: 프로덕션 OpenAI
-LLM 유형: OpenAI
+LLM 제공자: OpenAI
 API 키: sk-xxxxxxxxxxxxxxxxxxxx
 모델 이름: gpt-4o
 ```
@@ -111,7 +111,7 @@ API 키: sk-xxxxxxxxxxxxxxxxxxxx
 ### Anthropic
 
 1. [Anthropic 콘솔](https://console.anthropic.com/)에서 API 키를 발급받습니다
-2. LLM 유형으로 **Anthropic**을 선택합니다
+2. LLM 제공자로 **Anthropic**을 선택합니다
 3. API 키를 입력합니다
 4. 모델 이름을 선택합니다:
    - `claude-3-opus-20240229` - 가장 유능한 모델
@@ -123,7 +123,7 @@ API 키: sk-xxxxxxxxxxxxxxxxxxxx
 
 ```
 이름: 프로덕션 Anthropic
-LLM 유형: Anthropic
+LLM 제공자: Anthropic
 API 키: sk-ant-xxxxxxxxxxxxxxxxxxxx
 모델 이름: claude-3-5-sonnet-20241022
 ```
@@ -135,7 +135,7 @@ Ollama를 사용하면 로컬 또는 자체 인프라에서 오픈 소스 LLM을
 1. [ollama.ai](https://ollama.ai)에서 Ollama를 설치합니다
 2. 원하는 모델을 다운로드합니다: `ollama pull llama3.1`
 3. Ollama가 실행 중이며 OneUptime 서버에서 연결할 수 있는지 확인합니다. 네이티브 설치는 `127.0.0.1`에서만 수신하므로, 다른 머신과 컨테이너의 연결을 받으려면 `OLLAMA_HOST=0.0.0.0:11434`로 시작합니다 (공식 Docker 이미지 `ollama/ollama`는 이미 그렇게 설정되어 있습니다)
-4. LLM 유형으로 **Ollama**를 선택합니다
+4. LLM 제공자로 **Ollama**를 선택합니다
 5. 기본 URL을 입력합니다. OneUptime 서버가 Ollama 서버에 연결할 때 쓰는 주소로, 예를 들면 `http://ollama:11434`입니다 (`/api/chat`은 OneUptime이 직접 붙입니다). `localhost`는 동작하지 않습니다. [자체 호스팅 모델의 기본 URL 선택](#자체-호스팅-모델의-기본-url-선택)을 참조하세요
 6. 다운로드한 모델 이름을 입력합니다
 
@@ -143,7 +143,7 @@ Ollama를 사용하면 로컬 또는 자체 인프라에서 오픈 소스 LLM을
 
 ```
 이름: 자체 호스팅 Ollama
-LLM 유형: Ollama
+LLM 제공자: Ollama
 기본 URL: http://ollama:11434
 모델 이름: llama3.1
 ```
@@ -191,7 +191,7 @@ OpenAI 호환 서버도 각자의 포트와 `/v1` 경로로 같은 규칙을 따
 OpenAI `/chat/completions` API를 구현하지만 OpenAI 자체는 아닌 서버에는 **OpenAI Compatible** 공급자를 사용하세요 — 예를 들어 [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai), 또는 text-generation-webui가 있습니다. 이러한 서버는 일반적으로 자체 URL에서 셀프 호스팅되며 인증 없이 실행되는 경우가 많습니다.
 
 1. OpenAI 호환 서버를 시작하고 기본 URL을 확인합니다 (일반적으로 `/v1`로 끝남)
-2. LLM 유형으로 **OpenAI Compatible**을 선택합니다
+2. LLM 제공자로 **OpenAI Compatible**을 선택합니다
 3. **기본 URL**을 입력합니다 (필수), 예: `http://your-server:8000/v1`. OneUptime 서버에서 연결할 수 있어야 하므로 `localhost`는 안 됩니다. [자체 호스팅 모델의 기본 URL 선택](#자체-호스팅-모델의-기본-url-선택)을 참조하세요
 4. **모델 이름**을 입력합니다 (필수) — 서버가 제공하는 모델과 일치해야 합니다
 5. 서버에 인증이 필요한 경우에만 **API 키**를 입력합니다; 키가 필요 없는 서버는 비워 둡니다
@@ -225,7 +225,7 @@ Helm 차트로 OneUptime을 자체 호스팅하는 경우, 클러스터 내부�
 
 자동 등록을 비활성화한 경우(`vllm.globalProvider.enabled: false`), 공급자를 수동으로 생성합니다:
 
-1. LLM 유형으로 **OpenAI Compatible**을 선택합니다 (vLLM은 OpenAI API를 사용합니다)
+1. LLM 제공자로 **OpenAI Compatible**을 선택합니다 (vLLM은 OpenAI API를 사용합니다)
 2. 클러스터 내부 기본 URL을 입력합니다: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (`global.clusterDomain`을 변경했다면 `cluster.local`을 바꾸세요)
 3. 모델 이름을 입력합니다: 전체 HuggingFace 모델 id (또는 설정한 경우 `vllm.servedModelName`)
 4. `vllm.apiKey`를 설정한 경우에만 API 키를 입력합니다; 키가 필요 없는 vLLM은 비워 둡니다

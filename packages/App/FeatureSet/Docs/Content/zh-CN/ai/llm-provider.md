@@ -81,7 +81,7 @@ OneUptime 目前支持以下 LLM 提供商：
 
 - **名称**：此 LLM 配置的友好名称（例如"生产 OpenAI"、"本地 Ollama"）
 - **描述**（可选）：帮助标识此提供商用途的描述
-- **LLM 类型**：选择提供商类型（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
+- **LLM 提供商**：选择提供商类型（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
 - **API 密钥**：您的 API 密钥（OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必填；Ollama 和兼容 OpenAI 的服务器可选）
 - **模型名称**：要使用的具体模型（例如 `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
 - **基础 URL**（可选）：自定义 API 端点 URL（Azure OpenAI、Ollama 和 OpenAI Compatible 必填，其他可选）
@@ -91,7 +91,7 @@ OneUptime 目前支持以下 LLM 提供商：
 ### OpenAI
 
 1. 从 [OpenAI Platform](https://platform.openai.com/api-keys) 获取您的 API 密钥
-2. 选择 **OpenAI** 作为 LLM 类型
+2. 选择 **OpenAI** 作为 LLM 提供商
 3. 输入您的 API 密钥
 4. 选择模型名称：
    - `gpt-4o` - 能力最强的模型，适合复杂任务
@@ -103,7 +103,7 @@ OneUptime 目前支持以下 LLM 提供商：
 
 ```
 Name: Production OpenAI
-LLM Type: OpenAI
+LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-4o
 ```
@@ -111,7 +111,7 @@ Model Name: gpt-4o
 ### Anthropic
 
 1. 从 [Anthropic Console](https://console.anthropic.com/) 获取您的 API 密钥
-2. 选择 **Anthropic** 作为 LLM 类型
+2. 选择 **Anthropic** 作为 LLM 提供商
 3. 输入您的 API 密钥
 4. 选择模型名称：
    - `claude-3-opus-20240229` - 能力最强的模型
@@ -123,7 +123,7 @@ Model Name: gpt-4o
 
 ```
 Name: Production Anthropic
-LLM Type: Anthropic
+LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
 Model Name: claude-3-5-sonnet-20241022
 ```
@@ -135,7 +135,7 @@ Ollama 允许您在本地或自己的基础设施上运行开源 LLM。
 1. 从 [ollama.ai](https://ollama.ai) 安装 Ollama
 2. 拉取所需的模型：`ollama pull llama3.1`
 3. 确保 Ollama 正在运行，并且 OneUptime 服务器可以访问它。原生安装只监听 `127.0.0.1`，因此请使用 `OLLAMA_HOST=0.0.0.0:11434` 启动它，以接受来自其他机器和容器的连接（官方 Docker 镜像 `ollama/ollama` 已经这样设置）
-4. 选择 **Ollama** 作为 LLM 类型
+4. 选择 **Ollama** 作为 LLM 提供商
 5. 输入基础 URL：OneUptime 服务器访问 Ollama 服务器时使用的地址，例如 `http://ollama:11434`（`/api/chat` 由 OneUptime 自动添加）。`localhost` 无法使用——请参阅[为自托管模型选择基础 URL](#为自托管模型选择基础-url)
 6. 输入您拉取的模型名称
 
@@ -143,7 +143,7 @@ Ollama 允许您在本地或自己的基础设施上运行开源 LLM。
 
 ```
 Name: Self-Hosted Ollama
-LLM Type: Ollama
+LLM Provider: Ollama
 Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
@@ -191,7 +191,7 @@ OneUptime 会把这个 `options` 对象合并到它发送给 Ollama 的选项中
 对于任何实现了 OpenAI `/chat/completions` API 但并非 OpenAI 本身的服务器，请使用 **OpenAI Compatible** 提供商——例如 [vLLM](https://docs.vllm.ai)、[LocalAI](https://localai.io)、[LM Studio](https://lmstudio.ai) 或 text-generation-webui。这些服务器通常自托管在您自己的 URL 上，且往往无需身份验证即可运行。
 
 1. 启动您的兼容 OpenAI 的服务器，并记下其基础 URL（通常以 `/v1` 结尾）
-2. 选择 **OpenAI Compatible** 作为 LLM 类型
+2. 选择 **OpenAI Compatible** 作为 LLM 提供商
 3. 输入**基础 URL**（必填），例如 `http://your-server:8000/v1`。它必须能被 OneUptime 服务器访问，因此不能用 `localhost`——请参阅[为自托管模型选择基础 URL](#为自托管模型选择基础-url)
 4. 输入**模型名称**（必填）——必须与您服务器上提供的模型匹配
 5. 仅当您的服务器需要身份验证时才输入 **API 密钥**；无需密钥的服务器可留空
@@ -200,7 +200,7 @@ OneUptime 会把这个 `options` 对象合并到它发送给 Ollama 的选项中
 
 ```
 Name: Self-Hosted vLLM
-LLM Type: OpenAI Compatible
+LLM Provider: OpenAI Compatible
 Base URL: http://vllm.internal:8000/v1
 Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
@@ -225,7 +225,7 @@ API Key: (leave blank)
 
 如果您禁用了自动注册（`vllm.globalProvider.enabled: false`），请手动创建提供商：
 
-1. 选择 **OpenAI Compatible** 作为 LLM 类型（vLLM 使用 OpenAI API）
+1. 选择 **OpenAI Compatible** 作为 LLM 提供商（vLLM 使用 OpenAI API）
 2. 输入集群内基础 URL：`http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（如果您更改了 `global.clusterDomain`，请替换 `cluster.local`）
 3. 输入模型名称：完整的 HuggingFace 模型 id（如果您设置了 `vllm.servedModelName`，则使用该值）
 4. 仅当您设置了 `vllm.apiKey` 时才输入 API 密钥；无密钥的 vLLM 可留空
@@ -234,7 +234,7 @@ API Key: (leave blank)
 
 ```
 Name: In-Cluster vLLM
-LLM Type: OpenAI Compatible
+LLM Provider: OpenAI Compatible
 Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)

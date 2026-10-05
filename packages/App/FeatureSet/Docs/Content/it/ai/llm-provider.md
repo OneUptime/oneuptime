@@ -81,7 +81,7 @@ Compila i seguenti campi:
 
 - **Nome**: Un nome descrittivo per questa configurazione LLM (es. "OpenAI Produzione", "Ollama Locale")
 - **Descrizione** (opzionale): Una descrizione per identificare lo scopo di questo provider
-- **Tipo LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
+- **Provider LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
 - **Chiave API**: La tua chiave API (richiesta per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opzionale per Ollama e per i server compatibili con OpenAI)
 - **Nome modello**: Il modello specifico da utilizzare (es. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
@@ -91,7 +91,7 @@ Compila i seguenti campi:
 ### OpenAI
 
 1. Ottieni la tua chiave API da [OpenAI Platform](https://platform.openai.com/api-keys)
-2. Seleziona **OpenAI** come Tipo LLM
+2. Seleziona **OpenAI** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
    - `gpt-4o` - Modello più capace, ideale per compiti complessi
@@ -103,7 +103,7 @@ Compila i seguenti campi:
 
 ```
 Nome: OpenAI Produzione
-Tipo LLM: OpenAI
+Provider LLM: OpenAI
 Chiave API: sk-xxxxxxxxxxxxxxxxxxxx
 Nome del Modello: gpt-4o
 ```
@@ -111,7 +111,7 @@ Nome del Modello: gpt-4o
 ### Anthropic
 
 1. Ottieni la tua chiave API da [Anthropic Console](https://console.anthropic.com/)
-2. Seleziona **Anthropic** come Tipo LLM
+2. Seleziona **Anthropic** come Provider LLM
 3. Inserisci la tua chiave API
 4. Scegli un nome di modello:
    - `claude-3-opus-20240229` - Modello più capace
@@ -123,7 +123,7 @@ Nome del Modello: gpt-4o
 
 ```
 Nome: Anthropic Produzione
-Tipo LLM: Anthropic
+Provider LLM: Anthropic
 Chiave API: sk-ant-xxxxxxxxxxxxxxxxxxxx
 Nome del Modello: claude-3-5-sonnet-20241022
 ```
@@ -135,7 +135,7 @@ Ollama ti consente di eseguire LLM open-source localmente o sulla tua infrastrut
 1. Installa Ollama da [ollama.ai](https://ollama.ai)
 2. Scarica il modello desiderato: `ollama pull llama3.1`
 3. Assicurati che Ollama sia in esecuzione e raggiungibile dal server OneUptime. Un'installazione nativa ascolta solo su `127.0.0.1`, quindi avviala con `OLLAMA_HOST=0.0.0.0:11434` perché accetti connessioni da altre macchine e container (l'immagine Docker ufficiale `ollama/ollama` lo fa già)
-4. Seleziona **Ollama** come Tipo LLM
+4. Seleziona **Ollama** come Provider LLM
 5. Inserisci l'URL Base: l'indirizzo del server Ollama così come lo raggiunge il server OneUptime, ad es. `http://ollama:11434` (OneUptime aggiunge da solo `/api/chat`). `localhost` non funziona — vedi [Scegliere l'URL di base per un modello self-hosted](#scegliere-lurl-di-base-per-un-modello-self-hosted)
 6. Inserisci il nome del modello scaricato
 
@@ -143,7 +143,7 @@ Ollama ti consente di eseguire LLM open-source localmente o sulla tua infrastrut
 
 ```
 Nome: Ollama Self-Hosted
-Tipo LLM: Ollama
+Provider LLM: Ollama
 URL Base: http://ollama:11434
 Nome del Modello: llama3.1
 ```
@@ -191,7 +191,7 @@ I server compatibili con OpenAI seguono le stesse regole con la propria porta e 
 Usa il provider **OpenAI Compatible** per qualsiasi server che implementa l'API OpenAI `/chat/completions` ma non è OpenAI stesso — ad esempio [vLLM](https://docs.vllm.ai), [LocalAI](https://localai.io), [LM Studio](https://lmstudio.ai) o text-generation-webui. Questi server sono tipicamente self-hosted su un URL personale e spesso funzionano senza autenticazione.
 
 1. Avvia il tuo server compatibile con OpenAI e annota il suo URL base (di solito termina con `/v1`)
-2. Seleziona **OpenAI Compatible** come Tipo LLM
+2. Seleziona **OpenAI Compatible** come Provider LLM
 3. Inserisci l'**URL di base** (obbligatorio), es. `http://your-server:8000/v1`. Deve essere raggiungibile dal server OneUptime, quindi non `localhost` — vedi [Scegliere l'URL di base per un modello self-hosted](#scegliere-lurl-di-base-per-un-modello-self-hosted)
 4. Inserisci il **Nome modello** (obbligatorio) — deve corrispondere a un modello esposto dal tuo server
 5. Inserisci la **Chiave API** solo se il tuo server la richiede; lasciala vuota per i server senza autenticazione
@@ -225,7 +225,7 @@ Se ospiti OneUptime autonomamente con il chart Helm, puoi eseguire [vLLM](https:
 
 Se hai disabilitato la registrazione automatica (`vllm.globalProvider.enabled: false`), crea il provider manualmente:
 
-1. Seleziona **OpenAI Compatible** come Tipo LLM (vLLM parla l'API OpenAI)
+1. Seleziona **OpenAI Compatible** come Provider LLM (vLLM parla l'API OpenAI)
 2. Inserisci l'URL Base in-cluster: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (sostituisci `cluster.local` se hai cambiato `global.clusterDomain`)
 3. Inserisci il Nome del Modello: l'id completo del modello HuggingFace (oppure `vllm.servedModelName` se ne hai impostato uno)
 4. Inserisci la Chiave API solo se hai impostato `vllm.apiKey`; lasciala vuota per un vLLM senza autenticazione

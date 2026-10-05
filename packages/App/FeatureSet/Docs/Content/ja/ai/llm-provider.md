@@ -81,7 +81,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 
 - **名前**: この LLM 設定のわかりやすい名前（例: "本番 OpenAI"、"ローカル Ollama"）
 - **説明**（任意）: このプロバイダーの目的を識別するための説明
-- **LLM タイプ**: プロバイダーの種類を選択（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama、または OpenAI Compatible）
+- **LLM プロバイダー**: プロバイダーの種類を選択（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama、または OpenAI Compatible）
 - **API キー**: API キー（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral では必須。Ollama と OpenAI 互換サーバーでは任意）
 - **モデル名**: 使用する特定のモデル（例: `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
 - **ベース URL**（任意）: カスタム API エンドポイント URL（Azure OpenAI、Ollama、OpenAI Compatible では必須、その他では任意）
@@ -91,7 +91,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 ### OpenAI
 
 1. [OpenAI Platform](https://platform.openai.com/api-keys) から API キーを取得します
-2. **LLM タイプ** として **OpenAI** を選択します
+2. **LLM プロバイダー** として **OpenAI** を選択します
 3. API キーを入力します
 4. モデル名を選択します:
    - `gpt-4o` - 最も高性能なモデル、複雑なタスクに最適
@@ -103,7 +103,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 
 ```
 Name: Production OpenAI
-LLM Type: OpenAI
+LLM Provider: OpenAI
 API Key: sk-xxxxxxxxxxxxxxxxxxxx
 Model Name: gpt-4o
 ```
@@ -111,7 +111,7 @@ Model Name: gpt-4o
 ### Anthropic
 
 1. [Anthropic Console](https://console.anthropic.com/) から API キーを取得します
-2. **LLM タイプ** として **Anthropic** を選択します
+2. **LLM プロバイダー** として **Anthropic** を選択します
 3. API キーを入力します
 4. モデル名を選択します:
    - `claude-3-opus-20240229` - 最も高性能なモデル
@@ -123,7 +123,7 @@ Model Name: gpt-4o
 
 ```
 Name: Production Anthropic
-LLM Type: Anthropic
+LLM Provider: Anthropic
 API Key: sk-ant-xxxxxxxxxxxxxxxxxxxx
 Model Name: claude-3-5-sonnet-20241022
 ```
@@ -135,7 +135,7 @@ Ollama を使用すると、オープンソースの LLM をローカルまた�
 1. [ollama.ai](https://ollama.ai) から Ollama をインストールします
 2. 希望するモデルをプルします: `ollama pull llama3.1`
 3. Ollama が実行中で、OneUptime サーバーから到達できることを確認します。ネイティブインストールは `127.0.0.1` でしか待ち受けないため、他のマシンやコンテナーからの接続を受け付けるには `OLLAMA_HOST=0.0.0.0:11434` を指定して起動します（公式の Docker イメージ `ollama/ollama` は最初からそうなっています）
-4. **LLM タイプ** として **Ollama** を選択します
+4. **LLM プロバイダー** として **Ollama** を選択します
 5. ベース URL を入力します。OneUptime サーバーから見た Ollama サーバーのアドレスで、例えば `http://ollama:11434` です（`/api/chat` は OneUptime が付け足します）。`localhost` は使えません。[セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください
 6. プルしたモデル名を入力します
 
@@ -143,7 +143,7 @@ Ollama を使用すると、オープンソースの LLM をローカルまた�
 
 ```
 Name: Self-Hosted Ollama
-LLM Type: Ollama
+LLM Provider: Ollama
 Base URL: http://ollama:11434
 Model Name: llama3.1
 ```
@@ -191,7 +191,7 @@ OpenAI 互換サーバーにも、それぞれのポートと `/v1` パスで同
 OpenAI の `/chat/completions` API を実装しているものの OpenAI 自体ではないサーバー、例えば [vLLM](https://docs.vllm.ai)、[LocalAI](https://localai.io)、[LM Studio](https://lmstudio.ai)、text-generation-webui などには **OpenAI Compatible** プロバイダーを使用します。これらは通常、独自の URL でセルフホストされ、認証なしで動作することも多いです。
 
 1. OpenAI 互換サーバーを起動し、そのベース URL を確認します（通常は `/v1` で終わります）
-2. **LLM タイプ** として **OpenAI Compatible** を選択します
+2. **LLM プロバイダー** として **OpenAI Compatible** を選択します
 3. **ベース URL**（必須）を入力します。例: `http://your-server:8000/v1`。OneUptime サーバーから到達できる必要があるため、`localhost` は使えません。[セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください
 4. **モデル名**（必須）を入力します。サーバーが公開しているモデルと一致している必要があります
 5. サーバーが認証を必要とする場合のみ **API キー** を入力します。キー不要のサーバーの場合は空欄のままにします
@@ -200,7 +200,7 @@ OpenAI の `/chat/completions` API を実装しているものの OpenAI 自体�
 
 ```
 Name: Self-Hosted vLLM
-LLM Type: OpenAI Compatible
+LLM Provider: OpenAI Compatible
 Base URL: http://vllm.internal:8000/v1
 Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
@@ -225,7 +225,7 @@ Helm チャートで OneUptime をセルフホストしている場合、OpenAI 
 
 自動登録を無効化した場合（`vllm.globalProvider.enabled: false`）は、プロバイダーを手動で作成します:
 
-1. **LLM タイプ** として **OpenAI Compatible** を選択します（vLLM は OpenAI API に対応しています）
+1. **LLM プロバイダー** として **OpenAI Compatible** を選択します（vLLM は OpenAI API に対応しています）
 2. クラスター内のベース URL を入力します: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`（`global.clusterDomain` を変更した場合は `cluster.local` を置き換えてください）
 3. モデル名を入力します: HuggingFace のモデル ID 全体（設定した場合は `vllm.servedModelName`）
 4. `vllm.apiKey` を設定した場合のみ API キーを入力します。キー不要の vLLM の場合は空欄のままにします
@@ -234,7 +234,7 @@ Helm チャートで OneUptime をセルフホストしている場合、OpenAI 
 
 ```
 Name: In-Cluster vLLM
-LLM Type: OpenAI Compatible
+LLM Provider: OpenAI Compatible
 Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
