@@ -6,6 +6,7 @@ import Project from "../../../../Models/DatabaseModels/Project";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import ProjectService from "../../../Services/ProjectService";
+import AIService from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -20,8 +21,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *
  * It NEVER overwrites a postmortem that already exists (human work wins), is
  * gated by its own per-project opt-in (Project.enableAutomaticPostmortemDraft)
- * plus the same AI switch, LLM provider and AI balance as investigations, and
- * is fire-and-forget: failures are logged, never surfaced to the resolve flow.
+ * plus the same AI switch, LLM provider, AI balance and project daily AI
+ * limits as investigations, and is fire-and-forget: failures are logged,
+ * never surfaced to the resolve flow.
  */
 const MAX_FEED_PREVIEW_CHARS: number = 6000;
 
@@ -32,8 +34,9 @@ export default class AIIncidentPostmortemRunner {
    * project's Slack/Teams channels where an investigation only reads. Both
    * are on for new projects; a project that existed before keeps its own
    * value, and unset reads as off (=== true). The AI kill switch, the LLM
-   * provider and the AI balance gate it exactly as they gate an
-   * investigation.
+   * provider, the AI balance and the project's own daily AI limits gate it
+   * exactly as they gate an investigation: a draft refused by a limit would
+   * only log an error for every incident resolved until midnight UTC.
    */
   public static async isEnabledForProject(
     projectId: ObjectID,
@@ -43,6 +46,8 @@ export default class AIIncidentPostmortemRunner {
       select: {
         enableAi: true,
         enableAutomaticPostmortemDraft: true,
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
       },
       props: { isRoot: true },
     });
@@ -55,8 +60,15 @@ export default class AIIncidentPostmortemRunner {
       return false;
     }
 
+    if (
+      (await AIInvestigationEngine.getProviderOrBalanceReason(projectId)) !==
+      null
+    ) {
+      return false;
+    }
+
     return (
-      (await AIInvestigationEngine.getProviderOrBalanceReason(projectId)) ===
+      (await AIService.getReachedProjectDailyLimit({ projectId, project })) ===
       null
     );
   }
