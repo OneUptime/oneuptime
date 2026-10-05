@@ -2,17 +2,20 @@ import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
+import MonitorService from "../../../../../Server/Services/MonitorService";
 import RunnerJobService from "../../../../../Server/Services/RunnerJobService";
+import ServiceService from "../../../../../Server/Services/ServiceService";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
+import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { jest } from "@jest/globals";
 
 /*
- * An in-memory stand-in for the five tables the incident and alert AI
- * activity readers read - incidents, alerts, AI runs, auto-remediation
- * suggestions and Runner jobs - behind the services' own findBy, so the
- * readers run unchanged.
+ * An in-memory stand-in for the tables the incident and alert AI activity
+ * readers read - incidents, alerts, AI runs, auto-remediation suggestions,
+ * Runner jobs, monitors and services - behind the services' own findBy (and
+ * the incidents' and alerts' countBy), so the readers run unchanged.
  *
  * It answers the query shapes the readers build: plain equality, and the
  * QueryHelper operators they use (notNull, isNull, lessThan,
@@ -21,8 +24,9 @@ import { jest } from "@jest/globals";
  *
  * Who may read what is the access below: root reads everything; a caller's
  * read of a table their role may not read throws NotAuthorizedException, the
- * way the permission layer does, and a caller's read of incidents or alerts
- * only returns the ones they may read (labels, private incidents).
+ * way the permission layer does, and a caller's read of incidents, alerts,
+ * monitors or services only returns the ones they may read (labels, private
+ * incidents).
  */
 
 export type FakeRow = Record<string, unknown> & {
@@ -36,6 +40,8 @@ export interface FakeTables {
   runs: Array<FakeRow>;
   suggestions: Array<FakeRow>;
   jobs: Array<FakeRow>;
+  monitors: Array<FakeRow>;
+  services: Array<FakeRow>;
 }
 
 export interface FakeAccess {
@@ -43,15 +49,20 @@ export interface FakeAccess {
   canReadAlerts: boolean;
   canReadSuggestions: boolean;
   canReadJobs: boolean;
-  // The incidents and alerts a caller may read; every one when left out.
+  canReadMonitors: boolean;
+  canReadServices: boolean;
+  // The rows a caller may read; every one when left out.
   readableIncidentIds?: Set<string> | undefined;
   readableAlertIds?: Set<string> | undefined;
+  readableMonitorIds?: Set<string> | undefined;
+  readableServiceIds?: Set<string> | undefined;
 }
 
 export type FakeTableName = keyof FakeTables;
 
 export interface FakeCall {
   table: FakeTableName;
+  method: "findBy" | "countBy";
   query: Record<string, unknown>;
   select: Record<string, unknown>;
   limit: number;
@@ -145,8 +156,7 @@ export function matchesFilter(value: unknown, filter: unknown): boolean {
 
 function matches(row: FakeRow, query: Record<string, unknown>): boolean {
   return Object.keys(query).every((key: string): boolean => {
-    const column: string = key === "_id" ? "_id" : key;
-    return matchesFilter(row[column], query[key]);
+    return matchesFilter(row[key], query[key]);
   });
 }
 
@@ -155,15 +165,31 @@ function toModel(row: FakeRow): Record<string, unknown> {
   return { ...row, id: new ObjectID(row._id) };
 }
 
+// A related row (a monitor or a service on an incident) as a relation select returns it.
+export function related(id: string): Record<string, unknown> {
+  return { _id: id, id: new ObjectID(id) };
+}
+
 export interface FakeStore {
   tables: FakeTables;
   access: FakeAccess;
   calls: Array<FakeCall>;
-  callsTo: (table: FakeTableName) => Array<FakeCall>;
+  callsTo: (
+    table: FakeTableName,
+    method?: "findBy" | "countBy",
+  ) => Array<FakeCall>;
 }
 
 export function emptyTables(): FakeTables {
-  return { incidents: [], alerts: [], runs: [], suggestions: [], jobs: [] };
+  return {
+    incidents: [],
+    alerts: [],
+    runs: [],
+    suggestions: [],
+    jobs: [],
+    monitors: [],
+    services: [],
+  };
 }
 
 export function fullAccess(): FakeAccess {
@@ -172,6 +198,8 @@ export function fullAccess(): FakeAccess {
     canReadAlerts: true,
     canReadSuggestions: true,
     canReadJobs: true,
+    canReadMonitors: true,
+    canReadServices: true,
   };
 }
 
@@ -183,11 +211,55 @@ export function installFakeStore(
     tables,
     access,
     calls: [],
-    callsTo: (table: FakeTableName): Array<FakeCall> => {
+    callsTo: (
+      table: FakeTableName,
+      method: "findBy" | "countBy" = "findBy",
+    ): Array<FakeCall> => {
       return store.calls.filter((call: FakeCall): boolean => {
-        return call.table === table;
+        return call.table === table && call.method === method;
       });
     },
+  };
+
+  const permitted: (
+    table: FakeTableName,
+    props: DatabaseCommonInteractionProps,
+  ) => Array<FakeRow> = (
+    table: FakeTableName,
+    props: DatabaseCommonInteractionProps,
+  ): Array<FakeRow> => {
+    if (props?.isRoot) {
+      return store.tables[table];
+    }
+
+    const allowed: Record<FakeTableName, boolean> = {
+      incidents: store.access.canReadIncidents,
+      alerts: store.access.canReadAlerts,
+      runs: false,
+      suggestions: store.access.canReadSuggestions,
+      jobs: store.access.canReadJobs,
+      monitors: store.access.canReadMonitors,
+      services: store.access.canReadServices,
+    };
+
+    if (!allowed[table]) {
+      throw new NotAuthorizedException(
+        `You do not have permission to read ${table}.`,
+      );
+    }
+
+    const readable: Partial<Record<FakeTableName, Set<string> | undefined>> = {
+      incidents: store.access.readableIncidentIds,
+      alerts: store.access.readableAlertIds,
+      monitors: store.access.readableMonitorIds,
+      services: store.access.readableServiceIds,
+    };
+
+    const ids: Set<string> | undefined = readable[table];
+
+    return store.tables[table].filter((row: FakeRow): boolean => {
+      return !ids || ids.has(row._id);
+    });
   };
 
   const find: (
@@ -208,46 +280,16 @@ export function installFakeStore(
 
       store.calls.push({
         table,
+        method: "findBy",
         query: findBy.query,
         select: findBy.select,
         limit: findBy.limit,
         props: findBy.props,
       });
 
-      const isRoot: boolean = Boolean(findBy.props?.isRoot);
-
-      if (!isRoot) {
-        const allowed: boolean =
-          table === "incidents"
-            ? store.access.canReadIncidents
-            : table === "alerts"
-              ? store.access.canReadAlerts
-              : table === "suggestions"
-                ? store.access.canReadSuggestions
-                : table === "jobs"
-                  ? store.access.canReadJobs
-                  : false;
-
-        if (!allowed) {
-          throw new NotAuthorizedException(
-            `You do not have permission to read ${table}.`,
-          );
-        }
-      }
-
-      const readable: Set<string> | undefined = isRoot
-        ? undefined
-        : table === "incidents"
-          ? store.access.readableIncidentIds
-          : table === "alerts"
-            ? store.access.readableAlertIds
-            : undefined;
-
-      return store.tables[table]
+      return permitted(table, findBy.props)
         .filter((row: FakeRow): boolean => {
-          return (
-            matches(row, findBy.query) && (!readable || readable.has(row._id))
-          );
+          return matches(row, findBy.query);
         })
         .sort((a: FakeRow, b: FakeRow): number => {
           return b.createdAt.getTime() - a.createdAt.getTime();
@@ -257,12 +299,47 @@ export function installFakeStore(
     };
   };
 
+  const count: (
+    table: FakeTableName,
+  ) => (args: unknown) => Promise<PositiveNumber> = (table: FakeTableName) => {
+    return async (args: unknown): Promise<PositiveNumber> => {
+      const countBy: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      } = args as {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      };
+
+      store.calls.push({
+        table,
+        method: "countBy",
+        query: countBy.query,
+        select: {},
+        limit: 0,
+        props: countBy.props,
+      });
+
+      return new PositiveNumber(
+        permitted(table, countBy.props).filter((row: FakeRow): boolean => {
+          return matches(row, countBy.query);
+        }).length,
+      );
+    };
+  };
+
   jest
     .spyOn(IncidentService, "findBy")
     .mockImplementation(find("incidents") as never);
   jest
+    .spyOn(IncidentService, "countBy")
+    .mockImplementation(count("incidents") as never);
+  jest
     .spyOn(AlertService, "findBy")
     .mockImplementation(find("alerts") as never);
+  jest
+    .spyOn(AlertService, "countBy")
+    .mockImplementation(count("alerts") as never);
   jest.spyOn(AIRunService, "findBy").mockImplementation(find("runs") as never);
   jest
     .spyOn(AutoRemediationSuggestionService, "findBy")
@@ -270,6 +347,12 @@ export function installFakeStore(
   jest
     .spyOn(RunnerJobService, "findBy")
     .mockImplementation(find("jobs") as never);
+  jest
+    .spyOn(MonitorService, "findBy")
+    .mockImplementation(find("monitors") as never);
+  jest
+    .spyOn(ServiceService, "findBy")
+    .mockImplementation(find("services") as never);
 
   return store;
 }

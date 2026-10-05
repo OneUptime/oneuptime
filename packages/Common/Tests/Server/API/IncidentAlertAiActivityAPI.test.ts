@@ -1,5 +1,10 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
+import IncidentAlertAiInsightsReader from "../../../Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsReader";
 import IncidentAlertAiLogsReader from "../../../Server/Utils/AI/IncidentAlertActivity/IncidentAlertAiLogsReader";
+import {
+  INCIDENT_ALERT_AI_INSIGHTS_PATHS,
+  IncidentAlertAiInsights,
+} from "../../../Types/AI/IncidentAlertAiInsights";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -36,7 +41,7 @@ import {
  * signed-in user inside exactly one project, pin the request to that
  * project before anything is read, check what the body asks for, and hand
  * the rest to IncidentAlertAiLogsReader (whose own suites hold who sees
- * what).
+ * what). The insights routes do the same for IncidentAlertAiInsightsReader.
  */
 
 type RouterFunction = (
@@ -131,18 +136,23 @@ function signedInProps(
   } as DatabaseCommonInteractionProps;
 }
 
-function routeFor(subjectKind: IncidentAlertAiSubjectKind): MockRoute {
+function routeFor(
+  subjectKind: IncidentAlertAiSubjectKind,
+  paths: Record<
+    IncidentAlertAiSubjectKind,
+    string
+  > = INCIDENT_ALERT_AI_LOGS_PATHS,
+): MockRoute {
   const route: MockRoute | undefined = mockRoutes.find(
     (candidate: MockRoute): boolean => {
       return (
-        candidate.method === "POST" &&
-        candidate.uri === INCIDENT_ALERT_AI_LOGS_PATHS[subjectKind]
+        candidate.method === "POST" && candidate.uri === paths[subjectKind]
       );
     },
   );
 
   if (!route) {
-    throw new Error(`No route for ${subjectKind} logs`);
+    throw new Error(`No route for ${paths[subjectKind]}`);
   }
 
   return route;
@@ -156,12 +166,16 @@ interface CallResult {
 async function call(
   subjectKind: IncidentAlertAiSubjectKind,
   body: unknown,
+  paths: Record<
+    IncidentAlertAiSubjectKind,
+    string
+  > = INCIDENT_ALERT_AI_LOGS_PATHS,
 ): Promise<CallResult> {
   const next: jest.Mock = jest.fn();
   const sendJson: jest.Mock =
     Response.sendJsonObjectResponse as unknown as jest.Mock;
 
-  await routeFor(subjectKind).handlerFunction(
+  await routeFor(subjectKind, paths).handlerFunction(
     { params: {}, query: {}, body, headers: {} } as unknown as ExpressRequest,
     {} as ExpressResponse,
     next as unknown as NextFunction,
@@ -376,5 +390,152 @@ describe("parseLogsRequest", () => {
     expect(
       parseLogsRequest({ projectId: "someone else's", limit: 10000 }),
     ).toEqual({});
+  });
+});
+
+describe("the insights routes", () => {
+  function insightsFor(
+    subjectKind: IncidentAlertAiSubjectKind,
+  ): IncidentAlertAiInsights {
+    return {
+      subjectKind,
+      windowInDays: 30,
+      windowStart: "2026-09-06T00:00:00.000Z",
+      generatedAt: "2026-10-05T10:00:00.000Z",
+      totals: {
+        investigations: 0,
+        completedInvestigations: 0,
+        failedInvestigations: 0,
+        activeInvestigations: 0,
+        problems: 0,
+        recurringProblems: 0,
+        fixes: 0,
+        fixTasks: 0,
+        commands: 0,
+        failedCommands: 0,
+        timedOutCommands: 0,
+      },
+      coverage: { subjects: 0, investigatedSubjects: 0, notInvestigated: [] },
+      attention: [],
+      problems: [],
+      monitors: [],
+      services: [],
+      fixOutcomes: null,
+      fixTaskOutcomes: {
+        total: 0,
+        pullRequestsOpened: 0,
+        noFixFound: 0,
+        inProgress: 0,
+        failed: 0,
+        cancelled: 0,
+      },
+      verdicts: {
+        confirmed: 0,
+        rejected: 0,
+        matched: 0,
+        partlyMatched: 0,
+        mismatched: 0,
+      },
+      trend: [],
+      isPartial: false,
+    };
+  }
+
+  let insightsSpy: jest.SpiedFunction<
+    typeof IncidentAlertAiInsightsReader.read
+  >;
+
+  beforeEach(() => {
+    insightsSpy = jest
+      .spyOn(IncidentAlertAiInsightsReader, "read")
+      .mockImplementation(
+        async (options: {
+          subjectKind: IncidentAlertAiSubjectKind;
+        }): Promise<IncidentAlertAiInsights> => {
+          return insightsFor(options.subjectKind);
+        },
+      );
+  });
+
+  test("one per product, each behind the user middleware", () => {
+    expect(INCIDENT_ALERT_AI_INSIGHTS_PATHS).toEqual({
+      incident: "/ai-activity/incident/insights",
+      alert: "/ai-activity/alert/insights",
+    });
+
+    for (const subjectKind of INCIDENT_ALERT_AI_SUBJECT_KINDS) {
+      expect(
+        routeFor(subjectKind, INCIDENT_ALERT_AI_INSIGHTS_PATHS).middleware,
+      ).toBe(UserMiddleware.getUserMiddleware);
+    }
+  });
+
+  test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
+    "the %s route reads that product's insights, pinned to the tenant, and sends them",
+    async (subjectKind: IncidentAlertAiSubjectKind) => {
+      const result: CallResult = await call(
+        subjectKind,
+        { projectId: "someone else's" },
+        INCIDENT_ALERT_AI_INSIGHTS_PATHS,
+      );
+
+      expect(result.error).toBeUndefined();
+      expect(insightsSpy).toHaveBeenCalledTimes(1);
+
+      const options: Parameters<typeof IncidentAlertAiInsightsReader.read>[0] =
+        insightsSpy.mock.calls[0]![0];
+
+      expect(options.subjectKind).toBe(subjectKind);
+      // The tenant, never what the body says.
+      expect(options.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(options.props.isMultiTenantRequest).toBe(false);
+      expect(result.sent).toEqual(insightsFor(subjectKind));
+      // The logs reader is not involved.
+      expect(readSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(INCIDENT_ALERT_AI_SUBJECT_KINDS)(
+    "the %s route refuses a request without a signed-in user",
+    async (subjectKind: IncidentAlertAiSubjectKind) => {
+      propsSpy.mockResolvedValue(signedInProps({ userId: undefined }));
+
+      const result: CallResult = await call(
+        subjectKind,
+        {},
+        INCIDENT_ALERT_AI_INSIGHTS_PATHS,
+      );
+
+      expect(result.error).toBeDefined();
+      expect(insightsSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("refuses a request that names no project", async () => {
+    propsSpy.mockResolvedValue(signedInProps({ tenantId: undefined }));
+
+    const result: CallResult = await call(
+      "alert",
+      {},
+      INCIDENT_ALERT_AI_INSIGHTS_PATHS,
+    );
+
+    expect(result.error).toBeInstanceOf(BadDataException);
+    expect(insightsSpy).not.toHaveBeenCalled();
+  });
+
+  test("hands a refusal from the reader on, and sends nothing", async () => {
+    insightsSpy.mockRejectedValue(
+      new NotAuthorizedException("You may not read alerts."),
+    );
+
+    const result: CallResult = await call(
+      "alert",
+      {},
+      INCIDENT_ALERT_AI_INSIGHTS_PATHS,
+    );
+
+    expect(result.error).toBeInstanceOf(NotAuthorizedException);
+    expect(result.sent).toBeUndefined();
   });
 });

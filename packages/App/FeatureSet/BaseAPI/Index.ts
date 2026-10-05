@@ -5552,7 +5552,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);
 
-    // The AI section of the Incidents and Alerts menus: AI Logs.
+    // The AI section of the Incidents and Alerts menus: AI Insights and Logs.
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, IncidentAlertAiActivityAPI);
 
     // AI SRE — the shared conversation in the investigation box

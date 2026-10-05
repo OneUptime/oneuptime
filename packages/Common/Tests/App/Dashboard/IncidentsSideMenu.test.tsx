@@ -12,8 +12,8 @@ import * as React from "react";
 
 /*
  * Incidents carry the same layout as alerts — an AI section with everything
- * OneUptime AI does for incidents (its Settings and the Auto Remediation
- * Rules), the rule pages in a Rules section — but with two pages alerts does
+ * OneUptime AI does for incidents (its Insights, its Logs, its Settings and
+ * the Auto Remediation Rules), the rule pages in a Rules section — but with two pages alerts does
  * not have (SLA Rules, Incident Roles), and those are exactly where a
  * copy-paste of the alerts menu would go wrong: SLA Rules belongs in Rules,
  * Incident Roles stays in Settings.
@@ -214,10 +214,14 @@ describe("Incidents side menu", () => {
   });
 
   describe("the AI section", () => {
-    test("holds what AI did, its settings and the auto-remediation rules", async () => {
+    test("holds what AI learned, what it did, its settings and the auto-remediation rules", async () => {
       await renderIncidentsMenu();
 
       expect(linksIn("AI")).toEqual([
+        {
+          title: "Insights",
+          href: routeFor(PageMap.INCIDENTS_AI_INSIGHTS),
+        },
         {
           title: "Logs",
           href: routeFor(PageMap.INCIDENTS_AI_LOGS),
@@ -241,6 +245,7 @@ describe("Incidents side menu", () => {
           return link.href;
         }),
       ).toEqual([
+        `/dashboard/${PROJECT_ID}/incidents/ai/insights`,
         `/dashboard/${PROJECT_ID}/incidents/ai/logs`,
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
         `/dashboard/${PROJECT_ID}/incidents/ai/auto-remediation-rules`,
@@ -254,6 +259,7 @@ describe("Incidents side menu", () => {
     });
 
     test.each([
+      PageMap.INCIDENTS_AI_INSIGHTS,
       PageMap.INCIDENTS_AI_LOGS,
       PageMap.INCIDENTS_SETTINGS_AI,
       PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
@@ -328,6 +334,7 @@ describe("Incidents side menu", () => {
 
     // AI is collapsed by default, so it must open itself on its pages.
     test.each([
+      ["Insights", PageMap.INCIDENTS_AI_INSIGHTS],
       ["Logs", PageMap.INCIDENTS_AI_LOGS],
       ["Settings", PageMap.INCIDENTS_SETTINGS_AI],
       [
@@ -686,6 +693,13 @@ describe("Incidents side menu", () => {
   describe("mobile summary", () => {
     beforeEach(() => {
       setViewportWidth(MOBILE_WIDTH);
+    });
+
+    test("names the AI section on the AI Insights page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/ai/insights`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("AI / Insights");
     });
 
     test("names the AI section on the AI Logs page", async () => {

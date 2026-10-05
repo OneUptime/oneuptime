@@ -143,6 +143,7 @@ describe("the descriptors", () => {
         subjectKind === "incident" ? "incidents" : "alerts";
 
       for (const page of [
+        getIncidentAlertAiDescriptor(subjectKind).insightsPage,
         getIncidentAlertAiDescriptor(subjectKind).logsPage,
         getIncidentAlertAiDescriptor(subjectKind).settingsPage,
         getIncidentAlertAiDescriptor(subjectKind).autoRemediationRulesPage,
@@ -154,6 +155,12 @@ describe("the descriptors", () => {
   );
 
   test("the two products never share a page", () => {
+    expect(INCIDENT_ALERT_AI_DESCRIPTORS.incident.insightsPage).toBe(
+      PageMap.INCIDENTS_AI_INSIGHTS,
+    );
+    expect(INCIDENT_ALERT_AI_DESCRIPTORS.alert.insightsPage).toBe(
+      PageMap.ALERTS_AI_INSIGHTS,
+    );
     expect(INCIDENT_ALERT_AI_DESCRIPTORS.incident.logsPage).toBe(
       PageMap.INCIDENTS_AI_LOGS,
     );

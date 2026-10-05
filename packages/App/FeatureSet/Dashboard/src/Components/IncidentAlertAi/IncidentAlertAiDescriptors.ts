@@ -1,6 +1,5 @@
 import PageMap from "../../Utils/PageMap";
 import { IncidentAlertAiSubjectKind } from "Common/Types/AI/IncidentAlertAiLogs";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The AI section of the Incidents and Alerts menus draws the same pages for
@@ -10,6 +9,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export interface IncidentAlertAiDescriptor {
   subjectKind: IncidentAlertAiSubjectKind;
   // The section's pages.
+  insightsPage: PageMap;
   logsPage: PageMap;
   settingsPage: PageMap;
   autoRemediationRulesPage: PageMap;
@@ -25,6 +25,7 @@ export const INCIDENT_ALERT_AI_DESCRIPTORS: Record<
 > = {
   incident: {
     subjectKind: "incident",
+    insightsPage: PageMap.INCIDENTS_AI_INSIGHTS,
     logsPage: PageMap.INCIDENTS_AI_LOGS,
     settingsPage: PageMap.INCIDENTS_SETTINGS_AI,
     autoRemediationRulesPage: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
@@ -33,6 +34,7 @@ export const INCIDENT_ALERT_AI_DESCRIPTORS: Record<
   },
   alert: {
     subjectKind: "alert",
+    insightsPage: PageMap.ALERTS_AI_INSIGHTS,
     logsPage: PageMap.ALERTS_AI_LOGS,
     settingsPage: PageMap.ALERTS_SETTINGS_AI,
     autoRemediationRulesPage: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
@@ -46,12 +48,3 @@ export function getIncidentAlertAiDescriptor(
 ): IncidentAlertAiDescriptor {
   return INCIDENT_ALERT_AI_DESCRIPTORS[subjectKind];
 }
-
-// The words "incident" and "alert" as a sentence names them.
-export const INCIDENT_ALERT_AI_SUBJECT_TERMS: Record<
-  IncidentAlertAiSubjectKind,
-  string
-> = {
-  incident: translationKey("incident"),
-  alert: translationKey("alert"),
-};

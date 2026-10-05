@@ -7,7 +7,12 @@ import Express, {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import IncidentAlertAiInsightsReader from "../Utils/AI/IncidentAlertActivity/IncidentAlertAiInsightsReader";
 import IncidentAlertAiLogsReader from "../Utils/AI/IncidentAlertActivity/IncidentAlertAiLogsReader";
+import {
+  INCIDENT_ALERT_AI_INSIGHTS_PATHS,
+  IncidentAlertAiInsights,
+} from "../../Types/AI/IncidentAlertAiInsights";
 import {
   INCIDENT_ALERT_AI_LOGS_PATHS,
   INCIDENT_ALERT_AI_LOG_KINDS,
@@ -37,6 +42,16 @@ const router: ExpressRouter = Express.getRouter();
  *     signed-in user who may read incidents (or alerts); every entry is
  *     about one the caller may read, and fixes and commands also need read
  *     access to their own tables (IncidentAlertAiLogsReader).
+ *
+ *   POST /ai-activity/incident/insights   {}
+ *   POST /ai-activity/alert/insights      {}
+ *     What OneUptime AI learned across the project's incidents (or alerts)
+ *     over the last 30 days and what deserves attention
+ *     (IncidentAlertAiInsights): what keeps happening, what the
+ *     investigations concluded, the monitors and services that keep
+ *     failing, how the fixes turned out, and the trend. Same audience as
+ *     the logs; what it says follows the caller's own read access
+ *     (IncidentAlertAiInsightsReader).
  */
 
 /*
@@ -135,6 +150,41 @@ for (const subjectKind of INCIDENT_ALERT_AI_SUBJECT_KINDS) {
           req,
           res,
           logs as unknown as JSONObject,
+        );
+        return;
+      } catch (err) {
+        next(err);
+        return;
+      }
+    },
+  );
+
+  router.post(
+    INCIDENT_ALERT_AI_INSIGHTS_PATHS[subjectKind],
+    UserMiddleware.getUserMiddleware,
+    async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const {
+          projectId,
+          props,
+        }: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
+          await getTenantProps(req);
+
+        const insights: IncidentAlertAiInsights =
+          await IncidentAlertAiInsightsReader.read({
+            subjectKind: subjectKind as IncidentAlertAiSubjectKind,
+            projectId,
+            props,
+          });
+
+        Response.sendJsonObjectResponse(
+          req,
+          res,
+          insights as unknown as JSONObject,
         );
         return;
       } catch (err) {

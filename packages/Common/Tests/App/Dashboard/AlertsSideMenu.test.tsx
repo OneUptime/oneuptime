@@ -18,7 +18,8 @@ import * as React from "react";
  * looks wrong in a diff.
  *
  * The latest move: everything OneUptime AI does for alerts has an AI section
- * of its own again, right after Episodes. The AI settings page left Settings
+ * of its own again, right after Episodes: what it learned (Insights), what it
+ * did (Logs), its settings and its rules. The AI settings page left Settings
  * for it, as "Settings", and the auto-remediation rules left Rules for it.
  *
  * So these render the real component against the real RouteMap rather than
@@ -199,10 +200,14 @@ describe("Alerts side menu", () => {
   });
 
   describe("the AI section", () => {
-    test("holds what AI did, its settings and the auto-remediation rules", async () => {
+    test("holds what AI learned, what it did, its settings and the auto-remediation rules", async () => {
       await renderAlertsMenu();
 
       expect(linksIn("AI")).toEqual([
+        {
+          title: "Insights",
+          href: routeFor(PageMap.ALERTS_AI_INSIGHTS),
+        },
         {
           title: "Logs",
           href: routeFor(PageMap.ALERTS_AI_LOGS),
@@ -226,6 +231,7 @@ describe("Alerts side menu", () => {
           return link.href;
         }),
       ).toEqual([
+        `/dashboard/${PROJECT_ID}/alerts/ai/insights`,
         `/dashboard/${PROJECT_ID}/alerts/ai/logs`,
         `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
         `/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`,
@@ -239,6 +245,7 @@ describe("Alerts side menu", () => {
     });
 
     test.each([
+      PageMap.ALERTS_AI_INSIGHTS,
       PageMap.ALERTS_AI_LOGS,
       PageMap.ALERTS_SETTINGS_AI,
       PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
@@ -309,6 +316,7 @@ describe("Alerts side menu", () => {
 
     // AI is collapsed by default, so it must open itself on its pages.
     test.each([
+      ["Insights", PageMap.ALERTS_AI_INSIGHTS],
       ["Logs", PageMap.ALERTS_AI_LOGS],
       ["Settings", PageMap.ALERTS_SETTINGS_AI],
       [
@@ -591,6 +599,13 @@ describe("Alerts side menu", () => {
   describe("mobile summary", () => {
     beforeEach(() => {
       setViewportWidth(MOBILE_WIDTH);
+    });
+
+    test("names the AI section on the AI Insights page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/ai/insights`);
+      await renderAlertsMenu();
+
+      expect(mobileSummaryText()).toContain("AI / Insights");
     });
 
     test("names the AI section on the AI Logs page", async () => {

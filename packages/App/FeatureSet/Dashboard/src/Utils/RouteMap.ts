@@ -916,6 +916,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
    * and settings/auto-remediation-rules, which forward here
    * (MOVED_AI_SECTION_PATHS).
    */
+  [PageMap.INCIDENTS_AI_INSIGHTS]: "ai/insights",
   [PageMap.INCIDENTS_AI_LOGS]: "ai/logs",
   [PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings",
   [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
@@ -993,6 +994,7 @@ export const AlertsRoutePath: Dictionary<string> = {
    * and settings/auto-remediation-rules, which forward here
    * (MOVED_AI_SECTION_PATHS).
    */
+  [PageMap.ALERTS_AI_INSIGHTS]: "ai/insights",
   [PageMap.ALERTS_AI_LOGS]: "ai/logs",
   [PageMap.ALERTS_SETTINGS_AI]: "ai/settings",
   [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules",
@@ -1665,10 +1667,15 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   /*
-   * The AI section's pages, its record of what AI did first: the "AI" crumb
-   * of the section's other pages links to the first page declared under
-   * …/alerts/ai.
+   * The AI section's pages, Insights first: the "AI" crumb of the section's
+   * other pages links to the first page declared under …/alerts/ai.
    */
+  [PageMap.ALERTS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_AI_INSIGHTS]
+    }`,
+  ),
+
   [PageMap.ALERTS_AI_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_AI_LOGS]
@@ -2222,10 +2229,15 @@ const RouteMap: Dictionary<Route> = {
   ),
 
   /*
-   * The AI section's pages, its record of what AI did first: the "AI" crumb
-   * of the section's other pages links to the first page declared under
-   * …/incidents/ai.
+   * The AI section's pages, Insights first: the "AI" crumb of the section's
+   * other pages links to the first page declared under …/incidents/ai.
    */
+  [PageMap.INCIDENTS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_AI_INSIGHTS]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_AI_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_AI_LOGS]

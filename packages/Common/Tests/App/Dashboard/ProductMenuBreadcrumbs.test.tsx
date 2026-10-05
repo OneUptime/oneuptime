@@ -92,6 +92,7 @@ const PRODUCTS: Array<Product> = [
     getBreadcrumbs: getAlertsBreadcrumbs,
     landingRoute: PageMap.ALERTS,
     aiPages: [
+      [PageMap.ALERTS_AI_INSIGHTS, "Insights"],
       [PageMap.ALERTS_AI_LOGS, "Logs"],
       [PageMap.ALERTS_SETTINGS_AI, "Settings"],
       [
@@ -116,6 +117,7 @@ const PRODUCTS: Array<Product> = [
     getBreadcrumbs: getIncidentsBreadcrumbs,
     landingRoute: PageMap.INCIDENTS,
     aiPages: [
+      [PageMap.INCIDENTS_AI_INSIGHTS, "Insights"],
       [PageMap.INCIDENTS_AI_LOGS, "Logs"],
       [PageMap.INCIDENTS_SETTINGS_AI, "Settings"],
       [
@@ -413,11 +415,13 @@ describe("breadcrumb sections across products", () => {
       }),
     ).toEqual([
       [
+        PageMap.ALERTS_AI_INSIGHTS,
         PageMap.ALERTS_AI_LOGS,
         PageMap.ALERTS_SETTINGS_AI,
         PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
       ],
       [
+        PageMap.INCIDENTS_AI_INSIGHTS,
         PageMap.INCIDENTS_AI_LOGS,
         PageMap.INCIDENTS_SETTINGS_AI,
         PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,

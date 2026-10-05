@@ -214,6 +214,44 @@ describe("BreadcrumbTrailResolver", () => {
       expect(target.routePattern).toBe(`${PROJECT}/monitors/settings/status`);
       expect(REAL_ROUTE_SET.has(target.routePattern ?? "")).toBe(true);
     });
+
+    /*
+     * The AI sections of Incidents and Alerts have no page of their own; the
+     * "AI" crumb lands on the section's first page, Insights.
+     */
+    test.each([
+      ["incidents", "logs"],
+      ["incidents", "settings"],
+      ["incidents", "auto-remediation-rules"],
+      ["alerts", "logs"],
+      ["alerts", "settings"],
+      ["alerts", "auto-remediation-rules"],
+    ])(
+      '"AI" links to /%s/ai/insights on the AI section\'s %s page',
+      (product: string, page: string) => {
+        const target: BreadcrumbTarget = resolveOne({
+          index: 2,
+          crumbCount: 4,
+          pagePattern: `${PROJECT}/${product}/ai/${page}`,
+        });
+
+        expect(target.kind).toBe(BreadcrumbTargetKind.SectionLanding);
+        expect(target.routePattern).toBe(`${PROJECT}/${product}/ai/insights`);
+      },
+    );
+
+    test.each(["incidents", "alerts"])(
+      '"AI" is plain text on the /%s/ai/insights page itself',
+      (product: string) => {
+        const target: BreadcrumbTarget = resolveOne({
+          index: 2,
+          crumbCount: 4,
+          pagePattern: `${PROJECT}/${product}/ai/insights`,
+        });
+
+        expect(target.kind).toBe(BreadcrumbTargetKind.CurrentPage);
+      },
+    );
   });
 
   describe("nearest real ancestor on the current path", () => {

@@ -188,6 +188,74 @@ const workspaceSection: (pages: {
   };
 };
 
+/*
+ * The AI section of the Incidents and Alerts menus: what OneUptime AI
+ * learned (Insights), what it did (Logs), what it may do on its own
+ * (Settings) and the rules for its fixes.
+ *
+ * Each area lists it after its Settings section, though the menu shows it
+ * before Workspace: between equally good matches the palette keeps this
+ * order, and "incident settings" should open the pages of Incidents >
+ * Settings before the AI section's own Settings page.
+ */
+const incidentAlertAiSection: (pages: {
+  insights: PageMap;
+  logs: PageMap;
+  settings: PageMap;
+  autoRemediationRules: PageMap;
+}) => PageSearchSection = (pages: {
+  insights: PageMap;
+  logs: PageMap;
+  settings: PageMap;
+  autoRemediationRules: PageMap;
+}): PageSearchSection => {
+  return {
+    title: "AI",
+    pages: [
+      {
+        page: pages.insights,
+        title: "Insights",
+        icon: IconProp.LightBulb,
+        keywords: [
+          "ai insights",
+          "recurring problems",
+          "root causes",
+          "what ai found",
+        ],
+      },
+      {
+        page: pages.logs,
+        title: "Logs",
+        icon: IconProp.QueueList,
+        keywords: [
+          "ai logs",
+          "ai activity",
+          "ai investigations",
+          "ai fixes",
+          "ai commands",
+        ],
+      },
+      {
+        page: pages.settings,
+        title: "Settings",
+        icon: IconProp.Settings,
+        keywords: [
+          "ai settings",
+          "ai investigation",
+          "root cause",
+          "ai limits",
+        ],
+      },
+      {
+        page: pages.autoRemediationRules,
+        title: "Auto Remediation Rules",
+        icon: IconProp.Bolt,
+        keywords: ["self healing", "auto fix"],
+      },
+    ],
+  };
+};
+
 // A resource product's own Settings and Advanced sections.
 const resourceSettingsSections: (pages: {
   ownerRules: PageMap;
@@ -635,40 +703,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
-      {
-        title: "AI",
-        pages: [
-          {
-            page: PageMap.INCIDENTS_AI_LOGS,
-            title: "Logs",
-            icon: IconProp.QueueList,
-            keywords: [
-              "ai logs",
-              "ai activity",
-              "ai investigations",
-              "ai fixes",
-              "ai commands",
-            ],
-          },
-          {
-            page: PageMap.INCIDENTS_SETTINGS_AI,
-            title: "Settings",
-            icon: IconProp.Settings,
-            keywords: [
-              "ai settings",
-              "ai investigation",
-              "root cause",
-              "ai limits",
-            ],
-          },
-          {
-            page: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-            title: "Auto Remediation Rules",
-            icon: IconProp.Bolt,
-            keywords: ["self healing", "auto fix"],
-          },
-        ],
-      },
       workspaceSection({
         slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
@@ -772,6 +806,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      incidentAlertAiSection({
+        insights: PageMap.INCIDENTS_AI_INSIGHTS,
+        logs: PageMap.INCIDENTS_AI_LOGS,
+        settings: PageMap.INCIDENTS_SETTINGS_AI,
+        autoRemediationRules: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      }),
     ],
   },
   {
@@ -812,40 +852,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Documentation",
             icon: IconProp.Book,
             keywords: ["how episodes work"],
-          },
-        ],
-      },
-      {
-        title: "AI",
-        pages: [
-          {
-            page: PageMap.ALERTS_AI_LOGS,
-            title: "Logs",
-            icon: IconProp.QueueList,
-            keywords: [
-              "ai logs",
-              "ai activity",
-              "ai investigations",
-              "ai fixes",
-              "ai commands",
-            ],
-          },
-          {
-            page: PageMap.ALERTS_SETTINGS_AI,
-            title: "Settings",
-            icon: IconProp.Settings,
-            keywords: [
-              "ai settings",
-              "ai investigation",
-              "root cause",
-              "ai limits",
-            ],
-          },
-          {
-            page: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-            title: "Auto Remediation Rules",
-            icon: IconProp.Bolt,
-            keywords: ["self healing", "auto fix"],
           },
         ],
       },
@@ -924,6 +930,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      incidentAlertAiSection({
+        insights: PageMap.ALERTS_AI_INSIGHTS,
+        logs: PageMap.ALERTS_AI_LOGS,
+        settings: PageMap.ALERTS_SETTINGS_AI,
+        autoRemediationRules: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      }),
     ],
   },
   {

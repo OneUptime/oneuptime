@@ -356,6 +356,12 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
      * The AI settings and the auto-remediation rules are pages of the AI
      * section.
      */
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_AI_INSIGHTS, [
+      "Project",
+      "Incidents",
+      "AI",
+      "Insights",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_AI_LOGS, [
       "Project",
       "Incidents",
