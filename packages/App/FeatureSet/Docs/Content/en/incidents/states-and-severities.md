@@ -57,7 +57,7 @@ Go to **Incidents → Settings → Incident State**. The page lists your states 
 
 - **Name** — required, at least two characters. The placeholder suggests something like "Investigating".
 - **Description** — optional free text explaining when an incident sits in this state.
-- **Color** — required, and already picked when the form opens: a color none of the states in the list uses yet, so a new state never comes out the same red as the one above it. Pick another from the color picker if you like; it is stored as a hex value like `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
+- **Color** — required, and already picked when the form opens: a color none of the states in the list uses yet, so a new state never comes out the same red as the one above it. The field is a row of named colors (Red, Orange, Lime, Green, Teal, Blue, Indigo, Purple, Magenta, Pink) with the picked one ticked; click another to change it, or use the arrow keys. **Custom color** opens a finer picker under them, with a color code box for an exact brand color such as `#fd625e`. It colors the state's pill and the dot before its name in every state picker: the declare and template forms, the **Change State** bulk action, the header's state menu, and rule and filter conditions.
 
 Every one of those pickers lists the states in the order this page puts them in.
 

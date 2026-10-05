@@ -24,7 +24,7 @@ Go to **Inventory → Settings → Custom Fields** and add a field. Each one has
 | **Long text** | Access instructions, notes — several lines of plain text |
 | **Rich text (Markdown)** | Notes with formatting and links, written in the Markdown editor |
 
-Dropdown options can each carry a colour, which is used consistently in the table cell and in the filter chip.
+Dropdown options can each carry a colour, which is used consistently in the table cell and in the filter chip. Pick it from the button beside the option: a set of named colours, **No color**, and **Custom color** for an exact colour code.
 
 ## A Worked Asset Vocabulary
 

@@ -49,7 +49,7 @@ The palette has four groups.
 | **Date**          | A day.                                       |
 | **Date and Time** | A day and a time.                            |
 
-A dropdown or multi-select lists the **Options** you give it, each with an optional color, between one and 100 of them. Switching a question between **Dropdown** and **Multi-Select** keeps its options; a question that becomes one starts with two you can rename, and one that stops being one drops them. **Duplicate** copies a question of the form's own, right below it.
+A dropdown or multi-select lists the **Options** you give it, each with an optional color (the button beside an option opens a set of named colors, with **Custom color** for an exact code), between one and 100 of them. Switching a question between **Dropdown** and **Multi-Select** keeps its options; a question that becomes one starts with two you can rename, and one that stops being one drops them. **Duplicate** copies a question of the form's own, right below it.
 
 The answers to these questions are kept with the submission and listed on the private note of what the form creates — they do not fill in a field of it. To fill in a field, add the field itself, from the next two groups.
 
