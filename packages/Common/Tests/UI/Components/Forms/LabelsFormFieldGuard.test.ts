@@ -836,15 +836,20 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     );
   }),
 
-  // Stepped forms: the Labels step goes, the field folds where the name is.
+  /*
+   * Stepped forms: the Labels step goes, the field folds where the name is.
+   * Create Monitor (create-monitor-simpler) asks what to monitor first, then
+   * the name, and folds the description beside the labels; a monitor
+   * template's Monitor Defaults step does the same.
+   */
   {
     file: `${DASHBOARD}/Pages/Monitor/Create.tsx`,
     label: "ModelForm: Create New Monitor",
     steps: ["monitor-info", "criteria", "monitoring-interval"],
     rows: {
       "monitor-info": {
-        open: ["name", "description", "monitorType"],
-        folded: LABELS_ONLY,
+        open: ["monitorType", "name"],
+        folded: ["description", LABELS_KEY],
       },
     },
   },
@@ -859,8 +864,8 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     ],
     rows: {
       "monitor-defaults": {
-        open: ["monitorName", "monitorDescription", "monitorType"],
-        folded: LABELS_ONLY,
+        open: ["monitorType", "monitorName"],
+        folded: ["monitorDescription", LABELS_KEY],
       },
     },
   },
