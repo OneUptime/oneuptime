@@ -1170,9 +1170,9 @@ export class Service extends DatabaseService<Model> {
       carryForward?.statusPage;
 
     /*
-     * The contact's cancelled subscription on this page goes now that the new
-     * one exists: links to the old one stop working. Only a cancelled one, of
-     * the same status page and project as the new subscriber.
+     * The contact's cancelled subscriptions on this page go now that the new
+     * one exists: links to them stop working. Only cancelled ones, of the
+     * same status page and project as the new subscriber.
      */
     const replacedSubscriberIds: Array<ObjectID> =
       carryForward?.replacedSubscriberIds || [];
