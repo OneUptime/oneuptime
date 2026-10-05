@@ -1,11 +1,13 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
+import { isPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { getAllEnvVars } from "../../Config";
 import ProjectUtil from "../../Utils/Project";
+import { translationKey } from "../../Utils/TranslateTemplate";
 
 /*
  * What a settings switch needs to know about the column it saves, worked out
@@ -68,6 +70,37 @@ export const getPlanNeededToChangeColumn: (
 };
 
 /*
+ * The plan this project would need to write `value` to the column, or null
+ * when it can. A plan-gated column's default - the feature it holds
+ * switched off - needs no plan on any plan, as the server has it
+ * (PlanGatedColumnDefault): a project below the plan can always switch the
+ * feature off, and only switching it on names the plan.
+ */
+export const getPlanNeededToWriteColumn: (
+  model: BaseModel,
+  column: string,
+  value: unknown,
+) => PlanType | null = (
+  model: BaseModel,
+  column: string,
+  value: unknown,
+): PlanType | null => {
+  let metadata: TableColumnMetadata | undefined;
+
+  try {
+    metadata = model.getTableColumnMetadata(column);
+  } catch {
+    metadata = undefined;
+  }
+
+  if (isPlanGatedColumnDefault(metadata, value)) {
+    return null;
+  }
+
+  return getPlanNeededToChangeColumn(model, column);
+};
+
+/*
  * What a boolean column holds when nothing was ever written to it: the
  * default its model declares, or false when it declares none (a nullable
  * column the server leaves empty reads as off everywhere else, too).
@@ -117,4 +150,82 @@ export const getStoredValueForSwitch: (data: {
   isInverted?: boolean | undefined;
 }): boolean => {
   return data.isInverted ? !data.isOn : data.isOn;
+};
+
+/*
+ * A switch whose record holds a plan feature the project's plan does not
+ * include - left on when a trial ended, or when the project moved to a
+ * lower plan. The server lets the switch go back to the column's default
+ * on any plan (PlanGatedColumnDefault), so the switch can still be flipped
+ * that way, and the row says so: which way it can go, and the plan it takes
+ * to come back.
+ */
+export interface SwitchPlanLeftover {
+  // Which way the switch can still go: back to the column's default.
+  canTurn: "on" | "off";
+  // The plan it takes to flip it back again.
+  planNeeded: PlanType;
+}
+
+/*
+ * The leftover for a switch, or null when it is not one: the plan includes
+ * the column, the record holds the default already, or (a column with no
+ * default to go back to) neither way is free.
+ */
+export const getSwitchPlanLeftover: (data: {
+  model: BaseModel;
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+}) => SwitchPlanLeftover | null = (data: {
+  model: BaseModel;
+  column: string;
+  isOn: boolean;
+  isInverted?: boolean | undefined;
+}): SwitchPlanLeftover | null => {
+  const planNeeded: PlanType | null = getPlanNeededToChangeColumn(
+    data.model,
+    data.column,
+  );
+
+  if (!planNeeded) {
+    return null;
+  }
+
+  const storedNow: boolean = getStoredValueForSwitch({
+    isOn: data.isOn,
+    isInverted: data.isInverted,
+  });
+
+  // The plan feature is off already: flipping the switch would turn it on.
+  if (getPlanNeededToWriteColumn(data.model, data.column, storedNow) === null) {
+    return null;
+  }
+
+  if (
+    getPlanNeededToWriteColumn(data.model, data.column, !storedNow) !== null
+  ) {
+    return null;
+  }
+
+  return {
+    canTurn: data.isOn ? "off" : "on",
+    planNeeded: planNeeded,
+  };
+};
+
+/*
+ * What the row says under a leftover switch, in English, by which way it
+ * can still go. Templates: the row fills in the plan's name.
+ */
+export const SWITCH_PLAN_LEFTOVER_COPY: Record<
+  SwitchPlanLeftover["canTurn"],
+  string
+> = {
+  off: translationKey(
+    "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.",
+  ),
+  on: translationKey(
+    "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.",
+  ),
 };

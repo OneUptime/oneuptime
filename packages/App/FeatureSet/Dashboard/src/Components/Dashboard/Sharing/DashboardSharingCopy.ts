@@ -5,7 +5,10 @@ import {
   DashboardAccess,
   DashboardAccessColumn,
   DashboardAccessState,
+  getDashboardAccess,
+  getDashboardAccessChanges,
   getDashboardAccessColumnsWritten,
+  getDashboardAccessStateAfter,
   isDashboardPasswordNeededFor,
 } from "Common/Types/Dashboard/DashboardAccess";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -26,8 +29,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Now the page opens on one question, "Who can view this dashboard", with
  * the three answers the server enforces. Picking one asks first, saying
  * what changes for visitors, then writes only the columns that change - the
- * public switch needs the Growth plan on OneUptime Cloud, and a write that
- * carries it, changed or not, is refused below Growth. The password is asked
+ * public switch needs the Growth plan on OneUptime Cloud to turn on, and a
+ * write that carries it on, changed or not, is refused below Growth.
+ * Turning it off - "Only people in this project" - works on every plan, so
+ * a dashboard a trial left public can always be made private again; the
+ * dialog then says that sharing it again needs Growth. The password is asked
  * for in the same dialog when the dashboard has none, so the page never
  * locks visitors out by itself. The public link, with a copy button, sits
  * under the public choice in force. The IP allowlist, which few dashboards
@@ -249,6 +255,9 @@ export const DASHBOARD_SHARING_CHANGE_PASSWORD_TEST_ID: string =
   "dashboard-sharing-change-password";
 export const DASHBOARD_SHARING_ADVANCED_SECTION_TEST_ID: string =
   "dashboard-sharing-advanced";
+// The dialog's sentence when a move leaves a choice the plan does not include.
+export const DASHBOARD_SHARING_PLAN_LEFTOVER_TEST_ID: string =
+  "dashboard-sharing-plan-leftover";
 export const DASHBOARD_IP_ALLOWLIST_ENTRIES_TEST_ID: string =
   "dashboard-ip-allowlist-entries";
 
@@ -286,22 +295,32 @@ export const getDashboardAccessColumnsWrittenWithPassword: (data: {
 
 /*
  * The plan the project would need to move a dashboard to a choice, or null
- * when it can: the first column the move writes that the plan cannot change
- * (getPlanNeeded answers per column, from @ColumnBillingAccessControl).
- * Moving between the two public choices leaves isPublicDashboard out, so it
- * needs no plan; the password columns need none either.
+ * when it can: the first column the move writes that the plan cannot write
+ * with the value the move gives it (getPlanNeeded answers per column and
+ * value, from @ColumnBillingAccessControl - ModelSwitchUtil's
+ * getPlanNeededToWriteColumn). Sharing a dashboard needs Growth on OneUptime
+ * Cloud; stopping does not: it takes isPublicDashboard back to its default,
+ * which every plan may write, so a dashboard a trial left public can always
+ * be made private again. Moving between the two public choices leaves
+ * isPublicDashboard out, so it needs no plan; the password columns need none
+ * either (the password's value is not known here: it is typed in the
+ * dialog).
  */
 export const getPlanNeededForDashboardAccess: (data: {
   from: DashboardAccessState;
   to: DashboardAccess;
-  getPlanNeeded: (column: string) => PlanType | null;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
 }) => PlanType | null = (data: {
   from: DashboardAccessState;
   to: DashboardAccess;
-  getPlanNeeded: (column: string) => PlanType | null;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
 }): PlanType | null => {
+  const changes: Record<string, unknown> = {
+    ...getDashboardAccessChanges({ from: data.from, to: data.to }),
+  };
+
   for (const column of getDashboardAccessColumnsWrittenWithPassword(data)) {
-    const plan: PlanType | null = data.getPlanNeeded(column);
+    const plan: PlanType | null = data.getPlanNeeded(column, changes[column]);
 
     if (plan) {
       return plan;
@@ -309,6 +328,39 @@ export const getPlanNeededForDashboardAccess: (data: {
   }
 
   return null;
+};
+
+/*
+ * Moving a dashboard off a choice the project's plan does not include - one
+ * a trial left public, on a project now on Free: the move needs no plan, but
+ * coming back does. The plan coming back needs, or null when the move is
+ * not one of those (it needs a plan itself, or coming back needs none). The
+ * dialog says so before the move is saved.
+ */
+export const getPlanNeededToComeBackToDashboardAccess: (data: {
+  from: DashboardAccessState;
+  to: DashboardAccess;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
+}) => PlanType | null = (data: {
+  from: DashboardAccessState;
+  to: DashboardAccess;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
+}): PlanType | null => {
+  const current: DashboardAccess = getDashboardAccess(data.from);
+
+  if (current === data.to || getPlanNeededForDashboardAccess(data)) {
+    return null;
+  }
+
+  return getPlanNeededForDashboardAccess({
+    from: getDashboardAccessStateAfter({
+      from: data.from,
+      to: data.to,
+      isPasswordEntered: false,
+    }),
+    to: current,
+    getPlanNeeded: data.getPlanNeeded,
+  });
 };
 
 /*

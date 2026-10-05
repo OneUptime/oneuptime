@@ -1,7 +1,10 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
+  getStatusPageAccess,
+  getStatusPageAccessChanges,
   getStatusPageAccessColumnsWritten,
+  getStatusPageAccessStateAfter,
   isStatusPagePasswordNeededFor,
   StatusPageAccess,
   StatusPageAccessColumn,
@@ -43,9 +46,13 @@ export {
  *
  * Now the page opens on one question, "Who can see this status page", with
  * the three answers the server enforces. Picking one asks first, saying what
- * changes for visitors, then writes only the columns that change - the
- * public switch needs the Growth plan on OneUptime Cloud, and a write that
- * carries it, changed or not, is refused below Growth. The password is asked
+ * changes for visitors, then writes only the columns that change - making
+ * the page private needs the Growth plan on OneUptime Cloud, and a write
+ * that carries the public switch off, changed or not, is refused below
+ * Growth. Making it public again - "Anyone with the link", the switch's
+ * default - works on every plan, so a page a trial left private never stays
+ * that way for want of a plan; the dialog then says that making it private
+ * again needs Growth. The password is asked
  * for in the same dialog when the page has none, so the page can never say
  * "password" without one. The IP allowlist, which few pages need, is folded
  * under Advanced.
@@ -291,6 +298,9 @@ export const STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID: string =
   "status-page-access-nobody-can-sign-in";
 export const STATUS_PAGE_ACCESS_CHANGE_PASSWORD_TEST_ID: string =
   "status-page-access-change-password";
+// The dialog's sentence when a move leaves a choice the plan does not include.
+export const STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID: string =
+  "status-page-access-plan-leftover";
 export const STATUS_PAGE_REQUIRE_SSO_SWITCH_TEST_ID: string =
   "status-page-require-sso-switch";
 export const PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID: string =
@@ -366,22 +376,31 @@ export const getNobodyCanSignInReason: (
 
 /*
  * The plan the project would need to move a page to a choice, or null when
- * it can: the first column the move writes that the plan cannot change
- * (getPlanNeeded answers per column, from @ColumnBillingAccessControl).
+ * it can: the first column the move writes that the plan cannot write with
+ * the value the move gives it (getPlanNeeded answers per column and value,
+ * from @ColumnBillingAccessControl - ModelSwitchUtil's
+ * getPlanNeededToWriteColumn). Making a page private needs Growth on
+ * OneUptime Cloud; making it public again does not: it takes
+ * isPublicStatusPage back to its default, which every plan may write.
  * Moving between the two private choices leaves isPublicStatusPage out, so
- * it needs no plan; the password column needs none either.
+ * it needs no plan; the password column needs none either (its value is
+ * not known here: it is typed in the dialog).
  */
 export const getPlanNeededForAccess: (data: {
   from: StatusPageAccessState;
   to: StatusPageAccess;
-  getPlanNeeded: (column: string) => PlanType | null;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
 }) => PlanType | null = (data: {
   from: StatusPageAccessState;
   to: StatusPageAccess;
-  getPlanNeeded: (column: string) => PlanType | null;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
 }): PlanType | null => {
+  const changes: Record<string, unknown> = {
+    ...getStatusPageAccessChanges({ from: data.from, to: data.to }),
+  };
+
   for (const column of getStatusPageAccessColumnsWrittenWithPassword(data)) {
-    const plan: PlanType | null = data.getPlanNeeded(column);
+    const plan: PlanType | null = data.getPlanNeeded(column, changes[column]);
 
     if (plan) {
       return plan;
@@ -389,6 +408,39 @@ export const getPlanNeededForAccess: (data: {
   }
 
   return null;
+};
+
+/*
+ * Moving a page off a choice the project's plan does not include - one a
+ * trial left private, on a project now on Free: the move needs no plan, but
+ * coming back does. The plan coming back needs, or null when the move is
+ * not one of those (it needs a plan itself, or coming back needs none). The
+ * dialog says so before the move is saved.
+ */
+export const getPlanNeededToComeBackToAccess: (data: {
+  from: StatusPageAccessState;
+  to: StatusPageAccess;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
+}) => PlanType | null = (data: {
+  from: StatusPageAccessState;
+  to: StatusPageAccess;
+  getPlanNeeded: (column: string, value: unknown) => PlanType | null;
+}): PlanType | null => {
+  const current: StatusPageAccess = getStatusPageAccess(data.from);
+
+  if (current === data.to || getPlanNeededForAccess(data)) {
+    return null;
+  }
+
+  return getPlanNeededForAccess({
+    from: getStatusPageAccessStateAfter({
+      from: data.from,
+      to: data.to,
+      isPasswordEntered: false,
+    }),
+    to: current,
+    getPlanNeeded: data.getPlanNeeded,
+  });
 };
 
 /*
