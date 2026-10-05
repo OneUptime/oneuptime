@@ -355,6 +355,7 @@ const PROSE_LEADS: Array<string> = [
   "A switch written as text is the switch that is stored, and a save that changes nothing starts nothing.",
   "Runners moved from Project Settings into Runbooks.",
   "OneUptime AI fixes with any runbook, or only the ones a rule allows, and a rule picks its Runner.",
+  "Anomaly baselines are read for the right weekday.",
   "Live updates end with the sign-in that opened them, and ask what every request asks.",
   "Turning a project's SSO provider off, or deleting it, ends the sign-ins it gave.",
   "Global and status page SSO providers end their sign-ins the same way, and turning on Require SSO for Login needs a provider.",
