@@ -33,7 +33,9 @@ import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
+  KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
   KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH,
   KUBERNETES_CLUSTER_AI_LOGS_COMMAND_WINDOW_IN_DAYS,
   KUBERNETES_CLUSTER_AI_LOGS_LIMIT,
@@ -65,6 +67,14 @@ import RunnerJobService from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
+import AiActivityInsightsReader, {
+  AiActivityInsightsScope,
+} from "../Utils/AI/ActivityInsights/AiActivityInsightsReader";
+import {
+  KubernetesClusterIdLabelKeys,
+  KubernetesClusterNameLabelKeys,
+} from "../Utils/Monitor/SeriesResourceLabels";
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KubectlJobOutcome,
@@ -73,8 +83,8 @@ import KubectlJobRunner, {
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The custom calls behind a cluster's AI pages (AI → Agent and
- * AI → Logs). Everything else there is ordinary CRUD on
+ * The custom calls behind a cluster's AI pages (AI → Insights, AI → Logs
+ * and AI → Agent). Everything else there is ordinary CRUD on
  * KubernetesCluster (the two switches, the allowlist, an advanced Runner
  * and credential).
  *
@@ -103,6 +113,12 @@ const router: ExpressRouter = Express.getRouter();
  *   POST /kubernetes-cluster/ai-access/logs         { clusterId }
  *     Everything AI did on the cluster, newest first, as summaries: the AI
  *     Logs page. Same read gate as the status.
+ *
+ *   POST /kubernetes-cluster/ai-access/insights     { clusterId }
+ *     What AI learned on the cluster and what deserves attention
+ *     (AiActivityInsights): the AI Insights page. Same read gate as the
+ *     status; what it says about incidents, alerts and findings follows
+ *     the caller's own read access to those (AiActivityInsightsReader).
  */
 
 async function getLoggedInProps(
@@ -1147,33 +1163,45 @@ async function getLogInvestigations(data: {
     }),
   );
 
-  const [incidents, alerts]: [Array<Incident>, Array<Alert>] =
-    await Promise.all([
-      incidentIds.length > 0
-        ? IncidentService.findBy({
-            query: {
-              projectId: data.projectId,
-              _id: QueryHelper.any(incidentIds),
-            },
-            select: { _id: true, title: true, incidentNumber: true },
-            limit: incidentIds.length,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : Promise.resolve([]),
-      alertIds.length > 0
-        ? AlertService.findBy({
-            query: {
-              projectId: data.projectId,
-              _id: QueryHelper.any(alertIds),
-            },
-            select: { _id: true, title: true },
-            limit: alertIds.length,
-            skip: 0,
-            props: { isRoot: true },
-          })
-        : Promise.resolve([]),
-    ]);
+  const [incidents, alerts, reportSummaries]: [
+    Array<Incident>,
+    Array<Alert>,
+    Map<string, string>,
+  ] = await Promise.all([
+    incidentIds.length > 0
+      ? IncidentService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(incidentIds),
+          },
+          select: { _id: true, title: true, incidentNumber: true },
+          limit: incidentIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        })
+      : Promise.resolve([]),
+    alertIds.length > 0
+      ? AlertService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(alertIds),
+          },
+          select: { _id: true, title: true },
+          limit: alertIds.length,
+          skip: 0,
+          props: { isRoot: true },
+        })
+      : Promise.resolve([]),
+    /*
+     * A completed run without a TL;DR still published a report, and its
+     * own Summary stands in (InvestigationReportSummary): the page never
+     * says "No summary was recorded." about a run that has one.
+     */
+    InvestigationReportSummary.getForRuns({
+      projectId: data.projectId,
+      runs: InvestigationReportSummary.getRunsWithoutTldr(runs),
+    }),
+  ]);
 
   const incidentsById: Map<string, Incident> = new Map<string, Incident>(
     incidents.map((incident: Incident): [string, Incident] => {
@@ -1198,6 +1226,7 @@ async function getLogInvestigations(data: {
       aiRunId: run.id!.toString(),
       status: run.status,
       analysisTldr: run.analysisTldr || undefined,
+      reportSummary: reportSummaries.get(run.id!.toString()),
       createdAt: toIsoString(run.createdAt),
       completedAt: toIsoString(run.completedAt),
       incident: run.triggeredByIncidentId
@@ -1381,6 +1410,74 @@ router.post(
       });
 
       Response.sendJsonObjectResponse(req, res, logs as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * How the AI Insights reader finds a cluster's activity: its kubectl jobs,
+ * the incidents and alerts linked through kubernetesClusters, the rounds
+ * its Fixes setting produced, and the labels that name the cluster itself
+ * (every subject here carries them, so they are never a hotspot).
+ */
+export function getClusterAiActivityInsightsScope(data: {
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+  cluster: KubernetesCluster;
+}): AiActivityInsightsScope {
+  return {
+    projectId: data.projectId,
+    props: data.props,
+    scopeId: data.cluster.id!,
+    commandJobQuery: {
+      kubernetesClusterId: data.cluster.id!,
+      stepType: RunbookStepType.Kubectl,
+    },
+    subjectRelation: "kubernetesClusters",
+    ownFixQuery: { kubernetesClusterId: data.cluster.id! },
+    scopeLabelKeys: [
+      ...KubernetesClusterIdLabelKeys,
+      ...KubernetesClusterNameLabelKeys,
+    ],
+    scopeNames: data.cluster.name ? [data.cluster.name] : [],
+  };
+}
+
+router.post(
+  KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const cluster: KubernetesCluster = await findAccessibleCluster({
+        req,
+        props,
+        tenantId,
+      });
+
+      const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+        getClusterAiActivityInsightsScope({
+          projectId: tenantId,
+          props,
+          cluster,
+        }),
+      );
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        insights as unknown as JSONObject,
+      );
       return;
     } catch (err) {
       next(err);

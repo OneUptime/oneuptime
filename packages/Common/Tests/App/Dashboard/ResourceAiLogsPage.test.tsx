@@ -159,6 +159,24 @@ function incidentInvestigation(): JSONObject {
   };
 }
 
+/*
+ * A completed investigation whose TL;DR call failed: the server sends the
+ * summary its posted report opens with instead.
+ */
+const REPORT_SUMMARY: string =
+  "osd.7 is flapping because its journal disk reports read errors.";
+
+function reportOnlyInvestigation(): JSONObject {
+  return {
+    aiRunId: RUN_ID,
+    status: AIRunStatus.Completed,
+    reportSummary: REPORT_SUMMARY,
+    createdAt: "2026-09-22T09:00:00.000Z",
+    completedAt: "2026-09-22T09:04:00.000Z",
+    alert: { id: ALERT_ID, title: "OSD flapping" },
+  };
+}
+
 function alertInvestigation(): JSONObject {
   return {
     aiRunId: SECOND_RUN_ID,
@@ -363,9 +381,7 @@ beforeEach(() => {
       const url: string = String((request as JSONObject)["url"]);
       if (url.endsWith(LOGS_ROUTE)) {
         const answer: Answer =
-          logsAnswers.length > 1
-            ? logsAnswers.shift()!
-            : logsAnswers[0]!;
+          logsAnswers.length > 1 ? logsAnswers.shift()! : logsAnswers[0]!;
         return await answer();
       }
       if (url.endsWith(STATUS_ROUTE)) {
@@ -396,14 +412,14 @@ afterEach(() => {
 
 describe("parseResourceAiLogs", () => {
   test("reads the shape the logs route returns", () => {
-    const parsed: ResourceAiLogs | null =
-      parseResourceAiLogs(fullLogs());
+    const parsed: ResourceAiLogs | null = parseResourceAiLogs(fullLogs());
 
     expect(parsed?.investigations).toEqual([
       {
         aiRunId: RUN_ID,
         status: AIRunStatus.Completed,
         analysisTldr: "osd.3 went down after its disk filled.",
+        reportSummary: null,
         createdAt: "2026-09-22T09:00:00.000Z",
         completedAt: "2026-09-22T09:04:00.000Z",
         incident: {
@@ -417,6 +433,7 @@ describe("parseResourceAiLogs", () => {
         aiRunId: SECOND_RUN_ID,
         status: AIRunStatus.Running,
         analysisTldr: null,
+        reportSummary: null,
         createdAt: "2026-09-22T09:30:00.000Z",
         completedAt: null,
         incident: null,
@@ -445,6 +462,23 @@ describe("parseResourceAiLogs", () => {
     expect(parseResourceAiLogs(value)).toBeNull();
   });
 
+  test("reads the summary a run's report opens with, and reads a blank one as none", () => {
+    const parsed: ResourceAiLogs = parseResourceAiLogs({
+      investigations: [
+        reportOnlyInvestigation(),
+        {
+          ...reportOnlyInvestigation(),
+          aiRunId: SECOND_RUN_ID,
+          reportSummary: "  ",
+        },
+      ],
+    })!;
+
+    expect(parsed.investigations[0]!.analysisTldr).toBeNull();
+    expect(parsed.investigations[0]!.reportSummary).toBe(REPORT_SUMMARY);
+    expect(parsed.investigations[1]!.reportSummary).toBeNull();
+  });
+
   test("drops rows without an id, and reads ids in the serialized envelope", () => {
     expect(
       parseResourceAiLogs({
@@ -460,6 +494,7 @@ describe("parseResourceAiLogs", () => {
           aiRunId: RUN_ID,
           status: null,
           analysisTldr: null,
+          reportSummary: null,
           createdAt: null,
           completedAt: null,
           incident: null,
@@ -545,6 +580,28 @@ describe("the words on each row", () => {
     ).toBe("No summary was recorded.");
   });
 
+  test("the finding: the TL;DR, else the report's own summary, else why there is none", () => {
+    const base: ResourceAiLogs["investigations"][number] = parseResourceAiLogs({
+      investigations: [reportOnlyInvestigation()],
+    })!.investigations[0]!;
+
+    // Regression: a run whose TL;DR call failed shows what its report found.
+    expect(getResourceInvestigationSummary(base)).toBe(REPORT_SUMMARY);
+    expect(
+      getResourceInvestigationSummary({ ...base, analysisTldr: "The TL;DR." }),
+    ).toBe("The TL;DR.");
+    expect(
+      getResourceInvestigationSummary({ ...base, reportSummary: null }),
+    ).toBe("No summary was recorded.");
+    expect(
+      getResourceInvestigationSummary({
+        ...base,
+        reportSummary: null,
+        status: AIRunStatus.Queued,
+      }),
+    ).toBe("Still investigating.");
+  });
+
   test("a command's reason: an investigation, a connection test or a fix", () => {
     expect(
       describeResourceCommandJobOrigin({
@@ -574,9 +631,7 @@ describe("the AI Logs page", () => {
   test("shows its title and the resource's subtitle", async () => {
     openLogsPage();
 
-    expect(
-      screen.getByText(RESOURCE_AI_LOGS_PAGE_TITLE),
-    ).toBeInTheDocument();
+    expect(screen.getByText(RESOURCE_AI_LOGS_PAGE_TITLE)).toBeInTheDocument();
     expect(
       screen.getByText(getResourceAiLogsPageSubtitle(CEPH)),
     ).toBeInTheDocument();
@@ -675,9 +730,7 @@ describe("the AI Logs page", () => {
     serve(ok(emptyLogs()), ok(makeStatus({ isInvestigationReady: false })));
     openLogsPage();
 
-    expect(
-      await findText(RESOURCE_AI_LOGS_EMPTY_TITLE),
-    ).toBeInTheDocument();
+    expect(await findText(RESOURCE_AI_LOGS_EMPTY_TITLE)).toBeInTheDocument();
     expect(
       screen.getByText(getResourceAiLogsEmptyDescription(CEPH)),
     ).toBeInTheDocument();
@@ -702,17 +755,13 @@ describe("the AI Logs page", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(
-      screen.queryByTestId("ai-logs-agent-hint"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-logs-agent-hint")).not.toBeInTheDocument();
     cleanup();
 
     serve(ok(emptyLogs()), httpError(500, "status is down"));
     openLogsPage();
     await findText(RESOURCE_AI_LOGS_EMPTY_TITLE);
-    expect(
-      screen.queryByTestId("ai-logs-agent-hint"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-logs-agent-hint")).not.toBeInTheDocument();
   });
 
   test("the pointer sits above the lists when there is history but AI is not ready", async () => {
@@ -728,19 +777,14 @@ describe("the AI Logs page", () => {
   });
 
   test("shows the server's error and retries on request", async () => {
-    serve([
-      httpError(500, "The logs service is unavailable."),
-      ok(fullLogs()),
-    ]);
+    serve([httpError(500, "The logs service is unavailable."), ok(fullLogs())]);
     openLogsPage();
 
     expect(
       await findText("The logs service is unavailable."),
     ).toBeInTheDocument();
     fireEvent.click(
-      within(screen.getByTestId("ai-logs-error")).getByTestId(
-        "refresh-button",
-      ),
+      within(screen.getByTestId("ai-logs-error")).getByTestId("refresh-button"),
     );
 
     expect(await findText("Investigations")).toBeInTheDocument();
@@ -927,6 +971,28 @@ describe("every resource type", () => {
       expect(
         screen.getAllByText(descriptor.commandsCardTitle).length,
       ).toBeGreaterThan(0);
+    },
+  );
+
+  /*
+   * Regression for the screenshot this page was renamed from: a completed
+   * investigation without a TL;DR read "No summary was recorded." though
+   * its report said what it found.
+   */
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: an investigation without a TL;DR shows what its report found",
+    async (type: AiResourceType) => {
+      serve(ok({ investigations: [reportOnlyInvestigation()], fixes: [] }));
+      openLogsPage(getResourceAiAgentDescriptor(type));
+
+      const row: HTMLElement = (await findText(REPORT_SUMMARY)).closest(
+        "[data-testid='ai-logs-investigation']",
+      ) as HTMLElement;
+      expect(row).not.toBeNull();
+      expect(
+        within(row).queryByText("No summary was recorded."),
+      ).not.toBeInTheDocument();
+      expect(within(row).getByText("Completed")).toBeInTheDocument();
     },
   );
 });

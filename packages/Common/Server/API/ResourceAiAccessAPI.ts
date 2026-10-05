@@ -21,7 +21,9 @@ import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import AIRunType from "../../Types/AI/AIRunType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { AiActivityInsights } from "../../Types/AI/AiActivityInsights";
 import {
+  RESOURCE_AI_ACCESS_INSIGHTS_PATH,
   RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
@@ -78,6 +80,23 @@ import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
+import AiActivityInsightsReader, {
+  AiActivityInsightsScope,
+} from "../Utils/AI/ActivityInsights/AiActivityInsightsReader";
+import {
+  CephClusterNameLabelKeys,
+  DatabaseServerIdLabelKeys,
+  DockerHostIdLabelKeys,
+  DockerHostNameLabelKeys,
+  DockerSwarmClusterNameLabelKeys,
+  HostIdLabelKeys,
+  HostNameLabelKeys,
+  PodmanHostIdLabelKeys,
+  PodmanHostNameLabelKeys,
+  ProxmoxClusterNameLabelKeys,
+  VMwareVCenterNameLabelKeys,
+} from "../Utils/Monitor/SeriesResourceLabels";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
   ResourceCommandJobOutcome,
@@ -86,8 +105,9 @@ import ResourceCommandJobRunner, {
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * The custom calls behind the AI pages (AI → AI agent and AI → Logs) of
- * every infrastructure resource a resource AI agent serves: Docker, Podman
+ * The custom calls behind the AI pages (AI → Insights, AI → Logs and
+ * AI → AI agent) of every infrastructure resource a resource AI agent
+ * serves: Docker, Podman
  * and Docker Swarm hosts, Proxmox clusters, VMware vCenters, Ceph clusters,
  * database servers and hosts. The resource-agnostic sibling of
  * KubernetesClusterAiAccessAPI, shaped like it. Everything else on those
@@ -130,17 +150,26 @@ const router: ExpressRouter = Express.getRouter();
  *     Logs page. Same read gate as the status; what it says about
  *     incidents, alerts, AI runs and suggestions follows the caller's own
  *     read access to those (see getResourceAiLogs).
+ *
+ *   POST /resource-ai-access/insights     { resourceType, resourceId }
+ *     What AI learned on the resource and what deserves attention
+ *     (AiActivityInsights): the AI Insights page. Same read gate, and the
+ *     same rule about incidents, alerts and findings
+ *     (AiActivityInsightsReader).
  */
 
 /*
  * How each resource type is read: its table's service (under the caller's
- * props — that is the access check) and the Incident/Alert relation that
- * links it to a subject.
+ * props — that is the access check), the Incident/Alert relation that
+ * links it to a subject, and the series labels that name the resource
+ * itself on its alerts (SeriesResourceLabels) — every subject on its AI
+ * Insights page carries those, so they are never a hotspot there.
  */
 interface ResourceAiAccessKind {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   service: DatabaseService<any>;
   subjectRelation: string;
+  scopeLabelKeys: ReadonlyArray<string>;
 }
 
 export const RESOURCE_AI_ACCESS_KINDS: Readonly<
@@ -149,34 +178,47 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
   [AiResourceType.DockerHost]: {
     service: DockerHostService,
     subjectRelation: "dockerHosts",
+    scopeLabelKeys: [...DockerHostIdLabelKeys, ...DockerHostNameLabelKeys],
   },
   [AiResourceType.PodmanHost]: {
     service: PodmanHostService,
     subjectRelation: "podmanHosts",
+    scopeLabelKeys: [...PodmanHostIdLabelKeys, ...PodmanHostNameLabelKeys],
   },
   [AiResourceType.DockerSwarmCluster]: {
     service: DockerSwarmClusterService,
     subjectRelation: "dockerSwarmClusters",
+    scopeLabelKeys: [...DockerSwarmClusterNameLabelKeys],
   },
   [AiResourceType.ProxmoxCluster]: {
     service: ProxmoxClusterService,
     subjectRelation: "proxmoxClusters",
+    scopeLabelKeys: [...ProxmoxClusterNameLabelKeys],
   },
   [AiResourceType.VMwareVCenter]: {
     service: VMwareVCenterService,
     subjectRelation: "vmwareVCenters",
+    scopeLabelKeys: [...VMwareVCenterNameLabelKeys],
   },
   [AiResourceType.CephCluster]: {
     service: CephClusterService,
     subjectRelation: "cephClusters",
+    scopeLabelKeys: [...CephClusterNameLabelKeys],
   },
   [AiResourceType.DatabaseServer]: {
     service: DatabaseServerService,
     subjectRelation: "databaseServers",
+    // The id stamp, and the display name ingest stamps next to it.
+    scopeLabelKeys: [
+      ...DatabaseServerIdLabelKeys,
+      "resource.oneuptime.database.server.name",
+      "oneuptime.database.server.name",
+    ],
   },
   [AiResourceType.Host]: {
     service: HostService,
     subjectRelation: "hosts",
+    scopeLabelKeys: [...HostIdLabelKeys, ...HostNameLabelKeys],
   },
 };
 
@@ -1482,6 +1524,18 @@ async function getLogInvestigations(data: {
     allowed: getSubjectlessRunTldrReadPermissions(),
   });
 
+  /*
+   * A completed run without a TL;DR still published a report on its
+   * incident or alert, and its own Summary stands in
+   * (InvestigationReportSummary). Only runs with a subject have a report,
+   * and every such run left here has a subject the caller may read.
+   */
+  const reportSummaries: Map<string, string> =
+    await InvestigationReportSummary.getForRuns({
+      projectId: data.projectId,
+      runs: InvestigationReportSummary.getRunsWithoutTldr(runs),
+    });
+
   return runs.map((run: AIRun): ResourceAiLogInvestigation => {
     const incident: Incident | undefined = run.triggeredByIncidentId
       ? incidentsById.get(run.triggeredByIncidentId.toString())
@@ -1502,6 +1556,9 @@ async function getLogInvestigations(data: {
       aiRunId: run.id!.toString(),
       status: run.status,
       analysisTldr: mayReadTldr ? run.analysisTldr || undefined : undefined,
+      reportSummary: mayReadTldr
+        ? reportSummaries.get(run.id!.toString())
+        : undefined,
       createdAt: toIsoString(run.createdAt),
       completedAt: toIsoString(run.completedAt),
       incident: run.triggeredByIncidentId
@@ -1654,6 +1711,78 @@ router.post(
       });
 
       Response.sendJsonObjectResponse(req, res, logs as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * How the AI Insights reader finds a resource's activity: the commands its
+ * AI agent ran, the incidents and alerts linked through the type's own
+ * relation, the rounds the resource's own fixes setting produced, and the
+ * labels that name the resource itself.
+ */
+export function getResourceAiActivityInsightsScope(data: {
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+  resource: AccessibleResource;
+}): AiActivityInsightsScope {
+  const kind: ResourceAiAccessKind =
+    RESOURCE_AI_ACCESS_KINDS[data.resource.resourceType];
+
+  return {
+    projectId: data.projectId,
+    props: data.props,
+    scopeId: data.resource.id,
+    commandJobQuery: {
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+      stepType: RunbookStepType.ResourceCommand,
+    },
+    subjectRelation: kind.subjectRelation,
+    ownFixQuery: {
+      resourceType: data.resource.resourceType,
+      resourceId: data.resource.id,
+    },
+    scopeLabelKeys: kind.scopeLabelKeys,
+    scopeNames: data.resource.name ? [data.resource.name] : [],
+  };
+}
+
+router.post(
+  RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+      const tenantId: ObjectID = CommonAPI.assertTenantScoped(props);
+
+      const resource: AccessibleResource = await findAccessibleResource({
+        req,
+        props,
+        tenantId,
+      });
+
+      const insights: AiActivityInsights = await AiActivityInsightsReader.read(
+        getResourceAiActivityInsightsScope({
+          projectId: tenantId,
+          props,
+          resource,
+        }),
+      );
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        insights as unknown as JSONObject,
+      );
       return;
     } catch (err) {
       next(err);

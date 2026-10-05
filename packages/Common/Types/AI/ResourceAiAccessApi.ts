@@ -16,6 +16,9 @@ export const RESOURCE_AI_ACCESS_TEST_PATH: string = "/resource-ai-access/test";
 export const RESOURCE_AI_ACCESS_RESET_AGENT_PATH: string =
   "/resource-ai-access/reset-agent";
 export const RESOURCE_AI_ACCESS_LOGS_PATH: string = "/resource-ai-access/logs";
+// Answers AiActivityInsights (Common/Types/AI/AiActivityInsights.ts).
+export const RESOURCE_AI_ACCESS_INSIGHTS_PATH: string =
+  "/resource-ai-access/insights";
 
 export interface ResourceAiAccessRequest {
   // An AiResourceType value (an agent alias such as "docker" is accepted too).
@@ -84,6 +87,12 @@ export interface ResourceAiLogInvestigation {
   // AIRunStatus.
   status?: string | undefined;
   analysisTldr?: string | undefined;
+  /*
+   * A completed run with no TL;DR: the Summary its posted report opens
+   * with, as plain text (InvestigationReportSummary). Never both, and only
+   * where the TL;DR itself would be shown.
+   */
+  reportSummary?: string | undefined;
   // ISO dates.
   createdAt?: string | undefined;
   completedAt?: string | undefined;

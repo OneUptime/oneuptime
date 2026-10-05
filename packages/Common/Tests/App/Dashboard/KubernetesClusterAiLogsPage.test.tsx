@@ -417,9 +417,7 @@ beforeEach(() => {
       const url: string = String((request as JSONObject)["url"]);
       if (url.endsWith(LOGS_ROUTE)) {
         const answer: Answer =
-          logsAnswers.length > 1
-            ? logsAnswers.shift()!
-            : logsAnswers[0]!;
+          logsAnswers.length > 1 ? logsAnswers.shift()! : logsAnswers[0]!;
         return await answer();
       }
       if (url.endsWith(STATUS_ROUTE)) {
@@ -450,8 +448,7 @@ afterEach(() => {
 
 describe("parseKubernetesAiLogs", () => {
   test("reads the shape the logs route returns", () => {
-    const parsed: KubernetesAiLogs | null =
-      parseKubernetesAiLogs(fullLogs());
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs(fullLogs());
 
     expect(parsed).not.toBeNull();
     expect(parsed!.investigations).toEqual([
@@ -460,6 +457,7 @@ describe("parseKubernetesAiLogs", () => {
         status: AIRunStatus.Completed,
         analysisTldr:
           "The web deployment ran out of memory after the 14:02 rollout.",
+        reportSummary: null,
         createdAt: "2026-09-22T09:00:00.000Z",
         completedAt: "2026-09-22T09:04:00.000Z",
         incident: { id: INCIDENT_ID, title: "Checkout is slow", number: 42 },
@@ -469,6 +467,7 @@ describe("parseKubernetesAiLogs", () => {
         aiRunId: SECOND_RUN_ID,
         status: AIRunStatus.Running,
         analysisTldr: null,
+        reportSummary: null,
         createdAt: "2026-09-22T09:30:00.000Z",
         completedAt: null,
         incident: null,
@@ -478,6 +477,7 @@ describe("parseKubernetesAiLogs", () => {
         aiRunId: THIRD_RUN_ID,
         status: AIRunStatus.Error,
         analysisTldr: null,
+        reportSummary: null,
         createdAt: "2026-09-22T08:00:00.000Z",
         completedAt: null,
         incident: null,
@@ -645,6 +645,7 @@ describe("parseKubernetesAiLogs", () => {
     expect(parsed!.investigations[0]).toEqual(
       expect.objectContaining({
         analysisTldr: null,
+        reportSummary: null,
         incident: null,
         alert: null,
       }),
@@ -744,6 +745,7 @@ describe("investigation rows", () => {
       aiRunId: RUN_ID,
       status: AIRunStatus.Completed,
       analysisTldr: null,
+      reportSummary: null,
       createdAt: null,
       completedAt: null,
       incident: null,
@@ -811,6 +813,27 @@ describe("investigation rows", () => {
     expect(
       getInvestigationSummary(investigation({ status: AIRunStatus.Error })),
     ).toBe("No summary was recorded.");
+  });
+
+  /*
+   * Regression: every row of the cluster's page read "No summary was
+   * recorded." for runs whose best-effort TL;DR call had failed, though
+   * each had posted a report with a Summary of its own.
+   */
+  test("show the report's own summary when there is no TL;DR, and the TL;DR over it", () => {
+    expect(
+      getInvestigationSummary(
+        investigation({ reportSummary: "Pods are Pending: no node fits." }),
+      ),
+    ).toBe("Pods are Pending: no node fits.");
+    expect(
+      getInvestigationSummary(
+        investigation({
+          analysisTldr: "OOM killed.",
+          reportSummary: "Pods are Pending: no node fits.",
+        }),
+      ),
+    ).toBe("OOM killed.");
   });
 });
 
@@ -1092,6 +1115,60 @@ describe("AI Logs page", () => {
     }
   });
 
+  /*
+   * Regression for the screenshot behind the rename: a cluster whose every
+   * investigation had a report but no TL;DR showed "No summary was
+   * recorded." on each row.
+   */
+  test("an investigation without a TL;DR shows what its report found, not 'No summary was recorded.'", async () => {
+    serve(
+      ok({
+        investigations: [
+          {
+            aiRunId: RUN_ID,
+            status: AIRunStatus.Completed,
+            reportSummary:
+              "The oneuptime-home deployment has 0 of 1 ready replicas: its image tag does not exist.",
+            createdAt: "2026-09-22T09:00:00.000Z",
+            alert: {
+              id: ALERT_ID,
+              title: "[K8s] Deployment Replica Mismatch - oneuptime-test",
+            },
+          },
+          {
+            aiRunId: SECOND_RUN_ID,
+            status: AIRunStatus.Completed,
+            createdAt: "2026-09-22T08:00:00.000Z",
+            incident: { id: INCIDENT_ID, title: "ghfghgf", number: 2 },
+          },
+        ],
+        fixes: [],
+      }),
+    );
+    openLogsPage();
+
+    const [withReport, without]: Array<HTMLElement> = await waitFor(
+      () => {
+        const rows: Array<HTMLElement> = investigationRows();
+        expect(rows).toHaveLength(2);
+        return rows;
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(
+      within(withReport!).getByText(
+        "The oneuptime-home deployment has 0 of 1 ready replicas: its image tag does not exist.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(withReport!).queryByText("No summary was recorded."),
+    ).not.toBeInTheDocument();
+    // A run with neither still says so honestly.
+    expect(
+      within(without!).getByText("No summary was recorded."),
+    ).toBeInTheDocument();
+  });
+
   test("renders server text as text, never as markup", async () => {
     serve(
       ok({
@@ -1131,9 +1208,7 @@ describe("AI Logs page", () => {
       openLogsPage();
 
       expect(await findText(AI_LOGS_EMPTY_TITLE)).toBeInTheDocument();
-      expect(
-        screen.getByText(AI_LOGS_EMPTY_DESCRIPTION),
-      ).toBeInTheDocument();
+      expect(screen.getByText(AI_LOGS_EMPTY_DESCRIPTION)).toBeInTheDocument();
       expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
       expect(screen.queryByText("Fixes")).not.toBeInTheDocument();
       // The command history stays: connection tests land there too.
@@ -1143,10 +1218,7 @@ describe("AI Logs page", () => {
     });
 
     test("points at the AI agent page when AI cannot run kubectl here", async () => {
-      serve(
-        ok(emptyLogs()),
-        ok(makeStatus({ isInvestigationReady: false })),
-      );
+      serve(ok(emptyLogs()), ok(makeStatus({ isInvestigationReady: false })));
       openLogsPage();
 
       const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
@@ -1216,18 +1288,13 @@ describe("AI Logs page", () => {
     }
 
     test("shows the pointer above the lists when there is history but AI is not ready", async () => {
-      serve(
-        ok(fullLogs()),
-        ok(makeStatus({ isInvestigationReady: false })),
-      );
+      serve(ok(fullLogs()), ok(makeStatus({ isInvestigationReady: false })));
       openLogsPage();
 
       const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
       expect(hint).toHaveTextContent(NOT_READY_HINT);
       expect(screen.getByText("Investigations")).toBeInTheDocument();
-      expect(
-        screen.queryByText(AI_LOGS_EMPTY_TITLE),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText(AI_LOGS_EMPTY_TITLE)).not.toBeInTheDocument();
       // Before the lists, so it is read first.
       expect(
         hint.compareDocumentPosition(screen.getByText("Investigations")) &
@@ -1252,9 +1319,9 @@ describe("AI Logs page", () => {
       serve(ok({ investigations: [], fixes: [waitingFix()] }));
       openLogsPage();
 
-      expect(
-        await findTestId("ai-logs-no-investigations"),
-      ).toHaveTextContent("No investigations yet.");
+      expect(await findTestId("ai-logs-no-investigations")).toHaveTextContent(
+        "No investigations yet.",
+      );
       expect(fixRows().length).toBe(1);
     });
   });
@@ -1364,9 +1431,7 @@ describe("AI Logs page", () => {
       openLogsPage();
 
       expect(
-        await findText(
-          "The server returned AI logs this page cannot read.",
-        ),
+        await findText("The server returned AI logs this page cannot read."),
       ).toBeInTheDocument();
     });
 

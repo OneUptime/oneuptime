@@ -10,9 +10,15 @@
  * it summarises.
  */
 
-// The cluster's AI Logs and AI Insights calls, POST under /api.
+/*
+ * The cluster's AI Logs and AI Insights calls, POST under /api with
+ * { clusterId }. The insights call answers AiActivityInsights
+ * (Common/Types/AI/AiActivityInsights.ts).
+ */
 export const KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH: string =
   "/kubernetes-cluster/ai-access/logs";
+export const KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH: string =
+  "/kubernetes-cluster/ai-access/insights";
 
 // How many investigations, and how many fixes, the route returns (newest).
 export const KUBERNETES_CLUSTER_AI_LOGS_LIMIT: number = 25;
@@ -32,6 +38,11 @@ export interface KubernetesClusterAiLogInvestigation {
   // AIRunStatus.
   status?: string | undefined;
   analysisTldr?: string | undefined;
+  /*
+   * A completed run with no TL;DR: the Summary its posted report opens
+   * with, as plain text (InvestigationReportSummary). Never both.
+   */
+  reportSummary?: string | undefined;
   // ISO dates.
   createdAt?: string | undefined;
   completedAt?: string | undefined;

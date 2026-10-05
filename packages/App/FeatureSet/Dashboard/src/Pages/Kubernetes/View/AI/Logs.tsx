@@ -154,6 +154,8 @@ export interface KubernetesAiLogsInvestigation {
   // AIRunStatus; null when the server did not say.
   status: string | null;
   analysisTldr: string | null;
+  // No TL;DR: the Summary its posted report opens with; null without one.
+  reportSummary: string | null;
   createdAt: string | null;
   completedAt: string | null;
   incident: { id: string; title: string; number: number | null } | null;
@@ -225,6 +227,7 @@ function parseInvestigation(
     aiRunId,
     status: readString(value["status"]),
     analysisTldr: readString(value["analysisTldr"]),
+    reportSummary: readString(value["reportSummary"]),
     createdAt: readString(value["createdAt"]),
     completedAt: readString(value["completedAt"]),
     incident:
@@ -444,6 +447,11 @@ export function getInvestigationSummary(
 ): string {
   if (investigation.analysisTldr) {
     return investigation.analysisTldr;
+  }
+
+  // A run whose TL;DR call failed still published a report that says.
+  if (investigation.reportSummary) {
+    return investigation.reportSummary;
   }
 
   if (

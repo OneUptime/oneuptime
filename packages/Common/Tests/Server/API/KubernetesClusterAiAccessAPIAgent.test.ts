@@ -4,8 +4,10 @@ import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
 import AIRunService from "../../../Server/Services/AIRunService";
+import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertService from "../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
+import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
@@ -22,9 +24,15 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
+  KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH,
   KUBERNETES_CLUSTER_AI_LOGS_LIMIT,
   KubernetesClusterAiLogs,
 } from "../../../Types/Kubernetes/KubernetesClusterAiLogs";
+import { AiActivityInsights } from "../../../Types/AI/AiActivityInsights";
+import AiActivityInsightsReader, {
+  AiActivityInsightsScope,
+} from "../../../Server/Utils/AI/ActivityInsights/AiActivityInsightsReader";
+import AIInsightService from "../../../Server/Services/AIInsightService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -143,6 +151,7 @@ const sendJsonObjectResponseMock: jest.Mock =
 const TEST_ROUTE: string = "/kubernetes-cluster/ai-access/test";
 const RESET_ROUTE: string = "/kubernetes-cluster/ai-access/reset-agent";
 const LOGS_ROUTE: string = "/kubernetes-cluster/ai-access/logs";
+const INSIGHTS_ROUTE: string = "/kubernetes-cluster/ai-access/insights";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -566,6 +575,8 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     let runFind: jest.SpyInstance;
     let suggestionFind: jest.SpyInstance;
     let jobCount: jest.SpyInstance;
+    let incidentFeedFind: jest.SpyInstance;
+    let alertFeedFind: jest.SpyInstance;
 
     function run(
       id: ObjectID,
@@ -607,6 +618,12 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       runFind = jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
       suggestionFind = jest
         .spyOn(AutoRemediationSuggestionService, "findBy")
+        .mockResolvedValue([]);
+      incidentFeedFind = jest
+        .spyOn(IncidentFeedService, "findBy")
+        .mockResolvedValue([]);
+      alertFeedFind = jest
+        .spyOn(AlertFeedService, "findBy")
         .mockResolvedValue([]);
       jobCount = (
         RunnerJobService.countBy as unknown as jest.SpyInstance
@@ -751,6 +768,144 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       expect(jobQuery["kubernetesClusterId"]).toEqual(CLUSTER_ID);
       expect(jobQuery["stepType"]).toBe(RunbookStepType.Kubectl);
       expect(jobQuery["projectId"]).toBe(PROJECT_ID);
+    });
+
+    /*
+     * Regression: every investigation on the cluster's page read "No
+     * summary was recorded." The TL;DR is a best-effort call made after
+     * the report is written; when it fails the run still has its report,
+     * whose own Summary now stands in.
+     */
+    test("a completed investigation without a TL;DR carries the summary its posted report opens with", async () => {
+      const withTldr: ObjectID = ObjectID.generate();
+      const incidentReport: ObjectID = ObjectID.generate();
+      const alertReport: ObjectID = ObjectID.generate();
+      const noReport: ObjectID = ObjectID.generate();
+      const stillRunning: ObjectID = ObjectID.generate();
+      const failed: ObjectID = ObjectID.generate();
+
+      jobFind.mockResolvedValue(
+        [
+          withTldr,
+          incidentReport,
+          alertReport,
+          noReport,
+          stillRunning,
+          failed,
+        ].map((id: ObjectID) => {
+          return { aiRunId: id };
+        }) as unknown as Array<RunnerJob>,
+      );
+      runFind.mockResolvedValue([
+        run(withTldr, 1, { triggeredByIncidentId: INCIDENT_ID }),
+        run(incidentReport, 2, {
+          analysisTldr: undefined,
+          triggeredByIncidentId: INCIDENT_ID,
+        }),
+        run(alertReport, 3, {
+          analysisTldr: null,
+          triggeredByAlertId: ALERT_ID,
+        }),
+        run(noReport, 4, {
+          analysisTldr: undefined,
+          triggeredByAlertId: ALERT_ID,
+        }),
+        run(stillRunning, 5, {
+          analysisTldr: undefined,
+          status: AIRunStatus.Running,
+          triggeredByIncidentId: INCIDENT_ID,
+        }),
+        run(failed, 6, {
+          analysisTldr: undefined,
+          status: AIRunStatus.Error,
+          triggeredByIncidentId: INCIDENT_ID,
+        }),
+      ]);
+      incidentFeedFind.mockResolvedValue([
+        {
+          aiRunId: incidentReport,
+          incidentId: INCIDENT_ID,
+          feedInfoInMarkdown:
+            "## 🧠 AI — Automated Root Cause Analysis\n\n**Summary** — The web deployment is crash-looping because its config map lost the DB_HOST key [C1].\n\n**Most likely root cause** — A config change.",
+        },
+      ]);
+      alertFeedFind.mockResolvedValue([
+        {
+          aiRunId: alertReport,
+          alertId: ALERT_ID,
+          feedInfoInMarkdown:
+            "**Summary** — Pods are stuck in Pending because no node has 4 free CPUs.",
+        },
+      ]);
+
+      await callRoute(LOGS_ROUTE);
+
+      const logs: KubernetesClusterAiLogs =
+        lastResponse() as unknown as KubernetesClusterAiLogs;
+      const byId: Map<
+        string,
+        KubernetesClusterAiLogs["investigations"][number]
+      > = new Map(
+        logs.investigations.map(
+          (row: KubernetesClusterAiLogs["investigations"][number]) => {
+            return [row.aiRunId, row];
+          },
+        ),
+      );
+
+      expect(byId.get(withTldr.toString())!.analysisTldr).toBe(
+        `tldr ${withTldr.toString()}`,
+      );
+      expect(byId.get(withTldr.toString())!.reportSummary).toBeUndefined();
+      expect(byId.get(incidentReport.toString())!.reportSummary).toBe(
+        "The web deployment is crash-looping because its config map lost the DB_HOST key.",
+      );
+      expect(byId.get(alertReport.toString())!.reportSummary).toBe(
+        "Pods are stuck in Pending because no node has 4 free CPUs.",
+      );
+      expect(byId.get(noReport.toString())!.reportSummary).toBeUndefined();
+      expect(byId.get(stillRunning.toString())!.reportSummary).toBeUndefined();
+      expect(byId.get(failed.toString())!.reportSummary).toBeUndefined();
+
+      // Only the completed runs without a TL;DR are looked up, as root.
+      const incidentQuery: Record<string, unknown> = (
+        incidentFeedFind.mock.calls[0]![0] as {
+          query: Record<string, unknown>;
+        }
+      ).query;
+      const askedRuns: Array<string> = Object.values(
+        (
+          incidentQuery["aiRunId"] as {
+            objectLiteralParameters: Record<string, Array<unknown>>;
+          }
+        ).objectLiteralParameters,
+      )[0]!.map((id: unknown) => {
+        return String(id);
+      });
+      expect(askedRuns).toEqual([incidentReport.toString()]);
+      expect(incidentQuery["projectId"]).toBe(PROJECT_ID);
+      for (const spy of [incidentFeedFind, alertFeedFind]) {
+        for (const call of spy.mock.calls) {
+          expect(
+            (call[0] as { props: DatabaseCommonInteractionProps }).props,
+          ).toEqual({ isRoot: true });
+        }
+      }
+    });
+
+    test("no report is read when every completed investigation has a TL;DR", async () => {
+      const id: ObjectID = ObjectID.generate();
+      jobFind.mockResolvedValue([
+        { aiRunId: id },
+      ] as unknown as Array<RunnerJob>);
+      runFind.mockResolvedValue([
+        run(id, 1, { triggeredByIncidentId: INCIDENT_ID }),
+      ]);
+
+      await callRoute(LOGS_ROUTE);
+
+      expect(incidentFeedFind).not.toHaveBeenCalled();
+      expect(alertFeedFind).not.toHaveBeenCalled();
     });
 
     test(`returns at most ${KUBERNETES_CLUSTER_AI_LOGS_LIMIT} investigations and fixes`, async () => {
@@ -898,6 +1053,237 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
           ),
         ).toEqual([CLUSTER_ID.toString()]);
       }
+    });
+  });
+
+  /*
+   * The cluster's AI Insights page: the cluster's read gate, then
+   * AiActivityInsightsReader with the cluster's own scope — its kubectl
+   * jobs, its kubernetesClusters relation, its Fixes rounds and the labels
+   * that name it. What the reader does with that is pinned in
+   * AiActivityInsightsReader.test.ts; here, that the route asks it the
+   * right question for the right cluster, and only after the gate.
+   */
+  describe("POST /kubernetes-cluster/ai-access/insights", () => {
+    let readSpy: jest.SpyInstance;
+
+    const INSIGHTS: AiActivityInsights = {
+      windowInDays: 30,
+      windowStart: "2026-08-24T00:00:00.000Z",
+      generatedAt: "2026-09-22T10:00:00.000Z",
+      totals: {
+        investigations: 1,
+        completedInvestigations: 1,
+        failedInvestigations: 0,
+        activeInvestigations: 0,
+        problems: 1,
+        recurringProblems: 0,
+        fixes: 0,
+        commands: 2,
+        failedCommands: 0,
+        timedOutCommands: 0,
+      },
+      attention: [],
+      problems: [],
+      hotspots: [],
+      fixOutcomes: {
+        total: 0,
+        planning: 0,
+        awaitingApproval: 0,
+        appliedAutomatically: 0,
+        appliedAfterApproval: 0,
+        dismissed: 0,
+        noFixFound: 0,
+        verified: 0,
+        failed: 0,
+        verifying: 0,
+      },
+      trend: [],
+      preventiveInsights: [],
+      isPartial: false,
+    };
+
+    beforeEach(() => {
+      readSpy = jest
+        .spyOn(AiActivityInsightsReader, "read")
+        .mockResolvedValue(INSIGHTS);
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [Permission.ReadKubernetesCluster] }),
+      );
+    });
+
+    test("is a route of its own, next to the logs", () => {
+      expect(KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH).toBe(
+        "/kubernetes-cluster/ai-access/insights",
+      );
+      expect(INSIGHTS_ROUTE).toBe(KUBERNETES_CLUSTER_AI_ACCESS_INSIGHTS_PATH);
+      expect(
+        mockRoutes.filter((route: MockRoute): boolean => {
+          return route.method === "POST" && route.uri === INSIGHTS_ROUTE;
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("needs only read access to the cluster, and sends what the reader found", async () => {
+      const result: RouteCallResult = await callRoute(INSIGHTS_ROUTE);
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(lastResponse()).toEqual(INSIGHTS);
+    });
+
+    test("asks the reader about this cluster, as the user, in the user's project", async () => {
+      await callRoute(INSIGHTS_ROUTE);
+
+      const asked: AiActivityInsightsScope = readSpy.mock
+        .calls[0]![0] as AiActivityInsightsScope;
+
+      expect(asked.projectId).toBe(PROJECT_ID);
+      expect(asked.scopeId.toString()).toBe(CLUSTER_ID.toString());
+      expect(asked.props.isRoot).toBeUndefined();
+      expect(String(asked.props.userId)).toBe(USER_ID.toString());
+      expect(asked.commandJobQuery).toEqual({
+        kubernetesClusterId: CLUSTER_ID,
+        stepType: RunbookStepType.Kubectl,
+      });
+      expect(asked.subjectRelation).toBe("kubernetesClusters");
+      expect(asked.ownFixQuery).toEqual({ kubernetesClusterId: CLUSTER_ID });
+      expect(asked.scopeNames).toEqual(["prod-us"]);
+      expect(asked.scopeLabelKeys).toEqual(
+        expect.arrayContaining([
+          "k8s.cluster.name",
+          "resource.k8s.cluster.name",
+          "oneuptime.kubernetes.cluster.id",
+        ]),
+      );
+    });
+
+    test("reads the cluster under the user's own props, scoped to their project", async () => {
+      await callRoute(INSIGHTS_ROUTE);
+
+      const lookup: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      } = clusterFind.mock.calls[0]![0] as never;
+
+      expect(lookup.props.isRoot).toBeUndefined();
+      expect(lookup.query["projectId"]).toBe(PROJECT_ID);
+      expect(lookup.query["_id"]).toBe(CLUSTER_ID.toString());
+    });
+
+    test("a cluster the user cannot read — or another project's — reads nothing", async () => {
+      clusterFind.mockResolvedValue(null);
+
+      const refused: RouteCallResult = await callRoute(INSIGHTS_ROUTE);
+
+      expect(refused.thrownToNext).toBeInstanceOf(BadDataException);
+      expect((refused.thrownToNext as Error).message).toBe(
+        "Kubernetes cluster not found (or you do not have access to it).",
+      );
+      expect(readSpy).not.toHaveBeenCalled();
+
+      clusterFind.mockResolvedValue({
+        id: CLUSTER_ID,
+        projectId: ObjectID.generate(),
+        name: "elsewhere",
+      } as unknown as KubernetesCluster);
+
+      const elsewhere: RouteCallResult = await callRoute(INSIGHTS_ROUTE);
+
+      expect(elsewhere.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(readSpy).not.toHaveBeenCalled();
+    });
+
+    test("refuses a missing or malformed clusterId before any lookup", async () => {
+      for (const body of [{}, { clusterId: "not-an-id" }]) {
+        const result: RouteCallResult = await callRoute(INSIGHTS_ROUTE, body);
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      }
+
+      expect(clusterFind).not.toHaveBeenCalled();
+      expect(readSpy).not.toHaveBeenCalled();
+    });
+
+    test("passes a failure on instead of answering", async () => {
+      readSpy.mockRejectedValue(new Error("database is down"));
+
+      const result: RouteCallResult = await callRoute(INSIGHTS_ROUTE);
+
+      expect((result.thrownToNext as Error).message).toBe("database is down");
+    });
+
+    test("a cluster without a name names nothing as the scope", async () => {
+      // Imported here: the module registers its routes on the mock router.
+      const { getClusterAiActivityInsightsScope } = await import(
+        "../../../Server/API/KubernetesClusterAiAccessAPI"
+      );
+
+      expect(
+        getClusterAiActivityInsightsScope({
+          projectId: PROJECT_ID,
+          props: userProps({ permissions: [] }),
+          cluster: { id: CLUSTER_ID } as unknown as KubernetesCluster,
+        }).scopeNames,
+      ).toEqual([]);
+    });
+
+    test("end to end: the reader turns this cluster's investigations into problems", async () => {
+      readSpy.mockRestore();
+      const RUN_ID: ObjectID = ObjectID.generate();
+      const ALERT_ID: ObjectID = ObjectID.generate();
+
+      jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([
+        {
+          aiRunId: RUN_ID,
+          origin: RunnerJobOrigin.AiInvestigation,
+          status: RunnerJobStatus.Succeeded,
+        },
+      ] as unknown as Array<RunnerJob>);
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+      jest
+        .spyOn(AlertService, "findBy")
+        .mockImplementation(async (args: unknown) => {
+          const query: Record<string, unknown> = (
+            args as { query: Record<string, unknown> }
+          ).query;
+          return (
+            query["kubernetesClusters"]
+              ? []
+              : [
+                  {
+                    id: ALERT_ID,
+                    title: "Pods stuck in Pending",
+                    seriesLabels: { "k8s.namespace.name": "shop" },
+                  },
+                ]
+          ) as never;
+        });
+      jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+        {
+          id: RUN_ID,
+          status: AIRunStatus.Completed,
+          analysisTldr: "No node has 4 free CPUs.",
+          createdAt: new Date(),
+          triggeredByAlertId: ALERT_ID,
+        },
+      ] as unknown as Array<AIRun>);
+      jest
+        .spyOn(AutoRemediationSuggestionService, "findBy")
+        .mockResolvedValue([]);
+      jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+
+      await callRoute(INSIGHTS_ROUTE);
+
+      const insights: AiActivityInsights =
+        lastResponse() as unknown as AiActivityInsights;
+
+      expect(insights.totals.investigations).toBe(1);
+      expect(insights.totals.commands).toBe(1);
+      expect(insights.problems).toHaveLength(1);
+      expect(insights.problems[0]!.title).toBe("Pods stuck in Pending");
+      expect(insights.problems[0]!.latestFinding!.text).toBe(
+        "No node has 4 free CPUs.",
+      );
+      expect(insights.trend).toHaveLength(30);
     });
   });
 });

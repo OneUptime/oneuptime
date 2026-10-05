@@ -1,6 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  RESOURCE_AI_ACCESS_INSIGHTS_PATH,
   RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
@@ -60,6 +61,8 @@ export const RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE: string =
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH;
 export const RESOURCE_AI_ACCESS_LOGS_ROUTE: string =
   RESOURCE_AI_ACCESS_LOGS_PATH;
+export const RESOURCE_AI_ACCESS_INSIGHTS_ROUTE: string =
+  RESOURCE_AI_ACCESS_INSIGHTS_PATH;
 
 export function getResourceAiAccessRequestBody(
   descriptor: ResourceAiAgentDescriptor,
