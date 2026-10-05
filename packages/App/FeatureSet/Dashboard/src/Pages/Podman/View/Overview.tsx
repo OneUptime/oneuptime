@@ -4,6 +4,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
@@ -1737,10 +1739,25 @@ const PodmanHostOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: PodmanHost): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * agent; the podman run command is in the host's setup guide.
+               */
+              getElement: (item: PodmanHost): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.PodmanAgent}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.PODMAN_HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                  />
+                );
               },
             },
             {
