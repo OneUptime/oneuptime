@@ -14,15 +14,23 @@ import {
  * is enough) - is only a choice once there are two of them: with none a
  * rule matches everything, with one it matches what that filter matches,
  * whichever is picked. The rules' conditions builder asks for it from the
- * second condition on since #4252; Metrics > Settings > Pipeline Rules asked
- * before any filter existed, and now follows the same rule. Both read it
- * from one place, isFilterConditionNeeded (Common/Types/Filter/
- * FilterConditionUtil).
+ * second condition on since #4252; Metrics > Settings > Pipeline Rules
+ * since #4379; a workspace notification rule's Conditions step, a workspace
+ * summary's Filters step and a monitor criteria's filters since this guard
+ * learned to read controls too. All of them read it from one place,
+ * isFilterConditionNeeded (Common/Types/Filter/FilterConditionUtil).
  *
- * This guard reads every form field in every frontend that asks for a
- * filter condition (a `field: { filterCondition: true }` with a form field
- * type) and fails unless its showIf asks isFilterConditionNeeded, or it is
- * listed below with the reason it still asks every time.
+ * This guard reads every frontend for the two ways a screen asks for a
+ * filter condition, and fails unless each follows the rule:
+ *
+ *   - a form field (`field: { filterCondition: true }` with a form field
+ *     type), whose showIf must ask isFilterConditionNeeded;
+ *   - a control drawn by hand - a <Radio>, an <input type="radio">, any JSX
+ *     element - whose onChange writes `filterCondition`, which must sit
+ *     inside `isFilterConditionNeeded(...) && ...` or a ternary on it.
+ *
+ * A screen that still asks every time has to be listed below with the
+ * reason, and leaves the list once it follows the rule (the guard says so).
  */
 
 // packages/Common/Tests/UI/Components/Forms -> the repository root.
@@ -40,6 +48,8 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
 
 const RULE: string = "isFilterConditionNeeded";
 
+const FILTER_CONDITION: string = "filterCondition";
+
 interface AllowedField {
   // Repository-relative, with "/".
   file: string;
@@ -47,26 +57,26 @@ interface AllowedField {
 }
 
 /*
- * Fields that still ask All or Any before there are two filters, and why.
- * One brought under the rule must leave this list (the guard says so).
+ * Screens that still ask All or Any before there are two filters, and why.
+ * One brought under the rule must leave this list (the guard says so). The
+ * workspace notification rule and summary forms were here until they
+ * followed the rule.
  */
-export const ASKED_EVERY_TIME_ALLOWED: Array<AllowedField> = [
-  {
-    file: `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
-    reason:
-      "A Slack or Microsoft Teams notification rule's Conditions step, a form of its own inside the rule's wizard. Its matcher (NotificationRuleUtil) skips a condition left without an operator and then answers differently for All and Any, so whether a rule with one condition can do without the choice is that rule's own question - left to a change of the workspace rules, which the metric pipeline task that wrote this guard did not touch.",
-  },
-  {
-    file: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTable.tsx`,
-    reason:
-      "A workspace summary's Filters step. Its radio starts on neither All nor Any (the column has no default) and a summary left without one is saved as Any, so bringing it under the rule means giving the radio that default first - left to a change of the workspace forms, which the metric pipeline task that wrote this guard did not touch.",
-  },
-];
+export const ASKED_EVERY_TIME_ALLOWED: Array<AllowedField> = [];
 
 export interface FilterConditionField {
   file: string;
   line: number;
   // The field's showIf calls isFilterConditionNeeded.
+  followsTheRule: boolean;
+}
+
+export interface FilterConditionControl {
+  file: string;
+  line: number;
+  // The element's tag: "Radio", "input".
+  tag: string;
+  // It is drawn only where isFilterConditionNeeded says so.
   followsTheRule: boolean;
 }
 
@@ -108,7 +118,7 @@ function selectsFilterCondition(literal: ts.ObjectLiteralExpression): boolean {
       return (
         ts.isPropertyAssignment(property) &&
         (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name)) &&
-        property.name.text === "filterCondition"
+        property.name.text === FILTER_CONDITION
       );
     },
   );
@@ -154,6 +164,23 @@ function callsTheRule(node: ts.Node): boolean {
   return found;
 }
 
+function parse(file: string, text: string): ts.SourceFile {
+  return ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+}
+
+function lineOf(node: ts.Node, sourceFile: ts.SourceFile): number {
+  return (
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
+    1
+  );
+}
+
 /**
  * Every form field in the source that asks for a filter condition, and
  * whether its showIf follows the two-filters rule.
@@ -164,17 +191,11 @@ export function findFilterConditionFields(
 ): Array<FilterConditionField> {
   const found: Array<FilterConditionField> = [];
 
-  if (!text.includes("filterCondition")) {
+  if (!text.includes(FILTER_CONDITION)) {
     return found;
   }
 
-  const sourceFile: ts.SourceFile = ts.createSourceFile(
-    file,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+  const sourceFile: ts.SourceFile = parse(file, text);
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
@@ -189,11 +210,145 @@ export function findFilterConditionFields(
 
       found.push({
         file,
-        line:
-          sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-            .line + 1,
+        line: lineOf(node, sourceFile),
         followsTheRule: Boolean(showIf && callsTheRule(showIf)),
       });
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return found;
+}
+
+// Whether the code writes a filter condition: `{ filterCondition: ... }`.
+function writesFilterCondition(node: ts.Node): boolean {
+  let found: boolean = false;
+
+  const visit: (child: ts.Node) => void = (child: ts.Node): void => {
+    if (
+      (ts.isPropertyAssignment(child) ||
+        ts.isShorthandPropertyAssignment(child)) &&
+      (ts.isIdentifier(child.name) || ts.isStringLiteral(child.name)) &&
+      child.name.text === FILTER_CONDITION
+    ) {
+      found = true;
+    }
+
+    // `rule.filterCondition = ...` and `setFilterCondition(...)` too.
+    if (
+      ts.isBinaryExpression(child) &&
+      child.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isPropertyAccessExpression(child.left) &&
+      child.left.name.text === FILTER_CONDITION
+    ) {
+      found = true;
+    }
+
+    if (
+      ts.isCallExpression(child) &&
+      ts.isPropertyAccessExpression(child.expression) &&
+      child.expression.name.text === "setFilterCondition"
+    ) {
+      found = true;
+    }
+
+    if (!found) {
+      ts.forEachChild(child, visit);
+    }
+  };
+
+  visit(node);
+
+  return found;
+}
+
+/*
+ * Whether a JSX element is drawn only where the rule says: inside
+ * `isFilterConditionNeeded(...) && (...)`, or the true branch of
+ * `isFilterConditionNeeded(...) ? (...) : ...`, at any depth.
+ */
+function isDrawnOnlyWhereTheRuleSays(node: ts.Node): boolean {
+  let child: ts.Node = node;
+  let parent: ts.Node | undefined = node.parent;
+
+  while (parent) {
+    if (
+      ts.isBinaryExpression(parent) &&
+      parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+      parent.right === child &&
+      callsTheRule(parent.left)
+    ) {
+      return true;
+    }
+
+    if (
+      ts.isConditionalExpression(parent) &&
+      parent.whenTrue === child &&
+      callsTheRule(parent.condition)
+    ) {
+      return true;
+    }
+
+    child = parent;
+    parent = parent.parent;
+  }
+
+  return false;
+}
+
+function tagNameOf(
+  element: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
+  sourceFile: ts.SourceFile,
+): string {
+  return element.tagName.getText(sourceFile);
+}
+
+/**
+ * Every JSX control in the source whose onChange writes a filter condition,
+ * and whether it is drawn only once there are two filters.
+ */
+export function findFilterConditionControls(
+  file: string,
+  text: string,
+): Array<FilterConditionControl> {
+  const found: Array<FilterConditionControl> = [];
+
+  if (!file.endsWith(".tsx") || !text.includes(FILTER_CONDITION)) {
+    return found;
+  }
+
+  const sourceFile: ts.SourceFile = parse(file, text);
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const onChange: ts.JsxAttributeLike | undefined =
+        node.attributes.properties.find(
+          (attribute: ts.JsxAttributeLike): boolean => {
+            return (
+              ts.isJsxAttribute(attribute) &&
+              attribute.name.getText(sourceFile) === "onChange"
+            );
+          },
+        );
+
+      if (
+        onChange &&
+        ts.isJsxAttribute(onChange) &&
+        onChange.initializer &&
+        writesFilterCondition(onChange.initializer)
+      ) {
+        found.push({
+          file,
+          line: lineOf(node, sourceFile),
+          tag: tagNameOf(node, sourceFile),
+          followsTheRule: isDrawnOnlyWhereTheRuleSays(
+            ts.isJsxOpeningElement(node) ? node.parent : node,
+          ),
+        });
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -250,19 +405,100 @@ describe("the filter condition detector", () => {
   });
 });
 
-describe("the project's filter condition fields", () => {
+describe("the filter condition control detector", () => {
+  test("finds a Radio that writes a filter condition, drawn every time", () => {
+    expect(
+      findFilterConditionControls(
+        "Criteria.tsx",
+        `const a = (<div>
+          <Radio value={x} onChange={(value) => { change({ filterCondition: value }); }} />
+        </div>);`,
+      ),
+    ).toEqual([
+      { file: "Criteria.tsx", line: 2, tag: "Radio", followsTheRule: false },
+    ]);
+  });
+
+  test("passes one drawn inside the rule's && or the true side of its ternary", () => {
+    expect(
+      findFilterConditionControls(
+        "Criteria.tsx",
+        `const a = (<div>
+          {isFilterConditionNeeded(filters) && (
+            <div><Radio onChange={(value) => { change({ filterCondition: value }); }} /></div>
+          )}
+          {isFilterConditionNeeded(filters) ? (
+            <input type="radio" onChange={() => { rule.filterCondition = FilterCondition.Any; }} />
+          ) : null}
+        </div>);`,
+      ).map((control: FilterConditionControl): [string, boolean] => {
+        return [control.tag, control.followsTheRule];
+      }),
+    ).toEqual([
+      ["Radio", true],
+      ["input", true],
+    ]);
+  });
+
+  test("does not take the false side of the ternary, or another condition, for the rule", () => {
+    expect(
+      findFilterConditionControls(
+        "Criteria.tsx",
+        `const a = (<div>
+          {isFilterConditionNeeded(filters) ? null : (
+            <Radio onChange={(value) => { instance.setFilterCondition(value); }} />
+          )}
+          {filters.length > 0 && (
+            <Radio onChange={(value) => { change({ filterCondition: value }); }} />
+          )}
+        </div>);`,
+      ).map((control: FilterConditionControl): boolean => {
+        return control.followsTheRule;
+      }),
+    ).toEqual([false, false]);
+  });
+
+  test("leaves alone controls that only read a filter condition, and plain .ts files", () => {
+    expect(
+      findFilterConditionControls(
+        "Criteria.tsx",
+        `const a = (<CriteriaFilters filterCondition={x} onChange={(value) => { change({ filters: value }); }} />);`,
+      ),
+    ).toEqual([]);
+    expect(
+      findFilterConditionControls(
+        "Criteria.ts",
+        `const a = { onChange: () => ({ filterCondition: 1 }) };`,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("the project's filter condition fields and controls", () => {
   const files: Array<string> = listScanRoots(REPOSITORY_ROOT).flatMap(
     (root: string): Array<string> => {
       return listSourceFiles(root);
     },
   );
 
-  const fields: Array<FilterConditionField> = files.flatMap(
-    (file: string): Array<FilterConditionField> => {
-      return findFilterConditionFields(
-        path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/"),
-        fs.readFileSync(file, "utf8"),
-      );
+  const sources: Array<{ file: string; text: string }> = files.map(
+    (file: string): { file: string; text: string } => {
+      return {
+        file: path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/"),
+        text: fs.readFileSync(file, "utf8"),
+      };
+    },
+  );
+
+  const fields: Array<FilterConditionField> = sources.flatMap(
+    (source: { file: string; text: string }): Array<FilterConditionField> => {
+      return findFilterConditionFields(source.file, source.text);
+    },
+  );
+
+  const controls: Array<FilterConditionControl> = sources.flatMap(
+    (source: { file: string; text: string }): Array<FilterConditionControl> => {
+      return findFilterConditionControls(source.file, source.text);
     },
   );
 
@@ -272,19 +508,33 @@ describe("the project's filter condition fields", () => {
     }),
   );
 
-  test("are really read, the metric pipeline rule's among them", () => {
+  test("are really read, every form that asks among them", () => {
     expect(files.length).toBeGreaterThan(2000);
+
+    const fieldFiles: Array<string> = fields.map(
+      (field: FilterConditionField): string => {
+        return field.file;
+      },
+    );
+
+    for (const file of [
+      `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`,
+      `${DASHBOARD}/Components/Workspace/NotificationRuleForm/NotificationRuleForm.tsx`,
+      `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTable.tsx`,
+    ]) {
+      expect(fieldFiles).toContain(file);
+    }
+
     expect(
-      fields.filter((field: FilterConditionField): boolean => {
-        return (
-          field.file === `${DASHBOARD}/Pages/Metrics/Settings/PipelineRules.tsx`
-        );
+      controls.map((control: FilterConditionControl): string => {
+        return `${control.file} <${control.tag}>`;
       }),
-    ).toEqual([
-      expect.objectContaining({
-        followsTheRule: true,
-      }),
-    ]);
+    ).toEqual(
+      expect.arrayContaining([
+        `${DASHBOARD}/Components/Form/Monitor/MonitorCriteriaInstance.tsx <Radio>`,
+        "packages/Common/UI/Components/RuleCriteria/RuleCriteriaBuilder.tsx <input>",
+      ]),
+    );
   });
 
   test("ask for All or Any only once there are two filters, or are listed with the reason", () => {
@@ -299,16 +549,30 @@ describe("the project's filter condition fields", () => {
     ).toEqual([]);
   });
 
+  test("draw an All or Any control only once there are two filters, or are listed with the reason", () => {
+    expect(
+      controls
+        .filter((control: FilterConditionControl): boolean => {
+          return !control.followsTheRule && !allowed.has(control.file);
+        })
+        .map((control: FilterConditionControl): string => {
+          return `${control.file}:${control.line} draws <${control.tag}> for a filter condition before there are two filters - draw it inside {${RULE}(filters) && (...)}`;
+        }),
+    ).toEqual([]);
+  });
+
   test("listed as asking every time still do, so the list never goes stale", () => {
     for (const entry of ASKED_EVERY_TIME_ALLOWED) {
       expect(entry.reason.length).toBeGreaterThan(60);
       expect({
         file: entry.file,
-        stillAsksEveryTime: fields.some(
-          (field: FilterConditionField): boolean => {
+        stillAsksEveryTime:
+          fields.some((field: FilterConditionField): boolean => {
             return field.file === entry.file && !field.followsTheRule;
-          },
-        ),
+          }) ||
+          controls.some((control: FilterConditionControl): boolean => {
+            return control.file === entry.file && !control.followsTheRule;
+          }),
       }).toEqual({ file: entry.file, stillAsksEveryTime: true });
     }
   });

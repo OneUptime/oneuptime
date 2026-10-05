@@ -44,9 +44,7 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
-import NotificationRuleCondition, {
-  NotificationRuleConditionUtil,
-} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -479,21 +477,21 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     notificationRule: IncidentNotificationRule,
   ): IncidentNotificationRule => {
     if (notificationRule.filters && notificationRule.filters.length > 0) {
-      notificationRule.filters = notificationRule.filters.filter(
-        (filter: NotificationRuleCondition) => {
-          if (
-            filter.value &&
-            filter.value &&
-            Array.isArray(filter.value) &&
-            filter.value.length > 0
-          ) {
-            return true;
-          }
+      /*
+       * Only rows left empty go. This kept only conditions holding a list,
+       * so a text condition - "Incident Title contains database" - was
+       * dropped on save, and the rule fired for every event.
+       */
+      notificationRule.filters =
+        NotificationRuleConditionUtil.withoutEmptyConditions(
+          notificationRule.filters,
+        );
 
-          return false;
-        },
-      );
-
+      /*
+       * Only a rule saved without a match condition - through the API: the
+       * form always holds one - reaches this. It is saved with Any, as it
+       * always was.
+       */
       if (!notificationRule.filterCondition) {
         notificationRule.filterCondition = FilterCondition.Any;
       }
@@ -544,11 +542,14 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         /*
          * A new rule starts with no conditions - it fires for every event
          * until some are added - so its Conditions step can be left as it
-         * opens.
+         * opens. It matches all of its conditions, as every other rule in
+         * OneUptime does by default; the step asks All or Any only once
+         * there are two conditions (NotificationRuleForm), and a rule with
+         * fewer is saved with this.
          */
         createInitialValues={{
           notificationRule: {
-            filterCondition: FilterCondition.Any,
+            filterCondition: FilterCondition.All,
             filters: [],
           },
         }}

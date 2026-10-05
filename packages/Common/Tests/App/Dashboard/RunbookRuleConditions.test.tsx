@@ -702,7 +702,7 @@ describe("the runbook rule table", () => {
         fields: matchCriteriaFields(tableProps(TRIGGERS[0]!)),
         item: rule,
       }),
-    ).toBe("Match all: Incident Title matches pattern “database|postgres”");
+    ).toBe("Incident Title matches pattern “database|postgres”");
   });
 });
 

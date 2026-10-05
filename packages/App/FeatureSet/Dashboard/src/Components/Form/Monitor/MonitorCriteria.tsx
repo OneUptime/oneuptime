@@ -9,7 +9,7 @@ import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
-import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { getCriteriaFilterCountText } from "../../../Utils/Form/Monitor/CriteriaFilterCount";
 import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
@@ -153,28 +153,13 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
   ): string => {
     const parts: Array<string> = [];
 
-    // Filter count
-    const filterCount: number = instance.data?.filters?.length || 0;
-    const filterCondition: FilterCondition =
-      instance.data?.filterCondition || FilterCondition.All;
+    // How many filters - and, once there are two, how they combine.
     parts.push(
-      filterCount > 1
-        ? translator.translatePlural(
-            {
-              one: "{{count}} filter ({{condition}})",
-              other: "{{count}} filters ({{condition}})",
-            },
-            filterCount,
-            {
-              condition: translator.translateText(
-                filterCondition === FilterCondition.All ? "ALL" : "ANY",
-              ) as string,
-            },
-          )
-        : translator.translatePlural(
-            { one: "{{count}} filter", other: "{{count}} filters" },
-            filterCount,
-          ),
+      getCriteriaFilterCountText({
+        translator: translator,
+        filters: instance.data?.filters,
+        filterCondition: instance.data?.filterCondition,
+      }),
     );
 
     // Actions

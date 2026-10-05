@@ -21,9 +21,15 @@ import WorkspaceNotificationSummary from "Common/Models/DatabaseModels/Workspace
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceNotificationSummaryItem from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
-import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition, {
+  NotificationRuleConditionUtil,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
+import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
+import WorkspaceSummaryFirstSendPreview from "./WorkspaceSummaryFirstSendPreview";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -56,6 +62,7 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   summaryType: WorkspaceNotificationSummaryType;
 }
+
 
 const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -291,32 +298,39 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         }}
         showAs={ShowAs.List}
         noItemsMessage={`No ${typeLabel.toLowerCase()} summary rules configured yet. Create one to start receiving periodic reports.`}
+        /*
+         * A new summary goes out every week, as its other defaults - the
+         * last 7 days, a "Weekly ... Summary" - already assumed, so it can
+         * be saved as it opens. It matches all of its filters; All or Any
+         * is asked only once there are two of them.
+         */
+        createInitialValues={{
+          recurringInterval:
+            WorkspaceSummaryScheduleUtil.getDefaultRecurringInterval(),
+          filterCondition: FilterCondition.All,
+          filters: [],
+        }}
         onBeforeCreate={(values: WorkspaceNotificationSummary) => {
           values.summaryType = props.summaryType;
           values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
 
-          // Set nextSendAt based on sendFirstReportAt or recurringInterval
-          if (values.sendFirstReportAt) {
-            const firstReportDate: Date = new Date(
-              values.sendFirstReportAt as unknown as string,
-            );
-            if (
-              firstReportDate.getTime() >
-              OneUptimeDate.getCurrentDate().getTime()
-            ) {
-              values.nextSendAt = firstReportDate;
-            } else {
-              values.nextSendAt = values.sendFirstReportAt;
-            }
-          } else if (values.recurringInterval) {
-            const recurring: Recurring = Recurring.fromJSON(
-              values.recurringInterval,
-            );
-            values.nextSendAt = Recurring.getNextDateInterval(
-              OneUptimeDate.getCurrentDate(),
-              recurring,
-            );
+          /*
+           * Left empty, the first summary goes out at 09:00 in the creator's
+           * time zone at the start of the next week (or day, or month) - the
+           * date the form showed under the field. The server works the next
+           * send out from it (WorkspaceSummaryScheduleUtil): a first summary
+           * dated in the past goes out at the schedule's next occurrence,
+           * not in a burst of catch-up summaries.
+           */
+          if (!values.sendFirstReportAt) {
+            values.sendFirstReportAt =
+              WorkspaceSummaryScheduleUtil.getDefaultFirstSendDate({
+                timezone: OneUptimeDate.getCurrentTimezone(),
+                intervalType: WorkspaceSummaryScheduleUtil.toRecurring(
+                  values.recurringInterval,
+                )?.intervalType,
+              });
           }
 
           // Parse channel names from comma-separated string
@@ -344,27 +358,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             values.isEnabled = true;
           }
 
-          // Clean up empty filters
+          // A condition row left empty is dropped, not saved.
           if (values.filters && Array.isArray(values.filters)) {
-            values.filters = values.filters.filter(
-              (f: NotificationRuleCondition) => {
-                if (!f.value) {
-                  return false;
-                }
-                if (Array.isArray(f.value)) {
-                  return f.value.length > 0;
-                }
-                // String-based conditions (e.g., title contains "X")
-                if (typeof f.value === "string") {
-                  return f.value.trim().length > 0;
-                }
-                return true;
-              },
-            );
+            values.filters = NotificationRuleConditionUtil.withoutEmptyConditions(values.filters);
           }
 
           if (!values.filterCondition) {
-            values.filterCondition = FilterCondition.Any;
+            values.filterCondition = FilterCondition.All;
           }
 
           return Promise.resolve(values);
@@ -375,6 +375,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             values.channelNames = (values.channelNames as Array<string>).join(
               ", ",
             ) as unknown as Array<string>;
+          }
+
+          // As on create: a condition row left empty is dropped, not saved.
+          if (values.filters && Array.isArray(values.filters)) {
+            values.filters = NotificationRuleConditionUtil.withoutEmptyConditions(values.filters);
           }
 
           return Promise.resolve(values);
@@ -463,12 +468,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                       elementProps.onChange(recurring);
                     }
                   }}
-                  initialValue={
-                    value.recurringInterval &&
-                    value.recurringInterval instanceof Recurring
-                      ? Recurring.fromJSON(value.recurringInterval as Recurring)
-                      : undefined
-                  }
+                  // A saved interval in either shape: a Recurring or its JSON.
+                  initialValue={WorkspaceSummaryScheduleUtil.toRecurring(
+                    value.recurringInterval,
+                  )}
                 />
               );
             },
@@ -479,10 +482,30 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Send First Report At",
             description:
-              "When should the first summary report be sent? Subsequent reports will follow the recurring interval from this date. If left empty, the first report will be sent after the recurring interval from now.",
+              "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 your time, at the start of the next week, day or month.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             stepId: "schedule",
+            /*
+             * When the first summary goes out, worked out from what the form
+             * holds the way the server will work it out on save - so leaving
+             * the date empty says what that means. Only while creating: a
+             * saved summary's next send is in the list.
+             */
+            getFooterElement: (
+              values: FormValues<WorkspaceNotificationSummary>,
+            ): ReactElement | undefined => {
+              if ((values as Record<string, unknown>)["_id"]) {
+                return undefined;
+              }
+
+              return (
+                <WorkspaceSummaryFirstSendPreview
+                  recurringInterval={values.recurringInterval}
+                  sendFirstReportAt={values.sendFirstReportAt}
+                />
+              );
+            },
           },
           {
             field: {
@@ -589,26 +612,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              filterCondition: true,
-            },
-            title: "Filter Condition",
-            description: `Choose whether ${typeLabel.toLowerCase()}s must match ALL filters or ANY filter. If no filters are added, the summary will include all ${typeLabel.toLowerCase()}s.`,
-            fieldType: FormFieldSchemaType.RadioButton,
-            required: false,
-            stepId: "filters",
-            radioButtonOptions: [
-              {
-                title: "Any",
-                value: FilterCondition.Any,
-              },
-              {
-                title: "All",
-                value: FilterCondition.All,
-              },
-            ],
-          },
-          {
-            field: {
               filters: true,
             },
             title: "Filter Conditions",
@@ -616,6 +619,28 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             stepId: "filters",
+            /*
+             * Every condition complete, as a notification rule's are: a
+             * condition left without its operator was skipped when the
+             * summary was built, and took every or no item with it
+             * depending on All or Any. One left empty is still dropped on
+             * create.
+             */
+            customValidation: (
+              values: FormValues<WorkspaceNotificationSummary>,
+            ): string | null => {
+              return NotificationRuleConditionUtil.getConditionsValidationError(
+                {
+                  notificationRule: {
+                    filters: NotificationRuleConditionUtil.withoutEmptyConditions(
+                      (values.filters as
+                        | Array<NotificationRuleCondition>
+                        | undefined) || [],
+                    ),
+                  } as IncidentNotificationRule,
+                },
+              );
+            },
             getCustomElement: (
               value: FormValues<WorkspaceNotificationSummary>,
               elementProps: CustomElementProps,
@@ -643,6 +668,42 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                   }
                 />
               );
+            },
+          },
+          /*
+           * Only once there are two conditions to combine: with one, All and
+           * Any include the same items (every condition is complete - the
+           * field above checks). Hidden, it keeps what the summary holds:
+           * All for a new one.
+           */
+          {
+            field: {
+              filterCondition: true,
+            },
+            title: "Match Condition",
+            description: "Should all conditions match, or just any one of them?",
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: false,
+            stepId: "filters",
+            /*
+             * Only a summary saved without one reaches this default - the
+             * create form starts on All. The summary is built as Any then
+             * (WorkspaceNotificationSummaryService), so that is what it
+             * shows, and what it keeps when saved.
+             */
+            defaultValue: FilterCondition.Any,
+            radioButtonOptions: [
+              {
+                title: "All",
+                value: FilterCondition.All,
+              },
+              {
+                title: "Any",
+                value: FilterCondition.Any,
+              },
+            ],
+            showIf: (values: FormValues<WorkspaceNotificationSummary>) => {
+              return isFilterConditionNeeded(values.filters);
             },
           },
         ]}

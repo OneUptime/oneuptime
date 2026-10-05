@@ -4,6 +4,7 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationFilterResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
 import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -196,11 +197,17 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                   className="shrink-0"
                 />
               </div>
-              <div className="mt-0.5 text-xs text-gray-500">
-                {translator.translateTemplate("Condition: {{condition}}", {
-                  condition: translatableTerm(criteria.filterCondition || ""),
-                })}
-              </div>
+              {/*
+               * A skipped criteria was not evaluated, so it lists no
+               * filters and says nothing of how they combine.
+               */}
+              {isFilterConditionNeeded(criteria.filters) && (
+                <div className="mt-0.5 text-xs text-gray-500">
+                  {translator.translateTemplate("Condition: {{condition}}", {
+                    condition: translatableTerm(criteria.filterCondition || ""),
+                  })}
+                </div>
+              )}
               <div className="mt-3 border-t border-gray-200 pt-3">
                 <div className="text-sm text-gray-600">
                   {previousMatchingCriteriaName ? (
@@ -247,11 +254,18 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             <div className="text-sm font-semibold text-gray-900">
               {criteriaName}
             </div>
-            <div className="text-xs text-gray-500">
-              {translator.translateTemplate("Condition: {{condition}}", {
-                condition: translatableTerm(criteria.filterCondition || ""),
-              })}
-            </div>
+            {/*
+             * All or Any, only once the criteria has two filters to combine
+             * (isFilterConditionNeeded): with one, it was met when that
+             * filter was.
+             */}
+            {isFilterConditionNeeded(criteria.filters) && (
+              <div className="text-xs text-gray-500">
+                {translator.translateTemplate("Condition: {{condition}}", {
+                  condition: translatableTerm(criteria.filterCondition || ""),
+                })}
+              </div>
+            )}
           </div>
           <span
             className={`text-xs font-semibold ${

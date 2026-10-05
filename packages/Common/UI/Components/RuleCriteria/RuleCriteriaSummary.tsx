@@ -1,5 +1,6 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "../../../Types/Filter/FilterConditionUtil";
 import RuleCriteria, {
   RuleCriteriaFilter,
 } from "../../../Types/Rules/RuleCriteria";
@@ -90,8 +91,6 @@ export function getRuleCriteriaSummaryText<TEntity>(
     return getEmptySummary(data.item);
   }
 
-  const connector: string =
-    criteria.filterCondition === FilterCondition.All ? "all" : "any";
   const filters: Array<string> = criteria.filters.map(
     (filter: RuleCriteriaFilter): string => {
       const field: Field<TEntity> | undefined = findRuleCriteriaField(
@@ -105,6 +104,18 @@ export function getRuleCriteriaSummaryText<TEntity>(
       ).toLocaleLowerCase()} ${formatValue(filter)}`;
     },
   );
+
+  /*
+   * "Match all" / "Match any" only once there are two conditions to
+   * combine (isFilterConditionNeeded), as the conditions builder asks it:
+   * one condition is simply the condition.
+   */
+  if (!isFilterConditionNeeded(criteria.filters)) {
+    return filters.join("; ");
+  }
+
+  const connector: string =
+    criteria.filterCondition === FilterCondition.All ? "all" : "any";
 
   return `Match ${connector}: ${filters.join("; ")}`;
 }

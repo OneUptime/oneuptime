@@ -18,6 +18,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import MonitorCriteriaAlerts from "./MonitorCriteriaAlerts";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   translatableTerm,
@@ -53,21 +54,45 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       <div className="mt-4">
         <div className="flex">
           <Icon icon={IconProp.Filter} className="h-5 w-5 text-gray-900" />
-          <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
-            <span className="font-medium text-gray-900">
-              {translator.translateTemplate("Filters ({{condition}})", {
-                condition: translatableTerm(
-                  props.monitorCriteriaInstance.data?.filterCondition || "",
-                ),
-              })}
-            </span>{" "}
-            {translator.translateTemplate(
-              "{{condition}} of these can match for this criteria to be met:",
-              {
-                condition: translatableTerm(
-                  props.monitorCriteriaInstance.data?.filterCondition || "",
-                ),
-              },
+          {/*
+           * All or Any is named only once there are two filters to combine
+           * (isFilterConditionNeeded): one filter is simply the filter.
+           */}
+          <div
+            className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500"
+            data-testid="monitor-criteria-filters-heading"
+          >
+            {isFilterConditionNeeded(
+              props.monitorCriteriaInstance.data?.filters,
+            ) ? (
+              <>
+                <span className="font-medium text-gray-900">
+                  {translator.translateTemplate("Filters ({{condition}})", {
+                    condition: translatableTerm(
+                      props.monitorCriteriaInstance.data?.filterCondition ||
+                        "",
+                    ),
+                  })}
+                </span>{" "}
+                {translator.translateTemplate(
+                  "{{condition}} of these can match for this criteria to be met:",
+                  {
+                    condition: translatableTerm(
+                      props.monitorCriteriaInstance.data?.filterCondition ||
+                        "",
+                    ),
+                  },
+                )}
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-gray-900">
+                  {translator.translateText("Filters")}
+                </span>{" "}
+                {translator.translateText(
+                  "This criteria is met when this filter matches:",
+                )}
+              </>
             )}
           </div>
         </div>

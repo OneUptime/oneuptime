@@ -43,6 +43,15 @@ import NotificationRuleCondition, {
 import FilterCondition from "../../Types/Filter/FilterCondition";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import PartialEntity from "../../Types/Database/PartialEntity";
+import WorkspaceSummaryScheduleUtil, {
+  WorkspaceSummaryScheduleColumns,
+  WorkspaceSummaryScheduleWrite,
+} from "../../Utils/Workspace/WorkspaceSummarySchedule";
 
 /*
  * NOTE ON FORMATTING:
@@ -61,9 +70,235 @@ interface TimelineData {
   declaredAt?: Date | undefined;
 }
 
+// The schedule columns a write or a stored summary holds.
+const getScheduleColumns: (
+  source: Record<string, unknown>,
+) => WorkspaceSummaryScheduleColumns = (
+  source: Record<string, unknown>,
+): WorkspaceSummaryScheduleColumns => {
+  return {
+    recurringInterval: source[
+      "recurringInterval"
+    ] as WorkspaceSummaryScheduleColumns["recurringInterval"],
+    sendFirstReportAt: source[
+      "sendFirstReportAt"
+    ] as WorkspaceSummaryScheduleColumns["sendFirstReportAt"],
+    nextSendAt: source[
+      "nextSendAt"
+    ] as WorkspaceSummaryScheduleColumns["nextSendAt"],
+  };
+};
+
+// Writes the columns a schedule rule added into a write's data.
+const applyScheduleWrite: (
+  data: Record<string, unknown>,
+  write: WorkspaceSummaryScheduleWrite,
+) => void = (
+  data: Record<string, unknown>,
+  write: WorkspaceSummaryScheduleWrite,
+): void => {
+  if (write.recurringInterval) {
+    data["recurringInterval"] = write.recurringInterval;
+  }
+
+  if (write.sendFirstReportAt) {
+    data["sendFirstReportAt"] = write.sendFirstReportAt;
+  }
+
+  if (write.nextSendAt) {
+    data["nextSendAt"] = write.nextSendAt;
+  }
+};
+
+// One summary's next send, for an update that matched several needing different ones.
+interface SummaryNextSendWrite {
+  summaryId: ObjectID;
+  nextSendAt: Date;
+}
+
+interface SummaryUpdateCarryForward {
+  nextSendWrites: Array<SummaryNextSendWrite>;
+}
+
 export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   public constructor() {
     super(WorkspaceNotificationSummary);
+  }
+
+  /*
+   * A new summary gets the schedule it leaves out (WorkspaceSummaryScheduleUtil):
+   * every week, the first one at 09:00 on the next Monday (UTC - the
+   * dashboard sends the first summary in the creator's time zone), and its
+   * next send worked out from them. Without a next send the report worker
+   * never sent a summary created through the API at all; the dashboard used
+   * to work it out itself, and for a first summary dated in the past it set
+   * one in the past, which the worker then caught up on with a summary a
+   * minute.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<WorkspaceNotificationSummary>,
+  ): Promise<OnCreate<WorkspaceNotificationSummary>> {
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
+
+    const problem: string | null =
+      WorkspaceSummaryScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    applyScheduleWrite(
+      data,
+      WorkspaceSummaryScheduleUtil.getCreateWrite({ write: write }),
+    );
+
+    return { createBy: createBy, carryForward: null };
+  }
+
+  /*
+   * A summary rescheduled - how often, or the first summary's date, really
+   * changed - gets its next send worked out again (the dashboard's edit form
+   * sends the schedule back unchanged on every save, and that changes
+   * nothing). It used to keep the next send it had: a new first summary
+   * date did nothing, and a new interval waited for the old one's send.
+   *
+   * An update of one summary - every update from the dashboard or the API
+   * by id - carries its next send in the same write. One that matched
+   * several summaries needing different ones writes each one's after the
+   * update (onUpdateSuccess), as one write cannot hold them all.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<WorkspaceNotificationSummary>,
+  ): Promise<OnUpdate<WorkspaceNotificationSummary>> {
+    const data: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+    const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
+
+    if (!WorkspaceSummaryScheduleUtil.isScheduleWrite(write)) {
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const problem: string | null =
+      WorkspaceSummaryScheduleUtil.getWriteProblem(write);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    if (write.nextSendAt !== undefined) {
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const summaries: Array<WorkspaceNotificationSummary> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        _id: true,
+        recurringInterval: true,
+        sendFirstReportAt: true,
+        nextSendAt: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    const nextSendWrites: Array<SummaryNextSendWrite> = [];
+
+    for (const summary of summaries) {
+      const scheduleWrite: WorkspaceSummaryScheduleWrite =
+        WorkspaceSummaryScheduleUtil.getUpdateWrite({
+          write: write,
+          stored: getScheduleColumns(
+            summary as unknown as Record<string, unknown>,
+          ),
+          now: now,
+        });
+
+      if (scheduleWrite.nextSendAt && summary.id) {
+        nextSendWrites.push({
+          summaryId: summary.id,
+          nextSendAt: scheduleWrite.nextSendAt,
+        });
+      }
+    }
+
+    const first: SummaryNextSendWrite | undefined = nextSendWrites[0];
+
+    if (!first) {
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const isSameForEverySummary: boolean =
+      nextSendWrites.length === summaries.length &&
+      nextSendWrites.every((entry: SummaryNextSendWrite): boolean => {
+        return entry.nextSendAt.getTime() === first.nextSendAt.getTime();
+      });
+
+    if (isSameForEverySummary) {
+      data["nextSendAt"] = first.nextSendAt;
+      return { updateBy: updateBy, carryForward: null };
+    }
+
+    const carryForward: SummaryUpdateCarryForward = {
+      nextSendWrites: nextSendWrites,
+    };
+
+    return { updateBy: updateBy, carryForward: carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<WorkspaceNotificationSummary>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<WorkspaceNotificationSummary>> {
+    const carryForward: SummaryUpdateCarryForward | null =
+      onUpdate.carryForward as SummaryUpdateCarryForward | null;
+
+    if (!carryForward?.nextSendWrites?.length) {
+      return onUpdate;
+    }
+
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    /*
+     * Each summary's own next send, for an update that matched several
+     * needing different ones. Only for the summaries the update wrote, and
+     * without the hooks: the values are worked out already.
+     */
+    for (const entry of carryForward.nextSendWrites) {
+      if (!updatedIds.has(entry.summaryId.toString())) {
+        continue;
+      }
+
+      await this.updateOneById({
+        id: entry.summaryId,
+        data: {
+          nextSendAt: entry.nextSendAt,
+        } as PartialEntity<WorkspaceNotificationSummary>,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+
+    return onUpdate;
   }
 
   @CaptureSpan()
