@@ -132,6 +132,8 @@ The **Mark Scheduled Maintenance as `<state name>`** modal, opened from the butt
 - You move the event into an ongoing state and **When the event starts** is on.
 - You move the event into an ended or completed state and **When the event ends** is on.
 
+**A note sent with a state change is the one message.** Write a **Public Note** in that modal (or in the **Change State** bulk action) with **Notify Status Page Subscribers** on, and subscribers get the note, on every channel, instead of a separate state change message: one message, not two. The state change shows **Notifications Sent**, and its status message says the note carried it. A note with nothing but spaces in it is not posted, and subscribers get the state change message. With the box off, neither the state change nor its note tells anyone. Through the API, the note goes with the state change in `"miscDataProps": {"publicNote": "..."}` on `POST /api/scheduled-maintenance-state-timeline`, and `shouldStatusPageSubscribersBeNotified` decides for both (left out, the state change notifies and its note does not). Incidents work the same way; see [Incident States & Severities](/docs/incidents/states-and-severities#telling-status-page-subscribers-about-a-state-change).
+
 The manual form on the event's **State Timeline** page and the **Change State** bulk action in the scheduled maintenance list do not look at these settings: their **Notify Status Page Subscribers** checkbox always starts on.
 
 Events created from a template take **When the event is scheduled** from the template, along with its other subscriber settings. **Create from Template** fills in the create form with the template's values, and recurring events scheduled by a template under **Settings → Event Templates** copy them.
