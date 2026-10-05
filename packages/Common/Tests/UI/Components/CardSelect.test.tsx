@@ -714,7 +714,9 @@ describe("CardSelect", () => {
     });
 
     test("arrows skip the options a catalog holds back behind More", () => {
-      renderComponent({ catalog: { ...CATALOG, commonOptionValues: ["Website"] } });
+      renderComponent({
+        catalog: { ...CATALOG, commonOptionValues: ["Website"] },
+      });
 
       const first: HTMLElement = screen.getByTestId(
         "card-select-option-Website",
@@ -1027,14 +1029,14 @@ describe("CardSelect", () => {
         }
 
         expect(
-          within(screen.getByTestId("card-select-group-Infrastructure")).getByTestId(
-            "card-select-option-Kubernetes",
-          ),
+          within(
+            screen.getByTestId("card-select-group-Infrastructure"),
+          ).getByTestId("card-select-option-Kubernetes"),
         ).toBeVisible();
         expect(
-          within(screen.getByTestId("card-select-group-Basic Monitoring")).getByTestId(
-            "card-select-option-IP",
-          ),
+          within(
+            screen.getByTestId("card-select-group-Basic Monitoring"),
+          ).getByTestId("card-select-option-IP"),
         ).toBeVisible();
       });
 
@@ -1185,9 +1187,10 @@ describe("CardSelect", () => {
 
         typeSearch("k8s");
 
-        expect(
-          screen.getByTestId("card-select-option-Kubernetes"),
-        ).toHaveClass("px-3", "py-2.5");
+        expect(screen.getByTestId("card-select-option-Kubernetes")).toHaveClass(
+          "px-3",
+          "py-2.5",
+        );
       });
 
       test("says how many it shows out of the whole catalog", () => {
@@ -1238,9 +1241,9 @@ describe("CardSelect", () => {
           within(summary).getByTestId("card-select-summary-title"),
         ).toHaveTextContent("Website");
         expect(summary).toHaveTextContent("Check a page loads and responds.");
-        expect(within(summary).getByTestId("card-select-change")).toHaveTextContent(
-          "Change",
-        );
+        expect(
+          within(summary).getByTestId("card-select-change"),
+        ).toHaveTextContent("Change");
 
         // Nothing else of the picker is left on screen.
         expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
@@ -1289,7 +1292,9 @@ describe("CardSelect", () => {
       test("moves focus to Change", () => {
         renderCatalog();
 
-        const row: HTMLElement = screen.getByTestId("card-select-option-Website");
+        const row: HTMLElement = screen.getByTestId(
+          "card-select-option-Website",
+        );
 
         row.focus();
         fireEvent.click(row);
@@ -1320,10 +1325,9 @@ describe("CardSelect", () => {
         expect(
           screen.queryByTestId("card-select-summary"),
         ).not.toBeInTheDocument();
-        expect(screen.getByTestId("card-select-option-Website")).toHaveAttribute(
-          "aria-checked",
-          "true",
-        );
+        expect(
+          screen.getByTestId("card-select-option-Website"),
+        ).toHaveAttribute("aria-checked", "true");
         expect(screen.getByTestId("card-select-search")).toHaveFocus();
       });
 

@@ -43,15 +43,16 @@ function copyFor(monitorType: MonitorType): MonitorDestinationFieldCopy {
 }
 
 describe("the address field of a probe check", () => {
-  test.each(DESTINATION_TYPES)("%s says what to type, with an example", (
-    monitorType: MonitorType,
-  ) => {
-    const copy: MonitorDestinationFieldCopy = copyFor(monitorType);
+  test.each(DESTINATION_TYPES)(
+    "%s says what to type, with an example",
+    (monitorType: MonitorType) => {
+      const copy: MonitorDestinationFieldCopy = copyFor(monitorType);
 
-    expect(copy.title.length).toBeGreaterThan(0);
-    expect(copy.description).toMatch(/, like .+\.$/);
-    expect(copy.placeholder.length).toBeGreaterThan(0);
-  });
+      expect(copy.title.length).toBeGreaterThan(0);
+      expect(copy.description).toMatch(/, like .+\.$/);
+      expect(copy.placeholder.length).toBeGreaterThan(0);
+    },
+  );
 
   test.each(DESTINATION_TYPES)(
     "%s no longer asks a question with a typo in it",
@@ -88,7 +89,8 @@ describe("the address field of a probe check", () => {
   test("an SSL Certificate monitor's field has a name and help of its own", () => {
     expect(copyFor(MonitorType.SSLCertificate)).toEqual({
       title: "Website URL",
-      description: "The site whose certificate to check, like https://example.com.",
+      description:
+        "The site whose certificate to check, like https://example.com.",
       placeholder: "https://example.com",
     });
   });

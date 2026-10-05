@@ -70,6 +70,9 @@ const HELPER_SEGMENTS: Array<string> = [
   "MonitorTypeFormField.ts",
 ];
 
+// A TypeScript source file, by its name.
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
 type ListSourceFilesFunction = (directory: string) => Array<string>;
 
 const listSourceFiles: ListSourceFilesFunction = (
@@ -84,7 +87,7 @@ const listSourceFiles: ListSourceFilesFunction = (
       if (entry.name !== "node_modules") {
         files.push(...listSourceFiles(full));
       }
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(full);
     }
   }
@@ -105,9 +108,7 @@ describe("monitor type picker wiring", () => {
         expect(source).toContain(
           `from "${toSrc}Utils/Form/Monitor/MonitorTypeFormField"`,
         );
-        expect(source.match(/getMonitorTypeFormField</g) || []).toHaveLength(
-          1,
-        );
+        expect(source.match(/getMonitorTypeFormField</g) || []).toHaveLength(1);
       });
 
       test("builds no monitor type picker of its own", () => {
@@ -183,9 +184,9 @@ describe("monitor type picker wiring", () => {
       expect(fields).toBeGreaterThan(-1);
       expect(picker).toBeGreaterThan(fields);
       expect(name).toBeGreaterThan(picker);
-      expect(
-        source.slice(picker, picker + 120),
-      ).toContain('stepId: "monitor-info"');
+      expect(source.slice(picker, picker + 120)).toContain(
+        'stepId: "monitor-info"',
+      );
     });
 
     test("the description folds under More fields with the labels", () => {

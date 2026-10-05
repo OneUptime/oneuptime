@@ -232,9 +232,7 @@ describe("the monitor steps form, on a new monitor", () => {
       expect(stepProps.length).toBeGreaterThan(0);
     });
 
-    expect(stepProps[stepProps.length - 1]!["foldDefaultCriteria"]).toBe(
-      true,
-    );
+    expect(stepProps[stepProps.length - 1]!["foldDefaultCriteria"]).toBe(true);
   });
 
   test("leaves every criteria open anywhere else", async () => {

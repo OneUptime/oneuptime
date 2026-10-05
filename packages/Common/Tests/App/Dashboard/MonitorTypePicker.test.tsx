@@ -310,7 +310,9 @@ describe("Monitor type picker", () => {
         MonitorType.Ceph,
       ]) {
         expect(
-          within(infrastructure).getByTestId(`card-select-option-${monitorType}`),
+          within(infrastructure).getByTestId(
+            `card-select-option-${monitorType}`,
+          ),
         ).toBeVisible();
       }
     });

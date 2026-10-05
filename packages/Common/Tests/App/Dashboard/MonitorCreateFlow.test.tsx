@@ -163,7 +163,9 @@ jest.mock(
     return {
       __esModule: true,
       default: (props: Record<string, any>): React.ReactElement => {
-        const ReactActual: typeof React = jest.requireActual("react");
+        const ReactActual: typeof React = jest.requireActual(
+          "react",
+        ) as typeof React;
         criteriaEditorProps.push(props);
 
         ReactActual.useEffect(() => {
@@ -267,8 +269,9 @@ async function renderPage(
 
   const form: HTMLElement = await waitFor(
     (): HTMLElement => {
-      const element: HTMLElement | null =
-        document.getElementById("create-monitor-form");
+      const element: HTMLElement | null = document.getElementById(
+        "create-monitor-form",
+      );
 
       if (!element) {
         throw new Error("The create monitor form is not drawn yet.");
@@ -415,7 +418,9 @@ describe("Monitor Info: what to monitor comes first", () => {
       picker.compareDocumentPosition(nameInput()) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(within(form).getByText("What do you want to monitor?")).toBeVisible();
+    expect(
+      within(form).getByText("What do you want to monitor?"),
+    ).toBeVisible();
   });
 
   test("it opens on the six common types and a way to the rest", async () => {
@@ -449,7 +454,9 @@ describe("Monitor Info: what to monitor comes first", () => {
       await within(form).findByRole("textbox", { name: /^Description/ }),
     ).toBeVisible();
     expect(
-      within(form).getByText("Anything your team should know about this monitor."),
+      within(form).getByText(
+        "Anything your team should know about this monitor.",
+      ),
     ).toBeVisible();
     expect(
       within(form).getByRole("combobox", { name: /^Labels/ }),
@@ -527,9 +534,9 @@ describe("picking and changing the type", () => {
     fireEvent.click(screen.getByTestId("card-select-more"));
 
     expect(
-      within(screen.getByTestId("card-select-group-Infrastructure")).getByTestId(
-        "card-select-option-Kubernetes",
-      ),
+      within(
+        screen.getByTestId("card-select-group-Infrastructure"),
+      ).getByTestId("card-select-option-Kubernetes"),
     ).toBeVisible();
 
     fireEvent.click(screen.getByTestId("card-select-option-Kubernetes"));
@@ -721,9 +728,7 @@ describe("opening on a type a link or a template chose", () => {
   test("a link naming a type that does not exist opens on the common types", async () => {
     await renderPage({ monitorType: "Mainframe" });
 
-    expect(
-      screen.queryByTestId("card-select-summary"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("card-select-summary")).not.toBeInTheDocument();
     expect(shownTypes()).toEqual(COMMON_TYPES);
   });
 });

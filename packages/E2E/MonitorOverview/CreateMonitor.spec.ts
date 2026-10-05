@@ -226,7 +226,9 @@ test.describe("Create Monitor's first step", () => {
       exact: true,
     });
     await expect(moreFields).toHaveAttribute("aria-expanded", "false");
-    await expect(form.getByPlaceholder("Description", { exact: true })).toBeHidden();
+    await expect(
+      form.getByPlaceholder("Description", { exact: true }),
+    ).toBeHidden();
 
     await screenshot(page, "create-monitor-first-step");
   });
@@ -414,18 +416,17 @@ test.describe("Create Monitor's first step", () => {
 
     await option(page, "API").click();
 
-    const summaryColors: { background: string; title: string } =
-      await summary(page).evaluate(
-        (element: Element): { background: string; title: string } => {
-          const title: Element | null = element.querySelector(
-            "[data-testid='card-select-summary-title']",
-          );
-          return {
-            background: getComputedStyle(element).backgroundColor,
-            title: title ? getComputedStyle(title).color : "",
-          };
-        },
+    const summaryColors: { background: string; title: string } = await summary(
+      page,
+    ).evaluate((element: Element): { background: string; title: string } => {
+      const title: Element | null = element.querySelector(
+        "[data-testid='card-select-summary-title']",
       );
+      return {
+        background: getComputedStyle(element).backgroundColor,
+        title: title ? getComputedStyle(title).color : "",
+      };
+    });
     expect(summaryColors.background).not.toBe(WHITE_RGB);
     expect(summaryColors.title).not.toBe("rgb(17, 24, 39)");
 
@@ -454,9 +455,7 @@ test.describe("Create Monitor, start to finish", () => {
     const headers: Locator = page.getByTestId("monitor-criteria-header");
     await expect(headers).toHaveCount(2, { timeout: 30000 });
 
-    for (const toggle of await headers
-      .locator("button[aria-expanded]")
-      .all()) {
+    for (const toggle of await headers.locator("button[aria-expanded]").all()) {
       await expect(toggle).toHaveAttribute("aria-expanded", "false");
     }
 
@@ -477,8 +476,9 @@ test.describe("Create Monitor, start to finish", () => {
 
     // ...and they do not stretch the page with blank space below the form.
     const blankBelow: number = await page.evaluate((): number => {
-      const formElement: HTMLElement | null =
-        document.getElementById("create-monitor-form");
+      const formElement: HTMLElement | null = document.getElementById(
+        "create-monitor-form",
+      );
       const bottom: number = formElement
         ? formElement.getBoundingClientRect().bottom + window.scrollY
         : 0;
@@ -512,11 +512,13 @@ test.describe("Create Monitor, start to finish", () => {
     await form.getByRole("button", { name: "Next", exact: true }).click();
 
     // Probes & Interval: the default interval, and one probe picked.
-    await expect(form.getByText("Every 5 Minutes", { exact: true })).toBeVisible(
-      { timeout: 30000 },
-    );
     await expect(
-      form.getByText("How often to check. Every 5 minutes suits most monitors."),
+      form.getByText("Every 5 Minutes", { exact: true }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(
+      form.getByText(
+        "How often to check. Every 5 minutes suits most monitors.",
+      ),
     ).toBeVisible();
     await page.getByRole("combobox", { name: /^Probes/ }).click();
     await page
@@ -544,9 +546,7 @@ test.describe("Create Monitor, start to finish", () => {
     expect(JSON.stringify(creates[0]!.data["monitorSteps"])).toContain(
       "storefront.acme-commerce.example",
     );
-    expect(creates[0]!.miscDataProps?.["probes"]).toEqual([
-      FRANKFURT_PROBE_ID,
-    ]);
+    expect(creates[0]!.miscDataProps?.["probes"]).toEqual([FRANKFURT_PROBE_ID]);
   });
 
   test("a manual monitor: one step, Create Monitor right there, no interval", async ({

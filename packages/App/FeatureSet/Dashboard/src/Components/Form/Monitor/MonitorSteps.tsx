@@ -54,7 +54,6 @@ import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
   onChange?: ((value: MonitorSteps) => void) | undefined;
-  onBlur?: () => void;
   initialValue?: MonitorSteps;
   monitorType: MonitorType;
   isMonitorTemplate?: boolean | undefined;

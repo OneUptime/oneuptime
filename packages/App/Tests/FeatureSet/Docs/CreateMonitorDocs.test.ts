@@ -154,11 +154,12 @@ function monitorGroup(): NavGroup {
 }
 
 // Every type the picker offers, by its title.
-const OFFERED_TYPES: Array<MonitorType> = MonitorTypeHelper.getMonitorTypeCategories().flatMap(
-  (category: MonitorTypeCategory): Array<MonitorType> => {
-    return category.monitorTypes;
-  },
-);
+const OFFERED_TYPES: Array<MonitorType> =
+  MonitorTypeHelper.getMonitorTypeCategories().flatMap(
+    (category: MonitorTypeCategory): Array<MonitorType> => {
+      return category.monitorTypes;
+    },
+  );
 
 // The types that end on Probes & Interval: the ones probes check.
 const PROBE_CHECKED_TITLES: Array<string> = OFFERED_TYPES.filter(
@@ -243,18 +244,21 @@ describe("the Creating a Monitor docs page", () => {
       }
 
       // In the order the form declares them.
-      expect([...positions].sort((a: number, b: number) => {
-        return a - b;
-      })).toEqual(positions);
+      expect(
+        [...positions].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ).toEqual(positions);
     });
 
     it("lists the six common types first, in the picker's order", () => {
       const first: string = pageSections[0]!.body;
-      const titles: Array<string> = MonitorTypeHelper.getCommonMonitorTypes().map(
-        (type: MonitorType): string => {
-          return MonitorTypeHelper.getTitle(type);
-        },
-      );
+      const titles: Array<string> =
+        MonitorTypeHelper.getCommonMonitorTypes().map(
+          (type: MonitorType): string => {
+            return MonitorTypeHelper.getTitle(type);
+          },
+        );
 
       expect(titles).toEqual([
         "Website",
@@ -273,9 +277,11 @@ describe("the Creating a Monitor docs page", () => {
         expect(position).toBeGreaterThan(-1);
       }
 
-      expect([...positions].sort((a: number, b: number) => {
-        return a - b;
-      })).toEqual(positions);
+      expect(
+        [...positions].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ).toEqual(positions);
     });
 
     it("names the picker's More button, Change and Escape as the picker does", () => {
@@ -317,7 +323,9 @@ describe("the Creating a Monitor docs page", () => {
       expect(other?.monitorTypes).toEqual([MonitorType.Manual]);
 
       const first: string = pageSections[0]!.body;
-      expect(first).toContain("**Manual**, a monitor whose status you set yourself, is under **Other**.");
+      expect(first).toContain(
+        "**Manual**, a monitor whose status you set yourself, is under **Other**.",
+      );
       expect(first).toContain(
         "A **Manual** monitor needs nothing more, so **Create Monitor** is on this step.",
       );
@@ -400,9 +408,10 @@ describe("the Creating a Monitor docs page", () => {
 
     it("names the form's buttons and fields as that language's dashboard does", () => {
       for (const word of UI_WORDS) {
-        expect({ word, found: page.includes(`**${dashboard[word]!}**`) }).toEqual(
-          { word, found: true },
-        );
+        expect({
+          word,
+          found: page.includes(`**${dashboard[word]!}**`),
+        }).toEqual({ word, found: true });
       }
     });
 
