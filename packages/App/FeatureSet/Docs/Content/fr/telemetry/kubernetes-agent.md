@@ -349,6 +349,8 @@ Les labels sont mis en correspondance sans tenir compte de la casse, de sorte qu
 
 ## Mise à niveau de l'agent
 
+Lorsque l'agent est plus ancien que votre OneUptime, un signe d'avertissement apparaît à côté de **Version de l'agent** dans les **Détails du cluster**. Sélectionnez-le pour voir cette commande.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

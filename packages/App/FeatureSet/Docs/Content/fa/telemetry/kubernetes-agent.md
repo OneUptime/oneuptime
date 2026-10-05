@@ -354,6 +354,8 @@ clusterName: prod
 
 ## ارتقای عامل
 
+وقتی عامل از OneUptime شما قدیمی‌تر باشد، کنار **Agent Version** در **Cluster Details** خوشه یک نشانه هشدار ظاهر می‌شود. آن را برگزینید تا این فرمان را ببینید.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

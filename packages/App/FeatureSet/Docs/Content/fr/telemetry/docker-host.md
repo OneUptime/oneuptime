@@ -91,6 +91,8 @@ En une minute environ, l'hôte devrait apparaître dans le tableau de bord OneUp
 
 ## Mettre à niveau l'agent
 
+Lorsque l'agent est plus ancien que votre OneUptime, un signe d'avertissement apparaît à côté de **Version de l'agent** dans la **Vue d'ensemble** de l'hôte Docker. Sélectionnez-le pour voir ces commandes.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

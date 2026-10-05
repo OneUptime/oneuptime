@@ -348,6 +348,8 @@ clusterName: prod
 
 ## Обновление агента
 
+Если агент старше вашего OneUptime, рядом с **Версия агента** в разделе **Сведения о кластере** появляется предупреждающий знак. Выберите его, чтобы увидеть эту команду.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

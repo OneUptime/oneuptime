@@ -489,6 +489,8 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 
 ## Upgrading the Agent
 
+When the agent is older than your OneUptime, a warning sign appears beside **Agent Version** in the cluster's **Cluster Details**. Select it to see this command.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
