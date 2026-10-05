@@ -132,6 +132,16 @@ interface UnsubscribedAtCarryForward {
  */
 const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
 
+/*
+ * What onBeforeCreate hands onCreateSuccess: the status page the subscriber
+ * is for, and the cancelled subscription of the same contact on that page
+ * that the new one replaces, if there is one.
+ */
+interface SubscriberCreateCarryForward {
+  statusPage: StatusPage;
+  replacedSubscriberId: ObjectID | null;
+}
+
 // How many subscribers the backfill and the token top-up handle per statement.
 const UNSUBSCRIBE_COLUMNS_BATCH_SIZE: number = 1000;
 
@@ -386,22 +396,13 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    // if the user is unsubscribed, delete this record and it'll create a new one.
-    if (subscriber) {
-      logger.debug("Subscriber is unsubscribed. Deleting old record.", {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
-      await this.deleteOneBy({
-        query: {
-          _id: subscriber?._id as string,
-        },
-        props: {
-          ignoreHooks: true,
-          isRoot: true,
-        },
-      });
-    }
+    /*
+     * A contact who cancelled and subscribes again gets a new subscription,
+     * and the cancelled one is removed once the new one exists
+     * (onCreateSuccess) - so a create that is refused or fails leaves it.
+     */
+    const replacedSubscriberId: ObjectID | null =
+      subscriber && subscriber.id ? subscriber.id : null;
 
     const statuspages: Array<StatusPage> =
       await this.getStatusPagesToSendNotification([data.data.statusPageId]);
@@ -586,7 +587,12 @@ export class Service extends DatabaseService<Model> {
       statusPageId: data.data.statusPageId?.toString(),
     } as LogAttributes);
 
-    return { createBy: data, carryForward: statuspage };
+    const carryForward: SubscriberCreateCarryForward = {
+      statusPage: statuspage,
+      replacedSubscriberId: replacedSubscriberId,
+    };
+
+    return { createBy: data, carryForward: carryForward };
   }
 
   /*
@@ -1134,6 +1140,36 @@ export class Service extends DatabaseService<Model> {
       return createdItem;
     }
 
+    const carryForward: SubscriberCreateCarryForward | undefined =
+      onCreate.carryForward as SubscriberCreateCarryForward | undefined;
+    const statusPageOfSubscriber: StatusPage | undefined =
+      carryForward?.statusPage;
+
+    /*
+     * The contact's cancelled subscription on this page goes now that the new
+     * one exists: links to the old one stop working. Only a cancelled one, of
+     * the same status page and project as the new subscriber.
+     */
+    if (carryForward?.replacedSubscriberId && createdItem.projectId) {
+      logger.debug("Subscriber is unsubscribed. Deleting old record.", {
+        projectId: createdItem.projectId?.toString(),
+        statusPageId: createdItem.statusPageId?.toString(),
+      } as LogAttributes);
+
+      await this.deleteOneBy({
+        query: {
+          _id: carryForward.replacedSubscriberId.toString(),
+          projectId: createdItem.projectId,
+          statusPageId: createdItem.statusPageId,
+          isUnsubscribed: true,
+        },
+        props: {
+          ignoreHooks: true,
+          isRoot: true,
+        },
+      });
+    }
+
     const statusPageURL: string = await StatusPageService.getStatusPageURL(
       createdItem.statusPageId,
     );
@@ -1142,8 +1178,8 @@ export class Service extends DatabaseService<Model> {
     } as LogAttributes);
 
     const statusPageName: string =
-      onCreate.carryForward.pageTitle ||
-      onCreate.carryForward.name ||
+      statusPageOfSubscriber?.pageTitle ||
+      statusPageOfSubscriber?.name ||
       "Status Page";
     logger.debug(`Status Page Name: ${statusPageName}`, {
       projectId: createdItem.projectId?.toString(),
@@ -1203,8 +1239,7 @@ export class Service extends DatabaseService<Model> {
        */
       const smsUnsubscribeLink: string =
         StatusPageSubscriberUnsubscribe.buildSmsLink({
-          isPublicStatusPage: (onCreate.carryForward as StatusPage | undefined)
-            ?.isPublicStatusPage,
+          isPublicStatusPage: statusPageOfSubscriber?.isPublicStatusPage,
           statusPageUrl: statusPageURL,
           subscriberId: createdItem.id!,
           unsubscribeUrl: unsubscribeLink,

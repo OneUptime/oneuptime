@@ -256,22 +256,14 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       logger.debug("State After this");
       logger.debug(stateAfterThis);
 
+      /*
+       * The notes that ride along with the state change are written once the
+       * state change itself is saved (onCreateSuccess), so a change that is
+       * refused or fails leaves no note behind.
+       */
       const internalNote: string | undefined = (
         createBy.miscDataProps as JSONObject | undefined
       )?.["internalNote"] as string | undefined;
-
-      if (internalNote) {
-        const alertNote: AlertInternalNote = new AlertInternalNote();
-        alertNote.alertId = createBy.data.alertId;
-        alertNote.note = internalNote;
-        alertNote.createdAt = createBy.data.startsAt;
-        alertNote.projectId = createBy.data.projectId!;
-
-        await AlertInternalNoteService.create({
-          data: alertNote,
-          props: createBy.props,
-        });
-      }
 
       const privateNote: string | undefined = (
         createBy.miscDataProps as JSONObject | undefined
@@ -282,6 +274,7 @@ export class Service extends DatabaseService<AlertStateTimeline> {
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
+          internalNote: internalNote,
           privateNote: privateNote,
           mutex: mutex,
         },
@@ -460,6 +453,19 @@ ${createdItem.rootCause}`,
           createdItem.createdByUserId || onCreate.createBy.props.userId,
       },
     });
+
+    if (onCreate.carryForward.internalNote) {
+      const alertNote: AlertInternalNote = new AlertInternalNote();
+      alertNote.alertId = createdItem.alertId;
+      alertNote.note = onCreate.carryForward.internalNote;
+      alertNote.createdAt = createdItem.startsAt!;
+      alertNote.projectId = createdItem.projectId!;
+
+      await AlertInternalNoteService.create({
+        data: alertNote,
+        props: onCreate.createBy.props,
+      });
+    }
 
     if (onCreate.carryForward.privateNote) {
       const privateNote: string = onCreate.carryForward.privateNote;
