@@ -147,6 +147,11 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         databaseServerIds: [],
       });
 
+    // Linked by hand (Monitor > Overview > Linked Resources): nothing here.
+    jest
+      .spyOn(MonitorResourceContextUtil, "resolveLinkedResourcesForMonitor")
+      .mockResolvedValue(MonitorResourceContextUtil.emptyContext());
+
     jest
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
       .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] });

@@ -5,6 +5,7 @@ import Select from "../../Types/Database/Select";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
@@ -286,6 +287,24 @@ export default class LinkedAffectedResources {
       model: new ScheduledMaintenance(),
       projectId: data.projectId,
       recordIds: [data.scheduledMaintenanceId],
+    });
+  }
+
+  /*
+   * The resources the monitors watch (Monitor > Overview > Linked
+   * Resources): the same lists an incident's affected resources hold, read
+   * and project-checked the same way.
+   */
+  public static async readForMonitors(data: {
+    service: LinkedAffectedResourceReader<Monitor>;
+    projectId: ObjectID;
+    monitorIds: Array<ObjectID>;
+  }): Promise<Array<LinkedAffectedResource>> {
+    return await LinkedAffectedResources.read({
+      service: data.service,
+      model: new Monitor(),
+      projectId: data.projectId,
+      recordIds: data.monitorIds,
     });
   }
 
