@@ -165,6 +165,43 @@ describe("the English sharing guide", () => {
     expect(page).toContain("\n## Custom domains\n");
   });
 
+  /*
+   * What a visitor sees before they may view the dashboard: the public
+   * routes answer only for a dashboard the visitor may see (the server's
+   * PublicDashboardAccess decision), and the guide says so.
+   */
+  it("says a private dashboard's address reads like an address no dashboard has", () => {
+    expect(section).toContain(
+      "its public address shows the same not-found page as an address no dashboard has, and nothing about the dashboard, not even its name.",
+    );
+  });
+
+  it("says the password prompt shows the name, page title and favicon, and the rest waits for the password", () => {
+    expect(sectionOf(page, "Sharing with a password")).toContain(
+      "The prompt shows the dashboard's name, page title and favicon, and nothing else: its description, logo and widgets appear once the password is entered.",
+    );
+  });
+
+  it("says an address the allowlist refuses sees nothing about the dashboard", () => {
+    expect(sectionOf(page, "IP allowlist")).toContain(
+      "Requests from any other IP are rejected with an **Access Denied** page that shows nothing about the dashboard: not its name, not its branding, and not its password prompt.",
+    );
+  });
+
+  it("says which branding shows before a visitor may view the dashboard", () => {
+    const branding: string = sectionOf(page, "Branding");
+
+    expect(branding).toContain(
+      "Visitors see the branding only once they may view the dashboard.",
+    );
+    expect(branding).toContain(
+      "a dashboard shared with a password shows only its page title and favicon, and search engines and link previews see its page title but not its page description.",
+    );
+    expect(branding).toContain(
+      "A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.",
+    );
+  });
+
   it("names branding's own page", () => {
     expect(sectionOf(page, "Branding")).toContain(
       "On the dashboard's **Branding** page, you can configure:",

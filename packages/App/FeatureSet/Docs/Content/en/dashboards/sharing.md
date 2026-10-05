@@ -6,7 +6,7 @@ By default, a dashboard is private to your project: only people who sign in to y
 
 Open the dashboard and pick **⋯ → Share**, or open **Sharing** in the dashboard's side menu. The **Who can view this dashboard** card is one choice:
 
-- **Only people in this project** (the default): members see the dashboard when they sign in to OneUptime. It has no public link.
+- **Only people in this project** (the default): members see the dashboard when they sign in to OneUptime. It has no public link: its public address shows the same not-found page as an address no dashboard has, and nothing about the dashboard, not even its name.
 - **Anyone with the link**: the dashboard is public. Anyone who has its link can see it, without signing in.
 - **Anyone with the link and a password**: visitors open the link, then enter one password that you share with them. Nobody needs an account.
 
@@ -32,7 +32,7 @@ Each widget publishes only what it draws, and only for the resources it was poin
 
 ## Sharing with a password
 
-Pick **Anyone with the link and a password** and enter the password in the dialog. Visitors see a password prompt before the dashboard appears. The password is stored as a hash — nobody can read it back. A new password works at once; people who entered the old one can keep viewing the dashboard for up to 7 days.
+Pick **Anyone with the link and a password** and enter the password in the dialog. Visitors see a password prompt before the dashboard appears. The prompt shows the dashboard's name, page title and favicon, and nothing else: its description, logo and widgets appear once the password is entered. The password is stored as a hash — nobody can read it back. A new password works at once; people who entered the old one can keep viewing the dashboard for up to 7 days.
 
 Use a password when:
 
@@ -51,7 +51,7 @@ Use this when:
 - A vendor portal should only be reachable from their known IPs.
 - You want extra protection on top of a password.
 
-Requests from any other IP are rejected. A line that is not an IP address or an IPv4 range is refused when you save, because the server would skip it.
+Requests from any other IP are rejected with an **Access Denied** page that shows nothing about the dashboard: not its name, not its branding, and not its password prompt. A line that is not an IP address or an IPv4 range is refused when you save, because the server would skip it.
 
 ## Custom domains
 
@@ -130,6 +130,8 @@ On the dashboard's **Branding** page, you can configure:
 - **Favicon** — the small icon in the browser tab.
 
 Branding applies only when the dashboard is viewed publicly. Internal viewers always see OneUptime's branding.
+
+Visitors see the branding only once they may view the dashboard. Before the password is entered, a dashboard shared with a password shows only its page title and favicon, and search engines and link previews see its page title but not its page description. A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.
 
 ## Embedding
 

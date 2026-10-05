@@ -67,6 +67,7 @@ const App: () => JSX.Element = () => {
   const [dashboardId, setDashboardId] = useState<ObjectID | null>(null);
   const [dashboardName, setDashboardName] = useState<string>("Dashboard");
   const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
+  const [isForbidden, setIsForbidden] = useState<boolean>(false);
   type GetIdFunction = () => Promise<ObjectID>;
 
   const getId: GetIdFunction = async (): Promise<ObjectID> => {
@@ -114,6 +115,19 @@ const App: () => JSX.Element = () => {
         data: {},
         headers: {},
       });
+
+      /*
+       * The metadata answers only for a dashboard this visitor may see. A
+       * 403 is its IP allowlist refusing this address. Any other refusal is
+       * a dashboard that is not here: one shared only with its project, an
+       * archived one and a missing one all answer 404, alike.
+       */
+      if (response.isFailure()) {
+        setIsForbidden(response.statusCode === 403);
+        PublicDashboardUtil.setRequiresMasterPassword(false);
+        setIsLoading(false);
+        return;
+      }
 
       if (response.data) {
         const name: string = (response.data["name"] as string) || "Dashboard";
@@ -178,6 +192,15 @@ const App: () => JSX.Element = () => {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <ErrorMessage message={error} />
       </div>
+    );
+  }
+
+  // The dashboard's IP allowlist does not let this visitor in.
+  if (isForbidden) {
+    return (
+      <Suspense fallback={<PageLoader isVisible={true} />}>
+        <ForbiddenPage />
+      </Suspense>
     );
   }
 

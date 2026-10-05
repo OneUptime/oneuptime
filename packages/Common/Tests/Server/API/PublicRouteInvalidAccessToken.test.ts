@@ -133,6 +133,7 @@ const buildDashboard: (data: {
   const dashboard: Dashboard = new Dashboard();
   dashboard.id = data.id;
   dashboard.name = `Dashboard ${data.id.toString()}`;
+  dashboard.description = `About ${data.id.toString()}`;
   dashboard.isPublicDashboard = data.isPublicDashboard;
   dashboard.enableMasterPassword = Boolean(data.enableMasterPassword);
 
@@ -368,6 +369,49 @@ describe("public routes with an access-token cookie that no longer decodes", () 
       expect(result.body?.["isPublicDashboard"]).toBe(true);
     });
 
+    it("answers a protected dashboard's metadata with its password prompt, and unlocks it for a viewer holding its master-password cookie", async () => {
+      const prompt: HttpResult = await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/metadata/${PROTECTED_DASHBOARD_ID.toString()}`,
+        cookies: STALE_SESSION_COOKIE,
+      });
+
+      expect(prompt.status).toBe(200);
+      expect(prompt.body?.["enableMasterPassword"]).toBe(true);
+      expect(prompt.body?.["name"]).toBe(
+        `Dashboard ${PROTECTED_DASHBOARD_ID.toString()}`,
+      );
+      expect(prompt.body?.["description"]).toBe("");
+
+      const unlocked: HttpResult = await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/metadata/${PROTECTED_DASHBOARD_ID.toString()}`,
+        cookies: {
+          ...STALE_SESSION_COOKIE,
+          ...masterPasswordCookie(PROTECTED_DASHBOARD_ID),
+        },
+      });
+
+      expect(unlocked.status).toBe(200);
+      expect(unlocked.body?.["description"]).toBe(
+        `About ${PROTECTED_DASHBOARD_ID.toString()}`,
+      );
+    });
+
+    it("answers a private dashboard's metadata like a missing dashboard's, for the dashboard's reason", async () => {
+      const result: HttpResult = await send({
+        port,
+        method: "POST",
+        path: `/api/dashboard/metadata/${PRIVATE_DASHBOARD_ID.toString()}`,
+        cookies: STALE_SESSION_COOKIE,
+      });
+
+      expect(result.status).toBe(404);
+      expect(errorMessageOf(result)).toBe("Dashboard not found");
+    });
+
     /*
      * The master-password case from the report: the viewer already entered
      * the password, and the stale session cookie must not send them back to
@@ -426,6 +470,10 @@ describe("public routes with an access-token cookie that no longer decodes", () 
     it.each([
       ["GET", `/api/dashboard/overview/${PUBLIC_DASHBOARD_ID.toString()}`],
       ["POST", `/api/dashboard/metadata/${PUBLIC_DASHBOARD_ID.toString()}`],
+      ["POST", `/api/dashboard/metadata/${PROTECTED_DASHBOARD_ID.toString()}`],
+      ["POST", `/api/dashboard/metadata/${PRIVATE_DASHBOARD_ID.toString()}`],
+      ["GET", `/api/dashboard/seo/${PUBLIC_DASHBOARD_ID.toString()}`],
+      ["GET", `/api/dashboard/seo/${PRIVATE_DASHBOARD_ID.toString()}`],
       ["GET", `/api/dashboard/overview/${PROTECTED_DASHBOARD_ID.toString()}`],
       ["GET", `/api/dashboard/overview/${PRIVATE_DASHBOARD_ID.toString()}`],
     ] as Array<["GET" | "POST", string]>)(
