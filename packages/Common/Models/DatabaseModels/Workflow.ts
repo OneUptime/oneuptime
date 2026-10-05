@@ -70,10 +70,14 @@ import {
     Permission.WorkflowAdmin,
     Permission.WorkflowMember,
   ],
+  /*
+   * Editing a workflow - and running one by hand, which the Workflow API
+   * gates on this list too - takes Edit Workflow. Delete Workflow is for
+   * deleting one.
+   */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.DeleteWorkflow,
     Permission.EditWorkflow,
   ],
 })
@@ -198,7 +202,6 @@ export default class Workflow extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.DeleteWorkflow,
       Permission.EditWorkflow,
     ],
   })
@@ -269,7 +272,6 @@ export default class Workflow extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.DeleteWorkflow,
       Permission.EditWorkflow,
     ],
   })
@@ -464,7 +466,6 @@ export default class Workflow extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.DeleteWorkflow,
       Permission.EditWorkflow,
     ],
   })
@@ -602,7 +603,6 @@ export default class Workflow extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.DeleteWorkflow,
       Permission.EditWorkflow,
     ],
   })
@@ -641,7 +641,6 @@ export default class Workflow extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.DeleteWorkflow,
       Permission.EditWorkflow,
     ],
   })
@@ -681,7 +680,6 @@ export default class Workflow extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.DeleteWorkflow,
       Permission.EditWorkflow,
     ],
   })

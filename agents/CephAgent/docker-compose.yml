@@ -1,6 +1,12 @@
 services:
   oneuptime-ceph-agent:
-    image: otel/opentelemetry-collector-contrib:latest
+    # Upstream collector, pinned. There is no oneuptime/ceph-agent image —
+    # the agent is entirely defined by otel-collector-config.yaml, which
+    # install.sh downloads next to this file, and that config reports this
+    # pin as the agent's version (oneuptime.agent.version). Bump the two
+    # together; Tests/Ops/validate-collector-configs.sh validates the config
+    # against this version.
+    image: otel/opentelemetry-collector-contrib:0.161.0
     container_name: oneuptime-ceph-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
@@ -77,6 +83,15 @@ services:
       # pools, PGs and daemons ONEUPTIME_AI_WRITE_TARGETS matches (all when
       # empty; "cluster" for cluster-wide flags such as noout), and never
       # ONEUPTIME_AI_PROTECTED_TARGETS — and only what the client's caps allow.
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION
+      # (true or false) and ONEUPTIME_AI_FIXES (off, ask-for-approval,
+      # automatic or bypass-approval; fixes also need
+      # ONEUPTIME_AI_ALLOW_WRITES=true). Set either and the AI agent page in
+      # OneUptime follows them, read-only; leave both empty for the agent's
+      # defaults (investigation on, fixes Ask for approval when writes are
+      # allowed, else off).
+      - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
       - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
       - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
       - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}

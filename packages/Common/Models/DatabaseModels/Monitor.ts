@@ -1988,13 +1988,17 @@ export default class Monitor extends BaseModel {
       Permission.MonitorViewer,
       Permission.ReadProjectMonitor,
     ],
+    /*
+     * Turning a monitor's checks off and on again is an edit of the monitor,
+     * so it takes what any other edit takes: the monitor's own update list.
+     */
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.MonitorAdmin,
       Permission.MonitorMember,
-      Permission.CreateProjectMonitor,
+      Permission.EditProjectMonitor,
     ],
   })
   @Index()

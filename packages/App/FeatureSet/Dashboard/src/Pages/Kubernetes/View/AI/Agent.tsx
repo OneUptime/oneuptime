@@ -15,9 +15,10 @@ import {
   AiAgentStatusPill,
   canSwitchToAiAgent,
   describeAiAgentWriteAccess,
+  AiAgentMeta,
   getAiAgentAttention,
   getAiAgentCardCommand,
-  getAiAgentMetaParts,
+  getAiAgentMeta,
   getAiAgentPodNamespace,
   getAiAgentStateSentence,
   getAiAgentStatusPill,
@@ -26,11 +27,18 @@ import {
   getAutomaticInvestigationConfirmation,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
+  getKubernetesAiSettingsSource,
   getRefusedRegistrationWarning,
   isAdvancedRunnerTarget,
   parseStatus,
   shouldShowWriteAccessCommands,
 } from "../../Utils/KubernetesAiAgentStatus";
+import {
+  KUBERNETES_AI_SETTINGS_SET_BY_TEXT,
+  canKubernetesAgentSetAiSettings,
+  getKubernetesAiSettingsChoice,
+  getKubernetesAiSettingsInstructions,
+} from "../../Utils/KubernetesAiAgentSettings";
 import {
   AiAgentHelmCommands,
   getAiAgentClusterWideCommandNote,
@@ -94,6 +102,8 @@ import {
   AI_ACCESS_FIXES_ROW_TITLE,
   AI_ACCESS_INVESTIGATION_ROW_TITLE,
   AI_FIXES_MODE_ICONS,
+  AI_FIXES_OFF_AGENT_SET_HINT,
+  AgentAiSettingsChoice,
   formatAiAccessProtections,
   getAiAccessCardDescription,
   getAiFixesBadge,
@@ -111,7 +121,12 @@ import {
   AiAccessProtections,
   AiAccessRow,
   AiAccessRows,
+  AiAccessSetBy,
 } from "../../../../Components/AiAccess/AiAccessRow";
+import AgentAiSettingsModal from "../../../../Components/AiAccess/AgentAiSettingsModal";
+import { AgentAiSettingsInstructions } from "../../../../Components/AiAccess/AgentAiSettingsInstructions";
+import AgentVersion from "../../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../../Components/AgentVersion/AgentKind";
 import {
   AiAgentAction,
   getAiAgentActions,
@@ -182,6 +197,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "Common/Types/AI/AgentAiSettings";
 import React, {
   Fragment,
   FunctionComponent,
@@ -219,7 +239,8 @@ import {
  *     where it stands and one plain sentence — the rows are shared with
  *     every other resource's page (Components/AiAccess).
  *
- * What AI did on the cluster lives on the AI Insights page (AI → Insights).
+ * What AI did on the cluster lives on the AI Logs page (AI → Logs), and
+ * what it learned there on the AI Insights page (AI → Insights).
  */
 
 interface AccessTestResult {
@@ -322,6 +343,11 @@ interface SettingsModalProps {
   isAdvancedBinding: boolean;
   // The cluster has a Kubernetes AI agent row (status.aiAgent).
   hasAiAgent: boolean;
+  /*
+   * The cluster's Kubernetes AI agent sets investigation and fixes: the
+   * form edits the kubectl allowlist alone (the server refuses the rest).
+   */
+  isSetByAgent?: boolean | undefined;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -523,6 +549,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       isCredentialPickerAvailable,
       isAdvancedBinding: props.isAdvancedBinding,
       hasAiAgent: props.hasAiAgent,
+      isSetByAgent: props.isSetByAgent,
     });
   }, [
     saved,
@@ -531,6 +558,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     isCredentialPickerAvailable,
     props.isAdvancedBinding,
     props.hasAiAgent,
+    props.isSetByAgent,
   ]);
 
   const runnerDirectory: Record<string, KubernetesAiRunnerDirectoryEntry> =
@@ -595,43 +623,48 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           },
         );
 
-    const result: Fields<KubernetesAiAccessSettingsFormValues> = [
-      {
-        field: { isAiInvestigationEnabled: true },
-        title: "Investigate with kubectl",
-        stepId: "investigation-and-fixes",
-        description:
-          "Read-only: get, describe, logs, events, top. An investigation never changes the cluster.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        dataTestId: "ai-investigation-field",
-      },
-      {
-        // One card per mode, each saying what it does.
-        field: { aiRemediationMode: true },
-        title: AI_ACCESS_FIXES_ROW_TITLE,
-        stepId: "investigation-and-fixes",
-        description: getAiFixesFieldDescription("cluster"),
-        fieldType: FormFieldSchemaType.CardSelect,
-        cardSelectSingleColumn: true,
-        required: true,
-        dataTestId: "ai-remediation-mode-field",
-        cardSelectOptions: modes.map(
-          (mode: KubernetesAiRemediationMode): CardSelectOption => {
-            return {
-              value: mode,
-              title: getAiFixesModeCardTitle({
-                mode,
-                savedMode: saved.aiRemediationMode,
-                shortNames: REMEDIATION_MODE_SHORT_NAMES,
-              }),
-              description: REMEDIATION_MODE_OPTION_DESCRIPTIONS[mode],
-              icon: AI_FIXES_MODE_ICONS[mode],
-            };
-          },
-        ),
-      },
-    ];
+    const investigationAndFixes: Fields<KubernetesAiAccessSettingsFormValues> =
+      [
+        {
+          field: { isAiInvestigationEnabled: true },
+          title: "Investigate with kubectl",
+          stepId: "investigation-and-fixes",
+          description:
+            "Read-only: get, describe, logs, events, top. An investigation never changes the cluster.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          dataTestId: "ai-investigation-field",
+        },
+        {
+          // One card per mode, each saying what it does.
+          field: { aiRemediationMode: true },
+          title: AI_ACCESS_FIXES_ROW_TITLE,
+          stepId: "investigation-and-fixes",
+          description: getAiFixesFieldDescription("cluster"),
+          fieldType: FormFieldSchemaType.CardSelect,
+          cardSelectSingleColumn: true,
+          required: true,
+          dataTestId: "ai-remediation-mode-field",
+          cardSelectOptions: modes.map(
+            (mode: KubernetesAiRemediationMode): CardSelectOption => {
+              return {
+                value: mode,
+                title: getAiFixesModeCardTitle({
+                  mode,
+                  savedMode: saved.aiRemediationMode,
+                  shortNames: REMEDIATION_MODE_SHORT_NAMES,
+                }),
+                description: REMEDIATION_MODE_OPTION_DESCRIPTIONS[mode],
+                icon: AI_FIXES_MODE_ICONS[mode],
+              };
+            },
+          ),
+        },
+      ];
+
+    // While the agent sets them, its chart changes them, not this form.
+    const result: Fields<KubernetesAiAccessSettingsFormValues> =
+      offered.investigationAndFixes === false ? [] : investigationAndFixes;
 
     if (offered.allowlist) {
       result.push({
@@ -644,6 +677,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         required: false,
         placeholder: "kubectl set image deployment/web * -n web",
         dataTestId: "kubectl-allowlist-field",
+        /*
+         * The mode is not on the form while the agent sets it: the saved
+         * one (Automatic, or the allowlist link is not offered) decides.
+         */
         showIf: isAllowlistFieldShown,
         customValidation: (
           values: FormValues<KubernetesAiAccessSettingsFormValues>,
@@ -915,7 +952,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   return (
     <>
       <Modal
-        title="Change what AI may do"
+        title={
+          props.isSetByAgent
+            ? "Edit the kubectl allowlist"
+            : "Change what AI may do"
+        }
         submitButtonText="Save"
         submitButtonType={ButtonType.Submit}
         modalWidth={ModalWidth.Medium}
@@ -926,7 +967,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         secondaryButton={footer.secondaryButton}
       >
         <div className="space-y-4">
-          {!canConfigureUnattended ? <AdminPermissionNote /> : <></>}
+          {!canConfigureUnattended && !props.isSetByAgent ? (
+            <AdminPermissionNote />
+          ) : (
+            <></>
+          )}
 
           {notes.length > 0 ? (
             <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
@@ -1045,6 +1090,13 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const [testError, setTestError] = useState<string>("");
   const [refresher, setRefresher] = useState<boolean>(false);
   const [isEditingSettings, setIsEditingSettings] = useState<boolean>(false);
+  /*
+   * The "Change what AI may do" dialog for settings the agent sets (or that
+   * could move to it): open with what it should start on, or null.
+   */
+  const [agentSettingsDialog, setAgentSettingsDialog] = useState<{
+    turnOnInvestigation: boolean;
+  } | null>(null);
   /*
    * What the Change modal offers, read when it opens. Kept in state so a
    * status poll re-rendering the page cannot rebuild the open form.
@@ -1231,7 +1283,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     });
   };
 
-  // Shown in every state, like the AI Insights page's heading.
+  // Shown in every state, like the AI Insights and AI Logs pages' headings.
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
@@ -1277,8 +1329,28 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const aiAgent: KubernetesAiAgentSummary | null = getAiAgentSummary(status);
   const pill: AiAgentStatusPill = getAiAgentStatusPill(status);
   const command: AiAgentCardCommand = getAiAgentCardCommand(status);
-  const helmCommands: AiAgentHelmCommands = getAiAgentHelmCommands();
-  const metaParts: Array<string> = getAiAgentMetaParts(status);
+  const aiSettingsSource: AgentAiSettingsSource =
+    getKubernetesAiSettingsSource(status);
+  const isSetByAgent: boolean = isAgentAiSettingsSourceAgent(aiSettingsSource);
+  // Settings chosen here that could move to the agent's chart.
+  const canMoveSettingsToAgent: boolean =
+    !isSetByAgent && canKubernetesAgentSetAiSettings(status);
+  const currentChoice: AgentAiSettingsChoice =
+    getKubernetesAiSettingsChoice(status);
+  /*
+   * The write-access upgrades set what is in effect, so granting write
+   * access never changes investigation or the fixes mode on the way.
+   */
+  const helmCommands: AiAgentHelmCommands = getAiAgentHelmCommands({
+    investigation: currentChoice.investigation,
+    fixes:
+      currentChoice.fixes === KubernetesAiRemediationMode.Disabled
+        ? KubernetesAiRemediationMode.RequireApproval
+        : currentChoice.fixes,
+  });
+  const meta: AiAgentMeta = getAiAgentMeta(status);
+  const isAgentVersionShown: boolean =
+    meta.showsAgentVersion && Boolean(aiAgent?.agentVersion);
   const refusedWarning: string | null = getRefusedRegistrationWarning(aiAgent);
   const attention: AiAgentAttention | null = getAiAgentAttention(status);
   const isAdvanced: boolean = isAdvancedRunnerTarget(status);
@@ -1328,10 +1400,29 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     );
   };
 
+  const openAgentSettingsDialog: (turnOnInvestigation: boolean) => void = (
+    turnOnInvestigation: boolean,
+  ): void => {
+    setAgentSettingsDialog({ turnOnInvestigation });
+  };
+
   const renderStepAction: (action: AiAgentGapAction | null) => ReactElement = (
     action: AiAgentGapAction | null,
   ): ReactElement => {
     switch (action) {
+      case "set_investigation_in_agent":
+        // Instructions only: anyone who can see the page may read them.
+        return (
+          <Button
+            title="Show how"
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            dataTestId="ai-agent-gap-show-investigation-command"
+            onClick={() => {
+              openAgentSettingsDialog(true);
+            }}
+          />
+        );
       case "turn_on_investigation":
         return settingsGate.isAllowed ? (
           <Button
@@ -1443,8 +1534,26 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     isActing,
   });
 
-  const settingsButtons: Array<ReactElement> =
-    settingsGate.isAllowed || settingsGate.disabledReason
+  /*
+   * While the agent sets investigation and fixes, Change shows how to change
+   * them in the agent — instructions, so it is offered to everyone who can
+   * see the page; the server refuses an edit here anyway.
+   */
+  const settingsButtons: Array<ReactElement> = isSetByAgent
+    ? [
+        <Button
+          key="change"
+          title="Change"
+          icon={IconProp.Edit}
+          buttonStyle={ButtonStyleType.NORMAL}
+          buttonSize={ButtonSize.Normal}
+          dataTestId="ai-access-change-button"
+          onClick={() => {
+            openAgentSettingsDialog(false);
+          }}
+        />,
+      ]
+    : settingsGate.isAllowed || settingsGate.disabledReason
       ? [
           <Button
             key="change"
@@ -1692,10 +1801,41 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             <></>
           )}
 
-          {metaParts.length > 0 ? (
-            <p className="text-xs text-gray-500" data-testid="ai-agent-meta">
-              {metaParts.join(" · ")}
-            </p>
+          {meta.lastSeen || isAgentVersionShown || meta.rest.length > 0 ? (
+            <div className="text-xs text-gray-500" data-testid="ai-agent-meta">
+              {[
+                ...(meta.lastSeen
+                  ? [<span key="last-seen">{meta.lastSeen}</span>]
+                  : []),
+                ...(isAgentVersionShown
+                  ? [
+                      <span key="agent-version" data-testid="ai-agent-version">
+                        <TranslatedSentence
+                          template="agent {{version}}"
+                          slots={{
+                            version: (
+                              <AgentVersion
+                                kind={AgentKind.KubernetesAgent}
+                                version={aiAgent?.agentVersion}
+                              />
+                            ),
+                          }}
+                        />
+                      </span>,
+                    ]
+                  : []),
+                ...meta.rest.map((part: string): ReactElement => {
+                  return <span key={part}>{part}</span>;
+                }),
+              ].map((part: ReactElement, index: number): ReactElement => {
+                return (
+                  <Fragment key={`meta-${index}`}>
+                    {index > 0 ? " · " : ""}
+                    {part}
+                  </Fragment>
+                );
+              })}
+            </div>
           ) : (
             <></>
           )}
@@ -1872,6 +2012,33 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         description={getAiAccessCardDescription("cluster")}
         buttons={settingsButtons}
       >
+        {isSetByAgent ? (
+          <AiAccessSetBy
+            text={
+              translator.translateText(
+                KUBERNETES_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
+              ) || KUBERNETES_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource]
+            }
+            isSetByAgent={true}
+            dataTestId="ai-access-set-by"
+          />
+        ) : canMoveSettingsToAgent ? (
+          <AiAccessSetBy
+            text={
+              translator.translateText(
+                KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime,
+              ) || KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime
+            }
+            isSetByAgent={false}
+            actionText={translator.translateText("Show how")}
+            onAction={() => {
+              openAgentSettingsDialog(false);
+            }}
+            dataTestId="ai-access-set-by"
+          />
+        ) : (
+          <></>
+        )}
         <AiAccessRows>
           <AiAccessRow
             icon={IconProp.MagnifyingGlass}
@@ -1930,9 +2097,14 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           >
             {remediationMode === KubernetesAiRemediationMode.Disabled ? (
               <AiAccessHint
-                text={getAiFixesOffHint(
-                  settingsGate.isAllowed && canConfigureUnattended,
-                )}
+                text={
+                  isSetByAgent
+                    ? translator.translateText(AI_FIXES_OFF_AGENT_SET_HINT) ||
+                      AI_FIXES_OFF_AGENT_SET_HINT
+                    : getAiFixesOffHint(
+                        settingsGate.isAllowed && canConfigureUnattended,
+                      )
+                }
                 dataTestId="ai-access-fixes-off-hint"
               />
             ) : null}
@@ -1941,6 +2113,22 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 title="kubectl allowlist"
                 patterns={allowlistInEffect}
                 dataTestId="kubectl-allowlist-in-effect"
+                /*
+                 * The allowlist stays OneUptime's: with the agent setting
+                 * the modes, Change shows the chart command, so the list is
+                 * edited from here.
+                 */
+                editText={
+                  isSetByAgent &&
+                  settingsGate.isAllowed &&
+                  (canConfigureUnattended || allowlistInEffect.length > 0)
+                    ? translator.translateText("Edit")
+                    : undefined
+                }
+                onEdit={() => {
+                  setEditCapabilities(getKubernetesAiAccessEditCapabilities());
+                  setIsEditingSettings(true);
+                }}
               />
             ) : null}
             {isAdvanced &&
@@ -2009,12 +2197,34 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           capabilities={editCapabilities}
           isAdvancedBinding={isAdvanced}
           hasAiAgent={aiAgent !== null}
+          isSetByAgent={isSetByAgent}
           onClose={() => {
             setIsEditingSettings(false);
           }}
           onSaved={() => {
             setIsEditingSettings(false);
             refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {agentSettingsDialog ? (
+        <AgentAiSettingsModal
+          agentName="Kubernetes AI agent"
+          source={aiSettingsSource}
+          current={currentChoice}
+          turnOnInvestigation={agentSettingsDialog.turnOnInvestigation}
+          fixesShortNames={REMEDIATION_MODE_SHORT_NAMES}
+          fixesDescriptions={REMEDIATION_MODE_OPTION_DESCRIPTIONS}
+          getInstructions={(
+            choice: AgentAiSettingsChoice,
+          ): AgentAiSettingsInstructions => {
+            return getKubernetesAiSettingsInstructions({ choice, status });
+          }}
+          onClose={() => {
+            setAgentSettingsDialog(null);
           }}
         />
       ) : (

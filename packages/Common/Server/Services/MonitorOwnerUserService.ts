@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
@@ -15,7 +15,7 @@ import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNoti
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

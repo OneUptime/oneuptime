@@ -10,6 +10,8 @@ import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import React, { ReactElement } from "react";
+import RetentionOverrideLeftover from "./RetentionOverrideLeftover";
+import { RetentionOverrideLeftoverKind } from "./RetentionOverrideLeftoverCopy";
 
 export type TelemetryRetentionModel = ContractTelemetryRetentionModel;
 
@@ -79,7 +81,9 @@ export const getTelemetryRetentionUpsell: (
  * Retention overrides are part of the Enterprise Edition
  * (ee/Dashboard/TelemetryRetention). Every Settings page keeps importing
  * this component; it renders the Enterprise cards when the project may use
- * the feature and this build includes it, and the upsell card otherwise.
+ * the feature and this build includes it, and the upsell card otherwise -
+ * with, on OneUptime Cloud below the plan, the override a trial left on the
+ * resource under it, so it can be removed (RetentionOverrideLeftover).
  */
 const TelemetryResourceRetentionSettings: <
   TModel extends TelemetryRetentionModel,
@@ -104,6 +108,13 @@ const TelemetryResourceRetentionSettings: <
       upsell={getTelemetryRetentionUpsell(
         `collected from this ${props.resourceName}`,
       )}
+      belowPlan={
+        <RetentionOverrideLeftover<TModel>
+          modelType={props.modelType}
+          modelId={props.modelId}
+          kind={RetentionOverrideLeftoverKind.Resource}
+        />
+      }
     />
   );
 };

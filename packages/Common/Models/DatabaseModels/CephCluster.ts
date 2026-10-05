@@ -1159,13 +1159,13 @@ export default class CephCluster extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Investigate With Read-Only Commands",
     description:
-      "When on, OneUptime AI runs read-only commands (ceph health, status, osd tree, df) on this Ceph cluster, through its Ceph AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Off by default. Anyone who may edit the Ceph cluster can turn it on or off.",
-    defaultValue: false,
+      "When on, OneUptime AI runs read-only commands (ceph health, status, osd tree, df) on this Ceph cluster, through its Ceph AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the Ceph cluster can turn it on or off.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: false,
+    default: true,
   })
   public isAiInvestigationEnabled?: boolean = undefined;
 

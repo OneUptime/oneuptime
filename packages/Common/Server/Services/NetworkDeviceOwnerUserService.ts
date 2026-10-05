@@ -1,7 +1,7 @@
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import NetworkDeviceOwnerTeamService from "./NetworkDeviceOwnerTeamService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceOwnerUser";
 import Monitor from "../../Models/DatabaseModels/Monitor";
@@ -12,7 +12,7 @@ export interface NetworkDeviceOwners {
   ownerTeamIds: Array<ObjectID>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

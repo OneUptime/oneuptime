@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/RumSessionPin";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -96,7 +96,7 @@ const isInternalCaller: IsInternalCallerFunction = (
  * clicking Pin twice, or pinning the same recording from two incidents,
  * is not an error the user has to interpret.
  */
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -105,6 +105,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }

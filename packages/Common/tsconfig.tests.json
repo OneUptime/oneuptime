@@ -1,7 +1,12 @@
 {
   /*
-   * Type-checks every Common test file as one program: `npm run
-   * compile-tests`, run by the compile-common job in the Compile workflow.
+   * Every Common test file, as one program. `npm run compile-tests`, run by
+   * the compile-common job in the Compile workflow, type-checks it in parts
+   * that extend this file and change only what they include
+   * (tsconfig.tests.app.json, tsconfig.tests.ui.json and
+   * tsconfig.tests.rest.json): as one program it outgrew an 8 GiB heap.
+   * Scripts/compile-tests.js explains the split and checks that the parts
+   * leave no file of this one out.
    *
    * Common's jest config transpiles only (ts-jest isolatedModules), the way
    * App's does, so the Common Test workflow does not type-check anything.

@@ -91,6 +91,8 @@ podman logs -f oneuptime-podman-agent
 
 ## ارتقای عامل
 
+وقتی عامل از OneUptime شما قدیمی‌تر باشد، کنار **Agent Version** در **Overview** میزبان Podman یک نشانه هشدار ظاهر می‌شود. آن را برگزینید تا این فرمان‌ها را ببینید.
+
 ```bash
 podman pull oneuptime/podman-agent:release
 podman rm -f oneuptime-podman-agent

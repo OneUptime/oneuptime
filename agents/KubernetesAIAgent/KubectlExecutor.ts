@@ -26,6 +26,10 @@ import {
   isSameKubernetesClusterIdentifier,
   normalizeKubernetesClusterIdentifier,
 } from "./Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+} from "./Common/Types/AI/AgentAiSettings";
 
 export interface KubectlExecResult {
   success: boolean;
@@ -52,7 +56,8 @@ export interface KubectlExecResult {
  *   3. the same pure KubectlPolicy the server ran: Denied never runs, and an
  *      investigation may only run Read-tier commands;
  *   4. a write needs ONEUPTIME_KUBECTL_ALLOW_WRITES=true (the chart's
- *      aiAgent.remediation.enabled);
+ *      aiAgent.fixes, or aiAgent.remediation.enabled on a release that does
+ *      not set it) and fixes that are not off (ONEUPTIME_AI_FIXES);
  *   5. KubectlWriteScope: where a write may land (the chart's namespace
  *      list, never the agent's own namespace) and whether it may change
  *      nodes (aiAgent.remediation.nodeOperations);
@@ -319,6 +324,12 @@ export interface KubectlExecutorSettings {
   allowWrites: boolean;
   // The write switch exactly as set (null when unset), for messages.
   allowWritesSetting: string | null;
+  /*
+   * Writes are off because fixes are off in the agent's configuration
+   * (ONEUPTIME_AI_FIXES), not because it was installed read-only — for the
+   * refusal's message. Absent reads as false.
+   */
+  writesOffByFixes?: boolean | undefined;
   allowNodeOperations: boolean;
   allowNodeOperationsSetting: string | null;
   // Lowercased; empty means cluster-wide.
@@ -678,13 +689,17 @@ export default class KubectlExecutor {
   }
 
   private describeWritesRefused(displayCommand: string): string {
+    if (this.settings.writesOffByFixes) {
+      return `${REFUSED}: "${displayCommand}" changes the cluster, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, upgrade the Kubernetes agent chart with --set aiAgent.fixes=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}).`;
+    }
+
     const setting: string | null = this.settings.allowWritesSetting;
     const current: string =
       setting === null || setting.trim() === ""
         ? `${KUBECTL_ALLOW_WRITES_ENV} is not set`
         : `${KUBECTL_ALLOW_WRITES_ENV}="${setting}"`;
 
-    return `${REFUSED}: "${displayCommand}" changes the cluster, and this agent was installed read-only (${current}). To let OneUptime AI apply fixes, upgrade the Kubernetes agent chart with --set aiAgent.remediation.enabled=true.`;
+    return `${REFUSED}: "${displayCommand}" changes the cluster, and this agent was installed read-only (${current}). To let OneUptime AI apply fixes, upgrade the Kubernetes agent chart with --set aiAgent.fixes=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval}.`;
   }
 
   private describeNodeOperationsRefused(data: {

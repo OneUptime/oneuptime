@@ -17,6 +17,15 @@ import SloLegacyMonitorLabelAdoption from "../../../Server/Utils/Slo/SloLegacyMo
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - a write of the deprecated
@@ -184,6 +193,7 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - a write of the deprecat
 
   beforeEach(() => {
     spies = installSpies();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -540,6 +550,7 @@ describe("ServiceLevelObjectiveService.onBeforeUpdate - the label list before th
           ] as unknown as Array<Label>,
         } as unknown as Model,
       ]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -644,6 +655,7 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - a create carrying the d
         "writeSloCreatedFeed" as never,
       )
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -844,6 +856,7 @@ describe("an out-of-date dashboard tab saving labels on an SLO with no monitor r
     jest
       .spyOn(ServiceLevelObjectiveService, "getSloMarkdownLink")
       .mockResolvedValue("[SLO Checkout](https://oneuptime.test/slos/1)");
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

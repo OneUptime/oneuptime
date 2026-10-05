@@ -16,6 +16,15 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * THE FREE PLAN'S ONE ESCALATION RULE PER POLICY STILL HOLDS.
@@ -239,6 +248,7 @@ describe("a Free plan project creating a policy with someone to page first", () 
       FREE_PLAN_LIMIT_MESSAGE,
     );
   });
+  stubProjectDirectory({});
 });
 
 describe("a paid plan", () => {

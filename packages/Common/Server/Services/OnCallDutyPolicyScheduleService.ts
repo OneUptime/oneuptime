@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyScheduleLayerService from "./OnCallDutyPolicyScheduleLayerService";
 import OnCallDutyPolicyScheduleLayerUserService from "./OnCallDutyPolicyScheduleLayerUserService";
 import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideService";
@@ -170,7 +170,7 @@ interface ScheduleResolutionInputs {
   attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>;
 }
 
-export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
+export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> {
   private layerUtil = new LayerUtil();
 
   public constructor() {

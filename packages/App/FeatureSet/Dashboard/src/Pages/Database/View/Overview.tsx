@@ -53,6 +53,12 @@ import DatabaseRuntimeSection from "../../../Components/DatabaseServer/DatabaseR
 import { getDatabaseRunsOnRoute } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { DATABASE_METRIC_DESCRIPTIONS } from "../../../Components/DatabaseServer/DatabaseMetricDescriptions";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
+import { getDatabaseAgentEngine } from "../Utils/DocumentationMarkdown";
 import {
   DatabaseServerScopeSource,
   getDatabaseServerEndpointScopeKeys,
@@ -733,7 +739,27 @@ const DatabaseServerOverview: FunctionComponent<
       label: "Engine metrics",
       value: getDatabaseEngineMetricsStatusLabel(engineStatus),
     },
-    { label: "Agent version", value: r.agentVersion },
+    {
+      label: "Agent version",
+      value: r.agentVersion,
+      /*
+       * A sign beside an outdated Database agent opens how to upgrade it:
+       * the install script, or the engine's files again with Docker Compose,
+       * or the Deployment from the setup guide in Kubernetes.
+       */
+      element: (
+        <AgentVersion
+          kind={AgentKind.DatabaseAgent}
+          version={r.agentVersion}
+          setupGuideRoute={populate(PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION)}
+          upgradeGuideContext={{
+            databaseEngine: getDatabaseAgentEngine(r.dbSystem),
+            databaseRunsInKubernetes:
+              platform === DatabaseRuntimePlatform.Kubernetes,
+          }}
+        />
+      ),
+    },
     {
       label: "Engine metrics last received",
       value: r.collectorLastSeenAt
@@ -859,6 +885,20 @@ const DatabaseServerOverview: FunctionComponent<
           isLoading={telemetryLoading && isScoped}
           windowStart={chartWindow?.start ?? null}
           windowEnd={chartWindow?.end ?? null}
+        />
+      </div>
+
+      {/*
+       * Last on the page: the Database AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <div className="mt-6">
+        <ResourceAiAgentStatusSummaryCard
+          descriptor={getResourceAiAgentDescriptor(
+            AiResourceType.DatabaseServer,
+          )}
+          resourceId={modelId}
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         />
       </div>
     </TimeRangeZoomScope>

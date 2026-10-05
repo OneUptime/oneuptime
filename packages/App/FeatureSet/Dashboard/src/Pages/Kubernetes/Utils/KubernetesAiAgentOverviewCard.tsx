@@ -1,39 +1,32 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import useAiAgentAccessStatus, {
+  AiAgentAccessStatusRead,
+} from "../../../Components/AiAccess/useAiAgentAccessStatus";
 import {
   AiAgentOverviewState,
   AiAgentStatusTone,
+  KUBERNETES_AI_ACCESS_STATUS_ROUTE,
   getAiAgentOverviewState,
   parseStatus,
 } from "./KubernetesAiAgentStatus";
 import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The cluster Overview's "AI agent" card, next to "Agent Status" (which is
  * the telemetry collector): whether OneUptime AI can reach this cluster —
  * Connected, Offline or Not installed — linking to AI → Agent, where the
  * one command that fixes it lives. Read from the same status route the AI
- * agent page uses, once per visit.
+ * agent page uses, once per visit — or handed the read the Overview made
+ * for this card and the AI agent card at its bottom, so the two agree.
  */
 
 const BADGE_TYPES: Record<AiAgentStatusTone, StatusBadgeType> = {
@@ -50,53 +43,28 @@ export interface ComponentProps {
    * descriptions, so the Overview passes it in.
    */
   tooltip?: string | undefined;
+  /*
+   * The status the Overview already read: the card shows that read and
+   * makes none of its own.
+   */
+  read?: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> | undefined;
 }
 
 const KubernetesAiAgentOverviewCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [status, setStatus] = useState<KubernetesClusterAiAccessStatus | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    let isMounted: boolean = true;
-
-    const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/kubernetes-cluster/ai-access/status",
-            ),
-            data: { clusterId: props.clusterId.toString() },
-            headers: ModelAPI.getCommonHeaders(),
-          });
-
-        if (isMounted && !(response instanceof HTTPErrorResponse)) {
-          setStatus(parseStatus(response.data));
-        }
-      } catch {
-        // The card is supplementary: it shows "—" rather than failing the page.
-      }
-
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    };
-
-    load().catch(() => {
-      // handled inside load
+  const ownRead: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
+    useAiAgentAccessStatus<KubernetesClusterAiAccessStatus>({
+      route: KUBERNETES_AI_ACCESS_STATUS_ROUTE,
+      body: { clusterId: props.clusterId.toString() },
+      parse: parseStatus,
+      isEnabled: !props.read,
     });
+  const read: AiAgentAccessStatusRead<KubernetesClusterAiAccessStatus> =
+    props.read || ownRead;
 
-    return () => {
-      isMounted = false;
-    };
-  }, [props.clusterId.toString()]);
-
-  const state: AiAgentOverviewState | null = status
-    ? getAiAgentOverviewState(status)
+  const state: AiAgentOverviewState | null = read.status
+    ? getAiAgentOverviewState(read.status)
     : null;
 
   return (
@@ -113,7 +81,7 @@ const KubernetesAiAgentOverviewCard: FunctionComponent<ComponentProps> = (
         );
       }}
       value={
-        isLoading ? (
+        read.isLoading ? (
           <span className="text-2xl font-semibold text-gray-300">…</span>
         ) : state ? (
           <span data-testid="kubernetes-ai-agent-overview-status">

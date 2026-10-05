@@ -1,7 +1,7 @@
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import Model, {
@@ -37,8 +37,9 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -142,6 +143,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -161,7 +164,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * An AI agent icon is rendered by the id-based image route, which
    * serves only public files. The file picker uploads it private, so
-   * attaching it to an agent is the point at which it becomes public.
+   * attaching it to an agent is the point at which it becomes public - when
+   * it is a file of the agent's own project (FileService.makeRecordFilePublic).
    *
    * An agent saved as its project's default takes the default from the
    * project's other agents - only now that it exists, so a create that is
@@ -172,7 +176,13 @@ export class Service extends DatabaseService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeFilePublic(createdItem.iconFileId);
+    await FileService.makeRecordFilePublic({
+      fileId: RelationIdUtil.read(
+        createdItem as unknown as Record<string, unknown>,
+        ["iconFileId", "iconFile"],
+      ),
+      projectId: createdItem.projectId || null,
+    });
 
     await ProjectDefaultRow.afterCreate({
       service: this,
@@ -261,6 +271,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const carryForward: any = {
       aiAgentsToNotifyOwners: [],
     };
@@ -299,9 +311,17 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await FileService.makeFilePublic(
-      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
-    );
+    if (
+      RelationIdUtil.isWritten(Object.keys(onUpdate.updateBy.data), [
+        "iconFileId",
+        "iconFile",
+      ])
+    ) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: updatedItemIds,
+      });
+    }
 
     // An agent this update made the default takes it from the others.
     await ProjectDefaultRow.afterUpdate({

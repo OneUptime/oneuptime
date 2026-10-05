@@ -898,11 +898,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       const arrayBuffer: ArrayBuffer = await file.arrayBuffer();
       fileModel.file = Buffer.from(new Uint8Array(arrayBuffer));
       /*
-       * Inline-uploaded images start private. They become public only
-       * when the parent (e.g. an incident post-mortem) is explicitly
-       * published — see IncidentService.onUpdateSuccess for the flip.
+       * Every upload starts private (the server decides it, FileService).
+       * An inline image becomes public only when the record it is in (a
+       * public note, an announcement, a published post-mortem) is shown to
+       * everyone - see InlineImageAccessTokenSync.
        */
-      fileModel.isPublic = false;
       fileModel.fileType = resolveImageMimeType(file);
 
       const result: HTTPResponse<FileModel> = (await ModelAPI.create<FileModel>(

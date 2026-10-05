@@ -209,6 +209,11 @@ test("start to finish: register, heartbeat, run a command, sign off last", async
       toolVersion: "29.4.3",
       reachable: true,
       details: { engine: "docker" },
+      aiSettings: {
+        investigation: true,
+        fixes: "Disabled",
+        isConfigured: false,
+      },
     },
   );
 

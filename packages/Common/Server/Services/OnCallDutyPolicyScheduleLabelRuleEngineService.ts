@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import OnCallDutyPolicyScheduleLabelRule from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLabelRule";
@@ -174,11 +175,23 @@ class OnCallDutyPolicyScheduleLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: schedule.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of on-call schedule label rules",
+      logAttributes: {
+        projectId: schedule.projectId.toString(),
+        scheduleId: schedule.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }

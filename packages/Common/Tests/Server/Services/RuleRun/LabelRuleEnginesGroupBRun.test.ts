@@ -86,6 +86,15 @@ import RuleCriteria, {
 } from "../../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - "Run now" for the second group of label rule engines.
@@ -881,6 +890,7 @@ describe("label rule engines (group B) - applying a rule to existing resources",
     jest
       .spyOn(LabelService, "findBy")
       .mockResolvedValue([fakeLabel(LABEL_A_ID)]);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

@@ -124,6 +124,15 @@ import {
   IoTDeviceCredentialContext,
   Service as IoTDeviceCredentialServiceType,
 } from "../../../Server/Services/IoTDeviceCredentialService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The protected hooks and the private cache, reachable for the test. Driving
@@ -248,6 +257,7 @@ beforeEach(() => {
   cacheGetString.mockResolvedValue(null);
   cacheSetString.mockReset();
   cacheSetString.mockResolvedValue(undefined);
+  stubProjectDirectory({});
 });
 
 describe("the device secret is always server-generated", () => {

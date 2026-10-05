@@ -317,7 +317,7 @@ describe("the fix modes on the Kubernetes agent page", () => {
     "### Let AI fix what it finds",
   );
 
-  it("lists ask for approval, automatic and bypass approval, in that order", () => {
+  it("lists ask-for-approval, automatic and bypass-approval, in that order, as aiAgent.fixes spells them", () => {
     const modes: Array<string> = section
       .split("\n")
       .filter((line: string): boolean => {
@@ -327,23 +327,47 @@ describe("the fix modes on the Kubernetes agent page", () => {
         return line.match(BULLET_TITLE_PATTERN)![1]!;
       });
 
-    expect(modes).toEqual(["ask for approval", "automatic", "bypass approval"]);
+    expect(modes).toEqual(["ask-for-approval", "automatic", "bypass-approval"]);
   });
 
   /*
-   * The server starts a cluster in Ask for approval on the agent's first
-   * report with write access only while nobody has chosen AI settings
-   * (aiAccessConfiguredAt is null); it never flips a mode an operator chose.
+   * The chart sets how fixes run (aiAgent.fixes), the cluster's AI agent
+   * page only shows it, and turning fixes off is the same value set to off.
    */
-  it("says when granting write access starts fixes in ask for approval, and when it does not", () => {
+  it("says aiAgent.fixes picks how fixes run, and how to turn them off again", () => {
     const flat: string = section.replace(/\s*\n\s*/g, " ");
 
     expect(flat).toContain(
-      "If nobody has chosen AI settings for the cluster yet, granting write access starts it in **ask for approval**",
+      "Fixes are off until you turn them on with `aiAgent.fixes` — a separate, optional step that also grants the AI agent write access.",
     );
-    expect(flat).toContain("the server never flips a switch an operator owns");
     expect(flat).toContain(
-      "Turning fixes on takes a Project Owner, a Project Admin or **Edit Auto Remediation Rule**",
+      "`aiAgent.fixes` picks how fixes run; to turn them off again, upgrade with `--set aiAgent.fixes=off`, which also removes the write access",
     );
+    expect(flat).not.toContain("pick the mode under **What AI may do**");
+  });
+
+  /*
+   * The agent's defaults never replace settings an operator chose on the
+   * AI agent page; only a release that names the values does.
+   */
+  it("says the AI agent page shows the settings read-only, and that settings chosen there stay until the chart names them", () => {
+    const whatAiMayDo: string = getSection(
+      read(KUBERNETES_AGENT_PAGE),
+      "### What AI may do",
+    ).replace(/\s*\n\s*/g, " ");
+
+    for (const expected of [
+      "`aiAgent.investigation`",
+      "`aiAgent.fixes`",
+      "without a way to change them there",
+      "refuses a change made anywhere else — the AI agent page, the API or Terraform",
+      "OneUptime applies those only to a cluster whose settings nobody chose on its AI agent page",
+      "settings someone chose there are kept as they are",
+    ]) {
+      expect({ expected, said: whatAiMayDo.includes(expected) }).toEqual({
+        expected,
+        said: true,
+      });
+    }
   });
 });

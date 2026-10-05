@@ -1,6 +1,6 @@
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
@@ -28,12 +28,22 @@ import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import { IsNull, UpdateResult } from "typeorm";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 30);
     }
+  }
+
+  /*
+   * Execution logs are written by OneUptime as it runs an on-call policy, for
+   * the policy, incident or alert it is paging about. Refusing one would stop
+   * the page. An execution log written by an API call or a workflow is checked
+   * like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   /**
@@ -78,6 +88,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.status) {
       createBy.data.status = OnCallDutyPolicyStatus.Scheduled;
     }

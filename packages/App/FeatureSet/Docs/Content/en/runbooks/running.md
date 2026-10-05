@@ -14,9 +14,16 @@ Open any execution to see its checklist UI. Each step shows:
 - **Title and description** — copied from the runbook at execution time.
 - **Output** (collapsible) — stdout, return values, HTTP responses.
 - **Error message** if the step failed.
-- For Manual steps in `WaitingForUser`: **Mark Complete** and **Skip** buttons.
+- On the step the run is waiting on: **Mark complete** (a Manual step) or **Approve & continue** (a step with **Require approval**), and **Skip**.
+- While the run is paused, **Skip** on later automated steps that don't require approval.
 
 The page polls every 3 seconds while the execution isn't terminal, so you'll see automated steps complete in near-real-time.
+
+## Completing, approving and skipping steps
+
+Only the step the run is waiting on can be marked complete, approved, or skipped to continue the run. A Manual step or a step with **Require approval** can't be ticked off or skipped before the run reaches it — its job is to stop the run, so it only takes a decision once the run is there (for an approval, once the step has run and you can see its output).
+
+While the run is paused, you can also skip a later automated step that doesn't require approval, so it won't run when the run continues. The run stays paused on the step that is waiting for you. Skipping isn't available while steps are running — wait for the run to pause, or cancel it. Each step records who completed or skipped it.
 
 ## Interleaving manual and automated steps
 

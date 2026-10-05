@@ -126,6 +126,12 @@ processors:
       - key: ceph.cluster.name
         value: "\${env:CEPH_CLUSTER_NAME}"
         action: upsert
+      # Shown as the agent version on the cluster's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
       # Optionally also stamp the cluster fsid (\`ceph fsid\`). Uncomment
       # and set CEPH_CLUSTER_FSID in the .env file:
       # - key: ceph.cluster.fsid
@@ -242,6 +248,30 @@ function inAgentFolder(
   return commands.join("\n");
 }
 
+/*
+ * The commands that upgrade the agent. The collector image is pinned in
+ * docker-compose.yml and its config is a file beside it, so an upgrade
+ * downloads both again and recreates the containers: Compose recreates a
+ * container for a new image or environment, never for a new config file,
+ * and the collector reads its config only when it starts. The .env and the
+ * AI agent's ./ceph folder stay. The guide's "Upgrade or uninstall the
+ * agent" topic and the dialog beside an outdated agent version
+ * (Components/AgentVersion) both show these.
+ */
+export function getCephAgentDownloadCommand(method: CephInstallMethod): string {
+  return inAgentFolder(method, [
+    `curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml`,
+    `curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+  ]);
+}
+
+export function getCephAgentRecreateCommand(method: CephInstallMethod): string {
+  return inAgentFolder(method, [
+    "docker compose pull",
+    "docker compose up -d --force-recreate",
+  ]);
+}
+
 function agentFolder(method: CephInstallMethod): string {
   return method === "install-script"
     ? `\`${CEPH_AGENT_INSTALL_DIR}\``
@@ -330,8 +360,7 @@ function getDockerComposeStep(context: GuideContext): SetupGuideStep {
 ${codeBlock(
   "bash",
   `mkdir oneuptime-ceph-agent && cd oneuptime-ceph-agent
-curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml
-curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+${getCephAgentDownloadCommand("docker-compose")}`,
 )}
 
 Create a \`.env\` file next to them:
@@ -379,7 +408,9 @@ docker logs -f ${CEPH_AGENT_CONTAINER}`,
 
 Look for \`Everything is ready. Begin running and processing data.\` in the logs. The cluster then appears automatically in the **Ceph** section, usually within a minute or so.
 
-${aiAgent}`,
+${aiAgent}
+
+**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only \`ceph\` commands, and changes nothing unless you allow fixes.`,
   };
 }
 
@@ -535,16 +566,17 @@ function getUpgradeTopic(context: GuideContext): SetupGuideTopic {
 
   return {
     title: "Upgrade or uninstall the agent",
-    summary: "Pull the latest images, or stop and remove the agent.",
-    markdown: `${where}**Upgrade** to the latest images:
+    summary:
+      "Download the latest files and recreate the agent, or stop and remove it.",
+    markdown: `${where}**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
 
-${codeBlock(
-  "bash",
-  inAgentFolder(context.method, [
-    "docker compose pull",
-    "docker compose up -d",
-  ]),
-)}
+${codeBlock("bash", getCephAgentDownloadCommand(context.method))}
+
+Then pull the images and recreate the agent, so the collector reads its new config:
+
+${codeBlock("bash", getCephAgentRecreateCommand(context.method))}
+
+The config reports the collector version it pins as the cluster's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
 
 **Uninstall** the agent:
 

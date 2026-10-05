@@ -90,8 +90,22 @@ export default class FileModel extends BaseModel {
   })
   public slug?: string = undefined;
 
+  /*
+   * Whether anyone may read the file, signed in or not. OneUptime decides
+   * it, never the upload: every upload starts private (FileService), and a
+   * file becomes public only when a record that shows it to everyone is
+   * published - an image in a public note, an announcement or a published
+   * postmortem, a probe's or an AI agent's icon - and private again when
+   * that record stops showing it (InlineImageAccessTokenSync,
+   * FileService.makeRecordFilesPublic). Files uploaded before uploads
+   * started private keep the visibility they had.
+   *
+   * Computed and closed to every write, as File.projectId is: a value a
+   * request sends is replaced, never refused, so a client that still sends
+   * `isPublic: false` keeps working.
+   */
   @ColumnAccessControl({
-    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    create: [],
     read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
@@ -100,10 +114,15 @@ export default class FileModel extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
+    computed: true,
+    defaultValue: false,
+    title: "Is Public",
+    description:
+      "Whether anyone may read the file without signing in. Set by OneUptime: every upload starts private, and a file becomes public only when a record that shows it to everyone, such as a public note or a probe's icon, is published.",
   })
   @Column({
     nullable: false,
-    default: true,
+    default: false,
     type: ColumnType.Boolean,
   })
   public isPublic?: boolean = undefined;
@@ -112,12 +131,16 @@ export default class FileModel extends BaseModel {
    * High-entropy token used to address a file via /file/image/access-token/:token.
    * Generated server-side on create. Unguessable replacement for the
    * file id when embedding files in markdown so that ObjectIDs are not
-   * enumerable. Combined with the isPublic flag the token route only
-   * serves anonymous requests when isPublic is true; otherwise an
-   * authenticated session is required.
+   * enumerable. The token only addresses the file; it does not open it.
+   * The token route serves a public file to anyone, and a private one only
+   * to the people who may see it - the members of the project it was
+   * uploaded in (FileViewerAccess).
+   *
+   * Computed and closed to every write: FileService generates it for every
+   * upload, and a value a request sends is replaced, never refused.
    */
   @ColumnAccessControl({
-    create: [Permission.CurrentUser, Permission.AuthenticatedRequest],
+    create: [],
     read: [Permission.CurrentUser, Permission.AuthenticatedRequest],
     update: [],
   })
@@ -126,6 +149,7 @@ export default class FileModel extends BaseModel {
     unique: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    computed: true,
   })
   @Column({
     nullable: true,

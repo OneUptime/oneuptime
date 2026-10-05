@@ -85,6 +85,8 @@ const AI_DISABLED_WHO_CAN_ACT: string =
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.";
 const NO_CREDITS_WHO_CAN_ACT: string =
   "A project owner or someone with Manage Billing can add AI credits.";
+const DAILY_LIMIT_WHO_CAN_ACT: string =
+  "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI Features.";
 
 interface ReasonExample {
   code: InvestigationNotStartedCode;
@@ -119,6 +121,14 @@ const REASONS: Array<ReasonExample> = [
     description:
       "The project uses OneUptime's AI provider and has no AI credits left.",
     nextStep: "Add AI credits or turn on auto-recharge.",
+  },
+  {
+    code: "project_daily_limit_reached",
+    title: "The project's daily AI limit had been reached at creation",
+    description:
+      "This project had reached one of its own daily AI limits when this incident was created.",
+    nextStep:
+      "Review the project's daily AI limits under Project Settings → AI Features → More settings.",
   },
   {
     code: "severity_below_threshold",
@@ -948,6 +958,33 @@ describe("which settings page each reason points at", () => {
     ]);
   });
 
+  /*
+   * The project's own daily AI limits are on Project Settings → AI Features
+   * (More settings), which every install shows, and take what the limit
+   * columns take - not the incident AI settings a project admin may edit.
+   */
+  test("the project's daily AI limit: AI Features, for whoever may change the limits", () => {
+    for (const subjectType of ["incident", "alert"] as const) {
+      expect(actionFor("project_daily_limit_reached", subjectType)).toEqual({
+        label: "Go to Project Settings → AI Features",
+        page: PageMap.SETTINGS_AI_FEATURES,
+        permissions:
+          new Project().getColumnAccessControlFor("aiDailyTokenLimit")
+            ?.update || [],
+        whoCanAct: DAILY_LIMIT_WHO_CAN_ACT,
+      });
+    }
+
+    expect(actionFor("project_daily_limit_reached")!.permissions).toEqual([
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+    ]);
+    // Both limits take the same people.
+    expect(
+      new Project().getColumnAccessControlFor("aiDailySpendLimitInUSD")?.update,
+    ).toEqual(actionFor("project_daily_limit_reached")!.permissions);
+  });
+
   test("no AI credits: AI Credits, for whoever may recharge", () => {
     expect(actionFor("insufficient_ai_balance")).toEqual({
       label: "Add AI credits",
@@ -960,6 +997,7 @@ describe("which settings page each reason points at", () => {
   test.each<[InvestigationNotStartedCode]>([
     ["ai_disabled"],
     ["insufficient_ai_balance"],
+    ["project_daily_limit_reached"],
     ["provider_missing"],
     ["automatic_investigation_disabled"],
     ["severity_below_threshold"],

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import NetworkAlertPolicyEngineService from "./NetworkAlertPolicyEngineService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
@@ -76,7 +76,7 @@ const DEFAULT_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
   "labels",
 ];
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -117,6 +117,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * A template's interval is copied onto every monitor it creates or syncs,
      * so an unvalidated value here becomes many broken monitors later.
@@ -145,6 +147,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Ahead of the early return below: an update that touches only the
      * interval must still be validated, and key presence is the test for the

@@ -4,6 +4,7 @@ import EnterpriseFeatureUpgrade, {
 } from "../EnterpriseEdition/EnterpriseFeatureUpgrade";
 import {
   EnterpriseRequiredPlan,
+  isKnownToBeBelowPlan,
   isPlanFeatureEligible,
 } from "../../Enterprise/EnterpriseEligibility";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
@@ -19,6 +20,14 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * page appears as soon as the project's plan has loaded or been upgraded. It
  * lives in this wrapper, not in the page, so the page's hooks always run in
  * the same order.
+ *
+ * A paid feature can always be switched off, on any plan: below the plan,
+ * `belowPlan` is drawn under the upsell - the page's switches for what a
+ * trial (or a move to a lower plan) left on, which the server lets go back
+ * to their defaults whatever the plan. It draws nothing while nothing is
+ * left on, and only once the project's plan is known to be below
+ * (isKnownToBeBelowPlan): not while the plan loads, when the upsell shows
+ * for every project.
  */
 
 // The upsell card's own props; its plan comes from `requiredPlan`.
@@ -33,6 +42,11 @@ export interface ComponentProps {
   upsell: PlanGatedPageUpsellProps;
   // The page, rendered only when the project's plan includes the feature.
   children: ReactNode;
+  /*
+   * Under the upsell, below the plan only: what can still be switched off
+   * there (see above).
+   */
+  belowPlan?: ReactNode | undefined;
 }
 
 const PlanGatedPage: FunctionComponent<ComponentProps> = (
@@ -40,11 +54,18 @@ const PlanGatedPage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   if (!isPlanFeatureEligible(props.requiredPlan)) {
     return (
-      <EnterpriseFeatureUpgrade
-        {...props.upsell}
-        requiredPlan={props.requiredPlan}
-        reason={EnterpriseUpgradeReason.Plan}
-      />
+      <>
+        <EnterpriseFeatureUpgrade
+          {...props.upsell}
+          requiredPlan={props.requiredPlan}
+          reason={EnterpriseUpgradeReason.Plan}
+        />
+        {props.belowPlan && isKnownToBeBelowPlan(props.requiredPlan) ? (
+          props.belowPlan
+        ) : (
+          <></>
+        )}
+      </>
     );
   }
 

@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Label from "../../Models/DatabaseModels/Label";
 import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import DockerSwarmClusterLabelRule from "../../Models/DatabaseModels/DockerSwarmClusterLabelRule";
@@ -185,11 +186,23 @@ class DockerSwarmClusterLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: dockerSwarmCluster.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of Docker Swarm cluster label rules",
+      logAttributes: {
+        projectId: dockerSwarmCluster.projectId.toString(),
+        dockerSwarmClusterId: dockerSwarmCluster.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }

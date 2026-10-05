@@ -39,7 +39,11 @@ import { AddRunbookRuleMatchCriteria1797500000000 } from "./1797500000000-AddRun
 import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "./1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
 import { AddFormBranding1797700000000 } from "./1797700000000-AddFormBranding";
 import { AddMonitorLinkedResourcesAndRemediationDecision1797800000000 } from "./1797800000000-AddMonitorLinkedResourcesAndRemediationDecision";
-import { AddStorageArrayTables1797900000000 } from "./1797900000000-AddStorageArrayTables";
+import { BackfillFileOwners1797900000000 } from "./1797900000000-BackfillFileOwners";
+import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "./1798000000000-TurnOnResourceAiInvestigationByDefault";
+import { StartFileUploadsPrivate1798100000000 } from "./1798100000000-StartFileUploadsPrivate";
+import { AddProjectAiDailyLimits1798200000000 } from "./1798200000000-AddProjectAiDailyLimits";
+import { AddStorageArrayTables1798300000000 } from "./1798300000000-AddStorageArrayTables";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1279,5 +1283,9 @@ export default [
   AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
   AddFormBranding1797700000000,
   AddMonitorLinkedResourcesAndRemediationDecision1797800000000,
-  AddStorageArrayTables1797900000000,
+  BackfillFileOwners1797900000000,
+  TurnOnResourceAiInvestigationByDefault1798000000000,
+  StartFileUploadsPrivate1798100000000,
+  AddProjectAiDailyLimits1798200000000,
+  AddStorageArrayTables1798300000000,
 ];

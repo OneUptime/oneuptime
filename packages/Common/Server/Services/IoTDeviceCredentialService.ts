@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IoTFleetService from "./IoTFleetService";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import GlobalCache from "../Infrastructure/GlobalCache";
@@ -46,7 +46,7 @@ export interface IoTDeviceCredentialContext {
   secretKey: string;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   private contextCache: InMemoryTTLCache<IoTDeviceCredentialContext | null> =
     new InMemoryTTLCache(10_000);
 
@@ -58,6 +58,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Always server-generate the secret. secretKey is a computed
      * column (create ACL []), and computed columns are skipped rather
@@ -158,6 +160,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     // isEnabled flips must reach the broker — same reasoning as delete.
     this.contextCache.clear();
     return { updateBy, carryForward: null };

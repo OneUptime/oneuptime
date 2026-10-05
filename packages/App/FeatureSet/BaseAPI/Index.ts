@@ -10,6 +10,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
+import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
 import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
@@ -5628,6 +5629,9 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // AI code-fix readiness — the gates the AI Tasks page renders
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
+
+    // What a project's AI used today, against its own daily AI limits
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIDailyUsageAPI);
 
     // AI SRE — live incident investigation panel data
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIInvestigationAPI);

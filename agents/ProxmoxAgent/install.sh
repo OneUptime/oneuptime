@@ -145,6 +145,8 @@ PVE_EXPORTER_URL=$PVE_EXPORTER_URL
 PVE_API_TOKEN_ID=$PVE_API_TOKEN_ID
 PVE_API_TOKEN_SECRET=$PVE_API_TOKEN_SECRET
 COMPOSE_PROFILES=$COMPOSE_PROFILES
+ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
 ONEUPTIME_AI_ALLOW_WRITES=$ONEUPTIME_AI_ALLOW_WRITES
 ONEUPTIME_AI_PVE_API_TOKEN_ID=$ONEUPTIME_AI_PVE_API_TOKEN_ID
 ONEUPTIME_AI_PVE_API_TOKEN_SECRET=$ONEUPTIME_AI_PVE_API_TOKEN_SECRET
@@ -157,7 +159,13 @@ chmod 600 "$INSTALL_DIR/.env"
 echo ""
 echo "Starting OneUptime Proxmox Agent..."
 cd "$INSTALL_DIR"
-docker compose up -d
+# --force-recreate, because running this again on an installed agent is how
+# it picks up new files: Compose recreates a running container only when its
+# service definition or environment changed, never for a new
+# otel-collector-config.yaml (a bind mount), and the collector reads its
+# config only when it starts. A plain `up -d` would keep the old config —
+# and the old oneuptime.agent.version — running after the new one arrived.
+docker compose up -d --force-recreate
 
 echo ""
 echo "=========================================="
@@ -169,8 +177,9 @@ if [ -z "$PVE_API_TOKEN_ID" ] && [ -z "$ONEUPTIME_AI_PVE_API_TOKEN_ID" ]; then
     echo "cannot run anything. Set PVE_API_TOKEN_ID and PVE_API_TOKEN_SECRET in $INSTALL_DIR/.env and"
     echo "run: docker compose up -d"
 elif [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ]; then
-    echo "The OneUptime AI agent (oneuptime-proxmox-ai-agent) may apply fixes. Choose on the"
-    echo "cluster's AI -> AI agent page in OneUptime whether a person approves each one."
+    echo "The OneUptime AI agent (oneuptime-proxmox-ai-agent) may apply fixes. ONEUPTIME_AI_FIXES"
+    echo "in $INSTALL_DIR/.env (ask-for-approval, automatic or bypass-approval) sets whether a"
+    echo "person approves each one."
 else
     echo "The OneUptime AI agent (oneuptime-proxmox-ai-agent) is read-only. To let it apply"
     echo "fixes, see \"OneUptime AI agent\" in README.md."

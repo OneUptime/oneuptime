@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**AI 조사는 기본적으로 켜져 있습니다.** `aiAgent.enabled=true`는 collector 옆에서 Kubernetes AI 에이전트를 실행합니다. 이 클러스터에서 인시던트나 경고가 발생하면 OneUptime AI는 읽기 전용 `kubectl`(`get`, `describe`, `logs`, `events`, `top`)로 조사하며 아무것도 변경하지 않습니다. 수정은 허용하기 전까지 꺼진 상태로 유지됩니다. AI 에이전트 없이 설치하려면 대신 `--set aiAgent.enabled=false`를 사용하세요.
 
 ## 4단계 — 설치 확인
 
@@ -347,6 +352,8 @@ clusterName: prod
 레이블은 대소문자를 구분하지 않고 매칭되므로, 기존에 수동으로 생성한 `Production` 레이블은 중복 생성되지 않고 재사용됩니다. OneUptime UI에서 수동으로 추가한 레이블은 에이전트에 의해 절대 제거되지 않습니다.
 
 ## 에이전트 업그레이드
+
+에이전트가 OneUptime보다 오래된 경우, 클러스터의 **클러스터 세부 정보**에서 **에이전트 버전** 옆에 경고 표시가 나타납니다. 이를 선택하면 이 명령을 볼 수 있습니다.
 
 ```bash
 helm repo update

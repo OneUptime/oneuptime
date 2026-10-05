@@ -80,6 +80,15 @@ import RuleCriteria, {
 } from "../../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - "Run now" for the simple label rule engines.
@@ -584,6 +593,7 @@ describe.each(ENGINES)("$name - rule run", (testCase: LabelEngineCase) => {
     errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {});
     jest.spyOn(logger, "warn").mockImplementation(() => {});
     jest.spyOn(logger, "debug").mockImplementation(() => {});
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

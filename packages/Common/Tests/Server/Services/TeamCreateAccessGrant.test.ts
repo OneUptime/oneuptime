@@ -77,6 +77,15 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import UserUtil from "../../../UI/Utils/User";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "1c000000-0000-4000-8000-000000000001",
@@ -415,6 +424,7 @@ beforeEach(() => {
   apiKey.projectId = PROJECT_ID;
   getJestSpyOn(ApiKeyService, "findOneBy").mockResolvedValue(apiKey);
   getJestSpyOn(ApiKeyPermissionService, "findOneBy").mockResolvedValue(null);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

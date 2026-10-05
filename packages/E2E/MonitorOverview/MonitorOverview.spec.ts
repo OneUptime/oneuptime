@@ -712,7 +712,23 @@ test.describe("probe checks", () => {
       "Recent status changes",
       "Probes",
       "Details",
+      "Linked Resources",
     ]);
+    /*
+     * What the monitor watches beyond its own configuration (the cluster,
+     * hosts, databases or services behind it), on its own card under
+     * Details. This monitor links nothing yet: the card says so in place
+     * and offers Edit, rather than failing or hiding itself.
+     */
+    const linkedResources: Locator = card(sideColumn(page), "Linked Resources");
+    await expect(
+      linkedResources.getByTestId("affected-resources-empty"),
+    ).toContainText("Not linked to anything yet.");
+    await expect(
+      linkedResources
+        .getByTestId("card-header-actions")
+        .getByRole("button", { name: "Edit" }),
+    ).toBeEnabled();
     await expectResponseTimePlotHeight(page);
 
     await expect(
@@ -1507,6 +1523,7 @@ test.describe("other monitor families", () => {
       "Open incidents & alerts",
       "Recent status changes",
       "Details",
+      "Linked Resources",
     ]);
   });
 

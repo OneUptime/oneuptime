@@ -6,7 +6,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DashboardLabelRuleEngineService from "./DashboardLabelRuleEngineService";
 import DashboardOwnerRuleEngineService from "./DashboardOwnerRuleEngineService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
@@ -33,7 +33,7 @@ import PublicDashboardAccessPolicy, {
   UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
 } from "../Utils/Dashboard/PublicDashboardAccess";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -42,6 +42,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (IsBillingEnabled) {
       // then if free plan, make sure it can only have 1 dashboard.
 

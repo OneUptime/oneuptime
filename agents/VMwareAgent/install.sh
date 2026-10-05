@@ -116,6 +116,7 @@ if [ -f "$ENV_FILE" ]; then
     for name in ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY VMWARE_VCENTER_NAME \
                 VCENTER_ENDPOINT VCENTER_USERNAME VCENTER_PASSWORD \
                 VCENTER_INSECURE_SKIP_VERIFY VCENTER_COLLECTION_INTERVAL \
+                ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES \
                 ONEUPTIME_AI_ALLOW_WRITES ONEUPTIME_AI_VCENTER_USERNAME \
                 ONEUPTIME_AI_VCENTER_PASSWORD ONEUPTIME_AI_WRITE_TARGETS \
                 ONEUPTIME_AI_PROTECTED_TARGETS VCENTER_CA_FILE GOVC_DATACENTER \
@@ -255,6 +256,8 @@ VCENTER_USERNAME=$(compose_env_quote "$VCENTER_USERNAME")
 VCENTER_PASSWORD=$(compose_env_quote "$VCENTER_PASSWORD")
 VCENTER_INSECURE_SKIP_VERIFY=$VCENTER_INSECURE_SKIP_VERIFY
 VCENTER_COLLECTION_INTERVAL=$VCENTER_COLLECTION_INTERVAL
+ONEUPTIME_AI_INVESTIGATION=$(compose_env_quote "$ONEUPTIME_AI_INVESTIGATION")
+ONEUPTIME_AI_FIXES=$(compose_env_quote "$ONEUPTIME_AI_FIXES")
 ONEUPTIME_AI_ALLOW_WRITES=$ONEUPTIME_AI_ALLOW_WRITES
 ONEUPTIME_AI_VCENTER_USERNAME=$(compose_env_quote "$ONEUPTIME_AI_VCENTER_USERNAME")
 ONEUPTIME_AI_VCENTER_PASSWORD=$(compose_env_quote "$ONEUPTIME_AI_VCENTER_PASSWORD")
@@ -271,7 +274,13 @@ chmod 600 "$ENV_FILE"
 echo ""
 echo "Starting OneUptime VMware Agent..."
 cd "$INSTALL_DIR"
-docker compose up -d
+# --force-recreate, because running this again on an installed agent is how
+# it picks up new files: Compose recreates a running container only when its
+# service definition or environment changed, never for a new
+# otel-collector-config.yaml (a bind mount), and the collector reads its
+# config only when it starts. A plain `up -d` would keep the old config —
+# and the old oneuptime.agent.version — running after the new one arrived.
+docker compose up -d --force-recreate
 
 echo ""
 echo "=========================================="

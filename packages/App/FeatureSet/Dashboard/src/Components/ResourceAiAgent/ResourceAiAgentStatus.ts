@@ -2,6 +2,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
   RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
@@ -22,6 +23,14 @@ import {
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import {
+  AgentAiSettingsChoice,
+  readAiSettingsSource,
+} from "../AiAccess/AiAccessModes";
+import {
+  AgentAiSettingsSource,
+  isAgentAiSettingsSourceAgent,
+} from "Common/Types/AI/AgentAiSettings";
+import {
   TemplateValues,
   translatableTerm,
   translateTemplate,
@@ -29,12 +38,13 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * What a resource's AI agent page (ResourceAiAgentPage) and AI Insights
- * page read off the server's access status (POST /resource-ai-access/status)
- * — which of its three states the agent is in, and the words for each. The
- * resource twin of Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts,
- * without the Kubernetes Runner states: a resource is reached through its
- * resource AI agent or not at all.
+ * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
+ * and AI Logs pages read off the server's access status (POST
+ * /resource-ai-access/status) — which of its three states the agent is in,
+ * and the words for each. The resource twin of
+ * Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts, without the Kubernetes
+ * Runner states: a resource is reached through its resource AI agent or not
+ * at all.
  *
  * Every decision here is made from the status the server computed
  * (ResourceAiAccessService): the page never builds a second, client-side
@@ -57,6 +67,8 @@ export const RESOURCE_AI_ACCESS_TEST_ROUTE: string =
   RESOURCE_AI_ACCESS_TEST_PATH;
 export const RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE: string =
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH;
+export const RESOURCE_AI_ACCESS_LOGS_ROUTE: string =
+  RESOURCE_AI_ACCESS_LOGS_PATH;
 export const RESOURCE_AI_ACCESS_INSIGHTS_ROUTE: string =
   RESOURCE_AI_ACCESS_INSIGHTS_PATH;
 
@@ -84,7 +96,7 @@ export const RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
 export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
 
-// The page's heading, matching the AI Insights page's title and subtitle.
+// The page's heading, matching the AI Insights and AI Logs pages' headings.
 export const RESOURCE_AI_AGENT_PAGE_TITLE: string = translationKey("AI agent");
 
 export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string = translationKey(
@@ -125,6 +137,25 @@ export function getResourceAiAgentNotInstalledText(
 }
 
 /*
+ * What installing the agent turns on, said with the install instructions:
+ * AI investigations are on by default for every resource (its
+ * isAiInvestigationEnabled column defaults to true), so the agent is the
+ * only step — and fixes stay off until someone allows them.
+ */
+export function getResourceAiAgentInstallInvestigationText(
+  descriptor: ResourceAiAgentDescriptor,
+): string {
+  return translateTemplate(
+    "AI investigations are on by default: once the {{agent}} connects, OneUptime AI runs {{commands}} on this {{noun}} whenever it investigates an incident or alert here. Fixes stay off until you allow them.",
+    {
+      agent: translatableTerm(descriptor.agentName),
+      commands: translatableTerm(descriptor.readOnlyCommandsPhrase),
+      noun: translatableTerm(descriptor.noun, { inSentence: true }),
+    },
+  );
+}
+
+/*
  * The three ways the agent can be offline (see
  * getResourceAiAgentOfflineReason), each ending where the logs command
  * below it takes over.
@@ -158,6 +189,53 @@ export function getResourceAiAgentSilentText(
     },
   );
 }
+
+// Where the resource's investigation and fixes are set, as its status says.
+export function getResourceAiSettingsSource(
+  status: ResourceAiAccessStatus,
+): AgentAiSettingsSource {
+  return readAiSettingsSource(status.aiSettingsSource);
+}
+
+/*
+ * Does the resource's AI agent set investigation and fixes (its .env's
+ * ONEUPTIME_AI_INVESTIGATION / ONEUPTIME_AI_FIXES, or its defaults)? Then
+ * the page shows them read-only, and changes them with the agent's .env.
+ */
+export function isResourceAiSettingsSetByAgent(
+  status: ResourceAiAccessStatus,
+): boolean {
+  return isAgentAiSettingsSourceAgent(getResourceAiSettingsSource(status));
+}
+
+// What is in effect on the resource now, as a choice.
+export function getResourceAiSettingsChoice(
+  status: ResourceAiAccessStatus,
+): AgentAiSettingsChoice {
+  return {
+    investigation: status.isAiInvestigationEnabled === true,
+    fixes: parseResourceAiRemediationMode(status.aiRemediationMode),
+  };
+}
+
+// The line above the rows, by where the settings are set.
+export const RESOURCE_AI_SETTINGS_SET_BY_TEXT: Readonly<
+  Record<AgentAiSettingsSource, string>
+> = {
+  agent_configuration: translationKey(
+    "Set by the {{agent}}'s configuration: ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where it runs. Change them there; this page follows.",
+  ),
+  agent_defaults: translationKey(
+    "Set by the {{agent}}'s defaults: neither ONEUPTIME_AI_INVESTIGATION nor ONEUPTIME_AI_FIXES is set where it runs. Set them to choose; this page follows.",
+  ),
+  oneuptime: translationKey(
+    "Chosen on this page. You can set them where the {{agent}} runs instead (ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES), so they follow the agent.",
+  ),
+};
+
+// The "Needs attention" step for investigation the agent keeps off.
+export const RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT: string =
+  translationKey("Turn on AI investigation where the {{agent}} runs.");
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -394,14 +472,6 @@ export function describeResourceAiAgentWriteAccess(
       });
 }
 
-const VERSION_PREFIX_REGEX: RegExp = /^v/i;
-
-// "v14.1.0" and "14.1.0" both read as "v14.1.0".
-function withVersionPrefix(version: string): string {
-  const trimmed: string = version.trim();
-  return VERSION_PREFIX_REGEX.test(trimmed) ? trimmed : `v${trimmed}`;
-}
-
 /*
  * The resource's own version as the agent reported it: "Docker 27.3.1",
  * "Proxmox VE 8.2.4". A database's is labelled with its engine when the
@@ -435,42 +505,38 @@ export function formatResourceToolVersion(
 }
 
 /*
- * The card's meta line, part by part (joined with " · "): when the agent
- * was last seen, its version, the resource's version, and what it may
- * change. Nothing before an agent ever registered.
+ * The card's meta line: when the agent was last seen, then the agent's
+ * version — which the page draws with AgentVersion, so an outdated agent
+ * gets its sign and upgrade dialog like every other agent version — then
+ * the resource's version and what it may change. Nothing before an agent
+ * ever registered.
  */
-export function getResourceAiAgentMetaParts(
+export interface ResourceAiAgentMeta {
+  lastSeen: string | null;
+  // The agent's version goes here, drawn by the page.
+  showsAgentVersion: boolean;
+  rest: Array<string>;
+}
+
+export function getResourceAiAgentMeta(
   status: ResourceAiAccessStatus,
   descriptor: ResourceAiAgentDescriptor,
-): Array<string> {
+): ResourceAiAgentMeta {
   const agent: ResourceAiAgentSummary | null = status.agent;
 
   if (!agent) {
-    return [];
+    return { lastSeen: null, showsAgentVersion: false, rest: [] };
   }
 
   const parts: Array<string> = [];
 
-  if (agent.lastAliveAt) {
-    parts.push(
-      translateTemplate("last seen {{time}}", {
+  const lastSeen: string | null = agent.lastAliveAt
+    ? translateTemplate("last seen {{time}}", {
         time: OneUptimeDate.fromNow(
           OneUptimeDate.fromString(agent.lastAliveAt),
         ),
-      }),
-    );
-  }
-
-  const agentVersion: string | null | undefined =
-    agent.agentVersion || agent.posture?.agentVersion;
-
-  if (agentVersion) {
-    parts.push(
-      translateTemplate("agent {{version}}", {
-        version: withVersionPrefix(agentVersion),
-      }),
-    );
-  }
+      })
+    : null;
 
   const toolVersion: string | null = formatResourceToolVersion(
     descriptor,
@@ -489,7 +555,17 @@ export function getResourceAiAgentMetaParts(
     parts.push(writeAccess);
   }
 
-  return parts;
+  return { lastSeen, showsAgentVersion: true, rest: parts };
+}
+
+// The meta line's words, in order, without the agent's version.
+export function getResourceAiAgentMetaParts(
+  status: ResourceAiAccessStatus,
+  descriptor: ResourceAiAgentDescriptor,
+): Array<string> {
+  const meta: ResourceAiAgentMeta = getResourceAiAgentMeta(status, descriptor);
+
+  return [...(meta.lastSeen ? [meta.lastSeen] : []), ...meta.rest];
 }
 
 /*
@@ -563,6 +639,8 @@ export function getResourceAiAttentionGaps(
  */
 export type ResourceAiAgentGapAction =
   | "turn_on_investigation"
+  // The agent keeps investigation off: show the .env lines that turn it on.
+  | "set_investigation_in_agent"
   | "open_ai_features"
   | "open_llm_providers"
   | "open_ai_credits"
@@ -574,7 +652,9 @@ export function getResourceAiAgentGapAction(
 ): ResourceAiAgentGapAction | null {
   switch (gap.code) {
     case "investigation_disabled":
-      return "turn_on_investigation";
+      return isResourceAiSettingsSetByAgent(status)
+        ? "set_investigation_in_agent"
+        : "turn_on_investigation";
     /*
      * auto_remediation_disabled_for_project is retired (Enable AI covers
      * it); an older server may still send it mid-rollout.
@@ -679,7 +759,11 @@ export function getResourceAiAttentionStepText(
         ? `Let the ${agentName} reach this ${noun} (its error and the logs command are above), then test the connection.`
         : `Wait a minute for the ${agentName} to report that it can reach this ${noun}, then test the connection.`;
     case "investigation_disabled":
-      return "Turn on AI investigation.";
+      return isResourceAiSettingsSetByAgent(status)
+        ? translateTemplate(RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT, {
+            agent: translatableTerm(agentName),
+          })
+        : "Turn on AI investigation.";
     case "remediation_write_access_missing":
       return `Give the ${agentName} write access with the steps below.`;
     /*
@@ -759,9 +843,9 @@ export function shouldShowResourceWriteAccessCommands(
 }
 
 /*
- * Why the AI Insights page points at the AI agent page, or null when it has
- * no reason to: AI cannot run commands on the resource right now (the
- * status's own verdict, gaps included).
+ * Why the AI Insights and AI Logs pages point at the AI agent page, or null
+ * when they have no reason to: AI cannot run commands on the resource right
+ * now (the status's own verdict, gaps included).
  */
 export function getResourceAiAgentPageHint(
   status: ResourceAiAccessStatus | null,

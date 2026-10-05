@@ -11,6 +11,8 @@ import IpAddressList from "Common/UI/Components/IpAddressList/IpAddressList";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Card from "Common/UI/Components/Card/Card";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -22,6 +24,9 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getHostConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
@@ -2009,9 +2014,34 @@ const HostOverview: FunctionComponent<
                       {
                         key: "agentVersion",
                         title: "Agent Version",
-                        fieldType: FieldType.Text,
+                        fieldType: FieldType.Element,
                         showIf: (item: Host): boolean => {
                           return Boolean(item.agentVersion);
+                        },
+                        getElement: (item: Host): ReactElement => {
+                          /*
+                           * A sign beside a collector older than the
+                           * release the host guide pins opens how to
+                           * upgrade it: the config saved again from the
+                           * setup guide (it holds the ingestion key), then
+                           * the new release, for the install methods this
+                           * host's OS can have.
+                           */
+                          return (
+                            <AgentVersion
+                              kind={AgentKind.HostCollector}
+                              version={item.agentVersion}
+                              setupGuideRoute={RouteUtil.populateRouteParams(
+                                RouteMap[
+                                  PageMap.HOST_VIEW_DOCUMENTATION
+                                ] as Route,
+                                { modelId: modelId },
+                              )}
+                              upgradeGuideContext={{
+                                hostOsType: item.osType,
+                              }}
+                            />
+                          );
                         },
                       },
                     ] as Array<DetailField<Host>>
@@ -2190,6 +2220,16 @@ const HostOverview: FunctionComponent<
           </div>
         </div>
       )}
+
+      {/*
+       * Last on the page: the Host AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.Host)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+      />
     </TimeRangeZoomScope>
   );
 };

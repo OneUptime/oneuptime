@@ -131,11 +131,19 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 ## ارتقای عامل
 
+عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** خوشه پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
+
+ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. هر دو فایل را دوباره دانلود کنید (`.env` شما می‌ماند؛ هر تغییری را که در آن دو فایل داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید تا جمع‌کننده پیکربندی تازه‌اش را بخواند:
+
 ```bash
 cd /opt/oneuptime-ceph-agent
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
 docker compose pull
-docker compose up -d
+docker compose up -d --force-recreate
 ```
+
+آن را با Docker Compose در پوشه‌ای از خودتان نصب کرده‌اید؟ همین فرمان‌ها را بدون `cd` در همان پوشه اجرا کنید.
 
 ## حذف نصب عامل
 

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import VMwareVCenterLabelRuleEngineService from "./VMwareVCenterLabelRuleEngineService";
 import VMwareVCenterOwnerRuleEngineService from "./VMwareVCenterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/VMwareVCenter";
@@ -69,7 +69,7 @@ const VMWARE_VCENTER_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "vCenter",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -229,8 +229,8 @@ export class Service extends DatabaseService<Model> {
    * Two callers share this throttle with DISJOINT extras shapes: the
    * metrics snapshot flush (inventory counts + datastore capacity, every
    * batch) and the fenced autoDiscoverVMwareVCenter maintenance path
-   * (agentVersion only — and usually an all-null fingerprint, since the
-   * shipped agent config does not stamp oneuptime.agent.version). The
+   * (agentVersion only — the oneuptime.agent.version the shipped agent
+   * config stamps). The
    * single fingerprint covers the whole extras object, so each alternation
    * between the two shapes busts the throttle: at most one extra Postgres
    * UPDATE per maintenance-fence window (~5 min), which is accepted. Do
@@ -591,6 +591,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     ResourceAiAccessSettings.checkCreate({
       resourceType: AiResourceType.VMwareVCenter,
       createBy,
@@ -609,6 +611,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

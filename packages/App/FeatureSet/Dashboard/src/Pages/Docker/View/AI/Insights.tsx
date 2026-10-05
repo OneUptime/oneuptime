@@ -6,8 +6,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The Docker host's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this Docker host, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * has learned about this Docker host from its own work there, and what
+ * deserves attention. The page itself is the generic ResourceAiInsightsPage;
+ * everything AI did, newest first, is AI → Logs.
  */
 const DockerHostAiInsights: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

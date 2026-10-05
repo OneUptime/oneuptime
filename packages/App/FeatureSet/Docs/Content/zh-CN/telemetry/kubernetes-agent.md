@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**AI 调查默认开启。** `aiAgent.enabled=true` 会在 collector 旁运行 Kubernetes AI 代理：当此集群上出现事件或警报时，OneUptime AI 会使用只读 `kubectl`（`get`、`describe`、`logs`、`events`、`top`）进行调查，不会更改任何内容。修复在你允许之前一直保持关闭。如果不想安装它，请改用 `--set aiAgent.enabled=false`。
 
 ## 步骤 4 — 验证安装
 
@@ -348,6 +353,8 @@ clusterName: prod
 标签匹配不区分大小写，因此现有的手动创建的 `Production` 标签会被复用，而不会被重复创建。在 OneUptime UI 中手动添加的标签永远不会被代理移除。
 
 ## 升级代理
+
+当代理比你的 OneUptime 旧时，集群的 **集群详情** 中 **代理版本** 旁会出现一个警告标志。选中它即可查看这条命令。
 
 ```bash
 helm repo update

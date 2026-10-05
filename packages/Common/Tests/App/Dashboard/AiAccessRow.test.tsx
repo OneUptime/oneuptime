@@ -13,6 +13,7 @@ import {
   AiAccessProtections,
   AiAccessRow,
   AiAccessRows,
+  AiAccessSetBy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessRow";
 import {
   AI_ACCESS_PROTECTIONS_TITLE,
@@ -150,8 +151,6 @@ describe("a row", () => {
   test.each<[AiAccessBadgeTone, string]>([
     ["off", "bg-gray-100"],
     ["on", "bg-emerald-50"],
-    ["automatic", "bg-indigo-50"],
-    ["bypass", "bg-amber-50"],
   ])(
     "the icon tile takes the %s tone",
     (tone: AiAccessBadgeTone, tileClass: string) => {
@@ -204,8 +203,6 @@ describe("the badge", () => {
   test.each<[AiAccessBadgeTone, string]>([
     ["off", "text-gray-600"],
     ["on", "text-emerald-700"],
-    ["automatic", "text-indigo-700"],
-    ["bypass", "text-amber-800"],
   ])("in the %s tone", (tone: AiAccessBadgeTone, textClass: string) => {
     render(
       <AiAccessBadgeElement
@@ -231,6 +228,90 @@ describe("the badge", () => {
     expect(
       screen.getByTestId("badge").querySelector("[aria-hidden='true']"),
     ).not.toBeNull();
+  });
+});
+
+/*
+ * "When fixes are enabled, why does it show in yellow?" Nothing on/off in
+ * the card draws in a warning colour any more: amber is for the to-do
+ * panel alone.
+ */
+describe("no on/off look is a warning", () => {
+  test.each<[AiAccessBadgeTone]>([["off"], ["on"]])(
+    "a %s badge and its row tile draw no amber, yellow or indigo",
+    (tone: AiAccessBadgeTone) => {
+      render(
+        <AiAccessRow
+          icon={IconProp.WrenchScrewdriver}
+          title="Fixes"
+          badge={{ text: "Bypass approval", tone }}
+          sentence="s"
+          dataTestId="row"
+        />,
+      );
+
+      const row: HTMLElement = screen.getByTestId("row");
+      expect(row.innerHTML).not.toMatch(/amber|yellow|indigo/);
+    },
+  );
+});
+
+describe("where the settings are set", () => {
+  test("set by the agent: a lock, the words, and no action", () => {
+    render(
+      <AiAccessSetBy
+        text="Set by the agent's configuration."
+        isSetByAgent={true}
+        dataTestId="set-by"
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("set-by");
+    expect(line).toHaveAttribute("data-set-by-agent", "true");
+    expect(screen.getByTestId("set-by-text")).toHaveTextContent(
+      "Set by the agent's configuration.",
+    );
+    expect(screen.queryByTestId("set-by-action")).toBeNull();
+    // Gray, like the card around it: not a banner, not a warning.
+    expect(line).toHaveClass("bg-gray-50");
+    expect(line.innerHTML).not.toMatch(/amber|yellow|bg-blue-50/);
+  });
+
+  test("chosen here: the words and a button that shows how to move them to the agent", () => {
+    const onAction: () => void = jest.fn();
+    render(
+      <AiAccessSetBy
+        text="Chosen on this page."
+        isSetByAgent={false}
+        actionText="Show how"
+        onAction={onAction}
+        dataTestId="set-by"
+      />,
+    );
+
+    expect(screen.getByTestId("set-by")).toHaveAttribute(
+      "data-set-by-agent",
+      "false",
+    );
+    const action: HTMLElement = screen.getByTestId("set-by-action");
+    expect(action.tagName).toBe("BUTTON");
+    expect(action).toHaveAttribute("type", "button");
+    expect(action).toHaveTextContent("Show how");
+    fireEvent.click(action);
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  test("an action without a handler is not drawn", () => {
+    render(
+      <AiAccessSetBy
+        text="Chosen on this page."
+        isSetByAgent={false}
+        actionText="Show how"
+        dataTestId="set-by"
+      />,
+    );
+
+    expect(screen.queryByTestId("set-by-action")).toBeNull();
   });
 });
 
@@ -329,6 +410,42 @@ describe("the allowlist in effect", () => {
       screen.getByTestId("ai-command-allowlist-in-effect"),
     ).toHaveTextContent("None — riskier fixes always wait for approval.");
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+});
+
+describe("the allowlist's edit action", () => {
+  test("is a button beside the title when the page offers one", () => {
+    const onEdit: () => void = jest.fn();
+    render(
+      <AiAccessAllowlist
+        title="kubectl allowlist"
+        patterns={["kubectl rollout restart * -n web"]}
+        dataTestId="allowlist"
+        editText="Edit"
+        onEdit={onEdit}
+      />,
+    );
+
+    const edit: HTMLElement = screen.getByTestId("allowlist-edit");
+    expect(edit.tagName).toBe("BUTTON");
+    expect(edit).toHaveTextContent("Edit");
+    fireEvent.click(edit);
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  test("is not drawn without its words", () => {
+    render(
+      <AiAccessAllowlist
+        title="kubectl allowlist"
+        patterns={[]}
+        dataTestId="allowlist"
+        onEdit={(): void => {
+          return undefined;
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId("allowlist-edit")).toBeNull();
   });
 });
 

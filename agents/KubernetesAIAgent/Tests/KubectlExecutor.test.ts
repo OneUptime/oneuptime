@@ -546,7 +546,8 @@ describe("refusals before anything spawns", () => {
       }),
       /installed read-only \(ONEUPTIME_KUBECTL_ALLOW_WRITES is not set\)/,
     );
-    assert.match(refusal, /--set aiAgent\.remediation\.enabled=true/);
+    assert.match(refusal, /--set aiAgent\.fixes=ask-for-approval/);
+    assert.ok(!refusal.includes("remediation.enabled"), refusal);
 
     await expectRefused(
       settings({ allowWrites: false, allowWritesSetting: "yes" }),

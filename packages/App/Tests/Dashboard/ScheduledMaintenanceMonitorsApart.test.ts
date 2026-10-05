@@ -10,6 +10,7 @@ import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -192,13 +193,27 @@ describe("the columns the forms write", () => {
     }
   });
 
-  test("a template's status is chosen with the template, as an event's is", () => {
+  /*
+   * Unlike an event's, a template's status is changed later on its Affected
+   * Resources card: by whoever may edit the template, through the relation
+   * the card writes as through its ID column.
+   */
+  test("a template's status is changed by whoever edits the template, by either name", () => {
+    const template: ScheduledMaintenanceTemplate =
+      new ScheduledMaintenanceTemplate();
+    const editors: Array<Permission> = [
+      ...template.getUpdatePermissions(),
+    ].sort();
+
+    expect(editors).toContain(Permission.EditScheduledMaintenanceTemplate);
     expect(
-      updatePermissions(
-        new ScheduledMaintenanceTemplate(),
-        "changeMonitorStatusTo",
-      ),
-    ).toEqual([]);
+      [...(updatePermissions(template, "changeMonitorStatusTo") || [])].sort(),
+    ).toEqual(editors);
+    expect(
+      [
+        ...(updatePermissions(template, "changeMonitorStatusToId") || []),
+      ].sort(),
+    ).toEqual(editors);
   });
 });
 

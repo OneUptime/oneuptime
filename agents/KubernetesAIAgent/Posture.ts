@@ -3,13 +3,15 @@ import os from "os";
 import { spawn } from "child_process";
 import { AgentConfig } from "./Config";
 import { KubernetesAgentPosture } from "./Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { AgentAiSettings } from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * What the agent can say about its own Kubernetes reach: whether it runs in
  * a pod with a mounted ServiceAccount token, whether writes and node
- * operations are allowed, into which namespaces, and which kubectl it
- * carries. It is sent on registration and on every heartbeat, so the
- * cluster's AI agent page describes the pod that is actually running.
+ * operations are allowed, into which namespaces, which kubectl it carries,
+ * and what its configuration lets OneUptime AI do (aiSettings). It is sent
+ * on registration and on every heartbeat, so the cluster's AI agent page
+ * describes the pod that is actually running.
  */
 
 export const SERVICE_ACCOUNT_DIR: string =
@@ -51,6 +53,7 @@ export interface AgentPosture extends KubernetesAgentPosture {
   allowWrites: boolean;
   allowNodeOperations: boolean;
   writeNamespaces: Array<string>;
+  aiSettings: AgentAiSettings;
 }
 
 /*
@@ -147,6 +150,12 @@ export function buildPosture(data: {
     allowNodeOperations:
       data.config.allowWrites && data.config.allowNodeOperations,
     writeNamespaces: [...data.config.writeNamespaces],
+    /*
+     * What the chart lets OneUptime AI do here (or the agent's defaults,
+     * when it names neither setting). OneUptime applies it to the cluster
+     * and the cluster's AI agent page shows it read-only.
+     */
+    aiSettings: { ...data.config.aiSettings },
     ...(podNamespace ? { podNamespace } : {}),
     ...(data.kubectlVersion ? { kubectlVersion: data.kubectlVersion } : {}),
     ...(data.config.chartVersion

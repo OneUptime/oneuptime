@@ -28,6 +28,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
@@ -155,6 +164,7 @@ describe("SCIM Push Groups team locks by edition", () => {
     scimCount = getJestSpyOn(ProjectSCIMService, "countBy").mockResolvedValue(
       new PositiveNumber(1),
     );
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -202,6 +212,7 @@ describe("SCIM Push Groups team locks by edition", () => {
         TeamMemberService,
         "deleteBy",
       ).mockResolvedValue(0);
+      stubProjectDirectory({});
     });
 
     test.each(LOCKED_MATRIX)(
@@ -319,6 +330,7 @@ describe("SCIM Push Groups team locks by edition", () => {
       ).mockResolvedValue(undefined);
       // The billing seat check (billing on) finds no seat limit.
       getJestSpyOn(ProjectService, "findOneById").mockResolvedValue(null);
+      stubProjectDirectory({});
     });
 
     test.each(LOCKED_MATRIX)(

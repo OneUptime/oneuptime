@@ -24,7 +24,10 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import Query from "../../../Server/Types/Database/Query";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import PostgresErrorTranslator from "../../../Server/Utils/Database/PostgresErrorTranslator";
-import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReferenceException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import logger from "../../../Server/Utils/Logger";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
@@ -53,6 +56,15 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * IncidentAlertService owns the alert <-> incident link. Every refusal and
@@ -178,12 +190,24 @@ beforeEach(() => {
   validator = jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
     .mockResolvedValue(undefined as never);
+  /*
+   * These tests count the service's own lookups. The generic check every
+   * service runs first (ProjectReferencesService) is held to by
+   * ProjectScopedReferencesEverywhere.
+   */
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
   jest.spyOn(logger, "error").mockImplementation((() => {
     // quiet
   }) as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {
     // quiet
   }) as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -292,7 +316,7 @@ describe("onBeforeCreate: what a link must reference", () => {
   test("a root link to another project's record is refused by the project check", async () => {
     validator.mockRejectedValue(
       new BadDataException(
-        "This incident alert link references records that belong to a different project",
+        "This incident alert link references records that are not in this project",
       ) as never,
     );
 
@@ -302,7 +326,7 @@ describe("onBeforeCreate: what a link must reference", () => {
         incidentId: INCIDENT_ID,
         alertId: ALERT_ID,
       }),
-    ).rejects.toThrow("belong to a different project");
+    ).rejects.toThrow("not in this project");
   });
 
   test("a root link does not read the ends as a user", async () => {
@@ -348,6 +372,7 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
     alertRead = jest
       .spyOn(AlertService, "findOneById")
       .mockResolvedValue(buildAlert() as never);
+    stubProjectDirectory({});
   });
 
   function create(
@@ -497,6 +522,109 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
   );
 });
 
+/*
+ * The project check every service runs (ProjectReferencesService) leaves the
+ * two ends to this service's own hook, so the answer a member gets for an
+ * alert of another project, or one that does not exist, is the one a hidden
+ * alert gets - never a different sentence. Here the checks run for real
+ * against a project directory: the project has INCIDENT_ID and ALERT_ID,
+ * ALERT_ID_2 is another project's, and ALERT_ID_3 is nobody's.
+ */
+describe("the project check and the service's own answer agree", () => {
+  const HIDDEN: string =
+    "The alert to link does not exist in this project, or you do not have access to it.";
+
+  beforeEach(() => {
+    jest.restoreAllMocks();
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      // quiet
+    }) as never);
+    jest.spyOn(logger, "debug").mockImplementation((() => {
+      // quiet
+    }) as never);
+    stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: {
+        Incident: [INCIDENT_ID.toString()],
+        Alert: [ALERT_ID.toString()],
+      },
+      elsewhere: [ALERT_ID_2.toString()],
+    });
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+  });
+
+  test.each([
+    ["another project's alert", ALERT_ID_2, OTHER_PROJECT_ID],
+    ["an alert that does not exist", ALERT_ID_3, null],
+  ])(
+    "a member linking %s hears what a hidden alert gets",
+    async (_case: string, alertId: ObjectID, alertProject: ObjectID | null) => {
+      jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(
+          (alertProject ? buildAlert(alertProject) : null) as never,
+        );
+
+      await expect(
+        callHook("onBeforeCreate", {
+          data: buildLink({ alertId: alertId }),
+          props: userProps(Permission.ProjectMember),
+        } as CreateBy<IncidentAlert>),
+      ).rejects.toThrow(HIDDEN);
+    },
+  );
+
+  test("a link written as root may name only the project's incident and alert", async () => {
+    for (const alertId of [ALERT_ID_2, ALERT_ID_3]) {
+      await expect(
+        callHook("onBeforeCreate", {
+          data: buildLink({ alertId: alertId }),
+          props: { isRoot: true },
+        } as CreateBy<IncidentAlert>),
+      ).rejects.toThrow(
+        `This incident alert link references records that are not in this project: Alert "${alertId.toString()}". Please pick values from this project and try again.`,
+      );
+    }
+
+    await expect(
+      callHook("onBeforeCreate", {
+        data: buildLink(),
+        props: { isRoot: true },
+      } as CreateBy<IncidentAlert>),
+    ).resolves.toBeDefined();
+  });
+
+  test("a workflow may not point a link at another project's alert", async () => {
+    // The link holds nothing the update names.
+    jest.spyOn(IncidentAlertService, "findBy").mockResolvedValue([] as never);
+
+    const update: (alertId: ObjectID) => Promise<unknown> = (
+      alertId: ObjectID,
+    ): Promise<unknown> => {
+      return callHook("onBeforeUpdate", {
+        query: { _id: "0194a1e7-0000-4000-8000-0000000000d1" },
+        data: { alertId: alertId },
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      } as unknown as UpdateBy<IncidentAlert>);
+    };
+
+    for (const alertId of [ALERT_ID_2, ALERT_ID_3]) {
+      await expect(update(alertId)).rejects.toThrow(
+        `Alert "${alertId.toString()}"`,
+      );
+      await expect(update(alertId)).rejects.toBeInstanceOf(
+        ProjectScopedReferenceException,
+      );
+    }
+
+    await expect(update(ALERT_ID)).resolves.toBeDefined();
+  });
+});
+
 describe("feed entries", () => {
   let incidentFeed: jest.SpyInstance;
   let alertFeed: jest.SpyInstance;
@@ -532,6 +660,7 @@ describe("feed entries", () => {
     sync = jest
       .spyOn(IncidentAlertService, "syncAlertWithLinkedIncidentState")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   function created(data: Partial<IncidentAlert> = {}): IncidentAlert {
@@ -1311,6 +1440,7 @@ describe("validateAlertIdsForNewIncident", () => {
           return alertRow(new ObjectID(id));
         });
       }) as never);
+    stubProjectDirectory({});
   });
 
   function validate(
@@ -1627,6 +1757,7 @@ describe("linkAlertsToIncident while an incident is declared", () => {
       }): Promise<IncidentAlert> => {
         return args.data;
       }) as never);
+    stubProjectDirectory({});
   });
 
   test("marks every link as declared with the incident", async () => {
@@ -1751,6 +1882,7 @@ describe("the one incident entry for an incident declared from alerts", () => {
       incidentFeed = jest
         .spyOn(IncidentFeedService, "createIncidentFeedItem")
         .mockResolvedValue(undefined as never);
+      stubProjectDirectory({});
     });
 
     test("reads the alerts as root, pinned to the project, with their privacy", async () => {
@@ -1923,6 +2055,7 @@ describe("copyAlertOwnersToIncident", () => {
     addOwners = jest
       .spyOn(IncidentService, "addOwners")
       .mockResolvedValue(undefined as never);
+    stubProjectDirectory({});
   });
 
   function copy(
@@ -2158,6 +2291,7 @@ describe("a duplicate caught by the unique index answers like the unique-togethe
       countBy = jest
         .spyOn(IncidentAlertService, "countBy")
         .mockResolvedValue(new PositiveNumber(0) as never);
+      stubProjectDirectory({});
     });
 
     function createLink(): Promise<IncidentAlert> {

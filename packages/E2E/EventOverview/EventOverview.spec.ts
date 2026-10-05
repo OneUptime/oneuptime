@@ -8367,6 +8367,72 @@ test.describe("notes from the feed", () => {
     ).toBeGreaterThan(0);
   });
 
+  /*
+   * "This preview notification button is quite big. Can we please improve
+   * the UI?" In the feed's dialog too, 'Preview' is a small link on the
+   * notify box's line - grey, and saying why, until the note has text.
+   */
+  test("the incident's public note puts a small Preview link beside the notify box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+    const dialog: Locator = await openFeedNoteDialog(page, FEED_NOTES[0]!);
+
+    const line: Locator = dialog.getByTestId("note-notify-line");
+    const label: Locator = line.getByText("Notify status page subscribers", {
+      exact: true,
+    });
+    const preview: Locator = dialog.getByTestId(
+      "incident-public-note-preview-notification",
+    );
+
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveText("Preview");
+    await expect(preview).toHaveAccessibleName("Preview notification");
+    await expect(line).toContainText("Preview");
+
+    // On the box's line, to the right of its label, a word wide.
+    const labelBox: { x: number; y: number; width: number; height: number } =
+      (await label.boundingBox())!;
+    const previewBox: { x: number; y: number; width: number; height: number } =
+      (await preview.boundingBox())!;
+    expect(
+      Math.abs(
+        labelBox.y +
+          labelBox.height / 2 -
+          (previewBox.y + previewBox.height / 2),
+      ),
+    ).toBeLessThanOrEqual(2);
+    expect(previewBox.x).toBeGreaterThan(labelBox.x + labelBox.width);
+    expect(previewBox.height).toBeLessThanOrEqual(24);
+    expect(previewBox.width).toBeLessThan(100);
+
+    // Nothing written yet: grey, still reachable, and it says why.
+    await expect(preview).toHaveAttribute("aria-disabled", "true");
+    await expect(preview).toHaveAccessibleDescription(
+      "Write the note first to preview the email it sends.",
+    );
+
+    // Once there is a note, it is ready to open.
+    await expect(
+      dialog.getByTestId("note-composer").locator('[contenteditable="true"]'),
+    ).toBeFocused();
+    await page.keyboard.type("Rolled back the deploy.");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    await expect(preview).not.toHaveAttribute("aria-describedby");
+
+    // Nothing was asked of the preview API: it is only asked when pressed.
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: RecordedApiRequest): boolean => {
+          return request.url.includes("/subscriber-notification-preview/");
+        },
+      ),
+    ).toEqual([]);
+  });
+
   test("the template menu opens over the dialog, whole and inside the window", async ({
     page,
   }: {

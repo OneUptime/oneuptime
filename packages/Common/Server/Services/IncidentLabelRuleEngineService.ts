@@ -1,3 +1,4 @@
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import Host from "../../Models/DatabaseModels/Host";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -348,11 +349,23 @@ class IncidentLabelRuleEngineServiceClass
         }),
     );
 
-    const newLabelIds: Array<string> = Array.from(labelIdsToAdd).filter(
-      (id: string) => {
+    /*
+     * Only the project's own labels. The rules' lists are checked when a
+     * rule is saved, but a rule saved before that can still name another
+     * project's label, and the labels are attached here as root.
+     */
+    const newLabelIds: Array<string> = await RuleRecordScope.keepIdsInProject({
+      projectId: incident.projectId,
+      ids: Array.from(labelIdsToAdd).filter((id: string) => {
         return !existingLabelIds.has(id);
-      },
-    );
+      }),
+      modelType: Label,
+      description: "labels of incident label rules",
+      logAttributes: {
+        projectId: incident.projectId.toString(),
+        incidentId: incident.id.toString(),
+      } as LogAttributes,
+    });
     if (newLabelIds.length === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }

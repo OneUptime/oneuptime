@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import RunnerService from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -6,7 +6,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import RunbookSecret from "../../Models/DatabaseModels/RunbookSecret";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<RunbookSecret> {
+export class Service extends ProjectReferencesService<RunbookSecret> {
   public constructor() {
     super(RunbookSecret);
   }
@@ -22,6 +22,8 @@ export class Service extends DatabaseService<RunbookSecret> {
   protected override async onBeforeCreate(
     createBy: CreateBy<RunbookSecret>,
   ): Promise<OnCreate<RunbookSecret>> {
+    await super.onBeforeCreate(createBy);
+
     await RunnerService.assertNoKubernetesAgentRunners({
       runners: createBy.data.runners,
       assignedWhat: "secret",
@@ -34,6 +36,8 @@ export class Service extends DatabaseService<RunbookSecret> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<RunbookSecret>,
   ): Promise<OnUpdate<RunbookSecret>> {
+    await super.onBeforeUpdate(updateBy);
+
     await RunnerService.assertNoKubernetesAgentRunners({
       runners: updateBy.data.runners,
       assignedWhat: "secret",

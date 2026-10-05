@@ -14,7 +14,10 @@ import {
   PODMAN_INSTALL_METHODS,
   PODMAN_SOCKET_PATH,
   PODMAN_STORAGE_PATH,
+  PODMAN_AI_AGENT_TOPIC_TITLE,
   PodmanInstallMethod,
+  getPodmanAiAgentComposeService,
+  getPodmanAiAgentRunCommand,
   getPodmanComposeFile,
   getPodmanRunCommand,
   getPodmanSetupGuide,
@@ -37,6 +40,9 @@ import {
  *
  *   - the reader's URL and key in every command and file that needs them;
  *   - only the chosen way's commands on screen;
+ *   - the OneUptime AI agent started with the collector — AI investigations
+ *     are on by default, as with agents/PodmanAgent's own install.sh and
+ *     docker-compose.yml — with how to install without it;
  *   - the log driver requirement (rootful Podman logs to journald, which the
  *     agent cannot read) surfaced before the reader has to wonder where the
  *     logs are;
@@ -380,8 +386,10 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     const steps: string = stepsText(guide);
     for (const advanced of [
       "DOCKER_API_VERSION",
-      "ONEUPTIME_AI_",
-      PODMAN_AI_AGENT_IMAGE,
+      // Fixes are opt-in: their switches stay under Advanced.
+      "ONEUPTIME_AI_ALLOW_WRITES",
+      "ONEUPTIME_AI_WRITE_TARGETS",
+      "ONEUPTIME_AI_PROTECTED_TARGETS",
       "containers.conf",
       "podman pull",
       "podman rm",
@@ -435,7 +443,7 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     expect(titles(guide.advanced)).toEqual([
       "Environment variables",
       LOG_DRIVER_TOPIC,
-      "Add the OneUptime AI agent",
+      PODMAN_AI_AGENT_TOPIC_TITLE,
       "Pin the image version",
       "Upgrade or uninstall the agent",
       "What the agent collects",
@@ -526,27 +534,98 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     }
   });
 
-  test("the AI agent topic starts it the way this method runs things", () => {
-    const topic: string = topicTitled(
-      guide.advanced,
-      "Add the OneUptime AI agent",
-    ).markdown;
-    expect(topic).toContain(PODMAN_AI_AGENT_IMAGE);
-    expect(topic).toContain(PODMAN_AI_AGENT_CONTAINER_NAME);
-    expect(topic).toContain("ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman");
-    expect(topic).toContain("**AI → AI agent**");
+  /*
+   * AI investigations are on by default, as with agents/PodmanAgent's own
+   * install.sh and docker-compose.yml: the install step starts the AI agent
+   * beside the collector, with the same URL, key and host name.
+   */
+  test("the install step starts the AI agent beside the collector, the way this method runs things", () => {
+    const install: string = guide.steps[0]!.markdown || "";
+    const values: { oneuptimeUrl: string; apiKey: string; hostName: string } = {
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      hostName: PODMAN_EXAMPLE_HOST_NAME,
+    };
+
+    expect(install).toContain(PODMAN_AI_AGENT_IMAGE);
+    expect(install).toContain("ONEUPTIME_AI_AGENT_RESOURCE_TYPE=podman");
     if (isCli) {
-      expect(topic).toContain(`--name ${PODMAN_AI_AGENT_CONTAINER_NAME}`);
-      expect(topic).toContain("-e ONEUPTIME_AI_ALLOW_WRITES=true");
-      expect(topic).toContain(
+      const collector: number = install.indexOf(getPodmanRunCommand(values));
+      const aiAgent: number = install.indexOf(
+        getPodmanAiAgentRunCommand(values),
+      );
+      expect(collector).toBeGreaterThan(-1);
+      // After the collector, in a code block of its own.
+      expect(aiAgent).toBeGreaterThan(collector);
+      expect(install).toContain(
+        `\`\`\`bash\n${getPodmanAiAgentRunCommand(values)}\n\`\`\``,
+      );
+      expect(install).toContain(`--name ${PODMAN_AI_AGENT_CONTAINER_NAME}`);
+      expect(getPodmanAiAgentRunCommand(values)).toContain(
         `-e PODMAN_HOST_NAME="${PODMAN_EXAMPLE_HOST_NAME}"`,
       );
     } else {
-      expect(topic).toContain(`  ${PODMAN_AI_AGENT_CONTAINER_NAME}:\n`);
-      expect(topic).toContain("- ONEUPTIME_AI_ALLOW_WRITES=true");
-      expect(topic).toContain(`- PODMAN_HOST_NAME=${PODMAN_EXAMPLE_HOST_NAME}`);
-      expect(topic).toContain("podman compose up -d");
+      const services: Record<string, ComposeService> = composeServices(
+        getPodmanComposeFile(values),
+      );
+      expect(Object.keys(services)).toEqual([
+        PODMAN_AGENT_CONTAINER_NAME,
+        PODMAN_AI_AGENT_CONTAINER_NAME,
+      ]);
+      expect(
+        services[PODMAN_AI_AGENT_CONTAINER_NAME]!["environment"],
+      ).toContain(`PODMAN_HOST_NAME=${PODMAN_EXAMPLE_HOST_NAME}`);
+      expect(install).toContain(getPodmanAiAgentComposeService(values));
+      // `podman compose up -d` in the next step starts both.
+      expect(guide.steps[1]!.markdown).toContain("podman compose up -d");
     }
+  });
+
+  test("the install step says AI investigations are on by default, and how to install without them", () => {
+    const install: string = guide.steps[0]!.markdown || "";
+    expect(install).toContain("**AI investigations are on by default**");
+    expect(install).toContain("read-only `docker` commands");
+    expect(install).toContain("Podman's Docker-compatible socket");
+    expect(install).toContain("changes nothing unless you allow fixes");
+    expect(install).toContain(
+      `see **${PODMAN_AI_AGENT_TOPIC_TITLE}** under Advanced`,
+    );
+    expect(install).toContain(
+      isCli
+        ? "Skip this command to run the collector without AI investigations."
+        : `Delete the \`${PODMAN_AI_AGENT_CONTAINER_NAME}\` service to run the collector without AI investigations.`,
+    );
+  });
+
+  test("the AI agent topic says how to allow fixes and how to leave it out, the way this method runs things", () => {
+    expect(PODMAN_AI_AGENT_TOPIC_TITLE).toBe("The OneUptime AI agent");
+    const topic: SetupGuideTopic = topicTitled(
+      guide.advanced,
+      PODMAN_AI_AGENT_TOPIC_TITLE,
+    );
+    expect(topic.summary).toContain("On by default");
+    expect(topic.markdown).toContain(`\`${PODMAN_AI_AGENT_CONTAINER_NAME}\``);
+    expect(topic.markdown).toContain("**AI investigations are on by default**");
+    expect(topic.markdown).toContain("**AI → AI agent**");
+    expect(topic.markdown).toContain("**What AI may do**");
+    expect(topic.markdown).toContain("**Overview**");
+    if (isCli) {
+      expect(topic.markdown).toContain("-e ONEUPTIME_AI_ALLOW_WRITES=true");
+      expect(topic.markdown).toContain(
+        `\`podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}\``,
+      );
+    } else {
+      expect(topic.markdown).toContain("- ONEUPTIME_AI_ALLOW_WRITES=true");
+      expect(topic.markdown).toContain(
+        "`podman compose up -d --remove-orphans`",
+      );
+    }
+  });
+
+  test("the verify step says where the AI agent shows up", () => {
+    const verify: string = guide.steps[guide.steps.length - 1]!.markdown || "";
+    expect(verify).toContain("**AI → AI agent**");
+    expect(verify).toContain("**Overview**");
   });
 
   test("upgrades and uninstalls the way this method installed", () => {
@@ -555,9 +634,17 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
       "Upgrade or uninstall the agent",
     ).markdown;
     if (isCli) {
+      /*
+       * The AI agent is part of the install, so the one upgrade command
+       * pulls and removes both, and says it only once.
+       */
       expect(topic).toContain(
-        `podman pull ${PODMAN_AGENT_IMAGE}\npodman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`,
+        `podman pull ${PODMAN_AGENT_IMAGE}\npodman pull ${PODMAN_AI_AGENT_IMAGE}\npodman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
       );
+      expect(topic.split(`podman pull ${PODMAN_AI_AGENT_IMAGE}`)).toHaveLength(
+        2,
+      );
+      expect(topic).toContain("run both `podman run` commands from step 2");
       expect(topic).toContain(`podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}`);
     } else {
       expect(topic).toContain("podman compose pull\npodman compose up -d");
@@ -852,12 +939,12 @@ describe("the guide matches agents/PodmanAgent", () => {
   });
 
   test("the AI agent's compose service is a part of the agent's own", () => {
-    const serviceBlock: string = composeMarkdown.match(
-      /```yaml\n( {2}oneuptime-podman-ai-agent:[\s\S]*?)```/,
+    // The install step's docker-compose.yml, with both services.
+    const file: string = composeMarkdown.match(
+      /```yaml\n(services:\n[\s\S]*?)```/,
     )![1]!;
-    const service: ComposeService = composeServices(
-      `services:\n${serviceBlock}`,
-    )[PODMAN_AI_AGENT_CONTAINER_NAME]!;
+    const service: ComposeService =
+      composeServices(file)[PODMAN_AI_AGENT_CONTAINER_NAME]!;
 
     for (const key of Object.keys(service)) {
       if (key === "environment") {

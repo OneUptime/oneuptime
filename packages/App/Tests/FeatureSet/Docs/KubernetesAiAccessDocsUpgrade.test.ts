@@ -115,6 +115,8 @@ const WITHIN_A_WEEK_PATTERN: RegExp = /within a week of the upgrade/i;
  */
 const AI_AGENT_VALUES: Array<string> = [
   "enabled",
+  "investigation",
+  "fixes",
   "remediation.enabled",
   "remediation.namespaces",
   "remediation.nodeOperations",
@@ -456,7 +458,7 @@ describe("the Kubernetes agent page's Upgrading section", () => {
       "`aiAccess.remediation.namespaces`",
       "`aiAccess.remediation.nodeOperations`",
       "`aiAccess.extraEnv`",
-      "Revoke write access with `--set aiAgent.remediation.enabled=false`",
+      "Revoke write access with `--set aiAgent.fixes=off`",
       "go back to cluster-wide with `--set-json 'aiAgent.remediation.namespaces=[]'`",
       "clear a stored proxy setting with `--set-json 'aiAgent.extraEnv=[]'`",
       "`aiAccess.enabled=false` does not turn the AI agent off",
@@ -1038,9 +1040,13 @@ describe("the Runner README's kubectl environment", () => {
     );
   });
 
-  it("sends a Runner's refused command to the cluster's AI Insights page", () => {
+  // Every command and its result is on the AI Logs page (AI → Logs) now.
+  it("sends a Runner's refused command to the cluster's AI Logs page", () => {
     expect(readFlat(RUNNER_README)).toContain(
-      "some refusals appear only in the command's result on the cluster's AI Insights page",
+      "some refusals appear only in the command's result on the cluster's AI Logs page",
+    );
+    expect(readFlat(RUNNER_README)).not.toContain(
+      "the command's result on the cluster's AI Insights page",
     );
   });
 });

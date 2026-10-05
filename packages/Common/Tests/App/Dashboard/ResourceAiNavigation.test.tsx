@@ -128,13 +128,15 @@ jest.mock(
 /*
  * Every resource a resource AI agent serves gets the Kubernetes cluster's
  * AI section: an "AI" side-menu section right after its first section,
- * holding "Insights" (what AI investigated and changed) and "AI agent" (the
- * resource's AI agent and what AI may do), on the routes :id/ai/insights
- * and :id/ai/agent nested under the resource's view, with "AI" trails.
- * Where a resource already had a metrics page called "Insights" (Docker
- * Swarm, Proxmox, VMware, Ceph), that page is "Resource Usage" now — same
- * route — so each menu has exactly one "Insights" and the LightBulb belongs
- * to AI alone.
+ * holding "Insights" (what AI learned here and what deserves attention),
+ * "Logs" (everything AI did, newest first — the page that was called
+ * Insights before) and "AI agent" (the resource's AI agent and what AI may
+ * do), on the routes :id/ai/insights, :id/ai/logs and :id/ai/agent nested
+ * under the resource's view, with "AI" trails. Where a resource already had
+ * a metrics page called "Insights" (Docker Swarm, Proxmox, VMware, Ceph),
+ * that page is "Resource Usage" now — same route — so each menu has exactly
+ * one "Insights" and the LightBulb belongs to AI alone; AI → Logs has the
+ * list icon.
  */
 
 const MODEL_ID: ObjectID = new ObjectID("44444444-0000-4000-8000-000000000004");
@@ -272,6 +274,10 @@ function insightsKey(item: ResourceCase): PageMap {
   return `${item.prefix}_AI_INSIGHTS` as PageMap;
 }
 
+function logsKey(item: ResourceCase): PageMap {
+  return `${item.prefix}_AI_LOGS` as PageMap;
+}
+
 function agentKey(item: ResourceCase): PageMap {
   return `${item.prefix}_AI_AGENT` as PageMap;
 }
@@ -329,20 +335,27 @@ test("every resource type a resource AI agent serves is wired here", () => {
 
 describe.each(CASES)("$type", (item: ResourceCase) => {
   describe("PageMap and RouteMap", () => {
-    test("declare the two AI pages", () => {
+    test("declare the three AI pages", () => {
       expect(PageMap[insightsKey(item) as keyof typeof PageMap]).toBe(
         insightsKey(item),
+      );
+      expect(PageMap[logsKey(item) as keyof typeof PageMap]).toBe(
+        logsKey(item),
       );
       expect(PageMap[agentKey(item) as keyof typeof PageMap]).toBe(
         agentKey(item),
       );
     });
 
-    test("nest them under the resource: :id/ai/insights and :id/ai/agent", () => {
+    test("nest them under the resource: :id/ai/insights, :id/ai/logs and :id/ai/agent", () => {
       expect(item.routePath[insightsKey(item)]).toBe(":id/ai/insights");
+      expect(item.routePath[logsKey(item)]).toBe(":id/ai/logs");
       expect(item.routePath[agentKey(item)]).toBe(":id/ai/agent");
       expect(RouteMap[insightsKey(item)]!.toString()).toBe(
         `/dashboard/:projectId/${item.base}/:id/ai/insights`,
+      );
+      expect(RouteMap[logsKey(item)]!.toString()).toBe(
+        `/dashboard/:projectId/${item.base}/:id/ai/logs`,
       );
       expect(RouteMap[agentKey(item)]!.toString()).toBe(
         `/dashboard/:projectId/${item.base}/:id/ai/agent`,
@@ -357,12 +370,16 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
       expect(RouteUtil.getLastPathForKey(insightsKey(item), 2)).toBe(
         "ai/insights",
       );
+      expect(RouteUtil.getLastPathForKey(logsKey(item), 2)).toBe("ai/logs");
       expect(RouteUtil.getLastPathForKey(agentKey(item), 2)).toBe("ai/agent");
     });
 
     test("are the pages the descriptor links to", () => {
       expect(getResourceAiAgentDescriptor(item.type).insightsPage).toBe(
         insightsKey(item),
+      );
+      expect(getResourceAiAgentDescriptor(item.type).logsPage).toBe(
+        logsKey(item),
       );
       expect(getResourceAiAgentDescriptor(item.type).agentPage).toBe(
         agentKey(item),
@@ -375,20 +392,38 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
     const dense: string = source.replace(/\s+/g, "");
 
     test("imports the thin AI pages", () => {
-      expect(source).toContain(
-        `from "../Pages/${item.directory}/View/AI/Insights"`,
-      );
-      expect(source).toContain(
-        `from "../Pages/${item.directory}/View/AI/Agent"`,
-      );
+      for (const page of ["Insights", "Logs", "Agent"]) {
+        expect(source).toContain(
+          `from "../Pages/${item.directory}/View/AI/${page}"`,
+        );
+      }
     });
 
-    test("mounts both, two segments deep, with their page routes", () => {
-      for (const key of [insightsKey(item), agentKey(item)]) {
+    test("mounts all three, two segments deep, with their page routes", () => {
+      for (const key of [insightsKey(item), logsKey(item), agentKey(item)]) {
         expect(dense).toMatch(
           new RegExp(`getLastPathForKey\\(PageMap\\.${key},2,?\\)`),
         );
         expect(dense).toContain(`RouteMap[PageMap.${key}]asRoute`);
+      }
+    });
+
+    /*
+     * An old bookmark of :id/ai/insights — the page that listed everything
+     * AI did — lands on the AI Insights page, one click from AI Logs.
+     */
+    test("ai/insights renders the Insights page, ai/logs the Logs page", () => {
+      for (const [key, page] of [
+        [insightsKey(item), "AiInsights"],
+        [logsKey(item), "AiLogs"],
+      ] as Array<[PageMap, string]>) {
+        const mountAt: number = dense.indexOf(
+          `getLastPathForKey(PageMap.${key},2`,
+        );
+        expect(mountAt).toBeGreaterThan(-1);
+        expect(dense.slice(mountAt, mountAt + 160)).toMatch(
+          new RegExp(`<\\w+${page}\\{`),
+        );
       }
     });
 
@@ -405,6 +440,7 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
     test.each([
       ["Agent.tsx", "ResourceAiAgentPage"],
       ["Insights.tsx", "ResourceAiInsightsPage"],
+      ["Logs.tsx", "ResourceAiLogsPage"],
     ])(
       "%s renders %s for this resource type",
       (file: string, component: string) => {
@@ -438,12 +474,13 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
       );
     }
 
-    test('say the two pages live under "AI"', () => {
+    test('say the three pages live under "AI"', () => {
       expect(crumbTitles(insightsKey(item))).toEqual([
         ...item.trail,
         "AI",
         "Insights",
       ]);
+      expect(crumbTitles(logsKey(item))).toEqual([...item.trail, "AI", "Logs"]);
       expect(crumbTitles(agentKey(item))).toEqual([
         ...item.trail,
         "AI",
@@ -456,13 +493,15 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
     });
 
     test("never link a crumb to a page that does not exist", () => {
-      goTo(resourceRoute(agentKey(item)));
-      const links: Array<Link> = item.breadcrumbs(
-        RouteMap[agentKey(item)]!.toString(),
-      )!;
-      for (const link of links) {
-        expect(link.to.toString()).not.toMatch(/[:*]/);
-        expect(link.to.toString()).not.toMatch(/\/ai$/);
+      for (const page of [agentKey(item), logsKey(item), insightsKey(item)]) {
+        goTo(resourceRoute(page));
+        const links: Array<Link> = item.breadcrumbs(
+          RouteMap[page]!.toString(),
+        )!;
+        for (const link of links) {
+          expect(link.to.toString()).not.toMatch(/[:*]/);
+          expect(link.to.toString()).not.toMatch(/\/ai$/);
+        }
       }
     });
 
@@ -490,14 +529,15 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
       ).toHaveLength(1);
     });
 
-    test('holds "Insights" and "AI agent", linking to their pages, each with an icon', async () => {
+    test('holds "Insights", "Logs" and "AI agent", linking to their pages, each with an icon', async () => {
       await renderResourceMenu(item);
 
       expect(linksIn("AI")).toEqual([
         { title: "Insights", href: resourceRoute(insightsKey(item)) },
+        { title: "Logs", href: resourceRoute(logsKey(item)) },
         { title: "AI agent", href: resourceRoute(agentKey(item)) },
       ]);
-      expect(iconCountIn("AI")).toBe(2);
+      expect(iconCountIn("AI")).toBe(3);
     });
 
     test('the whole menu has exactly one "Insights" item, and no bare link to /ai', async () => {
@@ -535,7 +575,7 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
       });
     }
 
-    test("the LightBulb is used only by AI → Insights, the robot only by AI → AI agent", () => {
+    test("the LightBulb is used only by AI → Insights, the list only by AI → Logs, the robot only by AI → AI agent", () => {
       const source: string = readSource(
         "Pages",
         item.directory,
@@ -553,6 +593,12 @@ describe.each(CASES)("$type", (item: ResourceCase) => {
       expect(source.slice(insightsAt, lightBulbAt)).not.toContain(
         "SideMenuItem",
       );
+
+      expect(source.match(/IconProp\.QueueList/g)).toHaveLength(1);
+      const queueListAt: number = source.indexOf("IconProp.QueueList");
+      const logsAt: number = source.lastIndexOf(logsKey(item), queueListAt);
+      expect(logsAt).toBeGreaterThan(-1);
+      expect(source.slice(logsAt, queueListAt)).not.toContain("SideMenuItem");
 
       expect(source.match(/IconProp\.Automation/g)).toHaveLength(1);
       const automationAt: number = source.indexOf("IconProp.Automation");

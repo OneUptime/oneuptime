@@ -110,9 +110,10 @@ jobs:
       # catches all three — and it is the only check that runs the same
       # collector binary the agent images are built FROM.
       #
-      # Runs the pinned collector image over the Docker, Podman, Docker Swarm
-      # and VMware agent configs, the Storage Array agent's three configs (also
-      # with their syslog receivers uncommented), the Database agent's configs,
+      # Runs the pinned collector image over the Docker, Podman, Docker Swarm,
+      # VMware, Proxmox and Ceph agent configs, the Storage Array agent's three
+      # configs (also with their syslog receivers uncommented), every Database
+      # agent config,
       # and both collector ConfigMaps rendered out of the kubernetes-agent chart.
       - run: bash Tests/Ops/validate-collector-configs.sh
       # `validate` proves the agent's OTTL parses; this proves what it DOES.

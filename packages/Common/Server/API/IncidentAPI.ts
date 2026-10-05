@@ -11,6 +11,7 @@ import IncidentService, {
 } from "../Services/IncidentService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
+import FileOwnership from "../Utils/File/FileOwnership";
 import BaseAPI from "./BaseAPI";
 import {
   ExpressRequest,
@@ -280,6 +281,7 @@ export default class IncidentAPI extends BaseAPI<
         projectId,
       },
       select: {
+        projectId: true,
         postmortemAttachments: {
           _id: true,
           file: true,
@@ -294,18 +296,15 @@ export default class IncidentAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    const attachment: File | undefined = incident.postmortemAttachments?.find(
-      (file: File) => {
-        const attachmentId: string | null = file._id
-          ? file._id.toString()
-          : file.id
-            ? file.id.toString()
-            : null;
-        return attachmentId === fileId.toString();
-      },
-    );
+    // One of its files, uploaded in its own project.
+    const attachment: File | undefined =
+      await FileOwnership.findProjectAttachment({
+        files: incident.postmortemAttachments,
+        fileId: fileId,
+        projectId: incident.projectId,
+      });
 
-    if (!attachment || !attachment.file) {
+    if (!attachment) {
       throw new NotFoundException("Attachment not found");
     }
 

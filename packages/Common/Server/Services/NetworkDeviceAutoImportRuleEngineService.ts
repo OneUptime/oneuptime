@@ -50,6 +50,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import NetworkDeviceHydrationUtil from "../Utils/Monitor/NetworkDeviceHydrationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
+import Label from "../../Models/DatabaseModels/Label";
 
 /*
  * The engine behind network device auto-import rules (issue #3378): reads a
@@ -1651,6 +1653,22 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
       for (const template of templates) {
         if (template.id) {
+          /*
+           * The monitors this creates carry the template's labels, and
+           * MonitorService takes only the project's own. A template saved
+           * before its labels were checked can still name another project's
+           * label: leave that one out rather than fail every monitor.
+           */
+          template.labels = await RuleRecordScope.keepRecordsInProject({
+            projectId: data.projectId,
+            records: template.labels,
+            modelType: Label,
+            description: `labels of monitor template ${template.id.toString()}`,
+            logAttributes: {
+              projectId: data.projectId.toString(),
+            } as LogAttributes,
+          });
+
           templatesById.set(template.id.toString(), template);
         }
       }

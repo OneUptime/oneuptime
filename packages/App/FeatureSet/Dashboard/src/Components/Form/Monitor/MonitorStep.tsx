@@ -170,6 +170,11 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import {
+  getMonitorDestinationFieldCopy,
+  MONITOR_PORT_FIELD_DESCRIPTION,
+  MonitorDestinationFieldCopy,
+} from "../../../Utils/Form/Monitor/MonitorDestinationFieldCopy";
 
 /*
  * The interface picker on an SNMP criteria is a picker, not an inventory. A
@@ -210,6 +215,8 @@ export interface ComponentProps {
   defaultIncidentSeverityId?: ObjectID | undefined;
   defaultAlertSeverityId?: ObjectID | undefined;
   monitorName?: string | undefined;
+  // Fold each criteria to its header (MonitorCriteria: foldDefaultCriteria).
+  foldDefaultCriteria?: boolean | undefined;
 }
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
@@ -582,11 +589,6 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [errors, setErrors] = useState<Dictionary<string>>({});
   const [touched, setTouched] = useState<Dictionary<boolean>>({});
 
-  const [destinationFieldTitle, setDestinationFieldTitle] =
-    useState<string>("URL");
-  const [destinationFieldDescription, setDestinationFieldDescription] =
-    useState<string>("");
-
   const requestTypeDropdownOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(HTTPMethod);
 
@@ -654,34 +656,9 @@ return {
         `;
   }
 
-  useEffect(() => {
-    if (props.monitorType === MonitorType.API) {
-      setDestinationFieldTitle("API URL");
-      setDestinationFieldDescription(
-        "Whats the URL of the API you want to monitor?",
-      );
-    } else if (props.monitorType === MonitorType.Website) {
-      setDestinationFieldTitle("Website URL");
-      setDestinationFieldDescription(
-        "Whats the URL of the website you want to monitor?",
-      );
-    } else if (props.monitorType === MonitorType.Ping) {
-      setDestinationFieldTitle("Ping Hostname or IP address");
-      setDestinationFieldDescription(
-        "Whats the Hostname or IP address of the resource you want to ping?",
-      );
-    } else if (props.monitorType === MonitorType.IP) {
-      setDestinationFieldTitle("IP Address");
-      setDestinationFieldDescription(
-        "Whats the IP address you want to monitor?",
-      );
-    } else if (props.monitorType === MonitorType.Port) {
-      setDestinationFieldTitle("Hostname or IP address");
-      setDestinationFieldDescription(
-        "Whats the Hostname or IP address of the resource you want to ping?",
-      );
-    }
-  }, [props.monitorType]);
+  // The address field's name, help and example, by monitor type.
+  const destinationFieldCopy: MonitorDestinationFieldCopy | null =
+    getMonitorDestinationFieldCopy(props.monitorType);
 
   const hasMonitorDestination: boolean =
     props.monitorType === MonitorType.IP ||
@@ -803,12 +780,13 @@ return {
           <div className="space-y-4">
             <div>
               <FieldLabelElement
-                title={destinationFieldTitle}
-                description={destinationFieldDescription}
+                title={destinationFieldCopy?.title || "URL"}
+                description={destinationFieldCopy?.description}
                 required={true}
               />
               <Input
                 initialValue={destinationInputValue}
+                placeholder={destinationFieldCopy?.placeholder}
                 disableSpellCheck={true}
                 onBlur={() => {
                   setTouched({
@@ -942,11 +920,12 @@ return {
               <div>
                 <FieldLabelElement
                   title={"Port"}
-                  description={"Whats the port you want to monitor?"}
+                  description={MONITOR_PORT_FIELD_DESCRIPTION}
                   required={true}
                 />
                 <Input
                   initialValue={monitorStep?.data?.monitorDestinationPort?.toString()}
+                  placeholder="443"
                   onChange={(value: string) => {
                     const port: Port = new Port(value);
                     monitorStep.setPort(port);
@@ -2120,11 +2099,12 @@ return {
       {/* Monitor Criteria Section */}
       <Card
         title="Monitor Criteria"
-        description="Add Monitoring Criteria for this monitor. Monitor different properties."
+        description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
       >
         <MonitorCriteriaElement
           monitorType={props.monitorType}
           monitorStep={monitorStep}
+          foldDefaultCriteria={props.foldDefaultCriteria}
           networkDeviceOidCatalogue={networkDeviceOidCatalogue}
           networkDeviceInterfaceNames={networkDeviceInterfaceNames}
           isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}

@@ -221,7 +221,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             stepId: "provider-settings",
             fieldType: FormFieldSchemaType.URL,
             required: false,
-            placeholder: "http://localhost:11434",
+            placeholder: "http://ollama:11434",
             description:
               "Required for Azure OpenAI, Ollama, and OpenAI-compatible providers (e.g. vLLM, LocalAI — use your server's /v1 endpoint). For Azure OpenAI use your deployment endpoint (e.g. https://<resource>.openai.azure.com/openai/deployments/<deployment>). The api-version query parameter is added automatically if you don't include one. Optional for others to override the default endpoint.",
           },

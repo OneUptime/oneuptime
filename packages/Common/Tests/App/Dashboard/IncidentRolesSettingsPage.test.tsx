@@ -122,6 +122,7 @@ import {
 } from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import { Amber600, Indigo500 } from "../../../Types/BrandColors";
 import { areSimilarColors } from "../../../Utils/DistinctColor";
+import { colorOf } from "../../UI/Components/ColorPicker/ColorPickerDriver";
 
 type RoleRow = {
   _id: string;
@@ -245,11 +246,14 @@ const multipleUsersSwitch: () => HTMLElement | null =
     });
   };
 
-// The colour box, folded under More fields until it is opened.
-const colorBox: () => HTMLInputElement = (): HTMLInputElement => {
-  return within(dialog()).getByPlaceholderText(
-    IncidentRoleSettingsCopy.colorPlaceholder,
-  ) as HTMLInputElement;
+// The colour field, folded under More fields until it is opened.
+const colorField: () => HTMLElement = (): HTMLElement => {
+  return within(dialog()).getByTestId("color-picker");
+};
+
+// The colour it holds: lowercase #rrggbb, "" for none.
+const colorValue: () => string = (): string => {
+  return colorOf(colorField());
 };
 
 const openCreate: () => Promise<void> = async (): Promise<void> => {
@@ -270,7 +274,7 @@ const openCreate: () => Promise<void> = async (): Promise<void> => {
 
   // And fills the colour in once it has picked one.
   await waitFor(() => {
-    expect(colorBox().value).not.toBe("");
+    expect(colorValue()).not.toBe("");
   });
 };
 
@@ -560,11 +564,11 @@ describe("creating a role", () => {
     expect(setChips(advancedHeader())).toEqual([]);
 
     // The colour is in there, folded, until More fields is opened.
-    expect(colorBox().closest("[hidden]")).not.toBeNull();
+    expect(colorField().closest("[hidden]")).not.toBeNull();
 
     fireEvent.click(advancedHeader()!);
 
-    expect(colorBox().closest("[hidden]")).toBeNull();
+    expect(colorField().closest("[hidden]")).toBeNull();
     expect(
       within(dialog()).getByPlaceholderText(
         IncidentRoleSettingsCopy.iconPlaceholder,
@@ -577,8 +581,8 @@ describe("creating a role", () => {
     await openCreate();
 
     // Incident Commander is purple; indigo is the palette's first colour.
-    expect(colorBox().value).toBe(Indigo500.toString());
-    expect(areSimilarColors(colorBox().value, COMMANDER.color)).toBe(false);
+    expect(colorValue()).toBe(Indigo500.toString());
+    expect(areSimilarColors(colorValue(), COMMANDER.color)).toBe(false);
   });
 
   test("passes over a colour a listed role already has", async () => {
@@ -587,10 +591,10 @@ describe("creating a role", () => {
     await renderPage();
     await openCreate();
 
-    expect(colorBox().value).toBe(Amber600.toString());
+    expect(colorValue()).toBe(Amber600.toString());
 
     for (const role of rows) {
-      expect(areSimilarColors(colorBox().value, role.color)).toBe(false);
+      expect(areSimilarColors(colorValue(), role.color)).toBe(false);
     }
   });
 
@@ -712,7 +716,7 @@ describe("editing a role", () => {
 
     // Its own colour, not a new pick.
     await waitFor(() => {
-      expect(colorBox().value).toBe(RESPONDER.color);
+      expect(colorValue()).toBe(RESPONDER.color);
     });
   });
 

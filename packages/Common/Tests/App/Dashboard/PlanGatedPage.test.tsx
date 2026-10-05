@@ -290,3 +290,102 @@ describe("PlanGatedPage on OneUptime Cloud (billing on)", () => {
     expect(pageMounts).toBe(2);
   });
 });
+
+/*
+ * A paid feature can always be switched off, on any plan: below the plan,
+ * what the page can still switch off is drawn under the upsell (belowPlan),
+ * and never on a plan that has the feature, where the page itself is shown.
+ */
+describe("PlanGatedPage draws what can still be switched off under the upsell", () => {
+  const BelowPlan: FunctionComponent = (): ReactElement => {
+    return <div data-testid="below-plan">Require SSO for Login</div>;
+  };
+
+  const renderWithBelowPlan: () => ReturnType<typeof render> = (): ReturnType<
+    typeof render
+  > => {
+    return render(
+      <PlanGatedPage
+        requiredPlan={SSO_REQUIRED_PLAN}
+        upsell={UPSELL}
+        belowPlan={<BelowPlan />}
+      >
+        <FakePage />
+      </PlanGatedPage>,
+    );
+  };
+
+  test.each([PlanType.Free, PlanType.Growth])(
+    "on OneUptime Cloud, a project on the %s plan sees the upsell, then the switches under it",
+    (plan: PlanType) => {
+      billingEnabledForTest = true;
+      currentPlanForTest = plan;
+
+      renderWithBelowPlan();
+
+      expectUpsell("Scale");
+
+      const belowPlan: HTMLElement = screen.getByTestId("below-plan");
+      const upsellTitle: HTMLElement = screen.getByText("SAML Single Sign On");
+
+      // Under the upsell, not in place of it.
+      expect(
+        Boolean(
+          upsellTitle.compareDocumentPosition(belowPlan) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ).toBe(true);
+      expect(pageMounts).toBe(0);
+    },
+  );
+
+  test.each([PlanType.Scale, PlanType.Enterprise])(
+    "on the %s plan only the page shows: its own switches are on it",
+    (plan: PlanType) => {
+      billingEnabledForTest = true;
+      currentPlanForTest = plan;
+
+      renderWithBelowPlan();
+
+      expect(screen.getByTestId("gated-page")).toBeInTheDocument();
+      expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+    },
+  );
+
+  test("not while the plan is unknown, or one the Dashboard cannot read: the upsell shows, nothing under it", () => {
+    billingEnabledForTest = true;
+    currentPlanForTest = null;
+
+    const { unmount } = renderWithBelowPlan();
+
+    expectUpsell("Scale");
+    expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+    unmount();
+
+    currentPlanThrows = true;
+
+    renderWithBelowPlan();
+
+    expectUpsell("Scale");
+    expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+  });
+
+  test("self-hosted (billing off), only the page shows", () => {
+    billingEnabledForTest = false;
+
+    renderWithBelowPlan();
+
+    expect(screen.getByTestId("gated-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+  });
+
+  test("without belowPlan, the upsell is the whole page, as before", () => {
+    billingEnabledForTest = true;
+    currentPlanForTest = PlanType.Free;
+
+    renderGate();
+
+    expectUpsell("Scale");
+    expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+  });
+});

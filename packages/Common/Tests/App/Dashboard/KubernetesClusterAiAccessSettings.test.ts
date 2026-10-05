@@ -8,11 +8,13 @@ import {
 } from "@jest/globals";
 import {
   AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,
+  AI_AGENT_DEFAULT_FIXES_ON_SETTINGS,
   AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
   AiAgentHelmCommands,
   formatNameList,
   getAiAgentClusterWideCommandNote,
   getAiAgentHelmCommands,
+  getAiAgentSettingsFlags,
   getAiAgentLogsCommand,
   getAiAgentScopedCommandNote,
   getAiAgentWriteDisclosure,
@@ -94,6 +96,7 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
+import { AgentAiFixesMode } from "../../../Types/AI/AgentAiSettings";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -190,18 +193,26 @@ const EXACT_INSTALL_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent --reuse-values \\
   --set aiAgent.enabled=true`;
+const EXACT_APPLY_SETTINGS_COMMAND: string = `helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
+  --namespace oneuptime-agent --reuse-values \\
+  --set aiAgent.enabled=true \\
+  --set aiAgent.investigation=true \\
+  --set aiAgent.fixes=ask-for-approval`;
 const EXACT_SCOPED_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent --reuse-values \\
   --set aiAgent.enabled=true \\
-  --set aiAgent.remediation.enabled=true \\
+  --set aiAgent.investigation=true \\
+  --set aiAgent.fixes=ask-for-approval \\
   --set "aiAgent.remediation.namespaces={web,api}" \\
   --set aiAgent.remediation.nodeOperations=false`;
 const EXACT_CLUSTER_WIDE_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
   --namespace oneuptime-agent --reuse-values \\
   --set aiAgent.enabled=true \\
-  --set aiAgent.remediation.enabled=true \\
+  --set aiAgent.investigation=true \\
+  --set aiAgent.fixes=ask-for-approval \\
   --set-json 'aiAgent.remediation.namespaces=[]'`;
 
 /*
@@ -460,13 +471,114 @@ describe("the AI agent helm commands", () => {
   test("are exactly the shared strings every slice prints", () => {
     const commands: AiAgentHelmCommands = getAiAgentHelmCommands();
     expect(commands.install).toBe(EXACT_INSTALL_COMMAND);
+    expect(commands.applySettings).toBe(EXACT_APPLY_SETTINGS_COMMAND);
     expect(commands.enableRemediationScoped).toBe(EXACT_SCOPED_COMMAND);
     expect(commands.enableRemediation).toBe(EXACT_CLUSTER_WIDE_COMMAND);
     expect(Object.keys(commands).sort()).toEqual([
+      "applySettings",
       "enableRemediation",
       "enableRemediationScoped",
       "install",
     ]);
+  });
+
+  /*
+   * What AI may do is the agent's own setting (aiAgent.investigation and
+   * aiAgent.fixes): every command that sets fixes names investigation too,
+   * since a release that names either hands both to the agent.
+   */
+  test("the default commands turn fixes on to Ask for approval, with investigation on", () => {
+    expect(AI_AGENT_DEFAULT_FIXES_ON_SETTINGS).toEqual({
+      investigation: true,
+      fixes: "RequireApproval",
+    });
+
+    for (const command of [
+      getAiAgentHelmCommands().applySettings,
+      getAiAgentHelmCommands().enableRemediationScoped,
+      getAiAgentHelmCommands().enableRemediation,
+    ]) {
+      const sets: Array<string> = getFlagValues(
+        getHelmUpgradeArgv(command),
+        "--set",
+      );
+      expect(sets).toContain("aiAgent.investigation=true");
+      expect(sets).toContain("aiAgent.fixes=ask-for-approval");
+      // The older switch is never what the page tells anyone to set.
+      expect(command).not.toContain("aiAgent.remediation.enabled");
+    }
+  });
+
+  test.each([
+    [true, "Disabled", "aiAgent.investigation=true", "aiAgent.fixes=off"],
+    [
+      false,
+      "RequireApproval",
+      "aiAgent.investigation=false",
+      "aiAgent.fixes=ask-for-approval",
+    ],
+    [
+      true,
+      "Automatic",
+      "aiAgent.investigation=true",
+      "aiAgent.fixes=automatic",
+    ],
+    [
+      true,
+      "BypassApproval",
+      "aiAgent.investigation=true",
+      "aiAgent.fixes=bypass-approval",
+    ],
+  ] as Array<[boolean, AgentAiFixesMode, string, string]>)(
+    "investigation %s, fixes %s: every command sets exactly that, in the chart's spelling",
+    (
+      investigation: boolean,
+      fixes: AgentAiFixesMode,
+      investigationFlag: string,
+      fixesFlag: string,
+    ) => {
+      expect(getAiAgentSettingsFlags({ investigation, fixes })).toBe(
+        `--set ${investigationFlag} \\\n  --set ${fixesFlag}`,
+      );
+
+      const commands: AiAgentHelmCommands = getAiAgentHelmCommands({
+        investigation,
+        fixes,
+      });
+
+      for (const command of [
+        commands.applySettings,
+        commands.enableRemediationScoped,
+        commands.enableRemediation,
+      ]) {
+        const sets: Array<string> = getFlagValues(
+          getHelmUpgradeArgv(command),
+          "--set",
+        );
+        expect(sets).toContain(investigationFlag);
+        expect(sets).toContain(fixesFlag);
+      }
+
+      // The install command never sets them: it installs read-only.
+      expect(commands.install).toBe(EXACT_INSTALL_COMMAND);
+    },
+  );
+
+  /*
+   * Changing what AI may do keeps the write scope the release has: no
+   * namespace list and no node operations flag, so --reuse-values keeps
+   * them.
+   */
+  test("the settings command sets the two values and nothing about the write scope", () => {
+    const argv: Array<string> = getHelmUpgradeArgv(
+      getAiAgentHelmCommands().applySettings,
+    );
+    expect(getFlagValues(argv, "--set")).toEqual([
+      "aiAgent.enabled=true",
+      "aiAgent.investigation=true",
+      "aiAgent.fixes=ask-for-approval",
+    ]);
+    expect(getFlagValues(argv, "--set-json")).toEqual([]);
   });
 
   /*
@@ -497,7 +609,7 @@ describe("the AI agent helm commands", () => {
   });
 
   test("every command updates the chart index first and turns the agent on", () => {
-    expect(allCommands()).toHaveLength(3);
+    expect(allCommands()).toHaveLength(4);
     for (const command of allCommands()) {
       expect(command.startsWith("helm repo update\n")).toBe(true);
       /*
@@ -524,7 +636,8 @@ describe("the AI agent helm commands", () => {
     );
     expect(getFlagValues(argv, "--set")).toEqual([
       "aiAgent.enabled=true",
-      "aiAgent.remediation.enabled=true",
+      "aiAgent.investigation=true",
+      "aiAgent.fixes=ask-for-approval",
       `aiAgent.remediation.namespaces=${AI_AGENT_EXAMPLE_WRITE_NAMESPACES}`,
       "aiAgent.remediation.nodeOperations=false",
     ]);
@@ -2527,7 +2640,7 @@ describe("Runner and credential picker permissions", () => {
 });
 
 /*
- * The kubectl command history (now on the AI Insights page) is RunnerJob
+ * The kubectl command history (now on the AI Logs page) is RunnerJob
  * rows, which roles that may open the cluster's pages may not read.
  */
 describe("command history permission", () => {

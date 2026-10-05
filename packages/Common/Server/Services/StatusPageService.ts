@@ -10,7 +10,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import StatusPageDomainService from "./StatusPageDomainService";
@@ -52,7 +52,6 @@ import StatusPageSubscriberNotificationTemplateService from "./StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationEventType from "../../Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
-import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageResourceService from "./StatusPageResourceService";
@@ -116,6 +115,7 @@ import StatusPageReportScheduleUtil, {
   StatusPageReportScheduleColumns,
   StatusPageReportScheduleWrite,
 } from "../../Utils/StatusPage/ReportSchedule";
+import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 
 export {
   StatusPageReport,
@@ -222,7 +222,7 @@ export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
   onlyShowScopedIncidents: true,
 };
 
-export class Service extends DatabaseService<StatusPage> {
+export class Service extends ProjectReferencesService<StatusPage> {
   /*
    * Caches the resolved status page URL per statusPageId. `getStatusPageURL`
    * is called inside per-subscriber notification loops (see
@@ -413,6 +413,8 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPage>,
   ): Promise<OnCreate<StatusPage>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.projectId) {
       throw new BadDataException("projectId is required");
     }
@@ -1258,6 +1260,8 @@ export class Service extends DatabaseService<StatusPage> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPage>,
   ): Promise<OnUpdate<StatusPage>> {
+    await super.onBeforeUpdate(updateBy);
+
     // is enabling SMS subscribers.
 
     if (updateBy.data.enableSmsSubscribers) {
@@ -1491,9 +1495,6 @@ export class Service extends DatabaseService<StatusPage> {
     const statusPageName: string =
       statuspage.pageTitle || statuspage.name || "Status Page";
 
-    const statusPageIdString: string | null =
-      statuspage.id?.toString() || statuspage._id?.toString() || null;
-
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
       reportPeriod: Service.getReportPeriodForStatusPage(statuspage),
@@ -1537,13 +1538,11 @@ export class Service extends DatabaseService<StatusPage> {
         detailsUrl: statusPageURL,
         hasResources: report.totalResources > 0 ? "true" : "false",
         report: report as any,
-        logoUrl:
-          statuspage.logoFileId && statusPageIdString
-            ? new URL(httpProtocol, host)
-                .addRoute(StatusPageApiRoute)
-                .addRoute(`/logo/${statusPageIdString}`)
-                .toString()
-            : "",
+        logoUrl: StatusPageEmailLogo.getLogoUrl({
+          statusPage: statuspage,
+          host: host,
+          httpProtocol: httpProtocol,
+        }),
         isPublicStatusPage: statuspage.isPublicStatusPage ? "true" : "false",
 
         unsubscribeUrl: unsubscribeUrl?.toString() || "",

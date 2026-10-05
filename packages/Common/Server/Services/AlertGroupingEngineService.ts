@@ -6,6 +6,8 @@ import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/AlertEpisodeMember";
 import Label from "../../Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -829,14 +831,39 @@ class AlertGroupingEngineServiceClass {
       }
     }
 
-    // Copy on-call policies from rule
-    if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
-      newEpisode.onCallDutyPolicies = rule.onCallDutyPolicies;
+    /*
+     * The rule's on-call policies and episode labels, copied onto the episode
+     * as root - only the project's own (see RuleRecordScope).
+     */
+    const ruleLogAttributes: LogAttributes = {
+      projectId: alert.projectId?.toString(),
+    };
+    const ruleDescription: string = `grouping rule ${rule.name || rule.id?.toString() || ""}`;
+
+    const onCallDutyPolicies: Array<OnCallDutyPolicy> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: alert.projectId!,
+        records: rule.onCallDutyPolicies,
+        modelType: OnCallDutyPolicy,
+        description: `on-call policies of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
+
+    if (onCallDutyPolicies.length > 0) {
+      newEpisode.onCallDutyPolicies = onCallDutyPolicies;
     }
 
-    // Copy episode labels from rule
-    if (rule.episodeLabels && rule.episodeLabels.length > 0) {
-      newEpisode.labels = rule.episodeLabels;
+    const episodeLabels: Array<Label> =
+      await RuleRecordScope.keepRecordsInProject({
+        projectId: alert.projectId!,
+        records: rule.episodeLabels,
+        modelType: Label,
+        description: `episode labels of ${ruleDescription}`,
+        logAttributes: ruleLogAttributes,
+      });
+
+    if (episodeLabels.length > 0) {
+      newEpisode.labels = episodeLabels;
     }
 
     try {

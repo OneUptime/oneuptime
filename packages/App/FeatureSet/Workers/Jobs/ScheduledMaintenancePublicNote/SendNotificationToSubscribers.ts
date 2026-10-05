@@ -1,5 +1,4 @@
 import RunCron from "../../Utils/Cron";
-import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
@@ -49,6 +48,7 @@ import StatusPageSubscriberWebhookUtil from "Common/Server/Utils/StatusPageSubsc
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
+import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -339,8 +339,6 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
 
       const statusPageName: string =
         statuspage.pageTitle || statuspage.name || "Status Page";
-      const statusPageIdString: string | null =
-        statuspage.id?.toString() || statuspage._id?.toString() || null;
 
       const scheduledEventDetailsUrl: string =
         event.id && statusPageURL
@@ -714,13 +712,11 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   statusPageName: statusPageName,
                   statusPageUrl: statusPageURL,
                   detailsUrl: scheduledEventDetailsUrl,
-                  logoUrl:
-                    statuspage.logoFileId && statusPageIdString
-                      ? new URL(httpProtocol, host)
-                          .addRoute(StatusPageApiRoute)
-                          .addRoute(`/logo/${statusPageIdString}`)
-                          .toString()
-                      : "",
+                  logoUrl: StatusPageEmailLogo.getLogoUrl({
+                    statusPage: statuspage,
+                    host: host,
+                    httpProtocol: httpProtocol,
+                  }),
                   isPublicStatusPage: statuspage.isPublicStatusPage
                     ? "true"
                     : "false",

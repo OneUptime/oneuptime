@@ -20,7 +20,16 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
+
+/*
+ * The labels and teams these rules name are their project's own: the engines
+ * attach only the project's records (RuleRecordScope).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - the network device label and owner rule engines, and
@@ -611,6 +620,8 @@ describe("NetworkDeviceOwnerRuleEngineService - wildcard patterns", () => {
     jest
       .spyOn(TeamMemberService, "isUserMemberOfProject")
       .mockResolvedValue(true);
+    // ... and their teams the project's (OwnerRuleAssignment.test.ts covers others').
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

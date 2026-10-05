@@ -5,7 +5,7 @@ import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentStateService from "./IncidentStateService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -59,12 +59,22 @@ import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleE
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "./IncidentEpisodePrivacyRuleEngineService";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The severity is checked by this service's own hooks below. Everything
+   * else an episode names - its state, its assignee, its on-call policies and
+   * labels, the grouping rule that opened it - is checked by
+   * ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["incidentSeverity"];
   }
 
   @CaptureSpan()
@@ -93,6 +103,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyIncidentEpisodeSelfPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -159,6 +171,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException(
         "ProjectId required to create incident episode.",

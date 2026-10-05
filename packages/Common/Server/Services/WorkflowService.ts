@@ -1,7 +1,7 @@
 import { WorkflowHostname } from "../EnvironmentConfig";
 import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import WorkflowLabelRuleEngineService from "./WorkflowLabelRuleEngineService";
 import WorkflowOwnerRuleEngineService from "./WorkflowOwnerRuleEngineService";
 import EmptyResponseData from "../../Types/API/EmptyResponse";
@@ -22,7 +22,7 @@ import Model from "../../Models/DatabaseModels/Workflow";
 import logger, { LogAttributes } from "../Utils/Logger";
 import UUID from "../../Utils/UUID";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

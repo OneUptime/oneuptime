@@ -3,6 +3,9 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import { JSONObject } from "../../../Types/JSON";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import IncomingEmailMonitorRequestUtil from "../../../Utils/Monitor/IncomingEmailMonitorRequestUtil";
+import OneUptimeDate from "../../../Types/Date";
 import ServerMonitorResponse, {
   ServerProcess,
 } from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -49,6 +52,29 @@ const PrototypeWalkingKeySegments: ReadonlySet<string> = new Set<string>([
   "constructor",
   "prototype",
 ]);
+
+/*
+ * Longest an email's subject, sender, recipients or body may run in a title.
+ *
+ * `Alert.title` and `Incident.title` are LongText - 500 characters - and an
+ * over-long title is not shortened on the way in: create refuses it, and
+ * the alert or incident is never opened. Those four values are as long as
+ * whoever sent the email makes them, so a title quoting them whole would stop
+ * paging on exactly the emails that say the most. Three of them still fit
+ * with room for the template's own text. Descriptions and remediation notes
+ * get them in full, and so does the monitor summary stored on the alert.
+ */
+export const MaxEmailValueLengthInTitle: number = 150;
+
+const TitleEllipsis: string = "...";
+
+// The Incoming Email variables whose text the email's sender wrote.
+const SenderWrittenEmailKeys: ReadonlyArray<string> = [
+  "emailSubject",
+  "emailFrom",
+  "emailTo",
+  "emailBody",
+];
 
 /**
  * Utility for building template variable storage map and processing dynamic placeholders
@@ -126,6 +152,42 @@ export default class MonitorTemplateUtil {
           incomingRequestReceivedAt: (
             data.dataToProcess as IncomingMonitorRequest
           ).incomingRequestReceivedAt,
+        } as JSONObject;
+      }
+
+      if (data.monitorType === MonitorType.IncomingEmail) {
+        const emailRequest: IncomingEmailMonitorRequest =
+          data.dataToProcess as IncomingEmailMonitorRequest;
+
+        /*
+         * The email as the ingest boundary left it. processIncomingEmailFromQueue
+         * masks this monitor's own address - its monitor-{secretKey}@ address
+         * or its custom name - before the payload exists, so `{{emailTo}}`
+         * reads `monitor-[REDACTED]@<inbound domain>` here just as the
+         * monitor summary does. Nothing below reads the monitor's secret key
+         * or custom address, so no template can put the credential back into
+         * a title that is paged, posted to chat or shown on a status page.
+         *
+         * Exactly the documented variables: the headers, the HTML body and
+         * the attachments stay in the monitor summary.
+         *
+         * Always strings: "" for a field the email did not have (mail with
+         * no Subject: header exists), so a template never renders
+         * `{{emailSubject}}` literally. A scheduled "not received" check that
+         * ran before any email arrived stands the monitor's creation time in
+         * for emailReceivedAt (see IncomingEmailMonitorRequestUtil.hasEmail);
+         * no email arrived then, so it is not shown as one.
+         */
+        storageMap = {
+          emailSubject: emailRequest.emailSubject || "",
+          emailFrom: emailRequest.emailFrom || "",
+          emailTo: emailRequest.emailTo || "",
+          emailBody: emailRequest.emailBody || "",
+          emailReceivedAt: IncomingEmailMonitorRequestUtil.hasEmail(
+            emailRequest,
+          )
+            ? MonitorTemplateUtil.toTimestamp(emailRequest.emailReceivedAt)
+            : "",
         } as JSONObject;
       }
 
@@ -684,6 +746,76 @@ export default class MonitorTemplateUtil {
     logger.debug(`Storage Map: ${JSON.stringify(storageMap, null, 2)}`);
 
     return storageMap;
+  }
+
+  /**
+   * The storage map a title renders against.
+   *
+   * A title shares the variables of its description but not the room: it is
+   * one line in a 500-character column (see MaxEmailValueLengthInTitle), and
+   * it is what a phone call reads out and an SMS carries. For an Incoming
+   * Email monitor, the values the email's sender wrote are therefore cut to
+   * one line of at most MaxEmailValueLengthInTitle characters here. Every
+   * other monitor type's map is returned as it is.
+   */
+  public static buildTitleStorageMap(data: {
+    monitorType: MonitorType;
+    storageMap: JSONObject;
+  }): JSONObject {
+    if (data.monitorType !== MonitorType.IncomingEmail) {
+      return data.storageMap;
+    }
+
+    const titleStorageMap: JSONObject = { ...data.storageMap };
+
+    for (const key of SenderWrittenEmailKeys) {
+      const value: unknown = titleStorageMap[key];
+
+      if (typeof value === "string") {
+        titleStorageMap[key] = MonitorTemplateUtil.toTitleLine(value);
+      }
+    }
+
+    return titleStorageMap;
+  }
+
+  /*
+   * `text` as one line of at most MaxEmailValueLengthInTitle characters,
+   * ending in "..." when it was cut. Line breaks and runs of whitespace - a
+   * body's paragraphs, a folded header - become one space.
+   */
+  private static toTitleLine(text: string): string {
+    const line: string = text.replace(/\s+/g, " ").trim();
+
+    if (line.length <= MaxEmailValueLengthInTitle) {
+      return line;
+    }
+
+    let end: number = MaxEmailValueLengthInTitle - TitleEllipsis.length;
+
+    // Never end on the first half of a surrogate pair, such as an emoji.
+    const lastCharCode: number = line.charCodeAt(end - 1);
+
+    if (lastCharCode >= 0xd800 && lastCharCode <= 0xdbff) {
+      end -= 1;
+    }
+
+    return `${line.slice(0, end)}${TitleEllipsis}`;
+  }
+
+  /*
+   * `value` - a Date, or the text a stored email's Date became - as an ISO
+   * 8601 timestamp in UTC. "" when there is none, and when it is not a date
+   * at all, so one unreadable timestamp cannot cost a template the email's
+   * other variables.
+   */
+  private static toTimestamp(value: Date | undefined): string {
+    try {
+      return OneUptimeDate.toString(value);
+    } catch (err) {
+      logger.error(err);
+      return "";
+    }
   }
 
   /**

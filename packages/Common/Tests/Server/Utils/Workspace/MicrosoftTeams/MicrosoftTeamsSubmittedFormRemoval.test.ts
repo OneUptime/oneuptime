@@ -1603,11 +1603,11 @@ describe("a submit whose action fails keeps its form, so it can be submitted aga
         expect(reply).not.toContain(FOREIGN_MONITOR_ID);
       }
 
-      // The log does name it: an operator needs to know which record it was.
+      // The log has its id (never its name): an operator needs to know which record it was.
       const attributes: LogAttributes = { projectId: PROJECT_ID.toString() };
       expect(errorLogCalls()).toStrictEqual([
         [
-          `${details.failureLogSummary}: ProjectScopedReferenceException: This ${details.subject} references records that belong to a different project: Monitor "${FOREIGN_MONITOR_NAME}". Please pick values from this project and try again.`,
+          `${details.failureLogSummary}: ProjectScopedReferenceException: This ${details.subject} references records that are not in this project: Monitor "${FOREIGN_MONITOR_ID}". Please pick values from this project and try again.`,
           attributes,
         ],
         [expect.any(ProjectScopedReferenceException), attributes],

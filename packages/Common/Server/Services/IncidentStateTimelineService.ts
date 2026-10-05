@@ -4,7 +4,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentPublicNoteService from "./IncidentPublicNoteService";
 import IncidentService from "./IncidentService";
 import IncidentSlaService from "./IncidentSlaService";
@@ -19,7 +19,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -40,7 +40,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentAlertService from "./IncidentAlertService";
 
-export class Service extends DatabaseService<IncidentStateTimeline> {
+export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
     if (IsBillingEnabled) {
@@ -77,6 +77,8 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     let mutex: SemaphoreMutex | null = null;
 
     try {
@@ -291,32 +293,23 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
         incidentId: createBy.data.incidentId?.toString(),
       } as LogAttributes);
 
-      const publicNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["publicNote"] as string | undefined;
+      // Posted as a public note once the change is saved (onCreateSuccess).
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
 
-      if (publicNote) {
-        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-        if (createBy.data.shouldStatusPageSubscribersBeNotified) {
-          createBy.data.subscriberNotificationStatus =
-            StatusPageSubscriberNotificationStatus.Success;
-        }
-      }
-
-      // Set notification status based on shouldStatusPageSubscribersBeNotified
-      if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this incident state change.";
-      } else if (
-        createBy.data.shouldStatusPageSubscribersBeNotified === true &&
-        !publicNote
-      ) {
-        // Only set to Pending if there's no public note (public note handling sets it to Success)
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
+      /*
+       * The change's own notification, decided once: when it notifies
+       * subscribers and a note comes with it, the note is the one message
+       * they get (StateChangeSubscriberNotification).
+       */
+      StateChangeSubscriberNotification.applyToStateChange({
+        stateChange: createBy.data,
+        hasPublicNote: Boolean(publicNote),
+        skippedMessage:
+          "Notifications skipped as subscribers are not to be notified for this incident state change.",
+      });
 
       return {
         createBy,
@@ -749,6 +742,8 @@ ${createdItem.rootCause}`,
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<IncidentStateTimeline>,
   ): Promise<OnUpdate<IncidentStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Retry - a user's Pending - over a state change notification that is
      * being sent would let a second run send it alongside, or be overwritten

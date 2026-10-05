@@ -43,6 +43,15 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../Types/Permission";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * NetworkAlertPolicy: the contracts that live in metadata and in wiring, and
@@ -860,6 +869,7 @@ describe("NetworkAlertPolicyService.onBeforeCreate", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1190,6 +1200,7 @@ describe("NetworkAlertPolicyService.onBeforeUpdate", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1476,6 +1487,7 @@ describe("NetworkAlertPolicyService scope id validation", () => {
     mockNoTemplateConflicts();
     mockScopeAndPermissionChecksPass();
     mockTemplateOwnedBy(PROJECT_ID);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
@@ -1616,6 +1628,7 @@ describe("NetworkAlertPolicyService monitor-provisioning permission", () => {
   beforeEach(() => {
     mockNoTemplateConflicts();
     mockTemplateOwnedBy(PROJECT_ID);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

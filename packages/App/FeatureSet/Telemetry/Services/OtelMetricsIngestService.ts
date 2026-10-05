@@ -577,6 +577,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       totalMemoryBytes: number | null;
       processCount: number | null;
       containerRuntime: string | null;
+      /*
+       * The oneuptime.agent.version the host's collector stamps (the host
+       * guide's config does). Written with the rest of the batch's host
+       * facts, so a new or upgraded collector's version shows on the host
+       * with its first batch instead of waiting for the next fenced
+       * maintenance pass.
+       */
+      agentVersion: string | null;
       hasInfraSignal: boolean;
       labelNames: Set<string>;
     }
@@ -644,6 +652,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           totalMemoryBytes: null,
           processCount: null,
           containerRuntime: null,
+          agentVersion: null,
           hasInfraSignal: false,
           labelNames: new Set<string>(),
         };
@@ -688,6 +697,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         entry.containerRuntime = OtelIngestBaseService.getStringAttribute(
           ras,
           "container.runtime",
+        );
+      }
+      if (!entry.agentVersion) {
+        entry.agentVersion = OtelIngestBaseService.getStringAttribute(
+          ras,
+          "oneuptime.agent.version",
         );
       }
 
@@ -749,6 +764,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           totalMemoryBytes: entry.totalMemoryBytes ?? undefined,
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
+          agentVersion: entry.agentVersion ?? undefined,
         });
 
         if (entry.labelNames.size > 0) {

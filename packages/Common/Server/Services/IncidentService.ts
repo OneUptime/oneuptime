@@ -9,6 +9,7 @@ import FindBy from "../Types/Database/FindBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentCustomField from "../../Models/DatabaseModels/IncidentCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
@@ -51,7 +52,10 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
@@ -228,12 +232,35 @@ type IncidentUpdatePayload = {
   [key: string]: unknown;
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The severity and the monitor status to switch to, the monitors, the
+   * labels, the on-call policies, the status pages, the SLOs and the
+   * affected-resource lists are checked by this service's own hooks below, with
+   * ProjectScopedReferenceValidator and its own words. Everything else an
+   * incident names - its episode, its state, the probe that opened it - is
+   * checked by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["incidentSeverity", "changeMonitorStatusTo"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "monitors",
+      "labels",
+      "onCallDutyPolicies",
+      "statusPages",
+      "serviceLevelObjectives",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   @CaptureSpan()
@@ -544,6 +571,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Records which monitors the update takes off and puts on each incident,
      * the monitor status it writes, and whether the incident was resolved
@@ -2105,6 +2134,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create incident.");
     }
@@ -4227,6 +4258,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
               select: {
                 postmortemNote: true,
                 showPostmortemOnStatusPage: true,
+                projectId: true,
               },
               props: {
                 isRoot: true,
@@ -4237,6 +4269,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
               await setIsPublicForMarkdownImages(
                 incidentForSync.postmortemNote || "",
                 Boolean(incidentForSync.showPostmortemOnStatusPage),
+                incidentForSync.projectId,
               );
             }
           } catch (syncError) {

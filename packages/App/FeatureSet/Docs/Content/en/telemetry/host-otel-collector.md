@@ -22,13 +22,13 @@ You can run the **OpenTelemetry Collector** as a service directly on your Linux,
 
 ## Step 1 — Install the OpenTelemetry Collector
 
-Pick the section for your OS. All examples assume you are installing the latest `otelcol-contrib` release from [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases).
+Pick the section for your OS. Every example installs `otelcol-contrib` **v0.161.0** from [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases): the release OneUptime pins, which the configs in Step 2 report as the host's agent version (see "Upgrading the collector" below).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ The Debian package installs the binary at `/usr/bin/otelcol-contrib`, the defaul
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ Paths match the Debian package (`/usr/bin/otelcol-contrib`, `/etc/otelcol-contri
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ The asset name must **start with `otelcol-contrib_`**. The core `otelcol_` build
 From an **elevated** PowerShell prompt, run this block as a whole — each line depends on the variables set above it:
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** groups records before export so you do not pay one HTTP round trip per record.
 - **`resource`** stamps every record with `service.name`. Use a different value per host (e.g. `prod-web-01`) if you want each machine to appear as its own telemetry service in OneUptime.
+- **`oneuptime.agent.version`** is the collector release this config is for. OneUptime shows it as the host's **Agent Version**; change it only together with the collector you install (see "Upgrading the collector" below).
 - **`otlphttp`** sends to OneUptime over HTTPS with the ingestion token attached.
 
 ### Host metrics (Linux, macOS, Windows)
@@ -559,6 +563,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -632,6 +639,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -717,6 +727,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -816,6 +829,12 @@ The service runs under `LocalSystem` by default, which has the privileges needed
 3. Open **Metrics** — host metrics (CPU, memory, filesystem, etc.) should appear within a minute.
 4. Open **Logs** — your file logs / journald entries / Windows Event Logs should be streaming in. Useful searchable attributes include `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, and `winlog.provider.name`.
 5. If you enabled the `systemd` (Linux) or `windows_service` (Windows) receiver, open **Infrastructure → Hosts**, pick the host, and check the **Systemd Units** / **Services** tab — every scraped unit should be listed with its current state.
+
+## Upgrading the collector
+
+Every config on this page stamps the collector release it is for as `oneuptime.agent.version`, in its `resource` processor. OneUptime shows it as the **Agent Version** on the host's **Overview**, and puts a warning sign beside it when OneUptime pins a newer release. Select the sign to see how to upgrade the way you installed: the config saved again, then the new release installed over the old one.
+
+To upgrade by hand, install the new release the way you installed this one (Step 1, with the new `VERSION`), set `oneuptime.agent.version` in your config to the same version, and restart the collector (Step 3). A collector whose config stamps no version shows none, and never a sign.
 
 ## Reducing the Volume of Data Collected
 
@@ -994,18 +1013,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **Editing the config OneUptime generated for you?** The pipeline above matches the complete examples on this page. The config from the dashboard (Hosts → Documentation) names things differently: its processors are `resourcedetection` and `batch` (there is **no** `resource` processor) and its exporter is `otlphttp/oneuptime`. Referencing a processor that isn't defined stops the collector at startup with `references processor "resource" which is not configured`. Add the filter to what is already there rather than pasting this block over it:
+> **Editing the config OneUptime generated for you?** The pipeline above matches the complete examples on this page. The config from the dashboard (Hosts → Documentation) names things differently: its processors are `resourcedetection`, `resource` and `batch`, and its exporter is `otlphttp/oneuptime`. Referencing a processor or exporter that isn't defined stops the collector at startup. Add the filter to what is already there rather than pasting this block over it:
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> Keep `resourcedetection` — OneUptime matches telemetry to a host using the `host.name` / `host.id` it sets. That generated config is also **metrics-only**: it has no `logs:` pipeline until you add one, so a `filter/drop-low-severity` has nothing to filter until you add a `filelog` or `journald` receiver alongside it.
+> Keep `resourcedetection` — OneUptime matches telemetry to a host using the `host.name` / `host.id` it sets — and `resource`, which reports the collector's version. That generated config is also **metrics-only**: it has no `logs:` pipeline until you add one, so a `filter/drop-low-severity` has nothing to filter until you add a `filelog` or `journald` receiver alongside it.
 
 > **On macOS, use the tarball, not Homebrew.** The Homebrew formula ships the **core** collector, and `filter` is a contrib-only processor — the collector will refuse to start regardless of whether your YAML is correct.
 
@@ -1057,6 +1076,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -1129,9 +1151,10 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/H
 sudo bash install.sh
 ```
 
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this host with it, and the host's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or remove the agent.
 - It registers under `HOST_NAME`; leave it empty to use the host's own hostname, which is what this collector reports as `host.name` unless you set another name. The two must match, so the agent serves the Host this collector created. It shows up on the host's **AI → AI agent** page in OneUptime.
 - It runs the **host's own** programs, entering the host's namespaces with `nsenter`, so it runs privileged, as root, with `pid: host` — it is root on the host. The agent's command policy is the limit: read-only commands unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`, never a shell, `sudo` or a program outside its list, and never itself, this collector's unit or anything in `ONEUPTIME_AI_PROTECTED_TARGETS`.
-- With `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (full unit names such as `nginx.service,app-*`) limits which units a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
+- With `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (full unit names such as `nginx.service,app-*`) limits which units a fix may touch. `ONEUPTIME_AI_FIXES` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only; the installer writes both from its environment into the agent's `.env` ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 
 What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts).
 

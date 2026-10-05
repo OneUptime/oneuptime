@@ -14,6 +14,19 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  stubGenericReferenceCheck,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubGenericReferenceCheck();
+});
 
 /*
  * Contract under test — a kubernetes-agent Runner (a row the telemetry
@@ -164,6 +177,8 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
           return ids.includes(runner.id!.toString());
         });
       });
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {

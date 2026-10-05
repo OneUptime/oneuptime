@@ -33,6 +33,31 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+
+/*
+ * These tests count this service's own lookups. The generic reference check
+ * every service runs first (ProjectReferencesService) is held to by
+ * ProjectScopedReferencesEverywhere, so it is stubbed out here.
+ */
+function stubDirectoryAndGenericCheck(): void {
+  stubProjectDirectory({});
+  jest
+    .spyOn(ProjectReferenceCheck, "validateCreate")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(ProjectReferenceCheck, "validateUpdate")
+    .mockResolvedValue(undefined as never);
+}
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubDirectoryAndGenericCheck();
+});
 
 /*
  * The alert and incident options of an SLO burn rate rule, as the service
@@ -317,6 +342,7 @@ beforeEach(() => {
       "validateServiceLevelObjectivesBelongToProject",
     )
     .mockResolvedValue(undefined);
+  stubDirectoryAndGenericCheck();
 });
 
 describe("ServiceLevelObjectiveBurnRateRuleService - option flags", () => {
@@ -327,6 +353,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService - option flags", () => {
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -491,6 +518,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService - templates", () => {
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -645,6 +673,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - labels, team
     membershipSpy = jest
       .spyOn(TeamMemberService, "findBy")
       .mockResolvedValue([]);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -765,7 +794,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - labels, team
   it("lets a cross-project team abort the create", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        'This SLO burn rate rule references records that belong to a different project: Team "Other team".',
+        `This SLO burn rate rule references records that are not in this project: Team "${TEAM_ID.toString()}". Please pick values from this project and try again.`,
       ),
     );
 
@@ -774,7 +803,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate - labels, team
         "onBeforeCreate",
         makeValidCreateBy({ incidentOwnerTeams: [team(TEAM_ID)] }),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 
@@ -884,6 +913,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
     findBySpy = jest
       .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
       .mockResolvedValue([]);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1082,7 +1112,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
   it("lets a newly introduced cross-project policy abort the update", async () => {
     validatorSpy.mockRejectedValue(
       new BadDataException(
-        'This SLO burn rate rule references records that belong to a different project: On-Call Duty Policy "Other rota".',
+        `This SLO burn rate rule references records that are not in this project: On-Call Duty Policy "${POLICY_ID.toString()}". Please pick values from this project and try again.`,
       ),
     );
 
@@ -1094,7 +1124,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onBeforeUpdate - labels, team
           { isRoot: true, tenantId: PROJECT_ID },
         ),
       ),
-      "belong to a different project",
+      "not in this project",
     );
   });
 
@@ -1153,6 +1183,7 @@ describe("ServiceLevelObjectiveBurnRateRuleService.onUpdateSuccess - the auto-re
         "validateReferencesBelongToProject",
       )
       .mockResolvedValue(undefined);
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {
@@ -1283,6 +1314,7 @@ describe("ServiceLevelObjectiveService - seeded default rules keep today's behav
     jest.spyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
+    stubDirectoryAndGenericCheck();
   });
 
   afterEach(() => {

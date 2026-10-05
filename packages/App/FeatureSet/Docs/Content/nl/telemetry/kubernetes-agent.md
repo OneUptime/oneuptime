@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**AI-onderzoeken staan standaard aan.** `aiAgent.enabled=true` draait de Kubernetes AI-agent naast de collector: wanneer er op dit cluster een incident of waarschuwing ontstaat, onderzoekt OneUptime AI het probleem met alleen-lezen `kubectl` (`get`, `describe`, `logs`, `events`, `top`) en verandert niets. Fixes blijven uit totdat je ze toestaat. Wil je zonder installeren, gebruik dan `--set aiAgent.enabled=false`.
 
 ## Stap 4 — Verifieer de Installatie
 
@@ -347,6 +352,8 @@ clusterName: prod
 Labels worden hoofdletterongevoelig gematcht, dus een bestaand handmatig aangemaakt label `Production` wordt hergebruikt in plaats van gedupliceerd. Labels die handmatig in de OneUptime-UI zijn toegevoegd, worden nooit door de agent verwijderd.
 
 ## De Agent upgraden
+
+Als de agent ouder is dan je OneUptime, verschijnt er een waarschuwingsteken naast **Agentversie** in de **Clusterdetails** van het cluster. Selecteer het om dit commando te zien.
 
 ```bash
 helm repo update

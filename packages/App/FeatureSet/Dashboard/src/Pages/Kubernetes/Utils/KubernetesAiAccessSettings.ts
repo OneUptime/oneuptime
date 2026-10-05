@@ -403,8 +403,14 @@ export function getKubernetesAiAccessSettingsInitialValues(
  *                      loosening only the admin set may make; without an
  *                      agent it only takes access away, which every editor
  *                      may do.
+ * investigationAndFixes: false while the cluster's Kubernetes AI agent
+ *                      sets the investigation switch and the fixes modes
+ *                      (its chart does; the server refuses a change here):
+ *                      the form then edits the allowlist alone. Offered
+ *                      when left out.
  */
 export interface KubernetesAiAccessOfferedFields {
+  investigationAndFixes?: boolean | undefined;
   allowlist: boolean;
   allowlistRemoveOnly: boolean;
   runner: boolean;
@@ -420,6 +426,8 @@ export function getKubernetesAiAccessOfferedFields(data: {
   isCredentialPickerAvailable: boolean;
   isAdvancedBinding: boolean;
   hasAiAgent: boolean;
+  // The cluster's Kubernetes AI agent sets investigation and fixes.
+  isSetByAgent?: boolean | undefined;
 }): KubernetesAiAccessOfferedFields {
   const savedAllowlist: SavedKubectlAllowlist = normalizeSavedKubectlAllowlist(
     data.saved.aiKubectlCommandAllowlist,
@@ -431,6 +439,7 @@ export function getKubernetesAiAccessOfferedFields(data: {
   const mayUnbind: boolean = data.canConfigureUnattended || !data.hasAiAgent;
 
   return {
+    ...(data.isSetByAgent ? { investigationAndFixes: false } : {}),
     allowlist:
       data.canConfigureUnattended ||
       savedAllowlist.patterns.length > 0 ||
@@ -544,21 +553,24 @@ export function getKubernetesAiAccessSettingsChanges(data: {
 }): JSONObject {
   const changes: JSONObject = {};
 
-  const isInvestigationEnabled: boolean =
-    data.values.isAiInvestigationEnabled === true;
-  if (isInvestigationEnabled !== data.saved.isAiInvestigationEnabled) {
-    changes["isAiInvestigationEnabled"] = isInvestigationEnabled;
-  }
+  // Never sent while the agent sets them: the form does not offer them.
+  if (data.offered.investigationAndFixes !== false) {
+    const isInvestigationEnabled: boolean =
+      data.values.isAiInvestigationEnabled === true;
+    if (isInvestigationEnabled !== data.saved.isAiInvestigationEnabled) {
+      changes["isAiInvestigationEnabled"] = isInvestigationEnabled;
+    }
 
-  const mode: string | null = readDropdownId(data.values.aiRemediationMode);
-  if (
-    mode &&
-    Object.values(KubernetesAiRemediationMode).includes(
-      mode as KubernetesAiRemediationMode,
-    ) &&
-    mode !== data.saved.aiRemediationMode
-  ) {
-    changes["aiRemediationMode"] = mode;
+    const mode: string | null = readDropdownId(data.values.aiRemediationMode);
+    if (
+      mode &&
+      Object.values(KubernetesAiRemediationMode).includes(
+        mode as KubernetesAiRemediationMode,
+      ) &&
+      mode !== data.saved.aiRemediationMode
+    ) {
+      changes["aiRemediationMode"] = mode;
+    }
   }
 
   if (data.offered.allowlist) {

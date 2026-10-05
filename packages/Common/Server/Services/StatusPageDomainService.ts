@@ -12,7 +12,7 @@ import { CertificateOrderReason } from "../Utils/Greenlock/CertificateOrderBudge
 import CertificateOrderFailures from "../Utils/Greenlock/CertificateOrderFailures";
 import CertificateReissueOrder from "../Utils/Greenlock/CertificateReissueOrder";
 import logger, { LogAttributes } from "../Utils/Logger";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DomainService from "./DomainService";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
@@ -36,7 +36,7 @@ import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCe
 
 const STATUS_PAGE_DOMAIN_EGRESS_LABEL: string = "Status page domain";
 
-export class Service extends DatabaseService<StatusPageDomain> {
+export class Service extends ProjectReferencesService<StatusPageDomain> {
   /*
    * How many status pages the provisioning sweep checks at once. Each check is
    * one bounded request out to a customer domain, so this is about not letting
@@ -115,6 +115,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<StatusPageDomain>,
   ): Promise<OnUpdate<StatusPageDomain>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Create-time validation alone leaves the value editable afterwards —
      * subdomain is ProjectMember-updatable.
@@ -132,6 +134,8 @@ export class Service extends DatabaseService<StatusPageDomain> {
   protected override async onBeforeCreate(
     createBy: CreateBy<StatusPageDomain>,
   ): Promise<OnCreate<StatusPageDomain>> {
+    await super.onBeforeCreate(createBy);
+
     const domain: DomainModel | null = await DomainService.findOneBy({
       query: {
         _id:

@@ -4,6 +4,7 @@
 # This test validates the oneuptime_file resource:
 # 1. File resources are created successfully
 # 2. The state is preserved correctly across plans
+# 3. The upload starts private (is_public is read-only, set by OneUptime)
 #
 # Historical regression context: a second plan used to fail with
 # "Error: Read Not Implemented - This resource does not support read
@@ -24,6 +25,7 @@ FAVICON_ID=$(get_output favicon_id)
 LOGO_NAME=$(get_output logo_name)
 FAVICON_NAME=$(get_output favicon_name)
 LOGO_FILE_TYPE=$(get_output logo_file_type)
+LOGO_IS_PUBLIC=$(get_output logo_is_public)
 
 echo "  Logo ID: $LOGO_ID"
 echo "  Favicon ID: $FAVICON_ID"
@@ -43,8 +45,10 @@ fi
 echo ""
 echo "  === Step 1: File resources created successfully ==="
 
-# Step 2: Verify file_type is preserved in state
+# Step 2: Verify file_type is preserved in state, and that the upload
+# started private: OneUptime decides a file's visibility, never the upload.
 assert_equals "image/png" "$LOGO_FILE_TYPE" "Logo file_type" || validation_failed=1
+assert_equals "false" "$LOGO_IS_PUBLIC" "Logo is_public" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then
     print_failed "File Resource Field Verification"

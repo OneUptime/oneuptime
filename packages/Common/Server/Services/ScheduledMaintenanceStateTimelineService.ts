@@ -3,7 +3,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
@@ -19,7 +19,7 @@ import ObjectID from "../../Types/ObjectID";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteService from "./NetworkSiteService";
 import PositiveNumber from "../../Types/PositiveNumber";
-import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StateChangeSubscriberNotification from "../../Types/StatusPage/StateChangeSubscriberNotification";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -58,7 +58,7 @@ const STATE_KIND_SELECT: Select<ScheduledMaintenanceState> = {
  */
 const TIMELINE_REPLAY_BATCH_SIZE: number = 100;
 
-export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> {
+export class Service extends ProjectReferencesService<ScheduledMaintenanceStateTimeline> {
   public constructor() {
     super(ScheduledMaintenanceStateTimeline);
     if (IsBillingEnabled) {
@@ -117,6 +117,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   protected override async onBeforeCreate(
     createBy: CreateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnCreate<ScheduledMaintenanceStateTimeline>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.scheduledMaintenanceId) {
       throw new BadDataException("scheduledMaintenanceId is null");
     }
@@ -285,9 +287,10 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         }
       }
 
-      const publicNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["publicNote"] as string | undefined;
+      const publicNote: string | undefined =
+        StateChangeSubscriberNotification.getPublicNote(
+          createBy.miscDataProps as JSONObject | undefined,
+        );
 
       if (publicNote) {
         const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
@@ -301,30 +304,23 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
           Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
 
-        // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-        if (
-          scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
-        ) {
-          createBy.data.subscriberNotificationStatus =
-            StatusPageSubscriberNotificationStatus.Success;
-        }
-
         await ScheduledMaintenancePublicNoteService.create({
           data: scheduledMaintenancePublicNote,
           props: createBy.props,
         });
       }
 
-      // Set notification status based on shouldStatusPageSubscribersBeNotified
-      if (createBy.data.shouldStatusPageSubscribersBeNotified === false) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Skipped;
-        createBy.data.subscriberNotificationStatusMessage =
-          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.";
-      } else if (createBy.data.shouldStatusPageSubscribersBeNotified === true) {
-        createBy.data.subscriberNotificationStatus =
-          StatusPageSubscriberNotificationStatus.Pending;
-      }
+      /*
+       * The change's own notification, decided once: when it notifies
+       * subscribers and a note came with it, the note is the one message
+       * they get (StateChangeSubscriberNotification).
+       */
+      StateChangeSubscriberNotification.applyToStateChange({
+        stateChange: createBy.data,
+        hasPublicNote: Boolean(publicNote),
+        skippedMessage:
+          "Notifications skipped as subscribers are not to be notified for this scheduled maintenance state change.",
+      });
 
       return {
         createBy,
@@ -732,6 +728,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<ScheduledMaintenanceStateTimeline>,
   ): Promise<OnUpdate<ScheduledMaintenanceStateTimeline>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Resolved before the update runs, because the update may narrow or move
      * the rows the query matches -- and because a row can be repointed at a

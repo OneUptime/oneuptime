@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -18,7 +18,7 @@ import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListen
 import logger from "../Utils/Logger";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -158,6 +158,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.onCallDutyPolicyScheduleId) {
       throw new BadDataException("onCallDutyPolicyScheduleId is required");
     }
@@ -239,6 +241,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     this.validateRotationInterval(updateBy.data.rotation);
     this.validateRestrictionTimes(updateBy.data.restrictionTimes);
 

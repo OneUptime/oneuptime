@@ -21,6 +21,19 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  stubGenericReferenceCheck,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubGenericReferenceCheck();
+});
 
 jest.mock("../../../Server/Utils/IncomingCallPhoneNumber", () => {
   return {
@@ -128,6 +141,8 @@ describe("IncomingCallPolicyPhoneNumberService primary compatibility mirror", ()
     jest.clearAllMocks();
     releasePhoneNumber.mockResolvedValue(undefined);
     silenceLogger();
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {
@@ -328,6 +343,8 @@ describe("IncomingCallPolicyService provider-config update invariant", () => {
           return query;
         },
       );
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {
@@ -678,6 +695,8 @@ describe("IncomingCallPolicyService multi-number cleanup", () => {
     jest.clearAllMocks();
     releasePhoneNumber.mockResolvedValue(undefined);
     silenceLogger();
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {
@@ -984,6 +1003,8 @@ describe("ProjectCallSMSConfigService multi-number cleanup", () => {
     jest.clearAllMocks();
     releasePhoneNumber.mockResolvedValue(undefined);
     silenceLogger();
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {

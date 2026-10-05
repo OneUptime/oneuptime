@@ -144,6 +144,11 @@ describe("the reported posture", () => {
       allowWrites: false,
       allowNodeOperations: false,
       writeNamespaces: [],
+      aiSettings: {
+        investigation: true,
+        fixes: "Disabled",
+        isConfigured: false,
+      },
       podNamespace: "oneuptime-agent",
       kubectlVersion: "v1.36.4",
       agentChartVersion: "14.0.8",

@@ -1,5 +1,15 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
-import { getResourceAiAgentServiceName } from "../../../FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import {
+  getResourceAiAgentServiceName,
+  getResourceAiAgentSettingsEnv,
+} from "../../../FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import {
+  AGENT_AI_FIXES_MODES,
+  AGENT_AI_FIXES_SETTING_VALUES,
+  AI_FIXES_ENV,
+  AI_INVESTIGATION_ENV,
+  AgentAiFixesMode,
+} from "Common/Types/AI/AgentAiSettings";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { TOOL_OUTPUT_PAGE_CHARS } from "Common/Types/AI/AIAgentRunLimits";
 import {
@@ -424,6 +434,42 @@ describe("Infrastructure AI Agents docs", (): void => {
       }).length;
 
       expect(fences % 2).toBe(0);
+    });
+
+    /*
+     * The resource's AI section, as the side menu has it: Insights (what AI
+     * learned, what deserves attention), Logs (everything AI did — the page
+     * that used to be called Insights) and AI agent.
+     */
+    it("names the AI section's three pages in the side menu's order", (): void => {
+      const pageBullet: RegExp = /^- \*\*(Insights|Logs|AI agent)\*\* — /;
+      const bullets: Array<string> = page
+        .split("\n")
+        .filter((line: string): boolean => {
+          return pageBullet.test(line);
+        });
+
+      expect(page).toContain(
+        "Each resource's dashboard page has an **AI** section with three pages:",
+      );
+      expect(
+        bullets.map((line: string): string => {
+          return line.split(" — ")[0]!;
+        }),
+      ).toEqual(["- **Insights**", "- **Logs**", "- **AI agent**"]);
+      expect(bullets[0]).toContain(
+        "what OneUptime AI has learned about the resource from its own work there in the last 30 days, and what deserves your attention",
+      );
+      expect(bullets[0]).toContain(
+        "[What AI learned on a cluster](/docs/ai/ai-sre#what-ai-learned-on-a-cluster)",
+      );
+      expect(bullets[1]).toContain(
+        "everything OneUptime AI did on the resource, newest first",
+      );
+      expect(bullets[1]).toContain("every command it sent through the agent");
+      expect(bullets[1]).toContain("(This page used to be called Insights.)");
+      // The chronological list is Logs', never Insights'.
+      expect(bullets[0]).not.toContain("every command it sent");
     });
 
     it("gives every heading a distinct anchor", (): void => {
@@ -898,7 +944,7 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
     });
 
-    it("says a resource starts with investigation and fixes off, as the models default them", (): void => {
+    it("says AI investigations are on by default and fixes off, as the models default them", (): void => {
       for (const model of [
         "DockerHost",
         "PodmanHost",
@@ -921,8 +967,8 @@ describe("Infrastructure AI Agents docs", (): void => {
 
         expect({
           model,
-          off: investigation.includes("default: false"),
-        }).toEqual({ model, off: true });
+          on: investigation.includes("default: true"),
+        }).toEqual({ model, on: true });
         expect({
           model,
           disabled: source.includes(
@@ -931,9 +977,20 @@ describe("Infrastructure AI Agents docs", (): void => {
         }).toEqual({ model, disabled: true });
       }
 
-      expect(page).toContain(
-        "A resource starts with investigation and fixes off.",
+      // The same defaults as a cluster, said among what is the same.
+      const same: string = page.slice(
+        page.indexOf("The resource AI agents follow the same design:"),
+        page.indexOf("What differs:"),
       );
+
+      expect(same).toContain(
+        "**The same defaults.** AI investigations are on by default",
+      );
+      expect(same).toContain(
+        "a resource starts with investigation on and fixes off, like a cluster",
+      );
+      expect(page).not.toContain("It starts switched off.");
+      expect(page).not.toContain("investigation and fixes off.");
 
       // The first connection's defaults, as the registration service applies them.
       const service: string = fs.readFileSync(
@@ -1468,6 +1525,68 @@ describe("Infrastructure AI Agents docs", (): void => {
           bypassApproval: false,
         }).verdict,
       ).toBe("RequiresApproval");
+    });
+  });
+
+  /*
+   * "These options should depend on the agent itself": the page documents
+   * the two variables the agents read (the shared contract's names and
+   * spellings), the example is the AI agent page's own .env lines, and it
+   * says the page follows them read-only.
+   */
+  describe("what AI may do, set by the agent", (): void => {
+    const setByAgent: string = section(
+      page,
+      "### What AI may do, set by the agent",
+    );
+
+    it("names both variables and every fixes value, as the agents read them", (): void => {
+      expect(tableRow(setByAgent, `\`${AI_INVESTIGATION_ENV}\``)).toContain(
+        "`true`",
+      );
+      const fixes: string = tableRow(setByAgent, `\`${AI_FIXES_ENV}\``);
+
+      for (const mode of AGENT_AI_FIXES_MODES) {
+        expect({
+          mode,
+          named: fixes.includes(
+            `\`${AGENT_AI_FIXES_SETTING_VALUES[mode as AgentAiFixesMode]}\``,
+          ),
+        }).toEqual({ mode, named: true });
+      }
+      // Fixes also need the write switch.
+      expect(fixes).toContain("`ONEUPTIME_AI_ALLOW_WRITES=true`");
+    });
+
+    it("the example is the AI agent page's own .env lines for Ask for approval", (): void => {
+      expect(setByAgent).toContain(
+        `\`\`\`bash\n${getResourceAiAgentSettingsEnv({
+          investigation: true,
+          fixes: "RequireApproval",
+        })}\n\`\`\``,
+      );
+    });
+
+    it("says the page follows them read-only, and that the allowlist stays on the page", (): void => {
+      const flat: string = setByAgent.replace(/\s+/g, " ");
+
+      expect(flat).toContain("shows them read-only");
+      expect(flat).toContain("refuses a change made anywhere else");
+      expect(flat).toContain("The command allowlist stays on the page.");
+    });
+
+    it("every collector passes both to its AI agent, so a .env line reaches it", (): void => {
+      for (const [type, relative] of Object.entries(COMPOSE_FILES)) {
+        const compose: string = readRepoFile(relative as string);
+
+        for (const variable of [AI_INVESTIGATION_ENV, AI_FIXES_ENV]) {
+          expect({
+            type,
+            variable,
+            passed: compose.includes(`- ${variable}=\${${variable}:-}`),
+          }).toEqual({ type, variable, passed: true });
+        }
+      }
     });
   });
 

@@ -29,6 +29,7 @@ Select rules in the table, open the bulk actions menu and choose **Run Now**. Th
 - **It only adds.** Labels are attached, owners are added, resources are made private. Nothing is removed and nothing is made public, so running a rule again is safe: the second run reports that everything was already applied.
 - **Every resource in the project is evaluated**, including resolved incidents and alerts.
 - **Existing owners are skipped**, never added twice.
+- **Only your project's own labels are added.** A label the rule names that is no longer one of your project's labels is skipped, and the rule's other labels are still added. The same holds when a rule runs on a new resource.
 - **The rule is applied the same way as on creation**, including labels and owners inherited from an incident's monitors, hosts and services. Where the resource has an activity feed, the feed records which rule changed it.
 - **Disabled rules do not run.** Enable the rule first.
 - **Status page monitor rules** add the monitors they match and remove the monitors they added earlier that no longer match. Monitors added to the page by hand are never touched.

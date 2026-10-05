@@ -1,7 +1,7 @@
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -21,7 +21,7 @@ import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -89,6 +89,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -194,6 +196,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     await SubscriberNotificationResendAccess.assertPublicNoteResendAllowed({
       modelType: Model,
       service: this,
@@ -244,6 +248,7 @@ export class Service extends DatabaseService<Model> {
       createdItem.note,
       true,
       `incident episode public note ${createdItem.id?.toString()}`,
+      createdItem.projectId,
     );
 
     const incidentEpisodeId: ObjectID = createdItem.incidentEpisodeId!;
@@ -319,6 +324,7 @@ ${(createdItem.note || "") + attachmentsMarkdown}
           updatedItem.note,
           true,
           `incident episode public note ${updatedItem.id?.toString()}`,
+          updatedItem.projectId,
         );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(

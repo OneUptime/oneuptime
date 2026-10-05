@@ -862,6 +862,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (IsBillingEnabled && createBy.props.currentPlan === PlanType.Free) {
       // then check no of policies and if it is more than one, return error
       const count: PositiveNumber = await this.countBy({
@@ -1078,6 +1080,8 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     let move: RuleMove | null = null;
 
     if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {

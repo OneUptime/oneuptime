@@ -120,6 +120,20 @@ export interface KubernetesSetupGuideOptions {
   clusterName?: string | undefined;
 }
 
+/*
+ * AI investigations, as the install command spells them out: the chart runs
+ * the Kubernetes AI agent by default (aiAgent.enabled), and a cluster's
+ * "Investigate with kubectl" starts on, so with the agent connected OneUptime
+ * AI investigates with read-only kubectl from the first incident. The flag
+ * only restates the default, so the reader sees that AI investigations are on
+ * and which value turns them off.
+ */
+export const KUBERNETES_AI_INVESTIGATION_INSTALL_FLAG: string =
+  "--set aiAgent.enabled=true";
+
+export const KUBERNETES_AI_INVESTIGATION_OPT_OUT_FLAG: string =
+  "--set aiAgent.enabled=false";
+
 /**
  * The `--set` flags the install command adds for a platform, after the
  * connection values every install needs.
@@ -149,6 +163,7 @@ function helmInstallCommand(data: {
     `  --set oneuptime.url="${data.oneuptimeUrl}"`,
     `  --set oneuptime.apiKey="${data.apiKey}"`,
     `  --set clusterName="${data.clusterName}"`,
+    `  ${KUBERNETES_AI_INVESTIGATION_INSTALL_FLAG}`,
     ...data.flags.map((flag: string): string => {
       return `  ${flag}`;
     }),
@@ -169,6 +184,17 @@ export function getKubernetesAgentUpgradeCommand(flags: Array<string>): string {
       return `  ${flag}`;
     }),
   ].join(" \\\n");
+}
+
+/*
+ * Moving an installed agent to the newest chart while keeping its settings.
+ * The guide's "Upgrade or uninstall the agent" topic and the upgrade dialog
+ * beside an outdated agent version (Components/AgentVersion) both show this
+ * command, so the two never drift. `helm repo update` comes first: a cached
+ * chart index would resolve the chart the agent already runs.
+ */
+export function getKubernetesAgentChartUpgradeCommand(): string {
+  return `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`;
 }
 
 function getPrerequisites(platform: KubernetesPlatform): Array<string> {
@@ -294,6 +320,10 @@ ${helmInstallCommand({
     );
   }
 
+  notes.push(
+    `\`${KUBERNETES_AI_INVESTIGATION_INSTALL_FLAG}\` turns **AI investigations** on, as the chart does by default: OneUptime AI investigates incidents and alerts on this cluster with read-only kubectl, through the Kubernetes AI agent.`,
+  );
+
   if (isRestrictedPlatform(data.platform)) {
     const platformName: string =
       data.platform === "gke-autopilot" ? "GKE Autopilot" : "EKS Fargate";
@@ -386,7 +416,7 @@ ${codeBlock("output", expected.listing)}
 
 ${expected.explanation} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
 
-**Kubernetes AI agent (on by default, read-only).** The \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Add \`--set aiAgent.enabled=false\` to the install command.`,
+**Kubernetes AI agent (on by default, read-only).** The \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Install with \`${KUBERNETES_AI_INVESTIGATION_OPT_OUT_FLAG}\` instead of \`${KUBERNETES_AI_INVESTIGATION_INSTALL_FLAG}\`.`,
   };
 }
 
@@ -528,7 +558,7 @@ Each \`oneuptime.labels.<key>=<value>\` becomes the label \`<key>:<value>\` on t
         "Move to the latest chart and keep your settings, or remove the agent.",
       markdown: `**Upgrade** to the latest chart. \`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); add any new \`--set\` flags on top of it:
 
-${codeBlock("bash", `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`)}
+${codeBlock("bash", getKubernetesAgentChartUpgradeCommand())}
 
 **Uninstall** the agent and its namespace:
 

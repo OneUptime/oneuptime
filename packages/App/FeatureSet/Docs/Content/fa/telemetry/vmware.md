@@ -215,13 +215,23 @@ sudo systemctl enable --now oneuptime-vmware-agent
 
 ## ارتقای عامل
 
+عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** این vCenter و در فهرست **vCenters** پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
+
+ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند و عامل را دوباره می‌سازد تا جمع‌کننده پیکربندی تازه‌اش را بخواند.
+
 ```bash
-cd /opt/oneuptime-vmware-agent
-docker compose pull
-docker compose up -d
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+bash install.sh
 ```
 
-ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده است؛ وقتی انتشار تازه‌تری از OneUptime سنجاق را بالا می‌برد، پیش از pull فایل‌های `docker-compose.yml` و `otel-collector-config.yaml` را دوباره از پوشه VMwareAgent دانلود کنید — یا `install.sh` را دوباره اجرا کنید، که هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود) و فقط همان دو فایل را تازه می‌کند.
+آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل هر دو فایل را دوباره دانلود کنید (هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/docker-compose.yml
+curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+docker compose pull
+docker compose up -d --force-recreate
+```
 
 ## حذف نصب عامل
 
@@ -302,8 +312,9 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-v
 
 فایل `docker-compose.yml` عامل، **عامل هوش مصنوعی VMware** را هم اجرا می‌کند: `oneuptime-vmware-ai-agent` (ایمیج `oneuptime/resource-ai-agent:release`). وقتی هوش مصنوعی OneUptime حادثه یا هشداری را روی این vCenter بررسی می‌کند، فرمان‌های فقط‌خواندنی `govc` را از راه آن اجرا می‌کند — `govc vm.info web-01`، `govc events -n 50 /DC/vm/web-01`، `govc metric.sample -n 12 /DC/vm/web-01 cpu.usage.average` — و فقط اگر اجازه دهید، اصلاح‌هایی مانند روشن کردن دوباره یک ماشین مجازی را اعمال می‌کند. مانند جمع‌کننده، با vCenter نام‌گذاری‌شده در `VMWARE_VCENTER_NAME` ثبت می‌شود و در صفحه **AI → AI agent** همان vCenter در OneUptime دیده می‌شود.
 
+- **بررسی‌های هوش مصنوعی به‌طور پیش‌فرض روشن هستند.** همین که عامل وصل شود، هوش مصنوعی OneUptime حادثه‌ها و هشدارهای این vCenter را با آن بررسی می‌کند و **Overview** همان vCenter وضعیت عامل را نشان می‌دهد. برای توقف، جایی که عامل اجرا می‌شود `ONEUPTIME_AI_INVESTIGATION=false` را تنظیم کنید (**Change** زیر **What AI may do** در صفحه عامل هوش مصنوعی روش آن را نشان می‌دهد)، یا عامل را کنار بگذارید.
 - **نقش vSphere مرز سخت است.** بررسی‌ها با کاربر **Read-Only** جمع‌کننده (`VCENTER_USERNAME` / `VCENTER_PASSWORD`) وارد می‌شوند که فقط می‌تواند بخواند و هیچ چیز دیگر. اصلاح‌ها به کاربری از آنِ خود عامل هوش مصنوعی نیاز دارند که نقشش اجازه روشن و خاموش کردن و بازنشانی ماشین‌های مجازی را بدهد (`VirtualMachine.Interact.PowerOn`، `PowerOff` و `Reset`)، فقط روی پوشه‌هایی اعطا شود که هوش مصنوعی مجاز به اصلاحشان است، و به‌صورت `ONEUPTIME_AI_VCENTER_USERNAME` / `ONEUPTIME_AI_VCENTER_PASSWORD` تنظیم شود.
-- **فقط‌خواندنی** است مگر آنکه `ONEUPTIME_AI_ALLOW_WRITES=true` را تنظیم کنید؛ `ONEUPTIME_AI_WRITE_TARGETS` (نام‌ها یا مسیرهای موجودی ماشین‌های مجازی و میزبان‌ها) محدود می‌کند که یک اصلاح به چه چیزی دست بزند. هرگز ماشین مجازی‌ای را که هم‌نام میزبانِ `VCENTER_ENDPOINT` است — که معمولاً خودِ دستگاه vCenter است — تغییر نمی‌دهد و دستگاه را فقط با همین نام می‌شناسد: وقتی `VCENTER_ENDPOINT` یک نشانی IP است، یا ماشین مجازی دستگاه نام دیگری دارد، آن ماشین مجازی را همراه با ماشین مجازی‌ای که عامل روی آن اجرا می‌شود در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. سپس در صفحه عامل هوش مصنوعی انتخاب کنید که آیا هر اصلاح به تأیید یک نفر نیاز دارد.
+- **فقط‌خواندنی** است مگر آنکه `ONEUPTIME_AI_ALLOW_WRITES=true` را تنظیم کنید؛ `ONEUPTIME_AI_WRITE_TARGETS` (نام‌ها یا مسیرهای موجودی ماشین‌های مجازی و میزبان‌ها) محدود می‌کند که یک اصلاح به چه چیزی دست بزند. هرگز ماشین مجازی‌ای را که هم‌نام میزبانِ `VCENTER_ENDPOINT` است — که معمولاً خودِ دستگاه vCenter است — تغییر نمی‌دهد و دستگاه را فقط با همین نام می‌شناسد: وقتی `VCENTER_ENDPOINT` یک نشانی IP است، یا ماشین مجازی دستگاه نام دیگری دارد، آن ماشین مجازی را همراه با ماشین مجازی‌ای که عامل روی آن اجرا می‌شود در `ONEUPTIME_AI_PROTECTED_TARGETS` بگذارید. `ONEUPTIME_AI_FIXES` در همان `.env` تعیین می‌کند اصلاح‌ها چگونه اجرا شوند — `ask-for-approval` (هر اصلاح را یک نفر تأیید می‌کند)، `automatic` یا `bypass-approval` — و صفحه عامل هوش مصنوعی آن را فقط‌خواندنی نشان می‌دهد ([آنچه هوش مصنوعی مجاز است انجام دهد، به تنظیم عامل](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - برای تأیید گواهی vCenter به‌جای نادیده گرفتن آن، CA آن را در کانتینر سوار کنید و `VCENTER_CA_FILE` را تنظیم کنید؛ روی vCenter با چند دیتاسنتر، `GOVC_DATACENTER` را تنظیم کنید.
 - با UID 1000 و بدون هیچ قابلیتی اجرا می‌شود، و هرگز عملیات مهمان، اسنپ‌شات، `esxcli` یا هر چیزی که ماشین مجازی بسازد یا نابود کند اجرا نمی‌کند. اگر از هوش مصنوعی OneUptime استفاده نمی‌کنید، سرویس `oneuptime-vmware-ai-agent` را از `docker-compose.yml` حذف کنید.
 

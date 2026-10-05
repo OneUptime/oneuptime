@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model, {
   DiscoveredNetworkDevice,
 } from "../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
@@ -173,7 +173,7 @@ interface ScanUpdatePlan {
   isScheduleWritten: boolean;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -279,6 +279,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     this.validateScanTarget(createBy.data.cidr);
 
     /*
@@ -416,6 +418,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: Record<string, unknown> = (updateBy.data ||
       {}) as unknown as Record<string, unknown>;
     const dataKeys: Array<string> = Object.keys(data);

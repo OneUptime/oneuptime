@@ -44,7 +44,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --create-namespace \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
-  --set clusterName="my-cluster"
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true
 ```
 
 ### GKE Autopilot
@@ -56,6 +57,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -68,8 +70,11 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.url="YOUR_ONEUPTIME_URL" \
   --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
   --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
+
+**AI जांच डिफ़ॉल्ट रूप से चालू है।** `aiAgent.enabled=true` collector के साथ Kubernetes AI एजेंट चलाता है: जब इस क्लस्टर पर कोई घटना या अलर्ट आता है, तो OneUptime AI केवल-पढ़ने वाले `kubectl` (`get`, `describe`, `logs`, `events`, `top`) से उसकी जांच करता है और कुछ भी नहीं बदलता। सुधार तब तक बंद रहते हैं जब तक आप उन्हें अनुमति नहीं देते। इसके बिना इंस्टॉल करने के लिए, इसकी जगह `--set aiAgent.enabled=false` का उपयोग करें।
 
 ## Step 4 — इंस्टॉलेशन सत्यापित करें
 
@@ -348,6 +353,8 @@ clusterName: prod
 लेबल केस-असंवेदनशील रूप से मिलान किए जाते हैं, इसलिए एक मौजूदा मैन्युअल रूप से बनाया गया `Production` लेबल डुप्लिकेट किए जाने के बजाय पुनः उपयोग किया जाता है। OneUptime UI में मैन्युअल रूप से जोड़े गए लेबल एजेंट द्वारा कभी नहीं हटाए जाते।
 
 ## एजेंट को अपग्रेड करना
+
+जब एजेंट आपके OneUptime से पुराना होता है, तो क्लस्टर के **क्लस्टर विवरण** में **एजेंट संस्करण** के पास एक चेतावनी चिह्न दिखता है। यह कमांड देखने के लिए उसे चुनें।
 
 ```bash
 helm repo update

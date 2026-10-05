@@ -31,6 +31,7 @@ import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
@@ -78,6 +79,12 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
+import ProjectAiDailyLimits, {
+  PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+  PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+  ProjectAiDailyLimitColumn,
+} from "../../Types/AI/ProjectAiDailyLimits";
+import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -275,7 +282,7 @@ export const widensAuditLogging: (
   return !Number.isFinite(requestedDays) || requestedDays > currentDays;
 };
 
-export class ProjectService extends DatabaseService<Model> {
+export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
    * staleness on "last seen" is acceptable; an UPDATE per request is not.
@@ -372,16 +379,73 @@ export class ProjectService extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Runs on every create and update, before the write, for each of the
+   * project's own daily AI limits the data carries (Types/AI/
+   * ProjectAiDailyLimits). A blank one is stored as null - no limit, which
+   * is what clearing the field in the dashboard means - a typed "200000"
+   * as the number it is, and a limit must otherwise be a whole number within
+   * its bounds, at least 1: AI is turned off with Enable AI, not with a
+   * limit of 0. The spend limit counts only what is billed to AI credits,
+   * so on a server without billing it cannot be set (it would limit
+   * nothing); clearing it is always allowed.
+   */
+  public applyAiDailyLimitRules(
+    data: Partial<Record<ProjectAiDailyLimitColumn, unknown>>,
+  ): void {
+    const values: Record<string, unknown> = data as Record<string, unknown>;
+
+    for (const column of [
+      PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+      PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+    ]) {
+      if (values[column] === undefined) {
+        continue;
+      }
+
+      if (
+        typeof values[column] === "string" &&
+        (values[column] as string).trim().length === 0
+      ) {
+        values[column] = null;
+      }
+
+      values[column] = coerceNumericColumnValue(values[column]);
+
+      const error: string | null = ProjectAiDailyLimits.getWriteError(
+        column,
+        values[column],
+      );
+
+      if (error) {
+        throw new BadDataException(error);
+      }
+
+      if (
+        column === PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN &&
+        values[column] !== null &&
+        !IsBillingEnabled
+      ) {
+        throw new BadDataException(
+          "The daily AI spend limit counts AI credits, which this server does not bill, so it can only be set where billing is enabled. Use the daily AI token limit instead.",
+        );
+      }
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(data);
+
     if (!data.data.name) {
       throw new BadDataException("Project name is required");
     }
 
     this.applyDataResidencyRules(data.data);
     this.applyNumberPrefixRules(data.data);
+    this.applyAiDailyLimitRules(data.data);
 
     if (data.props.userId) {
       data.data.createdByUserId = data.props.userId;
@@ -736,6 +800,8 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Any project field could have changed; invalidate the in-process cache
      * of the SSO flag. Cheap to refetch on the next request.
@@ -750,6 +816,7 @@ export class ProjectService extends DatabaseService<Model> {
 
     this.applyDataResidencyRules(updateBy.data);
     this.applyNumberPrefixRules(updateBy.data);
+    this.applyAiDailyLimitRules(updateBy.data);
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,

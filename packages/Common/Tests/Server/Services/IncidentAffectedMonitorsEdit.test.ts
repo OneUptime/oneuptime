@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Editing an incident's Affected Resources sends its monitor list, and the
@@ -501,6 +510,7 @@ beforeEach(() => {
   jest
     .spyOn(CustomFieldMappingService, "restampAfterMultiRowUpdate")
     .mockReturnValue(undefined as never);
+  stubProjectDirectory({});
 });
 
 afterEach(() => {
@@ -510,6 +520,7 @@ afterEach(() => {
 describe("IncidentService: editing the monitors of a resolved incident", () => {
   beforeEach(() => {
     storedIncidents = [storedIncident({ isResolved: true })];
+    stubProjectDirectory({});
   });
 
   test("adding a monitor puts no monitor back in the incident's status, and the feed still lists it", async () => {
@@ -1044,6 +1055,7 @@ describe("IncidentService: an update that changes the incident's state and its m
 describe("IncidentService: an update that sends the monitor status without the monitor list", () => {
   beforeEach(() => {
     storedIncidents = [storedIncident({ monitorIds: [MONITOR_A, MONITOR_B] })];
+    stubProjectDirectory({});
   });
 
   test("does not throw, and takes no monitor off the incident", async () => {
@@ -1146,6 +1158,7 @@ describe("IncidentService: the feed's monitor status line", () => {
 describe("IncidentService.onBeforeUpdate: which monitors an update adds and removes", () => {
   beforeEach(() => {
     storedIncidents = [storedIncident({ monitorIds: [MONITOR_A, MONITOR_B] })];
+    stubProjectDirectory({});
   });
 
   function addedIds(carryForward: MonitorCarryForward): Array<string> {

@@ -23,6 +23,7 @@ import {
 import { AgentIdentity, AgentSession } from "./Registration";
 import { SleepFunction } from "./Sleep";
 import { KUBERNETES_AI_AGENT_DISPLAY_NAME } from "./Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { AGENT_AI_FIXES_SETTING_VALUES } from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * The Kubernetes AI agent, start to finish.
@@ -116,6 +117,7 @@ export default class KubernetesAiAgent {
       clusterName: this.config.clusterName,
       allowWrites: this.config.allowWrites,
       allowWritesSetting: this.config.allowWritesSetting,
+      writesOffByFixes: this.config.writesOffByFixes,
       allowNodeOperations: this.config.allowNodeOperations,
       allowNodeOperationsSetting: this.config.allowNodeOperationsSetting,
       writeNamespaces: this.config.writeNamespaces,
@@ -378,6 +380,14 @@ export default class KubernetesAiAgent {
       nodeOperations: posture.allowNodeOperations,
       podNamespace: posture.podNamespace || null,
       kubectl: posture.kubectlVersion || null,
+    });
+
+    Logger.info("What OneUptime AI may do on this cluster", {
+      investigation: posture.aiSettings.investigation ? "on" : "off",
+      fixes: AGENT_AI_FIXES_SETTING_VALUES[posture.aiSettings.fixes],
+      setBy: posture.aiSettings.isConfigured
+        ? "the chart (aiAgent.investigation, aiAgent.fixes)"
+        : "the agent's defaults: this release sets neither aiAgent.investigation nor aiAgent.fixes, so a cluster whose settings were chosen on its AI agent page keeps them",
     });
 
     if (!posture.inCluster) {

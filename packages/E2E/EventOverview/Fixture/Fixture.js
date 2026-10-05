@@ -124,6 +124,7 @@ import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
@@ -795,9 +796,14 @@ const roles = {
 
 /*
  * Tables the pages read that are intentionally empty in this workspace (no
- * custom fields, note templates, runbook runs or remediation suggestions).
- * Registering them marks them as modelled, so they never show up in
- * `unhandled`.
+ * custom fields, note templates, runbook runs, remediation suggestions or
+ * remediation decisions). Registering them marks them as modelled, so they
+ * never show up in `unhandled`.
+ *
+ * The incident and alert Remediation card reads the rule engine's decisions
+ * (what auto-remediation did, or why it did nothing) beside the suggestions.
+ * With neither, the API answers two empty lists and the card stays hidden,
+ * as for an incident or alert from before the rule engine recorded them.
  */
 for (const modelType of [
   IncidentCustomField,
@@ -808,6 +814,7 @@ for (const modelType of [
   ScheduledMaintenanceNoteTemplate,
   RunbookExecution,
   AutoRemediationSuggestion,
+  AutoRemediationDecision,
 ]) {
   table(modelType);
 }

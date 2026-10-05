@@ -154,6 +154,18 @@ export default class InvestigationGrader {
         return;
       }
 
+      /*
+       * The project's own daily AI limits, the same way: a limit someone
+       * set is a setting too, and every grading call would be refused
+       * until midnight UTC.
+       */
+      if (await AIService.getReachedProjectDailyLimit({ projectId })) {
+        logger.debug(
+          `AI grading: project ${projectId.toString()} has reached its own daily AI limit — skipping.`,
+        );
+        return;
+      }
+
       // The latest completed investigation for this incident (if any).
       const run: AIRun | null = await AIRunService.findOneBy({
         query: {

@@ -17,6 +17,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import RuleRecordScope from "../Utils/Rules/RuleRecordScope";
+import Label from "../../Models/DatabaseModels/Label";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -1937,6 +1939,24 @@ class NetworkAlertPolicyEngineServiceClass {
           isRoot: true,
         },
       });
+
+    if (template) {
+      /*
+       * The monitors this creates carry the template's labels, and
+       * MonitorService takes only the project's own. A template saved before
+       * its labels were checked can still name another project's label: leave
+       * that one out rather than fail every monitor.
+       */
+      template.labels = await RuleRecordScope.keepRecordsInProject({
+        projectId: data.context.projectId,
+        records: template.labels,
+        modelType: Label,
+        description: `labels of monitor template ${key}`,
+        logAttributes: {
+          projectId: data.context.projectId.toString(),
+        } as LogAttributes,
+      });
+    }
 
     data.context.templatesById.set(key, template);
 

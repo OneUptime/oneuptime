@@ -245,20 +245,27 @@ describe("IoT fleet overview", () => {
   test("the devices-online chip beside the fleet name carries the page's only other (i)", () => {
     const chips: string = segment(
       code,
-      "{specChips.length > 0 && (",
+      "{(specChips.length > 0 || Boolean(fleet.agentVersion)) && (",
       "</div> )}",
     );
 
     expect(chips).toContain(
       '{hasCountChips && ( <InfoTooltip label="Devices online" text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline} /> )}',
     );
+    // The agent version chip sits in the row, after the count chip, before the (i).
+    const agentChip: number = chips.indexOf(
+      '<AgentVersion kind={AgentKind.IoTExporter} version={fleet.agentVersion} variant="chip" />',
+    );
+    expect(agentChip).toBeGreaterThan(chips.indexOf("{specChips.map("));
+    expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && ("));
     // The attention card title and this chip row are the only (i)s here.
     expect(count(code, INFO_TOOLTIP)).toBe(2);
   });
 
   /*
-   * The (i) belongs to the count chip, so it is decided before the agent
-   * version chip (metadata) joins the row.
+   * The (i) belongs to the count chip. The agent version chip is metadata,
+   * drawn by AgentVersion after the count chips rather than pushed among
+   * them, so it can never earn the row an (i).
    */
   test("the chip row gets its (i) only when the devices count chip is in it", () => {
     const hero: string = segment(code, "const specChips: Array<{", "return (");
@@ -269,9 +276,9 @@ describe("IoT fleet overview", () => {
     expect(
       hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
     ).toBeGreaterThan(hero.indexOf("if (totalDevices > 0) {"));
-    expect(
-      hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
-    ).toBeLessThan(hero.indexOf("if (fleet.agentVersion) {"));
+    // No agent version chip is pushed among the count chips.
+    expect(hero).not.toContain("agentVersion");
+    expect(hero).not.toContain("Agent {{version}}");
   });
 
   test("the chip reads the same counts as the Online Devices tile, with the fleet's counts as the fallback its text names", () => {
