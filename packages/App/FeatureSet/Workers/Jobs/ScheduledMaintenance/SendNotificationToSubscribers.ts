@@ -8,6 +8,7 @@ import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import logger from "Common/Server/Utils/Logger";
+
 /*
  * Why a 'scheduled' message that is queued while notifying subscribers is off
  * is not sent - the same words the event's create writes when it is off.
