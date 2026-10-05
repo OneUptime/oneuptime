@@ -179,7 +179,7 @@ const AgentVersion: FunctionComponent<ComponentProps> = (
        * versions in monospace - where every element would otherwise take the
        * page's `* { font-family }` rule.
        */
-      className="group inline-flex max-w-full items-center gap-1.5 rounded-md text-left [font-family:inherit] hover:text-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+      className="inline-flex max-w-full items-center gap-1.5 rounded-md text-left [font-family:inherit] hover:text-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
     >
       <span className="break-all underline decoration-amber-500 decoration-dotted underline-offset-4 [font-family:inherit]">
         {version}

@@ -123,7 +123,9 @@ interface ContainerAgentWording {
  * Compose. With the CLI the container is removed and started again from the
  * guide's run command; Compose recreates it in place.
  */
-function getContainerAgentGuide(wording: ContainerAgentWording): AgentUpgradeGuide {
+function getContainerAgentGuide(
+  wording: ContainerAgentWording,
+): AgentUpgradeGuide {
   return {
     methods: [
       {

@@ -214,8 +214,8 @@ test.describe("versions that are not outdated look as they always did", () => {
       timeout: 30000,
     });
     await expect(page.getByTestId("agent-version-outdated")).toHaveCount(0);
-    await expect(
-      page.getByRole("button", { name: /is outdated/ }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /is outdated/ })).toHaveCount(
+      0,
+    );
   });
 });

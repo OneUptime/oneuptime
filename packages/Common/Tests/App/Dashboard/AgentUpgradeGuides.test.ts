@@ -155,8 +155,7 @@ describe("which kinds have an upgrade guide", () => {
   test("every kind OneUptime releases has one; no other kind does", () => {
     for (const kind of Object.values(AgentKind)) {
       const hasNewest: boolean =
-        AGENT_KINDS[kind].latestVersionSource !==
-        AgentLatestVersionSource.None;
+        AGENT_KINDS[kind].latestVersionSource !== AgentLatestVersionSource.None;
       expect({ kind, hasGuide: getAgentUpgradeGuide(kind) !== null }).toEqual({
         kind,
         hasGuide: hasNewest,
@@ -201,9 +200,11 @@ describe("which kinds have an upgrade guide", () => {
             }
           }
           for (const text of texts) {
-            expect({ kind, text, inLocale: EN_LOCALE[text] === text }).toEqual(
-              { kind, text, inLocale: true },
-            );
+            expect({ kind, text, inLocale: EN_LOCALE[text] === text }).toEqual({
+              kind,
+              text,
+              inLocale: true,
+            });
           }
         }
       }
@@ -433,9 +434,11 @@ describe("Database agent", () => {
     });
   });
 
-  test.each(DATABASE_AGENT_ENGINES.map((engine: string) => {
-    return [engine];
-  }))(
+  test.each(
+    DATABASE_AGENT_ENGINES.map((engine: string) => {
+      return [engine];
+    }),
+  )(
     "%s: the script and the engine's Compose files are the setup guide's",
     (engine: string) => {
       const guide: AgentUpgradeGuide = guideFor(AgentKind.DatabaseAgent, {
@@ -453,17 +456,27 @@ describe("Database agent", () => {
         }),
       ).toEqual(["Install script", "Docker Compose"]);
 
-      expectCommandsFromGuide(methodLabelled(guide, "Install script"), setupGuide);
+      expectCommandsFromGuide(
+        methodLabelled(guide, "Install script"),
+        setupGuide,
+      );
 
-      const compose: AgentUpgradeMethod = methodLabelled(guide, "Docker Compose");
+      const compose: AgentUpgradeMethod = methodLabelled(
+        guide,
+        "Docker Compose",
+      );
       expect(codesOf(compose)).toEqual([
         getDatabaseAgentDownloadCommand(engine as DatabaseAgentEngine),
         DATABASE_AGENT_RECREATE_COMMAND,
       ]);
       // The download is the guide's own Compose step; the recreate is what its upgrade topic says.
-      expect(getSetupGuideCodeBlocks(setupGuide).map((block: string) => {
-        return block.trim();
-      })).toContain(getDatabaseAgentDownloadCommand(engine as DatabaseAgentEngine));
+      expect(
+        getSetupGuideCodeBlocks(setupGuide).map((block: string) => {
+          return block.trim();
+        }),
+      ).toContain(
+        getDatabaseAgentDownloadCommand(engine as DatabaseAgentEngine),
+      );
       expect(getSetupGuideMarkdown(setupGuide)).toContain(
         `\`${DATABASE_AGENT_RECREATE_COMMAND}\``,
       );

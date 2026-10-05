@@ -141,12 +141,8 @@ describe("agents released with OneUptime compare with the server's version", () 
     "%s: older is outdated, level or newer is not",
     (kind: AgentKind) => {
       expect(stateOf(kind, "14.0.9").status).toBe(AgentVersionStatus.Outdated);
-      expect(stateOf(kind, "14.0.14").status).toBe(
-        AgentVersionStatus.UpToDate,
-      );
-      expect(stateOf(kind, "14.0.15").status).toBe(
-        AgentVersionStatus.UpToDate,
-      );
+      expect(stateOf(kind, "14.0.14").status).toBe(AgentVersionStatus.UpToDate);
+      expect(stateOf(kind, "14.0.15").status).toBe(AgentVersionStatus.UpToDate);
     },
   );
 
@@ -232,7 +228,13 @@ describe("a placeholder version means 'not reported'", () => {
       `export const RUNNER_VERSION: string = process.env["APP_VERSION"] || "${ONEUPTIME_AGENT_PLACEHOLDER_VERSION}";`,
     );
     expect(
-      readRepoFile("packages", "Common", "Server", "Services", "RunnerService.ts"),
+      readRepoFile(
+        "packages",
+        "Common",
+        "Server",
+        "Services",
+        "RunnerService.ts",
+      ),
     ).toContain(
       `createBy.data.agentVersion = new Version("${ONEUPTIME_AGENT_PLACEHOLDER_VERSION}");`,
     );
@@ -246,17 +248,17 @@ describe("a placeholder version means 'not reported'", () => {
 });
 
 describe("the Docker and Podman agents report the OneUptime version their image was built from", () => {
-  test.each([
-    ["DockerAgent"],
-    ["PodmanAgent"],
-  ])("agents/%s stamps APP_VERSION, which the image build sets", (dir: string) => {
-    expect(readRepoFile("agents", dir, "otel-collector-config.yaml")).toMatch(
-      /- key: oneuptime\.agent\.version\s+value: "\$\{env:APP_VERSION\}"/,
-    );
-    const dockerfile: string = readRepoFile("agents", dir, "Dockerfile.tpl");
-    expect(dockerfile).toContain("ARG APP_VERSION");
-    expect(dockerfile).toContain("ENV APP_VERSION=${APP_VERSION}");
-  });
+  test.each([["DockerAgent"], ["PodmanAgent"]])(
+    "agents/%s stamps APP_VERSION, which the image build sets",
+    (dir: string) => {
+      expect(readRepoFile("agents", dir, "otel-collector-config.yaml")).toMatch(
+        /- key: oneuptime\.agent\.version\s+value: "\$\{env:APP_VERSION\}"/,
+      );
+      const dockerfile: string = readRepoFile("agents", dir, "Dockerfile.tpl");
+      expect(dockerfile).toContain("ARG APP_VERSION");
+      expect(dockerfile).toContain("ENV APP_VERSION=${APP_VERSION}");
+    },
+  );
 });
 
 describe("pinned-collector agents report exactly the pin this release ships", () => {
@@ -283,7 +285,9 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
   });
 
   test("the Database agent reports its compose file's collector pin, stamped in every engine's config", () => {
-    expect(readRepoFile("agents", "DatabaseAgent", "docker-compose.yml")).toContain(
+    expect(
+      readRepoFile("agents", "DatabaseAgent", "docker-compose.yml"),
+    ).toContain(
       `image: otel/opentelemetry-collector-contrib:${DATABASE_AGENT_VERSION}`,
     );
 
@@ -301,7 +305,10 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
     expect(configs.length).toBeGreaterThan(0);
 
     for (const name of configs) {
-      const config: string = fs.readFileSync(path.join(configDir, name), "utf8");
+      const config: string = fs.readFileSync(
+        path.join(configDir, name),
+        "utf8",
+      );
       expect({
         name,
         stamp: config.match(
@@ -356,9 +363,9 @@ describe("agents that report no version stay kinds that are never outdated", () 
   test.each([["CephAgent"], ["ProxmoxAgent"], ["VMwareAgent"]])(
     "agents/%s's config stamps no oneuptime.agent.version (decide its AgentKind source if it starts to)",
     (dir: string) => {
-      expect(readRepoFile("agents", dir, "otel-collector-config.yaml")).not.toContain(
-        "oneuptime.agent.version",
-      );
+      expect(
+        readRepoFile("agents", dir, "otel-collector-config.yaml"),
+      ).not.toContain("oneuptime.agent.version");
     },
   );
 

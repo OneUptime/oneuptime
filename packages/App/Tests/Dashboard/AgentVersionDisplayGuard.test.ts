@@ -155,6 +155,14 @@ function agentKindMembers(): Array<string> {
   return members;
 }
 
+const TS_SOURCE: RegExp = /\.tsx?$/;
+
+const AGENT_VERSION_IMPORT: RegExp =
+  /^import AgentVersion from "[./]+\/Components\/AgentVersion\/AgentVersion";$/;
+
+const AGENT_KIND_IMPORT: RegExp =
+  /^import \{ AgentKind \} from "[./]+\/Components\/AgentVersion\/AgentKind";$/;
+
 function walkFiles(dir: string, found: Array<string>): void {
   if (!fs.existsSync(dir)) {
     return;
@@ -167,7 +175,7 @@ function walkFiles(dir: string, found: Array<string>): void {
       }
       continue;
     }
-    if (/\.tsx?$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
+    if (TS_SOURCE.test(entry.name) && !entry.name.endsWith(".d.ts")) {
       found.push(full);
     }
   }
@@ -296,7 +304,10 @@ function isAllowedRead(read: ts.Node): boolean {
   ) {
     return true;
   }
-  if (ts.isIfStatement(parent) && parent.expression === skipToExpression(read)) {
+  if (
+    ts.isIfStatement(parent) &&
+    parent.expression === skipToExpression(read)
+  ) {
     return true;
   }
 
@@ -340,7 +351,10 @@ function isAgentVersionFieldDescriptor(
         property.initializer.text === "agentVersion"
       );
     }
-    if (name === "field" && ts.isObjectLiteralExpression(property.initializer)) {
+    if (
+      name === "field" &&
+      ts.isObjectLiteralExpression(property.initializer)
+    ) {
       return property.initializer.properties.some(
         (inner: ts.ObjectLiteralElementLike) => {
           return (
@@ -390,9 +404,11 @@ describe("every front-end file that mentions agentVersion is accounted for", () 
 
   test("every agent kind is drawn somewhere", () => {
     const drawn: Set<string> = new Set(Object.values(DISPLAYS).flat());
-    expect(agentKindMembers().filter((kind: string) => {
-      return !drawn.has(kind);
-    })).toEqual([]);
+    expect(
+      agentKindMembers().filter((kind: string) => {
+        return !drawn.has(kind);
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -413,16 +429,12 @@ describe.each(Object.entries(DISPLAYS))(
       });
       expect(
         imports.some((statement: string): boolean => {
-          return /^import AgentVersion from "[./]+\/Components\/AgentVersion\/AgentVersion";$/.test(
-            statement,
-          );
+          return AGENT_VERSION_IMPORT.test(statement);
         }),
       ).toBe(true);
       expect(
         imports.some((statement: string): boolean => {
-          return /^import \{ AgentKind \} from "[./]+\/Components\/AgentVersion\/AgentKind";$/.test(
-            statement,
-          );
+          return AGENT_KIND_IMPORT.test(statement);
         }),
       ).toBe(true);
     });

@@ -808,7 +808,9 @@ const RumApplicationOverview: FunctionComponent<
     {
       label: "SDK Version",
       value: a.agentVersion,
-      element: <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />,
+      element: (
+        <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />
+      ),
     },
     ...(recordingHealthValue
       ? [{ label: "Recording health", value: recordingHealthValue }]

@@ -71,9 +71,7 @@ import {
 import { getRunnerUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
 import Route from "../../../Types/API/Route";
 
-const SETUP_GUIDE: Route = new Route(
-  "/dashboard/p1/docker/h1/documentation",
-);
+const SETUP_GUIDE: Route = new Route("/dashboard/p1/docker/h1/documentation");
 
 const OUTDATED_NAME: string =
   "Agent 14.0.10 is outdated. A newer agent is available: 14.0.14. Show how to upgrade.";
@@ -428,7 +426,9 @@ describe("the upgrade dialog", () => {
       getPodmanAgentUpgradeCommand("podman-cli"),
     ]);
 
-    fireEvent.click(within(dialog).getByRole("tab", { name: "Podman Compose" }));
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Podman Compose" }),
+    );
     expect(codeBlocksIn(dialog)).toEqual([
       getPodmanAgentUpgradeCommand("podman-compose"),
     ]);
@@ -457,7 +457,9 @@ describe("the upgrade dialog", () => {
       getDockerSwarmAgentInstallScriptCommand(),
     ]);
 
-    fireEvent.click(within(dialog).getByRole("tab", { name: "Docker Compose" }));
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Docker Compose" }),
+    );
     const compose: Array<string> = codeBlocksIn(dialog);
     expect(compose).toHaveLength(2);
     expect(compose[1]).toBe(DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND);
@@ -500,7 +502,9 @@ describe("the upgrade dialog", () => {
       "Installed it outside /opt/oneuptime-database-agent? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.",
     );
 
-    fireEvent.click(within(dialog).getByRole("tab", { name: "Docker Compose" }));
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Docker Compose" }),
+    );
     expect(codeBlocksIn(dialog)).toEqual([
       getDatabaseAgentDownloadCommand("postgresql"),
       DATABASE_AGENT_RECREATE_COMMAND,

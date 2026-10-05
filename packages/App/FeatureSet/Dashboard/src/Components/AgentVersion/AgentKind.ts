@@ -228,6 +228,7 @@ export function getAgentVersionState(data: {
 
   return {
     status: status,
-    latestVersion: status === AgentVersionStatus.Outdated ? latestVersion : null,
+    latestVersion:
+      status === AgentVersionStatus.Outdated ? latestVersion : null,
   };
 }

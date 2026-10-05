@@ -101,8 +101,14 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
   test.each(LANGUAGES)(
     "%s: the Docker agent's upgrade names Agent Version on the Overview",
     (language: string) => {
-      const guide: string = readGuide(language, "telemetry/docker-host.md") as string;
-      const note: string = paragraphBefore(guide, "docker pull oneuptime/docker-agent:release");
+      const guide: string = readGuide(
+        language,
+        "telemetry/docker-host.md",
+      ) as string;
+      const note: string = paragraphBefore(
+        guide,
+        "docker pull oneuptime/docker-agent:release",
+      );
       expect(note).toContain(`**${labelIn(language, "Agent Version")}**`);
       expect(note).toContain(`**${labelIn(language, "Overview")}**`);
     },
@@ -111,9 +117,17 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
   test.each(LANGUAGES)(
     "%s: the Podman agent's upgrade names Agent Version on the Overview",
     (language: string) => {
-      const guide: string = readGuide(language, "telemetry/podman-host.md") as string;
-      const note: string = paragraphBefore(guide, "podman pull oneuptime/podman-agent:release");
-      const labelLanguage: string = PODMAN_TRANSLATED_LANGUAGES.includes(language)
+      const guide: string = readGuide(
+        language,
+        "telemetry/podman-host.md",
+      ) as string;
+      const note: string = paragraphBefore(
+        guide,
+        "podman pull oneuptime/podman-agent:release",
+      );
+      const labelLanguage: string = PODMAN_TRANSLATED_LANGUAGES.includes(
+        language,
+      )
         ? language
         : "en";
       expect(note).toContain(`**${labelIn(labelLanguage, "Agent Version")}**`);
@@ -125,12 +139,19 @@ describe("the agents' guides say an outdated version shows a sign, in every lang
     "%s: the Runner guide's new last install step names Runner Version and shows the upgrade",
     (language: string) => {
       const guide: string = readGuide(language, "runbooks/agents.md") as string;
-      const note: string = paragraphBefore(guide, "docker pull oneuptime/runner:release");
+      const note: string = paragraphBefore(
+        guide,
+        "docker pull oneuptime/runner:release",
+      );
       expect(note).toContain(`**${labelIn(language, "Runner Version")}**`);
-      expect(guide).toContain("```bash\n" + getRunnerUpgradeCommand() + "\n```");
+      expect(guide).toContain(
+        "```bash\n" + getRunnerUpgradeCommand() + "\n```",
+      );
       // A fifth install step, after the fourth.
-      expect(guide.indexOf("### 5.") > guide.indexOf("### 4.") ||
-        guide.indexOf("### ۵.") > guide.indexOf("### ۴.")).toBe(true);
+      expect(
+        guide.indexOf("### 5.") > guide.indexOf("### 4.") ||
+          guide.indexOf("### ۵.") > guide.indexOf("### ۴."),
+      ).toBe(true);
     },
   );
 });
@@ -143,18 +164,27 @@ describe("the English guides' commands are the ones the upgrade dialog shows", (
   });
 
   test("Docker and Podman: the image pull and removal, and Compose", () => {
-    const docker: string = readGuide("en", "telemetry/docker-host.md") as string;
+    const docker: string = readGuide(
+      "en",
+      "telemetry/docker-host.md",
+    ) as string;
     expect(docker).toContain(getDockerAgentUpgradeCommand("docker-cli"));
     expect(docker).toContain(getDockerAgentUpgradeCommand("docker-compose"));
 
-    const podman: string = readGuide("en", "telemetry/podman-host.md") as string;
+    const podman: string = readGuide(
+      "en",
+      "telemetry/podman-host.md",
+    ) as string;
     expect(podman).toContain(getPodmanAgentUpgradeCommand("podman-cli"));
     expect(podman).toContain(getPodmanAgentUpgradeCommand("podman-compose"));
   });
 
   test("Docker Swarm: a new upgrade section runs the install script again, and says the sign follows the pinned collector", () => {
     for (const language of ["en", "fa"]) {
-      const guide: string = readGuide(language, "telemetry/docker-swarm.md") as string;
+      const guide: string = readGuide(
+        language,
+        "telemetry/docker-swarm.md",
+      ) as string;
       expect(guide).toContain(
         "```bash\n" + getDockerSwarmAgentInstallScriptCommand() + "\n```",
       );

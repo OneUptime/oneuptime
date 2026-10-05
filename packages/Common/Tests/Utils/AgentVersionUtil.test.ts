@@ -61,7 +61,11 @@ describe("AgentVersionUtil.getStatus", () => {
   describe("level with or ahead of the newest is UpToDate", () => {
     test.each([
       ["the same release", "14.0.14", "14.0.14"],
-      ["a newer patch (a self-hosted server older than the image)", "14.0.15", "14.0.14"],
+      [
+        "a newer patch (a self-hosted server older than the image)",
+        "14.0.15",
+        "14.0.14",
+      ],
       ["a newer minor", "14.1.0", "14.0.14"],
       ["a newer major", "15.0.0", "14.0.14"],
       ["a OneUptime version against a collector pin", "14.0.10", "0.161.0"],
@@ -101,12 +105,8 @@ describe("AgentVersionUtil.getStatus", () => {
 
   describe("spellings of the same version", () => {
     test("a leading v is the same version", () => {
-      expect(statusOf("v14.0.10", "14.0.14")).toBe(
-        AgentVersionStatus.Outdated,
-      );
-      expect(statusOf("14.0.14", "v14.0.14")).toBe(
-        AgentVersionStatus.UpToDate,
-      );
+      expect(statusOf("v14.0.10", "14.0.14")).toBe(AgentVersionStatus.Outdated);
+      expect(statusOf("14.0.14", "v14.0.14")).toBe(AgentVersionStatus.UpToDate);
     });
 
     test("surrounding whitespace is ignored", () => {

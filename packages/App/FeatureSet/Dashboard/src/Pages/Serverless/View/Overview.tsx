@@ -392,7 +392,10 @@ const ServerlessFunctionOverview: FunctionComponent<
       label: "Agent Version",
       value: fn.agentVersion,
       element: (
-        <AgentVersion kind={AgentKind.ServerlessSdk} version={fn.agentVersion} />
+        <AgentVersion
+          kind={AgentKind.ServerlessSdk}
+          version={fn.agentVersion}
+        />
       ),
     },
   ];
