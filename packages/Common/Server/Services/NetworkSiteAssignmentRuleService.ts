@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import NetworkSiteService from "./NetworkSiteService";
 import Model from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
@@ -38,9 +38,14 @@ function readSiteId(data: Record<string, unknown>): ObjectID | null {
   return RelationIdUtil.read(data, SITE_KEYS);
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  // The site is checked by assertSiteBelongsToProject.
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["site"];
   }
 
   /*
@@ -92,6 +97,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     this.validateCriteria({
       criteria: createBy.data.criteria,
       subnetCidr: createBy.data.subnetCidr,
@@ -116,6 +124,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
     const isCriteriaChange: boolean =

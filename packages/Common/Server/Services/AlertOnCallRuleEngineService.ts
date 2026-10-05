@@ -16,6 +16,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import OnCallRulePolicyScope from "../Utils/Rules/OnCallRulePolicyScope";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
@@ -93,6 +94,17 @@ class AlertOnCallRuleEngineServiceClass {
           }
         }
       }
+
+      // Only the project's own policies are ever paged (see OnCallRulePolicyScope).
+      await OnCallRulePolicyScope.keepPoliciesInProject({
+        projectId: alert.projectId,
+        matchedPolicies: matchedPolicies,
+        ruleKind: "Alert on-call",
+        logAttributes: {
+          projectId: alert.projectId.toString(),
+          alertId: alert.id.toString(),
+        } as LogAttributes,
+      });
 
       if (matchedPolicies.size === 0) {
         return;

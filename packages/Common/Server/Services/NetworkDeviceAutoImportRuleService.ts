@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorTemplateService from "./MonitorTemplateService";
 import NetworkAlertPolicyService from "./NetworkAlertPolicyService";
 import NetworkDeviceAutoImportRuleEngineService from "./NetworkDeviceAutoImportRuleEngineService";
@@ -85,15 +85,27 @@ interface AutoImportRuleUpdatePlan {
   isRuleReachChanged: boolean;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Both templates are read with the caller's own props (a template the
+   * caller cannot see cannot be attached), see validateMonitorTemplateSelection
+   * and validateOidTemplateSelection.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["monitorTemplate", "oidTemplate"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     this.validateCriteria({
       criteria: createBy.data.criteria,
       ipMatchTarget: createBy.data.ipMatchTarget,
@@ -134,6 +146,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
     const isCriteriaChange: boolean =

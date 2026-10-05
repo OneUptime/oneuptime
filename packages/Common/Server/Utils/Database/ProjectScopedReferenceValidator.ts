@@ -8,6 +8,8 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ServerException from "../../../Types/Exception/ServerException";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import User from "../../../Models/DatabaseModels/User";
 
 /*
  * Incidents, alerts and scheduled maintenance events point at project-scoped
@@ -39,6 +41,31 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
  * it. A missing id therefore only ever comes from the payload being validated.
  * Callers whose reference is NOT foreign-key backed (monitorSteps ids, say) can
  * opt a single reference out with `mustExist: false`.
+ *
+ * What "in this project" means, and what an answer may say:
+ *
+ *   - A project-scoped record is read pinned to the project (its tenant
+ *     column in the query), selecting nothing but its id. Another project's
+ *     record is never loaded, so nothing about it - its name above all - can
+ *     reach a message. An id from another project and an id that matches
+ *     nothing get the same answer, which echoes only the ids the caller sent.
+ *   - A user has no project of their own. A user counts as the project's
+ *     when they hold a membership in it: a TeamMember row in any of its
+ *     teams, an invitation still pending included - exactly the people the
+ *     dashboard's pickers offer (PeoplePickerKinds lists the project's
+ *     TeamMember rows), so a save never refuses someone the form just
+ *     offered. Whoever adds them as an owner later is stricter
+ *     (OwnerRuleAssignment.createOwner: the invitation must be accepted by
+ *     then).
+ *   - A reference allowed to dangle (`mustExist: false`) may name a record
+ *     that is gone, never one that belongs elsewhere: the ids the pinned read
+ *     did not find are looked up once more by id alone, again selecting only
+ *     the id.
+ *
+ * The lookups go through plain DatabaseServices over the referenced models
+ * (getLookupService) wherever a caller does not hand over a service of its
+ * own: they carry no hooks and import no other service, so this module can
+ * be used from any service without joining an import cycle.
  */
 
 export interface ProjectScopedReference {
@@ -51,7 +78,8 @@ export interface ProjectScopedReference {
    * Defaults to true: an id that matches no record is rejected. Set false for a
    * reference that is allowed to dangle — one with no foreign key behind it,
    * where refusing would block a user from saving their way out of a record
-   * that already points at something deleted.
+   * that already points at something deleted. It never lets in a record of
+   * another project, nor a user who is not a member.
    */
   mustExist?: boolean | undefined;
 }
@@ -76,22 +104,18 @@ export interface ProjectScopedRelation {
  */
 export type HeldRelationIds = Map<string, Dictionary<Set<string>>>;
 
-interface ForeignReference {
-  modelName: string;
-  name: string;
-}
-
-interface MissingReference {
-  modelName: string;
-  id: string;
-}
-
 // What the caller asked about, keyed by id inside one service's lookup.
 interface RequestedReference {
   modelName: string;
   mustExist: boolean;
   // The id exactly as the caller wrote it, so the message echoes their input.
   id: string;
+}
+
+// One reference as the message lists it: the lookup it went to, and its key.
+interface OrderedReference {
+  service: DatabaseService<DatabaseBaseModel>;
+  key: string;
 }
 
 /*
@@ -107,6 +131,16 @@ interface RequestedReference {
 function normalizeId(id: string): string {
   return id.trim().toLowerCase();
 }
+
+/*
+ * The plain lookup services, one per model, created on first use: a service
+ * instantiates its model, and this module is reached through the service
+ * import graph before every model decorator has run.
+ */
+const lookupServices: Map<
+  { new (): DatabaseBaseModel },
+  DatabaseService<DatabaseBaseModel>
+> = new Map();
 
 /*
  * The same reference reaches a service hook in several shapes: the id column
@@ -163,10 +197,10 @@ export function resolveReferenceIds(value: unknown): Array<ObjectID | string> {
 }
 
 /*
- * Thrown when a payload references another project's records, or records that
- * do not exist. Still a BadDataException with the same message, so API callers
- * see no change; its own type lets a chat reply say something fixed instead of
- * naming another project's record.
+ * Thrown when a payload references records that are not the project's:
+ * another project's, ones that do not exist, or users who are not members.
+ * A BadDataException, so API callers see a 400 with the message; its own
+ * type lets a chat reply say something fixed instead of echoing the ids.
  */
 export class ProjectScopedReferenceException extends BadDataException {}
 
@@ -186,6 +220,8 @@ export default class ProjectScopedReferenceValidator {
       return;
     }
 
+    const projectId: ObjectID = data.projectId;
+
     /*
      * One lookup per referenced model rather than one per id — an incident
      * carries three of these and they are on the create path.
@@ -194,6 +230,9 @@ export default class ProjectScopedReferenceValidator {
       DatabaseService<DatabaseBaseModel>,
       Map<string, RequestedReference>
     > = new Map();
+
+    // Each reference once, in the order given, for the message.
+    const orderedReferences: Array<OrderedReference> = [];
 
     for (const reference of data.references) {
       const id: string = reference.id?.toString().trim() || "";
@@ -229,8 +268,12 @@ export default class ProjectScopedReferenceValidator {
 
       const existing: RequestedReference | undefined = requested.get(key);
 
+      if (!existing) {
+        orderedReferences.push({ service: reference.service, key: key });
+      }
+
       requested.set(key, {
-        modelName: reference.modelName,
+        modelName: existing?.modelName || reference.modelName,
         id: existing?.id || id,
         /*
          * The same id can arrive twice for one service (e.g. two monitor
@@ -246,125 +289,170 @@ export default class ProjectScopedReferenceValidator {
       return;
     }
 
-    const foreignReferences: Array<ForeignReference> = [];
-    const missingReferences: Array<MissingReference> = [];
+    const unavailableByService: Map<
+      DatabaseService<DatabaseBaseModel>,
+      Set<string>
+    > = new Map();
 
     for (const [service, requestedById] of idsByService) {
-      /*
-       * Read the tenant and name columns off the model rather than assuming
-       * `projectId` / `name`. Not every referenced model is project scoped —
-       * a monitor criteria can name owner *users*, and User has no tenant
-       * column at all. Selecting a column a model does not have throws, and
-       * comparing an absent projectId against the write's project would
-       * report every such record as belonging to "a different project".
-       */
-      const referencedModel: DatabaseBaseModel = service.getModel();
-      const tenantColumnName: string | null = referencedModel.getTenantColumn();
-      const hasNameColumn: boolean = referencedModel.hasColumn("name");
-
-      const select: Select<DatabaseBaseModel> = {
-        _id: true,
-      } as Select<DatabaseBaseModel>;
-
-      if (hasNameColumn) {
-        (select as Dictionary<boolean>)["name"] = true;
-      }
-
-      if (tenantColumnName) {
-        (select as Dictionary<boolean>)[tenantColumnName] = true;
-      }
-
-      const records: Array<DatabaseBaseModel> = await service.findBy({
-        query: {
-          _id: QueryHelper.any(Array.from(requestedById.keys())),
-        },
-        select: select,
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      const foundIds: Set<string> = new Set();
-
-      for (const record of records) {
-        const id: string = normalizeId(record._id?.toString() || "");
-
-        foundIds.add(id);
-
-        if (!tenantColumnName) {
-          // Global record (e.g. User) — there is no project to compare against.
-          continue;
-        }
-
-        const recordProjectId: ObjectID | undefined =
-          record.getValue<ObjectID>(tenantColumnName) || undefined;
-
-        if (recordProjectId?.toString() === data.projectId.toString()) {
-          continue;
-        }
-
-        foreignReferences.push({
-          modelName: requestedById.get(id)?.modelName || "Record",
-          name:
-            (hasNameColumn && record.getValue<string>("name")?.toString()) ||
-            id,
-        });
-      }
-
-      for (const [id, requested] of requestedById) {
-        if (foundIds.has(id) || !requested.mustExist) {
-          continue;
-        }
-
-        missingReferences.push({
-          modelName: requested.modelName,
-          // Echo the id as the caller wrote it, not the normalized key.
-          id: requested.id,
-        });
-      }
+      unavailableByService.set(
+        service,
+        await ProjectScopedReferenceValidator.getUnavailableIds({
+          service: service,
+          projectId: projectId,
+          requested: requestedById,
+        }),
+      );
     }
 
     /*
-     * Both problems are reported in one go so a caller fixing a payload with
-     * several bad ids does not have to discover them one round-trip at a time.
-     * The wording of each clause is kept verbatim from when they were separate
-     * messages — support runbooks and tests match on it.
+     * Everything wrong is reported in one go, so a caller fixing a payload
+     * with several bad ids does not discover them one round-trip at a time.
+     * One clause covers them all: whether an id belongs to another project,
+     * matches nothing, or names someone who is not a member is not this
+     * project's business to say, so each is described by the field the
+     * caller filled in and the id they sent - never by what the id resolved
+     * to.
      */
-    const clauses: Array<string> = [];
+    const described: Array<string> = [];
 
-    if (foreignReferences.length > 0) {
-      const described: string = foreignReferences
-        .map((reference: ForeignReference) => {
-          return `${reference.modelName} "${reference.name}"`;
-        })
-        .join(", ");
+    for (const reference of orderedReferences) {
+      if (!unavailableByService.get(reference.service)?.has(reference.key)) {
+        continue;
+      }
 
-      clauses.push(
-        `references records that belong to a different project: ${described}. Please pick values from this project and try again.`,
-      );
+      const requested: RequestedReference = idsByService
+        .get(reference.service)!
+        .get(reference.key)!;
+
+      // Echo the id as the caller wrote it, not the normalized key.
+      described.push(`${requested.modelName} "${requested.id}"`);
     }
 
-    if (missingReferences.length > 0) {
-      const described: string = missingReferences
-        .map((reference: MissingReference) => {
-          return `${reference.modelName} "${reference.id}"`;
-        })
-        .join(", ");
-
-      clauses.push(
-        `references records that do not exist: ${described}. Please pick values that exist in this project and try again.`,
-      );
-    }
-
-    if (clauses.length === 0) {
+    if (described.length === 0) {
       return;
     }
 
     throw new ProjectScopedReferenceException(
-      `This ${data.subject || "request"} ${clauses.join(" It also ")}`,
+      ProjectScopedReferenceValidator.getRefusalMessage({
+        subject: data.subject,
+        described: described,
+      }),
     );
+  }
+
+  // The one refusal every reference check answers with.
+  public static getRefusalMessage(data: {
+    subject?: string | undefined;
+    // `Label "<id>"`, as validateReferencesBelongToProject describes each.
+    described: Array<string>;
+  }): string {
+    return `This ${data.subject || "request"} references records that are not in this project: ${data.described.join(", ")}. Please pick values from this project and try again.`;
+  }
+
+  /*
+   * The requested ids (normalized) that are not the project's: see the
+   * comment at the top of this file for what counts.
+   */
+  private static async getUnavailableIds(data: {
+    service: DatabaseService<DatabaseBaseModel>;
+    projectId: ObjectID;
+    requested: Map<string, RequestedReference>;
+  }): Promise<Set<string>> {
+    const keys: Array<string> = Array.from(data.requested.keys());
+
+    /*
+     * A malformed id would fail Postgres' uuid cast and surface as an opaque
+     * 500. It cannot name a record of this project either, so it is answered
+     * like any other id that is not the project's, without a query.
+     */
+    const unavailable: Set<string> = new Set<string>(
+      keys.filter((key: string): boolean => {
+        return !ObjectID.isValidUUID(key);
+      }),
+    );
+
+    const lookupKeys: Array<string> = keys.filter((key: string): boolean => {
+      return ObjectID.isValidUUID(key);
+    });
+
+    if (lookupKeys.length === 0) {
+      return unavailable;
+    }
+
+    const referencedModel: DatabaseBaseModel = data.service.getModel();
+
+    if (ProjectScopedReferenceValidator.isUserModel(referencedModel)) {
+      const memberIds: Set<string> =
+        await ProjectScopedReferenceValidator.findProjectMemberIds({
+          projectId: data.projectId,
+          userIds: lookupKeys,
+        });
+
+      for (const key of lookupKeys) {
+        if (!memberIds.has(key)) {
+          unavailable.add(key);
+        }
+      }
+
+      return unavailable;
+    }
+
+    if (!referencedModel.getTenantColumn()) {
+      /*
+       * A model with no project of its own, and not a person: there is no
+       * project to compare against, so it only has to exist.
+       */
+      const existingIds: Set<string> =
+        await ProjectScopedReferenceValidator.findExistingIds({
+          service: data.service,
+          ids: lookupKeys,
+        });
+
+      for (const key of lookupKeys) {
+        if (!existingIds.has(key) && data.requested.get(key)!.mustExist) {
+          unavailable.add(key);
+        }
+      }
+
+      return unavailable;
+    }
+
+    const idsInProject: Set<string> =
+      await ProjectScopedReferenceValidator.findIdsInProject({
+        service: data.service,
+        projectId: data.projectId,
+        ids: lookupKeys,
+      });
+
+    const notInProject: Array<string> = lookupKeys.filter(
+      (key: string): boolean => {
+        return !idsInProject.has(key);
+      },
+    );
+
+    // Allowed to be gone, but not to be someone else's.
+    const mayDangle: Array<string> = notInProject.filter(
+      (key: string): boolean => {
+        return !data.requested.get(key)!.mustExist;
+      },
+    );
+
+    const existingElsewhere: Set<string> =
+      mayDangle.length > 0
+        ? await ProjectScopedReferenceValidator.findExistingIds({
+            service: data.service,
+            ids: mayDangle,
+          })
+        : new Set<string>();
+
+    for (const key of notInProject) {
+      if (data.requested.get(key)!.mustExist || existingElsewhere.has(key)) {
+        unavailable.add(key);
+      }
+    }
+
+    return unavailable;
   }
 
   /*
@@ -602,5 +690,214 @@ export default class ProjectScopedReferenceValidator {
       usableIds: usableIds,
       droppedIds: droppedIds,
     };
+  }
+
+  /*
+   * A plain DatabaseService over `modelType` for reading ids: no hooks, no
+   * other service imported. The same instance every time for a model, so a
+   * check that names one model from several lists (a rule's label lists)
+   * reads it once.
+   */
+  public static getLookupService<TModel extends DatabaseBaseModel>(modelType: {
+    new (): TModel;
+  }): DatabaseService<TModel> {
+    const type: { new (): DatabaseBaseModel } = modelType as unknown as {
+      new (): DatabaseBaseModel;
+    };
+
+    if (!lookupServices.has(type)) {
+      lookupServices.set(type, new DatabaseService<DatabaseBaseModel>(type));
+    }
+
+    return lookupServices.get(type) as unknown as DatabaseService<TModel>;
+  }
+
+  // Whether a referenced model is a person, checked by membership.
+  public static isUserModel(model: DatabaseBaseModel): boolean {
+    return model instanceof User;
+  }
+
+  /*
+   * The ids among `ids` (valid uuids) that name records of the project,
+   * normalized. One read, pinned to the project and selecting nothing but
+   * the id and the tenant column, so another project's record is never
+   * loaded. A row that comes back from another project anyway is not
+   * counted.
+   */
+  public static async findIdsInProject(data: {
+    service: DatabaseService<DatabaseBaseModel>;
+    projectId: ObjectID;
+    ids: Array<string>;
+  }): Promise<Set<string>> {
+    const found: Set<string> = new Set<string>();
+    const tenantColumnName: string | null = data.service
+      .getModel()
+      .getTenantColumn();
+
+    if (!tenantColumnName || data.ids.length === 0) {
+      return found;
+    }
+
+    const records: Array<DatabaseBaseModel> = await data.service.findBy({
+      query: {
+        _id: QueryHelper.any(data.ids),
+        [tenantColumnName]: data.projectId,
+      } as Query<DatabaseBaseModel>,
+      select: {
+        _id: true,
+        [tenantColumnName]: true,
+      } as Select<DatabaseBaseModel>,
+      limit: data.ids.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectId: string = normalizeId(data.projectId.toString());
+
+    for (const record of records) {
+      const recordProjectId: string = normalizeId(
+        record.getValue<ObjectID>(tenantColumnName)?.toString() || "",
+      );
+
+      if (recordProjectId !== projectId) {
+        continue;
+      }
+
+      found.add(normalizeId(record._id?.toString() || ""));
+    }
+
+    return found;
+  }
+
+  /*
+   * The ids among `ids` that name records of `modelType` in the project, as
+   * given and in the order given - for engines that act, as root, on ids a
+   * rule saved long ago and must leave out whatever is not the project's
+   * rather than fail. One read pinned to the project (findIdsInProject); an
+   * id that is not a uuid is never sent to the database.
+   */
+  public static async keepIdsInProject<TModel extends DatabaseBaseModel>(data: {
+    modelType: { new (): TModel };
+    projectId: ObjectID;
+    ids: Array<string>;
+  }): Promise<Array<string>> {
+    const lookupIds: Array<string> = Array.from(
+      new Set<string>(
+        data.ids
+          .map((id: string): string => {
+            return normalizeId(id);
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    if (lookupIds.length === 0) {
+      return [];
+    }
+
+    const found: Set<string> =
+      await ProjectScopedReferenceValidator.findIdsInProject({
+        service: ProjectScopedReferenceValidator.getLookupService(
+          data.modelType,
+        ) as unknown as DatabaseService<DatabaseBaseModel>,
+        projectId: data.projectId,
+        ids: lookupIds,
+      });
+
+    return data.ids.filter((id: string): boolean => {
+      return found.has(normalizeId(id));
+    });
+  }
+
+  /*
+   * The ids among `ids` (valid uuids) that match a record at all, wherever it
+   * lives, normalized. Reads nothing but the ids.
+   */
+  public static async findExistingIds(data: {
+    service: DatabaseService<DatabaseBaseModel>;
+    ids: Array<string>;
+  }): Promise<Set<string>> {
+    const found: Set<string> = new Set<string>();
+
+    if (data.ids.length === 0) {
+      return found;
+    }
+
+    const records: Array<DatabaseBaseModel> = await data.service.findBy({
+      query: {
+        _id: QueryHelper.any(data.ids),
+      },
+      select: {
+        _id: true,
+      } as Select<DatabaseBaseModel>,
+      limit: data.ids.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    for (const record of records) {
+      found.add(normalizeId(record._id?.toString() || ""));
+    }
+
+    return found;
+  }
+
+  /*
+   * The users among `userIds` (valid uuids) who hold a membership in the
+   * project, normalized: a TeamMember row in any of its teams, an invitation
+   * still pending included (see the comment at the top of this file). One
+   * read, pinned to the project, so a membership elsewhere is never loaded.
+   */
+  public static async findProjectMemberIds(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+  }): Promise<Set<string>> {
+    const found: Set<string> = new Set<string>();
+
+    if (data.userIds.length === 0) {
+      return found;
+    }
+
+    const memberships: Array<TeamMember> =
+      await ProjectScopedReferenceValidator.getLookupService(TeamMember).findBy(
+        {
+          query: {
+            projectId: data.projectId,
+            userId: QueryHelper.any(data.userIds),
+          },
+          select: {
+            userId: true,
+            projectId: true,
+          },
+          // One row per team a user is in, so not one row per id.
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        },
+      );
+
+    const projectId: string = normalizeId(data.projectId.toString());
+
+    for (const membership of memberships) {
+      if (normalizeId(membership.projectId?.toString() || "") !== projectId) {
+        continue;
+      }
+
+      const userId: string = normalizeId(membership.userId?.toString() || "");
+
+      if (userId) {
+        found.add(userId);
+      }
+    }
+
+    return found;
   }
 }

@@ -6,7 +6,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertOwnerTeam";
 import TeamService from "./TeamService";
 import AlertFeedService from "./AlertFeedService";
@@ -20,7 +20,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -51,6 +51,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyAlertRelatedRecordPrivacyFilter(
       updateBy.query,
       updateBy.props,

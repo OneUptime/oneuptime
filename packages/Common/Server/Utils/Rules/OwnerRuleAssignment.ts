@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Team from "../../../Models/DatabaseModels/Team";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -7,6 +8,7 @@ import TeamMemberService from "../../Services/TeamMemberService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
+import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 
 /*
  * An owner row is unique per (resource, user or team, project): every
@@ -24,7 +26,11 @@ import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
  * Those owner sets are saved configuration - rules, templates, criteria -
  * and can name a user who has since left the project. createOwner skips
  * such a user, so a departed member is not made the owner of new work,
- * notified about it, or listed as notified.
+ * notified about it, or listed as notified. It skips a team that is not one
+ * of the project's teams just the same: the lists are checked when they are
+ * saved (ProjectReferencesService), but a list saved before that check
+ * existed can still name another project's team, and its members must not
+ * be made owners of this project's work, or be notified about it.
  */
 
 export interface OwnersToAssign {
@@ -126,7 +132,8 @@ export default class OwnerRuleAssignment {
    * when it was not: the owner was already there - whether the owner
    * service's own check found the existing row, or the unique index rejected
    * a concurrent insert that got past it - or the owner is a user who is not
-   * a member of the project. Every other failure is thrown as before.
+   * a member of the project, or a team that is not one of its teams. Every
+   * other failure is thrown as before.
    */
   public static async createOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
@@ -244,8 +251,9 @@ export default class OwnerRuleAssignment {
   }
 
   /*
-   * Team owners are always in the project. A user owner must be a member:
-   * see TeamMemberService.isUserMemberOfProject.
+   * A team owner must be one of the project's teams - read pinned to the
+   * project, so another project's team is never loaded - and a user owner a
+   * member of the project: see TeamMemberService.isUserMemberOfProject.
    */
   private static async isOwnerInProject<TOwner extends BaseModel>(data: {
     owner: TOwner;
@@ -255,11 +263,23 @@ export default class OwnerRuleAssignment {
       .getColumnValue("userId")
       ?.toString();
 
+    const teamId: string | undefined = data.owner
+      .getColumnValue("teamId")
+      ?.toString();
+
     const projectId: string | undefined =
       data.owner.getColumnValue("projectId")?.toString() ||
       data.props.tenantId?.toString();
 
-    if (!userId || !projectId) {
+    if (!projectId) {
+      return true;
+    }
+
+    if (teamId && !(await OwnerRuleAssignment.isTeamInProject(teamId, projectId))) {
+      return false;
+    }
+
+    if (!userId) {
       return true;
     }
 
@@ -267,6 +287,20 @@ export default class OwnerRuleAssignment {
       projectId: new ObjectID(projectId),
       userId: new ObjectID(userId),
     });
+  }
+
+  private static async isTeamInProject(
+    teamId: string,
+    projectId: string,
+  ): Promise<boolean> {
+    const teamIds: Array<string> =
+      await ProjectScopedReferenceValidator.keepIdsInProject({
+        modelType: Team,
+        projectId: new ObjectID(projectId),
+        ids: [teamId],
+      });
+
+    return teamIds.length > 0;
   }
 
   /*
