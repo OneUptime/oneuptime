@@ -267,11 +267,47 @@ export class Service extends DatabaseService<Model> {
     arrayId: ObjectID,
     extra?: StorageArraySnapshotExtras,
   ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const liveness: any = {
+      lastSeenAt: OneUptimeDate.getCurrentDate(),
+      otelCollectorStatus: "connected",
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metadata: any = {};
+
+    for (const key of STORAGE_ARRAY_SNAPSHOT_KEYS) {
+      const value: string | number | undefined = extra?.[key];
+
+      if (typeof value === "string") {
+        // A blank string is never a better answer than the last one.
+        if (value.trim()) {
+          metadata[key] = value;
+        }
+        continue;
+      }
+
+      /*
+       * Counts, health and capacity: 0 is a legitimate value (healthStatus
+       * 0 = OK, volumeCount 0 = an empty array) — gate on undefined, not
+       * falsiness. NaN and ±Infinity never reach Postgres: an integer
+       * column rejects them, and the whole heartbeat write with them.
+       */
+      if (typeof value === "number" && Number.isFinite(value)) {
+        metadata[key] = value;
+      }
+    }
+
+    /*
+     * The fingerprint and the shape are both taken from what is actually
+     * written, so a value dropped above (a blank string, a NaN) neither
+     * busts the fingerprint nor opens a heartbeat window of its own.
+     */
     const fingerprintSource: JSONObject = {};
     const presentKeys: Array<string> = [];
     for (const key of STORAGE_ARRAY_SNAPSHOT_KEYS) {
-      fingerprintSource[key] = extra?.[key] ?? null;
-      if (extra?.[key] !== undefined && extra?.[key] !== null) {
+      fingerprintSource[key] = metadata[key] ?? null;
+      if (metadata[key] !== undefined) {
         presentKeys.push(key);
       }
     }
@@ -290,36 +326,6 @@ export class Service extends DatabaseService<Model> {
             .digest("hex")
             .substring(0, 12)
         : "";
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const liveness: any = {
-      lastSeenAt: OneUptimeDate.getCurrentDate(),
-      otelCollectorStatus: "connected",
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const metadata: any = {};
-
-    for (const key of STORAGE_ARRAY_SNAPSHOT_KEYS) {
-      const value: string | number | undefined = extra?.[key];
-
-      if (typeof value === "string") {
-        // An empty string is never a better answer than the last one.
-        if (value) {
-          metadata[key] = value;
-        }
-        continue;
-      }
-
-      /*
-       * Counts, health and capacity: 0 is a legitimate value (healthStatus
-       * 0 = OK, volumeCount 0 = an empty array) — gate on undefined, not
-       * falsiness. NaN never reaches Postgres.
-       */
-      if (typeof value === "number" && !isNaN(value)) {
-        metadata[key] = value;
-      }
-    }
 
     /*
      * One gated, non-blocking heartbeat write. The gates, the fail-open /

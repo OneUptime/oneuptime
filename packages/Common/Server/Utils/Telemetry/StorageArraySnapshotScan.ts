@@ -1,6 +1,8 @@
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
-import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKind, {
+  StorageArrayResourceKindUtil,
+} from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageSystem, {
   StorageSystemUtil,
 } from "../../../Types/StorageArray/StorageSystem";
@@ -66,7 +68,6 @@ export const STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set(
     "purefa_host_connectivity_info",
     "purefa_host_connections_info",
     "purefa_host_space_bytes",
-    "purefa_host_space_size_bytes",
     "purefa_host_space_data_reduction_ratio",
     "purefa_host_performance_latency_usec",
     "purefa_host_performance_throughput_iops",
@@ -138,6 +139,14 @@ export interface StorageArrayResourceBufferEntry {
   connectionCount: number | null;
   details: JSONObject;
   observedAt: Date;
+  /*
+   * True for a Volume row getStorageArrayResourceRows synthesized from
+   * purefa_host_connections_info alone: it exists to carry connectionCount
+   * to a volume the batch never reported through its own series, so it is
+   * upserted (every other column COALESCEs) but never counted — volumeCount
+   * comes only from the volumes endpoint.
+   */
+  fromConnectionsOnly?: boolean | undefined;
 }
 
 // Per-array snapshot state — same saw* contract as the Ceph cluster buffer.
@@ -274,25 +283,36 @@ function toNumberOrNull(value: unknown): number | null {
   return null;
 }
 
-// Same fall-back-to-now parse contract as ProxmoxCephSnapshotScan.
+/*
+ * Same fall-back-to-now parse contract as ProxmoxCephSnapshotScan, plus one
+ * guard: a nanosecond value past the Date range parses to an Invalid Date
+ * rather than throwing, and an Invalid Date reaching the upsert would fail
+ * the timestamptz cast and drop the whole chunk.
+ */
 function parseUnixNanoToDate(
   value: string | number | undefined,
   context: string,
 ): Date {
   if (value !== undefined && value !== null) {
     try {
+      let parsed: Date | null = null;
       if (typeof value === "string") {
         const trimmed: string = value.trim();
         if (trimmed === "" || isNaN(Number(trimmed))) {
           throw new Error(`Invalid timestamp string: ${value}`);
         }
-        return OneUptimeDate.fromUnixNano(trimmed);
-      }
-      if (typeof value === "number") {
+        parsed = OneUptimeDate.fromUnixNano(trimmed);
+      } else if (typeof value === "number") {
         if (!Number.isFinite(value)) {
           throw new Error(`Invalid timestamp number: ${value}`);
         }
-        return OneUptimeDate.fromUnixNano(value);
+        parsed = OneUptimeDate.fromUnixNano(value);
+      }
+      if (parsed) {
+        if (isNaN(parsed.getTime())) {
+          throw new Error(`Timestamp out of range: ${value}`);
+        }
+        return parsed;
       }
     } catch (error) {
       logger.warn(
@@ -341,28 +361,40 @@ export const SCRAPE_ENDPOINT_LABEL: string = "scrape_endpoint";
 function markScrapedEndpoint(
   array: StorageArraySnapshotBufferEntry,
   endpoint: string | null,
+  system: StorageSystem | null,
 ): void {
   if (!endpoint) {
     return;
   }
   const value: string = endpoint.trim().toLowerCase();
+  /*
+   * `all` (or a job scraping the bare /metrics path) is the complete list
+   * of every family THIS platform exports. A FlashArray has no file systems
+   * or buckets and a FlashBlade no volumes, hosts or pods, so `all` must not
+   * write a count of 0 for a kind the platform never reports.
+   */
   const all: boolean = value === "all" || value === "metrics";
+  const allOf: (kind: StorageArrayResourceKind) => boolean = (
+    kind: StorageArrayResourceKind,
+  ) => {
+    return all && StorageArrayResourceKindUtil.isKindForSystem(kind, system);
+  };
   if (all || value === "array") {
     array.sawAlerts = true;
   }
-  if (all || value === "volumes") {
+  if (value === "volumes" || allOf(StorageArrayResourceKind.Volume)) {
     array.sawVolumes = true;
   }
-  if (all || value === "hosts") {
+  if (value === "hosts" || allOf(StorageArrayResourceKind.Host)) {
     array.sawHosts = true;
   }
-  if (all || value === "pods") {
+  if (value === "pods" || allOf(StorageArrayResourceKind.Pod)) {
     array.sawPods = true;
   }
-  if (all || value === "filesystems") {
+  if (value === "filesystems" || allOf(StorageArrayResourceKind.FileSystem)) {
     array.sawFileSystems = true;
   }
-  if (all || value === "objectstore") {
+  if (value === "objectstore" || allOf(StorageArrayResourceKind.Bucket)) {
     array.sawBuckets = true;
   }
 }
@@ -562,6 +594,15 @@ export function bufferStorageArraySnapshotMetric(data: {
   resourceBuffer: Map<string, Map<string, StorageArrayResourceBufferEntry>>;
   arrayBuffer: Map<string, StorageArraySnapshotBufferEntry>;
 }): void {
+  /*
+   * FLAG_NO_RECORDED_VALUE is how the prometheus receiver forwards a
+   * Prometheus staleness marker: the series just disappeared. Folding it
+   * would count a deleted volume as still present for one more batch.
+   */
+  if ((Number(data.datapoint["flags"]) & 1) === 1) {
+    return;
+  }
+
   const valueFromInt: number | null = toNumberOrNull(data.datapoint["asInt"]);
   const valueFromDouble: number | null = toNumberOrNull(
     data.datapoint["asDouble"],
@@ -612,7 +653,7 @@ export function bufferStorageArraySnapshotMetric(data: {
     array.systemId = array.systemId || label("system_id");
     array.osName = array.osName || label("os");
     array.osVersion = array.osVersion || label("version");
-    markScrapedEndpoint(array, label(SCRAPE_ENDPOINT_LABEL));
+    markScrapedEndpoint(array, label(SCRAPE_ENDPOINT_LABEL), system);
     return;
   }
 
@@ -938,10 +979,8 @@ export function bufferStorageArraySnapshotMetric(data: {
         array.connectionsObservedAt = observedAt;
       }
     } else if (metricName === "purefa_host_space_bytes") {
+      // total_provisioned: the size of everything the host is connected to.
       applySpaceDimension(patch, label("space"), rawValue);
-    } else if (metricName === "purefa_host_space_size_bytes") {
-      // The provisioned size of everything the host is connected to.
-      patch.capacityBytes = Math.max(0, Math.trunc(rawValue));
     } else if (metricName === "purefa_host_space_data_reduction_ratio") {
       patch.dataReductionRatio = Math.max(0, rawValue);
     } else {
@@ -1144,7 +1183,10 @@ export function bufferStorageArraySnapshotMetric(data: {
 /*
  * Merge a patch into the per-array buffer — same semantics as
  * foldCephResourceSnapshot (identity first-non-null-wins, status/metrics
- * newest-observedAt-wins). `details` merges key by key, newest wins.
+ * newest-observedAt-wins). `details` merges key by key, newest wins. Two
+ * exceptions, both about one object reported by several series in the same
+ * scrape: a pod's lag, status and link details come from its worst replica
+ * link, and its mediator status from the worst array it spans.
  */
 export function foldStorageArrayResourceSnapshot(data: {
   buffer: Map<string, Map<string, StorageArrayResourceBufferEntry>>;
@@ -1206,7 +1248,17 @@ export function foldStorageArrayResourceSnapshot(data: {
     "writeBytesPerSec",
     "temperatureCelsius",
   ];
+  /*
+   * A replica link's status is decided by the worst-link rule below, not by
+   * observation order: the links of one pod share a scrape timestamp, so
+   * newest-wins would hand the pod whichever link happened to be folded
+   * last — a healthy link's status next to another link's lag.
+   */
+  const isReplicaLinkPatch: boolean = patch.replicationLagMs !== null;
   for (const k of latestKeys) {
+    if (k === "status" && isReplicaLinkPatch) {
+      continue;
+    }
     if (patch[k] !== null && (newer || existing[k] === null)) {
       (existing as unknown as JSONObject)[k] = patch[k];
     }
@@ -1214,14 +1266,17 @@ export function foldStorageArrayResourceSnapshot(data: {
 
   /*
    * A pod can have several replica links; the pod's lag is the worst one,
-   * and its status the status of that worst link.
+   * and its status — and the link details (peer, remote pod, direction) —
+   * those of that worst link.
    */
+  let isWorstReplicaLink: boolean = false;
   if (patch.replicationLagMs !== null) {
     if (
       existing.replicationLagMs === null ||
       patch.replicationLagMs >= existing.replicationLagMs
     ) {
       existing.replicationLagMs = patch.replicationLagMs;
+      isWorstReplicaLink = true;
       if (patch.status !== null) {
         existing.status = patch.status;
       }
@@ -1229,8 +1284,32 @@ export function foldStorageArrayResourceSnapshot(data: {
   }
 
   for (const detailKey of Object.keys(patch.details)) {
-    if (newer || existing.details[detailKey] === undefined) {
-      existing.details[detailKey] = patch.details[detailKey]!;
+    const incoming: JSONValue = patch.details[detailKey]!;
+    const current: JSONValue | undefined = existing.details[detailKey];
+    if (current === undefined) {
+      existing.details[detailKey] = incoming;
+      continue;
+    }
+    if (isReplicaLinkPatch) {
+      if (isWorstReplicaLink) {
+        existing.details[detailKey] = incoming;
+      }
+      continue;
+    }
+    /*
+     * A stretched pod reports its mediator once per array it spans, all in
+     * the same scrape. One array that cannot reach the mediator is the fact
+     * worth showing, so a status other than `online` wins over `online`
+     * whatever the order.
+     */
+    if (detailKey === "mediatorStatus") {
+      if (incoming !== "online" && (current === "online" || newer)) {
+        existing.details[detailKey] = incoming;
+      }
+      continue;
+    }
+    if (newer) {
+      existing.details[detailKey] = incoming;
     }
   }
 
@@ -1245,9 +1324,11 @@ export function foldStorageArrayResourceSnapshot(data: {
  * volumes, a volume's count is the hosts it is connected to. That series
  * comes from the hosts endpoint, so the volumes it names are written from
  * the hosts batch too (connectionCount only — every other column COALESCEs
- * on upsert, so the volumes batch's values are never blanked). Nothing is
- * touched when the batch carried no connections series, so a volumes scrape
- * never zeroes a count the hosts scrape set.
+ * on upsert, so the volumes batch's values are never blanked). Those rows
+ * are marked fromConnectionsOnly so deriveStorageArraySnapshotExtras never
+ * counts them as volumes. Nothing is touched when the batch carried no
+ * connections series, so a volumes scrape never zeroes a count the hosts
+ * scrape set.
  */
 export function getStorageArrayResourceRows(
   entries: Array<StorageArrayResourceBufferEntry>,
@@ -1284,6 +1365,7 @@ export function getStorageArrayResourceRows(
       );
     volume.name = volumeName;
     volume.connectionCount = hosts.size;
+    volume.fromConnectionsOnly = true;
     rows.push(volume);
   }
 
@@ -1353,7 +1435,8 @@ export function deriveStorageArraySnapshotExtras(
     snap.emptyBytes !== null
   ) {
     extras.capacityUsedPercent = round2(
-      ((snap.capacityBytes - snap.emptyBytes) / snap.capacityBytes) * 100,
+      (Math.max(0, snap.capacityBytes - snap.emptyBytes) / snap.capacityBytes) *
+        100,
     );
   }
   if (snap.dataReductionRatio !== null) {
@@ -1366,11 +1449,18 @@ export function deriveStorageArraySnapshotExtras(
     extras.warningAlertCount = snap.warningAlertKeys.size;
   }
 
+  /*
+   * Only objects the batch reported through their own series count. A
+   * volume getStorageArrayResourceRows synthesized from the hosts
+   * endpoint's connection list is not a sighting: a volumes scrape that
+   * listed no volumes while purefa_host_connections_info still named two
+   * must report volumeCount 0, not 2.
+   */
   const countKind: (kind: StorageArrayResourceKind) => number = (
     kind: StorageArrayResourceKind,
   ) => {
     return entries.filter((e: StorageArrayResourceBufferEntry) => {
-      return e.kind === kind;
+      return e.kind === kind && !e.fromConnectionsOnly;
     }).length;
   };
 
@@ -1405,14 +1495,23 @@ export function deriveStorageArraySnapshotExtras(
         return HARDWARE_KINDS.has(e.kind);
       },
     );
+    /*
+     * One physical part can be several rows under one name: a failed
+     * FlashArray drive is its drive bay (Hardware, critical) AND the drive
+     * in it (Drive, failed); a controller is a Hardware and a Controller
+     * row. Count distinct component names, so one failed drive is one
+     * unhealthy component — the same rule getInventorySummary applies.
+     */
+    const unhealthyNames: Set<string> = new Set();
     for (const component of hardware) {
       if (isUnhealthyComponentStatus(component.status)) {
-        unhealthyHardware++;
+        unhealthyNames.add(component.externalId.toLowerCase());
       }
       if (isCriticalComponentStatus(component.status)) {
         criticalHardware = true;
       }
     }
+    unhealthyHardware = unhealthyNames.size;
     if (snap.sawHardware) {
       extras.hardwareComponentCount = entries.filter(
         (e: StorageArrayResourceBufferEntry) => {

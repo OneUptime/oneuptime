@@ -22,10 +22,11 @@ export enum StorageArrayResourceScope {
 /*
  * Optional narrowing of a storage array monitor to one object. Each filter
  * becomes an equality filter on the datapoint label the platform uses for
- * that object (see StorageArrayMetricCatalog.getResourceFilterLabel):
+ * that object (see getStorageArrayObjectLabel in StorageArrayMetricCatalog):
  * FlashArray volumes, pods and directories carry `name`, hosts carry
  * `host`, hardware carries `component_name`; FlashBlade file systems,
- * buckets and hardware carry `name`.
+ * buckets and hardware carry `name`. Replica link series carry the pod as
+ * `local_pod` — pass the query's metric name to resolve that.
  */
 export interface StorageArrayResourceFilters {
   volumeName?: string | undefined;

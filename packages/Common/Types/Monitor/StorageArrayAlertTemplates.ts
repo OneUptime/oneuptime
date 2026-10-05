@@ -10,7 +10,7 @@ import { FilterType } from "./CriteriaFilter";
 import MonitorStepStorageArrayMonitor from "./MonitorStepStorageArrayMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
-import StorageSystem from "../StorageArray/StorageSystem";
+import StorageSystem, { StorageSystemUtil } from "../StorageArray/StorageSystem";
 
 export type StorageArrayAlertTemplateCategory =
   | "Array Health"
@@ -355,7 +355,7 @@ const faCapacityCriticalTemplate: StorageArrayAlertTemplate =
     id: "purefa-capacity-critical",
     name: "Capacity Above 90%",
     description:
-      "Alert when more than 90% of the FlashArray's usable capacity is in use — Pure's second capacity alert threshold, where the array is close to refusing writes.",
+      "Alert when more than 90% of the FlashArray's usable capacity is in use (purefa_array_space_utilization) — Pure's second capacity alert threshold, where the array is close to refusing writes.",
     category: "Capacity",
     severity: "Critical",
     storageSystem: FA,
@@ -621,7 +621,7 @@ const fbCapacityCriticalTemplate: StorageArrayAlertTemplate =
     id: "purefb-capacity-critical",
     name: "Capacity Above 90%",
     description:
-      "Alert when more than 90% of the FlashBlade's usable capacity is in use.",
+      "Alert when more than 90% of the FlashBlade's usable capacity is in use (purefb_array_space_utilization, type array).",
     category: "Capacity",
     severity: "Critical",
     storageSystem: FB,
@@ -751,7 +751,9 @@ export function getAllStorageArrayAlertTemplates(): Array<StorageArrayAlertTempl
 
 /*
  * The templates for one platform. An array whose platform is not known yet
- * (no batch has reported it) gets every template.
+ * (no batch has reported it) gets every template, each named with its
+ * platform — FlashArray and FlashBlade both have a "Capacity Above 80%", and
+ * the two must be told apart in one list.
  */
 export function getStorageArrayAlertTemplatesForSystem(
   system: string | null | undefined,
@@ -762,7 +764,21 @@ export function getStorageArrayAlertTemplatesForSystem(
         return template.storageSystems.includes(system as StorageSystem);
       },
     );
-  return forSystem.length > 0 ? forSystem : getAllStorageArrayAlertTemplates();
+
+  if (forSystem.length > 0) {
+    return forSystem;
+  }
+
+  return getAllStorageArrayAlertTemplates().map(
+    (template: StorageArrayAlertTemplate) => {
+      const platforms: string = template.storageSystems
+        .map((templateSystem: StorageSystem) => {
+          return StorageSystemUtil.getShortName(templateSystem);
+        })
+        .join(", ");
+      return { ...template, name: `${template.name} (${platforms})` };
+    },
+  );
 }
 
 export function getStorageArrayAlertTemplatesByCategory(

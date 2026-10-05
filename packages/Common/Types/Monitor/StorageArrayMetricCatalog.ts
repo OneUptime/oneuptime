@@ -31,6 +31,13 @@ export interface StorageArrayMetricDefinition {
   storageSystems: Array<StorageSystem>;
   defaultAggregation: MetricsAggregationType;
   defaultResourceScope: StorageArrayResourceScope;
+  /*
+   * The datapoint label naming the object, when this metric does not use
+   * the one its scope normally does (getStorageArrayObjectLabel): replica
+   * link series name their pod `local_pod`, network interface series name
+   * the interface `name`.
+   */
+  objectLabel?: string | undefined;
   unit?: string;
 }
 
@@ -453,6 +460,7 @@ const storageArrayMetricCatalog: Array<StorageArrayMetricDefinition> = [
     storageSystems: FA,
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: StorageArrayResourceScope.Pod,
+    objectLabel: "local_pod",
     unit: "ms",
   },
   {
@@ -465,6 +473,7 @@ const storageArrayMetricCatalog: Array<StorageArrayMetricDefinition> = [
     storageSystems: FA,
     defaultAggregation: MetricsAggregationType.Avg,
     defaultResourceScope: StorageArrayResourceScope.Pod,
+    objectLabel: "local_pod",
     unit: "ms",
   },
   {
@@ -541,6 +550,7 @@ const storageArrayMetricCatalog: Array<StorageArrayMetricDefinition> = [
     storageSystems: FA,
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: StorageArrayResourceScope.Hardware,
+    objectLabel: "name",
     unit: "errors/s",
   },
 
@@ -880,12 +890,28 @@ export function getAllStorageArrayMetricCategories(): Array<StorageArrayMetricCa
 /*
  * The datapoint label that names one object of a resource scope on a
  * platform — the label a resource filter equality-filters and a per-object
- * template groups by.
+ * template groups by. Pass the query's metric name when there is one: a few
+ * series name their object with a different label than the rest of their
+ * scope (purefa_pod_replica_links_* carry the pod as `local_pod`), and a
+ * filter on the scope's usual label would match none of them.
  */
 export function getStorageArrayObjectLabel(
   scope: StorageArrayResourceScope,
   system: string | null | undefined,
+  metricName?: string | undefined,
 ): string | null {
+  /*
+   * Only for the metric's own scope: a filter for another kind of object on
+   * this query (a volume filter on a replica-link series) keeps its usual
+   * label rather than being rewritten onto this metric's.
+   */
+  const metric: StorageArrayMetricDefinition | undefined = metricName
+    ? getStorageArrayMetricByMetricName(metricName)
+    : undefined;
+  if (metric?.objectLabel && metric.defaultResourceScope === scope) {
+    return metric.objectLabel;
+  }
+
   switch (scope) {
     case StorageArrayResourceScope.Host:
       return "host";

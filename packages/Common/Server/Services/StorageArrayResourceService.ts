@@ -96,10 +96,24 @@ export const UNHEALTHY_HARDWARE_STATUSES: Array<string> = [
   "not ready",
 ];
 
+/*
+ * The subset that makes the array's own health Critical — the same set the
+ * snapshot scan's isCriticalComponentStatus uses, so a row the UI paints
+ * critical is exactly a row that turned StorageArray.healthStatus Critical
+ * (a FlashBlade component reporting purefb_hardware_health 0 is `unhealthy`).
+ */
+// The kinds that describe physical parts of the array.
+export const HARDWARE_KINDS: Array<string> = [
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.Controller,
+];
+
 export const CRITICAL_HARDWARE_STATUSES: Array<string> = [
   "critical",
   "failed",
   "missing",
+  "unhealthy",
 ];
 
 /*
@@ -158,13 +172,19 @@ const COALESCED_COLUMNS: Array<string> = UPSERT_COLUMNS.map(
  * oversized value would abort the whole 500-row INSERT chunk it rides in.
  * Clamp per value instead, so one pathological volume name can never drop
  * the rest of the scrape. The identity clamps here are the only ones, so
- * a truncated externalId stays stable from scrape to scrape.
+ * a truncated externalId stays stable from scrape to scrape. An Invalid Date
+ * would fail the NOT NULL timestamptz cast the same way, so it falls back to
+ * now — the snapshot scan's own contract for an unparseable timestamp.
  */
 function sanitizeResource(
   r: ParsedStorageArrayResource,
 ): ParsedStorageArrayResource {
   return {
     ...r,
+    lastSeenAt:
+      r.lastSeenAt instanceof Date && !isNaN(r.lastSeenAt.getTime())
+        ? r.lastSeenAt
+        : OneUptimeDate.getCurrentDate(),
     kind: truncateShortText(r.kind),
     externalId: truncateLongText(r.externalId),
     name: truncateLongText(r.name),
@@ -177,6 +197,44 @@ function sanitizeResource(
   };
 }
 
+/*
+ * Collapse entries that share a conflict key AFTER the clamp — same guard as
+ * VMwareResourceService. The snapshot scan keys its buffer by (kind,
+ * externalId), so the sanitized keys are normally unique already, but two
+ * names that differ only past character 500 clamp to the same key, and
+ * Postgres refuses two VALUES tuples with one conflict target in a single
+ * statement (SQLSTATE 21000 "ON CONFLICT DO UPDATE command cannot affect row
+ * a second time") — which would abort the whole 500-row chunk. Keep the
+ * newest entry per key (the dominance guard would have picked it anyway)
+ * and preserve first-seen order so chunk boundaries stay deterministic.
+ */
+function dedupeByConflictKey(entries: Array<ParsedStorageArrayResource>): {
+  entries: Array<ParsedStorageArrayResource>;
+  droppedCount: number;
+} {
+  const byKey: Map<string, ParsedStorageArrayResource> = new Map();
+  let droppedCount: number = 0;
+
+  for (const entry of entries) {
+    const key: string = `${entry.kind}|${entry.externalId}`;
+    const existing: ParsedStorageArrayResource | undefined = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, entry);
+      continue;
+    }
+    droppedCount++;
+    if (entry.lastSeenAt.getTime() >= existing.lastSeenAt.getTime()) {
+      // Map.set on an existing key keeps its original insertion position.
+      byKey.set(key, entry);
+    }
+  }
+
+  if (droppedCount === 0) {
+    return { entries, droppedCount };
+  }
+  return { entries: Array.from(byKey.values()), droppedCount };
+}
+
 function finiteOrNull(value: number | null | undefined): number | null {
   if (value === null || value === undefined || !isFinite(value)) {
     return null;
@@ -184,12 +242,34 @@ function finiteOrNull(value: number | null | undefined): number | null {
   return value;
 }
 
+/*
+ * 2^63, the first value a Postgres bigint cannot hold. One out-of-range
+ * value fails the cast and with it the whole chunk, so it is dropped to NULL
+ * (COALESCE then keeps the last good value) instead.
+ */
+const BIGINT_LIMIT: number = 2 ** 63;
+
+// Largest value a Postgres integer column holds.
+const INTEGER_MAX: number = 2147483647;
+
 function bigintOrNull(value: number | null | undefined): string | null {
+  const finite: number | null = finiteOrNull(value);
+  if (finite === null || finite < 0 || finite >= BIGINT_LIMIT) {
+    return null;
+  }
+  return Math.trunc(finite).toString();
+}
+
+/*
+ * connectionCount is an integer column: a NaN or Infinity would fail the
+ * cast and abort the chunk, and a negative count means nothing.
+ */
+function countOrNull(value: number | null | undefined): number | null {
   const finite: number | null = finiteOrNull(value);
   if (finite === null || finite < 0) {
     return null;
   }
-  return Math.trunc(finite).toString();
+  return Math.min(INTEGER_MAX, Math.trunc(finite));
 }
 
 function hasAnyMetric(r: ParsedStorageArrayResource): boolean {
@@ -236,8 +316,8 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const resources: Array<ParsedStorageArrayResource> = data.resources.map(
-      (r: ParsedStorageArrayResource) => {
+    const sanitizedResources: Array<ParsedStorageArrayResource> =
+      data.resources.map((r: ParsedStorageArrayResource) => {
         const sanitized: ParsedStorageArrayResource = sanitizeResource(r);
         if (sanitized.externalId !== r.externalId) {
           logger.warn(
@@ -245,8 +325,18 @@ export class Service extends DatabaseService<Model> {
           );
         }
         return sanitized;
-      },
-    );
+      });
+
+    const deduped: {
+      entries: Array<ParsedStorageArrayResource>;
+      droppedCount: number;
+    } = dedupeByConflictKey(sanitizedResources);
+    if (deduped.droppedCount > 0) {
+      logger.warn(
+        `StorageArrayResource bulkUpsert dropped ${deduped.droppedCount} duplicate (kind, externalId) ${deduped.droppedCount === 1 ? "entry" : "entries"} after clamping, keeping the newest lastSeenAt per key (storage array ${data.storageArrayId.toString()}).`,
+      );
+    }
+    const resources: Array<ParsedStorageArrayResource> = deduped.entries;
 
     // Chunk to keep individual statement parameter counts reasonable.
     for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
@@ -289,9 +379,7 @@ export class Service extends DatabaseService<Model> {
           finiteOrNull(r.writeBytesPerSec),
           finiteOrNull(r.temperatureCelsius),
           finiteOrNull(r.replicationLagMs),
-          r.connectionCount === null || r.connectionCount === undefined
-            ? null
-            : Math.trunc(r.connectionCount),
+          countOrNull(r.connectionCount),
           r.details && Object.keys(r.details).length > 0
             ? JSON.stringify(r.details)
             : null,
@@ -373,6 +461,14 @@ export class Service extends DatabaseService<Model> {
   /**
    * Compute the sidebar/overview summary in Postgres: counts per kind plus
    * the unhealthy hardware count, in a single round-trip.
+   *
+   * One physical part can be several rows: a failed FlashArray drive is both
+   * its drive bay (Hardware, critical) and the drive in it (Drive, failed),
+   * and a controller is both a Hardware and a Controller row, all under the
+   * same name. The unhealthy count is therefore of distinct component names,
+   * not rows — one failed drive is one unhealthy component — exactly as
+   * deriveStorageArraySnapshotExtras counts it for the
+   * StorageArray.unhealthyHardwareCount column.
    */
   @CaptureSpan()
   public async getInventorySummary(data: {
@@ -382,11 +478,17 @@ export class Service extends DatabaseService<Model> {
     const rows: Array<{
       kind: string;
       count: string;
-      unhealthyCount: string;
+      unhealthyHardwareCount: string | null;
     }> = await this.getRepository().manager.query(
       `SELECT "kind",
               COUNT(*)::text AS count,
-              COUNT(*) FILTER (WHERE lower("status") = ANY($3::text[]))::text AS "unhealthyCount"
+              (
+                SELECT COUNT(DISTINCT lower(h."externalId"))
+                FROM "StorageArrayResource" h
+                WHERE h."projectId" = $1 AND h."storageArrayId" = $2 AND h."deletedAt" IS NULL
+                  AND h."kind" = ANY($4::text[])
+                  AND lower(h."status") = ANY($3::text[])
+              )::text AS "unhealthyHardwareCount"
        FROM "StorageArrayResource"
        WHERE "projectId" = $1 AND "storageArrayId" = $2 AND "deletedAt" IS NULL
        GROUP BY "kind"`,
@@ -394,6 +496,7 @@ export class Service extends DatabaseService<Model> {
         data.projectId.toString(),
         data.storageArrayId.toString(),
         UNHEALTHY_HARDWARE_STATUSES,
+        HARDWARE_KINDS,
       ],
     );
 
@@ -401,13 +504,9 @@ export class Service extends DatabaseService<Model> {
     let unhealthyHardwareCount: number = 0;
     for (const row of rows) {
       countsByKind[row.kind] = parseInt(row.count, 10) || 0;
-      if (
-        row.kind === StorageArrayResourceKind.Hardware ||
-        row.kind === StorageArrayResourceKind.Drive ||
-        row.kind === StorageArrayResourceKind.Controller
-      ) {
-        unhealthyHardwareCount += parseInt(row.unhealthyCount, 10) || 0;
-      }
+      // The same scalar rides on every row.
+      unhealthyHardwareCount =
+        parseInt(row.unhealthyHardwareCount || "0", 10) || 0;
     }
 
     return {

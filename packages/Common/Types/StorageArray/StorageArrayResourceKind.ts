@@ -83,10 +83,18 @@ export class StorageArrayResourceKindUtil {
   public static getKindsForSystem(
     system: string | null | undefined,
   ): Array<StorageArrayResourceKind> {
-    if (!system) {
+    /*
+     * Own keys only: `storage.system` is agent-supplied, and a well-formed
+     * value such as `constructor` would otherwise index Object.prototype
+     * and hand callers a function instead of a list.
+     */
+    if (
+      !system ||
+      !Object.prototype.hasOwnProperty.call(KINDS_BY_SYSTEM, system)
+    ) {
       return [];
     }
-    return KINDS_BY_SYSTEM[system as StorageSystem] || [];
+    return KINDS_BY_SYSTEM[system as StorageSystem];
   }
 
   public static isKindForSystem(
@@ -98,12 +106,26 @@ export class StorageArrayResourceKindUtil {
     );
   }
 
+  /*
+   * `kind` is a plain string column, so a row written by a newer build (a
+   * kind this one does not know) is shown under its raw kind rather than
+   * crashing the page that renders it.
+   */
   public static getSingularLabel(kind: StorageArrayResourceKind): string {
-    return KIND_LABELS[kind].singular;
+    return StorageArrayResourceKindUtil.getLabels(kind)?.singular || kind;
   }
 
   public static getPluralLabel(kind: StorageArrayResourceKind): string {
-    return KIND_LABELS[kind].plural;
+    return StorageArrayResourceKindUtil.getLabels(kind)?.plural || kind;
+  }
+
+  private static getLabels(
+    kind: StorageArrayResourceKind,
+  ): { singular: string; plural: string } | undefined {
+    if (!Object.prototype.hasOwnProperty.call(KIND_LABELS, kind)) {
+      return undefined;
+    }
+    return KIND_LABELS[kind];
   }
 }
 
