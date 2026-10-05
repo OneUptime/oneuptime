@@ -53,7 +53,8 @@ Out of the box, an investigation can only use the telemetry your agents ship. Fo
 Each cluster has an **AI** section in the dashboard (Kubernetes → cluster → AI):
 
 - **Agent** — the cluster's **AI agent** page: whether the agent is connected, what AI may do on the cluster, and anything that needs attention, each with the step that fixes it. The same explanation appears on the incident's investigation panel when AI had to investigate with OneUptime data only.
-- **Insights** — the cluster's **AI Insights** page: what OneUptime AI investigated and changed on the cluster (see [Everything AI did on a cluster](#everything-ai-did-on-a-cluster)).
+- **Insights** — the cluster's **AI Insights** page: what OneUptime AI has learned about the cluster from its own work there, and what deserves your attention (see [What AI learned on a cluster](#what-ai-learned-on-a-cluster)).
+- **Logs** — the cluster's **AI Logs** page: everything OneUptime AI did on the cluster, newest first (see [Everything AI did on a cluster](#everything-ai-did-on-a-cluster)).
 
 ### The Kubernetes AI agent — on by default, read-only
 
@@ -142,9 +143,22 @@ The chart's RBAC is a separate layer from the policy, and it bounds **where** th
 
 Be clear about what that write access amounts to, though: **patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets.** A pod template can name any image, ServiceAccount and Secret volume, and RBAC has no "patch, but not the pod template" verb — that no rule names `exec` or Secrets does not change it. That is why the policy refuses changing which ServiceAccount, security settings, volumes, command or Secret wiring a pod runs with (pod-template security patches, patches that replace the pod spec or a whole `containers` list, `set serviceaccount`, `create … --image`, `expose --overrides`, non-JSON patch bodies), why the protected namespaces always need a human, and why `aiAgent.remediation.namespaces` exists. The policy does **not** refuse changing an image: `set image`, or a patch of an image field, is a riskier change — the new image runs as the workload's own ServiceAccount, with its Secrets — that a human approves, unless the cluster bypasses approvals or its allowlist names the command. Without `aiAgent.remediation.namespaces`, the write role is bound cluster-wide — kube-system, kube-public, kube-node-lease and the agent's own namespace included, since RBAC cannot leave namespaces out of a cluster-wide binding — and there the policy and the AI agent hold the line, not RBAC. With it, the chart binds the role in exactly the namespaces you list, OneUptime refuses a write anywhere else when it is proposed or approved, and the AI agent refuses it again before it spawns kubectl.
 
+### What AI learned on a cluster
+
+The cluster's **AI Insights** page (AI → Insights) sums up the last 30 days of OneUptime AI's work on the cluster and says what deserves your attention:
+
+- **Needs attention** — most important first, each with a link to act on it: fixes AI applied that did not resolve their problem, a problem AI keeps investigating, an open High or Medium [insight](#insights-proactive-detection) about the cluster's own telemetry, fixes waiting for approval, investigations that failed or timed out, commands the agent never picked up, findings your team rejected or that did not match the root cause recorded later, and a part of the cluster that shows up in at least half of the investigations.
+- **Last 30 days** — how many investigations, problems, fixes and commands there were and how many of them failed, with investigations per day.
+- **Problems OneUptime AI investigated** — the incidents and alerts AI investigated, grouped by what raised them (one monitor is one problem, however many pods or nodes it fired for), the most investigated first: how often, which namespaces, workloads, pods or nodes they hit, what the latest investigation found, what happened to the fixes AI proposed, and what your team and the grader said of the findings. A problem investigated more than once is marked **Recurring**.
+- **Hotspots** — the parts of the cluster that keep showing up in what AI investigated.
+- **Fixes** — where the fixes AI proposed ended up (applied automatically or after approval, waiting for approval, dismissed, no fix found) and whether the applied ones resolved the problem.
+- **Preventive insights** — open insights the detectors filed against the cluster's own telemetry.
+
+Everything on the page comes from what OneUptime already recorded — the investigations and the incidents and alerts they were about, what they concluded, the verdicts on them, the fixes and the commands — and no model is called to build it. Anyone who can see the cluster can see the page, and it only names incidents and alerts they may read.
+
 ### Everything AI did on a cluster
 
-The cluster's **AI Insights** page (AI → Insights) shows what OneUptime AI investigated and changed there: each investigation with its incident or alert and its summary, each fix it proposed or ran with its status, and every kubectl command — investigation or fix — with the command, its status and when it ran.
+The cluster's **AI Logs** page (AI → Logs) is the record of everything OneUptime AI did there, newest first: each investigation with its incident or alert and its summary, each fix it proposed or ran with its status, and every kubectl command — investigation or fix — with the command, its status and when it ran. An investigation's summary is its TL;DR or, when no TL;DR could be written, the summary its report opens with. This page used to be called AI Insights; a bookmark of its old address now opens the AI Insights page, which links here.
 
 ### Through a Runner instead (advanced)
 
@@ -154,7 +168,7 @@ Clusters set up with an earlier chart (`aiAccess.enabled=true`) reach OneUptime 
 
 ## Infrastructure access — Docker, Podman, Swarm, Proxmox, VMware, Ceph, databases and hosts
 
-The same kind of access exists for the rest of your infrastructure. A resource AI agent (image `oneuptime/resource-ai-agent`) runs next to the collector of a Docker or Podman host, a Docker Swarm cluster, a Proxmox cluster, a VMware vCenter, a Ceph cluster or a database server — or on its own on a Linux host — and lets OneUptime AI run read-only commands there while it investigates (`docker logs`, `pvesh get`, `govc vm.info`, `ceph health detail`, a fixed catalog of database diagnostics, `systemctl status`, `journalctl`, …) and, only when you start the agent with `ONEUPTIME_AI_ALLOW_WRITES=true` and turn fixes on for the resource, apply fixes with the same four modes and the same three checks as a Kubernetes cluster. Each such resource has the same **AI agent** and **Insights** pages. See [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents) for how to install them, what each one may run, and its security model.
+The same kind of access exists for the rest of your infrastructure. A resource AI agent (image `oneuptime/resource-ai-agent`) runs next to the collector of a Docker or Podman host, a Docker Swarm cluster, a Proxmox cluster, a VMware vCenter, a Ceph cluster or a database server — or on its own on a Linux host — and lets OneUptime AI run read-only commands there while it investigates (`docker logs`, `pvesh get`, `govc vm.info`, `ceph health detail`, a fixed catalog of database diagnostics, `systemctl status`, `journalctl`, …) and, only when you start the agent with `ONEUPTIME_AI_ALLOW_WRITES=true` and turn fixes on for the resource, apply fixes with the same four modes and the same three checks as a Kubernetes cluster. Each such resource has the same **AI agent**, **Insights** and **Logs** pages. See [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents) for how to install them, what each one may run, and its security model.
 
 ## Quiet mode
 
