@@ -15,10 +15,10 @@ import path from "path";
  *
  *  2. The hooks themselves write nothing that a refused or failed write would
  *     leave behind. Making room for a row - taking a project's default from
- *     its other rows, moving the rows of a numbered list, replacing a row,
- *     adding a note - belongs in onCreateSuccess / onUpdateSuccess, once the
- *     write succeeded (ProjectDefaultRow, ContiguousOrder), or in
- *     onBeforeUpdateUniqueCheck, once every permission check has passed.
+ *     its other rows, moving the rows of a numbered list, replacing a row -
+ *     belongs in onCreateSuccess / onUpdateSuccess, once the write succeeded
+ *     (ProjectDefaultRow, ContiguousOrder), or in onUpdatePermitted, once
+ *     every permission check has passed, for what must come before it.
  *     The second half reads every service's onBefore* hooks - and the
  *     helpers of the same class they call - for writes, and for calls that
  *     charge, mail or change something outside OneUptime, and holds each one
@@ -57,6 +57,8 @@ const CASCADE_REASON: string =
   "Deletes the rows that reference the deleted one first. DatabaseService has already narrowed the delete to the rows the caller may delete, so only their children go.";
 const FEED_REASON: string =
   "Records the removal in the on-call policy's feed (and its workspace channel) while the row can still be read. DatabaseService has already narrowed the delete to the rows the caller may delete, and nothing in the hook refuses after it.";
+const NOTE_REASON: string =
+  "Creates the note that comes with the state change as the caller, so the note's own permission check applies: it is only ever a note the caller may add anyway. It goes first so that a note the caller may not add refuses the state change too, rather than failing after the change is saved.";
 const TIMELINE_REASON: string =
   "Joins the neighbours of the deleted timeline entry so the timeline has no gap. DatabaseService has already narrowed the delete to the entries the caller may delete.";
 
@@ -101,6 +103,8 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "WorkspaceUserAuthTokenService.ts#onBeforeDelete": CASCADE_REASON,
   "BillingPaymentMethodService.ts#onBeforeDelete":
     "Detaches the card being deleted at the payment provider, which refuses to detach a project's last card. DatabaseService has already narrowed the delete to the cards the caller may delete.",
+  "AlertStateTimelineService.ts#onBeforeCreate": NOTE_REASON,
+  "ScheduledMaintenanceStateTimelineService.ts#onBeforeCreate": NOTE_REASON,
   "DatabaseServerService.ts#onBeforeCreate":
     "A read: hasKubernetesClusters runs a SELECT through the repository's manager.",
   "NetworkSiteService.ts#onBeforeCreate":
@@ -430,6 +434,16 @@ describe("DatabaseService checks the caller before any write hook", () => {
     ]);
   });
 
+  test("an update runs onUpdatePermitted only once every permission check has passed, and before the write", () => {
+    expectInOrder("_updateBy", [
+      "this.onBeforeUpdate(",
+      "ModelPermission.checkUpdateQueryPermissions(",
+      "this.onBeforeUpdateUniqueCheck(",
+      "this.onUpdatePermitted(",
+      "this.getRepository().update(",
+    ]);
+  });
+
   test.each(["_deleteBy", "hardDeleteBy"])(
     "%s finds the rows the caller may delete before onBeforeDelete",
     (method: string) => {
@@ -514,8 +528,6 @@ describe("service write hooks write nothing a refused or failed write would leav
     "StatusPageGroupService.ts",
     "StatusPageResourceService.ts",
     "StatusPageSubscriberService.ts",
-    "AlertStateTimelineService.ts",
-    "ScheduledMaintenanceStateTimelineService.ts",
     "ProjectService.ts",
   ])(
     "%s makes room for a row only after the write: nothing in onBeforeCreate or onBeforeUpdate",

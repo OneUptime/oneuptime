@@ -289,17 +289,30 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
         createBy.miscDataProps as JSONObject | undefined
       )?.["publicNote"] as string | undefined;
 
-      /*
-       * The public note that rides along with the state change is written
-       * once the state change itself is saved (onCreateSuccess), so a change
-       * that is refused or fails leaves no note behind.
-       */
       if (publicNote) {
+        const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
+          new ScheduledMaintenancePublicNote();
+        scheduledMaintenancePublicNote.scheduledMaintenanceId =
+          createBy.data.scheduledMaintenanceId;
+        scheduledMaintenancePublicNote.note = publicNote;
+        scheduledMaintenancePublicNote.postedAt = createBy.data.startsAt;
+        scheduledMaintenancePublicNote.createdAt = createBy.data.startsAt;
+        scheduledMaintenancePublicNote.projectId = createBy.data.projectId!;
+        scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          Boolean(createBy.data.shouldStatusPageSubscribersBeNotified);
+
         // mark status page subscribers as notified for this state change because we dont want to send duplicate (two) emails one for public note and one for state change.
-        if (createBy.data.shouldStatusPageSubscribersBeNotified) {
+        if (
+          scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated
+        ) {
           createBy.data.subscriberNotificationStatus =
             StatusPageSubscriberNotificationStatus.Success;
         }
+
+        await ScheduledMaintenancePublicNoteService.create({
+          data: scheduledMaintenancePublicNote,
+          props: createBy.props,
+        });
       }
 
       // Set notification status based on shouldStatusPageSubscribersBeNotified
@@ -466,24 +479,6 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
             createdItem.scheduledMaintenanceId?.toString(),
         } as LogAttributes);
       }
-    }
-
-    if (onCreate.carryForward.publicNote) {
-      const scheduledMaintenancePublicNote: ScheduledMaintenancePublicNote =
-        new ScheduledMaintenancePublicNote();
-      scheduledMaintenancePublicNote.scheduledMaintenanceId =
-        createdItem.scheduledMaintenanceId;
-      scheduledMaintenancePublicNote.note = onCreate.carryForward.publicNote;
-      scheduledMaintenancePublicNote.postedAt = createdItem.startsAt!;
-      scheduledMaintenancePublicNote.createdAt = createdItem.startsAt!;
-      scheduledMaintenancePublicNote.projectId = createdItem.projectId!;
-      scheduledMaintenancePublicNote.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-        Boolean(createdItem.shouldStatusPageSubscribersBeNotified);
-
-      await ScheduledMaintenancePublicNoteService.create({
-        data: scheduledMaintenancePublicNote,
-        props: onCreate.createBy.props,
-      });
     }
 
     const scheduledMaintenanceState: ScheduledMaintenanceState | null =
