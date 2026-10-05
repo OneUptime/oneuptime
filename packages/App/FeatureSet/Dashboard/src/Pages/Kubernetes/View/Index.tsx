@@ -99,6 +99,7 @@ import GoldenMetricTile, {
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
+import KubernetesAiAgentStatusSummaryCard from "../Utils/KubernetesAiAgentStatusSummaryCard";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -3009,6 +3010,16 @@ const KubernetesClusterOverview: FunctionComponent<
             },
           ],
         }}
+      />
+
+      {/*
+       * Last on the page: the Kubernetes AI agent's connection, whether AI
+       * may investigate with kubectl, and how fixes run, linking to AI →
+       * Agent, where they are changed.
+       */}
+      <KubernetesAiAgentStatusSummaryCard
+        clusterId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
     </TimeRangeZoomScope>
   );

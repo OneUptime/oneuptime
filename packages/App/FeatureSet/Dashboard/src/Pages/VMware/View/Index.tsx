@@ -13,6 +13,9 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getVMwareVCenterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import Route from "Common/Types/API/Route";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import React, {
@@ -2626,6 +2629,16 @@ const VMwareVCenterOverview: FunctionComponent<
             },
           ],
         }}
+      />
+
+      {/*
+       * Last on the page: the VMware AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.VMwareVCenter)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
     </TimeRangeZoomScope>
   );

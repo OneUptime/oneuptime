@@ -20,6 +20,7 @@ const BADGE_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   on: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   automatic: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
   bypass: "bg-amber-50 text-amber-800 ring-amber-600/30",
+  danger: "bg-red-50 text-red-700 ring-red-600/20",
 };
 
 const BADGE_DOT_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
@@ -27,6 +28,7 @@ const BADGE_DOT_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   on: "bg-emerald-500",
   automatic: "bg-indigo-500",
   bypass: "bg-amber-500",
+  danger: "bg-red-500",
 };
 
 const ROW_ICON_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
@@ -34,6 +36,7 @@ const ROW_ICON_CLASSES: Readonly<Record<AiAccessBadgeTone, string>> = {
   on: "bg-emerald-50 text-emerald-600",
   automatic: "bg-indigo-50 text-indigo-600",
   bypass: "bg-amber-50 text-amber-600",
+  danger: "bg-red-50 text-red-600",
 };
 
 export function AiAccessBadgeElement(props: {

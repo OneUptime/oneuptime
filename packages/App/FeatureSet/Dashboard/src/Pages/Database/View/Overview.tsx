@@ -53,6 +53,9 @@ import DatabaseRuntimeSection from "../../../Components/DatabaseServer/DatabaseR
 import { getDatabaseRunsOnRoute } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { DATABASE_METRIC_DESCRIPTIONS } from "../../../Components/DatabaseServer/DatabaseMetricDescriptions";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import {
   DatabaseServerScopeSource,
   getDatabaseServerEndpointScopeKeys,
@@ -859,6 +862,20 @@ const DatabaseServerOverview: FunctionComponent<
           isLoading={telemetryLoading && isScoped}
           windowStart={chartWindow?.start ?? null}
           windowEnd={chartWindow?.end ?? null}
+        />
+      </div>
+
+      {/*
+       * Last on the page: the Database AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <div className="mt-6">
+        <ResourceAiAgentStatusSummaryCard
+          descriptor={getResourceAiAgentDescriptor(
+            AiResourceType.DatabaseServer,
+          )}
+          resourceId={modelId}
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
         />
       </div>
     </TimeRangeZoomScope>

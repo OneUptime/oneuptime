@@ -1,4 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words and looks "What AI may do" shares between a Kubernetes
@@ -11,8 +15,8 @@ import IconProp from "Common/Types/Icon/IconProp";
  * (KubernetesAiRemediationMode and ResourceAiRemediationMode), so either
  * enum reads as an AiFixesMode.
  *
- * Import-clean on purpose (Common types only), so the suites read it
- * without a browser.
+ * Import-clean on purpose (Common types and the translation helpers only),
+ * so the suites read it without a browser.
  */
 
 export type AiFixesMode =
@@ -29,8 +33,15 @@ export type AiFixesMode =
  *            approval).
  * automatic: some fixes run with nobody asked (Automatic).
  * bypass:    every allowed fix runs with nobody asked (Bypass approval).
+ * danger:    something that should work does not (an AI agent that went
+ *            offline, on the Overview's AI agent card).
  */
-export type AiAccessBadgeTone = "off" | "on" | "automatic" | "bypass";
+export type AiAccessBadgeTone =
+  | "off"
+  | "on"
+  | "automatic"
+  | "bypass"
+  | "danger";
 
 export interface AiAccessBadge {
   text: string;
@@ -83,10 +94,14 @@ export function getAiAccessCardDescription(noun: string): string {
 /*
  * What the Investigation row says when investigation is off. Off is not
  * "AI does nothing": it still investigates, with what OneUptime already
- * has, it just runs nothing on the place itself.
+ * has, it just runs nothing on the place itself. In the reader's language:
+ * the Overview's AI agent card shows it too.
  */
 export function getAiInvestigationOffSentence(noun: string): string {
-  return `AI does not run commands on this ${noun}. It still investigates with the data OneUptime already has.`;
+  return translateTemplate(
+    "AI does not run commands on this {{noun}}. It still investigates with the data OneUptime already has.",
+    { noun: translatableTerm(noun, { inSentence: true }) },
+  );
 }
 
 /*
