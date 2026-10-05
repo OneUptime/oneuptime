@@ -103,6 +103,18 @@ ENV_ARGS=(
   -e "VCENTER_PASSWORD=validate-only"
   -e "VCENTER_INSECURE_SKIP_VERIFY=true"
   -e "VCENTER_COLLECTION_INTERVAL=2m"
+  # The Storage Array Agent (a prometheus receiver scraping a FlashArray's
+  # native endpoint, or Pure's exporter sidecars). The prometheus receiver
+  # parses the scrape target and the TLS flag (an unquoted boolean), and the
+  # resource processor refuses to start on an empty array name — so give them
+  # the shapes install.sh writes.
+  -e "STORAGE_ARRAY_NAME=validate-only"
+  -e "STORAGE_SYSTEM=purestorage.flasharray"
+  -e "PURE_FA_ENDPOINT=flasharray.example.com"
+  -e "PURE_FA_API_TOKEN=validate-only"
+  -e "PURE_FB_ENDPOINT=flashblade.example.com"
+  -e "PURE_FB_API_TOKEN=validate-only"
+  -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
   # The Database Agent (one config per engine under agents/DatabaseAgent/
   # configs). The postgresql receiver splits the endpoint as host:port and
   # refuses an empty username or password, the TLS flags and the two event
@@ -163,6 +175,34 @@ for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent; do
   cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"
   validate "${agent}" "${WORK_DIR}/${agent}.yaml"
 done
+
+# The Storage Array Agent ships one config per way of reading an array:
+# docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the
+# FlashArray's native endpoint, or Pure's FlashArray / FlashBlade exporter).
+# Every one of them is validated.
+STORAGE_ARRAY_AGENT_CONFIGS=(
+  otel-collector-config.yaml
+  otel-collector-config.flasharray-exporter.yaml
+  otel-collector-config.flashblade.yaml
+)
+
+for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
+  cp "${REPO_ROOT}/agents/StorageArrayAgent/${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
+  validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
+done
+
+# STORAGE_ARRAY_NAME is stamped as storage.array.name by the resource
+# processor, which refuses to start on an empty value — so an agent whose
+# .env lost it fails loudly at startup instead of shipping data no array
+# can claim.
+if docker run --rm "${ENV_ARGS[@]}" -e "STORAGE_ARRAY_NAME=" "${STUB_MOUNTS[@]}" \
+  -v "${WORK_DIR}":/validate:ro "${COLLECTOR_IMAGE}" \
+  validate --config /validate/StorageArrayAgent-otel-collector-config.yaml >/dev/null 2>&1; then
+  echo "    FAILED: StorageArrayAgent started with an empty STORAGE_ARRAY_NAME"
+  failures=$((failures + 1))
+else
+  echo "==> StorageArrayAgent refuses an empty STORAGE_ARRAY_NAME: ok"
+fi
 
 # The Database Agent ships one config per receiver; install.sh downloads the
 # chosen one as otel-collector-config.yaml. Every one of them is validated.
@@ -288,6 +328,53 @@ console.log(listed.join(" "));
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
 validate "VMwareAgent, every optional metric its config lists enabled" \
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
+
+# Each Storage Array Agent config ships the syslog option commented out — a
+# `syslog/tcp` / `syslog/udp` receiver pair and a `logs` pipeline — and tells
+# users to uncomment it. Do exactly that (drop the `# ` each of those lines
+# carries) and validate every config once more, so the option a user turns
+# on is a config that starts. The YAML is checked to really carry both
+# receivers and the pipeline, so an uncomment that matched nothing fails
+# here instead of validating the config as shipped a second time.
+for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
+  node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [source, out] = process.argv.slice(1);
+const lines = [];
+let prefix = null;
+for (const line of fs.readFileSync(source, "utf8").split("\n")) {
+  const header = line.match(/^( *)# (syslog\/(?:tcp|udp)|logs):$/);
+  if (header) {
+    prefix = header[1];
+    lines.push(prefix + line.slice(prefix.length + 2));
+    continue;
+  }
+  if (prefix !== null && line.startsWith(prefix + "#   ")) {
+    lines.push(prefix + line.slice(prefix.length + 2));
+    continue;
+  }
+  prefix = null;
+  lines.push(line);
+}
+const text = lines.join("\n");
+const config = yaml.load(text);
+const logs = config.service.pipelines.logs;
+if (
+  !config.receivers["syslog/tcp"] ||
+  !config.receivers["syslog/udp"] ||
+  !logs ||
+  logs.receivers.join(",") !== "syslog/tcp,syslog/udp"
+) {
+  throw new Error(`${source}: uncommenting found no syslog receivers / logs pipeline`);
+}
+fs.writeFileSync(out, text);
+' "${REPO_ROOT}/agents/StorageArrayAgent/${config}" \
+    "${WORK_DIR}/StorageArrayAgent-syslog-${config}"
+  validate "StorageArrayAgent / ${config}, with the syslog receivers uncommented" \
+    "${WORK_DIR}/StorageArrayAgent-syslog-${config}"
+done
 
 # Each Database Agent config lists its receiver's other optional metrics in a
 # comment and tells users to enable any of them "the same way". A metric the

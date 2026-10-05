@@ -46,7 +46,7 @@ Os monitores vêm primeiro, à parte: as páginas de status enxergam um incident
 
 - **Monitores** — uma caixa de busca que anexa os monitores afetados pelo incidente (`monitors`). Uma página de status mostra o incidente, e avisa os seus assinantes, quando lista um desses monitores.
 - **Alterar status do monitor para** — opcional, e mostrado só quando há pelo menos um monitor escolhido. Aplica um status a cada monitor do incidente, de modo que declarar o incidente e marcar os monitores como degradados seja uma única ação. O status de um modelo aparece assim que você escolhe um monitor; sem monitor escolhido, nenhum status é salvo.
-- **Outros recursos afetados** — uma segunda caixa de busca para todo o resto que o incidente afeta: hosts, clusters do Kubernetes, hosts do Docker e do Podman, clusters do Proxmox, Ceph e Docker Swarm, vCenters, frotas de IoT, bancos de dados e serviços. São relações separadas do incidente (`hosts`, `kubernetesClusters`, `services` e mais).
+- **Outros recursos afetados** — uma segunda caixa de busca para todo o resto que o incidente afeta: hosts, clusters do Kubernetes, hosts do Docker e do Podman, clusters do Proxmox, Ceph e Docker Swarm, vCenters, arrays de armazenamento, frotas de IoT, bancos de dados e serviços. São relações separadas do incidente (`hosts`, `kubernetesClusters`, `services` e mais).
 
 O cartão **Recursos afetados** do incidente pergunta do mesmo jeito quando você o edita depois.
 

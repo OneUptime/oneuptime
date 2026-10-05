@@ -345,6 +345,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/ceph-monitor",
       },
       {
+        title: "Storage Array Monitor",
+        url: "/docs/monitor/storage-array-monitor",
+      },
+      {
         title: "IoT Device Monitor",
         url: "/docs/monitor/iot-device-monitor",
       },
@@ -843,6 +847,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Ceph Agent",
         url: "/docs/telemetry/ceph",
+      },
+      {
+        title: "Storage Array Agent",
+        url: "/docs/telemetry/storage-arrays",
       },
       {
         title: "Docker Swarm Agent",

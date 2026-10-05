@@ -1,0 +1,94 @@
+services:
+  oneuptime-storage-array-agent:
+    # Upstream collector, pinned. There is no oneuptime/storage-array-agent
+    # image — the agent is entirely defined by the collector config mounted
+    # below, which install.sh downloads next to this file. This is the
+    # version Tests/Ops/validate-collector-configs.sh validates the three
+    # configs against; bump the two together.
+    image: otel/opentelemetry-collector-contrib:0.161.0
+    # One agent monitors ONE array. To monitor a second array from the same
+    # machine, install it into another directory and give its container
+    # another name here (see README.md).
+    container_name: oneuptime-storage-array-agent
+    volumes:
+      # Which shipped config runs, chosen by STORAGE_ARRAY_COLLECTOR_CONFIG
+      # in .env (install.sh sets it, together with COMPOSE_PROFILES):
+      #   otel-collector-config.yaml                      FlashArray serving
+      #       OpenMetrics natively (Purity//FA 6.7 and later) — the default
+      #   otel-collector-config.flasharray-exporter.yaml  older FlashArray,
+      #       through the pure-fa-exporter service below
+      #   otel-collector-config.flashblade.yaml           FlashBlade, through
+      #       the pure-fb-exporter service below
+      - ./${STORAGE_ARRAY_COLLECTOR_CONFIG:-otel-collector-config.yaml}:/etc/otelcol-contrib/config.yaml:ro
+    # Uncomment (together with the syslog receivers and the logs pipeline in
+    # the collector config) to accept the syslog the array forwards to
+    # udp://<this-machine>:5514 or tcp://<this-machine>:5514. This powers
+    # the Logs tab of the storage array.
+    # ports:
+    #   - "5514:5514/tcp"
+    #   - "5514:5514/udp"
+    # Everything the collector config reads — the OneUptime URL and
+    # ingestion key, STORAGE_ARRAY_NAME, the array's address and its
+    # read-only API token — comes from .env next to this file (install.sh
+    # writes it, mode 600: it holds the token).
+    env_file:
+      - .env
+    environment:
+      # Defaults for the two optional settings (an empty value in .env
+      # counts as unset). The platform, stamped as storage.system:
+      # purestorage.flasharray or purestorage.flashblade.
+      - STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}
+      # Arrays ship a self-signed certificate, so the collector does not
+      # verify the native endpoint's certificate unless this is "false".
+      - STORAGE_ARRAY_INSECURE_SKIP_VERIFY=${STORAGE_ARRAY_INSECURE_SKIP_VERIFY:-true}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Pure's FlashArray OpenMetrics exporter, for a Purity//FA release without
+  # the native endpoint (older than 6.7). Started only with
+  # COMPOSE_PROFILES=flasharray-exporter, and scraped by
+  # otel-collector-config.flasharray-exporter.yaml. It holds no credential:
+  # the collector sends the array's address and API token with every scrape.
+  # Its port stays on the compose network — nothing is published.
+  pure-fa-exporter:
+    image: quay.io/purestorage/pure-fa-om-exporter:v1.0.27
+    profiles: ["flasharray-exporter"]
+    expose:
+      - "9490"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Pure's FlashBlade OpenMetrics exporter. Started only with
+  # COMPOSE_PROFILES=flashblade, and scraped by
+  # otel-collector-config.flashblade.yaml. It holds no credential: the
+  # collector sends the FlashBlade's address and API token with every
+  # scrape. Its port stays on the compose network — nothing is published.
+  pure-fb-exporter:
+    image: quay.io/purestorage/pure-fb-om-exporter:v1.1.4
+    profiles: ["flashblade"]
+    expose:
+      - "9491"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

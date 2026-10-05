@@ -1,0 +1,170 @@
+receivers:
+  # Pure Storage FlashBlade: the collector scrapes Pure's
+  # pure-fb-openmetrics-exporter, which docker-compose.yml runs as the
+  # `pure-fb-exporter` service (COMPOSE_PROFILES=flashblade). The exporter
+  # logs in to the FlashBlade's REST API with the API token it receives on
+  # every scrape and answers in OpenMetrics with Pure's purefb_* metrics.
+  #
+  # The `endpoint` parameter tells the exporter which FlashBlade to read;
+  # the API token (of a user holding the readonly role, see README.md)
+  # travels as a Bearer token from the collector to the exporter over the
+  # compose network only — the exporter's port is never published. The
+  # exporter does not verify the FlashBlade's TLS certificate (its own
+  # default), so STORAGE_ARRAY_INSECURE_SKIP_VERIFY does not apply here.
+  #
+  # Pure's guidance for this exporter: read the array endpoint most often
+  # and the file system and object store endpoints less often — the
+  # FlashBlade REST API is not built to report every file system and bucket
+  # quickly — and never below 30 seconds. Every job labels its series
+  # `scrape_endpoint: <endpoint>`; each endpoint also exports purefb_info, so
+  # OneUptime knows which families a batch is the COMPLETE list of — that is
+  # how a deleted file system or bucket leaves the inventory instead of
+  # lingering. Keep the labels as shipped.
+  prometheus:
+    config:
+      scrape_configs:
+        # FlashBlade identity (purefb_info), capacity, performance per
+        # protocol, open alerts and hardware health.
+        - job_name: purefb-array
+          scheme: http
+          metrics_path: /metrics/array
+          params:
+            # The FlashBlade's management address: host name or IP, no
+            # scheme.
+            endpoint: ["${env:PURE_FB_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FB_API_TOKEN}"
+          scrape_interval: 60s
+          scrape_timeout: 50s
+          static_configs:
+            - targets: ["pure-fb-exporter:9491"]
+              labels:
+                scrape_endpoint: array
+
+        # Per-file-system space, data reduction and performance.
+        - job_name: purefb-filesystems
+          scheme: http
+          metrics_path: /metrics/filesystems
+          params:
+            endpoint: ["${env:PURE_FB_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FB_API_TOKEN}"
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["pure-fb-exporter:9491"]
+              labels:
+                scrape_endpoint: filesystems
+
+        # Per-bucket space, object counts and performance, and object store
+        # accounts.
+        - job_name: purefb-objectstore
+          scheme: http
+          metrics_path: /metrics/objectstore
+          params:
+            endpoint: ["${env:PURE_FB_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FB_API_TOKEN}"
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["pure-fb-exporter:9491"]
+              labels:
+                scrape_endpoint: objectstore
+
+  # Optional: receive the syslog the FlashBlade forwards — this is what
+  # powers the Logs tab of the storage array. Off by default because it
+  # needs a listening port published on this machine. To enable it:
+  #   1. Uncomment the two `syslog/*` receivers below, the `logs` pipeline at
+  #      the bottom of this file, and the port mapping in docker-compose.yml.
+  #   2. On the FlashBlade, add a syslog server udp://<agent-host>:5514 or
+  #      tcp://<agent-host>:5514 (see README.md).
+  # The receivers expect classic BSD syslog (RFC 3164), the format Purity//FA
+  # sends; switch `protocol` to rfc5424 if your FlashBlade's messages start
+  # with a version number after the priority (`<14>1 2026-...`). RFC 3164
+  # timestamps carry no time zone: set `location` to the FlashBlade's time
+  # zone unless its clock runs on UTC. The resource processor below stamps
+  # storage.array.name on these logs too, so they land on this array. A
+  # syslog receiver honours only one of `tcp:` / `udp:`, so TCP and UDP are
+  # two named receivers — uncomment both to accept either transport.
+  # syslog/tcp:
+  #   tcp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  #   location: UTC
+  # syslog/udp:
+  #   udp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  #   location: UTC
+
+processors:
+  # Stamp every metric with the array's identity. OneUptime auto-registers
+  # the storage array from `storage.array.name`, and every Storage Arrays
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Storage Arrays section of the dashboard. Keep it
+  # stable: changing it later registers a brand-new array.
+  resource:
+    attributes:
+      - key: storage.array.name
+        value: "${env:STORAGE_ARRAY_NAME}"
+        action: upsert
+      # The platform: purestorage.flashblade for this config.
+      - key: storage.system
+        value: "${env:STORAGE_SYSTEM}"
+        action: upsert
+      # Optional: promote resource attributes to project labels on the
+      # array — oneuptime.label.<dimension>=<value> becomes the label
+      # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
+      # - key: oneuptime.label.env
+      #   value: production
+      #   action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, e.g. "purefb-filesystems") and service.instance.id on every
+      # batch per the Prometheus->OTLP compatibility spec. Drop them:
+      # OneUptime routes batches by service.name first, so leaving them in
+      # would register phantom "purefb-*" Services instead of routing this
+      # data to the storage array discovered from `storage.array.name` (which
+      # would also break per-array retention settings). Do not remove these
+      # two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    # Large enough to hold a whole scrape of a big FlashBlade. There is
+    # deliberately NO send_batch_max_size: a scrape must never be split
+    # across exports, because OneUptime reads a whole endpoint per request
+    # to rebuild the inventory (file system and bucket counts, hardware
+    # health, open alerts) — a split scrape would make objects vanish and
+    # counts drop until the next one.
+    send_batch_size: 8192
+  memory_limiter:
+    check_interval: 5s
+    # A FlashBlade with thousands of file systems and buckets returns a
+    # large scrape; 512 MiB leaves ample headroom.
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    # Uncomment together with the syslog receivers above to ship the
+    # FlashBlade's syslog (powers the Logs tab of the storage array):
+    # logs:
+    #   receivers: [syslog/tcp, syslog/udp]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]
