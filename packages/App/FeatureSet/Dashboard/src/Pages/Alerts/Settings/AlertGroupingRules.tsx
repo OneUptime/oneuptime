@@ -18,6 +18,8 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   EPISODE_OWNERS_FIELD_KEY,
   EPISODE_OWNER_TEAMS_COLUMN,
@@ -34,13 +36,12 @@ import {
   getGroupingModeFormField,
   getGroupingRuleColumnFormFields,
   getInactivityTimeoutFormField,
-  getLegacyDefaultAssigneeFormFields,
+  getLegacyDefaultAssigneeColumnFormFields,
+  getLegacyDefaultAssigneeFormField,
   getReopenWindowFormField,
   getResolveDelayFormField,
-  getShowAdvancedSettingsFormField,
   getTimeWindowFormField,
   isCustomGroupingSelected,
-  isShowingAdvancedSettings,
 } from "../../../Components/GroupingRule/GroupingRuleFormFields";
 import useGroupingRuleTableExtras, {
   GroupingRuleTableExtras,
@@ -167,12 +168,20 @@ flowchart TD
 const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
 
 /*
+ * Everything a rule can do beyond grouping - paging on-call and owning its
+ * episodes, reopening and resolving them, their titles and labels - folded
+ * under More fields at the end of the Grouping step, as on the incident
+ * rules. Built once: every field in it names this one section.
+ */
+const MORE_FIELDS: FormFieldCollapsibleSection<AlertGroupingRule> =
+  getAdvancedFormSection<AlertGroupingRule>();
+
+/*
  * The alert twin of Incidents > Settings > Grouping Rules, kept to the same
  * design (see Utils/GroupingRule/GroupingRuleSetup): ready-made rules added
  * in one click, a sentence per rule in the list, and a form that asks how to
- * group and how close together, with everything else behind "Show advanced
- * settings". The rule stores and the engine reads exactly what they did
- * before.
+ * group and how close together, with everything else folded under More
+ * fields. The rule stores and the engine reads exactly what they did before.
  */
 const AlertGroupingRulesPage: FunctionComponent<
   PageComponentProps
@@ -307,9 +316,8 @@ const AlertGroupingRulesPage: FunctionComponent<
         /*
          * Two questions, then Create: how to group and how close together
          * (Grouping), and which alerts (every one, unless narrowed down).
-         * Group By only appears for a custom mix of switches, and the last
-         * three steps only behind "Show advanced settings" - which a rule
-         * that already uses them opens with.
+         * Group By only appears for a custom mix of switches. Everything
+         * else is folded under More fields on the Grouping step.
          */
         formSteps={[
           {
@@ -331,34 +339,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             title: GROUPING_RULE_COPY.whichStepTitle[KIND],
             id: "match-criteria",
             columns: 2,
-          },
-          {
-            title: "Episode Lifecycle",
-            id: "episode-lifecycle",
-            showIf: (values: FormValues<AlertGroupingRule>): boolean => {
-              return isShowingAdvancedSettings(
-                values as unknown as GroupingRuleValues,
-              );
-            },
-          },
-          {
-            title: "Details",
-            id: "details",
-            showIf: (values: FormValues<AlertGroupingRule>): boolean => {
-              return isShowingAdvancedSettings(
-                values as unknown as GroupingRuleValues,
-              );
-            },
-          },
-          {
-            title: "On-Call & Ownership",
-            id: "on-call-ownership",
-            columns: 2,
-            showIf: (values: FormValues<AlertGroupingRule>): boolean => {
-              return isShowingAdvancedSettings(
-                values as unknown as GroupingRuleValues,
-              );
-            },
           },
         ]}
         formFields={[
@@ -394,8 +374,134 @@ const AlertGroupingRulesPage: FunctionComponent<
             defaultValue: true,
             description: "Enable or disable this grouping rule.",
           },
-          getShowAdvancedSettingsFormField<AlertGroupingRule>(),
           ...getGroupingRuleColumnFormFields<AlertGroupingRule>(),
+          ...getLegacyDefaultAssigneeColumnFormFields<AlertGroupingRule>(),
+          /*
+           * More fields, the end of the Grouping step: everything else a
+           * rule can do, folded, under three small headings - who is paged
+           * and owns its episodes, how they reopen and resolve, and how
+           * they read. Every field names MORE_FIELDS.
+           */
+          {
+            field: {
+              onCallDutyPolicies: true,
+            },
+            title: "On-Call Duty Policies",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            sectionTitle: "On-Call & Ownership",
+            description:
+              "On-call policies to fire when an episode is created by this rule.",
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: OnCallDutyPolicy,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            placeholder: "Select On-Call Policies",
+            spanFullRow: true,
+          },
+          /*
+           * People and teams in one picker, saved to the rule's
+           * episodeOwnerUsers and episodeOwnerTeams: the engine makes them
+           * owners of every episode the rule opens. It replaced a Default
+           * Assign To Team and User pair that nothing ever showed; a rule
+           * that still has one gets a line about it just below.
+           */
+          getOwnersFormField<AlertGroupingRule>({
+            fieldKey: EPISODE_OWNERS_FIELD_KEY,
+            usersKey: EPISODE_OWNER_USERS_COLUMN,
+            teamsKey: EPISODE_OWNER_TEAMS_COLUMN,
+            title: GROUPING_RULE_COPY.episodeOwnersTitle,
+            description: GROUPING_RULE_COPY.episodeOwnersDescription,
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            spanFullRow: true,
+          }),
+          getLegacyDefaultAssigneeFormField<AlertGroupingRule>({
+            collapsibleSection: MORE_FIELDS,
+          }),
+          // Episode lifecycle - reopen, wait to resolve, resolve when quiet
+          getReopenWindowFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
+            sectionTitle: "Episode Lifecycle",
+          }),
+          getResolveDelayFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
+          }),
+          getInactivityTimeoutFormField<AlertGroupingRule>({
+            kind: KIND,
+            collapsibleSection: MORE_FIELDS,
+          }),
+          // Details - the rule's own description, and the episodes it opens
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            sectionTitle: "Details",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Groups all critical alerts from production services",
+          },
+          {
+            field: {
+              episodeTitleTemplate: true,
+            },
+            // The variables, under the field and one "{{" away.
+            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.alertVariablesDescription,
+            title: "Episode Title Template",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "{{alertSeverity}} Alert Episode on {{monitorName}}",
+            description:
+              "Template for auto-generated episode titles. Uses the first alert's data to generate the title.",
+          },
+          {
+            field: {
+              episodeDescriptionTemplate: true,
+            },
+            // The variables, under the field and one "{{" away.
+            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
+            templateVariablesDescription:
+              EpisodeTemplateVariablesCopy.alertVariablesDescription,
+            title: "Episode Description Template",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder:
+              "Episode created from {{alertSeverity}} alert: {{alertTitle}} on monitor {{monitorName}}",
+            description:
+              "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
+          },
+          {
+            field: {
+              episodeLabels: true,
+            },
+            title: "Episode Labels",
+            stepId: "grouping",
+            collapsibleSection: MORE_FIELDS,
+            fieldType: FormFieldSchemaType.MultiSelectDropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "Labels to automatically attach to episodes created by this rule.",
+            placeholder: "Select Labels (optional)",
+          },
           // Group By - a custom mix of the five switches
           {
             field: {
@@ -562,110 +668,6 @@ const AlertGroupingRulesPage: FunctionComponent<
             required: false,
             placeholder: "production|critical",
           },
-          // Episode lifecycle - reopen, wait to resolve, resolve when quiet
-          getReopenWindowFormField<AlertGroupingRule>(KIND),
-          getResolveDelayFormField<AlertGroupingRule>(KIND),
-          getInactivityTimeoutFormField<AlertGroupingRule>(KIND),
-          // Details - the rule's own description, and the episodes it opens
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "details",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Groups all critical alerts from production services",
-          },
-          {
-            field: {
-              episodeTitleTemplate: true,
-            },
-            // The variables, under the field and one "{{" away.
-            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
-            templateVariablesDescription:
-              EpisodeTemplateVariablesCopy.alertVariablesDescription,
-            title: "Episode Title Template",
-            stepId: "details",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "{{alertSeverity}} Alert Episode on {{monitorName}}",
-            description:
-              "Template for auto-generated episode titles. Uses the first alert's data to generate the title.",
-          },
-          {
-            field: {
-              episodeDescriptionTemplate: true,
-            },
-            // The variables, under the field and one "{{" away.
-            templateVariables: ALERT_EPISODE_TEMPLATE_VARIABLE_GROUPS,
-            templateVariablesDescription:
-              EpisodeTemplateVariablesCopy.alertVariablesDescription,
-            title: "Episode Description Template",
-            stepId: "details",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Episode created from {{alertSeverity}} alert: {{alertTitle}} on monitor {{monitorName}}",
-            description:
-              "Template for auto-generated episode descriptions. Uses the first alert's data to generate the description.",
-          },
-          {
-            field: {
-              episodeLabels: true,
-            },
-            title: "Episode Labels",
-            stepId: "details",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            description:
-              "Labels to automatically attach to episodes created by this rule.",
-            placeholder: "Select Labels (optional)",
-          },
-          /*
-           * On-call and ownership of the episodes this rule opens: fields
-           * that each say what they do, so the step needs no headings.
-           */
-          {
-            field: {
-              onCallDutyPolicies: true,
-            },
-            title: "On-Call Duty Policies",
-            stepId: "on-call-ownership",
-            description:
-              "On-call policies to fire when an episode is created by this rule.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: OnCallDutyPolicy,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select On-Call Policies",
-            spanFullRow: true,
-          },
-          /*
-           * People and teams in one picker, saved to the rule's
-           * episodeOwnerUsers and episodeOwnerTeams: the engine makes them
-           * owners of every episode the rule opens. It replaced a Default
-           * Assign To Team and User pair that nothing ever showed; a rule
-           * that still has one gets a line about it just below.
-           */
-          getOwnersFormField<AlertGroupingRule>({
-            fieldKey: EPISODE_OWNERS_FIELD_KEY,
-            usersKey: EPISODE_OWNER_USERS_COLUMN,
-            teamsKey: EPISODE_OWNER_TEAMS_COLUMN,
-            title: GROUPING_RULE_COPY.episodeOwnersTitle,
-            description: GROUPING_RULE_COPY.episodeOwnersDescription,
-            stepId: "on-call-ownership",
-            spanFullRow: true,
-          }),
-          ...getLegacyDefaultAssigneeFormFields<AlertGroupingRule>(),
         ]}
         showRefreshButton={true}
       />

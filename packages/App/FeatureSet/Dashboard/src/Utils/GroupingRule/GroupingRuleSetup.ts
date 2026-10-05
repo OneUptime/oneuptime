@@ -21,8 +21,12 @@ import { toPeoplePickerIds } from "Common/UI/Components/PeoplePicker/PeoplePicke
  *     (GROUPING_RULE_TEMPLATES);
  *   - one sentence per rule in the list instead of raw columns
  *     (getGroupingRuleSummary);
- *   - everything else behind "Show advanced settings", which an existing rule
- *     that uses any of it opens with (hasAdvancedSettings);
+ *   - everything else folded under More fields at the end of the Grouping
+ *     step - paging on-call and episode owners, reopening and resolving
+ *     episodes, the episodes' titles and labels - whose folded header names
+ *     what it holds and draws each setting a rule uses as a chip that says
+ *     what it is set to, so an edit form hides nothing a rule does
+ *     (getMinutesSettingFoldedValue for the lifecycle switches);
  *   - who owns the episodes a rule opens asked with one people picker, where
  *     two dropdowns set a default assignee nothing ever showed (see
  *     EPISODE_OWNERS_FIELD_KEY).
@@ -98,7 +102,6 @@ export const REOPEN_WINDOW_SETTING_FIELD_KEY: string = "reopenWindowSetting";
 export const RESOLVE_DELAY_SETTING_FIELD_KEY: string = "resolveDelaySetting";
 export const INACTIVITY_TIMEOUT_SETTING_FIELD_KEY: string =
   "inactivityTimeoutSetting";
-export const SHOW_ADVANCED_SETTINGS_FIELD_KEY: string = "showAdvancedSettings";
 
 /*
  * Who owns the episodes a rule opens: the On-Call & Ownership step's Episode
@@ -198,8 +201,6 @@ export const GROUPING_RULE_COPY: {
   inactivityTimeoutTitle: string;
   inactivityTimeoutDescription: KindCopy;
   inactivityTimeoutSentence: KindCopy;
-  showAdvancedTitle: string;
-  showAdvancedDescription: string;
   summaryColumnTitle: string;
   episodeOwnersTitle: string;
   episodeOwnersDescription: string;
@@ -289,9 +290,6 @@ export const GROUPING_RULE_COPY: {
       "After {{minutes}} minutes without a new incident",
     [GroupingRuleKind.Alert]: "After {{minutes}} minutes without a new alert",
   },
-  showAdvancedTitle: "Show advanced settings",
-  showAdvancedDescription:
-    "Reopen and auto-resolve episodes, set episode titles and labels, page on-call and assign owners. Most teams can leave these as they are.",
   summaryColumnTitle: "Grouping",
   episodeOwnersTitle: "Episode Owners",
   episodeOwnersDescription:
@@ -1252,62 +1250,51 @@ export const getGroupingRuleSummarySelect: (
   return select;
 };
 
-type HasValueFunction = (value: unknown) => boolean;
-
-const hasValue: HasValueFunction = (value: unknown): boolean => {
-  if (value === undefined || value === null) {
-    return false;
-  }
-
-  if (typeof value === "string") {
-    return value.trim().length > 0;
-  }
-
-  if (Array.isArray(value)) {
-    return value.length > 0;
-  }
-
-  return true;
-};
-
 /*
- * Whether a rule uses anything behind "Show advanced settings". An existing
- * rule that does opens with them shown, so nothing it does is ever hidden
- * from the person editing it - its episode owners included, and the old
- * default assignee, whose line is drawn on the same step.
+ * What a lifecycle setting - reopening, waiting before resolving, resolving
+ * when quiet - says on the folded header of the rule's More fields: the
+ * minutes the engines act on, in the reader's language ("30 minutes"), or
+ * null while it is off. It reads the setting the way the form draws it
+ * (getMinutesSettingDisplay), so the chip and the switch never disagree: a
+ * rule the old form saved with a switch on and 0 minutes is off to the
+ * engines, shows its switch off, and has no chip. Minutes typed that are not
+ * a whole number yet leave the chip its name alone, until the field's own
+ * check says what is wrong.
  */
-export const hasAdvancedSettings: (values: GroupingRuleValues) => boolean = (
-  values: GroupingRuleValues,
-): boolean => {
-  /*
-   * A lifecycle switch counts only while the engines act on it - on, with
-   * minutes above 0 - which is also when the form shows it on.
-   */
-  return (
-    getActiveMinutes(values, "enableReopenWindow", "reopenWindowMinutes") !==
-      null ||
-    getActiveMinutes(values, "enableResolveDelay", "resolveDelayMinutes") !==
-      null ||
-    getActiveMinutes(
-      values,
-      "enableInactivityTimeout",
-      "inactivityTimeoutMinutes",
-    ) !== null ||
-    isOn(values, "showEpisodeOnStatusPage") ||
-    [
-      "description",
-      "episodeTitleTemplate",
-      "episodeDescriptionTemplate",
-      "episodeLabels",
-      "onCallDutyPolicies",
-      EPISODE_OWNER_USERS_COLUMN,
-      EPISODE_OWNER_TEAMS_COLUMN,
-      ...LEGACY_DEFAULT_ASSIGNEE_KEYS,
-      "episodeMemberRoleAssignments",
-    ].some((key: string): boolean => {
-      return hasValue(values[key]);
-    })
-  );
+export const getMinutesSettingFoldedValue: (data: {
+  enabled: unknown;
+  minutes: unknown;
+  fallbackMinutes: number | null;
+  translate: GroupingRuleTranslateFunction;
+}) => string | null = (data: {
+  enabled: unknown;
+  minutes: unknown;
+  fallbackMinutes: number | null;
+  translate: GroupingRuleTranslateFunction;
+}): string | null => {
+  const display: { enabled: boolean; minutes: unknown } =
+    getMinutesSettingDisplay({
+      enabled: data.enabled,
+      minutes: data.minutes,
+      fallbackMinutes: data.fallbackMinutes,
+    });
+
+  if (!display.enabled) {
+    return null;
+  }
+
+  // Saved before the box had a ceiling: the engines use it as it is.
+  const minutes: number | null =
+    parseMinutes(display.minutes) ??
+    (typeof display.minutes === "number" &&
+    Number.isInteger(display.minutes) &&
+    display.minutes > 0
+      ? display.minutes
+      : null);
+
+  return minutes === null
+    ? ""
+    : formatGroupingDuration({ minutes, translate: data.translate });
 };
 
 type ReadIdFunction = (value: unknown) => string | null;

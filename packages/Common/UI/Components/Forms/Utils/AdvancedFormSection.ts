@@ -211,13 +211,22 @@ export type IsFormFieldValueSetFunction = <TEntity>(
  * Whether a field holds something of the user's: a value other than empty
  * or the field's default. A switch is set when it is not in its default
  * position (off, unless its default is on); a people picker when anyone is
- * picked. Folded, such a field is a chip on its section's header
- * (FoldedFormFields).
+ * picked; a custom element that keeps its value elsewhere when it says so
+ * (Field.getFoldedValue). Folded, such a field is a chip on its section's
+ * header (FoldedFormFields).
  */
 export const isFormFieldValueSet: IsFormFieldValueSetFunction = <TEntity>(
   field: Field<TEntity>,
   values: FormValues<TEntity>,
 ): boolean => {
+  /*
+   * Its own form value says nothing - a carrier, or nothing at all - so it
+   * says for itself, from the values it edits.
+   */
+  if (field.getFoldedValue) {
+    return field.getFoldedValue(values) !== null;
+  }
+
   const formValues: Record<string, unknown> = (values || {}) as Record<
     string,
     unknown

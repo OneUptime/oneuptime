@@ -26,8 +26,11 @@ import { isFormFieldValueSet, normalizeFormValue } from "./AdvancedFormSection";
  *     set of key-value pairs (a monitor's attribute filters);
  *   - a number, a date or a short line of text says itself, cut to a few
  *     words;
- *   - a secret, a paragraph, code, a colour or a custom editor says nothing
- *     beyond being set - the chip has the field's name only.
+ *   - a custom editor that keeps what it edits elsewhere says what it is
+ *     set to itself, already translated (Field.getFoldedValue: "Reopen
+ *     recently resolved episodes: 30 minutes");
+ *   - a secret, a paragraph, code, a colour or any other custom editor says
+ *     nothing beyond being set - the chip has the field's name only.
  */
 
 export const FOLDED_FIELD_VALUE_MAX_LENGTH: number = 32;
@@ -173,6 +176,15 @@ export const getFoldedFieldValue: GetFoldedFieldValueFunction = <TEntity>(
   field: Field<TEntity>,
   values: FormValues<TEntity>,
 ): FoldedFieldValue | undefined => {
+  // Said by the field itself, from the values it edits, in the reader's words.
+  if (field.getFoldedValue) {
+    const said: string | null = field.getFoldedValue(values);
+
+    return said && said.trim()
+      ? { value: shorten(said), translateValue: false }
+      : undefined;
+  }
+
   const formValues: Record<string, unknown> = (values || {}) as Record<
     string,
     unknown
