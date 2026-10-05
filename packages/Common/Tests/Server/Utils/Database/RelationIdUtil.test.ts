@@ -305,7 +305,11 @@ describe("RelationIdUtil.readIntoIdColumn", () => {
     // The relation stays: both names now hold the same id.
     expect(data["site"]).toBe(relation);
     expect(
-      RelationIdUtil.readConsistent(data, SITE_KEYS, "Network Site")?.toString(),
+      RelationIdUtil.readConsistent(
+        data,
+        SITE_KEYS,
+        "Network Site",
+      )?.toString(),
     ).toBe(SITE_ID.toString());
   });
 
@@ -315,7 +319,11 @@ describe("RelationIdUtil.readIntoIdColumn", () => {
     };
 
     expect(
-      RelationIdUtil.readIntoIdColumn(data, SITE_KEYS, "Network Site")?.toString(),
+      RelationIdUtil.readIntoIdColumn(
+        data,
+        SITE_KEYS,
+        "Network Site",
+      )?.toString(),
     ).toBe(SITE_ID.toString());
     expect(String(data["siteId"])).toBe(SITE_ID.toString());
   });

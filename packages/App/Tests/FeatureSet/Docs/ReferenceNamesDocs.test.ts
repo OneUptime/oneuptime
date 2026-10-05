@@ -85,9 +85,7 @@ describe("the API reference on a record named two ways", () => {
       "a status page group's parent group must be on the same status page",
     );
     expect(text).toContain("a status page takes at most three header links");
-    expect(text).toContain(
-      "a group's name must be unique on its status page",
-    );
+    expect(text).toContain("a group's name must be unique on its status page");
   });
 
   test("Persian says the same", () => {

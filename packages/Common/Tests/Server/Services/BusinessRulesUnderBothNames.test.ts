@@ -216,7 +216,10 @@ describe("moving a subscriber template link is checked under either name", () =>
 
   beforeEach(() => {
     jest
-      .spyOn(StatusPageSubscriberNotificationTemplateStatusPageService, "findBy")
+      .spyOn(
+        StatusPageSubscriberNotificationTemplateStatusPageService,
+        "findBy",
+      )
       .mockResolvedValue([
         { statusPageSubscriberNotificationTemplateId: LINKED_TEMPLATE_ID },
       ] as never);

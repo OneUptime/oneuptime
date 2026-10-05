@@ -217,9 +217,7 @@ class UserWebAuthn extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.CurrentUser,
-    ],
+    create: [],
     read: [Permission.CurrentUser],
     update: [],
   })

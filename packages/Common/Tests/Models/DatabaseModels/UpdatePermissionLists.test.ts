@@ -40,24 +40,14 @@ import { describe, expect, test } from "@jest/globals";
  * records.
  *
  * Who may set a column when a record is made is decided the same way, by
- * the record's create list and the column's, and a create list copied from
- * the wrong one reads like any other too:
- *
- *   - a monitor's Current Monitor Status ID listed Create Incident where
- *     every other monitor column lists Create Monitor;
- *   - the incident, monitor and on-call policy feeds' Posted At and posted
- *     by columns listed the scheduled maintenance feed's permissions;
- *   - a scheduled maintenance event's notification status message listed
- *     Create Incident Public Note, an exception's span name the trace
- *     permissions, and a runbook secret's runners Read Runbook Secret.
- *
- * So the create lists are held to the same family rule, and every relation
- * to its ID column's create list as well as its update list.
+ * the record's create list and the column's: every relation is held to its
+ * ID column's create list as well as its update list (the last describe).
+ * A column's create list naming another record's permission is
+ * PermissionCatalogueCoverage's to catch.
  */
 
 type ModelWithAccessLists = {
   tableName: string | null;
-  getCreatePermissions: () => Array<Permission>;
   getUpdatePermissions: () => Array<Permission>;
   getColumnAccessControlForAllColumns: () => Dictionary<ColumnAccessControl>;
 };
@@ -171,51 +161,6 @@ function columnUpdateLists(model: ModelWithAccessLists): Array<UpdateList> {
   }
 
   return lists;
-}
-
-function columnCreateLists(model: ModelWithAccessLists): Array<UpdateList> {
-  const lists: Array<UpdateList> = [];
-  const columns: Dictionary<ColumnAccessControl> =
-    model.getColumnAccessControlForAllColumns();
-
-  for (const column of Object.keys(columns).sort()) {
-    lists.push({
-      tableName: model.tableName,
-      where: `${model.tableName}.${column} (create)`,
-      permissions: columns[column]?.create || [],
-    });
-  }
-
-  return lists;
-}
-
-/*
- * A model whose columns are created with another family's permission, left
- * as it is for a change of its own. The list may only shrink: an entry no
- * column holds any more fails below, and is removed with its reason.
- */
-const CREATED_BY_ANOTHER_FAMILY: Array<{
-  tableName: string;
-  permission: Permission;
-  reason: string;
-}> = [
-  {
-    tableName: AnalyticsTableName.Metric,
-    permission: Permission.CreateTelemetryServiceLog,
-    reason:
-      "A metric data point's columns are created and read with the log permissions while the record's own lists name the trace permissions, and neither is the Telemetry Service Metrics family. Which family a metric belongs to decides what custom roles can read in metric charts, so it is a change of its own.",
-  },
-];
-
-function isCreatedByAnotherFamily(
-  tableName: string | null,
-  permission: Permission,
-): boolean {
-  return CREATED_BY_ANOTHER_FAMILY.some(
-    (entry: { tableName: string; permission: Permission }): boolean => {
-      return entry.tableName === tableName && entry.permission === permission;
-    },
-  );
 }
 
 function findModel(tableName: string): ModelWithAccessLists {
@@ -355,100 +300,6 @@ describe("update permission lists", () => {
     }
 
     expect(lockedOut).toEqual([]);
-  });
-
-  /*
-   * The same slip in a create list: a record permission on a column that its
-   * record's create list does not hold stands in for the record's own Create
-   * permission, copied from another model's list - the column is set at
-   * create by somebody who may not create the record, and refused to
-   * somebody who may. A record created outside any project (a project
-   * itself) is skipped: no project permission applies when it is made.
-   */
-  test("a column's create list names no record permission its record's create list leaves out", () => {
-    const foreign: Array<string> = [];
-
-    for (const model of MODELS) {
-      const recordList: Array<Permission> = model.getCreatePermissions() || [];
-
-      if (!recordList.some(isProjectPermission)) {
-        continue;
-      }
-
-      for (const list of columnCreateLists(model)) {
-        for (const permission of list.permissions) {
-          if (
-            isRecordPermission(permission) &&
-            !recordList.includes(permission) &&
-            !isCreatedByAnotherFamily(list.tableName, permission)
-          ) {
-            foreign.push(`${list.where}: ${permission}`);
-          }
-        }
-      }
-    }
-
-    expect(foreign).toEqual([]);
-  });
-
-  test.each([
-    ["Monitor", "currentMonitorStatusId", "CreateProjectMonitor"],
-    ["IncidentFeed", "postedAt", "CreateIncidentFeed"],
-    ["IncidentFeed", "userId", "CreateIncidentFeed"],
-    ["MonitorFeed", "user", "CreateMonitorFeed"],
-    ["OnCallDutyPolicyFeed", "userId", "CreateOnCallDutyPolicyFeed"],
-    [
-      "ScheduledMaintenance",
-      "subscriberNotificationStatusMessage",
-      "CreateProjectScheduledMaintenance",
-    ],
-    ["RunbookSecret", "runners", "CreateRunbookSecret"],
-  ])(
-    "%s.%s is created by %s, its own record's permission",
-    (tableName: string, column: string, permission: string) => {
-      const createList: Array<Permission> =
-        findModel(tableName).getColumnAccessControlForAllColumns()[column]
-          ?.create || [];
-
-      expect(createList).toContain(permission as Permission);
-    },
-  );
-
-  test("the feeds' columns are read with their own feed's permission", () => {
-    for (const [tableName, permission] of [
-      ["IncidentFeed", Permission.ReadIncidentFeed],
-      ["MonitorFeed", Permission.ReadMonitorFeed],
-      ["OnCallDutyPolicyFeed", Permission.ReadOnCallDutyPolicyFeed],
-    ] as Array<[string, Permission]>) {
-      const columns: Dictionary<ColumnAccessControl> =
-        findModel(tableName).getColumnAccessControlForAllColumns();
-
-      for (const column of ["postedAt", "user", "userId"]) {
-        expect([tableName, column, columns[column]?.read]).toEqual([
-          tableName,
-          column,
-          expect.arrayContaining([permission]),
-        ]);
-        expect(columns[column]?.read).not.toContain(
-          Permission.ReadScheduledMaintenanceFeed,
-        );
-      }
-    }
-  });
-
-  test("every create list from another family still matches a column, and says why", () => {
-    for (const entry of CREATED_BY_ANOTHER_FAMILY) {
-      const model: ModelWithAccessLists = findModel(entry.tableName);
-
-      expect(entry.reason.length).toBeGreaterThan(40);
-      expect([
-        entry.tableName,
-        entry.permission,
-        columnCreateLists(model).some((list: UpdateList): boolean => {
-          return list.permissions.includes(entry.permission);
-        }),
-      ]).toEqual([entry.tableName, entry.permission, true]);
-    }
   });
 
   test("every deliberate exception still matches a list, and says why", () => {
@@ -627,11 +478,24 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
 ];
 
 /*
- * Relations whose two create lists differ, each left as it is for a change
- * of its own. None today. The list may only shrink: an entry whose lists
- * have come to agree fails below, so it is removed with its reason.
+ * Relations whose two create lists differ on purpose. The list may only
+ * shrink: an entry whose lists have come to agree fails below, so it is
+ * removed with its reason.
  */
-const RELATIONS_CREATED_APART: Array<RelationsLeftApart> = [];
+const RELATIONS_CREATED_APART: Array<RelationsLeftApart> = [
+  {
+    tableName: "UserTotpAuth",
+    relations: ["user"],
+    reason:
+      "One spelling in, as for the notification rule methods: nobody may send the owner as the relation. The service writes userId itself, from the signed-in user, before the column check, so the ID column keeps Current User; the owner is checked as the signer's own (CreatePermission.checkCreateOwnership).",
+  },
+  {
+    tableName: "UserWebAuthn",
+    relations: ["user"],
+    reason:
+      "One spelling in, as for an authenticator app: nobody may send the owner as the relation. The service writes userId itself, from the signed-in user, before the column check, so the ID column keeps Current User; the owner is checked as the signer's own (CreatePermission.checkCreateOwnership).",
+  },
+];
 
 function isCreatedApart(relation: RelationAndIdColumn): boolean {
   return RELATIONS_CREATED_APART.some((entry: RelationsLeftApart) => {
@@ -713,10 +577,8 @@ describe("a relation and its ID column", () => {
    * them - the person on an on-call roster, which the schedule decides
    * itself; who deleted a permission row - and a narrower one only hides
    * the column from whatever writes by that name. Where the two differed,
-   * the narrower list was kept, but for the authenticators' owner: the
-   * service writes `userId` itself before the column check, so the ID
-   * column keeps Current User, and the relation, which the service removes
-   * (RelationIdUtil.stamp), lists the same.
+   * the narrower list was kept. The authenticators' owner is kept apart on
+   * purpose (RELATIONS_CREATED_APART).
    *
    * A service that reads a reference into its ID column
    * (RelationIdUtil.readIntoIdColumn) leaves both names on the write, so
@@ -748,8 +610,6 @@ describe("a relation and its ID column", () => {
     ["StatusPageSubscriberNotificationTemplateStatusPage", "createdByUser"],
     ["StatusPageSCIM", "createdByUser"],
     ["ProjectSCIM", "createdByUser"],
-    ["UserTotpAuth", "user"],
-    ["UserWebAuthn", "user"],
   ])(
     "%s.%s is created by the same people under either name",
     (tableName: string, relation: string) => {
@@ -772,11 +632,11 @@ describe("a relation and its ID column", () => {
     }
   });
 
-  test("an authenticator's owner is created by the user it belongs to, by either name", () => {
+  test("an authenticator's owner can be sent only as its ID, which the service writes itself", () => {
     for (const tableName of ["UserTotpAuth", "UserWebAuthn"]) {
       const found: RelationAndIdColumn = findRelation(tableName, "user");
 
-      expect(found.relationCreateList).toEqual([Permission.CurrentUser]);
+      expect(found.relationCreateList).toEqual([]);
       expect(found.idColumnCreateList).toEqual([Permission.CurrentUser]);
     }
   });

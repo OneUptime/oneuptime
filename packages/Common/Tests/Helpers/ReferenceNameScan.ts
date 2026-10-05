@@ -428,6 +428,11 @@ const PAYLOAD_ROOTS: Array<string> = [
   "onUpdate.updateBy.data",
 ];
 
+// The parameter types of a hook, by what they hold the payload under.
+const CREATE_OR_UPDATE_TYPE: RegExp = /^(CreateBy|UpdateBy)</;
+const ON_CREATE_TYPE: RegExp = /^OnCreate</;
+const ON_UPDATE_TYPE: RegExp = /^OnUpdate</;
+
 /*
  * The payload a parameter of a hook carries, by its type - `data:
  * CreateBy<Model>` is reached as `data.data` - or null.
@@ -441,17 +446,19 @@ function payloadOfParameter(
   }
 
   const name: string = parameter.name.text;
-  const type: string = parameter.type ? compactText(parameter.type, source) : "";
+  const type: string = parameter.type
+    ? compactText(parameter.type, source)
+    : "";
 
-  if (/^(CreateBy|UpdateBy)</.test(type)) {
+  if (CREATE_OR_UPDATE_TYPE.test(type)) {
     return `${name}.data`;
   }
 
-  if (/^OnCreate</.test(type)) {
+  if (ON_CREATE_TYPE.test(type)) {
     return `${name}.createBy.data`;
   }
 
-  if (/^OnUpdate</.test(type)) {
+  if (ON_UPDATE_TYPE.test(type)) {
     return `${name}.updateBy.data`;
   }
 
@@ -762,8 +769,9 @@ export function findOneNameReads(
   references: Array<ReferenceNamePair>,
 ): Array<OneNameRead> {
   const source: ts.SourceFile = parse(fileName, text);
-  const rootsByFunction: Map<ts.Node, Set<string>> =
-    payloadRootsByFunction(source);
+  const rootsByFunction: Map<ts.Node, Set<string>> = payloadRootsByFunction(
+    source,
+  );
   const topLevelRoots: Set<string> = new Set(PAYLOAD_ROOTS);
   const constants: Map<string, Array<string>> = arrayConstants(source);
 
@@ -792,16 +800,19 @@ export function findOneNameReads(
    */
   const settledAt: Map<ts.Node | null, Map<string, number>> = new Map();
 
-  const settle: (scope: ts.Node | null, idColumn: string, at: number) => void =
-    (scope: ts.Node | null, idColumn: string, at: number): void => {
-      if (!settledAt.has(scope)) {
-        settledAt.set(scope, new Map());
-      }
+  const settle: (
+    scope: ts.Node | null,
+    idColumn: string,
+    at: number,
+  ) => void = (scope: ts.Node | null, idColumn: string, at: number): void => {
+    if (!settledAt.has(scope)) {
+      settledAt.set(scope, new Map());
+    }
 
-      const settled: Map<string, number> = settledAt.get(scope)!;
+    const settled: Map<string, number> = settledAt.get(scope)!;
 
-      settled.set(idColumn, Math.min(settled.get(idColumn) ?? at, at));
-    };
+    settled.set(idColumn, Math.min(settled.get(idColumn) ?? at, at));
+  };
 
   const isPayload: (node: ts.Expression, scope: ts.Node | null) => boolean = (
     node: ts.Expression,

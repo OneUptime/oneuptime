@@ -75,7 +75,8 @@ const CASES: Array<EpisodeCase> = [
   },
   {
     name: "an alert episode",
-    service: AlertEpisodeService as unknown as DatabaseService<DatabaseBaseModel>,
+    service:
+      AlertEpisodeService as unknown as DatabaseService<DatabaseBaseModel>,
     modelType: AlertEpisode,
     subject: "alert episode",
     severityIdColumn: "alertSeverityId",
@@ -155,141 +156,147 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(CASES)("$name updated with no project on its request", (testCase: EpisodeCase) => {
-  beforeEach(() => {
-    // The episode the update matches is in PROJECT_ID.
-    jest
-      .spyOn(testCase.service, "findBy")
-      .mockResolvedValue([
-        episode(testCase.modelType, EPISODE_ID, PROJECT_ID),
-      ] as never);
-  });
+describe.each(CASES)(
+  "$name updated with no project on its request",
+  (testCase: EpisodeCase) => {
+    beforeEach(() => {
+      // The episode the update matches is in PROJECT_ID.
+      jest
+        .spyOn(testCase.service, "findBy")
+        .mockResolvedValue([
+          episode(testCase.modelType, EPISODE_ID, PROJECT_ID),
+        ] as never);
+    });
 
-  test.each(NO_PROJECT_ON_THE_REQUEST)(
-    "%s naming another project's severity is refused",
-    async (_who: string, props: Record<string, unknown>) => {
+    test.each(NO_PROJECT_ON_THE_REQUEST)(
+      "%s naming another project's severity is refused",
+      async (_who: string, props: Record<string, unknown>) => {
+        const outcome: unknown = await onBeforeUpdate(
+          testCase,
+          { [testCase.severityIdColumn]: new ObjectID(FOREIGN_SEVERITY) },
+          props,
+        );
+
+        expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
+        expect((outcome as Error).message).toBe(
+          ProjectScopedReferenceValidator.getRefusalMessage({
+            subject: testCase.subject,
+            described: [`${testCase.severityTitle} "${FOREIGN_SEVERITY}"`],
+          }),
+        );
+      },
+    );
+
+    test.each(NO_PROJECT_ON_THE_REQUEST)(
+      "%s naming another project's severity by the relation is refused",
+      async (_who: string, props: Record<string, unknown>) => {
+        const outcome: unknown = await onBeforeUpdate(
+          testCase,
+          { [testCase.severityRelation]: { _id: FOREIGN_SEVERITY } },
+          props,
+        );
+
+        expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
+        expect((outcome as Error).message).toContain(FOREIGN_SEVERITY);
+      },
+    );
+
+    test.each(NO_PROJECT_ON_THE_REQUEST)(
+      "%s naming another project's state is refused",
+      async (_who: string, props: Record<string, unknown>) => {
+        const outcome: unknown = await onBeforeUpdate(
+          testCase,
+          { [testCase.stateIdColumn]: new ObjectID(FOREIGN_STATE) },
+          props,
+        );
+
+        expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
+        expect((outcome as Error).message).toContain(FOREIGN_STATE);
+      },
+    );
+
+    test.each(NO_PROJECT_ON_THE_REQUEST)(
+      "%s naming the episode's own project's severity and state goes on",
+      async (_who: string, props: Record<string, unknown>) => {
+        expect(
+          await onBeforeUpdate(
+            testCase,
+            {
+              [testCase.severityIdColumn]: new ObjectID(OWN_SEVERITY),
+              [testCase.stateIdColumn]: new ObjectID(OWN_STATE),
+            },
+            props,
+          ),
+        ).toBe("went on");
+      },
+    );
+
+    test("the severity is checked against the project the episode is in", async () => {
+      const validate: SpyInstance = jest.spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      );
+
+      await onBeforeUpdate(
+        testCase,
+        { [testCase.severityIdColumn]: new ObjectID(OWN_SEVERITY) },
+        { isRoot: true },
+      );
+
+      const ownCheck: { projectId: ObjectID | undefined } | undefined =
+        validate.mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as {
+              projectId: ObjectID | undefined;
+              subject?: string | undefined;
+            };
+          })
+          .find((data: { subject?: string | undefined }): boolean => {
+            return data.subject === testCase.subject;
+          });
+
+      expect(ownCheck?.projectId?.toString()).toBe(PROJECT_ID.toString());
+    });
+
+    test("an update matching episodes of two projects is checked against each", async () => {
+      jest
+        .spyOn(testCase.service, "findBy")
+        .mockResolvedValue([
+          episode(testCase.modelType, EPISODE_ID, PROJECT_ID),
+          episode(testCase.modelType, OTHER_EPISODE_ID, OTHER_PROJECT_ID),
+        ] as never);
+
+      // The severity is PROJECT_ID's, so the other project's episode refuses it.
       const outcome: unknown = await onBeforeUpdate(
         testCase,
-        { [testCase.severityIdColumn]: new ObjectID(FOREIGN_SEVERITY) },
-        props,
+        { [testCase.severityIdColumn]: new ObjectID(OWN_SEVERITY) },
+        { isRoot: true },
       );
 
       expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
-      expect((outcome as Error).message).toBe(
-        ProjectScopedReferenceValidator.getRefusalMessage({
-          subject: testCase.subject,
-          described: [`${testCase.severityTitle} "${FOREIGN_SEVERITY}"`],
-        }),
-      );
-    },
-  );
+      expect((outcome as Error).message).toContain(OWN_SEVERITY);
+    });
 
-  test.each(NO_PROJECT_ON_THE_REQUEST)(
-    "%s naming another project's severity by the relation is refused",
-    async (_who: string, props: Record<string, unknown>) => {
-      const outcome: unknown = await onBeforeUpdate(
-        testCase,
-        { [testCase.severityRelation]: { _id: FOREIGN_SEVERITY } },
-        props,
-      );
+    test("an update matching no episode checks nothing, and goes on", async () => {
+      jest.spyOn(testCase.service, "findBy").mockResolvedValue([] as never);
 
-      expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
-      expect((outcome as Error).message).toContain(FOREIGN_SEVERITY);
-    },
-  );
-
-  test.each(NO_PROJECT_ON_THE_REQUEST)(
-    "%s naming another project's state is refused",
-    async (_who: string, props: Record<string, unknown>) => {
-      const outcome: unknown = await onBeforeUpdate(
-        testCase,
-        { [testCase.stateIdColumn]: new ObjectID(FOREIGN_STATE) },
-        props,
-      );
-
-      expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
-      expect((outcome as Error).message).toContain(FOREIGN_STATE);
-    },
-  );
-
-  test.each(NO_PROJECT_ON_THE_REQUEST)(
-    "%s naming the episode's own project's severity and state goes on",
-    async (_who: string, props: Record<string, unknown>) => {
       expect(
         await onBeforeUpdate(
           testCase,
-          {
-            [testCase.severityIdColumn]: new ObjectID(OWN_SEVERITY),
-            [testCase.stateIdColumn]: new ObjectID(OWN_STATE),
-          },
-          props,
+          { [testCase.severityIdColumn]: new ObjectID(FOREIGN_SEVERITY) },
+          { isRoot: true },
         ),
       ).toBe("went on");
-    },
-  );
-
-  test("the severity is checked against the project the episode is in", async () => {
-    const validate: SpyInstance = jest.spyOn(
-      ProjectScopedReferenceValidator,
-      "validateReferencesBelongToProject",
-    );
-
-    await onBeforeUpdate(
-      testCase,
-      { [testCase.severityIdColumn]: new ObjectID(OWN_SEVERITY) },
-      { isRoot: true },
-    );
-
-    const ownCheck: { projectId: ObjectID | undefined } | undefined =
-      validate.mock.calls
-        .map((call: Array<unknown>) => {
-          return call[0] as {
-            projectId: ObjectID | undefined;
-            subject?: string | undefined;
-          };
-        })
-        .find((data: { subject?: string | undefined }): boolean => {
-          return data.subject === testCase.subject;
-        });
-
-    expect(ownCheck?.projectId?.toString()).toBe(PROJECT_ID.toString());
-  });
-
-  test("an update matching episodes of two projects is checked against each", async () => {
-    jest
-      .spyOn(testCase.service, "findBy")
-      .mockResolvedValue([
-        episode(testCase.modelType, EPISODE_ID, PROJECT_ID),
-        episode(testCase.modelType, OTHER_EPISODE_ID, OTHER_PROJECT_ID),
-      ] as never);
-
-    // The severity is PROJECT_ID's, so the other project's episode refuses it.
-    const outcome: unknown = await onBeforeUpdate(
-      testCase,
-      { [testCase.severityIdColumn]: new ObjectID(OWN_SEVERITY) },
-      { isRoot: true },
-    );
-
-    expect(outcome).toBeInstanceOf(ProjectScopedReferenceException);
-    expect((outcome as Error).message).toContain(OWN_SEVERITY);
-  });
-
-  test("an update matching no episode checks nothing, and goes on", async () => {
-    jest.spyOn(testCase.service, "findBy").mockResolvedValue([] as never);
-
-    expect(
-      await onBeforeUpdate(
-        testCase,
-        { [testCase.severityIdColumn]: new ObjectID(FOREIGN_SEVERITY) },
-        { isRoot: true },
-      ),
-    ).toBe("went on");
-  });
-});
+    });
+  },
+);
 
 describe.each(CASES)("$name updated in a project", (testCase: EpisodeCase) => {
   test("is checked against the request's project, without reading the episodes' projects", async () => {
-    const readProjects: SpyInstance = jest.spyOn(ProjectScopedReferenceValidator, "getProjectIdsOfRecords");
+    const readProjects: SpyInstance = jest.spyOn(
+      ProjectScopedReferenceValidator,
+      "getProjectIdsOfRecords",
+    );
 
     const outcome: unknown = await onBeforeUpdate(
       testCase,
@@ -328,8 +335,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProjec
   };
 
   test("reads nothing for an update that names no reference", async () => {
-    const findBy: SpyInstance =
-      jest.spyOn(IncidentEpisodeService, "findBy");
+    const findBy: SpyInstance = jest.spyOn(IncidentEpisodeService, "findBy");
 
     await ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject(
       {
@@ -373,8 +379,9 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProjec
   });
 
   test("a record's project is read as root, so the read is not narrowed to the caller", async () => {
-    const findBy: SpyInstance =
-      jest.spyOn(IncidentEpisodeService, "findBy").mockResolvedValue([]);
+    const findBy: SpyInstance = jest
+      .spyOn(IncidentEpisodeService, "findBy")
+      .mockResolvedValue([]);
 
     await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
       service:
@@ -390,10 +397,7 @@ describe("ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProjec
   });
 
   test("a model with no project has no projects to read", async () => {
-    const findBy: SpyInstance = jest.spyOn(
-      UserService,
-      "findBy",
-    );
+    const findBy: SpyInstance = jest.spyOn(UserService, "findBy");
 
     expect(
       await ProjectScopedReferenceValidator.getProjectIdsOfRecords({

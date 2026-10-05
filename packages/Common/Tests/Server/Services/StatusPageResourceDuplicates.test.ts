@@ -846,9 +846,7 @@ describe("StatusPageResourceService, under either name of a reference", () => {
 
     await onBeforeCreate(create);
 
-    expect(create.data.statusPageGroupId?.toString()).toBe(
-      GROUP_ID.toString(),
-    );
+    expect(create.data.statusPageGroupId?.toString()).toBe(GROUP_ID.toString());
   });
 
   it("takes a status page named by the relation alone, and looks for duplicates on it", async () => {

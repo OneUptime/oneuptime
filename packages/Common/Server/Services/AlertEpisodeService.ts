@@ -133,27 +133,29 @@ export class Service extends ProjectReferencesService<Model> {
      * refused - against the project of every episode the update changes,
      * the request's or, for an update with none on it, each episode's own.
      */
-    await ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject({
-      service: this,
-      updateBy: updateBy,
-      subject: "alert episode",
-      references: [
-        ...getWrittenRelationReferences({
-          payload: updateBy.data,
-          idColumn: "currentAlertStateId",
-          relation: "currentAlertState",
-          modelName: "Alert State",
-          service: AlertStateService,
-        }),
-        ...getWrittenRelationReferences({
-          payload: updateBy.data,
-          idColumn: "alertSeverityId",
-          relation: "alertSeverity",
-          modelName: "Alert Severity",
-          service: AlertSeverityService,
-        }),
-      ],
-    });
+    await ProjectScopedReferenceValidator.validateUpdateReferencesBelongToProject(
+      {
+        service: this,
+        updateBy: updateBy,
+        subject: "alert episode",
+        references: [
+          ...getWrittenRelationReferences({
+            payload: updateBy.data,
+            idColumn: "currentAlertStateId",
+            relation: "currentAlertState",
+            modelName: "Alert State",
+            service: AlertStateService,
+          }),
+          ...getWrittenRelationReferences({
+            payload: updateBy.data,
+            idColumn: "alertSeverityId",
+            relation: "alertSeverity",
+            modelName: "Alert Severity",
+            service: AlertSeverityService,
+          }),
+        ],
+      },
+    );
 
     return { updateBy, carryForward: null };
   }

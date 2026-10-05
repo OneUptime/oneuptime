@@ -87,7 +87,9 @@ describe("ee/Server reads both names of a reference together", () => {
   test("the scan reads ee/Server", () => {
     // A scan that read nothing would pass everything below.
     expect(files.length).toBeGreaterThan(30);
-    expect(files.map(relative)).toContain(path.join("Identity", "API", "SCIM.ts"));
+    expect(files.map(relative)).toContain(
+      path.join("Identity", "API", "SCIM.ts"),
+    );
   });
 
   test("no code reads one name of a reference with the other as a fallback", () => {

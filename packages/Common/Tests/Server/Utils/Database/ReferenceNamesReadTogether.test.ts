@@ -492,9 +492,7 @@ describe("a hook reads a reference of a write under both of its names", () => {
     );
     expect(scanned.get("TelemetrySourceMapService.ts")).toContain("serviceId");
     // The tenant column is DatabaseService's own.
-    expect(scanned.get("StatusPageGroupService.ts")).not.toContain(
-      "projectId",
-    );
+    expect(scanned.get("StatusPageGroupService.ts")).not.toContain("projectId");
   });
 
   test("no hook reads one name of a reference alone", () => {

@@ -2981,11 +2981,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       unknown
     >;
 
-    const reference: RelationName | undefined = RelationNames.getSingleRelations(
-      this.model,
-    ).find((candidate: RelationName): boolean => {
-      return candidate.idColumn === columnName;
-    });
+    const reference: RelationName | undefined =
+      RelationNames.getSingleRelations(this.model).find(
+        (candidate: RelationName): boolean => {
+          return candidate.idColumn === columnName;
+        },
+      );
 
     if (!reference) {
       return record[columnName];

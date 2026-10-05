@@ -367,7 +367,8 @@ export default class ProjectScopedReferenceValidator {
     const projectIds: Array<ObjectID> = data.updateBy.props.tenantId
       ? [data.updateBy.props.tenantId]
       : await ProjectScopedReferenceValidator.getProjectIdsOfRecords({
-          service: data.service as unknown as DatabaseService<DatabaseBaseModel>,
+          service:
+            data.service as unknown as DatabaseService<DatabaseBaseModel>,
           query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
         });
 

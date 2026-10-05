@@ -97,9 +97,7 @@ describe.each([
         }),
       ).rejects.toThrow(new BadDataException(limitMessage));
 
-      expect(String(queries(countBy)[0]!["statusPageId"])).toBe(
-        STATUS_PAGE_ID,
-      );
+      expect(String(queries(countBy)[0]!["statusPageId"])).toBe(STATUS_PAGE_ID);
     });
 
     test("a page named by its ID column counts the same", async () => {
@@ -181,7 +179,9 @@ describe("a group's name is unique on the status page named either way", () => {
         props: { isRoot: true },
       }),
     ).rejects.toThrow(
-      new BadDataException("Status Page Group with the same name already exists."),
+      new BadDataException(
+        "Status Page Group with the same name already exists.",
+      ),
     );
 
     expect(String(queries(countBy)[0]!["statusPageId"])).toBe(STATUS_PAGE_ID);
