@@ -49,7 +49,7 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * Incidents → Settings → AI and Alerts → Settings → AI, rendered for real
+ * Incidents → AI → Settings and Alerts → AI → Settings, rendered for real
  * with the model API and the permission snapshot stubbed.
  *
  * What these pin is what a project sees before anyone has set a limit:
@@ -334,7 +334,7 @@ describe.each(
   PAGES.map((page: SettingsPageCase): [string, SettingsPageCase] => {
     return [page.name, page];
   }),
-)("%s → Settings → AI", (_name: string, page: SettingsPageCase) => {
+)("%s → AI → Settings", (_name: string, page: SettingsPageCase) => {
   function projectWith(values: Record<string, unknown>): Project {
     return Object.assign(new Project(), {
       _id: PROJECT_ID,
