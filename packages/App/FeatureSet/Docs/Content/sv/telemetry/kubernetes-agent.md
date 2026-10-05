@@ -349,6 +349,8 @@ Etiketter matchas skiftlägesokänsligt, så en befintlig manuellt skapad `Produ
 
 ## Uppgradera agenten
 
+När agenten är äldre än din OneUptime visas en varningssymbol bredvid **Agentversion** i klustrets **Klusterdetaljer**. Välj den för att se det här kommandot.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

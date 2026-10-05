@@ -348,6 +348,8 @@ Le etichette vengono confrontate senza distinzione tra maiuscole e minuscole, qu
 
 ## Aggiornamento dell'agent
 
+Quando l'agent è più vecchio del tuo OneUptime, accanto a **Versione dell'agente** nei **Dettagli del cluster** compare un segnale di avviso. Selezionalo per vedere questo comando.
+
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

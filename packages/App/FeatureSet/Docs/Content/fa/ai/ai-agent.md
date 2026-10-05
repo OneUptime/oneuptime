@@ -39,12 +39,13 @@
 ### ۱. یک ارائه‌دهنده LLM
 
 - **‏OneUptime Cloud**: بدون پیکربندی — اگر پروژه شما ارائه‌دهنده LLM خودش را نداشته باشد، وظیفه‌های عامل از ارائه‌دهنده سراسری مشترک استفاده می‌کنند و مصرف مانند هر قابلیت هوش مصنوعی دیگری به‌صورت توکن اندازه‌گیری‌شده صورت‌حساب می‌شود. برای استفاده از کلیدهای خودتان، ارائه‌دهنده‌ای زیر **Project Settings** > **AI** > **LLM Providers** پیکربندی کنید — ارائه‌دهنده متعلق به پروژه همیشه اولویت دارد.
-- **خودمیزبان**: ارائه‌دهنده متعلق به پروژه به همین شکل کار می‌کند، اما مسیر بدون پیکربندی این است که متغیرهای محیطی `GLOBAL_LLM_PROVIDER_*` را یک بار روی کارساز OneUptime خود تنظیم کنید (در `config.env` برای Docker Compose، یا از راه مقادیر Helm) — ارائه‌دهنده‌ای سراسری هنگام راه‌اندازی خودکار ثبت می‌شود و قابلیت‌های هوش مصنوعی هر پروژه، از جمله وظیفه‌های عامل، از آن استفاده می‌کنند. برای Ollama محلی:
+- **خودمیزبان**: ارائه‌دهنده متعلق به پروژه به همین شکل کار می‌کند، اما مسیر بدون پیکربندی این است که متغیرهای محیطی `GLOBAL_LLM_PROVIDER_*` را یک بار روی کارساز OneUptime خود تنظیم کنید (در `config.env` برای Docker Compose، یا از راه مقادیر Helm) — ارائه‌دهنده‌ای سراسری هنگام راه‌اندازی خودکار ثبت می‌شود و قابلیت‌های هوش مصنوعی هر پروژه، از جمله وظیفه‌های عامل، از آن استفاده می‌کنند. برای Ollama خودمیزبان:
 
 ```bash
 GLOBAL_LLM_PROVIDER_TYPE=Ollama
-GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
-GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
+# An address the OneUptime server can reach, never localhost.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 # No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
 ```
 

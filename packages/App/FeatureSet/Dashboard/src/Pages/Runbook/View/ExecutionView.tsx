@@ -24,6 +24,10 @@ import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus"
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
+import {
+  decideRunbookStepAction,
+  RunbookStepAction,
+} from "Common/Types/Runbook/RunbookStepAction";
 import User from "Common/Models/DatabaseModels/User";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -561,7 +565,9 @@ const ExecutionView: FunctionComponent<
             ? "A step failed and stopped the run. Review the error below, then re-run the runbook when you've fixed it."
             : execStatus === RunbookExecutionStatus.Cancelled
               ? "This execution was cancelled."
-              : "Scheduled — waiting to start.";
+              : execution.startedAt
+                ? "Continuing — queued to pick up where it paused."
+                : "Scheduled — waiting to start.";
 
   const cardButtons: Array<CardButtonSchema> = [];
 
@@ -753,10 +759,23 @@ const ExecutionView: FunctionComponent<
                     const isWaitingForApproval: boolean =
                       isWaiting &&
                       stepExec.step.type !== RunbookStepType.Manual;
-                    const canSkip: boolean =
-                      stepExec.status ===
-                        RunbookStepExecutionStatus.WaitingForUser ||
-                      stepExec.status === RunbookStepExecutionStatus.Pending;
+                    /*
+                     * Offer only what the API accepts: completing the step
+                     * the run is paused on, skipping it, or skipping a later
+                     * automated step ahead of time while the run is paused.
+                     */
+                    const canComplete: boolean = decideRunbookStepAction({
+                      action: RunbookStepAction.Complete,
+                      executionStatus: execStatus,
+                      stepExecutions: steps,
+                      stepId: stepExec.step.id,
+                    }).allowed;
+                    const canSkip: boolean = decideRunbookStepAction({
+                      action: RunbookStepAction.Skip,
+                      executionStatus: execStatus,
+                      stepExecutions: steps,
+                      stepId: stepExec.step.id,
+                    }).allowed;
                     return (
                       <li key={stepExec.step.id} className="relative pl-12">
                         {/* Timeline dot */}
@@ -816,7 +835,7 @@ const ExecutionView: FunctionComponent<
                               )}
                             </div>
                             <div className="flex-shrink-0 flex items-center gap-2">
-                              {isWaiting && (
+                              {canComplete && (
                                 <Button
                                   title={
                                     isWaitingForApproval

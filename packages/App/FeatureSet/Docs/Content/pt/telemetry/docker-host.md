@@ -91,6 +91,8 @@ Em cerca de um minuto, o host deve aparecer no painel do OneUptime com métricas
 
 ## Atualizando o agente
 
+Quando o agente é mais antigo que o seu OneUptime, um sinal de aviso aparece ao lado de **Versão do agente** na **Visão geral** do host Docker. Selecione-o para ver estes comandos.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent
