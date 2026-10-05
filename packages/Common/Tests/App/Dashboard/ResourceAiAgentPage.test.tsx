@@ -54,6 +54,7 @@ import {
   getResourceAiAgentWriteAccessCommands,
   getResourceAiAgentWriteDisclosure,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentInstall";
+import { getResourceAccessTestPermissionRequirement } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAccessPermissions";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -470,6 +471,80 @@ async function findDialogTitled(title: string): Promise<HTMLElement> {
   return dialog;
 }
 
+/*
+ * The agent card's actions sit in one ⋯ beside its status: "We can have
+ * both of these buttons, like "Test Connection" and "Reset Agent," in a
+ * more button style with three dots. Please do this for all the other
+ * resources in the project."
+ */
+const ACTIONS_BUTTON_TEST_ID: string = "ai-agent-actions-button";
+const TEST_ACTION_TEST_ID: string = "ai-agent-test-button";
+const RESET_ACTION_TEST_ID: string = "ai-agent-reset-button";
+
+// The agent card's header: its status, then its ⋯ when it has one.
+async function agentCardHeader(
+  descriptor: ResourceAiAgentDescriptor = DOCKER,
+): Promise<HTMLElement> {
+  const card: HTMLElement | null = (
+    await findText(descriptor.agentName)
+  ).closest('[data-testid="card"]');
+  if (!card) {
+    throw new Error(`"${descriptor.agentName}" is not inside a card.`);
+  }
+  return within(card).getByTestId("card-header-actions");
+}
+
+// Opens the agent card's ⋯ and returns the menu it opened.
+async function openAgentActions(): Promise<HTMLElement> {
+  fireEvent.click(await findTestId(ACTIONS_BUTTON_TEST_ID));
+  return await screen.findByRole("menu", {}, { timeout: WAIT_TIMEOUT });
+}
+
+// The ⋯'s items, by label, in the order they are listed.
+function actionLabels(menu: HTMLElement): Array<string> {
+  return within(menu)
+    .getAllByRole("menuitem")
+    .map((item: HTMLElement): string => {
+      return (item.textContent || "").trim();
+    });
+}
+
+// Picks one of the agent card's actions from its ⋯.
+async function pickAgentAction(testId: string): Promise<void> {
+  const menu: HTMLElement = await openAgentActions();
+  fireEvent.click(within(menu).getByTestId(testId));
+}
+
+// The page has loaded, and its agent card has no ⋯ at all.
+async function expectNoAgentActions(): Promise<void> {
+  await findTestId("ai-agent-status");
+  expect(screen.queryByTestId(ACTIONS_BUTTON_TEST_ID)).not.toBeInTheDocument();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(screen.queryByTestId(TEST_ACTION_TEST_ID)).not.toBeInTheDocument();
+  expect(screen.queryByTestId(RESET_ACTION_TEST_ID)).not.toBeInTheDocument();
+}
+
+// Answers the test route with a promise the test resolves when it likes.
+function holdTheTest(): {
+  answer: (value: HTTPResponse<JSONObject>) => void;
+} {
+  const held: { answer: (value: HTTPResponse<JSONObject>) => void } = {
+    answer: (): void => {
+      // replaced when the test is asked for
+    },
+  };
+  serve(makeStatus(), {
+    test: (): Promise<HTTPResponse<JSONObject>> => {
+      return new Promise(
+        (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+          held.answer = resolve;
+        },
+      );
+    },
+  });
+  return held;
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
@@ -573,9 +648,8 @@ describe("the agent card", () => {
     expect(
       screen.getByTestId("ai-agent-install-prerequisites"),
     ).toHaveTextContent("docker run");
-    expect(
-      screen.queryByTestId("ai-agent-test-button"),
-    ).not.toBeInTheDocument();
+    // Nothing to test or reset, so no ⋯ at all.
+    await expectNoAgentActions();
     expect(screen.queryByTestId("ai-agent-ready")).not.toBeInTheDocument();
     expect(screen.queryByTestId("ai-agent-meta")).not.toBeInTheDocument();
   });
@@ -2139,7 +2213,7 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-test-button"));
+    await pickAgentAction(TEST_ACTION_TEST_ID);
 
     const results: HTMLElement = await findTestId("ai-agent-test-results");
     expect(results).toHaveTextContent("The connection is not working yet");
@@ -2181,7 +2255,7 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-test-button"));
+    await pickAgentAction(TEST_ACTION_TEST_ID);
 
     const error: HTMLElement = await findTestId("ai-agent-test-error");
     expect(error).toHaveTextContent(
@@ -2204,7 +2278,7 @@ describe("Test connection", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-test-button"));
+    await pickAgentAction(TEST_ACTION_TEST_ID);
 
     expect(await findTestId("ai-agent-test-error")).toHaveTextContent(
       "An AI access test is already running.",
@@ -2215,10 +2289,114 @@ describe("Test connection", () => {
     grant(READER_PERMISSIONS);
     openAgentPage();
 
-    expect(await findTestId("ai-agent-test-button")).toBeDisabled();
+    const menu: HTMLElement = await openAgentActions();
+    // Locked, not hidden - and nothing else is offered to a reader.
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
+    const item: HTMLElement = within(menu).getByTestId(TEST_ACTION_TEST_ID);
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveAccessibleDescription(
+      /Testing the connection needs permission to edit this Docker host/,
+    );
     expect(
       screen.getByTestId("ai-agent-test-permission-note"),
     ).toHaveTextContent("Testing the connection needs permission to edit");
+
+    fireEvent.click(item);
+    expect(postsTo(TEST_ROUTE)).toHaveLength(0);
+    expect(
+      screen.queryByTestId("ai-agent-test-progress"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("is hidden while the permission snapshot has not landed - and so is the ⋯", async () => {
+    grant([]);
+    openAgentPage();
+
+    await expectNoAgentActions();
+    expect(
+      screen.queryByTestId("ai-agent-test-permission-note"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The old button carried the test's spinner. The ⋯ closes as the test
+   * starts, so the agent card says it is running, where the result then
+   * appears, and the test is locked in the ⋯ until it is done.
+   */
+  test("runs once, said in the agent card while it runs, and the result replaces that", async () => {
+    const held: { answer: (value: HTTPResponse<JSONObject>) => void } =
+      holdTheTest();
+    openAgentPage();
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    const progress: HTMLElement = await findTestId("ai-agent-test-progress");
+    expect(progress).toHaveAttribute("role", "status");
+    expect(progress).toHaveTextContent("Testing the connection…");
+    const agentCard: HTMLElement | null = (
+      await findText("Docker AI agent")
+    ).closest('[data-testid="card"]');
+    expect(agentCard).toContainElement(progress);
+
+    let menu: HTMLElement = await openAgentActions();
+    expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toBeDisabled();
+    fireEvent.click(within(menu).getByTestId(TEST_ACTION_TEST_ID));
+    fireEvent.keyDown(menu, { key: "Escape" });
+    expect(postsTo(TEST_ROUTE)).toHaveLength(1);
+
+    await act(async () => {
+      held.answer(
+        new HTTPResponse<JSONObject>(
+          200,
+          { ok: true, message: "docker info worked.", results: [] },
+          {},
+        ),
+      );
+    });
+
+    expect(await findTestId("ai-agent-test-results")).toHaveTextContent(
+      "The connection works",
+    );
+    expect(
+      screen.queryByTestId("ai-agent-test-progress"),
+    ).not.toBeInTheDocument();
+    menu = await openAgentActions();
+    expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).not.toBeDisabled();
+  });
+
+  test("a refused test clears the running line and says why", async () => {
+    let answer: (value: HTTPErrorResponse) => void = (): void => {
+      // replaced below
+    };
+    serve(makeStatus(), {
+      test: (): Promise<HTTPErrorResponse> => {
+        return new Promise((resolve: (value: HTTPErrorResponse) => void) => {
+          answer = resolve;
+        });
+      },
+    });
+    openAgentPage();
+
+    await pickAgentAction(TEST_ACTION_TEST_ID);
+    expect(await findTestId("ai-agent-test-progress")).toBeInTheDocument();
+
+    await act(async () => {
+      answer(
+        new HTTPErrorResponse(
+          429,
+          { error: "An AI access test is already running." },
+          {},
+        ),
+      );
+    });
+
+    expect(await findTestId("ai-agent-test-error")).toHaveTextContent(
+      "An AI access test is already running.",
+    );
+    expect(
+      screen.queryByTestId("ai-agent-test-progress"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -2227,16 +2405,43 @@ describe("Reset agent", () => {
     openAgentPage();
 
     expect(await findText("Docker AI agent")).toBeInTheDocument();
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
     expect(
-      screen.queryByTestId("ai-agent-reset-button"),
+      within(menu).queryByTestId(RESET_ACTION_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+
+  test("backing out of the dialog resets nothing, and focus goes back to the ⋯", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    await pickAgentAction(RESET_ACTION_TEST_ID);
+    const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
+    fireEvent.click(within(confirm).getByText("Cancel"));
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByText("Reset the AI agent?"),
+        ).not.toBeInTheDocument();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+    await waitFor(
+      () => {
+        expect(screen.getByTestId(ACTIONS_BUTTON_TEST_ID)).toHaveFocus();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
   });
 
   test("an admin resets the agent after a confirmation", async () => {
     grant(ADMIN_PERMISSIONS);
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-reset-button"));
+    await pickAgentAction(RESET_ACTION_TEST_ID);
     const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
     expect(confirm).toHaveTextContent(
       "This revokes the Docker AI agent's key.",
@@ -2264,7 +2469,7 @@ describe("Reset agent", () => {
     });
     openAgentPage();
 
-    fireEvent.click(await findTestId("ai-agent-reset-button"));
+    await pickAgentAction(RESET_ACTION_TEST_ID);
     const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
     fireEvent.click(within(confirm).getByText("Reset agent"));
 
@@ -2285,9 +2490,127 @@ describe("Reset agent", () => {
     expect(await findTestId("ai-agent-status")).toHaveTextContent(
       "Not installed",
     );
+    // Nor anything to test: no ⋯ at all.
+    await expectNoAgentActions();
+  });
+
+  test("is offered for an offline agent too", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(
+      makeStatus({
+        agent: makeAgent({ isOnline: false, lastAliveAt: minutesAgo(12) }),
+        isInvestigationReady: false,
+      }),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-status")).toHaveTextContent("Offline");
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
+    expect(within(menu).getByTestId(RESET_ACTION_TEST_ID)).toHaveAttribute(
+      "aria-disabled",
+      "false",
+    );
+  });
+});
+
+/*
+ * "We can have both of these buttons, like "Test Connection" and "Reset
+ * Agent," in a more button style with three dots." The card's header keeps
+ * the agent's status in sight and puts its actions in one ⋯ beside it.
+ */
+describe("the agent card's ⋯", () => {
+  test("the header shows the status and one ⋯ - no row of buttons", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const header: HTMLElement = await agentCardHeader();
+    const status: HTMLElement = within(header).getByTestId("ai-agent-status");
+    const trigger: HTMLElement = within(header).getByRole("button", {
+      name: "AI agent actions",
+    });
+
+    expect(status).toHaveTextContent("Connected");
+    expect(within(header).getAllByRole("button")).toEqual([trigger]);
+    expect(trigger).toHaveAttribute("data-testid", ACTIONS_BUTTON_TEST_ID);
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(trigger.textContent).toBe("");
     expect(
-      screen.queryByTestId("ai-agent-reset-button"),
+      status.compareDocumentPosition(trigger) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(header).queryByText("Test connection")).toBeNull();
+    expect(within(header).queryByText("Reset agent")).toBeNull();
+  });
+
+  test("never offers a Kubernetes cluster's switch to the AI agent", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const menu: HTMLElement = await openAgentActions();
+
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
+    expect(
+      within(menu).queryByTestId("ai-agent-switch-button"),
     ).not.toBeInTheDocument();
+  });
+
+  test("works from the keyboard: the arrows reach Reset agent, Enter asks first", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const menu: HTMLElement = await openAgentActions();
+    await waitFor(
+      () => {
+        expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toHaveFocus();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    fireEvent.keyDown(within(menu).getByTestId(TEST_ACTION_TEST_ID), {
+      key: "End",
+    });
+    expect(within(menu).getByTestId(RESET_ACTION_TEST_ID)).toHaveFocus();
+    fireEvent.keyDown(within(menu).getByTestId(RESET_ACTION_TEST_ID), {
+      key: "Enter",
+    });
+
+    const confirm: HTMLElement = await findDialogTitled("Reset the AI agent?");
+    expect(confirm).toHaveTextContent(
+      "This revokes the Docker AI agent's key.",
+    );
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+  });
+
+  test("Escape closes it, picks nothing and hands focus back", async () => {
+    grant(ADMIN_PERMISSIONS);
+    openAgentPage();
+
+    const menu: HTMLElement = await openAgentActions();
+    fireEvent.keyDown(menu, { key: "Escape" });
+
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(screen.getByTestId(ACTIONS_BUTTON_TEST_ID)).toHaveFocus();
+    expect(postsTo(TEST_ROUTE)).toHaveLength(0);
+    expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+  });
+
+  test("appears once an agent registers while the page is open", async () => {
+    jest.useFakeTimers();
+    grant(ADMIN_PERMISSIONS);
+    postSpy
+      .mockResolvedValueOnce(statusResponse(notInstalledStatus()))
+      .mockResolvedValue(statusResponse(makeStatus()));
+    openAgentPage();
+
+    await expectNoAgentActions();
+
+    await act(async () => {
+      jest.advanceTimersByTime(RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS);
+    });
+
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
   });
 });
 
@@ -2322,6 +2645,169 @@ describe("every resource type", () => {
       ).toHaveTextContent(
         `Install the ${descriptor.agentName} with the instructions above.`,
       );
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the agent card keeps its status in sight and its actions in one ⋯",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      grant(ADMIN_PERMISSIONS);
+      serve(makeStatus({ resourceType: type }));
+      openAgentPage(descriptor);
+
+      const header: HTMLElement = await agentCardHeader(descriptor);
+      const trigger: HTMLElement = within(header).getByRole("button", {
+        name: "AI agent actions",
+      });
+
+      expect(within(header).getByTestId("ai-agent-status")).toHaveTextContent(
+        "Connected",
+      );
+      expect(within(header).getAllByRole("button")).toEqual([trigger]);
+
+      const menu: HTMLElement = await openAgentActions();
+      expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
+      for (const testId of [TEST_ACTION_TEST_ID, RESET_ACTION_TEST_ID]) {
+        expect(within(menu).getByTestId(testId)).toHaveAttribute(
+          "aria-disabled",
+          "false",
+        );
+      }
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: a member gets the test alone; a reader gets it locked, with this type's reason",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      serve(makeStatus({ resourceType: type }));
+      openAgentPage(descriptor);
+
+      let menu: HTMLElement = await openAgentActions();
+      expect(actionLabels(menu)).toEqual(["Test connection"]);
+      expect(within(menu).getByTestId(TEST_ACTION_TEST_ID)).toHaveAttribute(
+        "aria-disabled",
+        "false",
+      );
+      cleanup();
+
+      grant(READER_PERMISSIONS);
+      openAgentPage(descriptor);
+
+      menu = await openAgentActions();
+      expect(actionLabels(menu)).toEqual(["Test connection"]);
+      const item: HTMLElement = within(menu).getByTestId(TEST_ACTION_TEST_ID);
+      expect(item).toHaveAttribute("aria-disabled", "true");
+      expect(item).toHaveAccessibleDescription(
+        getResourceAccessTestPermissionRequirement(descriptor),
+      );
+      fireEvent.click(item);
+      expect(postsTo(TEST_ROUTE)).toHaveLength(0);
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: no ⋯ before an agent registers, even for an admin",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      grant(ADMIN_PERMISSIONS);
+      serve({ ...notInstalledStatus(), resourceType: type });
+      openAgentPage(descriptor);
+
+      await expectNoAgentActions();
+      expect(
+        within(await agentCardHeader(descriptor)).getByTestId(
+          "ai-agent-status",
+        ),
+      ).toHaveTextContent("Not installed");
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: the ⋯ tests this resource, and the card says so while it runs",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      let answer: (value: HTTPResponse<JSONObject>) => void = (): void => {
+        // replaced below
+      };
+      serve(makeStatus({ resourceType: type }), {
+        test: (): Promise<HTTPResponse<JSONObject>> => {
+          return new Promise(
+            (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+              answer = resolve;
+            },
+          );
+        },
+      });
+      openAgentPage(descriptor);
+
+      await pickAgentAction(TEST_ACTION_TEST_ID);
+
+      expect(await findTestId("ai-agent-test-progress")).toHaveTextContent(
+        "Testing the connection…",
+      );
+      expect(postsTo(TEST_ROUTE)).toHaveLength(1);
+      expect(postsTo(TEST_ROUTE)[0]!["data"]).toEqual({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
+
+      await act(async () => {
+        answer(
+          new HTTPResponse<JSONObject>(
+            200,
+            {
+              ok: true,
+              message: `${descriptor.agentName} works.`,
+              results: [],
+            },
+            {},
+          ),
+        );
+      });
+
+      expect(await findTestId("ai-agent-test-results")).toHaveTextContent(
+        `${descriptor.agentName} works.`,
+      );
+      expect(
+        screen.queryByTestId("ai-agent-test-progress"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: Reset agent from the ⋯ asks first, then resets this resource's agent",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      grant(ADMIN_PERMISSIONS);
+      serve(makeStatus({ resourceType: type }));
+      openAgentPage(descriptor);
+
+      await pickAgentAction(RESET_ACTION_TEST_ID);
+      const confirm: HTMLElement = await findDialogTitled(
+        "Reset the AI agent?",
+      );
+      expect(confirm).toHaveTextContent(
+        `This revokes the ${descriptor.agentName}'s key.`,
+      );
+      expect(postsTo(RESET_ROUTE)).toHaveLength(0);
+
+      fireEvent.click(within(confirm).getByText("Reset agent"));
+
+      expect(await findTestId("ai-agent-action-notice")).toHaveTextContent(
+        `The ${descriptor.agentName} was reset.`,
+      );
+      expect(postsTo(RESET_ROUTE)).toHaveLength(1);
+      expect(postsTo(RESET_ROUTE)[0]!["data"]).toEqual({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
     },
   );
 

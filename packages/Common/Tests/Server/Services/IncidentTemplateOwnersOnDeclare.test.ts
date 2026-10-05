@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * The server half of declaring an incident from a template in the
@@ -151,6 +152,8 @@ async function onCreateSuccess(
 }
 
 beforeEach(() => {
+  // The teams, users and records these writes name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
   createdOwnerUsers = [];
   createdOwnerTeams = [];
   ownerRulesApplied = false;

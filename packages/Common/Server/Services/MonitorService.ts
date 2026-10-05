@@ -82,7 +82,9 @@ import WorkspaceNotificationRuleService, {
 } from "./WorkspaceNotificationRuleService";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import ProjectScopedReferenceValidator, {
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
@@ -98,6 +100,7 @@ import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
 import MonitorTemplateService from "./MonitorTemplateService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
@@ -805,6 +808,15 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    await this.validateLinkedResourcesBelongToProject({
+      payload: updateBy.data,
+      getProjectIds: async (): Promise<Array<ObjectID>> => {
+        return updateBy.props.tenantId
+          ? [updateBy.props.tenantId]
+          : await this.getProjectIdsForUpdateQuery(updateBy);
+      },
+    });
+
     if (
       updateBy.data.dependsOnMonitors !== undefined ||
       updateBy.data.suppressAlertsWhenParentMonitorStatuses !== undefined
@@ -1268,6 +1280,46 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The resources a monitor watches (hosts, clusters, databases, services
+   * and the rest of an incident's affected-resource lists) must belong to
+   * the monitor's project. Each one is copied onto every incident and alert
+   * the monitor opens, where it puts the record on that resource's pages and
+   * hands OneUptime AI a cluster or host to investigate and fix - so another
+   * project's id here would let this project reach that project's
+   * infrastructure. An empty list only removes links and needs no check.
+   */
+  private async validateLinkedResourcesBelongToProject(data: {
+    payload: unknown;
+    getProjectIds: () => Promise<Array<ObjectID>>;
+  }): Promise<void> {
+    const relations: Array<ProjectScopedRelation> =
+      getAffectedResourceRelations(this.getModel()).filter(
+        (relation: ProjectScopedRelation): boolean => {
+          return (
+            resolveReferenceIds(
+              (data.payload as Dictionary<unknown>)?.[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
+    if (relations.length === 0) {
+      return;
+    }
+
+    for (const projectId of await data.getProjectIds()) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "monitor",
+        references: ProjectScopedReferenceValidator.getRelationReferences({
+          payload: data.payload,
+          relations: relations,
+        }),
+      });
+    }
+  }
+
   private async getProjectIdsForUpdateQuery(
     updateBy: UpdateBy<Model>,
   ): Promise<Array<ObjectID>> {
@@ -1688,6 +1740,15 @@ export class Service extends DatabaseService<Model> {
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId,
+    });
+
+    await this.validateLinkedResourcesBelongToProject({
+      payload: createBy.data,
+      getProjectIds: async (): Promise<Array<ObjectID>> => {
+        const projectId: ObjectID | undefined =
+          createBy.props.tenantId || createBy.data.projectId;
+        return projectId ? [projectId] : [];
+      },
     });
 
     await this.validateDependencyConfiguration({

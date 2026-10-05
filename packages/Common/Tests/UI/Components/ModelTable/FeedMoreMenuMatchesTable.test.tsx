@@ -314,8 +314,16 @@ describe("one component for every card header's ⋯", () => {
   test("CardMoreMenu is the three-dots button with no label", () => {
     const source: string = read("Card/CardMoreMenu.tsx");
 
+    /*
+     * The icon and the empty label, first on the one MoreMenu it draws. A
+     * card may name the button (ariaLabel) - its accessible name - but never
+     * gives it a visible label or another icon.
+     */
     expect(source).toMatch(
-      /<MoreMenu menuIcon=\{IconProp\.EllipsisHorizontal\} text="">/,
+      /<MoreMenu\s+menuIcon=\{IconProp\.EllipsisHorizontal\}\s+text=""\s/,
     );
+    expect(source.match(/<MoreMenu\b/g)).toHaveLength(1);
+    expect(source.match(/\btext=/g)).toHaveLength(1);
+    expect(source.match(/\bmenuIcon=/g)).toHaveLength(1);
   });
 });

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import LabelService from "./LabelService";
 import ServiceLevelObjectiveFeedService from "./ServiceLevelObjectiveFeedService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
@@ -75,15 +75,26 @@ interface RuleDeleteCarryForward {
   rulesToDelete: Array<Model>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The SLO is checked by SloRecordReferenceValidator (pinned to the project,
+   * ids only). The generic check covers the rest.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["serviceLevelObjective"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     const serviceLevelObjectiveId: ObjectID | string | undefined =
       resolveReferenceId(
         createBy.data.serviceLevelObjectiveId ||
@@ -186,6 +197,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     MonitorRulePatternValidator.validate({
       namePattern: updateBy.data.monitorNamePattern as string | undefined,
       descriptionPattern: updateBy.data.monitorDescriptionPattern as
@@ -566,12 +580,11 @@ export class Service extends DatabaseService<Model> {
    * SLO would attach this project's monitors to it - and reveal, through the
    * feed and the Monitors page, which monitors this project has.
    *
-   * SloRecordReferenceValidator rather than ProjectScopedReferenceValidator.
-   * That one reads the referenced row as root and names a foreign one in its
-   * error ("belong to a different project: Service Level Objective <name>"),
-   * which confirms another tenant's SLO exists and hands its name to anyone
-   * holding its id. This lookup is pinned to the rule's project, selects only
-   * ids, and gives a foreign id the same answer as an id that matches nothing.
+   * SloRecordReferenceValidator checks it: pinned to the rule's project,
+   * selecting only ids, and giving a foreign id the same answer as an id
+   * that matches nothing - in words that name the SLO, which is why the
+   * generic reference check leaves this relation to it
+   * (getRelationsCheckedByService).
    */
   private async assertServiceLevelObjectiveIsInScope(data: {
     projectId: ObjectID | undefined;

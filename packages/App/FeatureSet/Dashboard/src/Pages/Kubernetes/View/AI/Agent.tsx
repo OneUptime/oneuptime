@@ -112,6 +112,14 @@ import {
   AiAccessRow,
   AiAccessRows,
 } from "../../../../Components/AiAccess/AiAccessRow";
+import {
+  AiAgentAction,
+  getAiAgentActions,
+} from "../../../../Components/AiAccess/AiAgentActions";
+import {
+  AiAgentTestProgress,
+  getAiAgentCardButtons,
+} from "../../../../Components/AiAccess/AiAgentActionsMenu";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -197,8 +205,10 @@ import {
  * this cluster and what it may do there, in three cards at most —
  *
  *  A. "Kubernetes AI agent": the connection, with the one command that
- *     fixes a missing or offline agent, a connection test, and the admin
- *     actions (reset the agent; move an advanced Runner binding over to it).
+ *     fixes a missing or offline agent. Its status sits in the header with
+ *     one ⋯ beside it for the connection test and the admin actions (move
+ *     an advanced Runner binding over to the agent; reset the agent) -
+ *     Components/AiAccess/AiAgentActions.ts.
  *  B. "Needs attention": the server's gaps as ONE item, only when there
  *     are any — a headline saying what AI cannot do here, then one short
  *     step per gap with its action. The page never builds a readiness
@@ -1400,75 +1410,39 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     }
   };
 
-  const agentButtons: Array<ReactElement> = [];
-
   /*
-   * There is nothing to test before anything can reach the cluster. Without
-   * edit permission the button stays, locked, with the reason in its
-   * tooltip; it is dropped only when there is nothing honest to say (the
-   * permission snapshot has not landed).
+   * The agent card's ⋯. There is nothing to test before anything can reach
+   * the cluster; switching needs an advanced binding and an online agent,
+   * and resetting a registered agent.
    */
-  if (hasTarget && (testGate.isAllowed || testGate.disabledReason)) {
-    agentButtons.push(
-      <Button
-        key="test"
-        title="Test connection"
-        icon={IconProp.Play}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        isLoading={isTesting}
-        disabled={isTesting || !testGate.isAllowed}
-        tooltip={
-          testGate.isAllowed ? undefined : getAccessTestPermissionRequirement()
-        }
-        dataTestId="ai-agent-test-button"
-        onClick={() => {
-          if (!testGate.isAllowed || !hasTarget) {
-            return;
-          }
-          runTest().catch(() => {
-            // handled inside runTest
-          });
-        }}
-      />,
-    );
-  }
-
-  if (canSwitchToAiAgent(status) && canConfigureUnattended) {
-    agentButtons.push(
-      <Button
-        key="switch"
-        title="Switch to the AI agent"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        disabled={isActing}
-        dataTestId="ai-agent-switch-button"
-        onClick={() => {
-          setConfirmationError("");
-          setPendingConfirmation("switch");
-        }}
-      />,
-    );
-  }
-
-  if (aiAgent && canResetKubernetesAiAgent()) {
-    agentButtons.push(
-      <Button
-        key="reset"
-        title="Reset agent"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.NORMAL}
-        buttonSize={ButtonSize.Normal}
-        disabled={isActing}
-        dataTestId="ai-agent-reset-button"
-        onClick={() => {
-          setConfirmationError("");
-          setPendingConfirmation("reset");
-        }}
-      />,
-    );
-  }
+  const agentActions: Array<AiAgentAction> = getAiAgentActions({
+    testConnection: {
+      hasTarget,
+      gate: testGate,
+      permissionRequirement: getAccessTestPermissionRequirement(),
+      isRunning: isTesting,
+      onRun: (): void => {
+        runTest().catch(() => {
+          // handled inside runTest
+        });
+      },
+    },
+    switchToAgent: {
+      isOffered: canSwitchToAiAgent(status) && canConfigureUnattended,
+      onClick: (): void => {
+        setConfirmationError("");
+        setPendingConfirmation("switch");
+      },
+    },
+    resetAgent: {
+      isOffered: aiAgent !== null && canResetKubernetesAiAgent(),
+      onClick: (): void => {
+        setConfirmationError("");
+        setPendingConfirmation("reset");
+      },
+    },
+    isActing,
+  });
 
   const settingsButtons: Array<ReactElement> =
     settingsGate.isAllowed || settingsGate.disabledReason
@@ -1692,7 +1666,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             />
           </span>
         }
-        buttons={agentButtons}
+        buttons={getAiAgentCardButtons(agentActions)}
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-900" data-testid="ai-agent-sentence">
@@ -1762,6 +1736,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           ) : (
             <></>
           )}
+
+          {isTesting ? <AiAgentTestProgress /> : <></>}
 
           {testError ? (
             <Alert

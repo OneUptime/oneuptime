@@ -50,8 +50,13 @@ const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFam
  * HOST is a made-up domain. Nothing is ever fetched from it: the data
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server.
+ *
+ * APP_VERSION - the version the OneUptime server says it runs, which agent
+ * versions are compared with - is unset, as on a dev build, so no agent
+ * version is ever outdated. `?appVersion=14.0.14` sets it for one page load
+ * (AgentVersionSign.spec.ts).
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chart time zoom preview</title><script>window.process={env:{HOST:"oneuptime.acme-platform.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chart time zoom preview</title><script>window.process={env:{HOST:"oneuptime.acme-platform.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}var appVersion=new URLSearchParams(location.search).get("appVersion");if(appVersion){window.process.env.APP_VERSION=appVersion}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });

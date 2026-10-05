@@ -19,6 +19,8 @@ Le SCIM de projet permet aux fournisseurs d'identité de gérer les membres d'é
 
 ### Configuration du SCIM de projet
 
+Seul un propriétaire du projet peut ajouter ou modifier la connexion SCIM d'un projet, ou afficher ou réinitialiser son jeton Bearer : via SCIM, votre fournisseur d'identité peut ajouter des personnes à n'importe quelle équipe du projet.
+
 1. **Accéder aux paramètres du projet**
 
    - Accédez à votre projet OneUptime

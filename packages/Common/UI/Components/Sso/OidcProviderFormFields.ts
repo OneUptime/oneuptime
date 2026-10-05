@@ -33,6 +33,7 @@ import {
   isSsoGlobalAccessAtDefaults,
   readSsoFormValue,
   ssoFormValueAsText,
+  SsoProviderTeamsFooterFunction,
 } from "./SsoProviderFormFields";
 
 /*
@@ -72,6 +73,11 @@ import {
 export interface OidcProviderFormOptions {
   // A project's provider: the teams people join when they first sign in.
   withTeams?: boolean | undefined;
+  /*
+   * Drawn under Teams: the page's word on the teams picked - the Dashboard
+   * names the ones the person could not invite someone to.
+   */
+  getTeamsFooterElement?: SsoProviderTeamsFooterFunction | undefined;
   /*
    * The instance-wide provider (Admin Dashboard > Global OIDC): its
    * "Disable Sign Up with SSO" and "Restrict to Attached Projects" switches,
@@ -386,7 +392,12 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
       stepId: "provider",
     },
     ...(options?.withTeams
-      ? [getSsoProviderTeamsField<TEntity>({ stepId: "sign-in" })]
+      ? [
+          getSsoProviderTeamsField<TEntity>({
+            stepId: "sign-in",
+            getFooterElement: options.getTeamsFooterElement,
+          }),
+        ]
       : []),
     getSsoProviderEnabledField<TEntity>({ stepId: "sign-in" }),
     {

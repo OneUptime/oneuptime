@@ -133,10 +133,35 @@ function isScript(data: GuideData): boolean {
   return data.method === "install-script";
 }
 
-function getInstallScriptCommand(): string {
+/*
+ * The commands that install and upgrade the agent. The guide's steps, its
+ * "Upgrade or uninstall the agent" topic and the upgrade dialog beside an
+ * outdated agent version (Components/AgentVersion) all show these, so they
+ * never drift. Running the install script again is the upgrade: it fetches
+ * the latest files and restarts the agent.
+ */
+export function getDockerSwarmAgentInstallScriptCommand(): string {
   return `curl -sSL ${getDockerSwarmAgentFileUrl("install.sh")} -o install.sh
 sh install.sh`;
 }
+
+// The agent's files, downloaded into the current folder.
+export function getDockerSwarmAgentDownloadCommand(): string {
+  return [
+    ...DOCKER_SWARM_AGENT_FILES.map((fileName: string): string => {
+      return `curl -fsSL ${getDockerSwarmAgentFileUrl(fileName)} -o ${fileName}`;
+    }),
+    "chmod +x inventory-snapshot.sh",
+  ].join("\n");
+}
+
+/*
+ * Pulls the images the downloaded docker-compose.yml names and recreates the
+ * containers. The collector image is pinned there, so this alone does not
+ * move the agent forward: download the files again first.
+ */
+export const DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND: string =
+  "docker compose pull\ndocker compose up -d";
 
 function getTroubleshootScriptCommand(data: GuideData): string {
   const download: string = `curl -sSL ${getDockerSwarmAgentFileUrl("troubleshoot.sh")} -o troubleshoot.sh`;
@@ -208,7 +233,7 @@ function getInstallSteps(data: GuideData): Array<SetupGuideStep> {
         title: "Run the install script on a manager node",
         description:
           "It asks for your OneUptime URL, the ingestion key and a cluster name, then starts the agent.",
-        markdown: `${codeBlock("bash", getInstallScriptCommand())}
+        markdown: `${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand())}
 
 ${clusterNote}
 
@@ -234,15 +259,7 @@ The script puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` and starts it
       title: "Download the agent's files",
       description:
         "Run this in an empty folder on a manager node; it downloads the files the install script would.",
-      markdown: `${codeBlock(
-        "bash",
-        [
-          ...DOCKER_SWARM_AGENT_FILES.map((fileName: string): string => {
-            return `curl -fsSL ${getDockerSwarmAgentFileUrl(fileName)} -o ${fileName}`;
-          }),
-          "chmod +x inventory-snapshot.sh",
-        ].join("\n"),
-      )}
+      markdown: `${codeBlock("bash", getDockerSwarmAgentDownloadCommand())}
 
 They are the files in the [DockerSwarmAgent directory](${DOCKER_SWARM_AGENT_DIRECTORY_URL}).`,
     },
@@ -361,7 +378,7 @@ ${
       markdown: script
         ? `**Upgrade** — run the install script again. It downloads the latest docker-compose.yml, collector config and inventory poller into \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\`, pulls the images and restarts the agent; answer its questions with the same URL, key and cluster name:
 
-${codeBlock("bash", getInstallScriptCommand())}
+${codeBlock("bash", getDockerSwarmAgentInstallScriptCommand())}
 
 It rewrites \`.env\` from your answers and keeps only the AI agent's target lists: add back any variable you set yourself, such as \`DOCKER_API_VERSION\`. Turned on AI fixes? Run it as \`ONEUPTIME_AI_ALLOW_WRITES=true sh install.sh\` to keep them on. Left the AI agent out? Pass \`--no-ai-agent\` again.
 
@@ -370,7 +387,7 @@ It rewrites \`.env\` from your answers and keeps only the AI agent's target list
 ${codeBlock("bash", `cd ${DOCKER_SWARM_AGENT_INSTALL_DIR}\ndocker compose down`)}`
         : `**Upgrade** — the collector image is pinned in docker-compose.yml and its config is a file next to it, so pulling alone does not move the agent forward. Download the three files again (the commands in step 2 — then re-apply any change you made to docker-compose.yml), and in the agent's folder:
 
-${codeBlock("bash", "docker compose pull\ndocker compose up -d")}
+${codeBlock("bash", DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND)}
 
 **Uninstall** — in the agent's folder:
 

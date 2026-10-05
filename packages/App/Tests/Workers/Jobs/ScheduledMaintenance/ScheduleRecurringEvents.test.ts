@@ -143,8 +143,15 @@ jest.mock("Common/Server/Services/ServiceService", () => {
 jest.mock(
   "Common/Server/Utils/Database/ProjectScopedReferenceValidator",
   () => {
+    // The refusal type is the real one: createOwner recognises it.
+    const actual: { ProjectScopedReferenceException: unknown } =
+      jest.requireActual(
+        "Common/Server/Utils/Database/ProjectScopedReferenceValidator",
+      ) as { ProjectScopedReferenceException: unknown };
+
     return {
       __esModule: true,
+      ProjectScopedReferenceException: actual.ProjectScopedReferenceException,
       default: { filterUsableInProject: jest.fn() },
     };
   },
@@ -171,7 +178,9 @@ import KubernetesClusterService from "Common/Server/Services/KubernetesClusterSe
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
 import ServiceService from "Common/Server/Services/ServiceService";
-import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
+import ProjectScopedReferenceValidator, {
+  ProjectScopedReferenceException,
+} from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -637,6 +646,33 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
         { projectId: PROJECT_ID.toString(), userId: USER_A.toString() },
         { projectId: PROJECT_ID.toString(), userId: USER_B.toString() },
       ]);
+    });
+
+    test("a template team the owner service refuses as not the project's is skipped, and the people are still copied", async () => {
+      /*
+       * A template saved before its owner lists were checked can still name
+       * another project's team. The event's owner service refuses that row
+       * (ProjectReferencesService), and createOwner treats it as not added:
+       * nothing is reported and the rest of the owners are copied.
+       */
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockResolvedValue({} as never);
+      (
+        ScheduledMaintenanceOwnerTeamService.create as jest.Mock
+      ).mockRejectedValue(
+        new ProjectScopedReferenceException(
+          `This scheduled maintenance team owner references records that are not in this project: Team "${TEAM_A.toString()}". Please pick values from this project and try again.`,
+        ) as never,
+      );
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(ScheduledMaintenanceOwnerTeamService.create).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(userIdsWritten()).toEqual([USER_A.toString(), USER_B.toString()]);
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     test("any other owner failure is still reported", async () => {

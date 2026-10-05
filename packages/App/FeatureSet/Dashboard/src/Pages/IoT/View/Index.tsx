@@ -5,6 +5,8 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import IoTDeviceModel from "Common/Models/DatabaseModels/IoTDevice";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getIoTFleetConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
@@ -595,16 +597,11 @@ const IoTFleetOverview: FunctionComponent<
         ),
       });
     }
-    // The devices chip is a count; the agent version below is metadata.
+    /*
+     * The devices chip is a count. The agent version is metadata, drawn after
+     * it by AgentVersion, so it never earns the row an (i).
+     */
     const hasCountChips: boolean = specChips.length > 0;
-    if (fleet.agentVersion) {
-      specChips.push({
-        icon: IconProp.Terminal,
-        label: translator.translateTemplate("Agent {{version}}", {
-          version: String(fleet.agentVersion),
-        }),
-      });
-    }
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -652,7 +649,7 @@ const IoTFleetOverview: FunctionComponent<
               </div>
             </div>
 
-            {specChips.length > 0 && (
+            {(specChips.length > 0 || Boolean(fleet.agentVersion)) && (
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
@@ -673,6 +670,11 @@ const IoTFleetOverview: FunctionComponent<
                     );
                   },
                 )}
+                <AgentVersion
+                  kind={AgentKind.IoTExporter}
+                  version={fleet.agentVersion}
+                  variant="chip"
+                />
                 {/*
                  * One (i) for the devices-online chip; a row holding only
                  * the agent version chip is metadata and gets none.

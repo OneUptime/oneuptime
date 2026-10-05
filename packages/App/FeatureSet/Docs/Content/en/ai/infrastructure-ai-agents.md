@@ -6,7 +6,7 @@ These agents are the **resource AI agents**. Each resource's dashboard page has 
 
 - **Insights** — what OneUptime AI has learned about the resource from its own work there in the last 30 days, and what deserves your attention: fixes that did not help, problems AI keeps investigating, fixes waiting for approval, investigations that failed, commands the agent never picked up, the problems AI investigated grouped by what raised them with what it found, the parts of the resource that keep showing up, how fixes turned out, and open preventive insights about the resource. It works like a cluster's — see [What AI learned on a cluster](/docs/ai/ai-sre#what-ai-learned-on-a-cluster).
 - **Logs** — everything OneUptime AI did on the resource, newest first: each investigation with its incident or alert and its summary, each fix it proposed or ran, and every command it sent through the agent. (This page used to be called Insights.)
-- **AI agent** — whether the agent is connected, what AI may do on the resource (investigate, and how fixes run), anything that needs attention with the step that fixes it, **Test connection** and **Reset agent**.
+- **AI agent** — whether the agent is connected, what AI may do on the resource (investigate, and how fixes run), anything that needs attention with the step that fixes it, and, in the **⋯** menu next to the agent's status, **Test connection** and **Reset agent**.
 
 ## How it relates to the Kubernetes AI agent
 
@@ -39,7 +39,7 @@ Like the Kubernetes AI agent, a resource AI agent is not a Runner. It never appe
 
 Database servers: the Database AI agent has diagnostics for PostgreSQL, MySQL (and MariaDB and Percona Server), Redis (and Valkey, KeyDB and Dragonfly) and MongoDB. For any other engine it runs nothing and says so on the database's AI agent page.
 
-**Test connection** on the AI agent page runs these read-only commands through the agent and shows their output:
+**Test connection**, in the **⋯** menu next to the agent's status on the AI agent page, runs these read-only commands through the agent and shows their output in the agent's card:
 
 | Resource             | Test connection runs                                 |
 | -------------------- | ---------------------------------------------------- |
@@ -115,7 +115,7 @@ It authenticates with the project's telemetry ingestion key — the first one se
 
 On its first connection the agent turns **investigation** on for its resource and, if it allows writes (`ONEUPTIME_AI_ALLOW_WRITES=true`), sets **Fixes** to **Ask for approval**. It does this only on a resource whose AI settings nobody has changed yet: once someone saves them on the AI agent page, the agent never changes them again.
 
-**Reset agent** on the AI agent page makes OneUptime forget the agent's key; whatever held it is locked out, and the real agent registers again within a few minutes. The agent needs a OneUptime server of the same version as its image, or newer.
+**Reset agent**, in the same **⋯** menu on the AI agent page, makes OneUptime forget the agent's key once you confirm it; whatever held it is locked out, and the real agent registers again within a few minutes. The agent needs a OneUptime server of the same version as its image, or newer.
 
 ## What an investigation may run
 

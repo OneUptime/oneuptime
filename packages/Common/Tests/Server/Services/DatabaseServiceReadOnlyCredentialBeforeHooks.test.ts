@@ -34,9 +34,10 @@ jest.mock("../../../Server/Utils/Logger");
  * modelled on): a read-only credential that could not create the row must
  * not have caused its side effects either.
  *
- * No database is touched. getRepository is stubbed to fail loudly, and every
- * hook throws a sentinel, so "the sentinel came back" is exactly "the caller
- * was let through to the hook".
+ * No database is touched. getRepository is stubbed to answer only the one
+ * read a write makes before its hook - the rows the caller may update or
+ * delete, which finds the label - and every hook throws a sentinel, so "the
+ * sentinel came back" is exactly "the caller was let through to the hook".
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -295,8 +296,23 @@ function makeHarness(): Harness {
   const repository: jest.SpyInstance = getJestSpyOn(
     service,
     "getRepository",
-  ).mockImplementation((): never => {
-    throw new Error(REPOSITORY_REACHED);
+  ).mockImplementation((): unknown => {
+    return {
+      find: async (): Promise<Array<Label>> => {
+        const label: Label = newLabel();
+        label._id = ROW_ID.toString();
+        return [label];
+      },
+      save: (): never => {
+        throw new Error(REPOSITORY_REACHED);
+      },
+      update: (): never => {
+        throw new Error(REPOSITORY_REACHED);
+      },
+      delete: (): never => {
+        throw new Error(REPOSITORY_REACHED);
+      },
+    };
   });
 
   return { service, hooks: hooks as HookSpies, repository };

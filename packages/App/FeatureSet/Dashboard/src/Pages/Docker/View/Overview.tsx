@@ -4,6 +4,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import OsVersionDisplay, {
   getOsVersionPrimary,
 } from "Common/UI/Components/OsVersionDisplay/OsVersionDisplay";
@@ -1737,10 +1739,25 @@ const DockerHostOverview: FunctionComponent<
                 agentVersion: true,
               },
               title: "Agent Version",
-              fieldType: FieldType.Text,
-              placeholder: "Not reported",
+              fieldType: FieldType.Element,
               showIf: (item: DockerHost): boolean => {
                 return Boolean(item.agentVersion);
+              },
+              /*
+               * A sign beside an outdated version opens how to upgrade the
+               * agent; the docker run command is in the host's setup guide.
+               */
+              getElement: (item: DockerHost): ReactElement => {
+                return (
+                  <AgentVersion
+                    kind={AgentKind.DockerAgent}
+                    version={item.agentVersion}
+                    setupGuideRoute={RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.DOCKER_HOST_VIEW_DOCUMENTATION] as Route,
+                      { modelId: modelId },
+                    )}
+                  />
+                );
               },
             },
             {

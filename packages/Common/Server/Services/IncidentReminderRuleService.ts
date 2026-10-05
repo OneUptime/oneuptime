@@ -1,6 +1,6 @@
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentReminderRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
@@ -18,7 +18,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {

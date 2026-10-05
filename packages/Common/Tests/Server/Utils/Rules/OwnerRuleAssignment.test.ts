@@ -7,7 +7,12 @@ import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
+import { ProjectScopedReferenceException } from "../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../../TestingUtils/ProjectDirectory";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -22,19 +27,28 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * "already an owner" as done rather than as a failure.
  *
  * The owner sets are saved configuration and can name a user who has left
- * the project since; createOwner skips such a user (see the last block).
+ * the project since, or - saved before the lists were checked - a team of
+ * another project, which the owner service refuses; createOwner skips both
+ * (see the last blocks).
  */
 
 /*
  * Every owner user below is a project member unless a test says otherwise.
- * The membership read is TeamMemberService's; no Postgres here.
+ * The membership read is TeamMemberService's; a team is the owner service's
+ * to check, and the stubbed directory shows createOwner never reads one
+ * itself. No Postgres here.
  */
 let memberCheck: jest.SpyInstance;
+let directory: ProjectDirectoryStub;
 
 beforeEach(() => {
   memberCheck = jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
     .mockResolvedValue(true);
+  directory = stubProjectDirectory({
+    projectId: PROJECT_ID,
+    records: { Team: [TEAM_A.toString(), TEAM_B.toString()] },
+  });
 });
 
 afterEach(() => {
@@ -666,7 +680,7 @@ describe("OwnerRuleAssignment and project membership", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
-  it("does not ask about team owners", async () => {
+  it("does not ask about membership for a team owner", async () => {
     membersAre([]);
     const create: jest.Mock = jest.fn(async () => {
       return {};
@@ -735,5 +749,111 @@ describe("OwnerRuleAssignment and project membership", () => {
     ).rejects.toBe(failure);
 
     expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe("OwnerRuleAssignment and the project's teams", () => {
+  /*
+   * A team owner is checked by the owner row's own service: every owner
+   * service is a ProjectReferencesService, which refuses a team (or user,
+   * or resource) that is not the row's project's with a
+   * ProjectScopedReferenceException. createOwner reports that row as not
+   * added, so a saved owner set naming another project's team still adds
+   * everyone else. OwnerAndRuleServicesCheckReferences holds every owner
+   * service to that check.
+   */
+  // A team of another project, or one that does not exist at all.
+  const FOREIGN_TEAM: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+
+  function refusedAsNotTheProjects(): ProjectScopedReferenceException {
+    return new ProjectScopedReferenceException(
+      `This monitor team owner references records that are not in this project: Team "${FOREIGN_TEAM.toString()}". Please pick values from this project and try again.`,
+    );
+  }
+
+  function teamRowOf(teamId: ObjectID): MonitorOwnerTeam {
+    const owner: MonitorOwnerTeam = new MonitorOwnerTeam();
+    owner.teamId = teamId;
+    owner.monitorId = MONITOR_ID;
+    owner.projectId = PROJECT_ID;
+    return owner;
+  }
+
+  it("reports a team the owner service refuses as not the project's as not added", async () => {
+    const create: jest.Mock = jest.fn(async () => {
+      throw refusedAsNotTheProjects();
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: teamRowOf(FOREIGN_TEAM),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(false);
+
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the team to the owner service rather than reading it a second time", async () => {
+    const create: jest.Mock = jest.fn(async () => {
+      return {};
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: teamRowOf(TEAM_A),
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(true);
+
+    expect(directory.recordLookups).toEqual([]);
+    expect(memberCheck).not.toHaveBeenCalled();
+  });
+
+  it("still throws a refusal of any other kind", async () => {
+    const failure: BadDataException = new BadDataException(
+      "teamId is required",
+    );
+    const create: jest.Mock = jest.fn(async () => {
+      throw failure;
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: teamRowOf(TEAM_A),
+        props: { isRoot: true },
+      }),
+    ).rejects.toBe(failure);
+  });
+
+  it("adds the rest of a saved owner set when one of its teams is another project's", async () => {
+    const services: WritableServices = writableServices({
+      teamErrors: { [FOREIGN_TEAM.toString()]: refusedAsNotTheProjects() },
+    });
+
+    const added: OwnersToAssign = await OwnerRuleAssignment.addOwners({
+      ownerUserService: services.ownerUserService,
+      ownerTeamService: services.ownerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceId: MONITOR_ID,
+      projectId: PROJECT_ID,
+      userIds: [USER_A],
+      teamIds: [FOREIGN_TEAM, TEAM_A],
+      props: { isRoot: true },
+    });
+
+    expect(ids(added.teamIds)).toEqual([TEAM_A.toString()]);
+    expect(ids(added.userIds)).toEqual([USER_A.toString()]);
   });
 });

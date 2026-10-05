@@ -27,7 +27,7 @@ SSO-integrasjon gir følgende fordeler:
    - Skriv inn **Innloggings-URL** fra identitetsleverandøren din
    - Skriv inn **Utsteder** (Entity ID) fra identitetsleverandøren din
    - Lim inn **Offentlig sertifikat** fra identitetsleverandøren din
-   - I steget **Pålogging** starter **Team** med prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene
+   - I steget **Pålogging** starter **Team** med prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene. Bare team du selv kunne invitert noen til, godtas: et team som gir mer tilgang enn du har, blir nevnt under **Team**
    - Resten fylles ut under **Flere felt**: **Signaturmetode** (`RSA-SHA256`), **Digest-metode** (`SHA256`) og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis identitetsleverandøren din krever det
 
 3. **Hent OneUptime SSO-metadata**
@@ -294,10 +294,12 @@ Et prosjekt kan også logge på via en OpenID Connect-leverandør, for eksempel 
 1. Registrer en app (en OIDC-klient) hos identitetsleverandøren din, og kopier **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**.
 2. Gå i OneUptime til **Prosjektinnstillinger** > **Sikkerhet** > **OIDC**, og klikk **Opprett OIDC**.
 3. Skriv inn et **Navn** (det folk ser på påloggingssiden), **Utsteder-URL**, **Klient-ID** og **Klienthemmelighet**. Du kan også lime inn leverandørens discovery-URL i **Utsteder-URL**.
-4. I trinnet **Pålogging** er **Team** allerede satt til prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene. Resten fylles ut under **Flere felt**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis leverandøren krever det.
+4. I trinnet **Pålogging** er **Team** allerede satt til prosjektets medlemsteam: personer som logger på for første gang, blir med i disse teamene. Resten fylles ut under **Flere felt**: **Oppdagelses-URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse («Sign in with» og navnet). Endre dem bare hvis leverandøren krever det. Bare team du selv kunne invitert noen til, godtas: et team som gir mer tilgang enn du har, blir nevnt under **Team**.
 5. Lagre. Dialogen **OIDC Configuration** åpnes med **Redirect URI**: legg den til i appens tillatte omdirigerings-URI-er. En ny leverandør er slått av til å begynne med; rediger den deretter og slå på **Aktivert**.
 6. Bruk lenken på kortet **Test OpenID Connect (OIDC)** for å logge på via leverandøren før du gjør SSO obligatorisk for prosjektet.
 
 ## Merknader om SSO og roller
 
 OneUptime støtter for øyeblikket ikke kartlegging av SAML-roller fra identitetsleverandøren din. Rollebasert tilgang må konfigureres separat i OneUptimes **Prosjektinnstillinger** > **SSO**-innstillinger, der du kan tildele standardroller for SSO-brukere.
+
+En leverandørs team avgjør hva personer som logger på med den, kan gjøre, så en leverandør lagres bare med team som personen som lagrer den, kunne invitert noen til. Hver lagring kontrollerer dem på nytt: En leverandør med team som gir mer tilgang enn du har, kan bare endres av noen med tilgang som dekker dem, for eksempel en prosjekteier. Leverandører som ble lagret før denne kontrollen, fortsetter å legge personer til i teamene sine. Alle som kan redigere en leverandør, kan fortsatt slå den av, slik at den kan stoppes med en gang.

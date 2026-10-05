@@ -27,7 +27,7 @@ L'intégration SSO offre les avantages suivants :
    - Saisissez l'**URL de connexion** de votre fournisseur d'identité
    - Saisissez l'**Émetteur** (Entity ID) de votre fournisseur d'identité
    - Collez le **Certificat public** de votre fournisseur d'identité
-   - À l'étape **Connexion**, **Équipes** commence par l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes
+   - À l'étape **Connexion**, **Équipes** commence par l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Seules les équipes auxquelles vous pourriez inviter quelqu'un sont acceptées : une équipe qui donne plus d'accès que vous n'en avez est signalée sous **Équipes**
    - Tout le reste est rempli sous **Plus de champs** : la **Méthode de signature** (`RSA-SHA256`), la **Méthode de hachage** (`SHA256`) et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur d'identité l'exige
 
 3. **Obtenir les métadonnées SSO OneUptime**
@@ -294,10 +294,12 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 1. Enregistrez une application (un client OIDC) auprès de votre fournisseur d'identité et copiez son **URL de l'émetteur**, son **ID client** et son **Secret client**.
 2. Dans OneUptime, naviguez vers **Paramètres du projet** > **Sécurité** > **OIDC** et cliquez sur **Créer : OIDC**.
 3. Saisissez un **Nom** (ce que les utilisateurs voient sur la page de connexion), l'**URL de l'émetteur**, l'**ID client** et le **Secret client**. Vous pouvez aussi coller l'URL de découverte du fournisseur dans **URL de l'émetteur**.
-4. À l'étape **Connexion**, **Équipes** part de l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est rempli sous **Plus de champs** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur l'exige.
+4. À l'étape **Connexion**, **Équipes** part de l'équipe des membres de votre projet : les personnes qui se connectent pour la première fois rejoignent ces équipes. Tout le reste est rempli sous **Plus de champs** : l'**URL de découverte** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Portées** (`openid email profile`), les noms de revendications `email` et `name`, et une description (« Sign in with » suivi du nom). Ne les modifiez que si votre fournisseur l'exige. Seules les équipes auxquelles vous pourriez inviter quelqu'un sont acceptées : une équipe qui donne plus d'accès que vous n'en avez est signalée sous **Équipes**.
 5. Enregistrez. La boîte de dialogue **Configuration OIDC** s'ouvre avec le **Redirect URI** : ajoutez-le aux URI de redirection autorisées de votre application. Un nouveau fournisseur est d'abord désactivé ; modifiez-le ensuite et activez **Activé**.
 6. Utilisez le lien de la carte **Test OpenID Connect (OIDC)** pour vous connecter via le fournisseur avant de rendre le SSO obligatoire pour le projet.
 
 ## Notes sur SSO et les rôles
 
 OneUptime ne prend actuellement pas en charge le mappage des rôles SAML depuis votre fournisseur d'identité. L'accès basé sur les rôles doit être configuré séparément dans les **Paramètres du projet** > **SSO** de OneUptime, où vous pouvez attribuer des rôles par défaut pour les utilisateurs SSO.
+
+Les équipes d'un fournisseur déterminent ce que peuvent faire les personnes qui se connectent avec lui. Un fournisseur n'est donc enregistré qu'avec des équipes auxquelles la personne qui l'enregistre pourrait inviter quelqu'un. Chaque enregistrement les vérifie à nouveau : un fournisseur dont les équipes donnent plus d'accès que vous n'en avez ne peut être modifié que par quelqu'un dont l'accès les couvre, comme un propriétaire du projet. Les fournisseurs enregistrés avant cette vérification continuent d'ajouter les personnes à leurs équipes. Toute personne autorisée à modifier un fournisseur peut toujours le désactiver, afin qu'il puisse être arrêté immédiatement.

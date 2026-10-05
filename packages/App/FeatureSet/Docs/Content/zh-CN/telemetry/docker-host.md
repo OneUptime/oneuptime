@@ -91,6 +91,8 @@ docker logs -f oneuptime-docker-agent
 
 ## 升级 Agent
 
+当 Agent 比你的 OneUptime 旧时，Docker 主机的 **概览** 中 **代理版本** 旁会出现一个警告标志。选中它即可查看这些命令。
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

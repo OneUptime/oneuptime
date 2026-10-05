@@ -474,24 +474,27 @@ describe("MonitorSecretService.onBeforeCreate", () => {
       runBeforeCreate(
         newSecret({ monitors: monitors(MONITOR_A1, MONITOR_B1) }),
       ),
-    ).rejects.toThrow(/belong to a different project/);
+    ).rejects.toThrow(/not in this project/);
   });
 
-  test("refuses a label from another project", async () => {
-    await expect(
-      runBeforeCreate(
+  test("refuses a label from another project, by its id and never its name", async () => {
+    const write: () => Promise<unknown> = (): Promise<unknown> => {
+      return runBeforeCreate(
         newSecret({
           monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
           labels: labels(LABEL_A_PROD, LABEL_B_PROD),
         }),
-      ),
-    ).rejects.toThrow(/Label "prod \(B\)"/);
+      );
+    };
+
+    await expect(write()).rejects.toThrow(`Label "${LABEL_B_PROD}"`);
+    await expect(write()).rejects.not.toThrow(/prod \(B\)/);
   });
 
   test("refuses a monitor or label id that does not exist", async () => {
     await expect(
       runBeforeCreate(newSecret({ monitors: monitors(MISSING_ID) })),
-    ).rejects.toThrow(/do not exist/);
+    ).rejects.toThrow(/not in this project/);
 
     await expect(
       runBeforeCreate(
@@ -500,7 +503,7 @@ describe("MonitorSecretService.onBeforeCreate", () => {
           labels: labels(MISSING_ID),
         }),
       ),
-    ).rejects.toThrow(/do not exist/);
+    ).rejects.toThrow(/not in this project/);
   });
 
   test("checks only the list the mode keeps: a list it drops is never stored, so it is not refused", async () => {
@@ -523,7 +526,7 @@ describe("MonitorSecretService.onBeforeCreate", () => {
           monitors: monitors(MONITOR_B1),
         }),
       ),
-    ).rejects.toThrow(/belong to a different project/);
+    ).rejects.toThrow(/not in this project/);
   });
 
   test("a root write with no project to compare against does not look anything up", async () => {
@@ -633,17 +636,17 @@ describe("MonitorSecretService.onBeforeUpdate", () => {
         monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
         labels: [LABEL_A_PROD, LABEL_B_PROD],
       }),
-    ).rejects.toThrow(/belong to a different project/);
+    ).rejects.toThrow(/not in this project/);
   });
 
   test("refuses a monitor from another project, sent as a bare id or as an object", async () => {
     await expect(runBeforeUpdate({ monitors: [MONITOR_B1] })).rejects.toThrow(
-      /belong to a different project/,
+      /not in this project/,
     );
 
     await expect(
       runBeforeUpdate({ monitors: [{ _id: MONITOR_B1 }] }),
-    ).rejects.toThrow(/belong to a different project/);
+    ).rejects.toThrow(/not in this project/);
   });
 
   test("does not check the list it just emptied", async () => {
@@ -672,14 +675,14 @@ describe("MonitorSecretService.onBeforeUpdate", () => {
 
     // ...but it cannot be used to bring in another one.
     await expect(runBeforeUpdate({ labels: [LABEL_B_PROD] })).rejects.toThrow(
-      /belong to a different project/,
+      /not in this project/,
     );
   });
 
   test("without a tenant, the project is the one of the secret the update matches", async () => {
     await expect(
       runBeforeUpdate({ monitors: [MONITOR_B1] }, { isRoot: true }),
-    ).rejects.toThrow(/belong to a different project/);
+    ).rejects.toThrow(/not in this project/);
 
     await expect(
       runBeforeUpdate({ monitors: [MONITOR_A2] }, { isRoot: true }),
