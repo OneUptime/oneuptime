@@ -818,10 +818,11 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
     note.deletedByUserId = OTHER_USER_ID;
     note.createdByUserId = OTHER_USER_ID;
 
-    const saved: IncidentEpisodePublicNote = await IncidentEpisodePublicNoteService.create({
-      data: note,
-      props: noteCreatorProps(),
-    });
+    const saved: IncidentEpisodePublicNote =
+      await IncidentEpisodePublicNoteService.create({
+        data: note,
+        props: noteCreatorProps(),
+      });
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(saved.deletedByUserId).toBeUndefined();

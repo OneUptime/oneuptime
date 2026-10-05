@@ -1,6 +1,7 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import getCanonicalModelInstance from "./CanonicalModelInstance";
 import Dictionary from "../Dictionary";
+import GenericObject from "../GenericObject";
 import { JSONObject } from "../JSON";
 import { ReflectionMetadataType } from "../Reflection";
 import TableColumnType from "./TableColumnType";
@@ -60,7 +61,7 @@ export interface TableColumnMetadata {
  * fills it in, never a write (see UserAttribution).
  */
 export default (props: TableColumnMetadata): ReflectionMetadataType => {
-  return ((target: object, propertyKey?: string | symbol): void => {
+  return ((target: GenericObject, propertyKey?: string | symbol): void => {
     Reflect.defineMetadata(
       tableColumn,
       UserAttribution.getColumnMetadata(propertyKey, props),

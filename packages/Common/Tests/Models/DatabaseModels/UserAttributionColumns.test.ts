@@ -174,8 +174,8 @@ describe("which columns record a person doing something", () => {
     const wrong: Array<string> = [];
 
     for (const entry of ATTRIBUTION_COLUMNS) {
-      const metadata: TableColumnMetadata = new entry.modelType()
-        .getTableColumnMetadata(entry.column);
+      const metadata: TableColumnMetadata =
+        new entry.modelType().getTableColumnMetadata(entry.column);
 
       const isUserId: boolean = metadata.type === TableColumnType.ObjectID;
       const isUserRelation: boolean =
@@ -254,12 +254,11 @@ describe("each is closed to every write", () => {
   });
 
   test("who may read one is left as each model declares it", () => {
-    const incidentCreator: ColumnAccessControl | null =
-      new (
-        (Models as Array<ModelType>).find((modelType: ModelType): boolean => {
-          return tableOf(modelType) === "Incident";
-        }) as ModelType
-      )().getColumnAccessControlFor("createdByUserId");
+    const incidentCreator: ColumnAccessControl | null = new ((
+      Models as Array<ModelType>
+    ).find((modelType: ModelType): boolean => {
+      return tableOf(modelType) === "Incident";
+    }) as ModelType)().getColumnAccessControlFor("createdByUserId");
 
     expect((incidentCreator?.read || []).length).toBeGreaterThan(0);
   });
@@ -316,10 +315,10 @@ describe("the API offers each for reading only", () => {
 
     function properties(schemaName: string): Record<string, JSONObject> {
       return (
-        ((schemas[schemaName] || {}) as JSONObject)["properties"] as
+        (((schemas[schemaName] || {}) as JSONObject)["properties"] as
           | Record<string, JSONObject>
-          | undefined
-      ) || {};
+          | undefined) || {}
+      );
     }
 
     test("a read schema marks each read-only, and no write schema has one", () => {

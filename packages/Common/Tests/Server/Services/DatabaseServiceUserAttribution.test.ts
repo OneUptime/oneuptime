@@ -456,7 +456,9 @@ describe.each(WRITES)("%s, every model", (_name: string, write: Write) => {
 });
 
 // Every permission the model lists for creating or updating its records.
-function permissionsToWrite(attributionCase: AttributionCase): Array<Permission> {
+function permissionsToWrite(
+  attributionCase: AttributionCase,
+): Array<Permission> {
   const model: DatabaseBaseModel = new attributionCase.modelType();
 
   return Array.from(
@@ -723,9 +725,8 @@ describe("who changed a record, end to end", () => {
     values: Record<string, unknown>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Record<string, unknown>> {
-    const service: DatabaseService<TBaseModel> = new DatabaseService<TBaseModel>(
-      modelType,
-    );
+    const service: DatabaseService<TBaseModel> =
+      new DatabaseService<TBaseModel>(modelType);
     let data: Record<string, unknown> | undefined = undefined;
 
     getJestSpyOn(service, "_findBy").mockResolvedValue([] as never);
@@ -980,8 +981,6 @@ describe("an incident a request declares", () => {
 
     expect(reached.outcome).toBeInstanceOf(PastTheRule);
     expect(reached.data?.["title"]).toBe("Checkout is down");
-    expect(
-      CreatedByUser.getId(reached.data, apiKeyProps()),
-    ).toBeNull();
+    expect(CreatedByUser.getId(reached.data, apiKeyProps())).toBeNull();
   });
 });

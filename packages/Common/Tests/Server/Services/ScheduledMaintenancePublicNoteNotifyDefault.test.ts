@@ -795,8 +795,8 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
 
     await ScheduledMaintenancePublicNoteService.create({
       data: buildNote({
-      projectId: undefined,
-    }),
+        projectId: undefined,
+      }),
       props: noteCreatorProps(),
     });
 
@@ -817,10 +817,11 @@ describe("ScheduledMaintenancePublicNoteService create() with the notify default
     note.deletedByUserId = OTHER_USER_ID;
     note.createdByUserId = OTHER_USER_ID;
 
-    const saved: ScheduledMaintenancePublicNote = await ScheduledMaintenancePublicNoteService.create({
-      data: note,
-      props: noteCreatorProps(),
-    });
+    const saved: ScheduledMaintenancePublicNote =
+      await ScheduledMaintenancePublicNoteService.create({
+        data: note,
+        props: noteCreatorProps(),
+      });
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(saved.deletedByUserId).toBeUndefined();

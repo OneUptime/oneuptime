@@ -627,9 +627,7 @@ describe("Form: who may build, read and change a form", () => {
   test("nobody can set who deleted a form", () => {
     const model: Form = new Form();
 
-    expect(model.getTableColumnMetadata("deletedByUserId").computed).toBe(
-      true,
-    );
+    expect(model.getTableColumnMetadata("deletedByUserId").computed).toBe(true);
     expect(UserAttribution.getColumns(model)).toEqual(
       expect.arrayContaining(["deletedByUser", "deletedByUserId"]),
     );

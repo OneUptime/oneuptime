@@ -2,6 +2,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import { ColumnAccessControl } from "../../BaseDatabase/AccessControl";
 import getCanonicalModelInstance from "../CanonicalModelInstance";
 import Dictionary from "../../Dictionary";
+import GenericObject from "../../GenericObject";
 import { ReflectionMetadataType } from "../../Reflection";
 import UserAttribution from "../UserAttribution";
 import "reflect-metadata";
@@ -15,7 +16,7 @@ const accessControlSymbol: symbol = Symbol("ColumnAccessControl");
  * UserAttribution).
  */
 export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
-  return ((target: object, propertyKey?: string | symbol): void => {
+  return ((target: GenericObject, propertyKey?: string | symbol): void => {
     Reflect.defineMetadata(
       accessControlSymbol,
       UserAttribution.getAccessControl(propertyKey, accessControl),

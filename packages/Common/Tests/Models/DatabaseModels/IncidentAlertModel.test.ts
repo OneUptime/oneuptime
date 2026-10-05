@@ -290,17 +290,19 @@ describe("IncidentAlert table permissions", () => {
    * write it does not make itself, and the column check skips them as
    * computed, so a client that still sends one is not refused for it.
    */
-  test.each(["createdByUser", "createdByUserId", "deletedByUser", "deletedByUserId"])(
-    "nobody can set %s",
-    (column: string) => {
-      const model: IncidentAlert = new IncidentAlert();
+  test.each([
+    "createdByUser",
+    "createdByUserId",
+    "deletedByUser",
+    "deletedByUserId",
+  ])("nobody can set %s", (column: string) => {
+    const model: IncidentAlert = new IncidentAlert();
 
-      expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
-      expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
-      expect(model.getTableColumnMetadata(column).computed).toBe(true);
-      expect(UserAttribution.getColumns(model)).toContain(column);
-    },
-  );
+    expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
+    expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
+    expect(model.getTableColumnMetadata(column).computed).toBe(true);
+    expect(UserAttribution.getColumns(model)).toContain(column);
+  });
 });
 
 describe("IncidentAlert columns", () => {
