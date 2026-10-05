@@ -1,5 +1,7 @@
+import IncidentLabelRule from "../../../../Models/DatabaseModels/IncidentLabelRule";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
 import MonitorLabelRule from "../../../../Models/DatabaseModels/MonitorLabelRule";
+import MonitorOwnerRule from "../../../../Models/DatabaseModels/MonitorOwnerRule";
 import Route from "../../../../Types/API/Route";
 import ObjectID from "../../../../Types/ObjectID";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
@@ -9,8 +11,8 @@ import Navigation from "../../../../UI/Utils/Navigation";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, render, screen } from "@testing-library/react";
-import React from "react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
+import React, { ReactElement } from "react";
 import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
@@ -329,5 +331,243 @@ describe("RuleTable", () => {
     expect(mockViewProps[0]!["listRoute"].toString()).toBe(
       "/dashboard/p/monitors/settings/label-rules",
     );
+  });
+});
+
+/*
+ * A label or owner rule saved before the form asked what it adds may add
+ * nothing: it matches and does nothing. Its Edit form lets it be renamed,
+ * switched off or deleted, and its table says "Adds nothing" beside its
+ * status, so it can be found (RuleAction).
+ */
+describe("RuleTable, for a rule that adds nothing", () => {
+  const STATUS_COLUMN: Record<string, any> = {
+    field: { isEnabled: true },
+    title: "Status",
+    type: FieldType.Boolean,
+    getElement: (item: { isEnabled?: boolean }): ReactElement => {
+      return <span>{item.isEnabled ? "Enabled" : "Disabled"}</span>;
+    },
+  };
+
+  const NAME_COLUMN: Record<string, any> = {
+    field: { name: true },
+    title: "Name",
+    type: FieldType.Text,
+  };
+
+  function tableProps(): Record<string, any> {
+    return {
+      ...baseProps(),
+      selectMoreFields: { isEnabled: true },
+      columns: [NAME_COLUMN, STATUS_COLUMN],
+    };
+  }
+
+  function statusOf(item: Record<string, unknown>): HTMLElement {
+    const status: Record<string, any> = lastTableProps()["columns"][1];
+    const { container } = render(<>{status["getElement"](item)}</>);
+
+    return container;
+  }
+
+  beforeEach(() => {
+    mockTableProps.length = 0;
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  it("reads each label rule's labels, by id, beside what the page selects", () => {
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(tableProps() as any)}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    expect(lastTableProps()["selectMoreFields"]).toEqual({
+      isEnabled: true,
+      labelsToAdd: { _id: true },
+    });
+  });
+
+  it("reads each owner rule's people and teams", () => {
+    render(
+      <RuleTable<MonitorOwnerRule>
+        {...(tableProps() as any)}
+        modelType={MonitorOwnerRule}
+      />,
+    );
+
+    expect(lastTableProps()["selectMoreFields"]).toEqual({
+      isEnabled: true,
+      ownerUsers: { _id: true },
+      ownerTeams: { _id: true },
+    });
+  });
+
+  it("reads an incident rule's inherit switches too", () => {
+    render(
+      <RuleTable<IncidentLabelRule>
+        {...(tableProps() as any)}
+        modelType={IncidentLabelRule}
+      />,
+    );
+
+    expect(lastTableProps()["selectMoreFields"]).toEqual({
+      isEnabled: true,
+      labelsToAdd: { _id: true },
+      inheritLabelsFromMonitors: true,
+      inheritLabelsFromHosts: true,
+      inheritLabelsFromKubernetesClusters: true,
+      inheritLabelsFromDockerHosts: true,
+      inheritLabelsFromPodmanHosts: true,
+      inheritLabelsFromServices: true,
+    });
+  });
+
+  it("says Adds nothing beside the status of a label rule with no labels", () => {
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(tableProps() as any)}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    const cell: HTMLElement = statusOf({ isEnabled: true, labelsToAdd: [] });
+
+    expect(cell).toHaveTextContent("Enabled");
+    expect(within(cell).getByTestId("rule-adds-nothing")).toHaveTextContent(
+      "Adds nothing",
+    );
+  });
+
+  it("says it of a switched-off rule as well", () => {
+    render(
+      <RuleTable<MonitorOwnerRule>
+        {...(tableProps() as any)}
+        modelType={MonitorOwnerRule}
+      />,
+    );
+
+    const cell: HTMLElement = statusOf({
+      isEnabled: false,
+      ownerUsers: [],
+      ownerTeams: [],
+    });
+
+    expect(cell).toHaveTextContent("Disabled");
+    expect(within(cell).getByTestId("rule-adds-nothing")).toBeInTheDocument();
+  });
+
+  it("draws every other row exactly as the page did", () => {
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(tableProps() as any)}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    const status: Record<string, any> = lastTableProps()["columns"][1];
+    const item: Record<string, unknown> = {
+      isEnabled: true,
+      labelsToAdd: [{ _id: "0000000a-0000-4000-8000-000000000001" }],
+    };
+
+    expect(status["getElement"](item)).toEqual(
+      STATUS_COLUMN["getElement"](item),
+    );
+    expect(
+      within(statusOf(item)).queryByTestId("rule-adds-nothing"),
+    ).toBeNull();
+  });
+
+  it("never says it of a rule whose labels the table could not read", () => {
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(tableProps() as any)}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    expect(
+      within(statusOf({ isEnabled: true })).queryByTestId("rule-adds-nothing"),
+    ).toBeNull();
+  });
+
+  it("never says it of an incident rule that inherits", () => {
+    render(
+      <RuleTable<IncidentLabelRule>
+        {...(tableProps() as any)}
+        modelType={IncidentLabelRule}
+      />,
+    );
+
+    const switchesOff: Record<string, boolean> = {
+      inheritLabelsFromMonitors: false,
+      inheritLabelsFromHosts: false,
+      inheritLabelsFromKubernetesClusters: false,
+      inheritLabelsFromDockerHosts: false,
+      inheritLabelsFromPodmanHosts: false,
+      inheritLabelsFromServices: false,
+    };
+
+    expect(
+      within(
+        statusOf({ isEnabled: true, labelsToAdd: [], ...switchesOff }),
+      ).getByTestId("rule-adds-nothing"),
+    ).toBeInTheDocument();
+
+    cleanup();
+
+    expect(
+      within(
+        statusOf({
+          isEnabled: true,
+          labelsToAdd: [],
+          ...switchesOff,
+          inheritLabelsFromMonitors: true,
+        }),
+      ).queryByTestId("rule-adds-nothing"),
+    ).toBeNull();
+  });
+
+  it("leaves the page's other columns, and a status column it cannot draw into, as they were", () => {
+    const plainStatus: Record<string, any> = {
+      field: { isEnabled: true },
+      title: "Status",
+      type: FieldType.Boolean,
+    };
+
+    render(
+      <RuleTable<MonitorLabelRule>
+        {...(tableProps() as any)}
+        columns={[NAME_COLUMN, plainStatus]}
+        modelType={MonitorLabelRule}
+      />,
+    );
+
+    expect(lastTableProps()["columns"][0]).toBe(NAME_COLUMN);
+    expect(lastTableProps()["columns"][1]).toBe(plainStatus);
+  });
+
+  it("leaves a rule of another kind exactly as the page wrote it", () => {
+    const props: Record<string, any> = tableProps();
+
+    render(
+      <RuleTable<IncidentOnCallRule>
+        {...(props as any)}
+        modelType={IncidentOnCallRule}
+      />,
+    );
+
+    expect(lastTableProps()["selectMoreFields"]).toBe(
+      props["selectMoreFields"],
+    );
+    expect(lastTableProps()["columns"]).toBe(props["columns"]);
   });
 });

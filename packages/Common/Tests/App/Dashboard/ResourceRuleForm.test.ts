@@ -3,6 +3,8 @@ import i18next from "i18next";
 import {
   FILLED_IN_RULE_NAME_KEY,
   followPicksWithRuleName,
+  getInheritingLabelRuleActionFields,
+  getInheritingOwnerRuleActionFields,
   getLabelRuleActionFields,
   getLabelRuleFormSteps,
   getLabelRuleName,
@@ -10,10 +12,27 @@ import {
   getOwnerRuleFormSteps,
   getOwnerRuleName,
   getRuleNameAfterPick,
+  INHERIT_LABELS_SECTION_ID,
+  INHERIT_OWNERS_SECTION_ID,
+  InheritingRuleRecord,
+  isLabelPickRequired,
+  isNewRule,
+  isOwnerPickRequired,
+  LABEL_INHERITANCE_WORDING,
+  LABEL_RULE_INHERITING_LABELS_DESCRIPTION,
+  LABEL_RULE_LABELS_DESCRIPTION,
   LABEL_RULE_NAME_DESCRIPTION,
+  OWNER_INHERITANCE_WORDING,
+  OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
   OWNER_RULE_NAME_DESCRIPTION,
   RULE_NAME_MAX_LENGTH,
+  RuleInheritanceWording,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/ResourceRuleForm";
+import {
+  INHERITED_LABEL_COLUMNS,
+  INHERITED_OWNER_COLUMNS,
+} from "../../../UI/Components/RuleRun/RuleAction";
+import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
 import Label from "../../../Models/DatabaseModels/Label";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { DropdownChange } from "../../../UI/Components/Dropdown/DropdownChange";
@@ -26,10 +45,12 @@ import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePick
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The shared form of every resource product's Label Rules and Owner Rules
- * pages (Dashboard Utils/Form/ResourceRuleForm): Match, then what the rule
- * adds - required - and a name filled in from it that follows the picks
- * until somebody types a name of their own.
+ * The shared form of every Label Rules and Owner Rules page (Dashboard
+ * Utils/Form/ResourceRuleForm): Match, then what the rule adds - required
+ * of a new rule - and a name filled in from it that follows the picks until
+ * somebody types a name of their own. An incident, alert or scheduled
+ * maintenance rule can inherit instead, from switches folded under Inherit
+ * Labels / Inherit Owners.
  *
  * Read here as plain data and functions; ResourceRuleFormsRender.test.tsx
  * drives the real pages, and Tests/UI/Components/Forms/
@@ -48,6 +69,27 @@ type FieldByKeyFunction = (
   fields: Array<Field<Entity>>,
   key: string,
 ) => Field<Entity>;
+
+// A Create form's values, and an Edit form's: the saved rule, _id and all.
+const NEW_RULE: FormValues<Entity> = {} as FormValues<Entity>;
+const SAVED_RULE: FormValues<Entity> = {
+  _id: "66666666-6666-4666-8666-666666666666",
+} as FormValues<Entity>;
+
+type IsRequiredFunction = (
+  field: Field<Entity>,
+  values: FormValues<Entity>,
+) => boolean;
+
+// What BasicForm and Validation ask a field's `required`.
+const isRequired: IsRequiredFunction = (
+  field: Field<Entity>,
+  values: FormValues<Entity>,
+): boolean => {
+  return typeof field.required === "function"
+    ? field.required(values)
+    : Boolean(field.required);
+};
 
 const fieldByKey: FieldByKeyFunction = (
   fields: Array<Field<Entity>>,
@@ -353,7 +395,8 @@ describe("the label rule form", () => {
     const labels: Field<Entity> = fieldByKey(fields, "labelsToAdd");
 
     expect(labels.title).toBe("Labels to Add");
-    expect(labels.required).toBe(true);
+    expect(labels.description).toBe(LABEL_RULE_LABELS_DESCRIPTION);
+    expect(isRequired(labels, NEW_RULE)).toBe(true);
     expect(labels.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
     expect(labels.dropdownModal).toEqual({
       type: Label,
@@ -438,7 +481,7 @@ describe("the owner rule form", () => {
     const owners: Field<Entity> = fieldByKey(fields, "owners");
 
     expect(owners.title).toBe("Owners");
-    expect(owners.required).toBe(true);
+    expect(isRequired(owners, NEW_RULE)).toBe(true);
     expect(owners.description).toBe(OWNER_RULE_OWNERS_DESCRIPTION);
     expect(owners.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
     expect(owners.formOnly).toBe(true);
@@ -477,6 +520,341 @@ describe("the owner rule form", () => {
       name: "Add Ada Lovelace, Platform as owners",
       [FILLED_IN_RULE_NAME_KEY]: "Add Ada Lovelace, Platform as owners",
     });
+  });
+});
+
+/*
+ * Decision (follow-up of #4380): Create keeps what the rule adds required;
+ * Edit does not, so a rule saved before the form asked - one that adds
+ * nothing - can still be renamed, switched off or deleted.
+ */
+describe("a new rule, and a saved one", () => {
+  test("a form is creating a rule until it holds a saved rule's _id", () => {
+    expect(isNewRule({})).toBe(true);
+    expect(isNewRule(undefined)).toBe(true);
+    expect(isNewRule(null)).toBe(true);
+    expect(isNewRule({ name: "Add production" })).toBe(true);
+    expect(isNewRule({ _id: "" })).toBe(true);
+    expect(isNewRule(SAVED_RULE)).toBe(false);
+  });
+
+  test("only a new rule must name what it adds", () => {
+    for (const fields of [
+      getLabelRuleActionFields<Entity>(),
+      getOwnerRuleActionFields<Entity>(),
+    ]) {
+      const picker: Field<Entity> = fields[0]!;
+
+      expect(isRequired(picker, NEW_RULE)).toBe(true);
+      expect(isRequired(picker, SAVED_RULE)).toBe(false);
+    }
+  });
+
+  test("the name is asked of both: a rule is always called something", () => {
+    for (const fields of [
+      getLabelRuleActionFields<Entity>(),
+      getOwnerRuleActionFields<Entity>(),
+      getInheritingLabelRuleActionFields<Entity>("incident"),
+      getInheritingOwnerRuleActionFields<Entity>("alert"),
+    ]) {
+      const name: Field<Entity> = fieldByKey(fields, "name");
+
+      expect(isRequired(name, NEW_RULE)).toBe(true);
+      expect(isRequired(name, SAVED_RULE)).toBe(true);
+    }
+  });
+});
+
+const RECORDS: Array<InheritingRuleRecord> = [
+  "incident",
+  "alert",
+  "scheduledMaintenance",
+];
+
+// What the switches say, for each event, as the pages used to say it.
+const SWITCH_WORDING: Array<keyof RuleInheritanceWording> = [
+  "monitors",
+  "hosts",
+  "kubernetesClusters",
+  "dockerHosts",
+  "podmanHosts",
+  "services",
+];
+
+describe.each(RECORDS)(
+  "the %s label rule form, which can inherit",
+  (record: InheritingRuleRecord) => {
+    const fields: Array<Field<Entity>> =
+      getInheritingLabelRuleActionFields<Entity>(record);
+    const wording: RuleInheritanceWording = LABEL_INHERITANCE_WORDING[record];
+
+    test("asks for the labels, the six inherit switches, then the rest of every label rule's step", () => {
+      expect(fields.map(keyOf)).toEqual([
+        "labelsToAdd",
+        ...INHERITED_LABEL_COLUMNS,
+        "name",
+        "isEnabled",
+        "description",
+      ]);
+
+      for (const field of fields) {
+        expect(field.stepId).toBe("labels");
+      }
+    });
+
+    test("folds the six switches together under Inherit Labels, apart from More fields", () => {
+      const switches: Array<Field<Entity>> = fields.slice(1, 7);
+      const section: FormFieldCollapsibleSection<Entity> | undefined =
+        switches[0]!.collapsibleSection;
+
+      expect(section?.id).toBe(INHERIT_LABELS_SECTION_ID);
+      expect(section?.title).toBe("Inherit Labels");
+      expect(section?.description).toBe(wording.sectionDescription);
+      // Not a More fields section: it opens on an Edit form that inherits.
+      expect(section?.openWhenConfigured).toBeUndefined();
+
+      for (const field of switches) {
+        expect(field.collapsibleSection).toBe(section);
+        expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+        expect(field.required).toBe(false);
+        // Off until turned on, as the server starts them.
+        expect(field.defaultValue).toBeUndefined();
+      }
+
+      expect(fieldByKey(fields, "description").collapsibleSection).not.toBe(
+        section,
+      );
+    });
+
+    test("says what the fold is for while nothing in it is on, and lists what is on after", () => {
+      const section: FormFieldCollapsibleSection<Entity> =
+        fields[1]!.collapsibleSection!;
+
+      expect(section.getSummary!(NEW_RULE)).toEqual([
+        wording.sectionDescription,
+      ]);
+      expect(
+        section.getSummary!({
+          inheritLabelsFromHosts: false,
+        } as FormValues<Entity>),
+      ).toEqual([wording.sectionDescription]);
+      expect(
+        section.getSummary!({
+          inheritLabelsFromMonitors: true,
+        } as FormValues<Entity>),
+      ).toBeUndefined();
+    });
+
+    test("words each switch for this event, keeping the copy translators already have", () => {
+      const switches: Array<Field<Entity>> = fields.slice(1, 7);
+
+      expect(
+        switches.map((field: Field<Entity>): unknown => {
+          return field.description;
+        }),
+      ).toEqual(
+        SWITCH_WORDING.map((key: keyof RuleInheritanceWording): string => {
+          return wording[key];
+        }),
+      );
+
+      expect(switches[0]!.title).toBe(wording.monitorsTitle);
+      expect(
+        switches.slice(1).map((field: Field<Entity>) => {
+          return field.title;
+        }),
+      ).toEqual([
+        "Inherit Labels From Hosts",
+        "Inherit Labels From Kubernetes Clusters",
+        "Inherit Labels From Docker Hosts",
+        "Inherit Labels From Podman Hosts",
+        "Inherit Labels From Services",
+      ]);
+    });
+
+    test("a new rule must add a label, or inherit some", () => {
+      const labels: Field<Entity> = fieldByKey(fields, "labelsToAdd");
+
+      expect(labels.description).toBe(LABEL_RULE_INHERITING_LABELS_DESCRIPTION);
+      expect(labels.required).toBe(isLabelPickRequired);
+      expect(isRequired(labels, NEW_RULE)).toBe(true);
+
+      for (const column of INHERITED_LABEL_COLUMNS) {
+        expect(
+          isRequired(labels, { [column]: true } as FormValues<Entity>),
+        ).toBe(false);
+      }
+
+      // Inheriting owners is not inheriting labels.
+      expect(
+        isRequired(labels, {
+          inheritOwnersFromMonitors: true,
+        } as FormValues<Entity>),
+      ).toBe(true);
+
+      // An Edit form never insists.
+      expect(isRequired(labels, SAVED_RULE)).toBe(false);
+    });
+
+    test("names the rule after the labels it adds, as every label rule does", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      fieldByKey(fields, "labelsToAdd").onChange!(
+        ["id-production"],
+        { inheritLabelsFromMonitors: true } as FormValues<Entity>,
+        setNewFormValues as unknown as (values: FormValues<Entity>) => void,
+        changeOf(["production"], []),
+      );
+
+      expect(setNewFormValues.mock.calls[0]![0]).toEqual({
+        inheritLabelsFromMonitors: true,
+        name: "Add production",
+        [FILLED_IN_RULE_NAME_KEY]: "Add production",
+      });
+    });
+  },
+);
+
+describe.each(RECORDS)(
+  "the %s owner rule form, which can inherit",
+  (record: InheritingRuleRecord) => {
+    const fields: Array<Field<Entity>> =
+      getInheritingOwnerRuleActionFields<Entity>(record);
+    const wording: RuleInheritanceWording = OWNER_INHERITANCE_WORDING[record];
+
+    test("asks for the owners, the six inherit switches, then the rest of every owner rule's step", () => {
+      expect(fields.map(keyOf)).toEqual([
+        "owners",
+        ...INHERITED_OWNER_COLUMNS,
+        "name",
+        "isEnabled",
+        "notifyOwners",
+        "description",
+      ]);
+
+      for (const field of fields) {
+        expect(field.stepId).toBe("owners");
+      }
+    });
+
+    test("folds the six switches under Inherit Owners; Notify Owners and the description under More fields", () => {
+      const section: FormFieldCollapsibleSection<Entity> | undefined =
+        fields[1]!.collapsibleSection;
+
+      expect(section?.id).toBe(INHERIT_OWNERS_SECTION_ID);
+      expect(section?.title).toBe("Inherit Owners");
+      expect(section?.description).toBe(wording.sectionDescription);
+
+      for (const field of fields.slice(1, 7)) {
+        expect(field.collapsibleSection).toBe(section);
+        expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+      }
+
+      const moreFields: FormFieldCollapsibleSection<Entity> | undefined =
+        fieldByKey(fields, "notifyOwners").collapsibleSection;
+
+      expect(moreFields).not.toBe(section);
+      expect(fieldByKey(fields, "description").collapsibleSection).toBe(
+        moreFields,
+      );
+      expect(section!.getSummary!(NEW_RULE)).toEqual([
+        wording.sectionDescription,
+      ]);
+      expect(
+        section!.getSummary!({
+          inheritOwnersFromServices: true,
+        } as FormValues<Entity>),
+      ).toBeUndefined();
+    });
+
+    test("words each switch for this event", () => {
+      const switches: Array<Field<Entity>> = fields.slice(1, 7);
+
+      expect(
+        switches.map((field: Field<Entity>): unknown => {
+          return field.description;
+        }),
+      ).toEqual(
+        SWITCH_WORDING.map((key: keyof RuleInheritanceWording): string => {
+          return wording[key];
+        }),
+      );
+      expect(switches[0]!.title).toBe("Inherit Owners From Monitors");
+    });
+
+    test("a new rule must add an owner, or inherit some", () => {
+      const owners: Field<Entity> = fieldByKey(fields, "owners");
+
+      expect(owners.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+      expect(owners.description).toBe(OWNER_RULE_INHERITING_OWNERS_DESCRIPTION);
+      expect(owners.required).toBe(isOwnerPickRequired);
+      expect(isRequired(owners, NEW_RULE)).toBe(true);
+
+      for (const column of INHERITED_OWNER_COLUMNS) {
+        expect(
+          isRequired(owners, { [column]: true } as FormValues<Entity>),
+        ).toBe(false);
+      }
+
+      expect(
+        isRequired(owners, {
+          inheritLabelsFromMonitors: true,
+        } as FormValues<Entity>),
+      ).toBe(true);
+      expect(isRequired(owners, SAVED_RULE)).toBe(false);
+    });
+  },
+);
+
+describe("the words of the inheriting forms", () => {
+  test("an alert has one monitor, an incident and an event several", () => {
+    expect(LABEL_INHERITANCE_WORDING.alert.monitorsTitle).toBe(
+      "Inherit Labels From Monitor",
+    );
+    expect(LABEL_INHERITANCE_WORDING.incident.monitorsTitle).toBe(
+      "Inherit Labels From Monitors",
+    );
+    expect(LABEL_INHERITANCE_WORDING.scheduledMaintenance.monitorsTitle).toBe(
+      "Inherit Labels From Monitors",
+    );
+    expect(LABEL_INHERITANCE_WORDING.alert.monitors).toContain(
+      "the alert's monitor ",
+    );
+    expect(OWNER_INHERITANCE_WORDING.alert.monitors).toContain(
+      "the alert's monitor ",
+    );
+  });
+
+  test("each event's sentences name that event, and no other", () => {
+    const names: Record<InheritingRuleRecord, string> = {
+      incident: "incident",
+      alert: "alert",
+      scheduledMaintenance: "event",
+    };
+
+    for (const record of RECORDS) {
+      for (const wording of [
+        LABEL_INHERITANCE_WORDING[record],
+        OWNER_INHERITANCE_WORDING[record],
+      ]) {
+        const sentences: Array<string> = [
+          wording.sectionDescription,
+          ...SWITCH_WORDING.map((key: keyof RuleInheritanceWording): string => {
+            return wording[key];
+          }),
+        ];
+
+        for (const sentence of sentences) {
+          expect(sentence).toContain(`the ${names[record]}`);
+
+          for (const other of Object.values(names)) {
+            if (other !== names[record]) {
+              expect(sentence).not.toContain(`the ${other}`);
+            }
+          }
+        }
+      }
+    }
   });
 });
 
