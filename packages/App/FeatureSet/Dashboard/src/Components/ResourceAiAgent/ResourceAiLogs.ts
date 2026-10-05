@@ -13,33 +13,31 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * The pure half of a resource's AI Insights page (ResourceAiInsightsPage):
- * how the page reads the insights route's body (POST
- * /resource-ai-access/insights — the investigations of incidents and alerts
- * on the resource, and the fixes AI proposed or applied there), and the
- * words for each row. The resource twin of the helpers in
- * Pages/Kubernetes/View/AI/Insights.tsx.
+ * The pure half of a resource's AI Logs page (ResourceAiLogsPage): how the
+ * page reads the logs route's body (POST /resource-ai-access/logs — the
+ * investigations of incidents and alerts on the resource, and the fixes AI
+ * proposed or applied there), and the words for each row. The resource twin
+ * of the helpers in Pages/Kubernetes/View/AI/Logs.tsx.
  *
  * Import-clean on purpose (Common types and the descriptors only), so the
  * suites read it without a browser.
  */
 
-export const RESOURCE_AI_INSIGHTS_PAGE_TITLE: string =
-  translationKey("AI Insights");
+export const RESOURCE_AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
 
-export const RESOURCE_AI_INSIGHTS_EMPTY_TITLE: string =
+export const RESOURCE_AI_LOGS_EMPTY_TITLE: string =
   translationKey("Nothing yet");
 
-export function getResourceAiInsightsPageSubtitle(
+export function getResourceAiLogsPageSubtitle(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
   return translateTemplate(
-    "What OneUptime AI investigated and changed on this {{noun}}.",
+    "Everything OneUptime AI did on this {{noun}}, newest first: every investigation, fix and command.",
     { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
   );
 }
 
-export function getResourceAiInsightsEmptyDescription(
+export function getResourceAiLogsEmptyDescription(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
   return translateTemplate(
@@ -115,8 +113,8 @@ export function describeResourceCommandJobOrigin(job: {
  * or unreadable.
  */
 
-// What the insights route returns for one investigation (an AI run).
-export interface ResourceAiInsightsInvestigation {
+// What the logs route returns for one investigation (an AI run).
+export interface ResourceAiLogsInvestigation {
   aiRunId: string;
   // AIRunStatus; null when the server did not say.
   status: string | null;
@@ -127,8 +125,8 @@ export interface ResourceAiInsightsInvestigation {
   alert: { id: string; title: string } | null;
 }
 
-// What the insights route returns for one fix (an auto-remediation suggestion).
-export interface ResourceAiInsightsFix {
+// What the logs route returns for one fix (an auto-remediation suggestion).
+export interface ResourceAiLogsFix {
   id: string;
   // AutoRemediationSuggestionStatus; null when the server did not say.
   status: string | null;
@@ -141,9 +139,9 @@ export interface ResourceAiInsightsFix {
   approvedAt: string | null;
 }
 
-export interface ResourceAiInsights {
-  investigations: Array<ResourceAiInsightsInvestigation>;
-  fixes: Array<ResourceAiInsightsFix>;
+export interface ResourceAiLogs {
+  investigations: Array<ResourceAiLogsInvestigation>;
+  fixes: Array<ResourceAiLogsFix>;
 }
 
 function isObject(value: unknown): value is JSONObject {
@@ -169,7 +167,7 @@ function readString(value: unknown): string | null {
 
 function parseInvestigation(
   value: unknown,
-): ResourceAiInsightsInvestigation | null {
+): ResourceAiLogsInvestigation | null {
   if (!isObject(value)) {
     return null;
   }
@@ -213,7 +211,7 @@ function parseInvestigation(
   };
 }
 
-function parseFix(value: unknown): ResourceAiInsightsFix | null {
+function parseFix(value: unknown): ResourceAiLogsFix | null {
   if (!isObject(value)) {
     return null;
   }
@@ -258,15 +256,13 @@ function parseList<T>(
 }
 
 /*
- * The insights as the route returns them, or null when the body is not
+ * The logs as the route returns them, or null when the body is not
  * that shape at all (neither list is present). A row without an id is
  * dropped — there is nothing to key or link it by; everything else is
  * optional and read defensively where it is shown. Server text is only ever
  * rendered as plain text.
  */
-export function parseResourceAiInsights(
-  value: unknown,
-): ResourceAiInsights | null {
+export function parseResourceAiLogs(value: unknown): ResourceAiLogs | null {
   if (!isObject(value)) {
     return null;
   }
@@ -370,7 +366,7 @@ export function describeResourceFixType(
 
 // The line an investigation row leads with, and where it links.
 export function describeResourceInvestigationSubject(
-  investigation: ResourceAiInsightsInvestigation,
+  investigation: ResourceAiLogsInvestigation,
 ): { text: string; incidentId: string | null; alertId: string | null } {
   if (investigation.incident) {
     const number: number | null = investigation.incident.number;
@@ -418,7 +414,7 @@ export function describeResourceInvestigationSubject(
 
 // What an investigation found, or why there is nothing to show yet.
 export function getResourceInvestigationSummary(
-  investigation: ResourceAiInsightsInvestigation,
+  investigation: ResourceAiLogsInvestigation,
 ): string {
   if (investigation.analysisTldr) {
     return investigation.analysisTldr;

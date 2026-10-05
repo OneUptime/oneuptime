@@ -1,23 +1,23 @@
 import PageComponentProps from "../../../PageComponentProps";
-import ResourceAiInsightsPage from "../../../../Components/ResourceAiAgent/ResourceAiInsightsPage";
+import ResourceAiLogsPage from "../../../../Components/ResourceAiAgent/ResourceAiLogsPage";
 import { getResourceAiAgentDescriptor } from "../../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The Docker host's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this Docker host, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * The Docker host's AI Logs page (AI → Logs): everything OneUptime AI did on
+ * this Docker host, newest first — its investigations, its fixes and every
+ * command it ran here. The page itself is the generic ResourceAiLogsPage.
  */
-const DockerHostAiInsights: FunctionComponent<PageComponentProps> = (
+const DockerHostAiLogs: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
-    <ResourceAiInsightsPage
+    <ResourceAiLogsPage
       {...props}
       descriptor={getResourceAiAgentDescriptor(AiResourceType.DockerHost)}
     />
   );
 };
 
-export default DockerHostAiInsights;
+export default DockerHostAiLogs;

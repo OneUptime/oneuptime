@@ -1,7 +1,7 @@
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
-  RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
@@ -29,12 +29,13 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * What a resource's AI agent page (ResourceAiAgentPage) and AI Insights
- * page read off the server's access status (POST /resource-ai-access/status)
- * — which of its three states the agent is in, and the words for each. The
- * resource twin of Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts,
- * without the Kubernetes Runner states: a resource is reached through its
- * resource AI agent or not at all.
+ * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
+ * and AI Logs pages read off the server's access status (POST
+ * /resource-ai-access/status) — which of its three states the agent is in,
+ * and the words for each. The resource twin of
+ * Pages/Kubernetes/Utils/KubernetesAiAgentStatus.ts, without the Kubernetes
+ * Runner states: a resource is reached through its resource AI agent or not
+ * at all.
  *
  * Every decision here is made from the status the server computed
  * (ResourceAiAccessService): the page never builds a second, client-side
@@ -57,8 +58,8 @@ export const RESOURCE_AI_ACCESS_TEST_ROUTE: string =
   RESOURCE_AI_ACCESS_TEST_PATH;
 export const RESOURCE_AI_ACCESS_RESET_AGENT_ROUTE: string =
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH;
-export const RESOURCE_AI_ACCESS_INSIGHTS_ROUTE: string =
-  RESOURCE_AI_ACCESS_INSIGHTS_PATH;
+export const RESOURCE_AI_ACCESS_LOGS_ROUTE: string =
+  RESOURCE_AI_ACCESS_LOGS_PATH;
 
 export function getResourceAiAccessRequestBody(
   descriptor: ResourceAiAgentDescriptor,
@@ -84,7 +85,7 @@ export const RESOURCE_AI_AGENT_STATUS_POLL_INTERVAL_MS: number = 30_000;
 export const RESOURCE_AI_REFUSED_REGISTRATION_WARNING_WINDOW_MS: number =
   24 * 60 * 60 * 1000;
 
-// The page's heading, matching the AI Insights page's title and subtitle.
+// The page's heading, matching the AI Insights and AI Logs pages' headings.
 export const RESOURCE_AI_AGENT_PAGE_TITLE: string = translationKey("AI agent");
 
 export const RESOURCE_AI_ASK_PROJECT_ADMIN_TEXT: string = translationKey(
@@ -759,9 +760,9 @@ export function shouldShowResourceWriteAccessCommands(
 }
 
 /*
- * Why the AI Insights page points at the AI agent page, or null when it has
- * no reason to: AI cannot run commands on the resource right now (the
- * status's own verdict, gaps included).
+ * Why the AI Insights and AI Logs pages point at the AI agent page, or null
+ * when they have no reason to: AI cannot run commands on the resource right
+ * now (the status's own verdict, gaps included).
  */
 export function getResourceAiAgentPageHint(
   status: ResourceAiAccessStatus | null,

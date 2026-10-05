@@ -22,9 +22,9 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
-  KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT,
-  KubernetesClusterAiInsights,
-} from "../../../Types/Kubernetes/KubernetesClusterAiInsights";
+  KUBERNETES_CLUSTER_AI_LOGS_LIMIT,
+  KubernetesClusterAiLogs,
+} from "../../../Types/Kubernetes/KubernetesClusterAiLogs";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -70,7 +70,7 @@ import {
  *   (KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS, or a master admin), after the
  *   same cluster read gate as the status, and calls
  *   KubernetesAiAgentService.resetAgent for THIS cluster;
- * - /insights has the status's read gate, reads everything else as root,
+ * - /logs has the status's read gate, reads everything else as root,
  *   and returns summaries only: investigations (runs that ran kubectl on
  *   the cluster UNION runs of incidents and alerts linked to it), fixes
  *   (the cluster's own rounds UNION suggestions whose kubectl ran on it),
@@ -142,7 +142,7 @@ const sendJsonObjectResponseMock: jest.Mock =
 
 const TEST_ROUTE: string = "/kubernetes-cluster/ai-access/test";
 const RESET_ROUTE: string = "/kubernetes-cluster/ai-access/reset-agent";
-const INSIGHTS_ROUTE: string = "/kubernetes-cluster/ai-access/insights";
+const LOGS_ROUTE: string = "/kubernetes-cluster/ai-access/logs";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -556,7 +556,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     });
   });
 
-  describe("POST /kubernetes-cluster/ai-access/insights", () => {
+  describe("POST /kubernetes-cluster/ai-access/logs", () => {
     const INCIDENT_ID: ObjectID = ObjectID.generate();
     const ALERT_ID: ObjectID = ObjectID.generate();
 
@@ -617,11 +617,11 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     });
 
     test("needs only read access to the cluster, and refuses one the user cannot read", async () => {
-      const ok: RouteCallResult = await callRoute(INSIGHTS_ROUTE);
+      const ok: RouteCallResult = await callRoute(LOGS_ROUTE);
       expect(ok.thrownToNext).toBeUndefined();
 
       clusterFind.mockResolvedValue(null);
-      const refused: RouteCallResult = await callRoute(INSIGHTS_ROUTE);
+      const refused: RouteCallResult = await callRoute(LOGS_ROUTE);
       expect(refused.thrownToNext).toBeInstanceOf(BadDataException);
       expect((refused.thrownToNext as Error).message).toBe(
         "Kubernetes cluster not found (or you do not have access to it).",
@@ -629,7 +629,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     });
 
     test("reads the cluster under the USER's props, and everything else as root", async () => {
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
       const clusterProps: DatabaseCommonInteractionProps = (
         clusterFind.mock.calls[0]![0] as {
@@ -648,7 +648,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     });
 
     test("an empty cluster: empty lists and zero counts, and no AI run read", async () => {
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
       expect(lastResponse()).toEqual({
         clusterId: CLUSTER_ID.toString(),
@@ -707,13 +707,13 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         return [run(fromJobs, 60), run(fromBoth, 30)];
       });
 
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
-      const insights: KubernetesClusterAiInsights =
-        lastResponse() as unknown as KubernetesClusterAiInsights;
+      const logs: KubernetesClusterAiLogs =
+        lastResponse() as unknown as KubernetesClusterAiLogs;
 
       expect(
-        insights.investigations.map((row: { aiRunId: string }) => {
+        logs.investigations.map((row: { aiRunId: string }) => {
           return row.aiRunId;
         }),
       ).toEqual([
@@ -722,16 +722,16 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         fromBoth.toString(),
         fromJobs.toString(),
       ]);
-      expect(insights.investigations[0]!.alert).toEqual({
+      expect(logs.investigations[0]!.alert).toEqual({
         id: ALERT_ID.toString(),
         title: "High latency",
       });
-      expect(insights.investigations[1]!.incident).toEqual({
+      expect(logs.investigations[1]!.incident).toEqual({
         id: INCIDENT_ID.toString(),
         title: "DB down",
         number: 42,
       });
-      expect(insights.investigations[3]!.analysisTldr).toBe(
+      expect(logs.investigations[3]!.analysisTldr).toBe(
         `tldr ${fromJobs.toString()}`,
       );
 
@@ -753,7 +753,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
       expect(jobQuery["projectId"]).toBe(PROJECT_ID);
     });
 
-    test(`returns at most ${KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT} investigations and fixes`, async () => {
+    test(`returns at most ${KUBERNETES_CLUSTER_AI_LOGS_LIMIT} investigations and fixes`, async () => {
       const ids: Array<ObjectID> = Array.from({ length: 40 }, () => {
         return ObjectID.generate();
       });
@@ -773,16 +773,16 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         }),
       );
 
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
-      const insights: KubernetesClusterAiInsights =
-        lastResponse() as unknown as KubernetesClusterAiInsights;
-      expect(insights.investigations).toHaveLength(
-        KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT,
+      const logs: KubernetesClusterAiLogs =
+        lastResponse() as unknown as KubernetesClusterAiLogs;
+      expect(logs.investigations).toHaveLength(
+        KUBERNETES_CLUSTER_AI_LOGS_LIMIT,
       );
-      expect(insights.fixes).toHaveLength(KUBERNETES_CLUSTER_AI_INSIGHTS_LIMIT);
+      expect(logs.fixes).toHaveLength(KUBERNETES_CLUSTER_AI_LOGS_LIMIT);
       // Newest first.
-      expect(insights.investigations[0]!.aiRunId).toBe(ids[0]!.toString());
+      expect(logs.investigations[0]!.aiRunId).toBe(ids[0]!.toString());
     });
 
     test("fixes: the cluster's own rounds UNION suggestions whose kubectl ran here, summarised", async () => {
@@ -810,29 +810,29 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         return [suggestion(ruleRound, 2, { alertId: ALERT_ID })];
       });
 
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
-      const insights: KubernetesClusterAiInsights =
-        lastResponse() as unknown as KubernetesClusterAiInsights;
+      const logs: KubernetesClusterAiLogs =
+        lastResponse() as unknown as KubernetesClusterAiLogs;
 
       expect(
-        insights.fixes.map((fix: { id: string }) => {
+        logs.fixes.map((fix: { id: string }) => {
           return fix.id;
         }),
       ).toEqual([ruleRound.toString(), round.toString()]);
-      expect(insights.fixes[0]).toMatchObject({
+      expect(logs.fixes[0]).toMatchObject({
         status: "Suggested",
         executionMode: "Suggest",
         suggestionType: "Commands",
         rationale: "Restart the web deployment.",
         alertId: ALERT_ID.toString(),
       });
-      expect(insights.fixes[1]!.rationale).toHaveLength(300);
-      expect(insights.fixes[1]!.incidentId).toBe(INCIDENT_ID.toString());
-      expect(insights.fixes[1]!.approvedAt).toBe("2026-09-01T00:00:00.000Z");
+      expect(logs.fixes[1]!.rationale).toHaveLength(300);
+      expect(logs.fixes[1]!.incidentId).toBe(INCIDENT_ID.toString());
+      expect(logs.fixes[1]!.approvedAt).toBe("2026-09-01T00:00:00.000Z");
 
       // Summaries only: no plan, no output.
-      const serialized: string = JSON.stringify(insights);
+      const serialized: string = JSON.stringify(logs);
       expect(serialized).not.toContain("commandPlan");
       expect(serialized).not.toContain("output");
     });
@@ -847,7 +847,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         );
       });
 
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
       expect(lastResponse()["commandCounts"]).toEqual({
         investigation: 17,
@@ -883,7 +883,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
     });
 
     test("links incidents and alerts through their cluster relation, in this project", async () => {
-      await callRoute(INSIGHTS_ROUTE);
+      await callRoute(LOGS_ROUTE);
 
       for (const spy of [incidentFind, alertFind]) {
         const query: Record<string, unknown> = (

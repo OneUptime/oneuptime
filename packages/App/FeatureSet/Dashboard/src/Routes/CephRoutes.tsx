@@ -23,7 +23,7 @@ import CephClusterInsights from "../Pages/Ceph/View/Insights";
 import CephClusterClusterLog from "../Pages/Ceph/View/ClusterLog";
 import CephClusterMetrics from "../Pages/Ceph/View/Metrics";
 import CephClusterRecommendations from "../Pages/Ceph/View/Recommendations";
-import CephClusterAiInsights from "../Pages/Ceph/View/AI/Insights";
+import CephClusterAiLogs from "../Pages/Ceph/View/AI/Logs";
 import CephClusterAiAgent from "../Pages/Ceph/View/AI/Agent";
 import CephClusterLogs from "../Pages/Ceph/View/Logs";
 import CephClusterIncidents from "../Pages/Ceph/View/Incidents";
@@ -250,11 +250,24 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
             2,
           )}
           element={
-            <CephClusterAiInsights
+            <CephClusterAiLogs
               {...props}
               pageRoute={
                 RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_INSIGHTS] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <CephClusterAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.CEPH_CLUSTER_VIEW_AI_LOGS] as Route}
             />
           }
         />

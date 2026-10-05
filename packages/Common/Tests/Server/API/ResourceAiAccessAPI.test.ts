@@ -40,12 +40,12 @@ import Label from "../../../Models/DatabaseModels/Label";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import {
-  RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+  RESOURCE_AI_ACCESS_LOGS_PATH,
   RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
   RESOURCE_AI_ACCESS_STATUS_PATH,
   RESOURCE_AI_ACCESS_TEST_PATH,
-  RESOURCE_AI_INSIGHTS_LIMIT,
-  ResourceAiInsights,
+  RESOURCE_AI_LOGS_LIMIT,
+  ResourceAiLogs,
 } from "../../../Types/AI/ResourceAiAccessApi";
 import { getResourceAiAgentResetRefusal } from "../../../Types/AI/ResourceAiAccessPermissions";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -108,7 +108,7 @@ import {
  * - /test has its own limits (one at a time per resource, a few per minute
  *   and a ceiling per hour per resource, a few per minute per user) on
  *   step ids of its own, so it never counts against a cluster's tests;
- * - /insights returns summaries only, read as root after the read gate.
+ * - /logs returns summaries only, read as root after the read gate.
  * ---------------------------------------------------------------------------
  */
 
@@ -711,7 +711,7 @@ describe("ResourceAiAccessAPI", () => {
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
-      RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+      RESOURCE_AI_ACCESS_LOGS_PATH,
     ]) {
       const route: MockRoute = matchRoute(path);
       expect(route.middleware).toBeDefined();
@@ -721,12 +721,12 @@ describe("ResourceAiAccessAPI", () => {
       RESOURCE_AI_ACCESS_STATUS_PATH,
       RESOURCE_AI_ACCESS_TEST_PATH,
       RESOURCE_AI_ACCESS_RESET_AGENT_PATH,
-      RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+      RESOURCE_AI_ACCESS_LOGS_PATH,
     ]).toEqual([
       "/resource-ai-access/status",
       "/resource-ai-access/test",
       "/resource-ai-access/reset-agent",
-      "/resource-ai-access/insights",
+      "/resource-ai-access/logs",
     ]);
   });
 
@@ -825,7 +825,7 @@ describe("ResourceAiAccessAPI", () => {
         ).toEqual([...AI_RESOURCE_TYPE_INFO[kind.resourceType].testCommands]);
       });
 
-      test("links incidents and alerts through the type's own relation for insights", async () => {
+      test("links incidents and alerts through the type's own relation for logs", async () => {
         const incidentFind: jest.SpyInstance = jest
           .spyOn(IncidentService, "findBy")
           .mockResolvedValue([]);
@@ -838,7 +838,7 @@ describe("ResourceAiAccessAPI", () => {
           .mockResolvedValue([]);
 
         await callRoute(
-          RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+          RESOURCE_AI_ACCESS_LOGS_PATH,
           body(kind.resourceType),
         );
 
@@ -885,7 +885,7 @@ describe("ResourceAiAccessAPI", () => {
       [RESOURCE_AI_ACCESS_STATUS_PATH],
       [RESOURCE_AI_ACCESS_TEST_PATH],
       [RESOURCE_AI_ACCESS_RESET_AGENT_PATH],
-      [RESOURCE_AI_ACCESS_INSIGHTS_PATH],
+      [RESOURCE_AI_ACCESS_LOGS_PATH],
     ])(
       "%s rejects a missing or unknown type, and a missing or malformed id, before any lookup",
       async (uri: string) => {
@@ -927,7 +927,7 @@ describe("ResourceAiAccessAPI", () => {
         [RESOURCE_AI_ACCESS_STATUS_PATH],
         [RESOURCE_AI_ACCESS_TEST_PATH],
         [RESOURCE_AI_ACCESS_RESET_AGENT_PATH],
-        [RESOURCE_AI_ACCESS_INSIGHTS_PATH],
+        [RESOURCE_AI_ACCESS_LOGS_PATH],
       ])(
         "%s: another project's id reads exactly like a missing one, and nothing else runs",
         async (uri: string) => {
@@ -978,7 +978,7 @@ describe("ResourceAiAccessAPI", () => {
         [RESOURCE_AI_ACCESS_STATUS_PATH],
         [RESOURCE_AI_ACCESS_TEST_PATH],
         [RESOURCE_AI_ACCESS_RESET_AGENT_PATH],
-        [RESOURCE_AI_ACCESS_INSIGHTS_PATH],
+        [RESOURCE_AI_ACCESS_LOGS_PATH],
       ])("%s: requires a logged-in user", async (uri: string) => {
         propsSpy.mockResolvedValue(
           userProps({ permissions: [Permission.ProjectOwner], userId: null }),
@@ -1909,7 +1909,7 @@ describe("ResourceAiAccessAPI", () => {
     });
   });
 
-  describe.each(COVERED)("$resourceType: POST /insights", (kind: Kind) => {
+  describe.each(COVERED)("$resourceType: POST /logs", (kind: Kind) => {
     const INCIDENT_ID: ObjectID = ObjectID.generate();
     const ALERT_ID: ObjectID = ObjectID.generate();
 
@@ -1989,7 +1989,7 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       const ok: RouteCallResult = await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
       expect(ok.thrownToNext).toBeUndefined();
@@ -1997,7 +1997,7 @@ describe("ResourceAiAccessAPI", () => {
 
     test("reads the resource, incidents and alerts under the USER's props, and the jobs, runs, suggestions and counts as root", async () => {
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
@@ -2018,7 +2018,7 @@ describe("ResourceAiAccessAPI", () => {
 
     test("an empty resource: empty lists and zero counts, and no AI run read", async () => {
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
@@ -2081,15 +2081,15 @@ describe("ResourceAiAccessAPI", () => {
       });
 
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
-      const insights: ResourceAiInsights =
-        lastResponse() as unknown as ResourceAiInsights;
+      const logs: ResourceAiLogs =
+        lastResponse() as unknown as ResourceAiLogs;
 
       expect(
-        insights.investigations.map((row: { aiRunId: string }) => {
+        logs.investigations.map((row: { aiRunId: string }) => {
           return row.aiRunId;
         }),
       ).toEqual([
@@ -2098,11 +2098,11 @@ describe("ResourceAiAccessAPI", () => {
         fromBoth.toString(),
         fromJobs.toString(),
       ]);
-      expect(insights.investigations[0]!.alert).toEqual({
+      expect(logs.investigations[0]!.alert).toEqual({
         id: ALERT_ID.toString(),
         title: "High memory",
       });
-      expect(insights.investigations[1]!.incident).toEqual({
+      expect(logs.investigations[1]!.incident).toEqual({
         id: INCIDENT_ID.toString(),
         title: "Web down",
         number: 42,
@@ -2126,7 +2126,7 @@ describe("ResourceAiAccessAPI", () => {
       expect(String(jobQuery["projectId"])).toBe(PROJECT_ID.toString());
     });
 
-    test(`returns at most ${RESOURCE_AI_INSIGHTS_LIMIT} investigations and fixes`, async () => {
+    test(`returns at most ${RESOURCE_AI_LOGS_LIMIT} investigations and fixes`, async () => {
       const ids: Array<ObjectID> = Array.from({ length: 40 }, () => {
         return ObjectID.generate();
       });
@@ -2147,15 +2147,15 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
-      const insights: ResourceAiInsights =
-        lastResponse() as unknown as ResourceAiInsights;
-      expect(insights.investigations).toHaveLength(RESOURCE_AI_INSIGHTS_LIMIT);
-      expect(insights.fixes).toHaveLength(RESOURCE_AI_INSIGHTS_LIMIT);
-      expect(insights.investigations[0]!.aiRunId).toBe(ids[0]!.toString());
+      const logs: ResourceAiLogs =
+        lastResponse() as unknown as ResourceAiLogs;
+      expect(logs.investigations).toHaveLength(RESOURCE_AI_LOGS_LIMIT);
+      expect(logs.fixes).toHaveLength(RESOURCE_AI_LOGS_LIMIT);
+      expect(logs.investigations[0]!.aiRunId).toBe(ids[0]!.toString());
     });
 
     test("fixes: the resource's own rounds UNION suggestions whose commands ran here, summarised", async () => {
@@ -2193,31 +2193,31 @@ describe("ResourceAiAccessAPI", () => {
       });
 
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
-      const insights: ResourceAiInsights =
-        lastResponse() as unknown as ResourceAiInsights;
+      const logs: ResourceAiLogs =
+        lastResponse() as unknown as ResourceAiLogs;
 
       expect(
-        insights.fixes.map((fix: { id: string }) => {
+        logs.fixes.map((fix: { id: string }) => {
           return fix.id;
         }),
       ).toEqual([ruleRound.toString(), round.toString()]);
-      expect(insights.fixes[0]).toMatchObject({
+      expect(logs.fixes[0]).toMatchObject({
         status: "Suggested",
         executionMode: "Suggest",
         suggestionType: "Commands",
         rationale: "Restart the web container.",
         alertId: ALERT_ID.toString(),
       });
-      expect(insights.fixes[1]!.rationale).toHaveLength(300);
-      expect(insights.fixes[1]!.incidentId).toBe(INCIDENT_ID.toString());
-      expect(insights.fixes[1]!.approvedAt).toBe("2026-09-01T00:00:00.000Z");
+      expect(logs.fixes[1]!.rationale).toHaveLength(300);
+      expect(logs.fixes[1]!.incidentId).toBe(INCIDENT_ID.toString());
+      expect(logs.fixes[1]!.approvedAt).toBe("2026-09-01T00:00:00.000Z");
 
       // Summaries only: no plan, no output.
-      const serialized: string = JSON.stringify(insights);
+      const serialized: string = JSON.stringify(logs);
       expect(serialized).not.toContain("commandPlan");
       expect(serialized).not.toContain("output");
 
@@ -2240,7 +2240,7 @@ describe("ResourceAiAccessAPI", () => {
       });
 
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
@@ -2280,7 +2280,7 @@ describe("ResourceAiAccessAPI", () => {
 
     test("links incidents and alerts through the resource's relation, in this project", async () => {
       await callRoute(
-        RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+        RESOURCE_AI_ACCESS_LOGS_PATH,
         body(kind.resourceType),
       );
 
@@ -2301,7 +2301,7 @@ describe("ResourceAiAccessAPI", () => {
 
     /*
      * ---------------------------------------------------------------------
-     * What the insights say about incidents, alerts, AI runs and suggestions
+     * What the logs say about incidents, alerts, AI runs and suggestions
      * follows the caller's own read access to them. The world below is one
      * resource's AI history, served the way the permission layer would serve
      * it: as root everything; under the caller's props a table the caller
@@ -2486,31 +2486,31 @@ describe("ResourceAiAccessAPI", () => {
         });
       }
 
-      async function insightsFor(
+      async function logsFor(
         props: DatabaseCommonInteractionProps,
-      ): Promise<ResourceAiInsights> {
+      ): Promise<ResourceAiLogs> {
         propsSpy.mockResolvedValue(props);
 
         const result: RouteCallResult = await callRoute(
-          RESOURCE_AI_ACCESS_INSIGHTS_PATH,
+          RESOURCE_AI_ACCESS_LOGS_PATH,
           body(kind.resourceType),
         );
 
         expect(result.nextCallCount).toBe(0);
-        return lastResponse() as unknown as ResourceAiInsights;
+        return lastResponse() as unknown as ResourceAiLogs;
       }
 
-      function investigationIds(insights: ResourceAiInsights): Array<string> {
-        return insights.investigations.map((row: { aiRunId: string }) => {
+      function investigationIds(logs: ResourceAiLogs): Array<string> {
+        return logs.investigations.map((row: { aiRunId: string }) => {
           return row.aiRunId;
         });
       }
 
       function fixFor(
-        insights: ResourceAiInsights,
+        logs: ResourceAiLogs,
         id: ObjectID,
-      ): ResourceAiInsights["fixes"][number] {
-        return insights.fixes.find((fix: { id: string }) => {
+      ): ResourceAiLogs["fixes"][number] {
+        return logs.fixes.find((fix: { id: string }) => {
           return fix.id === id.toString();
         })!;
       }
@@ -2518,26 +2518,26 @@ describe("ResourceAiAccessAPI", () => {
       test("a role that may read only the resource gets no incident or alert, no TL;DR and no rationale", async () => {
         serveHistory();
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({ permissions: [kind.readPermission] }),
         );
 
         // Only the run with no subject is left, and without its TL;DR.
-        expect(investigationIds(insights)).toEqual([TRIAGE_RUN.toString()]);
-        expect(insights.investigations[0]!.analysisTldr).toBeUndefined();
-        expect(insights.investigations[0]!.incident).toBeUndefined();
-        expect(insights.investigations[0]!.alert).toBeUndefined();
+        expect(investigationIds(logs)).toEqual([TRIAGE_RUN.toString()]);
+        expect(logs.investigations[0]!.analysisTldr).toBeUndefined();
+        expect(logs.investigations[0]!.incident).toBeUndefined();
+        expect(logs.investigations[0]!.alert).toBeUndefined();
 
         // The fixes on the resource are listed, their rationale is not.
         expect(
-          insights.fixes.map((fix: { id: string }) => {
+          logs.fixes.map((fix: { id: string }) => {
             return fix.id;
           }),
         ).toEqual([OWN_FIX.toString(), RULE_FIX.toString()]);
-        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
 
-        const serialized: string = JSON.stringify(insights);
+        const serialized: string = JSON.stringify(logs);
         for (const secret of [
           "Web down",
           "High memory",
@@ -2555,7 +2555,7 @@ describe("ResourceAiAccessAPI", () => {
       test("a caller whose incident read is label-scoped sees only the incidents their labels reach", async () => {
         serveHistory({ incidentIds: [INCIDENT_ID] });
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({
             permissions: [kind.readPermission, Permission.AlertViewer],
             scoped: [
@@ -2567,15 +2567,15 @@ describe("ResourceAiAccessAPI", () => {
           }),
         );
 
-        expect(investigationIds(insights)).toEqual([
+        expect(investigationIds(logs)).toEqual([
           TRIAGE_RUN.toString(),
           INCIDENT_RUN.toString(),
           ALERT_RUN.toString(),
         ]);
-        expect(JSON.stringify(insights)).not.toContain(
+        expect(JSON.stringify(logs)).not.toContain(
           "Payroll database breach",
         );
-        expect(JSON.stringify(insights)).not.toContain(
+        expect(JSON.stringify(logs)).not.toContain(
           OTHER_INCIDENT_RUN.toString(),
         );
 
@@ -2583,56 +2583,56 @@ describe("ResourceAiAccessAPI", () => {
          * With a subject the caller may read, the TL;DR is shown — the
          * incident's own AI panel shows them the whole analysis.
          */
-        expect(insights.investigations[1]!.incident).toEqual({
+        expect(logs.investigations[1]!.incident).toEqual({
           id: INCIDENT_ID.toString(),
           title: "Web down",
           number: 42,
         });
-        expect(insights.investigations[1]!.analysisTldr).toBe(
+        expect(logs.investigations[1]!.analysisTldr).toBe(
           `tldr ${INCIDENT_RUN.toString()}`,
         );
-        expect(insights.investigations[2]!.alert).toEqual({
+        expect(logs.investigations[2]!.alert).toEqual({
           id: ALERT_ID.toString(),
           title: "High memory",
         });
-        expect(insights.investigations[2]!.analysisTldr).toBe(
+        expect(logs.investigations[2]!.analysisTldr).toBe(
           `tldr ${ALERT_RUN.toString()}`,
         );
 
         // A run with no subject: only for those who may read AIRun.
-        expect(insights.investigations[0]!.analysisTldr).toBeUndefined();
+        expect(logs.investigations[0]!.analysisTldr).toBeUndefined();
 
         // Suggestions are not theirs to read.
-        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
       });
 
       test("a viewer (incidents, alerts and AI runs, not suggestions) gets every TL;DR but no rationale", async () => {
         serveHistory();
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({ permissions: [Permission.Viewer] }),
         );
 
-        expect(investigationIds(insights)).toEqual([
+        expect(investigationIds(logs)).toEqual([
           TRIAGE_RUN.toString(),
           INCIDENT_RUN.toString(),
           OTHER_INCIDENT_RUN.toString(),
           ALERT_RUN.toString(),
         ]);
-        for (const investigation of insights.investigations) {
+        for (const investigation of logs.investigations) {
           expect(investigation.analysisTldr).toBe(
             `tldr ${investigation.aiRunId}`,
           );
         }
-        expect(fixFor(insights, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(insights, RULE_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, OWN_FIX).rationale).toBeUndefined();
+        expect(fixFor(logs, RULE_FIX).rationale).toBeUndefined();
       });
 
       test("a project member gets everything; a suggestion hidden by its incident's privacy loses only its rationale", async () => {
         serveHistory();
 
-        const all: ResourceAiInsights = await insightsFor(
+        const all: ResourceAiLogs = await logsFor(
           userProps({ permissions: [Permission.ProjectMember] }),
         );
 
@@ -2655,7 +2655,7 @@ describe("ResourceAiAccessAPI", () => {
         jest.clearAllMocks();
         serveHistory({ suggestionIds: [RULE_FIX] });
 
-        const partly: ResourceAiInsights = await insightsFor(
+        const partly: ResourceAiLogs = await logsFor(
           userProps({ permissions: [Permission.ProjectMember] }),
         );
 
@@ -2668,15 +2668,15 @@ describe("ResourceAiAccessAPI", () => {
       test("a master admin gets everything", async () => {
         serveHistory();
 
-        const insights: ResourceAiInsights = await insightsFor(
+        const logs: ResourceAiLogs = await logsFor(
           userProps({ permissions: [], isMasterAdmin: true }),
         );
 
-        expect(investigationIds(insights)).toHaveLength(4);
-        expect(insights.investigations[0]!.analysisTldr).toBe(
+        expect(investigationIds(logs)).toHaveLength(4);
+        expect(logs.investigations[0]!.analysisTldr).toBe(
           `tldr ${TRIAGE_RUN.toString()}`,
         );
-        expect(fixFor(insights, OWN_FIX).rationale).toBe(
+        expect(fixFor(logs, OWN_FIX).rationale).toBe(
           "Restart the web container.",
         );
       });
@@ -2684,7 +2684,7 @@ describe("ResourceAiAccessAPI", () => {
       test("titles, numbers and rationales are only ever read under the caller's props", async () => {
         serveHistory();
 
-        await insightsFor(
+        await logsFor(
           userProps({ permissions: [Permission.ProjectMember] }),
         );
 

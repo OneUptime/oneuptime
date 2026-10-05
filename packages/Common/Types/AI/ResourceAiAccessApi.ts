@@ -3,10 +3,10 @@ import { ResourceAiAccessStatus } from "../ResourceAiAgent/ResourceAiAccess";
 
 /*
  * The dashboard-facing calls behind an infrastructure resource's AI pages
- * (AI → Insights and AI → AI agent) for every resource a resource AI agent
- * serves — Common/Server/API/ResourceAiAccessAPI.ts. Everything else on
- * those pages is ordinary CRUD on the resource model (the investigation
- * switch, the remediation mode, the command allowlist).
+ * (AI → Insights, AI → Logs and AI → AI agent) for every resource a resource
+ * AI agent serves — Common/Server/API/ResourceAiAccessAPI.ts. Everything
+ * else on those pages is ordinary CRUD on the resource model (the
+ * investigation switch, the remediation mode, the command allowlist).
  *
  * Every route is POST under /api and takes a ResourceAiAccessRequest body.
  */
@@ -15,8 +15,7 @@ export const RESOURCE_AI_ACCESS_STATUS_PATH: string =
 export const RESOURCE_AI_ACCESS_TEST_PATH: string = "/resource-ai-access/test";
 export const RESOURCE_AI_ACCESS_RESET_AGENT_PATH: string =
   "/resource-ai-access/reset-agent";
-export const RESOURCE_AI_ACCESS_INSIGHTS_PATH: string =
-  "/resource-ai-access/insights";
+export const RESOURCE_AI_ACCESS_LOGS_PATH: string = "/resource-ai-access/logs";
 
 export interface ResourceAiAccessRequest {
   // An AiResourceType value (an agent alias such as "docker" is accepted too).
@@ -55,31 +54,32 @@ export interface ResourceAiAccessResetAgentResponse {
 }
 
 /*
- * POST /resource-ai-access/insights: what OneUptime AI investigated and
- * changed on one resource, as summaries. Nothing here carries command
- * output, a prompt or a command plan: the route is readable by everyone who
- * may read the resource, a wider audience than the AI runs, suggestions and
- * jobs it summarises. So an investigation whose incident or alert the
- * caller cannot read is left out, a TL;DR is there only with a readable
- * subject (or, for a run with none, for a caller who may read AIRun), and a
- * fix's rationale only for a caller who may read that suggestion.
+ * POST /resource-ai-access/logs: everything OneUptime AI did on one
+ * resource, newest first, as summaries — what the resource's AI Logs page
+ * renders. Nothing here carries command output, a prompt or a command plan:
+ * the route is readable by everyone who may read the resource, a wider
+ * audience than the AI runs, suggestions and jobs it summarises. So an
+ * investigation whose incident or alert the caller cannot read is left out,
+ * a TL;DR is there only with a readable subject (or, for a run with none,
+ * for a caller who may read AIRun), and a fix's rationale only for a caller
+ * who may read that suggestion.
  */
 
 // How many investigations, and how many fixes, the route returns (newest).
-export const RESOURCE_AI_INSIGHTS_LIMIT: number = 25;
+export const RESOURCE_AI_LOGS_LIMIT: number = 25;
 
 // The window commandCounts covers.
-export const RESOURCE_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS: number = 30;
+export const RESOURCE_AI_LOGS_COMMAND_WINDOW_IN_DAYS: number = 30;
 
 // How much of a fix's rationale the route returns.
-export const RESOURCE_AI_INSIGHTS_RATIONALE_MAX_LENGTH: number = 300;
+export const RESOURCE_AI_LOGS_RATIONALE_MAX_LENGTH: number = 300;
 
 /*
  * One investigation that concerns the resource: it ran a command on it
  * through the resource's AI agent, or it investigated an incident or alert
  * linked to it.
  */
-export interface ResourceAiInsightInvestigation {
+export interface ResourceAiLogInvestigation {
   aiRunId: string;
   // AIRunStatus.
   status?: string | undefined;
@@ -107,7 +107,7 @@ export interface ResourceAiInsightInvestigation {
  * AI remediation setting produced (AutoRemediationSuggestion.resourceType /
  * resourceId), or any suggestion whose commands ran on the resource.
  */
-export interface ResourceAiInsightFix {
+export interface ResourceAiLogFix {
   id: string;
   // AutoRemediationSuggestionStatus.
   status?: string | undefined;
@@ -115,7 +115,7 @@ export interface ResourceAiInsightFix {
   executionMode?: string | undefined;
   // AutoRemediationSuggestionType.
   suggestionType?: string | undefined;
-  // The first RESOURCE_AI_INSIGHTS_RATIONALE_MAX_LENGTH characters.
+  // The first RESOURCE_AI_LOGS_RATIONALE_MAX_LENGTH characters.
   rationale?: string | undefined;
   createdAt?: string | undefined;
   approvedAt?: string | undefined;
@@ -123,14 +123,14 @@ export interface ResourceAiInsightFix {
   alertId?: string | undefined;
 }
 
-export interface ResourceAiInsights {
+export interface ResourceAiLogs {
   resourceType: AiResourceType;
   resourceId: string;
-  investigations: Array<ResourceAiInsightInvestigation>;
-  fixes: Array<ResourceAiInsightFix>;
+  investigations: Array<ResourceAiLogInvestigation>;
+  fixes: Array<ResourceAiLogFix>;
   /*
    * Commands AI ran on the resource through its AI agent in the last
-   * RESOURCE_AI_INSIGHTS_COMMAND_WINDOW_IN_DAYS days, by kind. The AI agent
+   * RESOURCE_AI_LOGS_COMMAND_WINDOW_IN_DAYS days, by kind. The AI agent
    * page's "Test connection" checks are not counted.
    */
   commandCounts: {

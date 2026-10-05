@@ -1,23 +1,24 @@
 import PageComponentProps from "../../../PageComponentProps";
-import ResourceAiInsightsPage from "../../../../Components/ResourceAiAgent/ResourceAiInsightsPage";
+import ResourceAiLogsPage from "../../../../Components/ResourceAiAgent/ResourceAiLogsPage";
 import { getResourceAiAgentDescriptor } from "../../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The Proxmox cluster's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this Proxmox cluster, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * The Proxmox cluster's AI Logs page (AI → Logs): everything OneUptime AI did
+ * on this Proxmox cluster, newest first — its investigations, its fixes and
+ * every command it ran here. The page itself is the generic
+ * ResourceAiLogsPage.
  */
-const ProxmoxClusterAiInsights: FunctionComponent<PageComponentProps> = (
+const ProxmoxClusterAiLogs: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
-    <ResourceAiInsightsPage
+    <ResourceAiLogsPage
       {...props}
       descriptor={getResourceAiAgentDescriptor(AiResourceType.ProxmoxCluster)}
     />
   );
 };
 
-export default ProxmoxClusterAiInsights;
+export default ProxmoxClusterAiLogs;

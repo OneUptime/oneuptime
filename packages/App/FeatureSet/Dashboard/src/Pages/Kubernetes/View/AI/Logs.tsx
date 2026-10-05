@@ -26,6 +26,7 @@ import {
   KubernetesAiAutomaticInvestigationSettings,
   KubernetesClusterAiAccessStatus,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH } from "Common/Types/Kubernetes/KubernetesClusterAiLogs";
 import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
@@ -66,12 +67,13 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * The cluster's AI Insights page: what OneUptime AI investigated and changed
- * on this cluster, newest first — the incidents and alerts it investigated
+ * The cluster's AI Logs page (AI → Logs): everything OneUptime AI did on
+ * this cluster, newest first — the incidents and alerts it investigated
  * (with the one-line finding), the fixes it proposed or applied, and every
- * kubectl command it ran here.
+ * kubectl command it ran here. (What AI learned from all of it is the AI
+ * Insights page next to it.)
  *
- * The first two lists come from POST /kubernetes-cluster/ai-access/insights,
+ * The first two lists come from POST /kubernetes-cluster/ai-access/logs,
  * which the server computes (summaries only, never command output) behind
  * the same read gate as the cluster's AI status. The command history is the
  * RunnerJob table the old AI page showed, moved here unchanged, with the
@@ -79,14 +81,15 @@ import {
  * zero.
  */
 
-export const AI_INSIGHTS_PAGE_TITLE: string = "AI Insights";
+export const AI_LOGS_PAGE_TITLE: string = translationKey("AI Logs");
 
-export const AI_INSIGHTS_PAGE_SUBTITLE: string =
-  "What OneUptime AI investigated and changed on this cluster.";
+export const AI_LOGS_PAGE_SUBTITLE: string = translationKey(
+  "Everything OneUptime AI did on this cluster, newest first: every investigation, fix and kubectl command.",
+);
 
-export const AI_INSIGHTS_EMPTY_TITLE: string = "Nothing yet";
+export const AI_LOGS_EMPTY_TITLE: string = "Nothing yet";
 
-export const AI_INSIGHTS_EMPTY_DESCRIPTION: string =
+export const AI_LOGS_EMPTY_DESCRIPTION: string =
   "When an incident or alert on this cluster is investigated, the findings, proposed fixes and every kubectl command appear here.";
 
 export const KUBECTL_JOBS_TABLE_PREFERENCES_KEY: string =
@@ -141,12 +144,12 @@ export function describeKubectlJobOrigin(job: {
 
 /*
  * The rows below are the page's normalised reading of the route's body
- * (Common/Types/Kubernetes/KubernetesClusterAiInsights.ts): every field the
+ * (Common/Types/Kubernetes/KubernetesClusterAiLogs.ts): every field the
  * contract leaves optional is null here when it is missing or unreadable.
  */
 
-// What the insights route returns for one investigation (an AI run).
-export interface KubernetesAiInsightsInvestigation {
+// What the logs route returns for one investigation (an AI run).
+export interface KubernetesAiLogsInvestigation {
   aiRunId: string;
   // AIRunStatus; null when the server did not say.
   status: string | null;
@@ -157,8 +160,8 @@ export interface KubernetesAiInsightsInvestigation {
   alert: { id: string; title: string } | null;
 }
 
-// What the insights route returns for one fix (an auto-remediation suggestion).
-export interface KubernetesAiInsightsFix {
+// What the logs route returns for one fix (an auto-remediation suggestion).
+export interface KubernetesAiLogsFix {
   id: string;
   // AutoRemediationSuggestionStatus; null when the server did not say.
   status: string | null;
@@ -171,9 +174,9 @@ export interface KubernetesAiInsightsFix {
   approvedAt: string | null;
 }
 
-export interface KubernetesAiInsights {
-  investigations: Array<KubernetesAiInsightsInvestigation>;
-  fixes: Array<KubernetesAiInsightsFix>;
+export interface KubernetesAiLogs {
+  investigations: Array<KubernetesAiLogsInvestigation>;
+  fixes: Array<KubernetesAiLogsFix>;
 }
 
 function isObject(value: unknown): value is JSONObject {
@@ -199,7 +202,7 @@ function readString(value: unknown): string | null {
 
 function parseInvestigation(
   value: unknown,
-): KubernetesAiInsightsInvestigation | null {
+): KubernetesAiLogsInvestigation | null {
   if (!isObject(value)) {
     return null;
   }
@@ -243,7 +246,7 @@ function parseInvestigation(
   };
 }
 
-function parseFix(value: unknown): KubernetesAiInsightsFix | null {
+function parseFix(value: unknown): KubernetesAiLogsFix | null {
   if (!isObject(value)) {
     return null;
   }
@@ -288,15 +291,13 @@ function parseList<T>(
 }
 
 /*
- * The insights as the route returns them, or null when the body is not
+ * The logs as the route returns them, or null when the body is not
  * that shape at all (neither list is present). A row without an id is
  * dropped — there is nothing to key or link it by; everything else is
  * optional and read defensively where it is shown. Server text is only ever
  * rendered as plain text.
  */
-export function parseKubernetesAiInsights(
-  value: unknown,
-): KubernetesAiInsights | null {
+export function parseKubernetesAiLogs(value: unknown): KubernetesAiLogs | null {
   if (!isObject(value)) {
     return null;
   }
@@ -393,7 +394,7 @@ export function describeFixType(suggestionType: string | null): string | null {
 
 // The line an investigation row leads with, and where it links.
 export function describeInvestigationSubject(
-  investigation: KubernetesAiInsightsInvestigation,
+  investigation: KubernetesAiLogsInvestigation,
 ): { text: string; incidentId: string | null; alertId: string | null } {
   if (investigation.incident) {
     const number: number | null = investigation.incident.number;
@@ -439,7 +440,7 @@ export function describeInvestigationSubject(
 
 // What an investigation found, or why there is nothing to show yet.
 export function getInvestigationSummary(
-  investigation: KubernetesAiInsightsInvestigation,
+  investigation: KubernetesAiLogsInvestigation,
 ): string {
   if (investigation.analysisTldr) {
     return investigation.analysisTldr;
@@ -547,7 +548,7 @@ function AgentPageLink(props: {
 }
 
 function InvestigationRow(props: {
-  investigation: KubernetesAiInsightsInvestigation;
+  investigation: KubernetesAiLogsInvestigation;
 }): ReactElement {
   const translator: Translator = useTranslator();
   const subject: {
@@ -565,7 +566,7 @@ function InvestigationRow(props: {
       : null;
 
   return (
-    <li className="py-3" data-testid="ai-insights-investigation">
+    <li className="py-3" data-testid="ai-logs-investigation">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0 text-sm font-medium text-gray-900">
           {target ? (
@@ -588,7 +589,7 @@ function InvestigationRow(props: {
   );
 }
 
-function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
+function FixRow(props: { fix: KubernetesAiLogsFix }): ReactElement {
   const translator: Translator = useTranslator();
   const look: StatusLook | null = props.fix.status
     ? getFixStatusLook(props.fix.status)
@@ -607,7 +608,7 @@ function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
       : null;
 
   return (
-    <li className="py-3" data-testid="ai-insights-fix">
+    <li className="py-3" data-testid="ai-logs-fix">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {look ? <Pill text={look.label} color={look.color} /> : null}
@@ -637,7 +638,7 @@ function FixRow(props: { fix: KubernetesAiInsightsFix }): ReactElement {
   );
 }
 
-const KubernetesClusterAIInsights: FunctionComponent<
+const KubernetesClusterAILogs: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -651,7 +652,7 @@ const KubernetesClusterAIInsights: FunctionComponent<
     return new ObjectID(id || "");
   }, [id]);
 
-  const [insights, setInsights] = useState<KubernetesAiInsights | null>(null);
+  const [logs, setLogs] = useState<KubernetesAiLogs | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [refresher, setRefresher] = useState<boolean>(false);
@@ -667,23 +668,23 @@ const KubernetesClusterAIInsights: FunctionComponent<
    * starts new requests; an answer to an older one is dropped instead of
    * painting the wrong cluster's history.
    */
-  const insightsRequestRef: MutableRefObject<number> = useRef<number>(0);
+  const logsRequestRef: MutableRefObject<number> = useRef<number>(0);
   const statusRequestRef: MutableRefObject<number> = useRef<number>(0);
 
-  const fetchInsights: () => Promise<void> =
+  const fetchLogs: () => Promise<void> =
     useCallback(async (): Promise<void> => {
-      const request: number = ++insightsRequestRef.current;
+      const request: number = ++logsRequestRef.current;
       setIsLoading(true);
       setError("");
 
-      let parsed: KubernetesAiInsights | null = null;
+      let parsed: KubernetesAiLogs | null = null;
       let failure: string = "";
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
-              "/kubernetes-cluster/ai-access/insights",
+              KUBERNETES_CLUSTER_AI_ACCESS_LOGS_PATH,
             ),
             data: { clusterId: clusterId.toString() },
             headers: ModelAPI.getCommonHeaders(),
@@ -693,23 +694,21 @@ const KubernetesClusterAIInsights: FunctionComponent<
           throw response;
         }
 
-        parsed = parseKubernetesAiInsights(response.data);
+        parsed = parseKubernetesAiLogs(response.data);
 
         if (!parsed) {
-          throw new Error(
-            "The server returned AI insights this page cannot read.",
-          );
+          throw new Error("The server returned AI logs this page cannot read.");
         }
       } catch (err) {
         parsed = null;
         failure = API.getFriendlyMessage(err);
       }
 
-      if (request !== insightsRequestRef.current) {
+      if (request !== logsRequestRef.current) {
         return;
       }
 
-      setInsights(parsed);
+      setLogs(parsed);
       setError(failure);
       setIsLoading(false);
     }, [clusterId]);
@@ -743,34 +742,32 @@ const KubernetesClusterAIInsights: FunctionComponent<
     }, [clusterId]);
 
   useEffect(() => {
-    fetchInsights().catch(() => {
-      // handled inside fetchInsights
+    fetchLogs().catch(() => {
+      // handled inside fetchLogs
     });
     fetchStatus().catch(() => {
       // handled inside fetchStatus
     });
-  }, [fetchInsights, fetchStatus, refresher]);
+  }, [fetchLogs, fetchStatus, refresher]);
 
   const hint: string | null = getAgentPageHint(status);
   const isEmpty: boolean = Boolean(
-    insights &&
-      insights.investigations.length === 0 &&
-      insights.fixes.length === 0,
+    logs && logs.investigations.length === 0 && logs.fixes.length === 0,
   );
 
   let body: ReactElement;
 
   if (isLoading) {
     body = (
-      <div data-testid="ai-insights-loading">
+      <div data-testid="ai-logs-loading">
         <PageLoader isVisible={true} />
       </div>
     );
-  } else if (!insights) {
+  } else if (!logs) {
     body = (
-      <div data-testid="ai-insights-error">
+      <div data-testid="ai-logs-error">
         <ErrorMessage
-          message={error || "Could not load AI insights."}
+          message={error || "Could not load AI logs."}
           onRefreshClick={() => {
             setRefresher(!refresher);
           }}
@@ -781,10 +778,10 @@ const KubernetesClusterAIInsights: FunctionComponent<
     body = (
       <div className="mb-5">
         <EmptyState
-          id="kubernetes-ai-insights-empty"
+          id="kubernetes-ai-logs-empty"
           icon={IconProp.LightBulb}
-          title={AI_INSIGHTS_EMPTY_TITLE}
-          description={AI_INSIGHTS_EMPTY_DESCRIPTION}
+          title={AI_LOGS_EMPTY_TITLE}
+          description={AI_LOGS_EMPTY_DESCRIPTION}
           showSolidBackground={true}
           paddingClassName="py-12"
           footer={
@@ -792,7 +789,7 @@ const KubernetesClusterAIInsights: FunctionComponent<
               <AgentPageLink
                 clusterId={clusterId}
                 hint={hint}
-                testId="ai-insights-agent-hint"
+                testId="ai-logs-agent-hint"
               />
             ) : undefined
           }
@@ -811,7 +808,7 @@ const KubernetesClusterAIInsights: FunctionComponent<
             <AgentPageLink
               clusterId={clusterId}
               hint={hint}
-              testId="ai-insights-agent-hint"
+              testId="ai-logs-agent-hint"
             />
           </div>
         ) : (
@@ -822,11 +819,11 @@ const KubernetesClusterAIInsights: FunctionComponent<
           title="Investigations"
           description="Incidents and alerts on this cluster that OneUptime AI investigated, newest first."
         >
-          {insights.investigations.length > 0 ? (
+          {logs.investigations.length > 0 ? (
             <ul className="divide-y divide-gray-100">
-              {insights.investigations.map(
+              {logs.investigations.map(
                 (
-                  investigation: KubernetesAiInsightsInvestigation,
+                  investigation: KubernetesAiLogsInvestigation,
                 ): ReactElement => {
                   return (
                     <InvestigationRow
@@ -840,7 +837,7 @@ const KubernetesClusterAIInsights: FunctionComponent<
           ) : (
             <p
               className="text-sm text-gray-500"
-              data-testid="ai-insights-no-investigations"
+              data-testid="ai-logs-no-investigations"
             >
               {translator.translateText("No investigations yet.")}
             </p>
@@ -851,19 +848,14 @@ const KubernetesClusterAIInsights: FunctionComponent<
           title="Fixes"
           description="Fixes OneUptime AI proposed or applied on this cluster, newest first."
         >
-          {insights.fixes.length > 0 ? (
+          {logs.fixes.length > 0 ? (
             <ul className="divide-y divide-gray-100">
-              {insights.fixes.map(
-                (fix: KubernetesAiInsightsFix): ReactElement => {
-                  return <FixRow key={fix.id} fix={fix} />;
-                },
-              )}
+              {logs.fixes.map((fix: KubernetesAiLogsFix): ReactElement => {
+                return <FixRow key={fix.id} fix={fix} />;
+              })}
             </ul>
           ) : (
-            <p
-              className="text-sm text-gray-500"
-              data-testid="ai-insights-no-fixes"
-            >
+            <p className="text-sm text-gray-500" data-testid="ai-logs-no-fixes">
               {translator.translateText("No fixes yet.")}
             </p>
           )}
@@ -874,12 +866,12 @@ const KubernetesClusterAIInsights: FunctionComponent<
 
   return (
     <Fragment>
-      <div className="mb-5">
+      <div className="mb-5" data-testid="ai-logs-page-heading">
         <h2 className="text-lg font-semibold text-gray-900">
-          {AI_INSIGHTS_PAGE_TITLE}
+          {translator.translateText(AI_LOGS_PAGE_TITLE)}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          {AI_INSIGHTS_PAGE_SUBTITLE}
+          {translator.translateText(AI_LOGS_PAGE_SUBTITLE)}
         </p>
       </div>
 
@@ -1052,4 +1044,4 @@ const KubernetesClusterAIInsights: FunctionComponent<
   );
 };
 
-export default KubernetesClusterAIInsights;
+export default KubernetesClusterAILogs;

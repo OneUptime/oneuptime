@@ -168,13 +168,13 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
       <SideMenuSection title="AI">
         <SideMenuItem
           link={{
-            title: "Insights",
+            title: "Logs",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_INSIGHTS] as Route,
+              RouteMap[PageMap.VMWARE_VCENTER_VIEW_AI_LOGS] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.LightBulb}
+          icon={IconProp.QueueList}
         />
         <SideMenuItem
           link={{

@@ -3,32 +3,32 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import {
-  RESOURCE_AI_ACCESS_INSIGHTS_ROUTE,
+  RESOURCE_AI_ACCESS_LOGS_ROUTE,
   RESOURCE_AI_ACCESS_STATUS_ROUTE,
   getResourceAiAccessRequestBody,
   getResourceAiAgentPageHint,
   parseResourceAiAccessStatus,
 } from "./ResourceAiAgentStatus";
 import {
-  RESOURCE_AI_INSIGHTS_EMPTY_TITLE,
-  RESOURCE_AI_INSIGHTS_PAGE_TITLE,
+  RESOURCE_AI_LOGS_EMPTY_TITLE,
+  RESOURCE_AI_LOGS_PAGE_TITLE,
   RESOURCE_COMMAND_JOB_ORIGIN_LABELS,
-  ResourceAiInsights,
-  ResourceAiInsightsFix,
-  ResourceAiInsightsInvestigation,
+  ResourceAiLogs,
+  ResourceAiLogsFix,
+  ResourceAiLogsInvestigation,
   ResourceAiStatusLook,
   describeResourceCommandJobOrigin,
   describeResourceFixType,
   describeResourceInvestigationSubject,
-  getResourceAiInsightsEmptyDescription,
-  getResourceAiInsightsPageSubtitle,
+  getResourceAiLogsEmptyDescription,
+  getResourceAiLogsPageSubtitle,
   getResourceCommandsCardDescription,
   getResourceCommandsEmptyMessage,
   getResourceFixStatusLook,
   getResourceInvestigationStatusLook,
   getResourceInvestigationSummary,
-  parseResourceAiInsights,
-} from "./ResourceAiInsights";
+  parseResourceAiLogs,
+} from "./ResourceAiLogs";
 import {
   canReadResourceCommandJobs,
   getResourceCommandJobsPermissionTitles,
@@ -82,15 +82,16 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
- * A resource's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this resource, newest first — the incidents
- * and alerts it investigated (with the one-line finding), the fixes it
- * proposed or applied, and every command it ran here through the resource
- * AI agent. The resource twin of Pages/Kubernetes/View/AI/Insights.tsx.
+ * A resource's AI Logs page (AI → Logs): everything OneUptime AI did on
+ * this resource, newest first — the incidents and alerts it investigated
+ * (with the one-line finding), the fixes it proposed or applied, and every
+ * command it ran here through the resource AI agent. The resource twin of
+ * Pages/Kubernetes/View/AI/Logs.tsx. (What AI learned from all of it is
+ * the AI Insights page next to it.)
  *
- * The first two lists come from POST /resource-ai-access/insights, which
- * the server computes (summaries only, never command output) behind the
- * same read gate as the resource's AI status. The command history is the
+ * The first two lists come from POST /resource-ai-access/logs, which the
+ * server computes (summaries only, never command output) behind the same
+ * read gate as the resource's AI status. The command history is the
  * RunnerJob table filtered on this resource's ResourceCommand jobs, with a
  * permission fallback for the roles that may not read Runner jobs.
  */
@@ -144,7 +145,7 @@ function AgentPageLink(props: {
   const translator: Translator = useTranslator();
 
   return (
-    <p className="text-sm text-gray-600" data-testid="ai-insights-agent-hint">
+    <p className="text-sm text-gray-600" data-testid="ai-logs-agent-hint">
       {props.hint}{" "}
       <Link
         to={RouteUtil.populateRouteParams(
@@ -160,7 +161,7 @@ function AgentPageLink(props: {
 }
 
 function InvestigationRow(props: {
-  investigation: ResourceAiInsightsInvestigation;
+  investigation: ResourceAiLogsInvestigation;
 }): ReactElement {
   const subject: {
     text: string;
@@ -177,7 +178,7 @@ function InvestigationRow(props: {
       : null;
 
   return (
-    <li className="py-3" data-testid="ai-insights-investigation">
+    <li className="py-3" data-testid="ai-logs-investigation">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0 text-sm font-medium text-gray-900">
           {target ? (
@@ -200,7 +201,7 @@ function InvestigationRow(props: {
   );
 }
 
-function FixRow(props: { fix: ResourceAiInsightsFix }): ReactElement {
+function FixRow(props: { fix: ResourceAiLogsFix }): ReactElement {
   const translator: Translator = useTranslator();
   const look: ResourceAiStatusLook | null = props.fix.status
     ? getResourceFixStatusLook(props.fix.status)
@@ -213,7 +214,7 @@ function FixRow(props: { fix: ResourceAiInsightsFix }): ReactElement {
       : null;
 
   return (
-    <li className="py-3" data-testid="ai-insights-fix">
+    <li className="py-3" data-testid="ai-logs-fix">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {look ? <Pill text={look.label} color={look.color} /> : null}
@@ -239,7 +240,7 @@ function FixRow(props: { fix: ResourceAiInsightsFix }): ReactElement {
   );
 }
 
-const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
+const ResourceAiLogsPage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
@@ -254,7 +255,7 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
     return new ObjectID(id || "");
   }, [id]);
 
-  const [insights, setInsights] = useState<ResourceAiInsights | null>(null);
+  const [logs, setLogs] = useState<ResourceAiLogs | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [refresher, setRefresher] = useState<boolean>(false);
@@ -268,23 +269,23 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
    * retrying) starts new requests; an answer to an older one is dropped
    * instead of painting the wrong resource's history.
    */
-  const insightsRequestRef: MutableRefObject<number> = useRef<number>(0);
+  const logsRequestRef: MutableRefObject<number> = useRef<number>(0);
   const statusRequestRef: MutableRefObject<number> = useRef<number>(0);
 
-  const fetchInsights: () => Promise<void> =
+  const fetchLogs: () => Promise<void> =
     useCallback(async (): Promise<void> => {
-      const request: number = ++insightsRequestRef.current;
+      const request: number = ++logsRequestRef.current;
       setIsLoading(true);
       setError("");
 
-      let parsed: ResourceAiInsights | null = null;
+      let parsed: ResourceAiLogs | null = null;
       let failure: string = "";
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
-              RESOURCE_AI_ACCESS_INSIGHTS_ROUTE,
+              RESOURCE_AI_ACCESS_LOGS_ROUTE,
             ),
             data: getResourceAiAccessRequestBody(
               descriptor,
@@ -297,12 +298,12 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
           throw response;
         }
 
-        parsed = parseResourceAiInsights(response.data);
+        parsed = parseResourceAiLogs(response.data);
 
         if (!parsed) {
           throw new Error(
             translateTemplate(
-              "The server returned AI insights this page cannot read.",
+              "The server returned AI logs this page cannot read.",
             ),
           );
         }
@@ -311,11 +312,11 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
         failure = API.getFriendlyMessage(err);
       }
 
-      if (request !== insightsRequestRef.current) {
+      if (request !== logsRequestRef.current) {
         return;
       }
 
-      setInsights(parsed);
+      setLogs(parsed);
       setError(failure);
       setIsLoading(false);
     }, [resourceId, descriptor]);
@@ -352,34 +353,32 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
     }, [resourceId, descriptor]);
 
   useEffect(() => {
-    fetchInsights().catch(() => {
-      // handled inside fetchInsights
+    fetchLogs().catch(() => {
+      // handled inside fetchLogs
     });
     fetchStatus().catch(() => {
       // handled inside fetchStatus
     });
-  }, [fetchInsights, fetchStatus, refresher]);
+  }, [fetchLogs, fetchStatus, refresher]);
 
   const hint: string | null = getResourceAiAgentPageHint(status, descriptor);
   const isEmpty: boolean = Boolean(
-    insights &&
-      insights.investigations.length === 0 &&
-      insights.fixes.length === 0,
+    logs && logs.investigations.length === 0 && logs.fixes.length === 0,
   );
 
   let body: ReactElement;
 
   if (isLoading) {
     body = (
-      <div data-testid="ai-insights-loading">
+      <div data-testid="ai-logs-loading">
         <PageLoader isVisible={true} />
       </div>
     );
-  } else if (!insights) {
+  } else if (!logs) {
     body = (
-      <div data-testid="ai-insights-error">
+      <div data-testid="ai-logs-error">
         <ErrorMessage
-          message={error || "Could not load AI insights."}
+          message={error || "Could not load AI logs."}
           onRefreshClick={() => {
             setRefresher(!refresher);
           }}
@@ -390,10 +389,10 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
     body = (
       <div className="mb-5">
         <EmptyState
-          id={`${descriptor.commandsTableId}-insights-empty`}
+          id={`${descriptor.commandsTableId}-logs-empty`}
           icon={IconProp.LightBulb}
-          title={RESOURCE_AI_INSIGHTS_EMPTY_TITLE}
-          description={getResourceAiInsightsEmptyDescription(descriptor)}
+          title={RESOURCE_AI_LOGS_EMPTY_TITLE}
+          description={getResourceAiLogsEmptyDescription(descriptor)}
           showSolidBackground={true}
           paddingClassName="py-12"
           footer={
@@ -434,12 +433,10 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
             { noun: translatableTerm(descriptor.noun) },
           )}
         >
-          {insights.investigations.length > 0 ? (
+          {logs.investigations.length > 0 ? (
             <ul className="divide-y divide-gray-100">
-              {insights.investigations.map(
-                (
-                  investigation: ResourceAiInsightsInvestigation,
-                ): ReactElement => {
+              {logs.investigations.map(
+                (investigation: ResourceAiLogsInvestigation): ReactElement => {
                   return (
                     <InvestigationRow
                       key={investigation.aiRunId}
@@ -452,7 +449,7 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
           ) : (
             <p
               className="text-sm text-gray-500"
-              data-testid="ai-insights-no-investigations"
+              data-testid="ai-logs-no-investigations"
             >
               {translator.translateText("No investigations yet.")}
             </p>
@@ -466,19 +463,14 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
             { noun: translatableTerm(descriptor.noun) },
           )}
         >
-          {insights.fixes.length > 0 ? (
+          {logs.fixes.length > 0 ? (
             <ul className="divide-y divide-gray-100">
-              {insights.fixes.map(
-                (fix: ResourceAiInsightsFix): ReactElement => {
-                  return <FixRow key={fix.id} fix={fix} />;
-                },
-              )}
+              {logs.fixes.map((fix: ResourceAiLogsFix): ReactElement => {
+                return <FixRow key={fix.id} fix={fix} />;
+              })}
             </ul>
           ) : (
-            <p
-              className="text-sm text-gray-500"
-              data-testid="ai-insights-no-fixes"
-            >
+            <p className="text-sm text-gray-500" data-testid="ai-logs-no-fixes">
               {translator.translateText("No fixes yet.")}
             </p>
           )}
@@ -489,12 +481,12 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      <div className="mb-5" data-testid="ai-insights-page-heading">
+      <div className="mb-5" data-testid="ai-logs-page-heading">
         <h2 className="text-lg font-semibold text-gray-900">
-          {translator.translateText(RESOURCE_AI_INSIGHTS_PAGE_TITLE)}
+          {translator.translateText(RESOURCE_AI_LOGS_PAGE_TITLE)}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          {getResourceAiInsightsPageSubtitle(descriptor)}
+          {getResourceAiLogsPageSubtitle(descriptor)}
         </p>
       </div>
 
@@ -675,4 +667,4 @@ const ResourceAiInsightsPage: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default ResourceAiInsightsPage;
+export default ResourceAiLogsPage;

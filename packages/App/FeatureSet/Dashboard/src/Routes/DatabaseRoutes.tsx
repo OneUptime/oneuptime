@@ -24,7 +24,7 @@ import DatabaseServerFeed from "../Pages/Database/View/Feed";
 import DatabaseServerOwners from "../Pages/Database/View/Owners";
 import DatabaseServerEndpoints from "../Pages/Database/View/Endpoints";
 import DatabaseServerRecommendations from "../Pages/Database/View/Recommendations";
-import DatabaseServerAiInsights from "../Pages/Database/View/AI/Insights";
+import DatabaseServerAiLogs from "../Pages/Database/View/AI/Logs";
 import DatabaseServerAiAgent from "../Pages/Database/View/AI/Agent";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
@@ -289,10 +289,25 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
             2,
           )}
           element={
-            <DatabaseServerAiInsights
+            <DatabaseServerAiLogs
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <DatabaseServerAiLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_AI_LOGS] as Route
               }
             />
           }

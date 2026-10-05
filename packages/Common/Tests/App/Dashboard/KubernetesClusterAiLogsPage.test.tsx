@@ -24,17 +24,17 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import KubernetesClusterAIInsights, {
-  AI_INSIGHTS_EMPTY_DESCRIPTION,
-  AI_INSIGHTS_EMPTY_TITLE,
-  AI_INSIGHTS_PAGE_SUBTITLE,
-  AI_INSIGHTS_PAGE_TITLE,
+import KubernetesClusterAILogs, {
+  AI_LOGS_EMPTY_DESCRIPTION,
+  AI_LOGS_EMPTY_TITLE,
+  AI_LOGS_PAGE_SUBTITLE,
+  AI_LOGS_PAGE_TITLE,
   KUBECTL_COMMANDS_CARD_TITLE,
   KUBECTL_COMMANDS_EMPTY_MESSAGE,
   KUBECTL_JOB_ORIGIN_LABELS,
   KUBECTL_JOBS_TABLE_PREFERENCES_KEY,
-  KubernetesAiInsights,
-  KubernetesAiInsightsInvestigation,
+  KubernetesAiLogs,
+  KubernetesAiLogsInvestigation,
   describeFixType,
   describeInvestigationSubject,
   describeKubectlJobOrigin,
@@ -42,8 +42,8 @@ import KubernetesClusterAIInsights, {
   getFixStatusLook,
   getInvestigationStatusLook,
   getInvestigationSummary,
-  parseKubernetesAiInsights,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Insights";
+  parseKubernetesAiLogs,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Logs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
@@ -90,8 +90,8 @@ jest.mock("react-i18next", () => {
 });
 
 /*
- * The cluster's AI Insights page (AI → Insights) renders for real on its
- * real route, with the insights and status routes, the model API and the
+ * The cluster's AI Logs page (AI → Logs) renders for real on its
+ * real route, with the logs and status routes, the model API and the
  * permission snapshot stubbed. It answers "what did OneUptime AI do on this
  * cluster?": the investigations of incidents and alerts here, the fixes AI
  * proposed or applied, and every kubectl command it ran — the table that
@@ -110,10 +110,10 @@ const SECOND_RUN_ID: string = "66666666-0000-4000-8000-000000000007";
 const THIRD_RUN_ID: string = "66666666-0000-4000-8000-000000000008";
 const FIX_ID: string = "77777777-0000-4000-8000-000000000001";
 const SECOND_FIX_ID: string = "77777777-0000-4000-8000-000000000002";
-const INSIGHTS_PATH: string = `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/insights`;
+const LOGS_PATH: string = `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/logs`;
 const AGENT_HREF: string = `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/agent`;
 
-const INSIGHTS_ROUTE: string = "/kubernetes-cluster/ai-access/insights";
+const LOGS_ROUTE: string = "/kubernetes-cluster/ai-access/logs";
 const STATUS_ROUTE: string = "/kubernetes-cluster/ai-access/status";
 
 const NOT_READY_HINT: string =
@@ -219,7 +219,7 @@ function appliedFix(): JSONObject {
   };
 }
 
-function fullInsights(): JSONObject {
+function fullLogs(): JSONObject {
   return {
     investigations: [
       incidentInvestigation(),
@@ -231,7 +231,7 @@ function fullInsights(): JSONObject {
   };
 }
 
-function emptyInsights(): JSONObject {
+function emptyLogs(): JSONObject {
   return {
     investigations: [],
     fixes: [],
@@ -267,15 +267,15 @@ function networkError(): Answer {
 let postSpy: ReturnType<typeof jest.spyOn>;
 let getListSpy: ReturnType<typeof jest.spyOn>;
 let jobs: Array<RunnerJob> = [];
-let insightsAnswers: Array<Answer> = [];
+let logsAnswers: Array<Answer> = [];
 let statusAnswer: Answer = ok(makeStatus());
 
 /*
- * Answers the insights route with the queued answers in order (the last one
+ * Answers the logs route with the queued answers in order (the last one
  * repeats) and the status route with statusAnswer.
  */
-function serve(insights: Answer | Array<Answer>, status?: Answer): void {
-  insightsAnswers = Array.isArray(insights) ? [...insights] : [insights];
+function serve(logs: Answer | Array<Answer>, status?: Answer): void {
+  logsAnswers = Array.isArray(logs) ? [...logs] : [logs];
   if (status) {
     statusAnswer = status;
   }
@@ -353,19 +353,19 @@ function NavigationProbe(): React.ReactElement {
   return <></>;
 }
 
-function openInsightsPage(): void {
-  goTo(INSIGHTS_PATH);
+function openLogsPage(): void {
+  goTo(LOGS_PATH);
 
   render(
-    <MemoryRouter initialEntries={[INSIGHTS_PATH]}>
+    <MemoryRouter initialEntries={[LOGS_PATH]}>
       <NavigationProbe />
       <Routes>
         <PageRoute
-          path={String(RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS])}
+          path={String(RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS])}
           element={
-            <KubernetesClusterAIInsights
+            <KubernetesClusterAILogs
               pageRoute={
-                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS] as Route
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS] as Route
               }
               currentProject={null}
               hasPaymentMethod={true}
@@ -394,11 +394,11 @@ function hrefOf(element: HTMLElement): string {
 }
 
 function investigationRows(): Array<HTMLElement> {
-  return screen.queryAllByTestId("ai-insights-investigation");
+  return screen.queryAllByTestId("ai-logs-investigation");
 }
 
 function fixRows(): Array<HTMLElement> {
-  return screen.queryAllByTestId("ai-insights-fix");
+  return screen.queryAllByTestId("ai-logs-fix");
 }
 
 beforeEach(() => {
@@ -407,7 +407,7 @@ beforeEach(() => {
   grant(MEMBER_PERMISSIONS);
 
   statusAnswer = ok(makeStatus());
-  insightsAnswers = [ok(fullInsights())];
+  logsAnswers = [ok(fullLogs())];
 
   postSpy = jest.spyOn(API, "post");
   postSpy.mockImplementation(
@@ -415,11 +415,11 @@ beforeEach(() => {
       request: unknown,
     ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
       const url: string = String((request as JSONObject)["url"]);
-      if (url.endsWith(INSIGHTS_ROUTE)) {
+      if (url.endsWith(LOGS_ROUTE)) {
         const answer: Answer =
-          insightsAnswers.length > 1
-            ? insightsAnswers.shift()!
-            : insightsAnswers[0]!;
+          logsAnswers.length > 1
+            ? logsAnswers.shift()!
+            : logsAnswers[0]!;
         return await answer();
       }
       if (url.endsWith(STATUS_ROUTE)) {
@@ -448,10 +448,10 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("parseKubernetesAiInsights", () => {
-  test("reads the shape the insights route returns", () => {
-    const parsed: KubernetesAiInsights | null =
-      parseKubernetesAiInsights(fullInsights());
+describe("parseKubernetesAiLogs", () => {
+  test("reads the shape the logs route returns", () => {
+    const parsed: KubernetesAiLogs | null =
+      parseKubernetesAiLogs(fullLogs());
 
     expect(parsed).not.toBeNull();
     expect(parsed!.investigations).toEqual([
@@ -513,30 +513,30 @@ describe("parseKubernetesAiInsights", () => {
 
   test.each([
     ["null", null],
-    ["a string", "insights"],
+    ["a string", "logs"],
     ["a number", 7],
     ["an array", [incidentInvestigation()]],
     ["an object with neither list", { commandCounts: {} }],
     ["an object whose lists are not arrays", { investigations: {}, fixes: 3 }],
   ])("refuses %s", (_label: string, value: unknown) => {
-    expect(parseKubernetesAiInsights(value)).toBeNull();
+    expect(parseKubernetesAiLogs(value)).toBeNull();
   });
 
   test("reads a missing list as empty when the other one is there", () => {
     expect(
-      parseKubernetesAiInsights({ investigations: [incidentInvestigation()] }),
+      parseKubernetesAiLogs({ investigations: [incidentInvestigation()] }),
     ).toEqual({
       investigations: [expect.objectContaining({ aiRunId: RUN_ID })],
       fixes: [],
     });
-    expect(parseKubernetesAiInsights({ fixes: [waitingFix()] })).toEqual({
+    expect(parseKubernetesAiLogs({ fixes: [waitingFix()] })).toEqual({
       investigations: [],
       fixes: [expect.objectContaining({ id: FIX_ID })],
     });
   });
 
   test("drops rows without an id, which have nothing to key or link by", () => {
-    const parsed: KubernetesAiInsights | null = parseKubernetesAiInsights({
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs({
       investigations: [
         null,
         "run",
@@ -555,7 +555,7 @@ describe("parseKubernetesAiInsights", () => {
 
     expect(
       parsed!.investigations.map(
-        (row: KubernetesAiInsightsInvestigation): string => {
+        (row: KubernetesAiLogsInvestigation): string => {
           return row.aiRunId;
         },
       ),
@@ -564,9 +564,9 @@ describe("parseKubernetesAiInsights", () => {
     expect(parsed!.fixes[0]!.id).toBe(FIX_ID);
   });
 
-  // The contract (KubernetesClusterAiInsights.ts) leaves status optional.
+  // The contract (KubernetesClusterAiLogs.ts) leaves status optional.
   test("keeps a row whose status is missing, with the status as null", () => {
-    const parsed: KubernetesAiInsights | null = parseKubernetesAiInsights({
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs({
       investigations: [
         { aiRunId: RUN_ID },
         { aiRunId: SECOND_RUN_ID, status: "" },
@@ -576,7 +576,7 @@ describe("parseKubernetesAiInsights", () => {
 
     expect(
       parsed!.investigations.map(
-        (row: KubernetesAiInsightsInvestigation): string | null => {
+        (row: KubernetesAiLogsInvestigation): string | null => {
           return row.status;
         },
       ),
@@ -585,7 +585,7 @@ describe("parseKubernetesAiInsights", () => {
   });
 
   test("accepts ids and dates in the server's serialized envelope", () => {
-    const parsed: KubernetesAiInsights | null = parseKubernetesAiInsights({
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs({
       investigations: [
         {
           aiRunId: { _type: "ObjectID", value: RUN_ID },
@@ -620,7 +620,7 @@ describe("parseKubernetesAiInsights", () => {
   });
 
   test("reads a subject without an id, a bad number or blank text as missing", () => {
-    const parsed: KubernetesAiInsights | null = parseKubernetesAiInsights({
+    const parsed: KubernetesAiLogs | null = parseKubernetesAiLogs({
       investigations: [
         {
           aiRunId: RUN_ID,
@@ -738,8 +738,8 @@ describe("status words", () => {
 
 describe("investigation rows", () => {
   function investigation(
-    overrides: Partial<KubernetesAiInsightsInvestigation> = {},
-  ): KubernetesAiInsightsInvestigation {
+    overrides: Partial<KubernetesAiLogsInvestigation> = {},
+  ): KubernetesAiLogsInvestigation {
     return {
       aiRunId: RUN_ID,
       status: AIRunStatus.Completed,
@@ -898,20 +898,20 @@ describe("kubectl command rows", () => {
   });
 });
 
-describe("AI Insights page", () => {
-  test("shows its title and subtitle, and a loader until the insights arrive", async () => {
+describe("AI Logs page", () => {
+  test("shows its title and subtitle, and a loader until the logs arrive", async () => {
     let release: (() => void) | undefined;
     serve(async (): Promise<HTTPResponse<JSONObject>> => {
       await new Promise<void>((resolve: () => void) => {
         release = resolve;
       });
-      return new HTTPResponse<JSONObject>(200, fullInsights(), {});
+      return new HTTPResponse<JSONObject>(200, fullLogs(), {});
     });
-    openInsightsPage();
+    openLogsPage();
 
-    expect(screen.getByText(AI_INSIGHTS_PAGE_TITLE)).toBeInTheDocument();
-    expect(screen.getByText(AI_INSIGHTS_PAGE_SUBTITLE)).toBeInTheDocument();
-    expect(await findTestId("ai-insights-loading")).toBeInTheDocument();
+    expect(screen.getByText(AI_LOGS_PAGE_TITLE)).toBeInTheDocument();
+    expect(screen.getByText(AI_LOGS_PAGE_SUBTITLE)).toBeInTheDocument();
+    expect(await findTestId("ai-logs-loading")).toBeInTheDocument();
     expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
 
     await waitFor(
@@ -923,18 +923,18 @@ describe("AI Insights page", () => {
     release!();
 
     expect(await findText("Investigations")).toBeInTheDocument();
-    expect(screen.queryByTestId("ai-insights-loading")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ai-logs-loading")).not.toBeInTheDocument();
   });
 
-  test("asks the insights and status routes about this cluster", async () => {
-    openInsightsPage();
+  test("asks the logs and status routes about this cluster", async () => {
+    openLogsPage();
     await findText("Investigations");
 
-    const insightsRequests: Array<JSONObject> = postsTo(INSIGHTS_ROUTE);
-    expect(insightsRequests.length).toBe(1);
-    expect(insightsRequests[0]!["data"]).toEqual({ clusterId: CLUSTER_ID });
-    expect(String(insightsRequests[0]!["url"])).toContain(
-      "/api/kubernetes-cluster/ai-access/insights",
+    const logsRequests: Array<JSONObject> = postsTo(LOGS_ROUTE);
+    expect(logsRequests.length).toBe(1);
+    expect(logsRequests[0]!["data"]).toEqual({ clusterId: CLUSTER_ID });
+    expect(String(logsRequests[0]!["url"])).toContain(
+      "/api/kubernetes-cluster/ai-access/logs",
     );
 
     await waitFor(
@@ -949,7 +949,7 @@ describe("AI Insights page", () => {
   });
 
   test("lists investigations with their subject link, finding, status and time", async () => {
-    openInsightsPage();
+    openLogsPage();
     await findText("Investigations");
 
     const rows: Array<HTMLElement> = investigationRows();
@@ -990,7 +990,7 @@ describe("AI Insights page", () => {
   });
 
   test("lists fixes with their status, reason, kind and a link to where they were proposed", async () => {
-    openInsightsPage();
+    openLogsPage();
     await findText("Fixes");
 
     const rows: Array<HTMLElement> = fixRows();
@@ -1033,7 +1033,7 @@ describe("AI Insights page", () => {
         ],
       }),
     );
-    openInsightsPage();
+    openLogsPage();
     await findText("Fixes");
 
     const row: HTMLElement = fixRows()[0]!;
@@ -1045,7 +1045,7 @@ describe("AI Insights page", () => {
   });
 
   test("shows no KPI tiles: the command counts the route returns are not rendered", async () => {
-    openInsightsPage();
+    openLogsPage();
     await findText("Investigations");
 
     expect(screen.queryByText(/1717/)).not.toBeInTheDocument();
@@ -1071,7 +1071,7 @@ describe("AI Insights page", () => {
         ],
       }),
     );
-    openInsightsPage();
+    openLogsPage();
 
     await findText("Found it.");
     const investigation: HTMLElement = investigationRows()[0]!;
@@ -1111,7 +1111,7 @@ describe("AI Insights page", () => {
         ],
       }),
     );
-    openInsightsPage();
+    openLogsPage();
 
     expect(
       await findText('<img src=x onerror="window.pwned=1">'),
@@ -1127,12 +1127,12 @@ describe("AI Insights page", () => {
 
   describe("empty and partial states", () => {
     test("shows one 'Nothing yet' state instead of two empty lists", async () => {
-      serve(ok(emptyInsights()));
-      openInsightsPage();
+      serve(ok(emptyLogs()));
+      openLogsPage();
 
-      expect(await findText(AI_INSIGHTS_EMPTY_TITLE)).toBeInTheDocument();
+      expect(await findText(AI_LOGS_EMPTY_TITLE)).toBeInTheDocument();
       expect(
-        screen.getByText(AI_INSIGHTS_EMPTY_DESCRIPTION),
+        screen.getByText(AI_LOGS_EMPTY_DESCRIPTION),
       ).toBeInTheDocument();
       expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
       expect(screen.queryByText("Fixes")).not.toBeInTheDocument();
@@ -1144,33 +1144,33 @@ describe("AI Insights page", () => {
 
     test("points at the AI agent page when AI cannot run kubectl here", async () => {
       serve(
-        ok(emptyInsights()),
+        ok(emptyLogs()),
         ok(makeStatus({ isInvestigationReady: false })),
       );
-      openInsightsPage();
+      openLogsPage();
 
-      const hint: HTMLElement = await findTestId("ai-insights-agent-hint");
+      const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
       expect(hint).toHaveTextContent(NOT_READY_HINT);
       expect(hrefOf(within(hint).getByText("Open the AI agent page"))).toBe(
         AGENT_HREF,
       );
       expect(
-        screen.getByTestId("kubernetes-ai-insights-empty-footer"),
+        screen.getByTestId("kubernetes-ai-logs-empty-footer"),
       ).toContainElement(hint);
     });
 
     test("points at the AI agent page when automatic investigation is off", async () => {
       serve(
-        ok(emptyInsights()),
+        ok(emptyLogs()),
         ok(
           makeStatus({
             automaticInvestigation: { incidents: false, alerts: false },
           }),
         ),
       );
-      openInsightsPage();
+      openLogsPage();
 
-      const hint: HTMLElement = await findTestId("ai-insights-agent-hint");
+      const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
       expect(hint).toHaveTextContent(AUTOMATIC_OFF_HINT);
       expect(hrefOf(within(hint).getByText("Open the AI agent page"))).toBe(
         AGENT_HREF,
@@ -1178,10 +1178,10 @@ describe("AI Insights page", () => {
     });
 
     test("does not point anywhere when AI is ready", async () => {
-      serve(ok(emptyInsights()));
-      openInsightsPage();
+      serve(ok(emptyLogs()));
+      openLogsPage();
 
-      await findText(AI_INSIGHTS_EMPTY_TITLE);
+      await findText(AI_LOGS_EMPTY_TITLE);
       await waitFor(
         () => {
           expect(postsTo(STATUS_ROUTE).length).toBe(1);
@@ -1189,7 +1189,7 @@ describe("AI Insights page", () => {
         { timeout: WAIT_TIMEOUT },
       );
       expect(
-        screen.queryByTestId("ai-insights-agent-hint"),
+        screen.queryByTestId("ai-logs-agent-hint"),
       ).not.toBeInTheDocument();
     });
 
@@ -1199,10 +1199,10 @@ describe("AI Insights page", () => {
       ["is not a status", ok({ something: "else" })],
     ] as Array<[string, Answer]>) {
       test(`still renders when the status request ${label}, just without the pointer`, async () => {
-        serve(ok(emptyInsights()), answer);
-        openInsightsPage();
+        serve(ok(emptyLogs()), answer);
+        openLogsPage();
 
-        expect(await findText(AI_INSIGHTS_EMPTY_TITLE)).toBeInTheDocument();
+        expect(await findText(AI_LOGS_EMPTY_TITLE)).toBeInTheDocument();
         await waitFor(
           () => {
             expect(postsTo(STATUS_ROUTE).length).toBe(1);
@@ -1210,23 +1210,23 @@ describe("AI Insights page", () => {
           { timeout: WAIT_TIMEOUT },
         );
         expect(
-          screen.queryByTestId("ai-insights-agent-hint"),
+          screen.queryByTestId("ai-logs-agent-hint"),
         ).not.toBeInTheDocument();
       });
     }
 
     test("shows the pointer above the lists when there is history but AI is not ready", async () => {
       serve(
-        ok(fullInsights()),
+        ok(fullLogs()),
         ok(makeStatus({ isInvestigationReady: false })),
       );
-      openInsightsPage();
+      openLogsPage();
 
-      const hint: HTMLElement = await findTestId("ai-insights-agent-hint");
+      const hint: HTMLElement = await findTestId("ai-logs-agent-hint");
       expect(hint).toHaveTextContent(NOT_READY_HINT);
       expect(screen.getByText("Investigations")).toBeInTheDocument();
       expect(
-        screen.queryByText(AI_INSIGHTS_EMPTY_TITLE),
+        screen.queryByText(AI_LOGS_EMPTY_TITLE),
       ).not.toBeInTheDocument();
       // Before the lists, so it is read first.
       expect(
@@ -1237,30 +1237,30 @@ describe("AI Insights page", () => {
 
     test("says so in the Fixes list when only investigations exist", async () => {
       serve(ok({ investigations: [incidentInvestigation()], fixes: [] }));
-      openInsightsPage();
+      openLogsPage();
 
-      expect(await findTestId("ai-insights-no-fixes")).toHaveTextContent(
+      expect(await findTestId("ai-logs-no-fixes")).toHaveTextContent(
         "No fixes yet.",
       );
       expect(investigationRows().length).toBe(1);
       expect(
-        screen.queryByTestId("ai-insights-no-investigations"),
+        screen.queryByTestId("ai-logs-no-investigations"),
       ).not.toBeInTheDocument();
     });
 
     test("says so in the Investigations list when only fixes exist", async () => {
       serve(ok({ investigations: [], fixes: [waitingFix()] }));
-      openInsightsPage();
+      openLogsPage();
 
       expect(
-        await findTestId("ai-insights-no-investigations"),
+        await findTestId("ai-logs-no-investigations"),
       ).toHaveTextContent("No investigations yet.");
       expect(fixRows().length).toBe(1);
     });
   });
 
   /*
-   * Moving from one cluster's AI Insights to another's keeps the page
+   * Moving from one cluster's AI Logs to another's keeps the page
    * mounted. An answer about the cluster the user just left must not paint
    * over the one they are looking at.
    */
@@ -1300,7 +1300,7 @@ describe("AI Insights page", () => {
         );
       },
     );
-    openInsightsPage();
+    openLogsPage();
 
     await waitFor(
       () => {
@@ -1311,13 +1311,13 @@ describe("AI Insights page", () => {
 
     act(() => {
       navigate!(
-        `/dashboard/${PROJECT_ID}/kubernetes/${OTHER_CLUSTER_ID}/ai/insights`,
+        `/dashboard/${PROJECT_ID}/kubernetes/${OTHER_CLUSTER_ID}/ai/logs`,
       );
     });
 
     expect(await findText("Alert: Pod restarts in api")).toBeInTheDocument();
     expect(
-      postsTo(INSIGHTS_ROUTE).map((request: JSONObject): unknown => {
+      postsTo(LOGS_ROUTE).map((request: JSONObject): unknown => {
         return (request["data"] as JSONObject)["clusterId"];
       }),
     ).toEqual([CLUSTER_ID, OTHER_CLUSTER_ID]);
@@ -1336,48 +1336,48 @@ describe("AI Insights page", () => {
   describe("errors", () => {
     test("shows the server's message and retries on request", async () => {
       serve([
-        httpError(500, "The insights service is unavailable."),
-        ok(fullInsights()),
+        httpError(500, "The logs service is unavailable."),
+        ok(fullLogs()),
       ]);
-      openInsightsPage();
+      openLogsPage();
 
       expect(
-        await findText("The insights service is unavailable."),
+        await findText("The logs service is unavailable."),
       ).toBeInTheDocument();
       expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
 
       fireEvent.click(
-        within(screen.getByTestId("ai-insights-error")).getByTestId(
+        within(screen.getByTestId("ai-logs-error")).getByTestId(
           "refresh-button",
         ),
       );
 
       expect(await findText("Investigations")).toBeInTheDocument();
-      expect(postsTo(INSIGHTS_ROUTE).length).toBe(2);
+      expect(postsTo(LOGS_ROUTE).length).toBe(2);
       expect(
-        screen.queryByText("The insights service is unavailable."),
+        screen.queryByText("The logs service is unavailable."),
       ).not.toBeInTheDocument();
     });
 
     test("explains a body it cannot read", async () => {
       serve(ok({ unexpected: true }));
-      openInsightsPage();
+      openLogsPage();
 
       expect(
         await findText(
-          "The server returned AI insights this page cannot read.",
+          "The server returned AI logs this page cannot read.",
         ),
       ).toBeInTheDocument();
     });
 
     test("survives a dropped connection", async () => {
       serve(networkError());
-      openInsightsPage();
+      openLogsPage();
 
-      const error: HTMLElement = await findTestId("ai-insights-error");
+      const error: HTMLElement = await findTestId("ai-logs-error");
       expect(within(error).getByTestId("refresh-button")).toBeInTheDocument();
       expect(screen.queryByText("Investigations")).not.toBeInTheDocument();
-      // The command history does not depend on the insights route.
+      // The command history does not depend on the logs route.
       expect(
         await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE)),
       ).toBeInTheDocument();
@@ -1396,7 +1396,7 @@ describe("AI Insights page", () => {
           errorMessage: "pods is forbidden: User cannot list resource",
         }),
       ];
-      openInsightsPage();
+      openLogsPage();
 
       expect(
         await findText("kubectl get pods -n web-investigation"),
@@ -1452,7 +1452,7 @@ describe("AI Insights page", () => {
           },
         }),
       ];
-      openInsightsPage();
+      openLogsPage();
 
       const commandCell: HTMLElement = await findText(
         "kubectl rollout restart deployment/web -n web",
@@ -1463,7 +1463,7 @@ describe("AI Insights page", () => {
     });
 
     test("is titled 'kubectl commands' and says when nothing ran yet", async () => {
-      openInsightsPage();
+      openLogsPage();
 
       expect(
         await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE)),
@@ -1489,7 +1489,7 @@ describe("AI Insights page", () => {
     ]) {
       test(`explains instead of failing for ${permission}`, async () => {
         grant([...BASE_PERMISSIONS, permission]);
-        openInsightsPage();
+        openLogsPage();
 
         const note: HTMLElement = await findTestId(
           "kubectl-jobs-permission-note",
@@ -1509,7 +1509,7 @@ describe("AI Insights page", () => {
     for (const permission of [Permission.ProjectMember, Permission.Viewer]) {
       test(`shows the table for ${permission}`, async () => {
         grant([...BASE_PERMISSIONS, permission]);
-        openInsightsPage();
+        openLogsPage();
 
         await findText(toHeadline(KUBECTL_COMMANDS_EMPTY_MESSAGE));
         expect(

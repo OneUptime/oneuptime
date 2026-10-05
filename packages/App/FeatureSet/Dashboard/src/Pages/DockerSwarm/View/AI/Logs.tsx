@@ -1,19 +1,20 @@
 import PageComponentProps from "../../../PageComponentProps";
-import ResourceAiInsightsPage from "../../../../Components/ResourceAiAgent/ResourceAiInsightsPage";
+import ResourceAiLogsPage from "../../../../Components/ResourceAiAgent/ResourceAiLogsPage";
 import { getResourceAiAgentDescriptor } from "../../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The Docker Swarm cluster's AI Insights page (AI → Insights): what OneUptime AI
- * investigated and changed on this Docker Swarm cluster, and every command it ran here.
- * The page itself is the generic ResourceAiInsightsPage.
+ * The Docker Swarm cluster's AI Logs page (AI → Logs): everything OneUptime
+ * AI did on this Docker Swarm cluster, newest first — its investigations, its
+ * fixes and every command it ran here. The page itself is the generic
+ * ResourceAiLogsPage.
  */
-const DockerSwarmClusterAiInsights: FunctionComponent<PageComponentProps> = (
+const DockerSwarmClusterAiLogs: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
-    <ResourceAiInsightsPage
+    <ResourceAiLogsPage
       {...props}
       descriptor={getResourceAiAgentDescriptor(
         AiResourceType.DockerSwarmCluster,
@@ -22,4 +23,4 @@ const DockerSwarmClusterAiInsights: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default DockerSwarmClusterAiInsights;
+export default DockerSwarmClusterAiLogs;
