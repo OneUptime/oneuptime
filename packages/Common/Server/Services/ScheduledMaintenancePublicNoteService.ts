@@ -20,6 +20,8 @@ import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
+import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -31,6 +33,21 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The state the event moved to, when this is the note a state change
+     * posts with it - what its subscriber messages name ("Status:
+     * Ongoing"). Only that note carries one (StateChangePublicNote): any
+     * other create, whatever it sent, has none.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      [
+        "postedWithScheduledMaintenanceStateId",
+        "postedWithScheduledMaintenanceState",
+      ],
+      StateChangePublicNote.getStatePostedWith(createBy.data),
+    );
 
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
