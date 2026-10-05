@@ -24995,11 +24995,16 @@
   "A name your team will recognize. It is used in alerts and incident titles.": "团队一看就懂的名称。它会出现在警报和事件标题中。",
   "Anything your team should know about this monitor.": "团队需要了解的关于此监视器的一切。",
   "How often to check. Every 5 minutes suits most monitors.": "检查的频率。每 5 分钟适合大多数监视器。",
+  "Incoming Email": "Incoming Email",
   "More monitor types": "更多监视器类型",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change.": "选择要监控的对象并为其命名。其余内容均使用可更改的默认值。",
+  "Plain text body of the email.": "Plain text body of the email.",
   "Search monitor types - try ping, ssl, k8s, postgres": "搜索监视器类型 - 试试 ping、ssl、k8s、postgres",
+  "Sender's email address.": "Sender's email address.",
+  "Subject of the email.": "Subject of the email.",
   "The IPv4 or IPv6 address to check, like 192.168.1.1.": "要检查的 IPv4 或 IPv6 地址，例如 192.168.1.1。",
   "The TCP or UDP port to check, like 443.": "要检查的 TCP 或 UDP 端口，例如 443。",
+  "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.": "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.",
   "The endpoint to call, like https://api.example.com/health.": "要调用的端点，例如 https://api.example.com/health。",
   "The host the port is on, like example.com.": "端口所在的主机，例如 example.com。",
   "The host to ping, like example.com or 192.168.1.1.": "要 ping 的主机，例如 example.com 或 192.168.1.1。",
@@ -25007,5 +25012,8 @@
   "The site whose certificate to check, like https://example.com.": "要检查证书的网站，例如 https://example.com。",
   "What do you want to monitor?": "您想监控什么？",
   "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.": "要检查什么，以及什么算作问题。条件使用适合大多数监视器的默认值。",
-  "When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides.": "此监视器何时更改状态、声明事件或创建警报。条件按从上到下的顺序检查，第一个匹配的条件生效。"
+  "When the email was received. Empty until the first email arrives.": "When the email was received. Empty until the first email arrives.",
+  "When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides.": "此监视器何时更改状态、声明事件或创建警报。条件按从上到下的顺序检查，第一个匹配的条件生效。",
+  "Who the email was sent to. This monitor's own address is masked.": "Who the email was sent to. This monitor's own address is masked.",
+  "Uploaded By User ID": "Uploaded By User ID"
 }

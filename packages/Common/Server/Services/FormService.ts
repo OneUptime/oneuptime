@@ -78,6 +78,7 @@ import FormSubmission from "../../Models/DatabaseModels/FormSubmission";
 import FormRateLimit from "../Middleware/FormRateLimit";
 import CaptchaUtil from "../Utils/Captcha";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import FileOwnership from "../Utils/File/FileOwnership";
 import FormRecordOptions from "../Utils/Form/FormRecordOptions";
 import { getFormSubmissionNote } from "../Utils/Form/FormSubmissionNote";
 import {
@@ -787,16 +788,7 @@ export class Service extends DatabaseService<Model> {
     form: Model,
     file: File | undefined,
   ): File | undefined {
-    if (
-      !file ||
-      !file.projectId ||
-      !form.projectId ||
-      file.projectId.toString() !== form.projectId.toString()
-    ) {
-      return undefined;
-    }
-
-    return file;
+    return FileOwnership.keepProjectFile(file, form.projectId);
   }
 
   private async loadRecordOptions(data: {
@@ -1317,11 +1309,14 @@ export class Service extends DatabaseService<Model> {
           facts = await FileService.getFileFacts(fileId);
         }
 
-        const isFormsOwn: boolean = Boolean(
-          facts &&
-            facts.projectId &&
-            form.projectId &&
-            facts.projectId.toString() === form.projectId.toString(),
+        /*
+         * Checked here, before its type and size, so a refusal never says
+         * anything about a file of another project - DatabaseService holds
+         * the file to the form's project again, as it does every File.
+         */
+        const isFormsOwn: boolean = FileOwnership.isFileOfProject(
+          facts,
+          form.projectId,
         );
 
         const problem: string | null = isFormsOwn

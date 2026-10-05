@@ -24995,11 +24995,16 @@
   "A name your team will recognize. It is used in alerts and incident titles.": "Ein Name, den Ihr Team wiedererkennt. Er erscheint in Warnungen und in den Titeln von Vorfällen.",
   "Anything your team should know about this monitor.": "Alles, was Ihr Team über diesen Monitor wissen sollte.",
   "How often to check. Every 5 minutes suits most monitors.": "Wie oft geprüft wird. Alle 5 Minuten passt für die meisten Monitore.",
+  "Incoming Email": "Incoming Email",
   "More monitor types": "Weitere Monitortypen",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change.": "Wählen Sie, was überwacht werden soll, und geben Sie ihm einen Namen. Alles andere beginnt mit Standardwerten, die Sie ändern können.",
+  "Plain text body of the email.": "Plain text body of the email.",
   "Search monitor types - try ping, ssl, k8s, postgres": "Monitortypen durchsuchen – z. B. ping, ssl, k8s, postgres",
+  "Sender's email address.": "Sender's email address.",
+  "Subject of the email.": "Subject of the email.",
   "The IPv4 or IPv6 address to check, like 192.168.1.1.": "Die zu prüfende IPv4- oder IPv6-Adresse, z. B. 192.168.1.1.",
   "The TCP or UDP port to check, like 443.": "Der zu prüfende TCP- oder UDP-Port, z. B. 443.",
+  "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.": "The email that triggered the incident or alert. A scheduled check for missing email uses the last email received. In a title, each value is cut to one line of at most 150 characters.",
   "The endpoint to call, like https://api.example.com/health.": "Der aufzurufende Endpunkt, z. B. https://api.example.com/health.",
   "The host the port is on, like example.com.": "Der Host, auf dem der Port liegt, z. B. example.com.",
   "The host to ping, like example.com or 192.168.1.1.": "Der anzupingende Host, z. B. example.com oder 192.168.1.1.",
@@ -25007,5 +25012,8 @@
   "The site whose certificate to check, like https://example.com.": "Die Website, deren Zertifikat geprüft wird, z. B. https://example.com.",
   "What do you want to monitor?": "Was möchten Sie überwachen?",
   "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.": "Was geprüft wird und was als Problem gilt. Die Kriterien beginnen mit Standardwerten, die für die meisten Monitore passen.",
-  "When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides.": "Wann dieser Monitor seinen Status ändert, einen Vorfall meldet oder eine Warnung erstellt. Sie werden von oben nach unten geprüft, und das erste zutreffende Kriterium entscheidet."
+  "When the email was received. Empty until the first email arrives.": "When the email was received. Empty until the first email arrives.",
+  "When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides.": "Wann dieser Monitor seinen Status ändert, einen Vorfall meldet oder eine Warnung erstellt. Sie werden von oben nach unten geprüft, und das erste zutreffende Kriterium entscheidet.",
+  "Who the email was sent to. This monitor's own address is masked.": "Who the email was sent to. This monitor's own address is masked.",
+  "Uploaded By User ID": "Uploaded By User ID"
 }
