@@ -47,18 +47,18 @@ const ALLOWED_MIME_TYPES: Set<string> = new Set<string>(
   Object.values(MimeType),
 );
 
-/*
- * What a caller deciding whether a file may be used somewhere needs to know
- * about it, without its bytes: its type, how many bytes it holds, and the
- * project it was uploaded in (null when it was uploaded with none, or before
- * files recorded it).
- */
 // A record's file, and the record's stored project (null for none).
 export interface RecordFile {
   fileId: ObjectID | undefined | null;
   projectId: ObjectID | null;
 }
 
+/*
+ * What a caller deciding whether a file may be used somewhere needs to know
+ * about it, without its bytes: its type, how many bytes it holds, and the
+ * project it was uploaded in (null when it was uploaded with none, or before
+ * files recorded it).
+ */
 export interface FileFacts {
   fileType: string;
   size: number;

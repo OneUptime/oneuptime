@@ -1309,11 +1309,14 @@ export class Service extends DatabaseService<Model> {
           facts = await FileService.getFileFacts(fileId);
         }
 
-        const isFormsOwn: boolean = Boolean(
-          facts &&
-            facts.projectId &&
-            form.projectId &&
-            facts.projectId.toString() === form.projectId.toString(),
+        /*
+         * Checked here, before its type and size, so a refusal never says
+         * anything about a file of another project - DatabaseService holds
+         * the file to the form's project again, as it does every File.
+         */
+        const isFormsOwn: boolean = FileOwnership.isFileOfProject(
+          facts,
+          form.projectId,
         );
 
         const problem: string | null = isFormsOwn
