@@ -144,7 +144,7 @@ Notifikation bestilles per tidslinjerække med **Underret statussideabonnenter**
 - **Hændelsen er ikke synlig på statussiden** (`isVisibleOnStatusPage` er slået fra).
 - **Statussiden har hændelser slået fra** (`showIncidentsOnStatusPage` er slået fra). Den her gælder per statusside — andre sider, der viser den samme monitor, får stadig besked.
 
-**Én ting mere, der ændrer udfaldet.** Skriver du en **Offentlig note** i dialogen ved tilstandsskift, markeres tidslinjerækken som allerede underrettet frem for at blive sat i kø. Det er noten selv, der når abonnenterne, så de får én besked i stedet for to. Begivenhedstypen bag den rene tilstandsskiftbesked er `Subscriber Incident State Changed`.
+**Én ting mere, der ændrer udfaldet.** Skriver du en **Offentlig note** i dialogen ved tilstandsskift, markeres tidslinjerækken som allerede underrettet frem for at blive sat i kø. Det er noten selv, der når abonnenterne, så de får én besked i stedet for to. Den besked nævner den nye tilstand på hver kanal, sådan som tilstandsskiftbeskeden ville have gjort: for eksempel `[Resolved Incident] <title>` i e-mailens emne og `**Status:** Resolved` i Slack og Microsoft Teams. Noten kræver tilladelse til at oprette offentlige noter: uden den tilbyder dialogen ikke noten, og et tilstandsskift sendt med en note afvises, så tilstanden forbliver uændret. Begivenhedstypen bag den rene tilstandsskiftbesked er `Subscriber Incident State Changed`.
 
 For hvem der modtager dem, og hvordan skabelonerne vælges, se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
 
