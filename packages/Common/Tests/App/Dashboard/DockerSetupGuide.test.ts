@@ -606,12 +606,13 @@ describe.each(METHODS)("the %s guide", (method: DockerInstallMethod) => {
       "Upgrade or uninstall the agent",
     ).markdown;
     if (isCli) {
+      // The AI agent is part of the install, so the one upgrade command
+      // pulls and removes both, and says it only once.
       expect(topic).toContain(
-        `docker pull ${DOCKER_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`,
+        `docker pull ${DOCKER_AGENT_IMAGE}\ndocker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
       );
-      // The AI agent is part of the install, so it upgrades with it.
-      expect(topic).toContain(
-        `docker pull ${DOCKER_AI_AGENT_IMAGE}\ndocker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
+      expect(topic.split(`docker pull ${DOCKER_AI_AGENT_IMAGE}`)).toHaveLength(
+        2,
       );
       expect(topic).toContain("run both `docker run` commands from step 2");
       expect(topic).toContain(`docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}`);

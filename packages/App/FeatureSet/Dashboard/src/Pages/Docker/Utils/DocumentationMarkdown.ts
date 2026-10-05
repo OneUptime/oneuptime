@@ -166,15 +166,18 @@ ${getDockerAiAgentComposeService(data)}`;
  * Moving an installed agent to the newest image. The guide's "Upgrade or
  * uninstall the agent" topic and the upgrade dialog beside an outdated agent
  * version (Components/AgentVersion) both show this command, so the two never
- * drift. With the Docker CLI it pulls the image and removes the running
- * container; the `docker run` command then starts it again on the new image.
+ * drift. With the Docker CLI it pulls both images - the collector and the AI
+ * agent the guide starts beside it - and removes both containers; the guide's
+ * two `docker run` commands then start them again on the new images. On a host
+ * installed without the AI agent, Docker only says that container is missing.
  */
 export function getDockerAgentUpgradeCommand(
   method: DockerInstallMethod,
 ): string {
   if (method === "docker-cli") {
     return `docker pull ${DOCKER_AGENT_IMAGE}
-docker rm -f ${DOCKER_AGENT_CONTAINER_NAME}`;
+docker pull ${DOCKER_AI_AGENT_IMAGE}
+docker rm -f ${DOCKER_AGENT_CONTAINER_NAME} ${DOCKER_AI_AGENT_CONTAINER_NAME}`;
   }
   return "docker compose pull\ndocker compose up -d";
 }
@@ -439,14 +442,6 @@ ${
         ? `**Upgrade** — pull the latest image and remove the running agent:
 
 ${codeBlock("bash", getDockerAgentUpgradeCommand("docker-cli"))}
-
-Then the OneUptime AI agent, the same way:
-
-${codeBlock(
-  "bash",
-  `docker pull ${DOCKER_AI_AGENT_IMAGE}
-docker rm -f ${DOCKER_AI_AGENT_CONTAINER_NAME}`,
-)}
 
 Then run both \`docker run\` commands from step 2 again.
 

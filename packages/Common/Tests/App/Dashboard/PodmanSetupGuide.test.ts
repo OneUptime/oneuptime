@@ -634,12 +634,13 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
       "Upgrade or uninstall the agent",
     ).markdown;
     if (isCli) {
+      // The AI agent is part of the install, so the one upgrade command
+      // pulls and removes both, and says it only once.
       expect(topic).toContain(
-        `podman pull ${PODMAN_AGENT_IMAGE}\npodman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`,
+        `podman pull ${PODMAN_AGENT_IMAGE}\npodman pull ${PODMAN_AI_AGENT_IMAGE}\npodman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
       );
-      // The AI agent is part of the install, so it upgrades with it.
-      expect(topic).toContain(
-        `podman pull ${PODMAN_AI_AGENT_IMAGE}\npodman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
+      expect(topic.split(`podman pull ${PODMAN_AI_AGENT_IMAGE}`)).toHaveLength(
+        2,
       );
       expect(topic).toContain("run both `podman run` commands from step 2");
       expect(topic).toContain(`podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}`);
