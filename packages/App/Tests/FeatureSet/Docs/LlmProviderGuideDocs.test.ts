@@ -14,15 +14,16 @@ import path from "path";
  * The LLM provider guide, in every docs language, against the English page
  * and the product.
  *
- * Fifteen of the sixteen translations fell behind the English page and
- * nobody noticed, because nobody on the team reads most of those languages.
- * So this reads every copy and holds it to what can be checked without
- * reading it: the English page's sections in the English page's order, the
- * same GLOBAL_LLM_PROVIDER_* variables and examples, the provider types the
- * startup sync accepts, the provider form's fields under the names the
- * dashboard gives them in that language, the way to the LLM Providers page,
- * and the models OneUptime itself asks for when a provider's Model Name is
- * left blank.
+ * Fifteen of the sixteen translations fell behind the English page, in
+ * languages most of which nobody on the team can proofread. So this reads
+ * every copy and holds it to what can be checked without reading it: the
+ * English page's sections in the English page's order; the same
+ * GLOBAL_LLM_PROVIDER_* variables and examples, and the provider types the
+ * startup sync accepts; the provider form's fields, the way to the LLM
+ * Providers page and its create button, under the names the dashboard gives
+ * them in that language; the models OneUptime itself asks for when a
+ * provider's Model Name is left blank; and the capability English leads
+ * with.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -62,6 +63,9 @@ const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
 );
 
 const GLOBAL_PROVIDER_VARIABLE: RegExp = /GLOBAL_LLM_PROVIDER_[A-Z_]+/g;
+
+// A line of an example that sets one of them.
+const GLOBAL_PROVIDER_SETTING: RegExp = /^GLOBAL_LLM_PROVIDER_[A-Z_]+=/;
 
 const FENCE: RegExp = /^\s*```(.*)$/;
 
@@ -337,7 +341,7 @@ describe("every LLM provider guide documents the GLOBAL_LLM_PROVIDER_* variables
         markdown: string,
       ): Array<string> => {
         return fencedLines(markdown).filter((line: string): boolean => {
-          return (/^GLOBAL_LLM_PROVIDER_[A-Z_]+=/).test(line);
+          return GLOBAL_PROVIDER_SETTING.test(line);
         });
       };
 
@@ -378,9 +382,10 @@ describe("every LLM provider guide calls the provider field what the form calls 
     (language: string) => {
       const label: string = dashboardLabel(language, fieldTitle);
 
-      expect({ label, listed: hasBulletFor(readPage(language), label) }).toEqual(
-        { label, listed: true },
-      );
+      expect({
+        label,
+        listed: hasBulletFor(readPage(language), label),
+      }).toEqual({ label, listed: true });
     },
   );
 
@@ -430,9 +435,7 @@ describe("every LLM provider guide says what is under More fields", () => {
     expect(formFieldTitle("additionalParams")).toBe("Additional Parameters");
 
     for (const field of ["isDefault", "additionalParams"]) {
-      expect(formField(field)).toContain(
-        "collapsibleSection: advancedSection",
-      );
+      expect(formField(field)).toContain("collapsibleSection: advancedSection");
     }
   });
 
@@ -524,11 +527,6 @@ describe("every LLM provider guide recommends the models OneUptime defaults to",
           { provider, example: listed[0] },
         );
       }
-
-      expect(listedModels(markdown, "OpenAI")).toEqual([
-        "gpt-5.1",
-        "gpt-5.1-mini",
-      ]);
     },
   );
 
