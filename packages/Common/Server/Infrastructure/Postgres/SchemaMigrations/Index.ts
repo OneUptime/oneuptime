@@ -38,6 +38,7 @@ import { MigrateIncidentFormsToForms1797400000000 } from "./1797400000000-Migrat
 import { AddRunbookRuleMatchCriteria1797500000000 } from "./1797500000000-AddRunbookRuleMatchCriteria";
 import { AddSeverityAndStateColorsToNotificationEmailRollup1797600000000 } from "./1797600000000-AddSeverityAndStateColorsToNotificationEmailRollup";
 import { AddFormBranding1797700000000 } from "./1797700000000-AddFormBranding";
+import { TurnOnResourceAiInvestigationByDefault1797800000000 } from "./1797800000000-TurnOnResourceAiInvestigationByDefault";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1276,4 +1277,5 @@ export default [
   AddRunbookRuleMatchCriteria1797500000000,
   AddSeverityAndStateColorsToNotificationEmailRollup1797600000000,
   AddFormBranding1797700000000,
+  TurnOnResourceAiInvestigationByDefault1797800000000,
 ];
