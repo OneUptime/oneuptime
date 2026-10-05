@@ -23,7 +23,13 @@ import {
 import getJestMockFunction, { MockFunction } from "../../../../MockType";
 import React from "react";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 const hexOf: (name: string) => string = (name: string): string => {

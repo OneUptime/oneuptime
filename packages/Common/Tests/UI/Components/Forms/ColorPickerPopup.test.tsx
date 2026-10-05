@@ -156,8 +156,7 @@ const renderInModal: (options?: {
   jest
     .spyOn(screen.getByTestId("modal-content"), "getBoundingClientRect")
     .mockReturnValue(
-      options.body ||
-        makeRect(BODY.left, BODY.top, BODY.width, BODY.height),
+      options.body || makeRect(BODY.left, BODY.top, BODY.width, BODY.height),
     );
 
   if (options.anchor) {
@@ -385,7 +384,9 @@ describe("the compact color field's popover in a dialog", () => {
     const { field } = renderInModal({ anchor: makeRect(440, 300, 400, 40) });
 
     const popup: HTMLElement = open(field);
-    const custom: HTMLElement = within(popup).getByTestId("color-picker-custom");
+    const custom: HTMLElement = within(popup).getByTestId(
+      "color-picker-custom",
+    );
 
     custom.focus();
 

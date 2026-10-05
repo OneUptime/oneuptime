@@ -22,7 +22,12 @@ import ts from "typescript";
 
 const COMMON: string = path.join(__dirname, "..", "..", "..", "..");
 
-const PICKER_PARTS: string = path.join(COMMON, "UI", "Components", "ColorPicker");
+const PICKER_PARTS: string = path.join(
+  COMMON,
+  "UI",
+  "Components",
+  "ColorPicker",
+);
 
 const SOURCE_FILES: Array<string> = [
   path.join(COMMON, "UI", "Components", "Forms", "Fields", "ColorPicker.tsx"),
@@ -122,6 +127,12 @@ const SAME_IN_BOTH_THEMES: RegExp =
 
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;
 
+// A tick drawn in its swatch's own mark colour, inline.
+const INLINE_MARK_COLOR: RegExp = /style=\{\{ color: getMarkColor\(/;
+
+// A ring offset utility, under any variants.
+const RING_OFFSET: RegExp = /^(?:[\w-]+:)*ring-offset-/;
+
 const FAMILY_PREFIXES: Array<string> = Array.from(
   THEME_CSS.matchAll(/\[class\*="([^"]+)"\]/g),
   (match: RegExpMatchArray): string => {
@@ -167,9 +178,11 @@ const colorTokens: Array<string> = TOKENS.filter((token: string): boolean => {
 
 describe("the color field in the dark theme", () => {
   test("reads the classes of the field, its swatches, pills, popover and panel", () => {
-    expect(SOURCE_FILES.map((file: string): string => {
-      return path.basename(file);
-    })).toEqual([
+    expect(
+      SOURCE_FILES.map((file: string): string => {
+        return path.basename(file);
+      }),
+    ).toEqual([
       "ColorPicker.tsx",
       "ColorSwatchGroup.tsx",
       "CustomColorPanel.tsx",
@@ -198,7 +211,9 @@ describe("the color field in the dark theme", () => {
   test("every colour class is one Theme.css re-colours, or a mid-tone that reads on both", () => {
     const unthemed: Array<string> = colorTokens.filter(
       (token: string): boolean => {
-        return !isRemapped(token) && !SAME_IN_BOTH_THEMES.test(utilityOf(token));
+        return (
+          !isRemapped(token) && !SAME_IN_BOTH_THEMES.test(utilityOf(token))
+        );
       },
     );
 
@@ -241,7 +256,7 @@ describe("the color field in the dark theme", () => {
     // The ticks drawn on a color take their colour from that color.
     expect(
       ticks.filter((tick: string): boolean => {
-        return /style=\{\{ color: getMarkColor\(/.test(tick);
+        return INLINE_MARK_COLOR.test(tick);
       }),
     ).toHaveLength(2);
   });
@@ -249,7 +264,7 @@ describe("the color field in the dark theme", () => {
   test("keeps the focus outline's gap the surface, not a white ring offset", () => {
     expect(
       TOKENS.filter((token: string): boolean => {
-        return /^(?:[\w-]+:)*ring-offset-/.test(token);
+        return RING_OFFSET.test(token);
       }),
     ).toEqual([]);
   });

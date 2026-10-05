@@ -60,7 +60,9 @@ describe("a color field's help text", () => {
       />,
     );
 
-    expect(await screen.findByText(COLOR_FIELD_DESCRIPTION)).toBeInTheDocument();
+    expect(
+      await screen.findByText(COLOR_FIELD_DESCRIPTION),
+    ).toBeInTheDocument();
     expect(screen.queryByText(COLUMN_DESCRIPTION)).toBeNull();
     expect(document.body.textContent).not.toContain("#32a852");
 
@@ -81,7 +83,8 @@ describe("a color field's help text", () => {
           {
             field: { color: true },
             title: "Label Color",
-            description: "Shown as a dot before the name, wherever this appears.",
+            description:
+              "Shown as a dot before the name, wherever this appears.",
             fieldType: FormFieldSchemaType.Color,
             required: true,
           },
@@ -108,7 +111,11 @@ describe("a color field's help text", () => {
     ];
 
     render(
-      <BasicForm id="bar-color" fields={fields} onSubmit={getJestMockFunction()} />,
+      <BasicForm
+        id="bar-color"
+        fields={fields}
+        onSubmit={getJestMockFunction()}
+      />,
     );
 
     expect(screen.getByText(COLOR_FIELD_DESCRIPTION)).toBeInTheDocument();
@@ -125,7 +132,11 @@ describe("a color field's help text", () => {
     ];
 
     render(
-      <BasicForm id="bar-color" fields={fields} onSubmit={getJestMockFunction()} />,
+      <BasicForm
+        id="bar-color"
+        fields={fields}
+        onSubmit={getJestMockFunction()}
+      />,
     );
 
     const group: HTMLElement = screen.getByRole("radiogroup");

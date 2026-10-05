@@ -242,7 +242,11 @@ describe("placeAnchoredPopupInBounds, inside a dialog body", () => {
   });
 
   test("a body with less than a useful height either side gives way to the window", () => {
-    const shortBody: AnchoredPopupBox = { ...DIALOG_BODY, top: 500, bottom: 620 };
+    const shortBody: AnchoredPopupBox = {
+      ...DIALOG_BODY,
+      top: 500,
+      bottom: 620,
+    };
     const placed: AnchoredPopupPlacementResult = place({
       anchor: box(440, 540, 400, 40),
       boundary: shortBody,

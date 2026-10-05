@@ -275,22 +275,19 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
     isDisabled,
   );
 
-  const hueDrag: PointerDragHandlers = usePointerDrag(
-    (x: number): void => {
-      const box: DOMRect | undefined = hueRef.current?.getBoundingClientRect();
+  const hueDrag: PointerDragHandlers = usePointerDrag((x: number): void => {
+    const box: DOMRect | undefined = hueRef.current?.getBoundingClientRect();
 
-      if (!box) {
-        return;
-      }
+    if (!box) {
+      return;
+    }
 
-      const hue: number | null = getHueAtPoint({ x, box });
+    const hue: number | null = getHueAtPoint({ x, box });
 
-      if (hue !== null) {
-        report({ ...hsv, h: hue });
-      }
-    },
-    isDisabled,
-  );
+    if (hue !== null) {
+      report({ ...hsv, h: hue });
+    }
+  }, isDisabled);
 
   type FinishCodeFunction = () => boolean;
 

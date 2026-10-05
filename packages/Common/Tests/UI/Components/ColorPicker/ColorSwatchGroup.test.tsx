@@ -254,9 +254,7 @@ describe("ColorSwatchGroup", () => {
   test("a required field has no way back to no color", () => {
     const { group } = renderGroup({ clearable: false });
 
-    expect(
-      within(group).queryByRole("radio", { name: "No color" }),
-    ).toBeNull();
+    expect(within(group).queryByRole("radio", { name: "No color" })).toBeNull();
   });
 
   test("a disabled group picks nothing, by click or by key", () => {
@@ -305,21 +303,24 @@ describe("splitSwatchRuns", () => {
     [6, [3, 3]],
     [10, [5, 5]],
     [11, [6, 5]],
-  ])("%i swatches wrap as runs of %p", (count: number, lengths: Array<number>) => {
-    const items: Array<number> = Array.from(
-      { length: count },
-      (_value: unknown, index: number): number => {
-        return index;
-      },
-    );
-    const runs: Array<Array<number>> = splitSwatchRuns(items);
+  ])(
+    "%i swatches wrap as runs of %p",
+    (count: number, lengths: Array<number>) => {
+      const items: Array<number> = Array.from(
+        { length: count },
+        (_value: unknown, index: number): number => {
+          return index;
+        },
+      );
+      const runs: Array<Array<number>> = splitSwatchRuns(items);
 
-    expect(
-      runs.map((run: Array<number>): number => {
-        return run.length;
-      }),
-    ).toEqual(lengths);
-    // Nothing lost, nothing reordered.
-    expect(runs.flat()).toEqual(items);
-  });
+      expect(
+        runs.map((run: Array<number>): number => {
+          return run.length;
+        }),
+      ).toEqual(lengths);
+      // Nothing lost, nothing reordered.
+      expect(runs.flat()).toEqual(items);
+    },
+  );
 });

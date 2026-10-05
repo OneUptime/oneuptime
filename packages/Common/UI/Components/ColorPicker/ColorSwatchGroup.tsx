@@ -42,16 +42,17 @@ export type ColorSwatchGroupLayout = "row" | "grid";
  * The swatches of a row layout, split into the runs that wrap as wholes:
  * one run up to five colors, otherwise two halves (the first one the longer).
  */
-export const splitSwatchRuns: <T>(items: ReadonlyArray<T>) => Array<Array<T>> =
-  <T,>(items: ReadonlyArray<T>): Array<Array<T>> => {
-    if (items.length <= 5) {
-      return items.length > 0 ? [[...items]] : [];
-    }
+export const splitSwatchRuns: <T>(
+  items: ReadonlyArray<T>,
+) => Array<Array<T>> = <T,>(items: ReadonlyArray<T>): Array<Array<T>> => {
+  if (items.length <= 5) {
+    return items.length > 0 ? [[...items]] : [];
+  }
 
-    const firstLength: number = Math.ceil(items.length / 2);
+  const firstLength: number = Math.ceil(items.length / 2);
 
-    return [items.slice(0, firstLength), items.slice(firstLength)];
-  };
+  return [items.slice(0, firstLength), items.slice(firstLength)];
+};
 
 export interface ComponentProps {
   swatches: ReadonlyArray<ColorSwatchOption>;
@@ -177,7 +178,10 @@ const ColorSwatchGroup: FunctionComponent<ComponentProps> = (
   // The one Tab stop: the checked color, or the first when none is.
   const tabStopIndex: number = checkedIndex >= 0 ? checkedIndex : 0;
 
-  type PickAtFunction = (index: number, details: ColorSwatchPickDetails) => void;
+  type PickAtFunction = (
+    index: number,
+    details: ColorSwatchPickDetails,
+  ) => void;
 
   const pickAt: PickAtFunction = (
     index: number,

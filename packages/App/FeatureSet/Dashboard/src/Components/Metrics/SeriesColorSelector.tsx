@@ -1,10 +1,7 @@
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import Color from "Common/Types/Color";
 import ColorPicker from "Common/UI/Components/Forms/Fields/ColorPicker";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -103,7 +100,10 @@ const SeriesColorSelector: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <label id={labelId} className="block text-xs font-medium text-gray-500 mb-1">
+      <label
+        id={labelId}
+        className="block text-xs font-medium text-gray-500 mb-1"
+      >
         {translator.translateText(props.label || "Series Color")}
       </label>
       <p className="text-xs text-gray-400 mb-2">

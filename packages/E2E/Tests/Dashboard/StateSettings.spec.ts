@@ -209,9 +209,7 @@ const createFromForm: (
    */
   const colorField: Locator = modal.getByTestId("color-picker");
   await expect(colorField).toHaveAttribute("data-value", /^#[0-9a-f]{6}$/);
-  await expect(
-    colorField.getByRole("radio", { checked: true }),
-  ).toHaveCount(1);
+  await expect(colorField.getByRole("radio", { checked: true })).toHaveCount(1);
 
   if (data.color) {
     // An exact colour: Custom color, and its code box.

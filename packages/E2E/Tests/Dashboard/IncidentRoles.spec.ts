@@ -266,10 +266,7 @@ test.describe("Incident roles", () => {
        * One page, so Create Incident Role is right there, and no Next.
        */
       const colorField: Locator = modal.getByTestId("color-picker");
-      await expect(colorField).toHaveAttribute(
-        "data-value",
-        /^#[0-9a-f]{6}$/,
-      );
+      await expect(colorField).toHaveAttribute("data-value", /^#[0-9a-f]{6}$/);
       // One of the swatches, ticked.
       await expect(
         colorField.getByRole("radio", { checked: true }),

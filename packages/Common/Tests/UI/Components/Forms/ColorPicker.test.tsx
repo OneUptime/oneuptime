@@ -45,9 +45,9 @@ const hexOf: (name: string) => string = (name: string): string => {
 const lastColor: (onChange: MockFunction) => Color | null = (
   onChange: MockFunction,
 ): Color | null => {
-  return onChange.mock.calls[onChange.mock.calls.length - 1]![0] as
-    | Color
-    | null;
+  return onChange.mock.calls[
+    onChange.mock.calls.length - 1
+  ]![0] as Color | null;
 };
 
 interface Harness {
@@ -308,7 +308,9 @@ describe("ColorPicker, inline (a form's color field)", () => {
         fireEvent.click(within(panel).getByRole("button", { name: "Done" }));
       });
 
-      expect(within(field).queryByTestId("color-picker-custom-panel")).toBeNull();
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
       expect(document.activeElement).toBe(getCustomButton(field));
     });
 
@@ -322,7 +324,9 @@ describe("ColorPicker, inline (a form's color field)", () => {
       });
 
       expect(notClaimed).toBe(false);
-      expect(within(field).queryByTestId("color-picker-custom-panel")).toBeNull();
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
     });
 
     test("a second click on Custom color closes it", () => {
@@ -334,7 +338,9 @@ describe("ColorPicker, inline (a form's color field)", () => {
         fireEvent.click(getCustomButton(field), { detail: 1 });
       });
 
-      expect(within(field).queryByTestId("color-picker-custom-panel")).toBeNull();
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
     });
 
     test("opened from the keyboard, the caret goes to the code box; by pointer it stays put", () => {
@@ -383,24 +389,29 @@ describe("ColorPicker, inline (a form's color field)", () => {
   test.each([
     ["disabled", { disabled: true }],
     ["read-only", { readOnly: true }],
-  ])("a %s field changes nothing", (_name: string, flags: Partial<ColorPickerProps>) => {
-    const { field, onChange } = renderControlled({
-      ...flags,
-      start: hexOf("Teal"),
-    });
+  ])(
+    "a %s field changes nothing",
+    (_name: string, flags: Partial<ColorPickerProps>) => {
+      const { field, onChange } = renderControlled({
+        ...flags,
+        start: hexOf("Teal"),
+      });
 
-    for (const radio of within(field).getAllByRole("radio")) {
-      expect(radio).toBeDisabled();
-    }
+      for (const radio of within(field).getAllByRole("radio")) {
+        expect(radio).toBeDisabled();
+      }
 
-    expect(getCustomButton(field)).toBeDisabled();
+      expect(getCustomButton(field)).toBeDisabled();
 
-    fireEvent.click(getSwatch(field, "Red"));
-    fireEvent.click(getCustomButton(field));
+      fireEvent.click(getSwatch(field, "Red"));
+      fireEvent.click(getCustomButton(field));
 
-    expect(onChange).not.toHaveBeenCalled();
-    expect(within(field).queryByTestId("color-picker-custom-panel")).toBeNull();
-  });
+      expect(onChange).not.toHaveBeenCalled();
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
+    },
+  );
 
   test("tells its caller when focus arrives and leaves, not as it moves inside", () => {
     const onFocus: MockFunction = getJestMockFunction();
@@ -648,7 +659,9 @@ describe("ColorPicker, compact (one control in a row)", () => {
       start: hexOf("Lime"),
     });
     const popup: HTMLElement = openPopover(field);
-    const custom: HTMLElement = within(popup).getByTestId("color-picker-custom");
+    const custom: HTMLElement = within(popup).getByTestId(
+      "color-picker-custom",
+    );
 
     expect(custom).toHaveAttribute("aria-expanded", "false");
 
@@ -706,7 +719,9 @@ describe("ColorPicker, compact (one control in a row)", () => {
       start: hexOf("Teal"),
     });
     const popup: HTMLElement = openPopover(field);
-    const custom: HTMLElement = within(popup).getByTestId("color-picker-custom");
+    const custom: HTMLElement = within(popup).getByTestId(
+      "color-picker-custom",
+    );
 
     custom.focus();
 

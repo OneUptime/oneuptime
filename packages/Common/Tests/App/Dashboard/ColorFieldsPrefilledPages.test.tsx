@@ -120,7 +120,6 @@ import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { areSimilarColors } from "../../../Utils/DistinctColor";
 import { colorOf } from "../../UI/Components/ColorPicker/ColorPickerDriver";
 
-
 interface Row {
   _id: string;
   name: string;
@@ -239,9 +238,8 @@ const openCreate: (buttonName: string) => Promise<void> = async (
  * the swatch ticked among the palette's, its code in the field's data-value.
  */
 const pickedColor: () => Promise<string> = async (): Promise<string> => {
-  const field: HTMLElement = await within(dialog()).findByTestId(
-    "color-picker",
-  );
+  const field: HTMLElement =
+    await within(dialog()).findByTestId("color-picker");
 
   // The form fills its fields in once it has worked them out.
   await waitFor(() => {
@@ -318,9 +316,7 @@ describe("Settings > Labels", () => {
     await renderPage(LabelsPage, "/dashboard/project/settings/labels");
     await openCreate("Create Label");
 
-    expect((await pickedColor())).toBe(
-      Indigo500.toString(),
-    );
+    expect(await pickedColor()).toBe(Indigo500.toString());
   });
 
   test("a new label starts with a colour no listed label has, and Create works without touching it", async () => {
@@ -369,7 +365,7 @@ describe("Settings > Labels", () => {
       ),
     );
 
-    expect((await pickedColor())).toBe("#ef4444");
+    expect(await pickedColor()).toBe("#ef4444");
   });
 });
 

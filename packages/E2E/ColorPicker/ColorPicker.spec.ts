@@ -50,10 +50,7 @@ const expectInside: ExpectInsideFunction = (
   );
 };
 
-type OpenFunction = (
-  page: Page,
-  query: string,
-) => Promise<void>;
+type OpenFunction = (page: Page, query: string) => Promise<void>;
 
 const open: OpenFunction = async (page: Page, query: string): Promise<void> => {
   await page.goto(`/?${query}`);
@@ -166,10 +163,9 @@ test.describe("the Create Label dialog's color", () => {
     await code.press("Enter");
 
     await expect(labelColor(page)).toHaveAttribute("data-value", "#3e409a");
-    await expect(labelColor(page).getByTestId("color-picker-custom")).toHaveAttribute(
-      "data-picked",
-      "true",
-    );
+    await expect(
+      labelColor(page).getByTestId("color-picker-custom"),
+    ).toHaveAttribute("data-picked", "true");
 
     await panel.getByRole("button", { name: "Done" }).click();
     await expect(panel).toBeHidden();
@@ -184,7 +180,10 @@ test.describe("the Create Label dialog's color", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    test.skip(isMobile(testInfo), "a pointer drag; touch is a desktop-only check here");
+    test.skip(
+      isMobile(testInfo),
+      "a pointer drag; touch is a desktop-only check here",
+    );
 
     await open(page, "scenario=label");
 
@@ -202,7 +201,10 @@ test.describe("the Create Label dialog's color", () => {
     await page.mouse.up();
 
     // Held to the top right corner: indigo's hue at full color.
-    await expect(labelColor(page)).toHaveAttribute("data-value", /^#[0-9a-f]{6}$/);
+    await expect(labelColor(page)).toHaveAttribute(
+      "data-value",
+      /^#[0-9a-f]{6}$/,
+    );
     expect(await labelColor(page).getAttribute("data-value")).not.toBe(
       "#6366f1",
     );
@@ -293,7 +295,9 @@ test.describe("the Create Label dialog's color", () => {
 
     await open(page, "scenario=label");
 
-    const runs: Locator = labelColor(page).getByTestId("color-picker-swatch-run");
+    const runs: Locator = labelColor(page).getByTestId(
+      "color-picker-swatch-run",
+    );
 
     await expect(runs).toHaveCount(2);
 

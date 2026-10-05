@@ -45,7 +45,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 const SQUARE: { width: number; height: number } = { width: 200, height: 120 };
 
-const giveBox: (element: HTMLElement) => void = (element: HTMLElement): void => {
+const giveBox: (element: HTMLElement) => void = (
+  element: HTMLElement,
+): void => {
   element.getBoundingClientRect = (): DOMRect => {
     return {
       bottom: SQUARE.height,
@@ -135,7 +137,11 @@ const drag: (element: HTMLElement, from: Point, to: Point) => void = (
   to: Point,
 ): void => {
   act(() => {
-    fireEvent.mouseDown(element, { button: 0, clientX: from.x, clientY: from.y });
+    fireEvent.mouseDown(element, {
+      button: 0,
+      clientX: from.x,
+      clientY: from.y,
+    });
     fireEvent.mouseMove(window, { clientX: to.x, clientY: to.y });
     fireEvent.mouseUp(window, { clientX: to.x, clientY: to.y });
     fireEvent.click(element, { clientX: to.x, clientY: to.y });
@@ -226,7 +232,9 @@ describe("Picking a color inside a dialog (issue #3143)", () => {
         });
       });
 
-      expect(within(field).queryByTestId("color-picker-custom-panel")).toBeNull();
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
       expect(onClose).not.toHaveBeenCalled();
 
       // Nothing open in the field: the next Escape is the dialog's.
@@ -388,7 +396,9 @@ describe("Picking a color inside a dialog (issue #3143)", () => {
       fireEvent.click(screen.getByRole("button", { name: /create label/i }));
 
       await waitFor(() => {
-        expect(screen.getByText("Label Color is required.")).toBeInTheDocument();
+        expect(
+          screen.getByText("Label Color is required."),
+        ).toBeInTheDocument();
       });
 
       expect(onSubmit).not.toHaveBeenCalled();

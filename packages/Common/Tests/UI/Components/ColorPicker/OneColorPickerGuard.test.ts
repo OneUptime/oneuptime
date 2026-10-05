@@ -71,6 +71,9 @@ const isPickerItself: (file: string) => boolean = (file: string): boolean => {
   return file === PICKER_FIELD || file.startsWith(PICKER_PARTS + path.sep);
 };
 
+const TYPESCRIPT_FILE: RegExp = /\.tsx?$/;
+const DECLARATION_FILE: RegExp = /\.d\.ts$/;
+
 const listSources: (directory: string) => Array<string> = (
   directory: string,
 ): Array<string> => {
@@ -86,7 +89,10 @@ const listSources: (directory: string) => Array<string> = (
       continue;
     }
 
-    if (/\.tsx?$/.test(entry.name) && !/\.d\.ts$/.test(entry.name)) {
+    if (
+      TYPESCRIPT_FILE.test(entry.name) &&
+      !DECLARATION_FILE.test(entry.name)
+    ) {
       files.push(fullPath);
     }
   }
@@ -95,9 +101,7 @@ const listSources: (directory: string) => Array<string> = (
 };
 
 // Comments hold prose - "a native <input type="color">" - not code.
-const stripComments: (source: string) => string = (
-  source: string,
-): string => {
+const stripComments: (source: string) => string = (source: string): string => {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
@@ -133,9 +137,12 @@ const IMPORT_SPECIFIER: RegExp =
 const importSpecifiers: (code: string) => Array<string> = (
   code: string,
 ): Array<string> => {
-  return Array.from(code.matchAll(IMPORT_SPECIFIER), (match: RegExpMatchArray) => {
-    return (match[1] || match[2] || match[3]) as string;
-  });
+  return Array.from(
+    code.matchAll(IMPORT_SPECIFIER),
+    (match: RegExpMatchArray) => {
+      return (match[1] || match[2] || match[3]) as string;
+    },
+  );
 };
 
 const findPickerLibraries: (code: string) => Array<string> = (
@@ -165,24 +172,34 @@ const HEX_PLACEHOLDER: RegExp =
 const findHexCodeBoxes: (code: string) => Array<string> = (
   code: string,
 ): Array<string> => {
-  return Array.from(code.matchAll(HEX_PLACEHOLDER), (match: RegExpMatchArray) => {
-    return match[0];
-  });
+  return Array.from(
+    code.matchAll(HEX_PLACEHOLDER),
+    (match: RegExpMatchArray) => {
+      return match[0];
+    },
+  );
 };
 
 // A hand-made "any color" wheel, the custom swatch of a home-made picker.
 const findColorWheels: (code: string) => Array<string> = (
   code: string,
 ): Array<string> => {
-  return Array.from(code.matchAll(/conic-gradient\(/g), (match: RegExpMatchArray) => {
-    return match[0];
-  });
+  return Array.from(
+    code.matchAll(/conic-gradient\(/g),
+    (match: RegExpMatchArray) => {
+      return match[0];
+    },
+  );
 };
 
 interface Source {
   file: string;
   code: string;
 }
+
+// An import of the shared color field, by package path or from beside it.
+const SHARED_FIELD_IMPORT: RegExp =
+  /(^|\/)Forms\/Fields\/ColorPicker$|^\.\.\/Fields\/ColorPicker$/;
 
 const SOURCES: Array<Source> = SOURCE_ROOTS.flatMap(listSources).map(
   (file: string): Source => {
@@ -241,9 +258,7 @@ describe("one color picker in every frontend", () => {
   });
 
   test("no page assembles the field's parts into a picker of its own", () => {
-    expect(offenders(findPickerPartImports, { allowPicker: true })).toEqual(
-      [],
-    );
+    expect(offenders(findPickerPartImports, { allowPicker: true })).toEqual([]);
   });
 
   test("no page offers a text box for a hex code", () => {
@@ -269,9 +284,7 @@ describe("one color picker in every frontend", () => {
     expect(source).toBeDefined();
     expect(
       importSpecifiers(source!.code).some((specifier: string): boolean => {
-        return /(^|\/)Forms\/Fields\/ColorPicker$|^\.\.\/Fields\/ColorPicker$/.test(
-          specifier,
-        );
+        return SHARED_FIELD_IMPORT.test(specifier);
       }),
     ).toBe(true);
   });
@@ -303,9 +316,9 @@ describe("the guard's finders", () => {
     expect(
       findPickerLibraries('import { HexColorPicker } from "react-colorful";'),
     ).toEqual(["react-colorful"]);
-    expect(findPickerLibraries('const x = require("@uiw/react-color-sketch");')).toEqual([
-      "@uiw/react-color-sketch",
-    ]);
+    expect(
+      findPickerLibraries('const x = require("@uiw/react-color-sketch");'),
+    ).toEqual(["@uiw/react-color-sketch"]);
     expect(
       findPickerLibraries('import Color from "Common/Types/Color";'),
     ).toEqual([]);
@@ -343,10 +356,14 @@ describe("the guard's finders", () => {
 
   test("read past what comments say", () => {
     expect(
-      findNativeColorInputs(stripComments('/* <input type="color"> */ const a = 1;')),
+      findNativeColorInputs(
+        stripComments('/* <input type="color"> */ const a = 1;'),
+      ),
     ).toEqual([]);
     expect(
-      findNativeColorInputs(stripComments('// <input type="color">\nconst a = 1;')),
+      findNativeColorInputs(
+        stripComments('// <input type="color">\nconst a = 1;'),
+      ),
     ).toEqual([]);
     // A URL's // is not a comment.
     expect(stripComments('const url = "https://example.com";')).toContain(

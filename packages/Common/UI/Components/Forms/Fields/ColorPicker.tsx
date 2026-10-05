@@ -565,9 +565,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                     : undefined
                 }
                 ariaLabelledby={props.ariaLabelledby}
-                ariaLabel={
-                  props.ariaLabel || translator.translateText("Color")
-                }
+                ariaLabel={props.ariaLabel || translator.translateText("Color")}
                 disabled={!isInteractive}
               />
               <div className="mt-3 border-t border-gray-100 pt-2">

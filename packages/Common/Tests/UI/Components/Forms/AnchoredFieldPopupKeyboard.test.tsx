@@ -149,9 +149,8 @@ describe("Opening an anchored field popup from the keyboard", () => {
         });
       });
 
-      const codeBox: HTMLElement = within(popup).getByTestId(
-        "color-picker-code",
-      );
+      const codeBox: HTMLElement =
+        within(popup).getByTestId("color-picker-code");
 
       expect(document.activeElement).toBe(codeBox);
 
@@ -442,9 +441,8 @@ describe("Opening an anchored field popup from the keyboard", () => {
         fireEvent.click(custom, { detail: 0 });
       });
 
-      const codeBox: HTMLElement = within(field).getByTestId(
-        "color-picker-code",
-      );
+      const codeBox: HTMLElement =
+        within(field).getByTestId("color-picker-code");
 
       expect(document.activeElement).toBe(codeBox);
 
@@ -452,7 +450,9 @@ describe("Opening an anchored field popup from the keyboard", () => {
         fireEvent.keyDown(codeBox, { key: "Escape" });
       });
 
-      expect(within(field).queryByTestId("color-picker-custom-panel")).toBeNull();
+      expect(
+        within(field).queryByTestId("color-picker-custom-panel"),
+      ).toBeNull();
       expect(onClose).not.toHaveBeenCalled();
       expect(screen.getByTestId("modal")).toBeInTheDocument();
       expect(document.activeElement).toBe(custom);

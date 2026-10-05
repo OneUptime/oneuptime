@@ -110,7 +110,14 @@ describe("readColorCodeInput: what someone typed in the code box", () => {
     });
   });
 
-  test.each(["#32a85g", "red", "#zzzzzz", "rgb(1,2,3)", "#32 a852", "##32a852"])(
+  test.each([
+    "#32a85g",
+    "red",
+    "#zzzzzz",
+    "rgb(1,2,3)",
+    "#32 a852",
+    "##32a852",
+  ])(
     "%p uses characters a code cannot have, and says which ones it can",
     (typed: string) => {
       const input: ColorCodeInput = readColorCodeInput(typed);
@@ -230,9 +237,7 @@ describe("hex, RGB and HSV", () => {
     expect(hsvToRgb({ h: -120, s: 1, v: 1 })).toEqual(
       hsvToRgb({ h: 240, s: 1, v: 1 }),
     );
-    expect(rgbToHex({ red: 300, green: -5, blue: Number.NaN })).toBe(
-      "#ff0000",
-    );
+    expect(rgbToHex({ red: 300, green: -5, blue: Number.NaN })).toBe("#ff0000");
   });
 
   test("RGB to HSV reads hue, saturation and brightness", () => {
@@ -371,16 +376,16 @@ describe("the keys of the square and the strip", () => {
     expect(moveHueByKey({ hue: 359, key: "ArrowRight", shiftKey: true })).toBe(
       359,
     );
-    expect(moveHueByKey({ hue: 0, key: "ArrowLeft", shiftKey: false })).toBe(
-      0,
-    );
+    expect(moveHueByKey({ hue: 0, key: "ArrowLeft", shiftKey: false })).toBe(0);
   });
 
   test("keys they do not use are left to the page", () => {
     expect(
       moveSaturationByKey({ hsv: MIDDLE, key: "Tab", shiftKey: false }),
     ).toBeNull();
-    expect(moveSaturationByKey({ hsv: MIDDLE, key: "a", shiftKey: false })).toBeNull();
+    expect(
+      moveSaturationByKey({ hsv: MIDDLE, key: "a", shiftKey: false }),
+    ).toBeNull();
     expect(moveHueByKey({ hue: 10, key: "Enter", shiftKey: false })).toBeNull();
   });
 });
