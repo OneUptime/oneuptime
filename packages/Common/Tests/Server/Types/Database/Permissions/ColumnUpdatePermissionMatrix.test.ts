@@ -538,8 +538,8 @@ describe("ApiKeyPermission's API key", () => {
   });
 
   test("the row itself is still edited by those who edit API key permissions", () => {
-    expect(
-      whoMayUpdate(ApiKeyPermission, "isBlockPermission", true),
-    ).toContain(Permission.EditProjectApiKeyPermissions);
+    expect(whoMayUpdate(ApiKeyPermission, "isBlockPermission", true)).toContain(
+      Permission.EditProjectApiKeyPermissions,
+    );
   });
 });

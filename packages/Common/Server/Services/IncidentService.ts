@@ -2670,7 +2670,11 @@ export class Service extends ProjectReferencesService<Model> {
     } = await ProjectService.incrementAndGetIncidentCounter(projectId);
 
     // The state it starts in, and no other name of it to be stored instead.
-    RelationIdUtil.stamp(createData, CURRENT_STATE_KEYS, initialIncidentStateId);
+    RelationIdUtil.stamp(
+      createData,
+      CURRENT_STATE_KEYS,
+      initialIncidentStateId,
+    );
     createBy.data.incidentNumber = incidentCounterResult.counter;
     createBy.data.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
       incidentCounterResult.prefix,

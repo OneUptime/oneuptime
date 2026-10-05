@@ -24,10 +24,7 @@ import { describe, expect, test } from "@jest/globals";
  * incident.createdByUser?.id`) is not a write's and is left alone.
  */
 
-const SERVER_DIRECTORY: string = path.resolve(
-  __dirname,
-  "../../../../Server",
-);
+const SERVER_DIRECTORY: string = path.resolve(__dirname, "../../../../Server");
 
 /*
  * The expressions a hook reads a write's payload through. A read off any
@@ -142,6 +139,12 @@ function areTwoNamesOfOneReference(first: string, second: string): boolean {
   return first === `${second}Id` || second === `${first}Id`;
 }
 
+// A call of resolveReferenceId, imported or qualified.
+const RESOLVE_REFERENCE_ID_CALLEE: RegExp = /(^|\.)resolveReferenceId$/;
+
+// A call of RelationIdUtil.read, which reads the first key holding an id.
+const FIRST_WINS_READ_CALLEE: RegExp = /(^|\.)RelationIdUtil\.read$/;
+
 // The argument of `resolveReferenceId(x)`, or null for anything else.
 function resolvedArgument(node: ts.Expression): ts.Expression | null {
   const expression: ts.Expression = unwrap(node);
@@ -149,7 +152,7 @@ function resolvedArgument(node: ts.Expression): ts.Expression | null {
   if (
     ts.isCallExpression(expression) &&
     expression.arguments.length === 1 &&
-    /(^|\.)resolveReferenceId$/.test(
+    RESOLVE_REFERENCE_ID_CALLEE.test(
       expression.expression.getText().replace(/\s+/g, ""),
     )
   ) {
@@ -244,7 +247,8 @@ export function findSingleNameReads(
   const report: (node: ts.Node) => void = (node: ts.Node): void => {
     found.push({
       file: fileName,
-      line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+      line:
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
       text: node.getText(source).replace(/\s+/g, " ").slice(0, 160),
     });
   };
@@ -306,7 +310,7 @@ export function findSingleNameReads(
 
       // RelationIdUtil.read(data, ["xId", "x"])
       if (
-        /(^|\.)RelationIdUtil\.read$/.test(
+        FIRST_WINS_READ_CALLEE.test(
           node.expression.getText(source).replace(/\s+/g, ""),
         ) &&
         node.arguments.length >= 2
@@ -395,19 +399,19 @@ describe("the scan sees every shape of a single-name read", () => {
       "the requester before the payload",
       "const id = createBy.props.userId || createBy.data.createdByUserId;",
     ],
-    [
-      "one name read alone",
-      'const id = RelationIdUtil.read(data, ["entry"]);',
-    ],
+    ["one name read alone", 'const id = RelationIdUtil.read(data, ["entry"]);'],
     [
       "a model's own id",
       'const id = RelationIdUtil.read(monitor, ["_id", "id"]);',
     ],
   ];
 
-  test.each(NOT_SINGLE_NAME_READS)("not flagged: %s", (_shape, code) => {
-    expect(findSingleNameReads("Shape.ts", code)).toEqual([]);
-  });
+  test.each(NOT_SINGLE_NAME_READS)(
+    "not flagged: %s",
+    (_shape: string, code: string) => {
+      expect(findSingleNameReads("Shape.ts", code)).toEqual([]);
+    },
+  );
 });
 
 describe("server code reads both names of a reference together", () => {

@@ -57,7 +57,9 @@ function user(id: string): User {
 }
 
 // The statement repository.update() runs for this SET.
-function updateStatement(set: Record<string, unknown>): [string, Array<unknown>] {
+function updateStatement(
+  set: Record<string, unknown>,
+): [string, Array<unknown>] {
   return database
     .createQueryBuilder()
     .update(Incident)
@@ -83,7 +85,10 @@ function boundInUpdate(
 }
 
 // The parameter an INSERT binds to `column`.
-function boundInInsert(values: Record<string, unknown>, column: string): unknown {
+function boundInInsert(
+  values: Record<string, unknown>,
+  column: string,
+): unknown {
   const [sql, parameters]: [string, Array<unknown>] = database
     .createQueryBuilder()
     .insert()
@@ -91,17 +96,18 @@ function boundInInsert(values: Record<string, unknown>, column: string): unknown
     .values(values as unknown as QueryDeepPartialEntity<Incident>)
     .getQueryAndParameters();
 
-  const columns: Array<string> = (
-    sql.match(/\(([^)]*)\) VALUES/) || ["", ""]
-  )[1]!
+  const columns: Array<string> = (sql.match(/\(([^)]*)\) VALUES/) || [
+    "",
+    "",
+  ])[1]!
     .split(",")
     .map((name: string): string => {
       return name.trim();
     });
 
-  const valuesList: Array<string> = (
-    sql.match(/VALUES \((.*?)\)( RETURNING|$)/) || ["", ""]
-  )[1]!
+  const valuesList: Array<string> = (sql.match(
+    /VALUES \((.*?)\)( RETURNING|$)/,
+  ) || ["", ""])[1]!
     .split(",")
     .map((value: string): string => {
       return value.trim();

@@ -9,13 +9,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * A reference has two names a write can use - the relation (`monitor`, which
@@ -389,9 +383,7 @@ describe("who created a record is the person making the request", () => {
     reached: () => Record<string, unknown> | undefined;
   } {
     const service: DatabaseService<DatabaseBaseModel> =
-      new DatabaseService<DatabaseBaseModel>(
-        Incident as unknown as ModelType,
-      );
+      new DatabaseService<DatabaseBaseModel>(Incident as unknown as ModelType);
     let reached: Record<string, unknown> | undefined = undefined;
 
     jest

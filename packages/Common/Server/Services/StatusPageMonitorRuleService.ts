@@ -55,10 +55,8 @@ export class Service extends ProjectReferencesService<Model> {
     // The project's own records only, before anything here reads one.
     await super.onBeforeCreate(createBy);
 
-    const createData: Record<string, unknown> = createBy.data as unknown as Record<
-      string,
-      unknown
-    >;
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     const statusPageId: ObjectID | null = RelationIdUtil.readConsistent(
       createData,

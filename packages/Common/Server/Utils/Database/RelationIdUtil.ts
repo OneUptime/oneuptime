@@ -131,9 +131,7 @@ export default class RelationIdUtil {
        * Case-blind and trimmed: ObjectID keeps the case it was handed while
        * Postgres compares uuids by value, so one id in two cases is one id.
        */
-      const normalizedId: string = id
-        ? id.toString().trim().toLowerCase()
-        : "";
+      const normalizedId: string = id ? id.toString().trim().toLowerCase() : "";
 
       if (!normalizedId) {
         hasExplicitNull = true;

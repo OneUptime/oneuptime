@@ -474,8 +474,8 @@ describe("an on-call policy execution is triggered by the person making the requ
     });
 
     expect(String(data["triggeredByUserId"])).toBe(USER_ID.toString());
-    expect(
-      Object.prototype.hasOwnProperty.call(data, "triggeredByUser"),
-    ).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(data, "triggeredByUser")).toBe(
+      false,
+    );
   });
 });

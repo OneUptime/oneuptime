@@ -75,11 +75,13 @@ function row<T extends { _id?: string | undefined }>(
   return record;
 }
 
-function hooksOf(service: unknown): Record<
-  string,
-  (...args: Array<unknown>) => Promise<unknown>
-> {
-  return service as Record<string, (...args: Array<unknown>) => Promise<unknown>>;
+function hooksOf(
+  service: unknown,
+): Record<string, (...args: Array<unknown>) => Promise<unknown>> {
+  return service as Record<
+    string,
+    (...args: Array<unknown>) => Promise<unknown>
+  >;
 }
 
 async function outcomeOf(run: Promise<unknown>): Promise<unknown> {
@@ -426,7 +428,9 @@ describe("an update that writes a state changes the state, under either name", (
       idColumn: "currentIncidentStateId",
       method: "changeIncidentState",
       stateOf: (call: Array<unknown>): string => {
-        return String((call[0] as { incidentStateId: unknown }).incidentStateId);
+        return String(
+          (call[0] as { incidentStateId: unknown }).incidentStateId,
+        );
       },
     },
     {

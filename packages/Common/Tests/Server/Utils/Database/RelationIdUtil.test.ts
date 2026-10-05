@@ -221,9 +221,7 @@ describe("RelationIdUtil.readConsistent", () => {
 
 describe("RelationIdUtil.isPresent", () => {
   it("sees a value under either name, a clear included", () => {
-    expect(RelationIdUtil.isPresent({ siteId: SITE_ID }, SITE_KEYS)).toBe(
-      true,
-    );
+    expect(RelationIdUtil.isPresent({ siteId: SITE_ID }, SITE_KEYS)).toBe(true);
     expect(RelationIdUtil.isPresent({ site: null }, SITE_KEYS)).toBe(true);
   });
 

@@ -30,9 +30,7 @@ export default class CreatedByUser {
     }
 
     return RelationIdUtil.readConsistent(
-      data && typeof data === "object"
-        ? (data as Record<string, unknown>)
-        : {},
+      data && typeof data === "object" ? (data as Record<string, unknown>) : {},
       CREATED_BY_USER_KEYS,
       "Created By User",
     );

@@ -385,10 +385,8 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
   ): Promise<OnCreate<MonitorProbe>> {
     await super.onBeforeCreate(createBy);
 
-    const createData: Record<string, unknown> = createBy.data as unknown as Record<
-      string,
-      unknown
-    >;
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     /*
      * The monitor, the probe and the project, each under either of its names:

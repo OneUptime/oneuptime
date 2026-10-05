@@ -144,11 +144,12 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
       }
 
       // Under either of its names; the two must agree.
-      const scheduledMaintenanceStateId: ObjectID | null = RelationIdUtil.readConsistent(
-        createBy.data as unknown as Record<string, unknown>,
-        ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
-        "Scheduled Maintenance State",
-      );
+      const scheduledMaintenanceStateId: ObjectID | null =
+        RelationIdUtil.readConsistent(
+          createBy.data as unknown as Record<string, unknown>,
+          ["scheduledMaintenanceStateId", "scheduledMaintenanceState"],
+          "Scheduled Maintenance State",
+        );
 
       if (!scheduledMaintenanceStateId) {
         throw new BadDataException("scheduledMaintenanceStateId is null");

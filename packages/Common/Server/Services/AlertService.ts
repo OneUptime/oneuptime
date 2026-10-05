@@ -551,8 +551,9 @@ export class Service extends ProjectReferencesService<Model> {
      * and every name that holds an id is checked. Two names that disagree
      * are refused before anything is read.
      */
-    const references: Array<ProjectScopedReference> =
-      this.getWrittenReferences(updateBy.data);
+    const references: Array<ProjectScopedReference> = this.getWrittenReferences(
+      updateBy.data,
+    );
 
     /*
      * The SLOs this alert affects: a relation list the API accepts on update.
@@ -651,7 +652,7 @@ export class Service extends ProjectReferencesService<Model> {
     options?: { withState: boolean },
   ): Array<ProjectScopedReference> {
     return [
-      ...((options?.withState ?? true)
+      ...(options?.withState ?? true
         ? getWrittenRelationReferences({
             payload: data,
             idColumn: "currentAlertStateId",

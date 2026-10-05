@@ -54,7 +54,11 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 
 // Ids of records of the project, two per table, and of none of it.
-function ids(table: number): { own: string; otherOwn: string; foreign: string } {
+function ids(table: number): {
+  own: string;
+  otherOwn: string;
+  foreign: string;
+} {
   const suffix: string = String(table).padStart(2, "0");
 
   return {
@@ -388,9 +392,7 @@ beforeEach(() => {
   // The project's starting states, which the create hooks look up.
   jest
     .spyOn(IncidentStateService, "findOneBy")
-    .mockResolvedValue(
-      stateRow(IncidentState, INCIDENT_STATE.own) as never,
-    );
+    .mockResolvedValue(stateRow(IncidentState, INCIDENT_STATE.own) as never);
   jest
     .spyOn(AlertStateService, "findOneBy")
     .mockResolvedValue(stateRow(AlertState, ALERT_STATE.own) as never);
@@ -493,115 +495,115 @@ function refusalOf(outcome: unknown): string {
   return (outcome as Error).message;
 }
 
-describe.each(SITES)(
-  "$subject $write: $relation",
-  (site: Site) => {
-    test("the project's own record under the ID column is accepted", async () => {
-      expect(
-        await write(site, { [site.idColumn]: site.records.own }),
-      ).toBeInstanceOf(PastTheCheck);
-      expect(lookedUp(site.table)).toContain(site.records.own);
-    });
+describe.each(SITES)("$subject $write: $relation", (site: Site) => {
+  test("the project's own record under the ID column is accepted", async () => {
+    expect(
+      await write(site, { [site.idColumn]: site.records.own }),
+    ).toBeInstanceOf(PastTheCheck);
+    expect(lookedUp(site.table)).toContain(site.records.own);
+  });
 
-    test("the project's own record under the relation is accepted", async () => {
-      expect(
-        await write(site, { [site.relation]: { _id: site.records.own } }),
-      ).toBeInstanceOf(PastTheCheck);
-      expect(lookedUp(site.table)).toContain(site.records.own);
-    });
+  test("the project's own record under the relation is accepted", async () => {
+    expect(
+      await write(site, { [site.relation]: { _id: site.records.own } }),
+    ).toBeInstanceOf(PastTheCheck);
+    expect(lookedUp(site.table)).toContain(site.records.own);
+  });
 
-    test("the same record under both names, in any case, is accepted", async () => {
-      expect(
+  test("the same record under both names, in any case, is accepted", async () => {
+    expect(
+      await write(site, {
+        [site.idColumn]: new ObjectID(site.records.own.toUpperCase()),
+        [site.relation]: { _id: site.records.own },
+      }),
+    ).toBeInstanceOf(PastTheCheck);
+    expect(new Set(lookedUp(site.table))).toEqual(new Set([site.records.own]));
+  });
+
+  test("two of the project's own records under the two names are refused, naming both fields", async () => {
+    expect(
+      refusalOf(
         await write(site, {
-          [site.idColumn]: new ObjectID(site.records.own.toUpperCase()),
-          [site.relation]: { _id: site.records.own },
-        }),
-      ).toBeInstanceOf(PastTheCheck);
-      expect(new Set(lookedUp(site.table))).toEqual(
-        new Set([site.records.own]),
-      );
-    });
-
-    test("two of the project's own records under the two names are refused, naming both fields", async () => {
-      expect(
-        refusalOf(
-          await write(site, {
-            [site.idColumn]: site.records.own,
-            [site.relation]: { _id: site.records.otherOwn },
-          }),
-        ),
-      ).toBe(conflictMessage(site));
-
-      if (!site.alsoCheckedGenerically) {
-        // Refused before anything is read.
-        expect(lookedUp(site.table)).toEqual([]);
-      }
-    });
-
-    test("another project's record behind one of the project's own is refused, whichever name holds which", async () => {
-      for (const values of [
-        {
           [site.idColumn]: site.records.own,
-          [site.relation]: { _id: site.records.foreign },
-        },
-        {
-          [site.idColumn]: site.records.foreign,
-          [site.relation]: { _id: site.records.own },
-        },
-      ]) {
-        const message: string = refusalOf(await write(site, values));
+          [site.relation]: { _id: site.records.otherOwn },
+        }),
+      ),
+    ).toBe(conflictMessage(site));
 
-        /*
-         * Refused as two names that disagree, or - where the generic check
-         * reads the names first - as a record that is not the project's.
-         * Either way the id is never accepted.
-         */
-        if (site.alsoCheckedGenerically) {
-          expect(message).toContain(`"${site.records.foreign}"`);
-        } else {
-          expect(message).toBe(conflictMessage(site));
-        }
-      }
-    });
+    if (!site.alsoCheckedGenerically) {
+      // Refused before anything is read.
+      expect(lookedUp(site.table)).toEqual([]);
+    }
+  });
 
-    test("a record under one name beside a clear under the other is refused", async () => {
-      for (const values of [
-        { [site.idColumn]: null, [site.relation]: { _id: site.records.own } },
-        { [site.idColumn]: site.records.own, [site.relation]: null },
-      ]) {
-        expect(refusalOf(await write(site, values))).toBe(
-          conflictMessage(site),
-        );
-      }
-    });
-
-    test.each([
-      ["the ID column", (site: Site, id: string) => ({ [site.idColumn]: id })],
-      [
-        "the relation",
-        (site: Site, id: string) => ({ [site.relation]: { _id: id } }),
-      ],
-    ] as Array<[string, (site: Site, id: string) => Record<string, unknown>]>)(
-      "another project's record under %s is refused with the same words as one that does not exist",
-      async (
-        _name: string,
-        payload: (site: Site, id: string) => Record<string, unknown>,
-      ) => {
-        const foreign: string = refusalOf(
-          await write(site, payload(site, site.records.foreign)),
-        );
-        const missing: string = refusalOf(
-          await write(site, payload(site, MISSING_ID)),
-        );
-
-        expect(foreign).toContain(
-          `This ${site.subject} references records that are not in this project:`,
-        );
-        expect(foreign).toContain(`"${site.records.foreign}"`);
-        expect(missing.split(MISSING_ID).join("<id>")).toBe(
-          foreign.split(site.records.foreign).join("<id>"),
-        );
+  test("another project's record behind one of the project's own is refused, whichever name holds which", async () => {
+    for (const values of [
+      {
+        [site.idColumn]: site.records.own,
+        [site.relation]: { _id: site.records.foreign },
       },
-    );
-  },
-);
+      {
+        [site.idColumn]: site.records.foreign,
+        [site.relation]: { _id: site.records.own },
+      },
+    ]) {
+      const message: string = refusalOf(await write(site, values));
+
+      /*
+       * Refused as two names that disagree, or - where the generic check
+       * reads the names first - as a record that is not the project's.
+       * Either way the id is never accepted.
+       */
+      if (site.alsoCheckedGenerically) {
+        expect(message).toContain(`"${site.records.foreign}"`);
+      } else {
+        expect(message).toBe(conflictMessage(site));
+      }
+    }
+  });
+
+  test("a record under one name beside a clear under the other is refused", async () => {
+    for (const values of [
+      { [site.idColumn]: null, [site.relation]: { _id: site.records.own } },
+      { [site.idColumn]: site.records.own, [site.relation]: null },
+    ]) {
+      expect(refusalOf(await write(site, values))).toBe(conflictMessage(site));
+    }
+  });
+
+  test.each([
+    [
+      "the ID column",
+      (site: Site, id: string) => {
+        return { [site.idColumn]: id };
+      },
+    ],
+    [
+      "the relation",
+      (site: Site, id: string) => {
+        return { [site.relation]: { _id: id } };
+      },
+    ],
+  ] as Array<[string, (site: Site, id: string) => Record<string, unknown>]>)(
+    "another project's record under %s is refused with the same words as one that does not exist",
+    async (
+      _name: string,
+      payload: (site: Site, id: string) => Record<string, unknown>,
+    ) => {
+      const foreign: string = refusalOf(
+        await write(site, payload(site, site.records.foreign)),
+      );
+      const missing: string = refusalOf(
+        await write(site, payload(site, MISSING_ID)),
+      );
+
+      expect(foreign).toContain(
+        `This ${site.subject} references records that are not in this project:`,
+      );
+      expect(foreign).toContain(`"${site.records.foreign}"`);
+      expect(missing.split(MISSING_ID).join("<id>")).toBe(
+        foreign.split(site.records.foreign).join("<id>"),
+      );
+    },
+  );
+});

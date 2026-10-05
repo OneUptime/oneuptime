@@ -140,10 +140,8 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   ): Promise<OnCreate<TeamMember>> {
     await super.onBeforeCreate(createBy);
 
-    const createData: Record<string, unknown> = createBy.data as unknown as Record<
-      string,
-      unknown
-    >;
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     /*
      * The team and the person, each under either of its names: the two must
