@@ -31,6 +31,7 @@ import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
@@ -206,6 +207,36 @@ RunCron(
                   StatusPageSubscriberNotificationStatus.Skipped,
                 subscriberNotificationStatusMessageOnPostmortemPublished:
                   "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
+              },
+              props: {
+                isRoot: true,
+                ignoreHooks: true,
+              },
+            });
+            continue;
+          }
+
+          /*
+           * The status page shows a postmortem only with a note
+           * (IncidentPostmortemPublication), so one without - switched on
+           * and never written, emptied after it was queued, or sent again
+           * through the API - has nothing to announce.
+           */
+          if (!IncidentPostmortemPublication.hasNote(incident.postmortemNote)) {
+            logger.debug(
+              `Incident ${incident.id}'s postmortem has no note, so the status page does not show it; marking as Skipped.`,
+              {
+                projectId: incident.projectId?.toString(),
+                incidentId: incident.id?.toString(),
+              },
+            );
+            await IncidentService.updateOneById({
+              id: incident.id!,
+              data: {
+                subscriberNotificationStatusOnPostmortemPublished:
+                  StatusPageSubscriberNotificationStatus.Skipped,
+                subscriberNotificationStatusMessageOnPostmortemPublished:
+                  IncidentPostmortemPublication.noNoteMessage,
               },
               props: {
                 isRoot: true,
