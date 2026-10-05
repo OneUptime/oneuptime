@@ -76,7 +76,7 @@ export default class MetricBaselineHourly extends AnalyticsBaseModel {
       key: "hourOfWeek",
       title: "Hour Of Week",
       description:
-        "(toDayOfWeek(time, 1) - 1) * 24 + toHour(time). Range 0..167 with Mon 00:00 = 0.",
+        "(toDayOfWeek(time) - 1) * 24 + toHour(time), ISO weekday Monday = 1. Range 0..167 with Mon 00:00 = 0.",
       required: true,
       type: TableColumnType.UInt8,
     });
@@ -200,7 +200,7 @@ SELECT
   name,
   primaryEntityId,
   toDate(time) AS day,
-  toUInt8((toDayOfWeek(time, 1) - 1) * 24 + toHour(time)) AS hourOfWeek,
+  toUInt8((toDayOfWeek(time) - 1) * 24 + toHour(time)) AS hourOfWeek,
   countState(toFloat64(coalesce(value, sum, 0))) AS sampleCountState,
   avgState(toFloat64(coalesce(value, sum, 0))) AS meanState,
   stddevPopState(toFloat64(coalesce(value, sum, 0))) AS stddevState,
