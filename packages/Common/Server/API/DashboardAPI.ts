@@ -7,12 +7,10 @@ import DashboardService, {
 } from "../Services/DashboardService";
 import DashboardDomainService from "../Services/DashboardDomainService";
 import CookieUtil from "../Utils/Cookie";
-import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
@@ -24,11 +22,16 @@ import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
 import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard/MasterPassword";
 import {
   DashboardAccessState,
-  DashboardAccessSwitches,
   isDashboardLockedWithoutPassword,
   isDashboardMasterPasswordRequired,
-  isDashboardPublic,
 } from "../../Types/Dashboard/DashboardAccess";
+import {
+  PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+  PUBLIC_DASHBOARD_DEFAULT_TITLE,
+  PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE,
+  PublicDashboardAccess,
+  PublicDashboardAccessResult,
+} from "../Utils/Dashboard/PublicDashboardAccess";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
@@ -324,27 +327,35 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   },
 };
 
-type ResolveDashboardIdOrThrowFunction = (
-  dashboardIdOrDomain: string,
-) => Promise<ObjectID>;
+type GetPublicDashboardIdOrThrowFunction = (
+  dashboardId: string | undefined,
+) => ObjectID;
 
 /*
- * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
- * either a dashboard ID (UUID) or a verified custom dashboard domain —
- * same contract as the status page overview endpoint.
+ * A public route's :dashboardId. A value that is not a dashboard id at all
+ * gets the answer an id no dashboard has gets.
  */
-const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
-  dashboardIdOrDomain: string,
-): Promise<ObjectID> => {
-  if (!dashboardIdOrDomain) {
-    throw new NotFoundException("Dashboard not found");
+const getPublicDashboardIdOrThrow: GetPublicDashboardIdOrThrowFunction = (
+  dashboardId: string | undefined,
+): ObjectID => {
+  if (!dashboardId || !ObjectID.isValidUUID(dashboardId)) {
+    throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
   }
 
-  if (dashboardIdOrDomain.includes(".")) {
+  return new ObjectID(dashboardId);
+};
+
+type FindVerifiedDomainDashboardIdFunction = (
+  domain: string,
+) => Promise<ObjectID | null>;
+
+// The dashboard a verified custom domain is attached to, if any.
+const findVerifiedDomainDashboardId: FindVerifiedDomainDashboardIdFunction =
+  async (domain: string): Promise<ObjectID | null> => {
     const dashboardDomain: DashboardDomain | null =
       await DashboardDomainService.findOneBy({
         query: {
-          fullDomain: dashboardIdOrDomain,
+          fullDomain: domain,
           domain: {
             isVerified: true,
           } as any,
@@ -357,23 +368,33 @@ const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
         },
       });
 
-    if (!dashboardDomain || !dashboardDomain.dashboardId) {
-      throw new NotFoundException("Dashboard not found");
+    return dashboardDomain?.dashboardId || null;
+  };
+
+type ResolveDashboardIdOrThrowFunction = (
+  dashboardIdOrDomain: string,
+) => Promise<ObjectID>;
+
+/*
+ * Resolve the :dashboardIdOrDomain route param to a dashboard ID. Accepts
+ * either a dashboard ID (UUID) or a verified custom dashboard domain —
+ * same contract as the status page overview endpoint.
+ */
+const resolveDashboardIdOrThrow: ResolveDashboardIdOrThrowFunction = async (
+  dashboardIdOrDomain: string,
+): Promise<ObjectID> => {
+  if (dashboardIdOrDomain && dashboardIdOrDomain.includes(".")) {
+    const dashboardId: ObjectID | null =
+      await findVerifiedDomainDashboardId(dashboardIdOrDomain);
+
+    if (!dashboardId) {
+      throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
     }
 
-    return dashboardDomain.dashboardId;
+    return dashboardId;
   }
 
-  try {
-    ObjectID.validateUUID(dashboardIdOrDomain);
-    return new ObjectID(dashboardIdOrDomain);
-  } catch (err) {
-    logger.error(
-      `Error converting dashboardIdOrDomain to ObjectID: ${dashboardIdOrDomain}`,
-    );
-    logger.error(err);
-    throw new NotFoundException("Dashboard not found");
-  }
+  return getPublicDashboardIdOrThrow(dashboardIdOrDomain);
 };
 
 export default class DashboardAPI extends BaseAPI<
@@ -416,7 +437,25 @@ export default class DashboardAPI extends BaseAPI<
       PublicDashboardRateLimitBucket.MasterPassword,
     );
 
-    // SEO endpoint - resolve dashboard by ID or domain
+    /*
+     * The page head of a dashboard's public link: its title and description,
+     * resolved by dashboard ID or custom domain. The public dashboard's own
+     * server asks for it once per page and renders it for whoever loads the
+     * page, so it holds only what the link shows EVERY visitor - decided for
+     * a visitor nothing is known about, never for whoever happens to ask:
+     *
+     *   anyone with the link     the title and the description
+     *   ... and a password       the title (its password prompt shows it)
+     *   an IP allowlist          the generic title and description: a
+     *                            visitor outside the list sees nothing of the
+     *                            dashboard, but the link still answers, so
+     *                            its llms.txt can point an allowed agent at
+     *                            the overview, which checks the address
+     *   anything else            nothing: not found, like a missing dashboard
+     *
+     * "Anything else" is a dashboard shared only with its project, an
+     * archived one, and one that does not exist.
+     */
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
@@ -425,87 +464,65 @@ export default class DashboardAPI extends BaseAPI<
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const dashboardIdOrDomain: string = req.params[
-            "dashboardIdOrDomain"
-          ] as string;
+          const dashboardId: ObjectID = await resolveDashboardIdOrThrow(
+            req.params["dashboardIdOrDomain"] as string,
+          );
 
-          let dashboardId: ObjectID | null = null;
+          const access: PublicDashboardAccessResult =
+            await DashboardService.getPublicAccessForEveryone({
+              dashboardId,
+            });
 
-          if (dashboardIdOrDomain && dashboardIdOrDomain.includes(".")) {
-            // This is a domain - resolve to dashboard ID
-            const dashboardDomain: DashboardDomain | null =
-              await DashboardDomainService.findOneBy({
-                query: {
-                  fullDomain: dashboardIdOrDomain,
-                  domain: {
-                    isVerified: true,
-                  } as any,
-                },
-                select: {
-                  dashboardId: true,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
-            if (!dashboardDomain || !dashboardDomain.dashboardId) {
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new NotFoundException("Dashboard not found"),
-              );
-            }
-
-            dashboardId = dashboardDomain.dashboardId;
-          } else {
-            try {
-              dashboardId = new ObjectID(dashboardIdOrDomain);
-            } catch (err) {
-              logger.error(
-                err,
-                getLogAttributesFromRequest(req as OneUptimeRequest),
-              );
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new BadDataException("Invalid dashboard ID"),
-              );
-            }
+          if (access.access === PublicDashboardAccess.NotFound) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
+
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            return Response.sendJsonObjectResponse(req, res, {
+              _id: dashboardId.toString(),
+              title: PUBLIC_DASHBOARD_DEFAULT_TITLE,
+              description: PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
+            });
+          }
+
+          const isOpenToEveryone: boolean =
+            access.access === PublicDashboardAccess.Granted;
 
           const dashboard: Dashboard | null =
             await DashboardService.findOneById({
               id: dashboardId,
-              select: {
-                _id: true,
-                name: true,
-                description: true,
-                pageTitle: true,
-                pageDescription: true,
-                isArchived: true,
-              },
+              select: isOpenToEveryone
+                ? {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                    description: true,
+                    pageDescription: true,
+                  }
+                : {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                  },
               props: {
                 isRoot: true,
               },
             });
 
-          // An archived dashboard's public page is gone: it reads as missing.
-          if (!dashboard || dashboard.isArchived) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Dashboard not found"),
-            );
+          if (!dashboard) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
-            title: dashboard.pageTitle || dashboard.name || "Dashboard",
+            title:
+              dashboard.pageTitle ||
+              dashboard.name ||
+              PUBLIC_DASHBOARD_DEFAULT_TITLE,
             description:
-              dashboard.pageDescription ||
-              dashboard.description ||
-              "View dashboard metrics and insights.",
+              (isOpenToEveryone
+                ? dashboard.pageDescription || dashboard.description
+                : "") || PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
           });
         } catch (err) {
           next(err);
@@ -621,7 +638,14 @@ export default class DashboardAPI extends BaseAPI<
       overviewHandler,
     );
 
-    // Domain resolution endpoint
+    /*
+     * The dashboard a verified custom domain shows, for the public app on
+     * that domain. It answers only for a dashboard whose public link
+     * answers: a domain whose dashboard is shared only with its project, or
+     * archived, reads like a domain no dashboard has. Whether the link
+     * answers at all is the same for every visitor; the address and the
+     * password are for the routes the app calls next.
+     */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
       publicDashboardRateLimit,
@@ -632,32 +656,19 @@ export default class DashboardAPI extends BaseAPI<
             throw new BadDataException("domain is required in request body");
           }
 
-          const domain: string = req.body["domain"] as string;
+          const dashboardId: ObjectID | null =
+            await findVerifiedDomainDashboardId(req.body["domain"] as string);
 
-          const dashboardDomain: DashboardDomain | null =
-            await DashboardDomainService.findOneBy({
-              query: {
-                fullDomain: domain,
-                domain: {
-                  isVerified: true,
-                } as any,
-              },
-              select: {
-                dashboardId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!dashboardDomain) {
-            throw new BadDataException("No dashboard found with this domain");
+          if (
+            !dashboardId ||
+            (await DashboardService.getPublicAccessForEveryone({ dashboardId }))
+              .access === PublicDashboardAccess.NotFound
+          ) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
-          const objectId: ObjectID = dashboardDomain.dashboardId!;
-
           return Response.sendJsonObjectResponse(req, res, {
-            dashboardId: objectId.toString(),
+            dashboardId: dashboardId.toString(),
           });
         } catch (err) {
           next(err);
@@ -665,7 +676,23 @@ export default class DashboardAPI extends BaseAPI<
       },
     );
 
-    // Metadata endpoint - returns dashboard info for the public viewer
+    /*
+     * What the public dashboard app loads first: the dashboard's name, page
+     * title, favicon and whether its link asks for the password - and, once
+     * the visitor may view it, its description, page description and logo.
+     *
+     * Decided before anything is read, for the visitor asking (their address
+     * and unlock cookie), by the rule every public route keeps
+     * (DashboardService.getPublicAccess):
+     *
+     *   Granted           the whole answer
+     *   PasswordRequired  only what the password prompt shows: the name, the
+     *                     page title and the favicon
+     *   Forbidden         403, the IP allowlist's refusal
+     *   NotFound          404 "Dashboard not found", word for word what an id
+     *                     no dashboard has gets: a dashboard shared only with
+     *                     its project, or archived, says nothing about itself
+     */
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
@@ -674,66 +701,88 @@ export default class DashboardAPI extends BaseAPI<
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const dashboardId: ObjectID = new ObjectID(
-            req.params["dashboardId"] as string,
+          const dashboardId: ObjectID = getPublicDashboardIdOrThrow(
+            req.params["dashboardId"],
           );
+
+          const access: PublicDashboardAccessResult =
+            await DashboardService.getPublicAccess({
+              dashboardId,
+              req,
+            });
+
+          if (access.access === PublicDashboardAccess.NotFound) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+          }
+
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            throw access.error;
+          }
+
+          const isUnlocked: boolean =
+            access.access === PublicDashboardAccess.Granted;
 
           const dashboard: Dashboard | null =
             await DashboardService.findOneById({
               id: dashboardId,
-              select: {
-                _id: true,
-                name: true,
-                description: true,
-                isPublicDashboard: true,
-                enableMasterPassword: true,
-                pageTitle: true,
-                pageDescription: true,
-                logoFile: {
-                  file: true,
-                  fileType: true,
-                },
-                faviconFile: {
-                  file: true,
-                  fileType: true,
-                },
-                isArchived: true,
-              },
+              select: isUnlocked
+                ? {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                    faviconFile: {
+                      file: true,
+                      fileType: true,
+                    },
+                    description: true,
+                    pageDescription: true,
+                    logoFile: {
+                      file: true,
+                      fileType: true,
+                    },
+                  }
+                : {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                    faviconFile: {
+                      file: true,
+                      fileType: true,
+                    },
+                  },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!dashboard || dashboard.isArchived) {
-            throw new NotFoundException("Dashboard not found");
+          if (!dashboard) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
-
-          /*
-           * Whether the public link asks for the password, by the rule the
-           * server enforces (Types/Dashboard/DashboardAccess): the effective
-           * value, not the stored switch - a private dashboard's switch does
-           * nothing.
-           */
-          const accessSwitches: DashboardAccessSwitches = {
-            isPublicDashboard: dashboard.isPublicDashboard,
-            enableMasterPassword: dashboard.enableMasterPassword,
-          };
 
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
-            description: dashboard.description || "",
-            isPublicDashboard: isDashboardPublic(accessSwitches),
-            enableMasterPassword:
-              isDashboardMasterPasswordRequired(accessSwitches),
+            // Only a public dashboard's link answers at all.
+            isPublicDashboard: true,
+            /*
+             * Whether the public link asks for the password, by the rule the
+             * server enforces (Types/Dashboard/DashboardAccess) - still true
+             * once this visitor has entered it.
+             */
+            enableMasterPassword: access.isMasterPasswordRequired,
             pageTitle: dashboard.pageTitle || "",
-            pageDescription: dashboard.pageDescription || "",
-            logoFile: DashboardAPI.getFileAsBase64JSONObject(
-              dashboard.logoFile,
-            ),
             faviconFile: DashboardAPI.getFileAsBase64JSONObject(
               dashboard.faviconFile,
             ),
+            /*
+             * The rest stays behind the password: the keys are always
+             * there, empty until this visitor may view the dashboard.
+             */
+            description: isUnlocked ? dashboard.description || "" : "",
+            pageDescription: isUnlocked ? dashboard.pageDescription || "" : "",
+            logoFile: isUnlocked
+              ? DashboardAPI.getFileAsBase64JSONObject(dashboard.logoFile)
+              : null,
           });
         } catch (err) {
           next(err);
@@ -1531,12 +1580,8 @@ export default class DashboardAPI extends BaseAPI<
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          if (!req.params["dashboardId"]) {
-            throw new BadDataException("Dashboard ID not found");
-          }
-
-          const dashboardId: ObjectID = new ObjectID(
-            req.params["dashboardId"] as string,
+          const dashboardId: ObjectID = getPublicDashboardIdOrThrow(
+            req.params["dashboardId"],
           );
 
           const password: unknown = req.body && req.body["password"];
@@ -1556,14 +1601,33 @@ export default class DashboardAPI extends BaseAPI<
                 masterPasswordSalt: true,
                 isPublicDashboard: true,
                 isArchived: true,
+                ipWhitelist: true,
               },
               props: {
                 isRoot: true,
               },
             });
 
-          if (!dashboard || dashboard.isArchived) {
-            throw new NotFoundException("Dashboard not found");
+          /*
+           * The public link's answer comes first (Utils/Dashboard/
+           * PublicDashboardAccess): a dashboard it answers nobody for - one
+           * shared only with its project, an archived one, one that does not
+           * exist - has nothing to unlock and reads the same either way, and
+           * a visitor its IP allowlist refuses tries no password.
+           */
+          const access: PublicDashboardAccessResult =
+            DashboardService.decidePublicAccess({
+              dashboard,
+              dashboardId,
+              req,
+            });
+
+          if (!dashboard || access.access === PublicDashboardAccess.NotFound) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+          }
+
+          if (access.access === PublicDashboardAccess.Forbidden) {
+            throw access.error;
           }
 
           // Who can view it, by the rule the Sharing page shows and writes.
@@ -1572,12 +1636,6 @@ export default class DashboardAPI extends BaseAPI<
             enableMasterPassword: dashboard.enableMasterPassword,
             hasMasterPassword: Boolean(dashboard.masterPassword),
           };
-
-          if (!isDashboardPublic(accessState)) {
-            throw new BadDataException(
-              "This dashboard is not publicly accessible.",
-            );
-          }
 
           if (
             !isDashboardMasterPasswordRequired(accessState) ||

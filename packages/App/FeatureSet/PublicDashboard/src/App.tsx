@@ -67,9 +67,11 @@ const App: () => JSX.Element = () => {
   const [dashboardId, setDashboardId] = useState<ObjectID | null>(null);
   const [dashboardName, setDashboardName] = useState<string>("Dashboard");
   const [isPublicDashboard, setIsPublicDashboard] = useState<boolean>(false);
-  type GetIdFunction = () => Promise<ObjectID>;
+  const [isForbidden, setIsForbidden] = useState<boolean>(false);
+  // The dashboard this address shows, or null when it shows none.
+  type GetIdFunction = () => Promise<ObjectID | null>;
 
-  const getId: GetIdFunction = async (): Promise<ObjectID> => {
+  const getId: GetIdFunction = async (): Promise<ObjectID | null> => {
     if (PublicDashboardUtil.isPreviewPage()) {
       const id: string | null = Navigation.getParamByName(
         RouteParams.DashboardId,
@@ -91,6 +93,19 @@ const App: () => JSX.Element = () => {
       headers: {},
     });
 
+    /*
+     * 404: no dashboard shows on this domain - none was added, or its
+     * dashboard is shared only with its project or archived. Any other
+     * failure is an error to show.
+     */
+    if (response.isFailure()) {
+      if (response.statusCode === 404) {
+        return null;
+      }
+
+      throw response;
+    }
+
     if (response.data && response.data["dashboardId"]) {
       return new ObjectID(response.data["dashboardId"] as string);
     }
@@ -102,7 +117,14 @@ const App: () => JSX.Element = () => {
     try {
       setIsLoading(true);
 
-      const id: ObjectID = await getId();
+      const id: ObjectID | null = await getId();
+
+      // Nothing to show here: the not-found page.
+      if (!id) {
+        setIsLoading(false);
+        return;
+      }
+
       setDashboardId(id);
       PublicDashboardUtil.setDashboardId(id);
 
@@ -114,6 +136,32 @@ const App: () => JSX.Element = () => {
         data: {},
         headers: {},
       });
+
+      /*
+       * The metadata answers only for a dashboard this visitor may see:
+       *
+       *   404  a dashboard that is not here - one shared only with its
+       *        project, an archived one and a missing one answer alike
+       *   403  its IP allowlist refuses this address. The client has
+       *        already sent the browser to the forbidden page for it
+       *        (API.getForbiddenRoute); there the metadata answers 403
+       *        again, and this shows the Access Denied page
+       *
+       * Anything else (a rate limit, a server error) is an error to show,
+       * not a dashboard that is missing.
+       */
+      if (response.isFailure()) {
+        PublicDashboardUtil.setRequiresMasterPassword(false);
+
+        if (response.statusCode === 403) {
+          setIsForbidden(true);
+        } else if (response.statusCode !== 404) {
+          setError(API.getFriendlyMessage(response));
+        }
+
+        setIsLoading(false);
+        return;
+      }
 
       if (response.data) {
         const name: string = (response.data["name"] as string) || "Dashboard";
@@ -178,6 +226,15 @@ const App: () => JSX.Element = () => {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <ErrorMessage message={error} />
       </div>
+    );
+  }
+
+  // The dashboard's IP allowlist does not let this visitor in.
+  if (isForbidden) {
+    return (
+      <Suspense fallback={<PageLoader isVisible={true} />}>
+        <ForbiddenPage />
+      </Suspense>
     );
   }
 

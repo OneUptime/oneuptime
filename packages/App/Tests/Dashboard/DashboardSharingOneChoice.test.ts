@@ -29,7 +29,8 @@ import path from "path";
  * later cannot quietly bring a switch, a second place or the old words
  * back. The behaviour is tested in Common/Tests (DashboardAccess,
  * DashboardSharingCard, DashboardSharingPage, DashboardSharingEntryPoints,
- * and at the server DashboardAccessChoice and DashboardSharingPublicRoutes).
+ * and at the server DashboardAccessChoice, DashboardSharingPublicRoutes,
+ * PublicDashboardAccess and PublicDashboardLinkAnswers).
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -237,6 +238,19 @@ describe("one place for the choice", () => {
   });
 
   test("the server asks for the password by the same rule, in the read check, the password route and the metadata answer", () => {
+    /*
+     * The public link's one decision (who a visitor is to it), which every
+     * public dashboard route makes before it reads what it sends.
+     */
+    const policy: string = readSource(
+      path.join(
+        COMMON_ROOT,
+        "Server",
+        "Utils",
+        "Dashboard",
+        "PublicDashboardAccess.ts",
+      ),
+    );
     const service: string = readSource(
       path.join(COMMON_ROOT, "Server", "Services", "DashboardService.ts"),
     );
@@ -244,17 +258,26 @@ describe("one place for the choice", () => {
       path.join(COMMON_ROOT, "Server", "API", "DashboardAPI.ts"),
     );
 
-    expect(service).toContain("isDashboardMasterPasswordRequired(accessState)");
-    expect(service).toContain("isDashboardLockedWithoutPassword(accessState)");
-    expect(service).toContain("!isDashboardPublic(accessState)");
-    expect(service).not.toContain("dashboard.isPublicDashboard &&");
+    expect(policy).toContain("isDashboardMasterPasswordRequired(accessState)");
+    expect(policy).toContain("isDashboardLockedWithoutPassword(accessState)");
+    expect(policy).toContain("!isDashboardPublic(accessState)");
+    expect(policy).not.toContain("dashboard.isPublicDashboard &&");
 
+    // The read check is that decision, never a flag of its own.
+    expect(service).toContain("PublicDashboardAccessPolicy.decide({");
+    expect(service).not.toContain("dashboard.isPublicDashboard &&");
+    expect(service).not.toContain("isDashboardPublic(");
+
+    // The metadata answer says what the decision worked out...
     expect(api).toContain(
-      "enableMasterPassword: isDashboardMasterPasswordRequired(accessSwitches)",
+      "enableMasterPassword: access.isMasterPasswordRequired",
     );
+    // ...and the password route asks the decision first, then the rule.
+    expect(api).toContain("DashboardService.decidePublicAccess({ dashboard,");
     expect(api).toContain(
       "!isDashboardMasterPasswordRequired(accessState) || isDashboardLockedWithoutPassword(accessState)",
     );
+    expect(api).not.toContain("isDashboardPublic(");
   });
 
   test("so does the public dashboard app's first load", () => {
