@@ -7,6 +7,9 @@
 
 {{> DetailBoxStart this }}
 {{> DetailBoxField title="Incident Title: " plainText=incidentTitle }}
+{{#if incidentState}}
+{{> DetailBoxField title="Status: " plainText=incidentState color=incidentStateColor textColor=incidentStateTextColor }}
+{{/if}}
 {{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
 {{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> IncidentCustomFieldRows this }}

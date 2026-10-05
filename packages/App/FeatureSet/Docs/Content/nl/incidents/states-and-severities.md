@@ -144,7 +144,7 @@ De melding wordt per tijdlijnrij aangevraagd met **Statuspagina-abonnees op de h
 - **Het incident is niet zichtbaar op de statuspagina** (`isVisibleOnStatusPage` staat uit).
 - **De statuspagina heeft incidenten uitgezet** (`showIncidentsOnStatusPage` staat uit). Dit geldt per statuspagina — andere pagina's die dezelfde monitor tonen krijgen nog steeds bericht.
 
-**Nog één ding dat de uitkomst verandert.** Typ je een **Openbare notitie** in de statuswijzigingsdialoog, dan wordt de tijdlijnrij gemarkeerd als reeds gemeld in plaats van in de wachtrij gezet. De notitie zelf is wat abonnees bereikt, dus ze krijgen één bericht in plaats van twee. Het gebeurtenistype achter het kale statuswijzigingsbericht is `Subscriber Incident State Changed`.
+**Nog één ding dat de uitkomst verandert.** Typ je een **Openbare notitie** in de statuswijzigingsdialoog, dan wordt de tijdlijnrij gemarkeerd als reeds gemeld in plaats van in de wachtrij gezet. De notitie zelf is wat abonnees bereikt, dus ze krijgen één bericht in plaats van twee. Dat bericht noemt op elk kanaal de nieuwe status, zoals het statuswijzigingsbericht zou hebben gedaan: bijvoorbeeld `[Resolved Incident] <title>` in het onderwerp van de e-mail en `**Status:** Resolved` in Slack en Microsoft Teams. Voor de notitie is toestemming nodig om openbare notities te maken: zonder die toestemming biedt de dialoog de notitie niet aan, en een statuswijziging die met een notitie wordt verstuurd, wordt geweigerd, zodat de status blijft zoals hij was. Het gebeurtenistype achter het kale statuswijzigingsbericht is `Subscriber Incident State Changed`.
 
 Voor wie deze ontvangt en hoe de sjablonen worden gekozen, zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
 

@@ -8,6 +8,8 @@ import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import URL from "Common/Types/API/URL";
+import Color from "Common/Types/Color";
+import StateChangeNoteMessage from "Common/Types/StatusPage/StateChangeNoteMessage";
 import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -3082,3 +3084,246 @@ describe.each(TRIGGERS)(
     });
   },
 );
+
+/*
+ * A NOTE POSTED WITH A STATE CHANGE NAMES THE STATE, ON EVERY CHANNEL.
+ *
+ * With "Notify Status Page Subscribers" on, the public note posted with a
+ * state change is the one message subscribers get about the change, so its
+ * messages say what the change was: the note carries the state the incident
+ * moved to (IncidentPublicNote.postedWithIncidentState), and every default
+ * message names it the way the state change's own message did
+ * (StateChangeNoteMessage). A note posted on its own reads as it always has.
+ */
+describe("IncidentPublicNote: a note posted with a state change names the state", () => {
+  const RESOLVED: string = "Resolved";
+  const RESOLVED_COLOR: string = "#16a34a";
+
+  function resolvedState(): IncidentState {
+    const state: IncidentState = new IncidentState();
+    state.name = RESOLVED;
+    state.color = new Color(RESOLVED_COLOR);
+    return state;
+  }
+
+  // The note the Resolve dialog posted with "Notify Status Page Subscribers" on.
+  function stateChangeNote(state?: IncidentState | null): IncidentPublicNote {
+    const note: IncidentPublicNote = publicNote({
+      subscriberNotificationStatusOnNoteCreated:
+        StatusPageSubscriberNotificationStatus.Pending,
+    });
+
+    if (state !== null) {
+      note.postedWithIncidentState = state || resolvedState();
+    }
+
+    return note;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the job reads the state with the note, and only for the 'posted' notification", async () => {
+    await runJob(CREATED_JOB);
+    await runJob(UPDATED_JOB);
+
+    const selects: Array<JSONObject> = mock(
+      IncidentPublicNoteService.findBy,
+    ).mock.calls.map((call: Array<unknown>): JSONObject => {
+      return (call[0] as { select: JSONObject }).select;
+    });
+
+    expect(selects[0]!["postedWithIncidentState"]).toEqual({
+      name: true,
+      color: true,
+    });
+    expect(selects[1]!["postedWithIncidentState"]).toBeUndefined();
+  });
+
+  test("email: the state change email's subject, and a Status row in the state's colour", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()).toHaveLength(1);
+    const mail: JSONObject = sentMail()[0]!;
+    const vars: JSONObject = mail["vars"] as JSONObject;
+
+    expect(mail["templateType"]).toBe(
+      EmailTemplateType.SubscriberIncidentNoteCreated,
+    );
+    expect(mail["subject"]).toBe(`[Resolved Incident] ${INCIDENT_TITLE}`);
+    expect(vars["incidentState"]).toBe(RESOLVED);
+    expect(vars["incidentStateColor"]).toBe(RESOLVED_COLOR);
+    expect(typeof vars["incidentStateTextColor"]).toBe("string");
+    // The note is still the note.
+    expect(vars["note"]).toBe(NOTE_HTML);
+  });
+
+  test("SMS: says what the incident is now, as the state change SMS did, then that a note is posted", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentSms()).toEqual([
+      `Incident ${INCIDENT_TITLE} on Acme Status is Resolved. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+  });
+
+  test("Slack and Microsoft Teams: a Status line under the severity, then the note", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    for (const message of [sentSlack()[0]!, sentTeams()[0]!]) {
+      expect(message).toContain(
+        "**Severity:** Critical\n**Status:** Resolved\n\n**Note:**\n",
+      );
+      expect(message).toContain(NOTE);
+      expect(message).toContain("**New note has been added to an incident**");
+    }
+  });
+
+  test("webhook: the IncidentNoteCreated payload carries incidentState, as IncidentStateChanged does", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    const payload: JSONObject = sentWebhooks()[0]!;
+    const data: JSONObject = payload["data"] as JSONObject;
+
+    expect(payload["eventType"]).toBe("IncidentNoteCreated");
+    expect(data["incidentState"]).toBe(RESOLVED);
+    expect(data["note"]).toBe(NOTE);
+  });
+
+  test("each subscriber is told once, on every channel", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect({
+      emails: sentMail().length,
+      sms: sentSms().length,
+      slack: sentSlack().length,
+      teams: sentTeams().length,
+      webhooks: sentWebhooks().length,
+    }).toEqual({ emails: 1, sms: 1, slack: 1, teams: 1, webhooks: 1 });
+  });
+
+  test("custom templates get the state the change moved to as {{incidentState}}, not the incident's state when it is sent", async () => {
+    // The incident has moved on to Identified by the time the job runs.
+    createdNotes = [stateChangeNote()];
+    useCustomTemplatesOnEveryChannel(
+      StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
+    );
+
+    await runJob(CREATED_JOB);
+
+    expect(sentSms()[0]).toContain(`incidentState=[${RESOLVED}]`);
+    expect(sentSlack()[0]).toContain(`incidentState=[${RESOLVED}]`);
+    expect(sentTeams()[0]).toContain(`incidentState=[${RESOLVED}]`);
+    expect((sentMail()[0]!["vars"] as JSONObject)["body"] as string).toContain(
+      `incidentState=[${RESOLVED}]`,
+    );
+  });
+
+  test("a custom email template with no subject of its own falls back to the state change's subject", async () => {
+    createdNotes = [stateChangeNote()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([statusPage({ withCustomSmtpAndSms: true })] as never);
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.Email
+        ? { templateBody: "<p>{{note}}</p>" }
+        : null;
+    });
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Incident Resolved] ${INCIDENT_TITLE}`,
+    );
+  });
+
+  test("a note posted on its own keeps the messages it always had", async () => {
+    createdNotes = [stateChangeNote(null)];
+
+    await runJob(CREATED_JOB);
+
+    const vars: JSONObject = sentMail()[0]!["vars"] as JSONObject;
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Update Incident] ${INCIDENT_TITLE}`,
+    );
+    expect(vars["incidentState"]).toBeUndefined();
+    expect(sentSms()[0]).toBe(
+      `Incident update: ${INCIDENT_TITLE} on Acme Status. A new note is posted. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    );
+    expect(sentSlack()[0]).not.toContain("**Status:**");
+    expect(sentTeams()[0]).not.toContain("**Status:**");
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)["incidentState"],
+    ).toBeUndefined();
+  });
+
+  test("a state with no name (one deleted since) is no state: the note reads as one posted on its own", async () => {
+    const unnamed: IncidentState = new IncidentState();
+    unnamed.name = "  ";
+    createdNotes = [stateChangeNote(unnamed)];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Update Incident] ${INCIDENT_TITLE}`,
+    );
+    expect(sentSlack()[0]).not.toContain("**Status:**");
+  });
+
+  test("an edit's update notification keeps its own words: the incident may have moved on since", async () => {
+    const note: IncidentPublicNote = stateChangeNote();
+    note.subscriberNotificationStatusOnNoteCreated =
+      StatusPageSubscriberNotificationStatus.Success;
+    updatedNotes = [note];
+
+    await runJob(UPDATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[Incident Note Updated] ${INCIDENT_TITLE}`,
+    );
+    expect(
+      (sentMail()[0]!["vars"] as JSONObject)["incidentState"],
+    ).toBeUndefined();
+    expect(sentSlack()[0]).not.toContain("**Status:**");
+    expect(
+      (sentWebhooks()[0]!["data"] as JSONObject)["incidentState"],
+    ).toBeUndefined();
+  });
+
+  test("the words are StateChangeNoteMessage's", async () => {
+    createdNotes = [stateChangeNote()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      StateChangeNoteMessage.getIncidentEmailSubject({
+        stateName: RESOLVED,
+        incidentTitle: INCIDENT_TITLE,
+      }),
+    );
+    expect(sentSms()[0]).toContain(
+      StateChangeNoteMessage.getIncidentSmsHeadline({
+        stateName: RESOLVED,
+        incidentTitle: INCIDENT_TITLE,
+        statusPageName: "Acme Status",
+      }),
+    );
+    expect(sentSlack()[0]).toContain(
+      StateChangeNoteMessage.getChatStatusLine(RESOLVED),
+    );
+  });
+});

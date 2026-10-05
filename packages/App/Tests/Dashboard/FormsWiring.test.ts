@@ -463,8 +463,9 @@ describe("Incident Forms is gone", () => {
     expect(denseRaw(MOVED_PAGE_PATHS)).toContain(
       'exportconstMOVED_INCIDENT_FORM_PATHS:{forms:string;formView:string}={forms:"settings/forms",formView:`settings/forms/${RouteParams.ModelID}`,};',
     );
-    expect(code).toContain(
-      'import{MOVED_INCIDENT_FORM_PATHS}from"./MovedPagePaths";',
+    // Imported from the shared module; other moved paths may share the import.
+    expect(code).toMatch(
+      /import\{[^}]*\bMOVED_INCIDENT_FORM_PATHS\b[^}]*\}from"\.\/MovedPagePaths";/,
     );
 
     const forms: number = code.indexOf(
