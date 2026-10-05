@@ -1727,8 +1727,9 @@ describe("who owns the episodes a grouping rule opens", () => {
     expect(moreFieldsSummary()).toBe(
       "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.",
     );
+    // Read out with the header, after the names it lists.
     expect(moreFieldsHeader()).toHaveAccessibleDescription(
-      expect.stringContaining("Open this section to add them as owners"),
+      /Default assignee.*Open this section to add them as owners or remove it\.$/,
     );
 
     await goToOnCallAndOwnership();
