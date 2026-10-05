@@ -186,7 +186,7 @@ export default class MonitorTemplateUtil {
           emailReceivedAt: IncomingEmailMonitorRequestUtil.hasEmail(
             emailRequest,
           )
-            ? OneUptimeDate.toString(emailRequest.emailReceivedAt)
+            ? MonitorTemplateUtil.toTimestamp(emailRequest.emailReceivedAt)
             : "",
         } as JSONObject;
       }
@@ -800,6 +800,21 @@ export default class MonitorTemplateUtil {
     }
 
     return `${line.slice(0, end)}${TitleEllipsis}`;
+  }
+
+  /*
+   * `value` - a Date, or the text a stored email's Date became - as an ISO
+   * 8601 timestamp in UTC. "" when there is none, and when it is not a date
+   * at all, so one unreadable timestamp cannot cost a template the email's
+   * other variables.
+   */
+  private static toTimestamp(value: Date | undefined): string {
+    try {
+      return OneUptimeDate.toString(value);
+    } catch (err) {
+      logger.error(err);
+      return "";
+    }
   }
 
   /**

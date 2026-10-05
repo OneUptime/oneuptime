@@ -232,9 +232,151 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — IncomingEmail", () => 
 
     expect(build(stored)["emailReceivedAt"]).toBe("2026-10-05T09:55:00.000Z");
   });
+
+  test.each(["emailSubject", "emailFrom", "emailTo", "emailBody"])(
+    "renders %s empty, not as a placeholder, when the email had none",
+    (key: string) => {
+      const email: IncomingEmailMonitorRequest = {
+        ...atIngestBoundary(sentTo(GENERATED_ADDRESS)),
+        [key]: undefined,
+      };
+
+      const map: JSONObject = build(email);
+
+      expect(map[key]).toBe("");
+      expect(render(`[{{${key}}}]`, map)).toBe("[]");
+      expect(render(`[{{${key}}}]`, titleMapOf(map))).toBe("[]");
+    },
+  );
+
+  test.each([
+    { shape: "a Date", value: RECEIVED_AT },
+    { shape: "UTC text", value: "2026-10-05T09:55:00.000Z" },
+    { shape: "text with an offset", value: "2026-10-05T11:55:00+02:00" },
+    {
+      shape: "a serialized DateTime",
+      value: { _type: "DateTime", value: "2026-10-05T09:55:00.000Z" },
+    },
+  ])(
+    "gives the received time as UTC ISO 8601 when it arrives as $shape",
+    (received: { value: unknown }) => {
+      const map: JSONObject = build({
+        ...atIngestBoundary(sentTo(GENERATED_ADDRESS)),
+        emailReceivedAt: received.value as Date,
+      });
+
+      expect(map["emailReceivedAt"]).toBe("2026-10-05T09:55:00.000Z");
+    },
+  );
+
+  test("renders the received time empty when the email has none", () => {
+    const map: JSONObject = build({
+      ...atIngestBoundary(sentTo(GENERATED_ADDRESS)),
+      emailReceivedAt: undefined as unknown as Date,
+    });
+
+    expect(map["emailReceivedAt"]).toBe("");
+    expect(map["emailSubject"]).toBe("[FAILED] Nightly backups");
+  });
+
+  test("an unreadable received time renders empty and costs the email none of its other variables", () => {
+    // moment warns once about the unparseable text it falls back on.
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    const map: JSONObject = build({
+      ...atIngestBoundary(sentTo(GENERATED_ADDRESS)),
+      emailReceivedAt: "not a date" as unknown as Date,
+    });
+
+    expect(map["emailReceivedAt"]).toBe("");
+    expect(render("{{emailSubject}} from {{emailFrom}}", map)).toBe(
+      "[FAILED] Nightly backups from backups@acme.example",
+    );
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  test("quotes the sender's text exactly as it was written", () => {
+    // Replacement patterns, Markdown and markup are the sender's, not ours.
+    const subject: string = "Cost up $& 50$ on $1 — **prod** <b>now</b> 🔥";
+    const body: string =
+      "# Report\n\n- [link](https://acme.example)\n\t`x = 1`";
+
+    const map: JSONObject = build(
+      atIngestBoundary({
+        ...sentTo(GENERATED_ADDRESS),
+        emailSubject: subject,
+        emailBody: body,
+      }),
+    );
+
+    expect(render("{{emailSubject}}\n{{emailBody}}", map)).toBe(
+      `${subject}\n${body}`,
+    );
+  });
+
+  test("a template of one variable gets the value itself, line breaks and all", () => {
+    const map: JSONObject = build(atIngestBoundary(sentTo(GENERATED_ADDRESS)));
+
+    expect(render("{{emailBody}}", map)).toBe(
+      `Backups failed.\nReplies go to monitor-${REDACTED}@${DOMAIN}.`,
+    );
+  });
+
+  test("fills a variable everywhere the template uses it", () => {
+    const map: JSONObject = build(atIngestBoundary(sentTo(GENERATED_ADDRESS)));
+
+    expect(render("{{emailSubject}} / {{emailSubject}}", map)).toBe(
+      "[FAILED] Nightly backups / [FAILED] Nightly backups",
+    );
+  });
+
+  test("renders alongside the monitor's identity in one template", () => {
+    const model: Monitor = new Monitor();
+    model.name = "Nightly backups";
+
+    const map: JSONObject = build(atIngestBoundary(sentTo(GENERATED_ADDRESS)), {
+      monitor: model,
+    });
+
+    expect(render("{{monitorName}}: {{emailSubject}}", titleMapOf(map))).toBe(
+      "Nightly backups: [FAILED] Nightly backups",
+    );
+  });
 });
 
 describe("MonitorTemplateUtil.buildTemplateStorageMap — IncomingEmail keeps masked what the ingest boundary masked", () => {
+  test("keeps the email's other recipients as they were", () => {
+    const map: JSONObject = build(
+      atIngestBoundary({
+        ...sentTo(GENERATED_ADDRESS),
+        emailTo: `ops@acme.example, ${GENERATED_ADDRESS}, Dev Team <dev@acme.example>`,
+      }),
+    );
+
+    expect(map["emailTo"]).toBe(
+      `ops@acme.example, monitor-${REDACTED}@${DOMAIN}, Dev Team <dev@acme.example>`,
+    );
+  });
+
+  test("masks the monitor's address whatever case a relay wrote it in", () => {
+    const shouted: string = GENERATED_ADDRESS.toUpperCase();
+
+    const map: JSONObject = build(
+      atIngestBoundary({
+        ...sentTo(GENERATED_ADDRESS),
+        emailTo: shouted,
+        emailBody: `Forwarded for ${shouted} and ${GENERATED_ADDRESS}.`,
+      }),
+    );
+
+    const rendered: string = render(EVERY_EMAIL_VARIABLE, map);
+
+    expect(rendered.toLowerCase()).not.toContain(SECRET_KEY);
+    expect(map["emailBody"]).toBe(
+      `Forwarded for MONITOR-${REDACTED}@${DOMAIN.toUpperCase()} and monitor-${REDACTED}@${DOMAIN}.`,
+    );
+  });
+
   test.each([
     {
       kind: "generated",
@@ -365,16 +507,118 @@ describe("MonitorTemplateUtil.buildTitleStorageMap", () => {
     );
   }
 
-  test.each([
-    MonitorType.API,
-    MonitorType.IncomingRequest,
-    MonitorType.Metrics,
-  ])("returns a %s monitor's map as it is", (monitorType: MonitorType) => {
+  test.each(
+    (Object.values(MonitorType) as Array<MonitorType>).filter(
+      (monitorType: MonitorType): boolean => {
+        return monitorType !== MonitorType.IncomingEmail;
+      },
+    ),
+  )("returns a %s monitor's map as it is", (monitorType: MonitorType) => {
     const storageMap: JSONObject = { requestBody: "a\nb", emailBody: "a\nb" };
 
     expect(
       MonitorTemplateUtil.buildTitleStorageMap({ monitorType, storageMap }),
     ).toBe(storageMap);
+  });
+
+  test.each([
+    { length: MaxEmailValueLengthInTitle - 1, cut: false },
+    { length: MaxEmailValueLengthInTitle, cut: false },
+    { length: MaxEmailValueLengthInTitle + 1, cut: true },
+  ])(
+    "a $length-character value is cut: $cut",
+    (boundary: { length: number; cut: boolean }) => {
+      const subject: string = "s".repeat(boundary.length);
+
+      const value: string = titleMapOf(emailMap({ emailSubject: subject }))[
+        "emailSubject"
+      ] as string;
+
+      expect(value).toBe(
+        boundary.cut
+          ? `${"s".repeat(MaxEmailValueLengthInTitle - 3)}...`
+          : subject,
+      );
+      expect(value.length).toBeLessThanOrEqual(MaxEmailValueLengthInTitle);
+    },
+  );
+
+  test("turns every kind of whitespace and line break into a single space", () => {
+    const map: JSONObject = emailMap({
+      emailSubject: [
+        "Disk",
+        String.fromCharCode(0x2028), // LINE SEPARATOR
+        "full",
+        String.fromCharCode(0x2029), // PARAGRAPH SEPARATOR
+        "on",
+        String.fromCharCode(0x00a0), // NO-BREAK SPACE
+        "db-1\vand\fdb-2\t\t(prod)\r\n\r\nnow",
+      ].join(""),
+    });
+
+    expect(titleMapOf(map)["emailSubject"]).toBe(
+      "Disk full on db-1 and db-2 (prod) now",
+    );
+  });
+
+  test("gives the same map when applied to its own result", () => {
+    const map: JSONObject = emailMap({
+      emailSubject: "word ".repeat(100),
+      emailBody: "a\n\nb\n".repeat(100),
+    });
+    const once: JSONObject = titleMapOf(map);
+
+    expect(titleMapOf(once)).toEqual(once);
+  });
+
+  test("leaves a value that is not text alone", () => {
+    const storageMap: JSONObject = {
+      emailSubject: 42,
+      emailBody: null,
+      emailTo: { address: "a\nb" },
+    };
+
+    expect(titleMapOf(storageMap)).toEqual(storageMap);
+  });
+
+  test("keeps an emoji whole when all of it fits", () => {
+    // The emoji's second half is the last character kept.
+    const subject: string = `${"a".repeat(MaxEmailValueLengthInTitle - 5)}😀${"b".repeat(50)}`;
+
+    expect(
+      titleMapOf(emailMap({ emailSubject: subject }))["emailSubject"],
+    ).toBe(`${"a".repeat(MaxEmailValueLengthInTitle - 5)}😀...`);
+  });
+
+  test("a value of only whitespace becomes empty, not an ellipsis", () => {
+    const map: JSONObject = emailMap({ emailBody: " \n\t\r\n " });
+
+    expect(titleMapOf(map)["emailBody"]).toBe("");
+  });
+
+  test("a title of one variable gets the bounded line", () => {
+    const body: string = `${"Disk full. ".repeat(40)}\nEnd.`;
+
+    expect(
+      render("{{emailBody}}", titleMapOf(emailMap({ emailBody: body }))),
+    ).toBe(
+      `${body
+        .split("\n")
+        .join(" ")
+        .slice(0, MaxEmailValueLengthInTitle - 3)}...`,
+    );
+  });
+
+  test("shapes only what the email's sender wrote", () => {
+    const model: Monitor = new Monitor();
+    model.name = "Nightly backups";
+    model.description = `${"Watches the nightly backup job. ".repeat(10)}\nOwned by ops.`;
+
+    const map: JSONObject = build(atIngestBoundary(sentTo(GENERATED_ADDRESS)), {
+      monitor: model,
+    });
+
+    expect(titleMapOf(map)["monitorDescription"]).toBe(model.description);
   });
 
   test("leaves a short one-line value as it is", () => {

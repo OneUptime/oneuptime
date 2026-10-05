@@ -23,8 +23,12 @@ import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDe
 import { REDACTED } from "../../../../Server/Utils/LogRedaction";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
+import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
-import { redactMonitorSecret } from "../../../../Server/Utils/Monitor/MonitorPayloadRedaction";
+import {
+  redactMonitorEmailAddress,
+  redactMonitorSecret,
+} from "../../../../Server/Utils/Monitor/MonitorPayloadRedaction";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import { MaxEmailValueLengthInTitle } from "../../../../Server/Utils/Monitor/MonitorTemplateUtil";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
@@ -33,6 +37,7 @@ import IncomingEmailMonitorRequest from "../../../../Types/Monitor/IncomingEmail
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import {
   afterEach,
   beforeEach,
@@ -85,28 +90,48 @@ const BODY: string = [
   `Replies to this alert go to ${MONITOR_ADDRESS}.`,
 ].join("\n");
 
-function monitor(): Monitor {
+const CUSTOM_LOCAL_PART: string = "nightly-backups";
+const CUSTOM_ADDRESS: string = `${CUSTOM_LOCAL_PART}@${INBOUND_DOMAIN}`;
+
+const MONITOR_CREATED_AT: Date = new Date("2026-10-01T08:00:00.000Z");
+const CHECKED_AT: Date = new Date("2026-10-05T11:00:00.000Z");
+
+function monitor(
+  options: {
+    monitorType?: MonitorType | undefined;
+    customLocalPart?: string | undefined;
+  } = {},
+): Monitor {
   const model: Monitor = new Monitor();
   model._id = MONITOR_ID.toString();
   model.projectId = PROJECT_ID;
-  model.monitorType = MonitorType.IncomingEmail;
+  model.monitorType = options.monitorType || MonitorType.IncomingEmail;
   model.name = "Nightly backups";
-  // The monitor's credential is on the model the creators are handed.
+  // The monitor's credentials are on the model the creators are handed.
   model.incomingEmailSecretKey = new ObjectID(SECRET_KEY);
+
+  if (options.customLocalPart) {
+    model.incomingEmailCustomLocalPart = options.customLocalPart;
+  }
+
   return model;
 }
+
+type SentFields = Pick<
+  IncomingEmailMonitorRequest,
+  "emailFrom" | "emailTo" | "emailSubject" | "emailBody"
+>;
 
 function receivedEmail(sent: {
   subject: string;
   body: string;
+  from?: string | undefined;
+  to?: string | undefined;
 }): IncomingEmailMonitorRequest {
-  const masked: Pick<
-    IncomingEmailMonitorRequest,
-    "emailFrom" | "emailTo" | "emailSubject" | "emailBody"
-  > = redactMonitorSecret(
+  const masked: SentFields = redactMonitorSecret(
     {
-      emailFrom: "backups@acme.example",
-      emailTo: MONITOR_ADDRESS,
+      emailFrom: sent.from || "backups@acme.example",
+      emailTo: sent.to || MONITOR_ADDRESS,
       emailSubject: sent.subject,
       emailBody: sent.body,
     },
@@ -121,6 +146,59 @@ function receivedEmail(sent: {
     emailReceivedAt: RECEIVED_AT,
     checkedAt: RECEIVED_AT,
     onlyCheckForIncomingEmailReceivedAt: false,
+  };
+}
+
+// Mail to the monitor's custom address, masked as the ingest boundary masks it.
+function receivedAtCustomAddress(sent: {
+  subject: string;
+  body: string;
+}): IncomingEmailMonitorRequest {
+  const masked: SentFields = redactMonitorEmailAddress(
+    {
+      emailFrom: "nightly-backups@acme.example",
+      emailTo: CUSTOM_ADDRESS,
+      emailSubject: sent.subject,
+      emailBody: sent.body,
+    },
+    { localPart: CUSTOM_LOCAL_PART, domain: INBOUND_DOMAIN },
+  );
+
+  return {
+    ...receivedEmail({ subject: sent.subject, body: sent.body }),
+    ...masked,
+    emailHeaders: { "Delivered-To": masked.emailTo },
+  };
+}
+
+/*
+ * What Workers' IncomingEmailMonitor/CheckOnlineStatus hands monitorResource
+ * between emails: the monitor's stored last email (jsonb, so its Date comes
+ * back as text), or - before any email arrived - empty fields with the
+ * monitor's creation time standing in for emailReceivedAt.
+ */
+function scheduledCheckAfter(
+  lastEmail: IncomingEmailMonitorRequest,
+): IncomingEmailMonitorRequest {
+  return {
+    ...lastEmail,
+    emailReceivedAt: lastEmail.emailReceivedAt.toISOString() as unknown as Date,
+    checkedAt: CHECKED_AT,
+    onlyCheckForIncomingEmailReceivedAt: true,
+  };
+}
+
+function scheduledCheckBeforeAnyEmail(): IncomingEmailMonitorRequest {
+  return {
+    projectId: PROJECT_ID,
+    monitorId: MONITOR_ID,
+    emailFrom: "",
+    emailTo: "",
+    emailSubject: "",
+    emailBody: "",
+    emailReceivedAt: MONITOR_CREATED_AT,
+    checkedAt: CHECKED_AT,
+    onlyCheckForIncomingEmailReceivedAt: true,
   };
 }
 
@@ -259,11 +337,12 @@ afterEach(() => {
 
 async function openAlert(
   template: Template,
-  email: IncomingEmailMonitorRequest,
+  email: DataToProcess,
+  model: Monitor = monitor(),
 ): Promise<Alert> {
   await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
     criteriaInstance: alertCriteria(template),
-    monitor: monitor(),
+    monitor: model,
     dataToProcess: email,
     rootCause: 'Email subject contains "FAILED".',
     autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
@@ -276,11 +355,12 @@ async function openAlert(
 
 async function openIncident(
   template: Template,
-  email: IncomingEmailMonitorRequest,
+  email: DataToProcess,
+  model: Monitor = monitor(),
 ): Promise<Incident> {
   await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
     criteriaInstance: incidentCriteria(template),
-    monitor: monitor(),
+    monitor: model,
     dataToProcess: email,
     rootCause: 'Email subject contains "FAILED".',
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: NO_AUTO_RESOLVE,
@@ -397,6 +477,138 @@ describe("An Incoming Email monitor's alert renders the email's template variabl
     // The description is not a title: it quotes the body in full.
     expect(alert.description).toBe(LONG_BODY);
   });
+
+  it("keeps a monitor's custom address masked, and the sender's address that shares its name", async () => {
+    const alert: Alert = await openAlert(
+      {
+        title: "{{emailTo}} from {{emailFrom}}",
+        description: "{{emailTo}}\n\n{{emailBody}}",
+      },
+      receivedAtCustomAddress({
+        subject: SUBJECT,
+        body: `Replies go to ${CUSTOM_ADDRESS}.`,
+      }),
+      monitor({ customLocalPart: CUSTOM_LOCAL_PART }),
+    );
+
+    expect(alert.title).toBe(
+      `${REDACTED}@${INBOUND_DOMAIN} from nightly-backups@acme.example`,
+    );
+    expect(alert.description).toBe(
+      `${REDACTED}@${INBOUND_DOMAIN}\n\nReplies go to ${REDACTED}@${INBOUND_DOMAIN}.`,
+    );
+    expect(`${alert.title}${alert.description}`).not.toContain(CUSTOM_ADDRESS);
+  });
+
+  it("puts a subject with a line break on one line in the title, and keeps it in the description", async () => {
+    // An RFC 2047 encoded-word can decode to a line break.
+    const alert: Alert = await openAlert(
+      {
+        title: "{{emailSubject}}",
+        description: "{{emailSubject}}",
+      },
+      receivedEmail({ subject: "Backup failed\r\non orders-db", body: BODY }),
+    );
+
+    expect(alert.title).toBe("Backup failed on orders-db");
+    expect(alert.description).toBe("Backup failed\r\non orders-db");
+  });
+
+  it("keeps an emoji subject intact", async () => {
+    const alert: Alert = await openAlert(
+      { title: "{{emailSubject}}", description: "{{emailBody}}" },
+      receivedEmail({ subject: "🚨 [FIRING:1] Disk full 💾", body: BODY }),
+    );
+
+    expect(alert.title).toBe("🚨 [FIRING:1] Disk full 💾");
+  });
+
+  it("leaves a title that uses no email variable as it was written", async () => {
+    const alert: Alert = await openAlert(
+      { title: "Backup failed", description: "{{emailSubject}}" },
+      receivedEmail({ subject: SUBJECT, body: BODY }),
+    );
+
+    expect(alert.title).toBe("Backup failed");
+    expect(alert.description).toBe(SUBJECT);
+  });
+
+  it("fits the title column with the monitor's name and three long email values", async () => {
+    const alert: Alert = await openAlert(
+      {
+        title:
+          "{{monitorName}}: {{emailSubject}} from {{emailFrom}} to {{emailTo}}",
+        description: "{{emailBody}}",
+      },
+      receivedEmail({
+        subject: LONG_SUBJECT,
+        body: LONG_BODY,
+        from: `"${"Very Long Display Name ".repeat(20)}" <alerts@acme.example>`,
+        to: Array.from({ length: 40 }, (_: unknown, index: number): string => {
+          return `oncall-${index}@acme.example`;
+        }).join(", "),
+      }),
+    );
+
+    expect(
+      alert.title!.startsWith("Nightly backups: Disk usage critical"),
+    ).toBe(true);
+    expect(alert.title!.length).toBeLessThanOrEqual(ColumnLength.LongText);
+  });
+
+  it("on a scheduled check, quotes the last email the monitor received", async () => {
+    const alert: Alert = await openAlert(
+      {
+        title: "No email since {{emailReceivedAt}} (last: {{emailSubject}})",
+        description: "Last email from {{emailFrom}}:\n\n{{emailBody}}",
+      },
+      scheduledCheckAfter(receivedEmail({ subject: SUBJECT, body: BODY })),
+    );
+
+    expect(alert.title).toBe(
+      `No email since 2026-10-05T09:55:00.000Z (last: ${SUBJECT})`,
+    );
+    expect(alert.description).toBe(
+      `Last email from backups@acme.example:\n\n${MASKED_BODY}`,
+    );
+  });
+
+  it("on a scheduled check before any email, leaves no placeholder and no made-up time", async () => {
+    const alert: Alert = await openAlert(
+      {
+        title: "No email yet [{{emailReceivedAt}}] {{emailSubject}}",
+        description: "From: {{emailFrom}} To: {{emailTo}} Body: {{emailBody}}",
+      },
+      scheduledCheckBeforeAnyEmail(),
+    );
+
+    expect(alert.title).toBe("No email yet [] ");
+    expect(alert.description).toBe("From:  To:  Body: ");
+    // The stand-in is the monitor's creation time, not an email's.
+    expect(alert.title).not.toContain("2026-10-01");
+  });
+});
+
+describe("Other monitor types' titles render as they did", () => {
+  it("does not shape a Website monitor's response body in its title", async () => {
+    const response: ProbeMonitorResponse = {
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      monitoredAt: RECEIVED_AT,
+      isOnline: false,
+      responseCode: 503,
+      responseBody: "<h1>Down</h1>\n<p>Maintenance</p>",
+    } as unknown as ProbeMonitorResponse;
+
+    const alert: Alert = await openAlert(
+      { title: "{{responseBody}}", description: "{{responseStatusCode}}" },
+      response,
+      monitor({ monitorType: MonitorType.Website }),
+    );
+
+    expect(alert.title).toBe("<h1>Down</h1>\n<p>Maintenance</p>");
+    expect(alert.description).toBe("503");
+  });
 });
 
 describe("An Incoming Email monitor's incident renders the email's template variables", () => {
@@ -429,5 +641,53 @@ describe("An Incoming Email monitor's incident renders the email's template vari
     expect(incident.title!.length).toBeLessThanOrEqual(ColumnLength.LongText);
     expect(incident.description).toBe(`${LONG_SUBJECT}\n\n${LONG_BODY}`);
     expect(incident.remediationNotes).toBe(LONG_BODY);
+  });
+
+  it("never puts the monitor's address back into an incident", async () => {
+    const incident: Incident = await openIncident(
+      {
+        title: "{{emailTo}}: {{emailSubject}}",
+        description: "{{emailTo}}\n\n{{emailBody}}",
+        remediationNotes: "Check {{emailTo}}",
+      },
+      receivedEmail({ subject: SUBJECT, body: BODY }),
+    );
+
+    expect(incident.title).toBe(`${MASKED_MONITOR_ADDRESS}: ${SUBJECT}`);
+    expect(incident.remediationNotes).toBe(`Check ${MASKED_MONITOR_ADDRESS}`);
+
+    for (const text of [
+      incident.title,
+      incident.description,
+      incident.remediationNotes,
+    ]) {
+      expect(text).not.toContain(SECRET_KEY);
+    }
+  });
+
+  it("on a scheduled check, quotes the last email the monitor received", async () => {
+    const incident: Incident = await openIncident(
+      {
+        title: "No email since {{emailReceivedAt}}",
+        description: "Last email: {{emailSubject}}",
+      },
+      scheduledCheckAfter(receivedEmail({ subject: SUBJECT, body: BODY })),
+    );
+
+    expect(incident.title).toBe("No email since 2026-10-05T09:55:00.000Z");
+    expect(incident.description).toBe(`Last email: ${SUBJECT}`);
+  });
+
+  it("on a scheduled check before any email, leaves no placeholder", async () => {
+    const incident: Incident = await openIncident(
+      {
+        title: "No email received{{emailSubject}}",
+        description: "Last email received at: {{emailReceivedAt}}",
+      },
+      scheduledCheckBeforeAnyEmail(),
+    );
+
+    expect(incident.title).toBe("No email received");
+    expect(incident.description).toBe("Last email received at: ");
   });
 });
