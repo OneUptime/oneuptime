@@ -359,7 +359,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             const arrayBuffer: ArrayBuffer = await acceptedFile.arrayBuffer();
             const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
             fileModel.file = Buffer.from(fileBuffer);
-            fileModel.isPublic = false;
             fileModel.fileType = resolveMimeType(acceptedFile) || MimeType.txt; // default to text/plain to satisfy required field
 
             const result: HTTPResponse<FileModel> =

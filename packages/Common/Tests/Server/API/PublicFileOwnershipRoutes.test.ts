@@ -45,6 +45,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
+import StatusPageEmailLogo from "../../../Server/Utils/StatusPage/StatusPageEmailLogo";
 import Response from "../../../Server/Utils/Response";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
@@ -449,6 +450,26 @@ describe("public routes serve only a record's own files", () => {
           expect(result.text).not.toContain(FOREIGN_BYTES.toString("utf8"));
           expect(result.text).not.toContain(UNOWNED_BYTES.toString("utf8"));
         }
+      }
+    });
+
+    it("an email shows the page's logo exactly when this route serves it", async () => {
+      for (const pageId of [OWN_PAGE_ID, FOREIGN_PAGE_ID, UNOWNED_PAGE_ID]) {
+        const result: HttpResult = await send({
+          port,
+          method: "GET",
+          path: `/api/status-page/logo/${pageId.toString()}`,
+        });
+
+        expect({
+          pageId: pageId.toString(),
+          servedByRoute: result.status === 200,
+        }).toEqual({
+          pageId: pageId.toString(),
+          servedByRoute: StatusPageEmailLogo.isLogoServed(
+            pageOf(pageId.toString()),
+          ),
+        });
       }
     });
 

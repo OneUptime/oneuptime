@@ -2595,6 +2595,32 @@ describe("MarkdownEditor paste in the markdown source", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
+  test("links an uploaded image by its access token, and leaves whether it is public to the server", async () => {
+    const onChange: jest.Mock = jest.fn();
+    const create: jest.SpyInstance = jest
+      .spyOn(ModelAPI, "create")
+      .mockResolvedValue({ data: { imageAccessToken: "abc123" } } as never);
+    render(<MarkdownEditor initialValue="" onChange={onChange} />);
+    const textarea: HTMLTextAreaElement = switchToMarkdown();
+
+    fireEvent.paste(textarea, {
+      clipboardData: clipboardWith({}, [imageFile()]),
+    });
+    await flushUploads();
+
+    expect(create).toHaveBeenCalledTimes(1);
+
+    // Every upload starts private: the server says so, not the editor.
+    const uploaded: { isPublic?: unknown } = (
+      create.mock.calls[0]![0] as { model: { isPublic?: unknown } }
+    ).model;
+    expect(uploaded.isPublic).toBeUndefined();
+
+    expect(lastChange(onChange)).toMatch(
+      /!\[shot\.png\]\([^)]*\/image\/access-token\/abc123\)/,
+    );
+  });
+
   test("still uploads a pasted image", async () => {
     const onChange: jest.Mock = jest.fn();
     const create: jest.SpyInstance = jest

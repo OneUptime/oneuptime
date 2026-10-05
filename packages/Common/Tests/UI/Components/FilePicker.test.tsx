@@ -334,6 +334,10 @@ describe("FilePicker", () => {
       expect((await uploadIco(MimeType.ico)).fileType).toBe(MimeType.ico);
     });
 
+    it("leaving whether the file is public to the server: every upload starts private", async () => {
+      expect((await uploadIco(MimeType.ico)).isPublic).toBeUndefined();
+    });
+
     it("as image/vnd.microsoft.icon, stored as image/x-icon", async () => {
       expect((await uploadIco("image/vnd.microsoft.icon")).fileType).toBe(
         MimeType.ico,
