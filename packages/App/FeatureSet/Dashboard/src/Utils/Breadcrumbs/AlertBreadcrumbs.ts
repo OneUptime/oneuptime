@@ -193,6 +193,12 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
      * The AI settings and the auto-remediation rules are pages of the AI
      * section.
      */
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_AI_LOGS, [
+      "Project",
+      "Alerts",
+      "AI",
+      "Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_AI, [
       "Project",
       "Alerts",

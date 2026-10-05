@@ -639,6 +639,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "AI",
         pages: [
           {
+            page: PageMap.INCIDENTS_AI_LOGS,
+            title: "Logs",
+            icon: IconProp.QueueList,
+            keywords: [
+              "ai logs",
+              "ai activity",
+              "ai investigations",
+              "ai fixes",
+              "ai commands",
+            ],
+          },
+          {
             page: PageMap.INCIDENTS_SETTINGS_AI,
             title: "Settings",
             icon: IconProp.Settings,
@@ -806,6 +818,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "AI",
         pages: [
+          {
+            page: PageMap.ALERTS_AI_LOGS,
+            title: "Logs",
+            icon: IconProp.QueueList,
+            keywords: [
+              "ai logs",
+              "ai activity",
+              "ai investigations",
+              "ai fixes",
+              "ai commands",
+            ],
+          },
           {
             page: PageMap.ALERTS_SETTINGS_AI,
             title: "Settings",

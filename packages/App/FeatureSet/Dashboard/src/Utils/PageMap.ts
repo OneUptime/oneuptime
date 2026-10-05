@@ -144,10 +144,11 @@ enum PageMap {
   INCIDENTS_SETTINGS_LINKED_ALERTS = "INCIDENTS_SETTINGS_LINKED_ALERTS",
   INCIDENTS_SETTINGS_NUMBER_PREFIX = "INCIDENTS_SETTINGS_NUMBER_PREFIX",
   /*
-   * The Settings page of the Incidents menu's AI section, which it shares
-   * with INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES. Both keys kept their
-   * names when the pages moved there from Settings and Rules.
+   * The Incidents menu's AI section: Logs, then INCIDENTS_SETTINGS_AI (its
+   * Settings) and INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES, whose keys kept
+   * their names when the pages moved there from Settings and Rules.
    */
+  INCIDENTS_AI_LOGS = "INCIDENTS_AI_LOGS",
   INCIDENTS_SETTINGS_AI = "INCIDENTS_SETTINGS_AI",
 
   ALERTS_ROOT = "ALERTS_ROOT",
@@ -214,10 +215,11 @@ enum PageMap {
   ALERTS_SETTINGS_MEASUREMENTS = "ALERTS_SETTINGS_MEASUREMENTS",
   ALERTS_SETTINGS_NUMBER_PREFIX = "ALERTS_SETTINGS_NUMBER_PREFIX",
   /*
-   * The Settings page of the Alerts menu's AI section, which it shares with
-   * ALERTS_SETTINGS_AUTO_REMEDIATION_RULES. Both keys kept their names when
-   * the pages moved there from Settings and Rules.
+   * The Alerts menu's AI section: Logs, then ALERTS_SETTINGS_AI (its
+   * Settings) and ALERTS_SETTINGS_AUTO_REMEDIATION_RULES, whose keys kept
+   * their names when the pages moved there from Settings and Rules.
    */
+  ALERTS_AI_LOGS = "ALERTS_AI_LOGS",
   ALERTS_SETTINGS_AI = "ALERTS_SETTINGS_AI",
 
   SCHEDULED_MAINTENANCE_EVENTS_ROOT = "SCHEDULED_MAINTENANCE_EVENTS_ROOT",

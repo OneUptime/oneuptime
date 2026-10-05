@@ -100,6 +100,7 @@ import IncidentSettingsNumberPrefix from "../Pages/Incidents/Settings/IncidentNu
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import IncidentSettingsAI from "../Pages/Incidents/Settings/IncidentAISettings";
+import IncidentAILogs from "../Pages/Incidents/AI/Logs";
 
 // Incident Episode Pages
 import IncidentEpisodes from "../Pages/Incidents/Episodes";
@@ -703,6 +704,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_AI_LOGS] || ""}
+          element={
+            <IncidentAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENTS_AI_LOGS] as Route}
             />
           }
         />

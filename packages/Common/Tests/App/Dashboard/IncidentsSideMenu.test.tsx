@@ -214,10 +214,14 @@ describe("Incidents side menu", () => {
   });
 
   describe("the AI section", () => {
-    test("holds the AI settings page and the auto-remediation rules", async () => {
+    test("holds what AI did, its settings and the auto-remediation rules", async () => {
       await renderIncidentsMenu();
 
       expect(linksIn("AI")).toEqual([
+        {
+          title: "Logs",
+          href: routeFor(PageMap.INCIDENTS_AI_LOGS),
+        },
         {
           title: "Settings",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_AI),
@@ -237,6 +241,7 @@ describe("Incidents side menu", () => {
           return link.href;
         }),
       ).toEqual([
+        `/dashboard/${PROJECT_ID}/incidents/ai/logs`,
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
         `/dashboard/${PROJECT_ID}/incidents/ai/auto-remediation-rules`,
       ]);
@@ -249,6 +254,7 @@ describe("Incidents side menu", () => {
     });
 
     test.each([
+      PageMap.INCIDENTS_AI_LOGS,
       PageMap.INCIDENTS_SETTINGS_AI,
       PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
     ])("%s is listed once, and only under AI", async (pageMapKey: string) => {
@@ -322,6 +328,7 @@ describe("Incidents side menu", () => {
 
     // AI is collapsed by default, so it must open itself on its pages.
     test.each([
+      ["Logs", PageMap.INCIDENTS_AI_LOGS],
       ["Settings", PageMap.INCIDENTS_SETTINGS_AI],
       [
         "Auto Remediation Rules",
@@ -679,6 +686,13 @@ describe("Incidents side menu", () => {
   describe("mobile summary", () => {
     beforeEach(() => {
       setViewportWidth(MOBILE_WIDTH);
+    });
+
+    test("names the AI section on the AI Logs page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/ai/logs`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("AI / Logs");
     });
 
     test("names the AI section on the AI settings page", async () => {

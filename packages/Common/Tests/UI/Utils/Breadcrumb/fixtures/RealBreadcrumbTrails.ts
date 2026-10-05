@@ -171,6 +171,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/ai/logs",
+    titles: ["Project", "Alerts", "AI", "Logs"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/alerts/ai/settings",
     titles: ["Project", "Alerts", "AI", "Settings"],
   },
@@ -957,6 +962,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     getter: "getIncidentsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/incidents/create",
     titles: ["Project", "Incidents", "Declare New Incident"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/ai/logs",
+    titles: ["Project", "Incidents", "AI", "Logs"],
   },
   {
     getter: "getIncidentsBreadcrumbs",

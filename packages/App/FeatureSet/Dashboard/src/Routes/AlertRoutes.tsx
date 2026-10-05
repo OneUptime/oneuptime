@@ -77,6 +77,7 @@ import AlertSettingsNumberPrefix from "../Pages/Alerts/Settings/AlertNumberPrefi
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import { MORE_SETTINGS_PATH } from "../Components/NumberPrefix/NumberPrefixSettings";
 import AlertSettingsAI from "../Pages/Alerts/Settings/AlertAISettings";
+import AlertAILogs from "../Pages/Alerts/AI/Logs";
 
 // Episode Pages
 import Episodes from "../Pages/Alerts/Episodes";
@@ -509,6 +510,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.ALERTS_SETTINGS_NUMBER_PREFIX] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_AI_LOGS] || ""}
+          element={
+            <AlertAILogs
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_AI_LOGS] as Route}
             />
           }
         />
