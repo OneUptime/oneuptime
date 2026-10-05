@@ -6582,7 +6582,7 @@
   "Submitted At": "Enviado em",
   "Delete Submission": "Excluir envio",
   "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.": "Somente quem pode ler todos os incidentes e seus campos personalizados pode salvar um modelo que insira um campo personalizado ou as etiquetas do incidente. As funções de página de status, por si sós, não podem adicioná-los.",
-  "Preview notification": "Pré-visualizar notificação",
+  "Preview notification": "Pré-visualização da notificação",
   "Write the note first to preview the email it sends.": "Escreva a nota primeiro para ver o e-mail que ela envia.",
   "The email each status page's subscribers will get, from the same template and settings the notification is sent with.": "O e-mail que os assinantes de cada página de status receberão, a partir do mesmo modelo e das mesmas configurações com que a notificação é enviada.",
   "Building the preview...": "Gerando a pré-visualização...",

@@ -6582,7 +6582,7 @@
   "Submitted At": "Sendt inn",
   "Delete Submission": "Slett innsending",
   "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.": "Bare den som kan lese alle hendelser og de egendefinerte feltene deres, kan lagre en mal som setter inn et egendefinert felt eller hendelsens etiketter. Statussiderollene alene kan ikke legge dem til.",
-  "Preview notification": "Forhåndsvis varsel",
+  "Preview notification": "Forhåndsvisning av varsel",
   "Write the note first to preview the email it sends.": "Skriv notatet først for å se e-posten det sender.",
   "The email each status page's subscribers will get, from the same template and settings the notification is sent with.": "E-posten abonnentene på hver statusside får, fra den samme malen og de samme innstillingene som varselet sendes med.",
   "Building the preview...": "Lager forhåndsvisning...",

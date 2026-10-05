@@ -6582,7 +6582,7 @@
   "Submitted At": "Verzonden op",
   "Delete Submission": "Inzending verwijderen",
   "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.": "Alleen wie elk incident en de aangepaste velden ervan mag lezen, kan een sjabloon opslaan dat een aangepast veld of de labels van het incident plaatst. De statuspaginarollen alleen kunnen ze niet toevoegen.",
-  "Preview notification": "Melding bekijken",
+  "Preview notification": "Voorbeeld van de melding",
   "Write the note first to preview the email it sends.": "Schrijf eerst de notitie om de e-mail te zien die deze verstuurt.",
   "The email each status page's subscribers will get, from the same template and settings the notification is sent with.": "De e-mail die de abonnees van elke statuspagina ontvangen, met dezelfde sjabloon en instellingen waarmee de melding wordt verzonden.",
   "Building the preview...": "Voorbeeld wordt gemaakt...",
