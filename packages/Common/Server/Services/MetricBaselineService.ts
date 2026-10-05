@@ -176,7 +176,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}
-        AND hourOfWeek = ${hour}
+        AND ${MetricBaselineService.hourOfWeekCellFilter(hour)}
         AND day >= today() - INTERVAL ${windowDays} DAY
     `;
 
@@ -450,7 +450,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     const sql: string = `
       SELECT
-        hourOfWeek,
+        ${MetricBaselineService.ISO_HOUR_OF_WEEK_EXPRESSION} AS isoHourOfWeek,
         countMerge(sampleCountState) AS sampleCount,
         avgMerge(meanState)          AS mean,
         stddevPopMerge(stddevState)  AS stddev
@@ -459,13 +459,13 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}
         AND day >= today() - INTERVAL ${windowDays} DAY
-      GROUP BY hourOfWeek
+      GROUP BY isoHourOfWeek
     `;
 
     const resultSet: {
       json: () => Promise<{
         data: Array<{
-          hourOfWeek: number | string;
+          isoHourOfWeek: number | string;
           sampleCount: number | string;
           mean: number | string;
           stddev: number | string;
@@ -474,7 +474,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     } = (await this.executeQuery(sql)) as unknown as {
       json: () => Promise<{
         data: Array<{
-          hourOfWeek: number | string;
+          isoHourOfWeek: number | string;
           sampleCount: number | string;
           mean: number | string;
           stddev: number | string;
@@ -484,7 +484,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     const parsed: {
       data: Array<{
-        hourOfWeek: number | string;
+        isoHourOfWeek: number | string;
         sampleCount: number | string;
         mean: number | string;
         stddev: number | string;
@@ -493,7 +493,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     const byHour: Map<number, { mean: number; stddev: number }> = new Map();
     for (const row of parsed.data) {
-      const hour: number = this.toNumber(row.hourOfWeek);
+      const hour: number = this.toNumber(row.isoHourOfWeek);
       const samples: number = this.toNumber(row.sampleCount);
       if (samples < minSamples) {
         continue;
@@ -531,9 +531,16 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
   /**
    * Compute hour-of-week 0..167 for a Date the same way the MV does:
-   * `(toDayOfWeek(time, 1) - 1) * 24 + toHour(time)` with ISO week
+   * `(toDayOfWeek(time) - 1) * 24 + toHour(time)` with ISO week
    * numbering (Monday = 1, Sunday = 7). Pure function — kept here so
    * the eval-time anomaly check and the band query agree.
+   *
+   * Note `toDayOfWeek` with no mode argument: mode 0 is the ISO 1..7
+   * numbering this matches. Mode 1 is Monday = 0, so `toDayOfWeek(time, 1)
+   * - 1` puts Monday at -1 (232..255 once cast to UInt8) and every other
+   * day one slot early. The views used mode 1 until
+   * CorrectBaselineViewHourOfWeek; the rows they wrote stay stored and
+   * are read through `hourOfWeekCellFilter`.
    */
   public static computeHourOfWeek(date: Date): number {
     // JS getDay(): Sun=0..Sat=6. Convert to ISO 1..7 (Mon..Sun).
@@ -542,6 +549,36 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     const hour: number = date.getHours();
     return (isoDow - 1) * 24 + hour;
   }
+
+  /**
+   * WHERE clause selecting one hour-of-week cell in any of the three
+   * baseline tables, in both encodings the views have written: the
+   * current one, and the pre-fix mode-1 one, which put Monday at
+   * 232 + hour and every other day one slot early. A stored row's `day`
+   * came from the same timestamp as its hour, so `toDayOfWeek(day)` tells
+   * the two apart exactly - including on the upgrade day, which holds
+   * both. Every hourOfWeek lookup goes through here; a bare
+   * `hourOfWeek = H` reads the next day's history on installs that
+   * still hold pre-fix rows.
+   *
+   * The legacy slot stays for as long as a pre-fix row can exist; drop it
+   * only together with a DELETE of those rows.
+   */
+  public static hourOfWeekCellFilter(hourOfWeek: number): string {
+    const weekday: number = Math.floor(hourOfWeek / 24); // 0 = Monday
+    const legacy: number = weekday === 0 ? 232 + hourOfWeek : hourOfWeek - 24;
+    return `hourOfWeek IN (${hourOfWeek}, ${legacy}) AND toDayOfWeek(day) = ${weekday + 1}`;
+  }
+
+  /**
+   * A stored row's hour-of-week in the current encoding, whichever
+   * encoding wrote it (see `hourOfWeekCellFilter`): the weekday from
+   * `day`, the hour from either form of hourOfWeek. For grouping a whole
+   * window by cell; a single-cell lookup uses the filter, which keeps
+   * the sort key.
+   */
+  public static readonly ISO_HOUR_OF_WEEK_EXPRESSION: string =
+    "toUInt8((toDayOfWeek(day) - 1) * 24 + if(hourOfWeek >= 168, hourOfWeek - 232, hourOfWeek % 24))";
 
   /**
    * Map sensitivity level to sigma multiplier. Tighter sensitivity =
