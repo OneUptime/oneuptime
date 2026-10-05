@@ -313,38 +313,44 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
         return window.map(toModel);
       },
     ),
-    count: getJestMockFunction().mockImplementation(async (options: { where?: unknown }): Promise<number> => {
-      return table.rows.filter((row: StoredRow) => {
-        return rowMatchesWhere(row, options.where);
-      }).length;
-    }),
-    save: getJestMockFunction().mockImplementation(async (entity: TBaseModel): Promise<TBaseModel> => {
-      const record: StoredRow = {};
+    count: getJestMockFunction().mockImplementation(
+      async (options: { where?: unknown }): Promise<number> => {
+        return table.rows.filter((row: StoredRow) => {
+          return rowMatchesWhere(row, options.where);
+        }).length;
+      },
+    ),
+    save: getJestMockFunction().mockImplementation(
+      async (entity: TBaseModel): Promise<TBaseModel> => {
+        const record: StoredRow = {};
 
-      for (const [column, value] of Object.entries(
-        entity as unknown as StoredRow,
-      )) {
-        if (value !== undefined && typeof value !== "function") {
-          record[column] = value;
+        for (const [column, value] of Object.entries(
+          entity as unknown as StoredRow,
+        )) {
+          if (value !== undefined && typeof value !== "function") {
+            record[column] = value;
+          }
         }
-      }
 
-      if (!record["_id"]) {
-        record["_id"] = ObjectID.generate().toString();
-        (entity as unknown as StoredRow)["_id"] = record["_id"];
-      }
+        if (!record["_id"]) {
+          record["_id"] = ObjectID.generate().toString();
+          (entity as unknown as StoredRow)["_id"] = record["_id"];
+        }
 
-      const existing: StoredRow | undefined = table.get(String(record["_id"]));
+        const existing: StoredRow | undefined = table.get(
+          String(record["_id"]),
+        );
 
-      if (existing) {
-        Object.assign(existing, record);
-      } else {
-        table.rows.push(record);
-        table.inserts.push({ ...record });
-      }
+        if (existing) {
+          Object.assign(existing, record);
+        } else {
+          table.rows.push(record);
+          table.inserts.push({ ...record });
+        }
 
-      return entity;
-    }),
+        return entity;
+      },
+    ),
     update: getJestMockFunction().mockImplementation(
       async (where: unknown, set: StoredRow): Promise<{ affected: number }> => {
         const written: StoredRow = {};
@@ -368,21 +374,25 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
         return { affected };
       },
     ),
-    delete: getJestMockFunction().mockImplementation(async (where: unknown): Promise<{ affected: number }> => {
-      const removed: Array<StoredRow> = table.rows.filter((row: StoredRow) => {
-        return rowMatchesWhere(row, where);
-      });
+    delete: getJestMockFunction().mockImplementation(
+      async (where: unknown): Promise<{ affected: number }> => {
+        const removed: Array<StoredRow> = table.rows.filter(
+          (row: StoredRow) => {
+            return rowMatchesWhere(row, where);
+          },
+        );
 
-      table.rows = table.rows.filter((row: StoredRow) => {
-        return !removed.includes(row);
-      });
+        table.rows = table.rows.filter((row: StoredRow) => {
+          return !removed.includes(row);
+        });
 
-      for (const row of removed) {
-        table.deletes.push(String(row["_id"]));
-      }
+        for (const row of removed) {
+          table.deletes.push(String(row["_id"]));
+        }
 
-      return { affected: removed.length };
-    }),
+        return { affected: removed.length };
+      },
+    ),
   };
 
   getJestSpyOn(service, "getRepository").mockReturnValue(table.repository);

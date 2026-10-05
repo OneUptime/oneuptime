@@ -30,7 +30,10 @@ jest.mock("../../../Server/Utils/Logger");
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
-    ...(jest.requireActual("../../../Server/EnvironmentConfig") as object),
+    ...(jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
     IsBillingEnabled: true,
     NotificationSlackWebhookOnCreateProject: "",
     NotificationSlackWebhookOnSubscriptionUpdate: "",
