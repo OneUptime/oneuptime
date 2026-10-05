@@ -283,6 +283,70 @@ async function openComposer(page: Page): Promise<Locator> {
   return composer;
 }
 
+/*
+ * 'Preview' beside the public note composer's notify box: one word on
+ * screen, named for what it previews (SubscriberNotificationPreviewCopy).
+ */
+const PREVIEW_NAME: string = "Preview notification";
+const PREVIEW_NOTIFY_LABEL: string = "Notify status page subscribers";
+const PREVIEW_WAITING_REASON: string =
+  "Write the note first to preview the email it sends.";
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function previewLink(composer: Locator): Locator {
+  return composer.getByRole("button", { name: PREVIEW_NAME });
+}
+
+async function boxOf(locator: Locator): Promise<Box> {
+  const box: Box | null = await locator.boundingBox();
+  expect(box, "the element should be laid out").not.toBeNull();
+  return box!;
+}
+
+async function colorOf(locator: Locator): Promise<string> {
+  return locator.evaluate((element: Element): string => {
+    return window.getComputedStyle(element).color;
+  });
+}
+
+interface PreviewStyle {
+  borderTopWidth: string;
+  backgroundColor: string;
+  boxShadow: string;
+  fontSize: string;
+  textDecorationLine: string;
+}
+
+async function previewStyle(locator: Locator): Promise<PreviewStyle> {
+  return locator.evaluate((element: Element): PreviewStyle => {
+    const computed: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      borderTopWidth: computed.borderTopWidth,
+      backgroundColor: computed.backgroundColor,
+      boxShadow: computed.boxShadow,
+      fontSize: computed.fontSize,
+      textDecorationLine: computed.textDecorationLine,
+    };
+  });
+}
+
+// What the page asked the notification preview API.
+async function previewRequests(
+  page: Page,
+): Promise<Array<{ method: string; url: string; body: unknown }>> {
+  return (await fixture(page)).apiRequests.filter(
+    (request: { url: string }): boolean => {
+      return request.url.includes("/subscriber-notification-preview/");
+    },
+  );
+}
+
 async function openActions(noteCard: Locator): Promise<void> {
   await noteCard.getByRole("button", { name: "Note actions" }).click();
 }
@@ -859,6 +923,245 @@ test.describe("previewing the notification", () => {
       "Rolling back the edge config.",
     );
     expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  /*
+   * "This preview notification button is quite big. Can we please improve
+   * the UI?" It was a bordered button with a 20px envelope on a line of its
+   * own. Now it is 'Preview' - one word and an eye in the link colour - on
+   * the notify box's own line, the size of the text it sits beside.
+   */
+  test("the preview is a small link on the notify box's line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    const line: Locator = composer.getByTestId("note-notify-line");
+    const label: Locator = line.getByText(PREVIEW_NOTIFY_LABEL, {
+      exact: true,
+    });
+    const preview: Locator = previewLink(composer);
+
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveText("Preview");
+    await expect(preview).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    await expect(line.getByRole("button", { name: PREVIEW_NAME })).toHaveCount(
+      1,
+    );
+
+    // On the label's line, to the right of it.
+    const labelBox: Box = await boxOf(label);
+    const previewBox: Box = await boxOf(preview);
+    expect(
+      Math.abs(
+        labelBox.y +
+          labelBox.height / 2 -
+          (previewBox.y + previewBox.height / 2),
+      ),
+    ).toBeLessThanOrEqual(2);
+    expect(previewBox.x).toBeGreaterThan(labelBox.x + labelBox.width);
+
+    // A word wide, with a 24px hit area, and the line no taller than its text.
+    expect(previewBox.height).toBeLessThanOrEqual(24);
+    expect(previewBox.width).toBeLessThan(100);
+    expect((await boxOf(line)).height).toBeLessThanOrEqual(labelBox.height + 1);
+
+    // No box of its own: no border, no background, no shadow, a 14px word.
+    expect(await previewStyle(preview)).toEqual({
+      borderTopWidth: "0px",
+      backgroundColor: "rgba(0, 0, 0, 0)",
+      boxShadow: "none",
+      fontSize: "14px",
+      textDecorationLine: "none",
+    });
+    // The link colour (indigo-600), underlined while the pointer is on it.
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(79, 70, 229)");
+    await preview.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await previewStyle(preview)).textDecorationLine;
+      })
+      .toBe("underline");
+
+    // Who it reaches is said under the line, not on it.
+    await expect(composer.getByTestId("note-notify-audience")).toBeVisible();
+    expect(
+      (await boxOf(composer.getByTestId("note-notify-audience"))).y,
+    ).toBeGreaterThan(previewBox.y + previewBox.height);
+
+    await screenshot(page, "incident-public-notes-preview-link");
+  });
+
+  test("with nothing written it is grey, says why, and opens nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    const preview: Locator = previewLink(composer);
+
+    await expect(preview).toBeVisible();
+    await expect(preview).toHaveAttribute("aria-disabled", "true");
+    // Still a stop for the keyboard: aria-disabled, never disabled.
+    await expect(preview).not.toHaveAttribute("disabled");
+    await expect(preview).toHaveAccessibleName(PREVIEW_NAME);
+    await expect(preview).toHaveAccessibleDescription(PREVIEW_WAITING_REASON);
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(156, 163, 175)");
+
+    // The reason shows on hover.
+    await preview.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(PREVIEW_WAITING_REASON);
+
+    // Pressed by mouse or keyboard, it opens nothing and asks nothing.
+    await preview.click({ force: true });
+    await preview.focus();
+    await expect(preview).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog", { name: PREVIEW_NAME })).toHaveCount(
+      0,
+    );
+    expect(await previewRequests(page)).toEqual([]);
+
+    // Once there is something to preview, the same link opens it.
+    await composer.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Rolling back.");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(79, 70, 229)");
+    await preview.click();
+    await expect(
+      page
+        .getByRole("dialog", { name: PREVIEW_NAME })
+        .getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+    expect(await previewRequests(page)).toHaveLength(1);
+  });
+
+  test("the keyboard opens it, and closing the dialog gives the focus back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    const preview: Locator = previewLink(composer);
+    await preview.focus();
+    await page.keyboard.press("Enter");
+
+    const dialog: Locator = page.getByRole("dialog", { name: PREVIEW_NAME });
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(preview).toBeFocused();
+
+    // Space opens it too, and Close hands the focus back the same way.
+    await page.keyboard.press(" ");
+    await expect(
+      dialog.getByTestId("subscriber-notification-preview-body"),
+    ).toBeVisible();
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Close" })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    await expect(preview).toBeFocused();
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("in the dark theme it keeps the link colour, and grey while it waits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "theme=dark");
+    expect(
+      await page.evaluate((): boolean => {
+        return document.documentElement.classList.contains("dark");
+      }),
+    ).toBe(true);
+
+    const composer: Locator = await openComposer(page);
+    const preview: Locator = previewLink(composer);
+
+    // Theme.css's grey for text-gray-400, not the light one.
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(148, 163, 184)");
+
+    await page.keyboard.type("Rolling back.");
+    await expect(preview).not.toHaveAttribute("aria-disabled", "true");
+    // Theme.css's light indigo for text-indigo-600 on a dark surface.
+    await expect
+      .poll(() => {
+        return colorOf(preview);
+      })
+      .toBe("rgb(165, 180, 252)");
+    await preview.hover();
+    await expect
+      .poll(async (): Promise<string> => {
+        return (await previewStyle(preview)).textDecorationLine;
+      })
+      .toBe("underline");
+
+    await screenshot(page, "incident-public-notes-preview-link-dark");
+  });
+
+  test("on a phone it stays a word wide, inside the composer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await open(page, INCIDENT_PUBLIC);
+    const composer: Locator = await openComposer(page);
+    await page.keyboard.type("Rolling back the edge config.");
+
+    const preview: Locator = previewLink(composer);
+    await expect(preview).toBeVisible();
+
+    const previewBox: Box = await boxOf(preview);
+    const composerBox: Box = await boxOf(composer);
+    const label: Box = await boxOf(
+      composer
+        .getByTestId("note-notify-line")
+        .getByText(PREVIEW_NOTIFY_LABEL, { exact: true }),
+    );
+
+    // Not stretched across the screen as the old button was.
+    expect(previewBox.width).toBeLessThan(100);
+    expect(previewBox.height).toBeLessThanOrEqual(24);
+    // Inside the composer, on the label's line or wrapped under it.
+    expect(previewBox.x).toBeGreaterThanOrEqual(composerBox.x);
+    expect(previewBox.x + previewBox.width).toBeLessThanOrEqual(
+      composerBox.x + composerBox.width,
+    );
+    expect(previewBox.y).toBeGreaterThanOrEqual(label.y - 2);
+
+    await screenshot(page, "incident-public-notes-preview-link-phone");
   });
 });
 

@@ -446,10 +446,10 @@ describe("what a screen reader hears", () => {
 describe("opening the preview", () => {
   test("a click opens the dialog, with the draft as it is when pressed", async () => {
     let note: string = "First draft";
-    const getRequest: jest.Mock<() => SubscriberNotificationPreviewRequest> =
-      jest.fn((): SubscriberNotificationPreviewRequest => {
-        return { ...REQUEST, note: note };
-      });
+    const getRequest: MockFunction = getJestMockFunction();
+    getRequest.mockImplementation((): SubscriberNotificationPreviewRequest => {
+      return { ...REQUEST, note: note };
+    });
 
     renderLink({ getRequest: getRequest });
 
@@ -580,9 +580,8 @@ describe("nothing to preview yet", () => {
   });
 
   test("pressing it, by mouse or keyboard, does nothing", async () => {
-    const getRequest: jest.Mock<() => null> = jest.fn((): null => {
-      return null;
-    });
+    const getRequest: MockFunction = getJestMockFunction();
+    getRequest.mockReturnValue(null);
     const user: UserEvent = setUpUser();
     renderWaiting(getRequest);
 
