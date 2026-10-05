@@ -5,6 +5,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
+import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
+import { AutoRemediationDecisionStage } from "Common/Types/AutoRemediation/AutoRemediationDecision";
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
@@ -46,6 +48,14 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import RemediationDecisionList from "./RemediationDecisionList";
+import {
+  getRemediationDecisionLines,
+  pickRemediationDecision,
+  REMEDIATION_DECISION_CARD_DESCRIPTION,
+  RemediationDecision,
+  RemediationDecisionLine,
+} from "./RemediationDecisionLines";
 import React, {
   Fragment,
   FunctionComponent,
@@ -665,6 +675,18 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   const [suggestions, setSuggestions] = useState<
     Array<AutoRemediationSuggestion>
   >([]);
+  /*
+   * What the rule engine did with the signal, or why it did nothing - shown
+   * even when there is no suggestion, so a signal nothing fixed says why.
+   */
+  const [decision, setDecision] = useState<RemediationDecision | null>(null);
+  /*
+   * The stage of the decision as last read. An evaluated decision does not
+   * change - approving or dismissing a suggestion does not touch it - so it
+   * is read again only while remediation still waits for the investigation.
+   */
+  const decisionStageRef: React.MutableRefObject<AutoRemediationDecisionStage | null> =
+    useRef<AutoRemediationDecisionStage | null>(null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [failedAction, setFailedAction] =
@@ -708,8 +730,19 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
             return;
           }
 
-          const result: ListResult<AutoRemediationSuggestion> =
-            await ModelAPI.getList<AutoRemediationSuggestion>({
+          /*
+           * The decisions are read beside the suggestions, and a failed
+           * read of them (an older server, say) only leaves them out.
+           */
+          const shouldReadDecision: boolean =
+            !options?.isActionReload &&
+            decisionStageRef.current !== AutoRemediationDecisionStage.Evaluated;
+
+          const [result, decisionRows]: [
+            ListResult<AutoRemediationSuggestion>,
+            ListResult<AutoRemediationDecision> | null,
+          ] = await Promise.all([
+            ModelAPI.getList<AutoRemediationSuggestion>({
               modelType: AutoRemediationSuggestion,
               query,
               limit: 10,
@@ -734,9 +767,36 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
               sort: {
                 createdAt: SortOrder.Descending,
               },
-            });
+            }),
+            shouldReadDecision
+              ? ModelAPI.getList<AutoRemediationDecision>({
+                  modelType: AutoRemediationDecision,
+                  query,
+                  limit: 5,
+                  skip: 0,
+                  select: {
+                    _id: true,
+                    stage: true,
+                    entries: true,
+                    createdAt: true,
+                  },
+                  sort: {
+                    createdAt: SortOrder.Descending,
+                  },
+                }).catch((): null => {
+                  return null;
+                })
+              : Promise.resolve(null),
+          ]);
 
           setSuggestions(result.data);
+          if (decisionRows) {
+            const picked: RemediationDecision | null = pickRemediationDecision(
+              decisionRows.data,
+            );
+            decisionStageRef.current = picked?.stage || null;
+            setDecision(picked);
+          }
           setIsLoaded(true);
         } catch {
           // Best-effort card — a failed refresh keeps the previous state.
@@ -753,8 +813,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   }, [load]);
 
   // Poll while an AI plan is still in flight so the pick lands live.
-  const hasPlanning: boolean = suggestions.some(
-    (s: AutoRemediationSuggestion): boolean => {
+  const hasPlanning: boolean =
+    decision?.stage === AutoRemediationDecisionStage.WaitingForInvestigation ||
+    suggestions.some((s: AutoRemediationSuggestion): boolean => {
       if (
         s.status === AutoRemediationSuggestionStatus.Planning ||
         s.verificationStatus === AutoRemediationVerificationStatus.Pending
@@ -781,8 +842,7 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         );
       }
       return false;
-    },
-  );
+    });
 
   useEffect(() => {
     if (!hasPlanning) {
@@ -886,22 +946,31 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  const decisionLines: Array<RemediationDecisionLine> = decision
+    ? getRemediationDecisionLines({
+        decision,
+        signal: incidentIdString ? "incident" : "alert",
+        translator,
+      })
+    : [];
+
   if (!isLoaded && props.hideIfEmpty) {
     return <Fragment />;
   }
 
-  if (props.hideIfEmpty && suggestions.length === 0) {
-    return <Fragment />;
-  }
-
-  if (suggestions.length === 0) {
+  // Nothing to show: no suggestion, and no decision (an older signal).
+  if (suggestions.length === 0 && decisionLines.length === 0) {
     return <Fragment />;
   }
 
   return (
     <Card
       title="Remediation"
-      description={getRemediationCardDescription(suggestions)}
+      description={
+        suggestions.length > 0
+          ? getRemediationCardDescription(suggestions)
+          : REMEDIATION_DECISION_CARD_DESCRIPTION
+      }
     >
       <div className="flex flex-col gap-4">
         {actionError ? (
@@ -921,6 +990,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
+
+        <RemediationDecisionList lines={decisionLines} />
 
         {suggestions.map(
           (suggestion: AutoRemediationSuggestion): ReactElement => {

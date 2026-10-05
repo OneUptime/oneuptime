@@ -489,6 +489,24 @@ export default class MonitorIncident {
       });
 
     /*
+     * What someone linked the monitor to by hand (Monitor > Overview >
+     * Linked Resources). Read only once an incident is really being created,
+     * and at most once per evaluation: a monitor that stays down keeps
+     * evaluating with its incident already open.
+     */
+    let linkedResources: Promise<SeriesResolvedResourceIds> | null = null;
+    const getLinkedResources: () => Promise<SeriesResolvedResourceIds> =
+      (): Promise<SeriesResolvedResourceIds> => {
+        if (!linkedResources) {
+          linkedResources =
+            MonitorResourceContextUtil.resolveLinkedResourcesForMonitor({
+              monitor: input.monitor,
+            });
+        }
+        return linkedResources;
+      };
+
+    /*
      * Series-less path: one incident per criteriaIncident template as
      * before. Series-aware path: one incident per (series × template).
      */
@@ -800,6 +818,12 @@ export default class MonitorIncident {
           SeriesResourceLinker.attachResolvedResources({
             model: incident,
             resolved: resourceContext,
+          });
+
+          // And what the monitor was linked to by hand, merged the same way.
+          SeriesResourceLinker.attachResolvedResources({
+            model: incident,
+            resolved: await getLinkedResources(),
           });
 
           /*

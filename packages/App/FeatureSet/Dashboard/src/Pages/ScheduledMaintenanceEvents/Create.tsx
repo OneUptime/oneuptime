@@ -8,6 +8,7 @@ import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
@@ -30,6 +31,11 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
+import MonitorLinkedResourcesPrefill, {
+  MonitorLinkedResourcesPrefillState,
+  useMonitorLinkedResourcesPrefillState,
+} from "../../Components/AffectedResources/MonitorLinkedResourcesPrefill";
+import { SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS } from "../../Components/AffectedResources/MonitorLinkedResourcesPrefillRules";
 import AffectedResourcesPicker, {
   AffectedResourceType,
   isAffectedResourcesPayload,
@@ -52,6 +58,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
   CustomElementProps,
+  FieldFooterProps,
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -143,6 +150,10 @@ const hasMonitors: (values: FormValues<ScheduledMaintenance>) => boolean = (
 const ScheduledMaintenanceCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // What the picked monitors' linked resources added (survives step changes).
+  const linkedResourcesPrefill: MutableRefObject<MonitorLinkedResourcesPrefillState> =
+    useMonitorLinkedResourcesPrefillState();
+
   const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -729,6 +740,25 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         } as FormValues<ScheduledMaintenance>);
                       });
                     }
+                  },
+                  /*
+                   * What the picked monitors are linked to, added here
+                   * (MonitorLinkedResourcesPrefill).
+                   */
+                  getFooterElement: (
+                    values: FormValues<ScheduledMaintenance>,
+                    _error?: string,
+                    footer?: FieldFooterProps,
+                  ) => {
+                    return (
+                      <MonitorLinkedResourcesPrefill
+                        monitorIds={values.monitors}
+                        values={values as Record<string, unknown>}
+                        footer={footer}
+                        payloadKeys={SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS}
+                        state={linkedResourcesPrefill}
+                      />
+                    );
                   },
                   /*
                    * The form holds bare IDs once the picker has written to
