@@ -631,8 +631,9 @@ describe("the note under Teams", () => {
     };
 
     await act(async (): Promise<void> => {
-      rerender = render(<SsoTeamsGrantNote selectedTeams={selectedTeams} />)
-        .rerender;
+      rerender = render(
+        <SsoTeamsGrantNote selectedTeams={selectedTeams} />,
+      ).rerender;
     });
 
     return {
@@ -868,7 +869,9 @@ describe("in the SAML provider form", () => {
 
     expect(
       await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
-    ).toHaveTextContent("You can't add people to Members through this provider");
+    ).toHaveTextContent(
+      "You can't add people to Members through this provider",
+    );
   });
 
   test("a project owner sees no note", async () => {

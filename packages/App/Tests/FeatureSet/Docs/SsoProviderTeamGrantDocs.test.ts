@@ -54,8 +54,9 @@ function sectionsOf(page: string): Array<string> {
 
 // The SAML set-up's Teams bullet: the one before the bullet with the methods.
 function samlTeamsBullet(language: string): string {
-  const lines: Array<string> = sectionsOf(readPage(language, "identity/sso"))[2]!
-    .split("\n");
+  const lines: Array<string> = sectionsOf(
+    readPage(language, "identity/sso"),
+  )[2]!.split("\n");
   const methods: number = lines.findIndex((line: string): boolean => {
     return line.includes("`RSA-SHA256`");
   });
@@ -101,9 +102,10 @@ function scimLeadIn(language: string): string {
     return line.startsWith("1. **");
   });
 
-  expect({ language, heading: lines[firstStep - 4]?.startsWith("### ") }).toEqual(
-    { language, heading: true },
-  );
+  expect({
+    language,
+    heading: lines[firstStep - 4]?.startsWith("### "),
+  }).toEqual({ language, heading: true });
 
   return lines[firstStep - 2]!;
 }

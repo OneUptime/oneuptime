@@ -139,8 +139,7 @@ export default class SsoProviderTeamGrant {
       return [];
     }
 
-    const ids: Array<string> | null =
-      RelationValueUtil.getRelationIdSet(teams);
+    const ids: Array<string> | null = RelationValueUtil.getRelationIdSet(teams);
 
     if (!ids) {
       throw new BadDataException(TEAMS_NOT_REFERENCES_MESSAGE);
@@ -340,9 +339,8 @@ export default class SsoProviderTeamGrant {
         return Boolean(rowId);
       });
 
-    const updatedTeams: unknown = (
-      updateBy.data as unknown as ProviderRecord
-    ).teams;
+    const updatedTeams: unknown = (updateBy.data as unknown as ProviderRecord)
+      .teams;
     const writesTeams: boolean = updatedTeams !== undefined;
 
     if (selectedIds.length > 0) {

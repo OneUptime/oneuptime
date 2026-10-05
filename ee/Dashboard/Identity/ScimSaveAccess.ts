@@ -19,9 +19,8 @@ import GrantablePermission from "Common/UI/Utils/GrantablePermission";
  *
  * React-free: the page and the tests read it.
  */
-export const canCurrentUserSaveScimConnections: () => boolean =
-  (): boolean => {
-    return GrantablePermission.canCurrentUserGrant(Permission.ProjectOwner);
-  };
+export const canCurrentUserSaveScimConnections: () => boolean = (): boolean => {
+  return GrantablePermission.canCurrentUserGrant(Permission.ProjectOwner);
+};
 
 export default canCurrentUserSaveScimConnections;

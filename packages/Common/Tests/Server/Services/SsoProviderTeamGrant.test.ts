@@ -444,8 +444,7 @@ function stubProviderReads(
       return providers
         .filter((provider: FakeProvider): boolean => {
           return (
-            (!ids ||
-              ids.includes(provider.id.toString().toLowerCase())) &&
+            (!ids || ids.includes(provider.id.toString().toLowerCase())) &&
             (query["projectId"] === undefined ||
               sameId(query["projectId"], provider.projectId))
           );
@@ -526,20 +525,22 @@ beforeEach(() => {
    * lets the update through, scoped to the request's project, as it does for
    * a caller allowed to edit providers.
    */
-  const updatePermissionChecks: ReturnType<typeof getJestSpyOn> =
-    getJestSpyOn(ModelPermission, "checkUpdateQueryPermissions").mockImplementation(
-      async (
-        _modelType: unknown,
-        query: unknown,
-        _data: unknown,
-        props: unknown,
-      ): Promise<unknown> => {
-        return {
-          ...(query as Record<string, unknown>),
-          projectId: (props as DatabaseCommonInteractionProps).tenantId,
-        };
-      },
-    );
+  const updatePermissionChecks: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+    ModelPermission,
+    "checkUpdateQueryPermissions",
+  ).mockImplementation(
+    async (
+      _modelType: unknown,
+      query: unknown,
+      _data: unknown,
+      props: unknown,
+    ): Promise<unknown> => {
+      return {
+        ...(query as Record<string, unknown>),
+        projectId: (props as DatabaseCommonInteractionProps).tenantId,
+      };
+    },
+  );
 
   database = {
     teamReads,
@@ -711,27 +712,24 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       PROJECT_TEAMS.map((team: FakeTeam): [string, FakeTeam] => {
         return [team.name, team];
       }),
-    )(
-      "with %s as its only team",
-      async (_name: string, team: FakeTeam) => {
-        const error: Error | null = await refusal(
-          create(providerCase, [team], propsFor(caller)),
-        );
+    )("with %s as its only team", async (_name: string, team: FakeTeam) => {
+      const error: Error | null = await refusal(
+        create(providerCase, [team], propsFor(caller)),
+      );
 
-        if (caller.grantable.includes(team)) {
-          expect(error).toBeNull();
-          return;
-        }
+      if (caller.grantable.includes(team)) {
+        expect(error).toBeNull();
+        return;
+      }
 
-        expect(error).toBeInstanceOf(NotAuthorizedException);
-        expect(error?.message).toBe(
-          getProviderTeamsRefusalMessage({
-            kind: providerCase.kind,
-            teamNames: [team.name],
-          }),
-        );
-      },
-    );
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error?.message).toBe(
+        getProviderTeamsRefusalMessage({
+          kind: providerCase.kind,
+          teamNames: [team.name],
+        }),
+      );
+    });
 
     test("with every team of the project: refused, naming exactly the teams beyond the caller's access, oldest first", async () => {
       const beyond: Array<FakeTeam> = notGrantable(caller);
@@ -810,10 +808,30 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
   });
 
   test.each([
-    ["models", (team: FakeTeam): unknown => toTeamModel(team)],
-    ["{ _id } objects", (team: FakeTeam): unknown => ({ _id: team.id.toString() })],
-    ["id strings", (team: FakeTeam): unknown => team.id.toString()],
-    ["upper-case ids", (team: FakeTeam): unknown => team.id.toString().toUpperCase()],
+    [
+      "models",
+      (team: FakeTeam): unknown => {
+        return toTeamModel(team);
+      },
+    ],
+    [
+      "{ _id } objects",
+      (team: FakeTeam): unknown => {
+        return { _id: team.id.toString() };
+      },
+    ],
+    [
+      "id strings",
+      (team: FakeTeam): unknown => {
+        return team.id.toString();
+      },
+    ],
+    [
+      "upper-case ids",
+      (team: FakeTeam): unknown => {
+        return team.id.toString().toUpperCase();
+      },
+    ],
   ])(
     "teams sent as %s are weighed the same",
     async (_shape: string, toValue: (team: FakeTeam) => unknown) => {
@@ -858,11 +876,7 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
     ["a master admin", MASTER_ADMIN],
     ["root", ROOT],
   ])("%s is not weighed at all", async (_name: string, caller: Caller) => {
-    await create(
-      providerCase,
-      [OWNERS, OTHER_PROJECTS_TEAM],
-      propsFor(caller),
-    );
+    await create(providerCase, [OWNERS, OTHER_PROJECTS_TEAM], propsFor(caller));
 
     expect(database.teamReads).not.toHaveBeenCalled();
     expect(database.permissionReads).not.toHaveBeenCalled();
@@ -984,7 +998,9 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       );
 
       expect(error?.message).toBe("You may not edit this provider.");
-      expect(database.providerReads.get(providerCase.key)).not.toHaveBeenCalled();
+      expect(
+        database.providerReads.get(providerCase.key),
+      ).not.toHaveBeenCalled();
       expect(database.teamReads).not.toHaveBeenCalled();
     });
 
@@ -1161,11 +1177,7 @@ describe(SCIM.label, () => {
   });
 
   test("an accepted create still gets its bearer token", async () => {
-    const result: OnCreate<BaseModel> = await create(
-      SCIM,
-      [],
-      propsFor(OWNER),
-    );
+    const result: OnCreate<BaseModel> = await create(SCIM, [], propsFor(OWNER));
 
     expect((result.createBy.data as ProjectSCIM).bearerToken).toBeTruthy();
   });
