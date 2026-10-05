@@ -256,8 +256,8 @@ export class Service extends ProjectReferencesService<Model> {
           await IncidentService.updateOneById({
             id: member.incidentId,
             data: {
-              incidentEpisodeId: undefined as any,
-            },
+              incidentEpisodeId: null,
+            } as any,
             props: {
               isRoot: true,
             },
