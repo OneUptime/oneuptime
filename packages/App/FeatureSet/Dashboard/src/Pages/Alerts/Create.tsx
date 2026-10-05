@@ -7,6 +7,7 @@ import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useMemo,
 } from "react";
@@ -26,12 +27,18 @@ import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Service from "Common/Models/DatabaseModels/Service";
+import MonitorLinkedResourcesPrefill, {
+  MonitorLinkedResourcesPrefillState,
+  useMonitorLinkedResourcesPrefillState,
+} from "../../Components/AffectedResources/MonitorLinkedResourcesPrefill";
+import { ALERT_PREFILL_PAYLOAD_KEYS } from "../../Components/AffectedResources/MonitorLinkedResourcesPrefillRules";
 import AffectedResourcesPicker, {
   AffectedResourceType,
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
 import {
   CustomElementProps,
+  FieldFooterProps,
   FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -92,6 +99,10 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
 ];
 
 const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  // What the picked monitors' linked resources added (survives step changes).
+  const linkedResourcesPrefill: MutableRefObject<MonitorLinkedResourcesPrefillState> =
+    useMonitorLinkedResourcesPrefillState();
+
   const translator: Translator = useTranslator();
 
   /*
@@ -379,6 +390,25 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         } as FormValues<Alert>);
                       });
                     }
+                  },
+                  /*
+                   * What the picked monitor is linked to, added here
+                   * (MonitorLinkedResourcesPrefill).
+                   */
+                  getFooterElement: (
+                    values: FormValues<Alert>,
+                    _error?: string,
+                    footer?: FieldFooterProps,
+                  ) => {
+                    return (
+                      <MonitorLinkedResourcesPrefill
+                        monitorIds={values.monitor}
+                        values={values as Record<string, unknown>}
+                        footer={footer}
+                        payloadKeys={ALERT_PREFILL_PAYLOAD_KEYS}
+                        state={linkedResourcesPrefill}
+                      />
+                    );
                   },
                   /*
                    * The form holds bare IDs here, and the generic summary
