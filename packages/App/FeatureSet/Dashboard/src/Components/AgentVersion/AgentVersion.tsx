@@ -160,7 +160,7 @@ const AgentVersion: FunctionComponent<ComponentProps> = (
       aria-label={accessibleName}
       data-testid="agent-version-outdated"
       data-agent-kind={props.kind}
-      className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800 hover:text-amber-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+      className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800 hover:bg-amber-100 hover:text-amber-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
     >
       <Icon icon={IconProp.Terminal} className="h-3 w-3 text-amber-600" />
       <span className="font-medium">{chipLabel}</span>

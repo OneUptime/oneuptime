@@ -219,24 +219,30 @@ describe("VMware overview (Index.tsx)", () => {
     );
 
     /*
-     * Measured after the last count chip and before the agent version chip,
-     * so a row holding only the version gets no (i).
+     * Measured after the last count chip. The agent version chip is drawn
+     * by AgentVersion after the count chips, never pushed among them, so a
+     * row holding only the version gets no (i).
      */
     const flag: number = hero.indexOf(
       "const hasCountChips: boolean = specChips.length > 0;",
     );
 
     expect(flag).toBeGreaterThan(hero.indexOf("if (datastoreCount > 0) {"));
-    expect(flag).toBeLessThan(hero.indexOf("if (vcenter.agentVersion) {"));
+    expect(
+      between(hero, "const specChips:", "const hasCountChips"),
+    ).not.toContain("agentVersion");
 
     // The (i) sits in the chip row, after the chips, not inside one.
     const row: string = between(
       hero,
-      "{specChips.length > 0 && (",
+      "{(specChips.length > 0 || Boolean(vcenter.agentVersion)) && (",
       "{hasCountChips && (",
     );
 
     expect(row).toContain("{specChips.map(");
+    expect(row).toContain(
+      '<AgentVersion kind={AgentKind.VMwareAgent} version={vcenter.agentVersion} variant="chip" />',
+    );
   });
 
   test("every golden tile explains itself with its own text", () => {
