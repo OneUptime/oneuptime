@@ -39,8 +39,8 @@ export interface EventNotesSubscriberConfig {
   audienceSummary?: ReactElement | undefined;
   /*
    * What a new note's notification would look like, from the note being
-   * written ('Preview notification' for incident public notes), shown with
-   * the audience while "Notify status page subscribers" is ticked.
+   * written ('Preview' for incident public notes), shown beside "Notify
+   * status page subscribers" while it is ticked.
    */
   renderPreview?:
     | ((draft: { note: string; postedAt: Date | null }) => ReactElement)

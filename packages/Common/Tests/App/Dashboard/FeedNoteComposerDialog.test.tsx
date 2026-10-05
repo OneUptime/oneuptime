@@ -297,8 +297,12 @@ jest.mock(
       }): ReactElement => {
         previewRenderMock(props);
         return (
-          <button type="button" data-testid={props.dataTestId}>
-            Preview notification
+          <button
+            type="button"
+            data-testid={props.dataTestId}
+            aria-label="Preview notification"
+          >
+            Preview
           </button>
         );
       },
@@ -1123,6 +1127,15 @@ describe("the incident's public note dialog says who it reaches", () => {
     expect(
       within(dialog).getByTestId("incident-public-note-preview-notification"),
     ).toBeInTheDocument();
+
+    // Beside the box's label, on its line; who it reaches is said under it.
+    const line: HTMLElement = within(dialog).getByTestId("note-notify-line");
+    expect(line).toContainElement(
+      within(dialog).getByTestId("incident-public-note-preview-notification"),
+    );
+    expect(line).not.toContainElement(
+      within(dialog).getByTestId("incident-public-note-audience"),
+    );
 
     const audience: { request: { incidentId: { toString: () => string } } } =
       audienceRenderMock.mock.calls[

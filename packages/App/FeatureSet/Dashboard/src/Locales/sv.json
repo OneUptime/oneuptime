@@ -6582,7 +6582,7 @@
   "Submitted At": "Inskickad",
   "Delete Submission": "Ta bort inlämning",
   "Only someone who can read every incident and its custom fields can save a template that places a custom field or the incident's labels. The status page roles on their own cannot add them.": "Bara den som kan läsa alla incidenter och deras anpassade fält kan spara en mall som infogar ett anpassat fält eller incidentens etiketter. Statussidesrollerna på egen hand kan inte lägga till dem.",
-  "Preview notification": "Förhandsgranska avisering",
+  "Preview notification": "Förhandsgranskning av avisering",
   "Write the note first to preview the email it sends.": "Skriv anteckningen först för att se e-postmeddelandet den skickar.",
   "The email each status page's subscribers will get, from the same template and settings the notification is sent with.": "E-postmeddelandet som prenumeranterna på varje statussida får, från samma mall och inställningar som aviseringen skickas med.",
   "Building the preview...": "Skapar förhandsgranskningen...",

@@ -13,7 +13,6 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react";
 import React from "react";
@@ -84,7 +83,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import SubscriberNotificationPreviewModal from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/SubscriberNotificationPreviewModal";
-import SubscriberNotificationPreviewButton from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/SubscriberNotificationPreviewButton";
 import NoteComposer from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/NoteComposer";
 import { getNotesCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/EventNotes/EventNotesUtil";
 import SubscriberNotificationPreviewCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberNotificationPreviewCopy";
@@ -779,59 +777,8 @@ describe("the keyboard", () => {
   });
 });
 
-describe("the button", () => {
-  test("opens the preview with the draft as it is when clicked", async () => {
-    let note: string = "First draft";
-
-    render(
-      <SubscriberNotificationPreviewButton
-        getRequest={() => {
-          return { ...REQUEST, note: note };
-        }}
-      />,
-    );
-
-    note = "Second draft";
-
-    fireEvent.click(
-      screen.getByTestId("subscriber-notification-preview-button"),
-    );
-
-    await screen.findByTestId("subscriber-notification-preview-body");
-
-    expect(postOf(0).data["note"]).toBe("Second draft");
-
-    fireEvent.click(screen.getByTestId("close-button"));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByTestId("subscriber-notification-preview"),
-      ).toBeNull();
-    });
-  });
-
-  test("nothing to preview: disabled, and nothing is asked", () => {
-    render(
-      <SubscriberNotificationPreviewButton
-        getRequest={() => {
-          return null;
-        }}
-        isDisabled={true}
-        disabledReason={
-          SubscriberNotificationPreviewCopy.previewButtonDisabledNoNote
-        }
-      />,
-    );
-
-    const button: HTMLElement = screen.getByTestId(
-      "subscriber-notification-preview-button",
-    );
-
-    expect(button).toBeDisabled();
-
-    fireEvent.click(button);
-
-    expect(postMock).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("subscriber-notification-preview")).toBeNull();
-  });
-});
+/*
+ * The 'Preview' link that opens this dialog - what it looks like, its name,
+ * the keyboard, and the grey state with nothing to preview - is tested in
+ * SubscriberNotificationPreviewButton.test.tsx.
+ */

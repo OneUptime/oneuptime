@@ -218,12 +218,12 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
           data-reason={result.nothingSentReason}
           className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
         >
-          <p className="flex items-start gap-2 font-medium">
+          <div className="flex items-start gap-2 font-medium">
             <Icon icon={IconProp.Info} className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               {translate(SubscriberNotificationPreviewCopy.nothingWillBeSent)}
             </span>
-          </p>
+          </div>
           <p className="mt-1 pl-6">
             {describeNothingSent(result.nothingSentReason, translate)}
           </p>
@@ -342,7 +342,7 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
               </div>
             ) : null}
 
-            <p
+            <div
               className="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
               data-testid={`${dataTestId}-template-choice`}
               data-reason={selectedStatusPage.templateChoice.reason}
@@ -357,7 +357,7 @@ const SubscriberNotificationPreviewModal: FunctionComponent<ComponentProps> = (
                   translate,
                 )}
               </span>
-            </p>
+            </div>
 
             <div>
               <p className="text-xs font-medium text-gray-500">
