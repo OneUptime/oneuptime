@@ -791,7 +791,7 @@ describe("hook wiring: OnCallDutyPolicyScheduleLayerService", () => {
   });
 
   test("a delete that removed no layer neither re-sequences, refreshes nor propagates", async () => {
-    const findBy: jest.SpyInstance = jest
+    const findBy: any = jest
       .spyOn(OnCallDutyPolicyScheduleLayerService, "findBy")
       .mockResolvedValue([] as never);
     const refresh: any = spyRosterRefresh();

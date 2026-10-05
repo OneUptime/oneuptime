@@ -617,9 +617,8 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
     expect(saved.isProjectDefault).toBe(true);
     // Taken after the save, from the configs of the caller's project only.
     expect(save.mock.invocationCallOrder[0]!).toBeLessThan(
-      (
-        ProjectCallSMSConfigService.updateBy as unknown as MockFunction
-      ).mock.invocationCallOrder[0]!,
+      (ProjectCallSMSConfigService.updateBy as unknown as MockFunction).mock
+        .invocationCallOrder[0]!,
     );
     expect(updateCalls).toHaveLength(1);
     expect((updateCalls[0]!.query.projectId as ObjectID).toString()).toBe(

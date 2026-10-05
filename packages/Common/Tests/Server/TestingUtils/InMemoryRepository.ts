@@ -1,8 +1,8 @@
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../../Types/ObjectID";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
-import { jest } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
 /*
@@ -34,11 +34,11 @@ export interface InMemoryTable {
   // A row's current state, by id.
   get: (id: string | ObjectID) => StoredRow | undefined;
   repository: {
-    find: jest.Mock;
-    count: jest.Mock;
-    save: jest.Mock;
-    update: jest.Mock;
-    delete: jest.Mock;
+    find: MockFunction;
+    count: MockFunction;
+    save: MockFunction;
+    update: MockFunction;
+    delete: MockFunction;
   };
 }
 
@@ -125,7 +125,9 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
   // Values are compared as lower-cased text already, so LOWER() changes nothing.
   match = sql.match(/^\((?:c|LOWER\(c\)) = :(\w+)\)$/);
   if (match) {
-    return storedText !== null && storedText === normalize(parameters[match[1]!]);
+    return (
+      storedText !== null && storedText === normalize(parameters[match[1]!])
+    );
   }
 
   match = sql.match(/^\(c IN \(:\.\.\.(\w+)\)\)$/);
@@ -289,7 +291,7 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
   };
 
   table.repository = {
-    find: jest.fn(
+    find: getJestMockFunction().mockImplementation(
       async (options: {
         where?: unknown;
         skip?: number;
@@ -311,12 +313,12 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
         return window.map(toModel);
       },
     ),
-    count: jest.fn(async (options: { where?: unknown }): Promise<number> => {
+    count: getJestMockFunction().mockImplementation(async (options: { where?: unknown }): Promise<number> => {
       return table.rows.filter((row: StoredRow) => {
         return rowMatchesWhere(row, options.where);
       }).length;
     }),
-    save: jest.fn(async (entity: TBaseModel): Promise<TBaseModel> => {
+    save: getJestMockFunction().mockImplementation(async (entity: TBaseModel): Promise<TBaseModel> => {
       const record: StoredRow = {};
 
       for (const [column, value] of Object.entries(
@@ -332,9 +334,7 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
         (entity as unknown as StoredRow)["_id"] = record["_id"];
       }
 
-      const existing: StoredRow | undefined = table.get(
-        String(record["_id"]),
-      );
+      const existing: StoredRow | undefined = table.get(String(record["_id"]));
 
       if (existing) {
         Object.assign(existing, record);
@@ -345,7 +345,7 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
 
       return entity;
     }),
-    update: jest.fn(
+    update: getJestMockFunction().mockImplementation(
       async (where: unknown, set: StoredRow): Promise<{ affected: number }> => {
         const written: StoredRow = {};
 
@@ -368,7 +368,7 @@ export function useInMemoryTable<TBaseModel extends BaseModel>(
         return { affected };
       },
     ),
-    delete: jest.fn(async (where: unknown): Promise<{ affected: number }> => {
+    delete: getJestMockFunction().mockImplementation(async (where: unknown): Promise<{ affected: number }> => {
       const removed: Array<StoredRow> = table.rows.filter((row: StoredRow) => {
         return rowMatchesWhere(row, where);
       });

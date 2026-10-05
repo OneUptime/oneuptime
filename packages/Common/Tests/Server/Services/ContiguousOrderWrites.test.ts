@@ -27,7 +27,14 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { getJestSpyOn } from "../../Spy";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");

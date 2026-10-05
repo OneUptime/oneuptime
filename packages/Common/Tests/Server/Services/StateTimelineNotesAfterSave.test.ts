@@ -77,9 +77,10 @@ describe("AlertStateTimelineService: the internal note", () => {
   let createNote: jest.SpyInstance;
 
   beforeEach(() => {
-    createNote = getJestSpyOn(AlertInternalNoteService, "create").mockResolvedValue(
-      new AlertInternalNote(),
-    );
+    createNote = getJestSpyOn(
+      AlertInternalNoteService,
+      "create",
+    ).mockResolvedValue(new AlertInternalNote());
     getJestSpyOn(AlertStateTimelineService, "findOneBy").mockResolvedValue(
       null,
     );
@@ -120,9 +121,10 @@ describe("AlertStateTimelineService: the internal note", () => {
     getJestSpyOn(AlertService, "refreshAlertMetrics").mockResolvedValue(
       undefined as never,
     );
-    getJestSpyOn(AlertStateTimelineService, "isLastAlertState").mockRejectedValue(
-      new Error(STOP),
-    );
+    getJestSpyOn(
+      AlertStateTimelineService,
+      "isLastAlertState",
+    ).mockRejectedValue(new Error(STOP));
 
     const created: AlertStateTimeline = new AlertStateTimeline();
     created._id = TIMELINE_ID.toString();
@@ -178,19 +180,20 @@ describe("ScheduledMaintenanceStateTimelineService: the public note", () => {
     const result: {
       createBy: { data: ScheduledMaintenanceStateTimeline };
       carryForward: Record<string, unknown>;
-    } = (await hookOf(ScheduledMaintenanceStateTimelineService, "onBeforeCreate")(
-      {
-        data: {
-          scheduledMaintenanceId: EVENT_ID,
-          projectId: PROJECT_ID,
-          scheduledMaintenanceStateId: EVENT_STATE_ID,
-          startsAt: STARTS_AT,
-          shouldStatusPageSubscribersBeNotified: false,
-        },
-        miscDataProps: { publicNote: "Work has started." },
-        props: { isRoot: true },
+    } = (await hookOf(
+      ScheduledMaintenanceStateTimelineService,
+      "onBeforeCreate",
+    )({
+      data: {
+        scheduledMaintenanceId: EVENT_ID,
+        projectId: PROJECT_ID,
+        scheduledMaintenanceStateId: EVENT_STATE_ID,
+        startsAt: STARTS_AT,
+        shouldStatusPageSubscribersBeNotified: false,
       },
-    )) as {
+      miscDataProps: { publicNote: "Work has started." },
+      props: { isRoot: true },
+    })) as {
       createBy: { data: ScheduledMaintenanceStateTimeline };
       carryForward: Record<string, unknown>;
     };

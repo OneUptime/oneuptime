@@ -30,7 +30,7 @@ jest.mock("../../../Server/Utils/Logger");
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
-    ...jest.requireActual("../../../Server/EnvironmentConfig"),
+    ...(jest.requireActual("../../../Server/EnvironmentConfig") as object),
     IsBillingEnabled: true,
     NotificationSlackWebhookOnCreateProject: "",
     NotificationSlackWebhookOnSubscriptionUpdate: "",
@@ -185,9 +185,9 @@ describe("turning auto recharge on", () => {
     );
     expect(recharge).not.toHaveBeenCalled();
     expect(table.updates).toEqual([]);
-    expect(
-      table.get(PROJECT_ID)!["enableAutoRechargeSmsOrCallBalance"],
-    ).toBe(false);
+    expect(table.get(PROJECT_ID)!["enableAutoRechargeSmsOrCallBalance"]).toBe(
+      false,
+    );
   });
 
   test("an owner is charged for their own project, with the amounts they set, before the change is written", async () => {
@@ -209,9 +209,9 @@ describe("turning auto recharge on", () => {
     expect(recharge.mock.invocationCallOrder[0]!).toBeLessThan(
       table.repository.update.mock.invocationCallOrder[0]!,
     );
-    expect(
-      table.get(PROJECT_ID)!["enableAutoRechargeSmsOrCallBalance"],
-    ).toBe(true);
+    expect(table.get(PROJECT_ID)!["enableAutoRechargeSmsOrCallBalance"]).toBe(
+      true,
+    );
   });
 
   test("a charge that fails refuses the change, as it always has", async () => {

@@ -31,11 +31,19 @@ import path from "path";
 const COMMON_DIR: string = path.resolve(__dirname, "..", "..", "..");
 const SERVICES_DIR: string = path.join(COMMON_DIR, "Server", "Services");
 
-const HOOKS: Array<string> = ["onBeforeCreate", "onBeforeUpdate", "onBeforeDelete"];
+const HOOKS: Array<string> = [
+  "onBeforeCreate",
+  "onBeforeUpdate",
+  "onBeforeDelete",
+];
 
 // A database write through a service or its repository.
 const WRITE_CALL: RegExp =
   /\.(updateBy|updateOneBy|updateOneById|updateOneByIdAndFetch|deleteBy|deleteOneBy|deleteOneById|hardDeleteBy|create|createMany|createByEmail|insert|save|query|updateColumnsByIdWithoutHooks|compareAndSetColumnsByIdWithoutHooks|updateColumnsByIdIfUnlockedWithoutHooks|atomicAddToColumnsByIdWithoutHooks|atomicIncrementColumnValueByOneAndGetValue|atomicIncrementColumnValueByOne|atomicDecrementColumnValueBy)\s*\(/g;
+
+// A method body that runs one of DatabaseService's write hooks.
+const RUNS_A_WRITE_HOOK: RegExp =
+  /this\.(_?onBeforeCreate|onBeforeUpdate|onBeforeDelete)\s*\(/;
 
 // A call that charges, mails, messages or changes something outside OneUptime.
 const OUTSIDE_CALL: RegExp =
@@ -56,8 +64,7 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "IncidentEpisodeStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "IncidentStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "MonitorStatusTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
-  "ScheduledMaintenanceStateTimelineService.ts#onBeforeDelete":
-    TIMELINE_REASON,
+  "ScheduledMaintenanceStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "MonitorGroupService.ts#onBeforeDelete": CASCADE_REASON,
   "MonitorService.ts#onBeforeDelete":
     CASCADE_REASON +
@@ -144,8 +151,7 @@ function stripCommentsAndStrings(source: string): string {
         end++;
       }
 
-      out +=
-        char + source.slice(i + 1, end - 1).replace(/[^\n]/g, "_") + char;
+      out += char + source.slice(i + 1, end - 1).replace(/[^\n]/g, "_") + char;
       i = end;
       continue;
     }
@@ -316,8 +322,9 @@ function hookWritesOf(file: string): Array<HookWrite> {
 
         for (const pattern of [WRITE_CALL, OUTSIDE_CALL]) {
           for (const call of text.matchAll(pattern)) {
-            const line: number =
-              raw.slice(0, body.start + call.index!).split("\n").length;
+            const line: number = raw
+              .slice(0, body.start + call.index!)
+              .split("\n").length;
             calls.push(`${name} (line ${line}): ${call[0].trim()}`);
           }
         }
@@ -429,18 +436,20 @@ describe("DatabaseService checks the caller before any write hook", () => {
 
     for (const [name, bodies] of methods) {
       for (const body of bodies) {
-        if (
-          /this\.(_?onBeforeCreate|onBeforeUpdate|onBeforeDelete)\s*\(/.test(
-            source.slice(body.start, body.end),
-          )
-        ) {
+        if (RUNS_A_WRITE_HOOK.test(source.slice(body.start, body.end))) {
           runners.push(name);
         }
       }
     }
 
     expect(runners.sort()).toEqual(
-      ["_deleteBy", "_onBeforeCreate", "_updateBy", "create", "hardDeleteBy"].sort(),
+      [
+        "_deleteBy",
+        "_onBeforeCreate",
+        "_updateBy",
+        "create",
+        "hardDeleteBy",
+      ].sort(),
     );
   });
 });

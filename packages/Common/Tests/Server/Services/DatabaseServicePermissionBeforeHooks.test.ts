@@ -14,6 +14,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
@@ -147,9 +148,7 @@ function valuesOf(operator: FindOperator<unknown>): Array<string> {
   const parameters: Record<string, unknown> =
     (operator.objectLiteralParameters as Record<string, unknown>) || {};
 
-  const equality: RegExpMatchArray | null = sql.match(
-    /^\(column = :(\w+)\)$/,
-  );
+  const equality: RegExpMatchArray | null = sql.match(/^\(column = :(\w+)\)$/);
 
   if (equality && parameters[equality[1]!] !== undefined) {
     return [String(parameters[equality[1]!])];
@@ -214,15 +213,15 @@ function matchesWhere(row: StoredRow, where: unknown): boolean {
 }
 
 interface FakeRepository {
-  find: jest.Mock;
-  update: jest.Mock;
-  delete: jest.Mock;
-  save: jest.Mock;
+  find: MockFunction;
+  update: MockFunction;
+  delete: MockFunction;
+  save: MockFunction;
 }
 
 function makeFakeRepository(): FakeRepository {
   return {
-    find: jest.fn(
+    find: getJestMockFunction().mockImplementation(
       async (options: {
         where: unknown;
         skip?: number;
@@ -244,13 +243,13 @@ function makeFakeRepository(): FakeRepository {
         });
       },
     ),
-    update: jest.fn(async (): Promise<{ affected: number }> => {
+    update: getJestMockFunction().mockImplementation(async (): Promise<{ affected: number }> => {
       throw new Error("update() should not have been reached.");
     }),
-    delete: jest.fn(async (): Promise<{ affected: number }> => {
+    delete: getJestMockFunction().mockImplementation(async (): Promise<{ affected: number }> => {
       throw new Error("delete() should not have been reached.");
     }),
-    save: jest.fn(async (): Promise<never> => {
+    save: getJestMockFunction().mockImplementation(async (): Promise<never> => {
       throw new Error("save() should not have been reached.");
     }),
   };
@@ -408,7 +407,11 @@ const SINGLE_ROW_WRITES: Array<WriteOperation> = [
   {
     name: "updateOneById",
     hook: "onBeforeUpdate",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.updateOneById({
         id: new ObjectID(rowId),
         data: { name: "renamed" } as never,
@@ -419,7 +422,11 @@ const SINGLE_ROW_WRITES: Array<WriteOperation> = [
   {
     name: "updateOneBy",
     hook: "onBeforeUpdate",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.updateOneBy({
         query: { _id: rowId },
         data: { name: "renamed" } as never,
@@ -430,7 +437,11 @@ const SINGLE_ROW_WRITES: Array<WriteOperation> = [
   {
     name: "updateBy",
     hook: "onBeforeUpdate",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.updateBy({
         query: { _id: rowId },
         data: { name: "renamed" } as never,
@@ -443,21 +454,33 @@ const SINGLE_ROW_WRITES: Array<WriteOperation> = [
   {
     name: "deleteOneById",
     hook: "onBeforeDelete",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.deleteOneById({ id: new ObjectID(rowId), props });
     },
   },
   {
     name: "deleteOneBy",
     hook: "onBeforeDelete",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.deleteOneBy({ query: { _id: rowId }, props });
     },
   },
   {
     name: "deleteBy",
     hook: "onBeforeDelete",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.deleteBy({
         query: { _id: rowId },
         limit: 10,
@@ -469,7 +492,11 @@ const SINGLE_ROW_WRITES: Array<WriteOperation> = [
   {
     name: "hardDeleteBy",
     hook: "onBeforeDelete",
-    run: (service, props, rowId): Promise<unknown> => {
+    run: (
+      service: DatabaseService<BaseModel>,
+      props: DatabaseCommonInteractionProps,
+      rowId: string,
+    ): Promise<unknown> => {
       return service.hardDeleteBy({
         query: { _id: rowId },
         limit: 10,
@@ -498,7 +525,10 @@ describe("DatabaseService: whether the caller may write the table is asked befor
     ["an owner of another project", strangerProps],
   ] as Array<[string, () => DatabaseCommonInteractionProps]>)(
     "create refuses %s before onBeforeCreate runs or anything is read",
-    async (_label: string, buildProps: () => DatabaseCommonInteractionProps) => {
+    async (
+      _label: string,
+      buildProps: () => DatabaseCommonInteractionProps,
+    ) => {
       const harness: Harness = makeHarness({ repositoryFails: true });
 
       const error: unknown = await rejectionOf(
@@ -519,7 +549,10 @@ describe("DatabaseService: whether the caller may write the table is asked befor
     ["an owner of another project", strangerProps],
   ] as Array<[string, () => DatabaseCommonInteractionProps]>)(
     "every update and delete refuses %s before its hook runs or anything is read",
-    async (_label: string, buildProps: () => DatabaseCommonInteractionProps) => {
+    async (
+      _label: string,
+      buildProps: () => DatabaseCommonInteractionProps,
+    ) => {
       for (const operation of SINGLE_ROW_WRITES) {
         const harness: Harness = makeHarness({ repositoryFails: true });
 
@@ -565,9 +598,7 @@ describe("DatabaseService: whether the caller may write the table is asked befor
     const harness: Harness = makeHarness({ repositoryFails: true });
     const props: DatabaseCommonInteractionProps = ownerProps();
 
-    props.userTenantAccessPermission![
-      PROJECT_ID.toString()
-    ]!.permissions.push({
+    props.userTenantAccessPermission![PROJECT_ID.toString()]!.permissions.push({
       _type: "UserPermission",
       permission: Permission.CreateProjectLabel,
       labelIds: [],
@@ -698,7 +729,7 @@ describe("DatabaseService: an update or delete reaches its hook only with the ro
 
     await expect(
       harness.service.updateBy({
-        query: { name: "production" },
+        query: { name: "production" } as never,
         data: { description: "used in production" } as never,
         limit: 10,
         skip: 0,
@@ -758,7 +789,7 @@ describe("DatabaseService: an update or delete reaches its hook only with the ro
 
     await expect(
       harness.service.deleteOneBy({
-        query: { name: "staging" },
+        query: { name: "staging" } as never,
         props: ownerProps(),
       }),
     ).rejects.toThrow(HOOK_REACHED);
@@ -807,7 +838,7 @@ describe("DatabaseService: the rows of a project write are looked up by the proj
       "onBeforeUpdate",
     ).mockRejectedValue(new Error(HOOK_REACHED));
 
-    const find: jest.Mock = jest.fn(
+    const find: MockFunction = getJestMockFunction().mockImplementation(
       async (options: {
         where: Record<string, unknown>;
       }): Promise<Array<Project>> => {
@@ -836,4 +867,3 @@ describe("DatabaseService: the rows of a project write are looked up by the proj
     ).toBe(PROJECT_ID.toString().toLowerCase());
   });
 });
-

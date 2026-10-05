@@ -197,10 +197,11 @@ describe.each(cases)(
           const findOneSpy: jest.SpyInstance = mockFindOneBy(null);
           const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-          const result: OnCreate<SavedViewModel> =
-            await service.onBeforeCreate({
+          const result: OnCreate<SavedViewModel> = await service.onBeforeCreate(
+            {
               data: view(null, PROJECT_ID, isDefault),
-            } as CreateBy<SavedViewModel>);
+            } as CreateBy<SavedViewModel>,
+          );
 
           expect(result.createBy.data.isDefault).toBe(isDefault);
           // The caller said so, so the service does not go looking.
@@ -298,9 +299,7 @@ describe.each(cases)(
         ]);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [
-          VIEW_ID,
-        ]);
+        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [VIEW_ID]);
 
         // The view's project is read by the id the update wrote.
         const findArgs: Record<string, unknown> = findSpy.mock
@@ -361,9 +360,7 @@ describe.each(cases)(
         mockFindBy([view(VIEW_ID, null)]);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [
-          VIEW_ID,
-        ]);
+        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [VIEW_ID]);
 
         expect(updateSpy).not.toHaveBeenCalled();
       });

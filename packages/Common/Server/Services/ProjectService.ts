@@ -791,7 +791,10 @@ export class ProjectService extends DatabaseService<Model> {
   protected override async onBeforeUpdateUniqueCheck(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    if (!IsBillingEnabled || !updateBy.data.enableAutoRechargeSmsOrCallBalance) {
+    if (
+      !IsBillingEnabled ||
+      !updateBy.data.enableAutoRechargeSmsOrCallBalance
+    ) {
       return;
     }
 
