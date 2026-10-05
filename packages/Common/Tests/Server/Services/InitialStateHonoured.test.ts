@@ -804,9 +804,13 @@ describe("the first timeline row is the state the record starts in", () => {
       expect(row["isOwnerNotified"]).toBe(true);
     });
 
-    test.each([ACKNOWLEDGED_STATE, RESOLVED_STATE, CREATED_STATE])(
-      "subscribers told the episode was created are not sent its first state (%s) again",
-      async (state: string) => {
+    test.each([
+      ["an acknowledged", ACKNOWLEDGED_STATE],
+      ["a resolved", RESOLVED_STATE],
+      ["the created", CREATED_STATE],
+    ])(
+      "subscribers told the episode was created are not sent its first state again: %s state",
+      async (_name: string, state: string) => {
         const row: Record<string, unknown> = await firstRowOf(
           episodeIn(state, true),
         );
