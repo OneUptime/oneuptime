@@ -71,7 +71,7 @@ const isSameJsonValue: (left: unknown, right: unknown) => boolean = (
   }
 
   // Only plain data: a class instance (a Date, an ObjectID) is not JSON.
-  const isPlain: (value: object) => boolean = (value: object): boolean => {
+  const isPlain: (value: unknown) => boolean = (value: unknown): boolean => {
     const prototype: unknown = Object.getPrototypeOf(value);
     return (
       Array.isArray(value) ||
