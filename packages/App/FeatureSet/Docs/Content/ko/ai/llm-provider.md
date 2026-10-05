@@ -181,7 +181,7 @@ OneUptime은 이 `options` 객체를 Ollama로 보내는 옵션에 병합하므�
 
 OpenAI 호환 서버도 각자의 포트와 `/v1` 경로로 같은 규칙을 따릅니다. 예를 들어 `http://vllm:8000/v1`, LM Studio라면 `http://192.168.1.20:1234/v1`입니다. 네이티브 설치한 Ollama와 마찬가지로 LM Studio도 서버 설정에서 **Serve on Local Network**를 켜기 전까지는 `127.0.0.1`에서만 수신합니다.
 
-**자체 호스팅 설치에서는 사설 주소를 사용할 수 있습니다.** 자체 호스팅 OneUptime은 `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, IPv6 `fc00::/7` 같은 사설 네트워크 주소에 연결할 수 있습니다. 단, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`를 설정하면 OneUptime Cloud처럼 이 주소들도 거부됩니다.
+**자체 호스팅 설치에서는 사설 주소를 사용할 수 있습니다.** 자체 호스팅 OneUptime은 `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, IPv6 `fc00::/7` 같은 사설 네트워크 주소에 연결할 수 있습니다. 단, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`를 설정하면 OneUptime Cloud처럼 이 주소들도 거부됩니다. 이 설정은 글로벌 LLM 공급자에는 적용되지 않습니다. 글로벌 LLM 공급자는 프로젝트가 아니라 관리자가 `GLOBAL_LLM_PROVIDER_*` 변수나 관리자 대시보드에서 구성하므로, 여전히 사설 주소에 연결할 수 있습니다. 루프백 주소와 링크 로컬 주소는 모든 공급자에 대해 계속 거부됩니다.
 
 **OneUptime Cloud(SaaS)는 사설 네트워크에 연결할 수 없습니다.** 모든 LLM 공급자에 대해 사설 네트워크 주소와 그 주소로 해석되는 호스트 이름을 거부합니다. 자체 인프라에서 실행되는 모델을 사용하려면, 그 모델에 연결할 수 있는 네트워크에서 OneUptime을 자체 호스팅하거나 모델을 공개적으로 연결 가능한 엔드포인트로 노출하세요. 공개 엔드포인트는 API 키로 보호하세요. **Ollama** 공급자는 자격 증명을 보내지 않지만, **OpenAI Compatible**은 API 키를 Bearer 토큰으로 보냅니다(Ollama는 `/v1`에서 OpenAI 호환 API도 제공하므로, 키를 확인하는 리버스 프록시 뒤에 둘 수 있습니다).
 
@@ -238,6 +238,8 @@ Base URL: http://oneuptime-vllm.default.svc.cluster.local:8000/v1
 Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
+
+결제가 활성화되어 있거나 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`(Helm values에서는 `outboundConnections.blockPrivateNetwork: true`)를 설정한 경우, 프로젝트가 소유한 공급자는 이 클러스터 내부 주소에 연결할 수 없습니다. 이 주소는 클러스터의 사설 IP로 해석되기 때문입니다. 대신 관리자 대시보드의 **설정** > **글로벌 LLM 공급자**에서 같은 필드로 공급자를 생성하세요. 글로벌 LLM 공급자는 이 주소에 연결할 수 있습니다.
 
 GPU 스케줄링, 게이트된 모델 및 튜닝 옵션에 대해서는 [Helm 차트의 vLLM 가이드](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md)를 참조하세요.
 
