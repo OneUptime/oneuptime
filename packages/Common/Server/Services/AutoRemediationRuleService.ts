@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -11,7 +11,7 @@ import { JSONObject } from "../../Types/JSON";
 import Model from "../../Models/DatabaseModels/AutoRemediationRule";
 import Runner from "../../Models/DatabaseModels/Runner";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -30,6 +30,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners(
         createBy.data.commandRunners,
@@ -60,6 +63,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
 
     const agentRunners: Array<Runner> =

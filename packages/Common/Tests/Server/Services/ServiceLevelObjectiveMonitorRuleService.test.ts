@@ -27,6 +27,7 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * Contract under test - the write hooks of SLO monitor rules.
@@ -243,6 +244,8 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeCreate", () => {
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 
@@ -542,6 +545,8 @@ describe("ServiceLevelObjectiveMonitorRuleService.onCreateSuccess", () => {
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 
@@ -689,6 +694,8 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeUpdate", () => {
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 
@@ -848,6 +855,8 @@ describe("ServiceLevelObjectiveMonitorRuleService.onUpdateSuccess", () => {
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 
@@ -1036,6 +1045,8 @@ describe("ServiceLevelObjectiveMonitorRuleService delete hooks", () => {
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 
@@ -1172,6 +1183,8 @@ describe("ServiceLevelObjectiveMonitorRuleService.findServiceLevelObjectiveIdsFo
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 
@@ -1263,6 +1276,8 @@ describe("ServiceLevelObjectiveMonitorRuleService.findServiceLevelObjectiveIdsWi
   let spies: HookSpies;
 
   beforeEach(() => {
+    // The labels these rules name are the project's (see ProjectReferenceCheck).
+    stubProjectDirectory({});
     spies = installSpies();
   });
 

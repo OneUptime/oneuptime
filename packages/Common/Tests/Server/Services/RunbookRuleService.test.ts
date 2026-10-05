@@ -17,6 +17,7 @@ import RuleCriteria, {
 import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerEntity";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * One table holds incident, alert and scheduled maintenance runbook rules.
@@ -168,6 +169,11 @@ function storedRules(
     ),
   );
 }
+
+beforeEach(() => {
+  // The severities and runbooks these rules name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
+});
 
 afterEach(() => {
   jest.restoreAllMocks();

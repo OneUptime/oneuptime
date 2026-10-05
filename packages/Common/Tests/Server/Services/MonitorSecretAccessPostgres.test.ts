@@ -843,7 +843,7 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
           monitorAccess: MonitorSecretAccess.MonitorsWithLabels,
           labels: [prodB],
         }),
-      ).rejects.toThrow(/belong to a different project/);
+      ).rejects.toThrow(/not in this project/);
 
       const rows: Array<{ count: string }> = await database.query(
         `SELECT count(*)::text AS "count" FROM "${schema}"."MonitorSecret"`,
@@ -865,7 +865,7 @@ describePostgres("monitor secret access against a migrated Postgres", () => {
         update(id, {
           monitors: [new Monitor(a1), new Monitor(b1)],
         }),
-      ).rejects.toThrow(/belong to a different project/);
+      ).rejects.toThrow(/not in this project/);
 
       expect((await storedLists(id)).monitorIds).toEqual([a1.toString()]);
     });

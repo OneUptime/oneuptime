@@ -41,6 +41,7 @@ import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * The database feed and the owner join services: every owner change is
@@ -58,6 +59,8 @@ const LINK: string = "[Database PostgreSQL orders-db.internal:5432](/db)";
 let feed: jest.SpyInstance;
 
 beforeEach(() => {
+  // The teams, users and records these writes name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
   });
