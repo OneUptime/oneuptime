@@ -250,7 +250,9 @@ export default class SsoProviderTeamGrant {
     /*
      * A SCIM connection reaches every team, Owners among them, and only an
      * owner may hand on Owners' Project Owner: anyone else is refused before
-     * any team is read (the model's own access control says the same).
+     * any team is read. The model's own access control already refuses
+     * someone without Project Owner; this also refuses an owner whose
+     * Project Owner is blocked or limited to some labels.
      */
     if (data.kind === SsoProviderKind.Scim && !canGrantEveryTeam) {
       throw new NotAuthorizedException(SCIM_SAVE_REFUSAL_MESSAGE);
@@ -492,8 +494,11 @@ export default class SsoProviderTeamGrant {
 
   /*
    * A column's value as text, to tell whether an update changes it: a URL
-   * or an id as what it reads, nothing as empty. Null for a value whose text
-   * does not say what it holds (a plain object), which never compares equal.
+   * or an id as what it reads, nothing as empty. Line endings and the space
+   * around the text do not count: a browser hands a pasted certificate back
+   * with its line endings changed, and that changes nothing it means. Null
+   * for a value whose text does not say what it holds (a plain object),
+   * which never compares equal.
    */
   private static asText(value: unknown): string | null {
     if (value === undefined || value === null) {
@@ -502,7 +507,11 @@ export default class SsoProviderTeamGrant {
 
     const text: string = String(value);
 
-    return text === "[object Object]" ? null : text;
+    if (text === "[object Object]") {
+      return null;
+    }
+
+    return text.replace(/\r\n?/g, "\n").trim();
   }
 
   private static isRelationColumn(model: BaseModel, column: string): boolean {

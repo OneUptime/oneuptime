@@ -24957,5 +24957,6 @@
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "您无法通过此提供商将用户添加到 {{teams}}：这会授予超出您自身权限的访问权限。请选择您可以邀请他人加入的团队，或请项目所有者保存此提供商。",
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "您无法通过此提供商将用户添加到 {{teams}}：这会授予超出您自身权限的访问权限。请选择您可以邀请他人加入的团队，或请项目所有者保存此提供商。",
   "Only a project owner can add or change SCIM connections.": "只有项目所有者可以添加或更改 SCIM 连接。",
-  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "通过 SCIM，您的身份提供商可以将用户添加到此项目中的任何团队，因此添加连接、更改连接或查看、重置其 Bearer 令牌都需要涵盖所有团队的访问权限。"
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "通过 SCIM，您的身份提供商可以将用户添加到此项目中的任何团队，因此添加连接、更改连接或查看、重置其 Bearer 令牌都需要涵盖所有团队的访问权限。",
+  "Switching it off, with nothing else changed, is still allowed.": "只要不更改其他内容，仍然可以将其关闭。"
 }

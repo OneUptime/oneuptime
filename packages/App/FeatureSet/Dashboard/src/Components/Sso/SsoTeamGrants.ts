@@ -59,6 +59,17 @@ export const canSignedInUserGrantTeam: CanGrantTeamFunction = (
   return GrantablePermission.canCurrentUserGrantTeam(grants);
 };
 
+/*
+ * Whether the signed-in user may hand on every team: someone whose Project
+ * Owner covers the whole project, with nothing blocking it, or a master
+ * admin - exactly who the server does not weigh team by team
+ * (TeamPermissionService.canGrantEveryPermission). For them there is nothing
+ * to read and nothing to say.
+ */
+export const canSignedInUserGrantEveryTeam: () => boolean = (): boolean => {
+  return GrantablePermission.canCurrentUserGrant(Permission.ProjectOwner);
+};
+
 type ToIdFunction = (value: unknown) => string | null;
 
 // One id a form value names: an id, an ObjectID, a model or a dropdown pick.
@@ -255,21 +266,6 @@ export const fetchSsoTeamData: FetchSsoTeamDataFunction = async (data: {
 };
 
 /*
- * What a project's teams mean for the signed-in user, with the permissions
- * they hold at this moment. Worked out each time it is asked, so the answer
- * follows their permissions even when the rows were read before those had
- * loaded.
- */
-export const getSignedInUserTeamGrants: (
-  teamData: SsoTeamData,
-) => Array<SsoTeamGrant> = (teamData: SsoTeamData): Array<SsoTeamGrant> => {
-  return buildSsoTeamGrants({
-    ...teamData,
-    canGrantTeam: canSignedInUserGrantTeam,
-  });
-};
-
-/*
  * How long the note keeps what it read for a project. The Teams field's
  * footer is drawn afresh whenever the form comes back to its step, and a
  * project's teams do not change between two clicks of Next and Back.
@@ -304,7 +300,7 @@ const getCacheKey: GetCacheKeyFunction = (projectId: ObjectID): string => {
 /*
  * fetchSsoTeamData, read once per signed-in user and project for
  * SSO_TEAM_GRANTS_CACHE_TTL_MS. A read that fails is not kept. What the rows
- * mean for the person is getSignedInUserTeamGrants's to say, when asked.
+ * mean for the person is getTeamsBeyondGrant's to say, when asked.
  */
 export const fetchSsoTeamDataOnce: (data: {
   projectId: ObjectID;
@@ -343,17 +339,22 @@ export const clearSsoTeamGrantsCache: () => void = (): void => {
 
 /**
  * The names of the picked teams the person filling in the form could not
- * put on the provider, in the order the project lists its teams. Empty
- * while the grants are not known.
+ * put on the provider, in the order the project lists its teams. Only the
+ * picked teams are weighed, with the permissions the person holds when it is
+ * asked - so the answer follows their permissions even when the rows were
+ * read before those had loaded. Empty while the teams are not known.
  */
 export const getTeamsBeyondGrant: (data: {
   selectedTeams: unknown;
-  grants: Array<SsoTeamGrant> | null;
+  teamData: SsoTeamData | null;
+  // Defaults to the signed-in user's own permissions.
+  canGrantTeam?: CanGrantTeamFunction | undefined;
 }) => Array<string> = (data: {
   selectedTeams: unknown;
-  grants: Array<SsoTeamGrant> | null;
+  teamData: SsoTeamData | null;
+  canGrantTeam?: CanGrantTeamFunction | undefined;
 }): Array<string> => {
-  if (!data.grants) {
+  if (!data.teamData) {
     return [];
   }
 
@@ -361,9 +362,25 @@ export const getTeamsBeyondGrant: (data: {
     getFormTeamIds(data.selectedTeams),
   );
 
-  return data.grants
+  if (selected.size === 0) {
+    return [];
+  }
+
+  return buildSsoTeamGrants({
+    teams: data.teamData.teams.filter(
+      (team: { id: string; name: string }): boolean => {
+        return selected.has(team.id.toLowerCase());
+      },
+    ),
+    permissionRows: data.teamData.permissionRows.filter(
+      (row: SsoTeamPermissionRow): boolean => {
+        return selected.has(row.teamId.toLowerCase());
+      },
+    ),
+    canGrantTeam: data.canGrantTeam || canSignedInUserGrantTeam,
+  })
     .filter((team: SsoTeamGrant): boolean => {
-      return selected.has(team.id) && !team.canGrant;
+      return !team.canGrant;
     })
     .map((team: SsoTeamGrant): string => {
       return team.name;

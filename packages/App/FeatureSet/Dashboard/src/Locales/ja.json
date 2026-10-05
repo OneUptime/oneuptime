@@ -24957,5 +24957,6 @@
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "このプロバイダー経由で {{teams}} にユーザーを追加することはできません。あなたが持つ以上のアクセス権が与えられるためです。誰かを招待できるチームを選ぶか、プロジェクトのオーナーにこのプロバイダーの保存を依頼してください。",
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "このプロバイダー経由で {{teams}} にユーザーを追加することはできません。あなたが持つ以上のアクセス権が与えられるためです。誰かを招待できるチームを選ぶか、プロジェクトのオーナーにこのプロバイダーの保存を依頼してください。",
   "Only a project owner can add or change SCIM connections.": "SCIM 接続を追加または変更できるのはプロジェクトのオーナーだけです。",
-  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "SCIM を通じて、ID プロバイダーはこのプロジェクトの任意のチームにユーザーを追加できます。そのため、接続の追加や変更、ベアラートークンの表示やリセットには、すべてのチームを対象とするアクセス権が必要です。"
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "SCIM を通じて、ID プロバイダーはこのプロジェクトの任意のチームにユーザーを追加できます。そのため、接続の追加や変更、ベアラートークンの表示やリセットには、すべてのチームを対象とするアクセス権が必要です。",
+  "Switching it off, with nothing else changed, is still allowed.": "ほかに何も変更しなければ、無効にすることは引き続きできます。"
 }

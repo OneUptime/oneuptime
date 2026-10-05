@@ -1391,6 +1391,38 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       expect(error).toBeInstanceOf(NotAuthorizedException);
     });
 
+    test("that switches it off while giving text back with other line endings or space around it counts as nothing else changed", async () => {
+      // As a browser gives back a value pasted with Windows line endings.
+      storeProvider([OWNERS], {
+        description: "Sign in\r\nwith Okta\r\n",
+        name: " Okta",
+        isEnabled: true,
+      });
+
+      await expect(
+        update(
+          providerCase,
+          {
+            isEnabled: false,
+            description: "Sign in\nwith Okta",
+            name: "Okta",
+          },
+          propsFor(ADMIN_CALLER),
+        ),
+      ).resolves.toBeDefined();
+
+      // Text that reads differently is a change.
+      const error: Error | null = await refusal(
+        update(
+          providerCase,
+          { isEnabled: false, description: "Sign in\nwith Okta, today" },
+          propsFor(ADMIN_CALLER),
+        ),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+    });
+
     test("of many providers weighs each project and set of teams once", async () => {
       providers.push(
         { id: PROVIDER_ID, projectId: PROJECT_ID, teams: [ADMIN] },
@@ -1725,6 +1757,31 @@ describe("who may create or change a SCIM connection", () => {
       Permission.ProjectAdmin,
       Permission.DeleteProjectSSO,
     ]);
+  });
+
+  test("every column says the same: only a project owner writes one", () => {
+    const columns: Record<
+      string,
+      { create?: Array<Permission>; update?: Array<Permission> }
+    > = new ProjectSCIM().getColumnAccessControlForAllColumns() as Record<
+      string,
+      { create?: Array<Permission>; update?: Array<Permission> }
+    >;
+
+    expect(Object.keys(columns).length).toBeGreaterThan(5);
+
+    for (const [column, accessControl] of Object.entries(columns)) {
+      for (const permissions of [accessControl.create, accessControl.update]) {
+        expect({
+          column,
+          beyondOwner: (permissions || []).filter(
+            (permission: Permission): boolean => {
+              return permission !== Permission.ProjectOwner;
+            },
+          ),
+        }).toEqual({ column, beyondOwner: [] });
+      }
+    }
   });
 
   test.each(

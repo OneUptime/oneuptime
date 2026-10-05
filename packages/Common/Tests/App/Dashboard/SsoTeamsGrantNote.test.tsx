@@ -15,6 +15,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React from "react";
 
 /*
@@ -165,10 +167,10 @@ import {
   fetchSsoTeamData,
   fetchSsoTeamDataOnce,
   getFormTeamIds,
-  getSignedInUserTeamGrants,
   getTeamsBeyondGrant,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoTeamGrants";
 import SsoTeamsGrantNote, {
+  SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID,
   SSO_TEAMS_GRANT_NOTE_TEST_ID,
   getSsoTeamsGrantNote,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoTeamsGrantNote";
@@ -337,6 +339,14 @@ function idOf(team: FixtureTeam): string {
   return team.id.toString();
 }
 
+// Every team, weighed for whoever is signed in now.
+function signedInUserGrants(teamData: SsoTeamData): Array<SsoTeamGrant> {
+  return buildSsoTeamGrants({
+    ...teamData,
+    canGrantTeam: canSignedInUserGrantTeam,
+  });
+}
+
 beforeEach(() => {
   isMasterAdminForTest = false;
   projectPermissionsForTest = null;
@@ -434,32 +444,93 @@ describe("which teams the person could hand on", () => {
     ]);
   });
 
-  test("the picked teams beyond it are named in the project's order", () => {
-    const grants: Array<SsoTeamGrant> = [
-      { id: idOf(OWNERS), name: "Owners", canGrant: false },
-      { id: idOf(ADMIN), name: "Admin", canGrant: true },
-      { id: idOf(MEMBERS), name: "Members", canGrant: false },
-    ];
+  // Owners, Admin and Members, each with one row naming its permission.
+  const TEAM_DATA: SsoTeamData = {
+    teams: [OWNERS, ADMIN, MEMBERS].map(
+      (team: FixtureTeam): { id: string; name: string } => {
+        return { id: idOf(team), name: team.name };
+      },
+    ),
+    permissionRows: [OWNERS, ADMIN, MEMBERS].map((team: FixtureTeam) => {
+      return {
+        teamId: idOf(team).toUpperCase(),
+        permission: team.rows[0]!.permission,
+        scope: PermissionScope.All,
+        labelIds: [],
+      };
+    }),
+  };
 
+  // Hands on Admin only.
+  const adminOnly: (rows: Array<TeamPermissionGrant>) => boolean = (
+    rows: Array<TeamPermissionGrant>,
+  ): boolean => {
+    return rows.every((row: TeamPermissionGrant): boolean => {
+      return row.permission === Permission.ProjectAdmin;
+    });
+  };
+
+  test("the picked teams beyond it are named in the project's order", () => {
     expect(
       getTeamsBeyondGrant({
         selectedTeams: [idOf(MEMBERS), idOf(ADMIN), idOf(OWNERS)],
-        grants,
+        teamData: TEAM_DATA,
+        canGrantTeam: adminOnly,
       }),
     ).toEqual(["Owners", "Members"]);
     expect(
-      getTeamsBeyondGrant({ selectedTeams: [idOf(ADMIN)], grants }),
+      getTeamsBeyondGrant({
+        selectedTeams: [idOf(ADMIN)],
+        teamData: TEAM_DATA,
+        canGrantTeam: adminOnly,
+      }),
     ).toEqual([]);
-    // While the grants are not known, nothing is said.
+    // While the teams are not known, nothing is said.
     expect(
-      getTeamsBeyondGrant({ selectedTeams: [idOf(OWNERS)], grants: null }),
+      getTeamsBeyondGrant({
+        selectedTeams: [idOf(OWNERS)],
+        teamData: null,
+        canGrantTeam: adminOnly,
+      }),
     ).toEqual([]);
+  });
+
+  test("only the picked teams are weighed, each by its own rows", () => {
+    const asked: Array<Array<TeamPermissionGrant>> = [];
+
+    getTeamsBeyondGrant({
+      selectedTeams: [idOf(MEMBERS)],
+      teamData: TEAM_DATA,
+      canGrantTeam: (rows: Array<TeamPermissionGrant>): boolean => {
+        asked.push(rows);
+        return false;
+      },
+    });
+
+    expect(asked).toEqual([
+      [
+        {
+          permission: Permission.ProjectMember,
+          scope: PermissionScope.All,
+          labelIds: [],
+        },
+      ],
+    ]);
+
+    // Nothing picked: nothing weighed.
+    getTeamsBeyondGrant({
+      selectedTeams: [],
+      teamData: TEAM_DATA,
+      canGrantTeam: (): boolean => {
+        throw new Error("Nothing should be weighed.");
+      },
+    });
   });
 
   test("reads the project's teams, oldest first, and every row with its scope and labels", async () => {
     signIn(CALLERS[1]!);
 
-    const grants: Array<SsoTeamGrant> = getSignedInUserTeamGrants(
+    const grants: Array<SsoTeamGrant> = signedInUserGrants(
       await fetchSsoTeamData({
         projectId: PROJECT_ID,
         modelAPI: ModelAPI,
@@ -509,7 +580,7 @@ describe("which teams the person could hand on", () => {
     unreadable.teamId = READERS.id;
     unreadable.projectId = PROJECT_ID;
 
-    const grants: Array<SsoTeamGrant> = getSignedInUserTeamGrants(
+    const grants: Array<SsoTeamGrant> = signedInUserGrants(
       await fetchSsoTeamData({
         projectId: PROJECT_ID,
         modelAPI: {
@@ -598,21 +669,18 @@ describe("which teams the person could hand on", () => {
       projectId: PROJECT_ID,
     });
 
-    const canGrantAdmin: () => boolean | undefined = ():
-      | boolean
-      | undefined => {
-      return getSignedInUserTeamGrants(teamData).find(
-        (grant: SsoTeamGrant): boolean => {
-          return grant.name === ADMIN.name;
-        },
-      )?.canGrant;
+    const beyondGrant: () => Array<string> = (): Array<string> => {
+      return getTeamsBeyondGrant({
+        selectedTeams: [idOf(ADMIN)],
+        teamData: teamData,
+      });
     };
 
-    expect(canGrantAdmin()).toBe(false);
+    expect(beyondGrant()).toEqual(["Admin"]);
 
     signIn(CALLERS[1]!);
 
-    expect(canGrantAdmin()).toBe(true);
+    expect(beyondGrant()).toEqual([]);
   });
 
   test("a read that fails is not kept", async () => {
@@ -635,7 +703,7 @@ describe("which teams the person could hand on", () => {
   test("a master admin may hand on every team, as on the server", async () => {
     isMasterAdminForTest = true;
 
-    const grants: Array<SsoTeamGrant> = getSignedInUserTeamGrants(
+    const grants: Array<SsoTeamGrant> = signedInUserGrants(
       await fetchSsoTeamData({
         projectId: PROJECT_ID,
       }),
@@ -832,19 +900,96 @@ describe("the note under Teams", () => {
     expect(mockServer.lists).toHaveLength(2);
   });
 
-  test("a project owner is never warned", async () => {
-    signIn(CALLERS[0]!);
+  test.each([
+    ["a project owner", false],
+    ["a master admin", true],
+  ])(
+    "%s is never warned, and nothing is read for them",
+    async (_name: string, isMasterAdmin: boolean) => {
+      if (isMasterAdmin) {
+        isMasterAdminForTest = true;
+      } else {
+        signIn(CALLERS[0]!);
+      }
 
-    await renderNote(PROJECT_TEAMS.map(idOf));
+      await renderNote(PROJECT_TEAMS.map(idOf));
+      await act(async (): Promise<void> => {});
 
-    await waitFor(() => {
-      expect(mockServer.lists.length).toBeGreaterThanOrEqual(2);
-    });
-    await act(async (): Promise<void> => {});
+      expect(mockServer.lists).toEqual([]);
+      expect(
+        screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("an owner whose Project Owner is blocked is weighed like anyone else", async () => {
+    signIn(CALLERS[3]!);
+
+    await renderNote([idOf(OWNERS)]);
 
     expect(
-      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("Owners");
+  });
+
+  test("on a saved provider switched off, it adds that switching off alone is still allowed", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderNote([idOf(OWNERS)]);
+
+    await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID);
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
     ).not.toBeInTheDocument();
+
+    cleanup();
+
+    await act(async (): Promise<void> => {
+      render(
+        <SsoTeamsGrantNote
+          selectedTeams={[idOf(OWNERS)]}
+          isSavedProviderSwitchedOff={true}
+        />,
+      );
+    });
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).toHaveTextContent(
+      "Switching it off, with nothing else changed, is still allowed.",
+    );
+  });
+
+  test("getSsoTeamsGrantNote says so only for a saved provider with Enabled off", async () => {
+    signIn(CALLERS[1]!);
+
+    const cases: Array<[Record<string, unknown>, boolean]> = [
+      // A saved provider, switched off in the form.
+      [{ _id: PROVIDER_ID.toString(), isEnabled: false }, true],
+      // A saved provider left on.
+      [{ _id: PROVIDER_ID.toString(), isEnabled: true }, false],
+      // A new provider: it starts off, but its save is always weighed.
+      [{ isEnabled: false }, false],
+    ];
+
+    for (const [values, says] of cases) {
+      cleanup();
+
+      await act(async (): Promise<void> => {
+        render(
+          <>{getSsoTeamsGrantNote({ ...values, teams: [idOf(OWNERS)] })}</>,
+        );
+      });
+
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID);
+
+      expect({
+        values,
+        says: Boolean(
+          screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+        ),
+      }).toEqual({ values, says });
+    }
   });
 
   test("says nothing when the teams cannot be read: the server explains on Save", async () => {
@@ -1001,6 +1146,59 @@ describe("in the SAML provider form", () => {
     ).toHaveTextContent(
       "You can't add people to Members through this provider",
     );
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).not.toBeInTheDocument();
+
+    // Switching it off is the one save it may still make.
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("switch", { name: "Enabled" }));
+    });
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).toHaveTextContent(
+      "Switching it off, with nothing else changed, is still allowed.",
+    );
+  });
+
+  test("a new provider, which starts switched off, is not told it may be saved that way", async () => {
+    signIn(CALLERS[1]!);
+
+    await renderForm({
+      formType: FormType.Create,
+      initialValues: {
+        teams: [idOf(OWNERS)],
+      } as unknown as FormValues<ProjectSSO>,
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.change(screen.getByPlaceholderText("Okta"), {
+        target: { value: "Okta" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("https://yourapp.example.com/apps/appId"),
+        { target: { value: "https://idp.example.com/sso" } },
+      );
+      fireEvent.change(screen.getByPlaceholderText("https://example.com"), {
+        target: { value: "https://idp.example.com" },
+      });
+      fireEvent.change(
+        screen.getByPlaceholderText("Paste in your x509 certificate here."),
+        { target: { value: "certificate" } },
+      );
+    });
+
+    await goToSignIn();
+
+    await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID);
+    expect(screen.getByRole("switch", { name: "Enabled" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("a project owner sees no note", async () => {
@@ -1031,19 +1229,83 @@ describe("in the SAML provider form", () => {
     });
 
     await goToSignIn();
-
-    await waitFor(() => {
-      expect(
-        mockServer.lists.filter((request: MockListRequest): boolean => {
-          return request.modelType === TeamPermission;
-        }).length,
-      ).toBeGreaterThanOrEqual(1);
-    });
     await act(async (): Promise<void> => {});
 
     expect(screen.getByText("Teams")).toBeVisible();
     expect(
       screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
     ).not.toBeInTheDocument();
+    // Nobody's permission rows are read for them.
+    expect(
+      mockServer.lists.filter((request: MockListRequest): boolean => {
+        return request.modelType === TeamPermission;
+      }),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The note's sentences are entries in every Dashboard locale: English maps
+ * each to itself, and every other language has its own wording.
+ */
+describe("the note's words in every language", () => {
+  const LOCALES_DIR: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+  const OTHER: string =
+    "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.";
+  const ONE: string =
+    "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.";
+  const SWITCH_OFF: string =
+    "Switching it off, with nothing else changed, is still allowed.";
+
+  function readLocale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  }
+
+  test("English maps each sentence to itself", () => {
+    const english: Record<string, string> = readLocale("en");
+
+    expect(english[OTHER]).toBe(OTHER);
+    expect(english[`${OTHER}_one`]).toBe(ONE);
+    expect(english[SWITCH_OFF]).toBe(SWITCH_OFF);
+  });
+
+  test("every other language has its own wording, placeholders kept", () => {
+    const languages: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(languages).toHaveLength(16);
+
+    for (const language of languages) {
+      const entries: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        other: entries[OTHER] !== undefined && entries[OTHER] !== OTHER,
+        otherKeepsTeams: entries[OTHER]?.includes("{{teams}}"),
+        one:
+          entries[`${OTHER}_one`] !== undefined &&
+          entries[`${OTHER}_one`] !== ONE,
+        switchOff:
+          entries[SWITCH_OFF] !== undefined &&
+          entries[SWITCH_OFF] !== SWITCH_OFF,
+      }).toEqual({
+        language,
+        other: true,
+        otherKeepsTeams: true,
+        one: true,
+        switchOff: true,
+      });
+    }
   });
 });

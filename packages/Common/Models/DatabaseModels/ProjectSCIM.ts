@@ -40,10 +40,11 @@ import {
 })
 @TenantColumn("projectId")
 /*
- * Created and changed by a project owner only: through its Groups endpoints a
- * connection can add people to any team, Owners included, so saving one takes
- * the access that could invite people to every team
- * (Server/Utils/SsoProviderTeamGrant). Reading and deleting are unchanged.
+ * Created and changed by a project owner only, here and on every column:
+ * through its Groups endpoints a connection can add people to any team,
+ * Owners included, so saving one takes the access that could invite people
+ * to every team (Server/Utils/SsoProviderTeamGrant). Reading and deleting
+ * are unchanged.
  */
 @TableAccessControl({
   create: [Permission.ProjectOwner],
@@ -77,11 +78,7 @@ import {
 })
 export default class ProjectSCIM extends BaseModel {
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -116,11 +113,7 @@ export default class ProjectSCIM extends BaseModel {
   public project?: Project = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -149,11 +142,7 @@ export default class ProjectSCIM extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -164,11 +153,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     required: true,
@@ -186,11 +171,7 @@ export default class ProjectSCIM extends BaseModel {
   public name?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -201,11 +182,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     required: false,
@@ -228,17 +205,9 @@ export default class ProjectSCIM extends BaseModel {
    * everything.
    */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [Permission.ProjectOwner],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     required: true,
@@ -254,11 +223,7 @@ export default class ProjectSCIM extends BaseModel {
   public bearerToken?: string = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -269,11 +234,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     required: false,
@@ -302,11 +263,7 @@ export default class ProjectSCIM extends BaseModel {
   public teams?: Array<Team> = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -317,11 +274,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     isDefaultValueColumn: true,
@@ -337,11 +290,7 @@ export default class ProjectSCIM extends BaseModel {
   public autoProvisionUsers?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -352,11 +301,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     isDefaultValueColumn: true,
@@ -372,11 +317,7 @@ export default class ProjectSCIM extends BaseModel {
   public autoDeprovisionUsers?: boolean = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -387,11 +328,7 @@ export default class ProjectSCIM extends BaseModel {
       Permission.SettingsViewer,
       Permission.ReadProjectSSO,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.EditProjectSSO,
-    ],
+    update: [Permission.ProjectOwner],
   })
   @TableColumn({
     isDefaultValueColumn: true,
@@ -443,11 +380,7 @@ export default class ProjectSCIM extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateProjectSSO,
-    ],
+    create: [Permission.ProjectOwner],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
