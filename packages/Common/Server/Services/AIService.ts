@@ -817,6 +817,15 @@ export class Service extends BaseService {
         llmConfig.modelName = llmProvider.modelName;
       }
 
+      /*
+       * Lets an operator-configured provider reach a private address, such as
+       * the Helm chart's in-cluster vLLM, where project-owned providers are
+       * refused one.
+       */
+      if (LlmProviderService.isUnownedGlobalProvider(llmProvider)) {
+        llmConfig.isGlobalProvider = true;
+      }
+
       // Execute LLM call
       const response: LLMCompletionResponse = await LLMService.getCompletion({
         llmProviderConfig: llmConfig,

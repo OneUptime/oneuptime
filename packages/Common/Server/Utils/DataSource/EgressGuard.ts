@@ -37,7 +37,9 @@ import logger from "../Logger";
  *    blocked when billing is enabled (multi-tenant SaaS), allowed for
  *    self-hosted installs — a self-hosted OneUptime's databases usually ARE
  *    on 10.x/192.168.x. Self-hosted operators can force SaaS behavior with
- *    DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true.
+ *    DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true. A target no tenant chose is
+ *    outside that block: LLMService passes blockPrivateAddresses: false for a
+ *    global LLM provider, whose Base URL the operator or a master admin set.
  *
  * Validation happens on RESOLVED ADDRESSES, not hostnames, so decimal
  * (2130706433), octal (0177.0.0.1) and DNS-based tricks all get caught at
@@ -61,7 +63,9 @@ export type EgressResolveFunction = (
 export interface EgressGuardOptions {
   /*
    * Test seam / policy override. Undefined ⇒ derive from billing flag and
-   * the DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES env var.
+   * the DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES env var. Pass false only for a
+   * target no tenant can choose (a global LLM provider), or when an operator
+   * switch says so (probe private-network monitors).
    */
   blockPrivateAddresses?: boolean | undefined;
   // Test seam for DNS. Undefined ⇒ dns.promises.lookup with a timeout.
