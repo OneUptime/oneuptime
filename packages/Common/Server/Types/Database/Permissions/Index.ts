@@ -4,7 +4,9 @@ import Select from "../Select";
 import CreatePermission from "./CreatePermission";
 import DeletePermission from "./DeletePermission";
 import ReadPermission, { CheckReadPermissionType } from "./ReadPermission";
+import TablePermission from "./TablePermission";
 import UpdatePermission from "./UpdatePermission";
+import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
@@ -89,6 +91,61 @@ export default class ModelPermission {
         query,
         props,
       );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
+  /*
+   * The part of a create, update or delete permission check that does not
+   * depend on what is written or on which rows: may this caller write this
+   * table at all, in the project the request is made in. The full checks
+   * (checkCreatePermissions, checkUpdateQueryPermissions,
+   * checkDeleteQueryPermission) ask the same question first, so this refuses
+   * nothing they would let through. DatabaseService asks it before a
+   * service's hooks run, so a hook never acts for a caller the write is
+   * going to be refused for anyway.
+   */
+  public static checkTableWritePermission<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    type:
+      | DatabaseRequestType.Create
+      | DatabaseRequestType.Update
+      | DatabaseRequestType.Delete,
+  ): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    try {
+      if (type === DatabaseRequestType.Create) {
+        CreatePermission.checkCreateBlockPermissions(modelType, props);
+      }
+
+      TablePermission.checkTableLevelPermissions(modelType, props, type);
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
+  /*
+   * The rows an update may change, as a query - see
+   * UpdatePermission.getUpdatableQuery. For a root or master admin caller the
+   * query comes back as it is.
+   */
+  @CaptureSpan()
+  public static async getUpdatableQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel>> {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    try {
+      return await UpdatePermission.getUpdatableQuery(modelType, query, props);
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
     }

@@ -285,6 +285,10 @@ beforeEach(() => {
   jest
     .spyOn(ModelPermission, "checkCreatePermissions")
     .mockReturnValue(undefined);
+  // The same check's table part, as DatabaseService asks it before the hook.
+  jest
+    .spyOn(ModelPermission, "checkTableWritePermission")
+    .mockReturnValue(undefined);
   jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation(() => {});
 
   // The admin may add people to the team, and SCIM does not own it.

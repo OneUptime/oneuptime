@@ -18,20 +18,31 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * carry the same hooks, so the suite runs against all three -- a change made
  * to one of them and not the others shows up here rather than as a project
  * whose telemetry page opens two default views, or none.
+ *
+ * onBeforeCreate only decides the new view's flag. Clearing the other views
+ * happens once the view is saved (onCreateSuccess) or the update has been
+ * made (onUpdateSuccess), so a create or update that is refused or fails
+ * changes no other view. The whole create and update, permission checks
+ * included, is driven in ProjectDefaultRowWrites.test.ts.
  */
 
 type SavedViewModel = LogSavedView | MetricSavedView | TraceSavedView;
 
 /*
- * The two hooks under test, reached past `protected`. Typed over the union of
- * the three models so one set of cases can drive all three services.
+ * The hooks under test, reached past `protected`. Typed over the union of the
+ * three models so one set of cases can drive all three services.
  */
 type SavedViewService = {
   onBeforeCreate: (
     createBy: CreateBy<SavedViewModel>,
   ) => Promise<OnCreate<SavedViewModel>>;
-  onBeforeUpdate: (
-    updateBy: UpdateBy<SavedViewModel>,
+  onCreateSuccess: (
+    onCreate: OnCreate<SavedViewModel>,
+    createdItem: SavedViewModel,
+  ) => Promise<SavedViewModel>;
+  onUpdateSuccess: (
+    onUpdate: OnUpdate<SavedViewModel>,
+    updatedItemIds: Array<ObjectID>,
   ) => Promise<OnUpdate<SavedViewModel>>;
 };
 
@@ -44,7 +55,13 @@ type ServiceCase = {
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
+);
 const VIEW_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
+const SECOND_VIEW_ID: ObjectID = new ObjectID(
+  "44444444-4444-4444-8444-444444444444",
+);
 
 const cases: Array<ServiceCase> = [
   {
@@ -95,100 +112,110 @@ describe.each(cases)(
         .mockResolvedValue(undefined as never);
     }
 
+    function view(
+      id: ObjectID | null,
+      projectId: ObjectID | null,
+      isDefault?: boolean,
+    ): SavedViewModel {
+      const item: SavedViewModel = buildModel();
+
+      if (id) {
+        item._id = id.toString();
+      }
+
+      if (projectId) {
+        item.projectId = projectId;
+      }
+
+      if (isDefault !== undefined) {
+        item.isDefault = isDefault;
+      }
+
+      return item;
+    }
+
+    // The one sweep that clears the other default views of a project.
+    function expectSweep(
+      call: Array<unknown> | undefined,
+      projectId: ObjectID,
+      keepIds: Array<ObjectID>,
+    ): void {
+      const updateArgs: Record<string, unknown> = call?.[0] as Record<
+        string,
+        unknown
+      >;
+      const query: Record<string, unknown> = updateArgs["query"] as Record<
+        string,
+        unknown
+      >;
+
+      expect((query["projectId"] as ObjectID).toString()).toBe(
+        projectId.toString(),
+      );
+      expect(query["isDefault"]).toBe(true);
+      // The views just made the default keep it.
+      for (const keepId of keepIds) {
+        expect(JSON.stringify(query["_id"])).toContain(keepId.toString());
+      }
+      expect(updateArgs["data"]).toEqual({ isDefault: false });
+      /*
+       * The sweep runs as root: a member may only see their own views, and
+       * leaving the others default would break the one-default promise.
+       */
+      expect(updateArgs["props"]).toEqual({ isRoot: true });
+    }
+
     describe("onBeforeCreate", () => {
       test("the first view a project saves becomes its default", async () => {
         mockFindOneBy(null);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        const view: SavedViewModel = buildModel();
-        view.projectId = PROJECT_ID;
-
         const result: OnCreate<SavedViewModel> = await service.onBeforeCreate({
-          data: view,
+          data: view(null, PROJECT_ID),
         } as CreateBy<SavedViewModel>);
 
         expect(result.createBy.data.isDefault).toBe(true);
-        /*
-         * Nothing else held the default, but the sweep still runs and is a no-op
-         * against an empty project.
-         */
-        expect(updateSpy).toHaveBeenCalledTimes(1);
+        // Decided here; no other view is changed before this one is saved.
+        expect(updateSpy).not.toHaveBeenCalled();
       });
 
       test("a later view is not made default while one already exists", async () => {
-        const existing: SavedViewModel = buildModel();
-        existing._id = VIEW_ID.toString();
-        mockFindOneBy(existing);
+        mockFindOneBy(view(VIEW_ID, PROJECT_ID, true));
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        const view: SavedViewModel = buildModel();
-        view.projectId = PROJECT_ID;
-
         const result: OnCreate<SavedViewModel> = await service.onBeforeCreate({
-          data: view,
+          data: view(null, PROJECT_ID),
         } as CreateBy<SavedViewModel>);
 
         expect(result.createBy.data.isDefault).toBe(false);
-        // Not default, so nothing is unset.
         expect(updateSpy).not.toHaveBeenCalled();
       });
 
-      test("an explicit isDefault=true clears whichever view held it", async () => {
-        const findOneSpy: jest.SpyInstance = mockFindOneBy(null);
-        const updateSpy: jest.SpyInstance = mockUpdateBy();
+      test.each([true, false])(
+        "an explicit isDefault=%s is kept, without looking, and changes nothing yet",
+        async (isDefault: boolean) => {
+          const findOneSpy: jest.SpyInstance = mockFindOneBy(null);
+          const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        const view: SavedViewModel = buildModel();
-        view.projectId = PROJECT_ID;
-        view.isDefault = true;
+          const result: OnCreate<SavedViewModel> = await service.onBeforeCreate(
+            {
+              data: view(null, PROJECT_ID, isDefault),
+            } as CreateBy<SavedViewModel>,
+          );
 
-        await service.onBeforeCreate({
-          data: view,
-        } as CreateBy<SavedViewModel>);
-
-        // The caller said so, so the service does not go looking.
-        expect(findOneSpy).not.toHaveBeenCalled();
-        expect(updateSpy).toHaveBeenCalledTimes(1);
-        const updateArgs: Record<string, unknown> = updateSpy.mock
-          .calls[0]?.[0] as Record<string, unknown>;
-        const query: Record<string, unknown> = updateArgs["query"] as Record<
-          string,
-          unknown
-        >;
-        expect(query["projectId"]).toBe(PROJECT_ID);
-        expect(query["isDefault"]).toBe(true);
-        expect(updateArgs["data"]).toEqual({ isDefault: false });
-        /*
-         * The sweep runs as root: a member may only see their own views, and
-         * leaving the others default would break the one-default promise.
-         */
-        expect(updateArgs["props"]).toEqual({ isRoot: true });
-      });
-
-      test("an explicit isDefault=false is kept, and unsets nothing", async () => {
-        const findOneSpy: jest.SpyInstance = mockFindOneBy(null);
-        const updateSpy: jest.SpyInstance = mockUpdateBy();
-
-        const view: SavedViewModel = buildModel();
-        view.projectId = PROJECT_ID;
-        view.isDefault = false;
-
-        const result: OnCreate<SavedViewModel> = await service.onBeforeCreate({
-          data: view,
-        } as CreateBy<SavedViewModel>);
-
-        expect(result.createBy.data.isDefault).toBe(false);
-        expect(findOneSpy).not.toHaveBeenCalled();
-        expect(updateSpy).not.toHaveBeenCalled();
-      });
+          expect(result.createBy.data.isDefault).toBe(isDefault);
+          // The caller said so, so the service does not go looking.
+          expect(findOneSpy).not.toHaveBeenCalled();
+          expect(updateSpy).not.toHaveBeenCalled();
+        },
+      );
 
       test("a view with no project is left alone", async () => {
         const findOneSpy: jest.SpyInstance = mockFindOneBy(null);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        const view: SavedViewModel = buildModel();
-
         const result: OnCreate<SavedViewModel> = await service.onBeforeCreate({
-          data: view,
+          data: view(null, null),
         } as CreateBy<SavedViewModel>);
 
         expect(result.createBy.data.isDefault).toBeUndefined();
@@ -200,11 +227,8 @@ describe.each(cases)(
         const findOneSpy: jest.SpyInstance = mockFindOneBy(null);
         mockUpdateBy();
 
-        const view: SavedViewModel = buildModel();
-        view.projectId = PROJECT_ID;
-
         await service.onBeforeCreate({
-          data: view,
+          data: view(null, PROJECT_ID),
         } as CreateBy<SavedViewModel>);
 
         const findArgs: Record<string, unknown> = findOneSpy.mock
@@ -216,30 +240,77 @@ describe.each(cases)(
       });
     });
 
-    describe("onBeforeUpdate", () => {
+    describe("onCreateSuccess", () => {
+      test("a view saved as the default clears whichever view of its project held it", async () => {
+        const updateSpy: jest.SpyInstance = mockUpdateBy();
+        const created: SavedViewModel = view(VIEW_ID, PROJECT_ID, true);
+
+        const result: SavedViewModel = await service.onCreateSuccess(
+          { createBy: { data: created }, carryForward: null } as never,
+          created,
+        );
+
+        expect(result).toBe(created);
+        expect(updateSpy).toHaveBeenCalledTimes(1);
+        expectSweep(updateSpy.mock.calls[0], PROJECT_ID, [VIEW_ID]);
+      });
+
+      test("a view saved as not the default clears nothing", async () => {
+        const updateSpy: jest.SpyInstance = mockUpdateBy();
+        const created: SavedViewModel = view(VIEW_ID, PROJECT_ID, false);
+
+        await service.onCreateSuccess(
+          { createBy: { data: created }, carryForward: null } as never,
+          created,
+        );
+
+        expect(updateSpy).not.toHaveBeenCalled();
+      });
+
+      test("a view saved with no project clears nothing rather than sweeping globally", async () => {
+        const updateSpy: jest.SpyInstance = mockUpdateBy();
+        const created: SavedViewModel = view(VIEW_ID, null, true);
+
+        await service.onCreateSuccess(
+          { createBy: { data: created }, carryForward: null } as never,
+          created,
+        );
+
+        expect(updateSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("onUpdateSuccess", () => {
+      function onUpdate(
+        data: Partial<SavedViewModel>,
+      ): OnUpdate<SavedViewModel> {
+        return {
+          updateBy: {
+            query: { _id: VIEW_ID.toString() },
+            data: data,
+          } as unknown as UpdateBy<SavedViewModel>,
+          carryForward: null,
+        };
+      }
+
       test("promoting a view to default demotes the others, but not itself", async () => {
-        const item: SavedViewModel = buildModel();
-        item._id = VIEW_ID.toString();
-        item.projectId = PROJECT_ID;
-        mockFindBy([item]);
+        const findSpy: jest.SpyInstance = mockFindBy([
+          view(VIEW_ID, PROJECT_ID),
+        ]);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        await service.onBeforeUpdate({
-          query: { _id: VIEW_ID.toString() },
-          data: { isDefault: true },
-        } as unknown as UpdateBy<SavedViewModel>);
+        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [VIEW_ID]);
+
+        // The view's project is read by the id the update wrote.
+        const findArgs: Record<string, unknown> = findSpy.mock
+          .calls[0]?.[0] as Record<string, unknown>;
+        expect(
+          JSON.stringify((findArgs["query"] as Record<string, unknown>)["_id"]),
+        ).toContain(VIEW_ID.toString());
+        expect(findArgs["props"]).toEqual({ isRoot: true });
 
         expect(updateSpy).toHaveBeenCalledTimes(1);
-        const query: Record<string, unknown> = (
-          updateSpy.mock.calls[0]?.[0] as Record<string, unknown>
-        )["query"] as Record<string, unknown>;
-        expect(query["projectId"]).toBe(PROJECT_ID);
-        expect(query["isDefault"]).toBe(true);
-        /*
-         * The view being promoted is excluded, so the same statement cannot
-         * demote it again.
-         */
-        expect(query["_id"]).toBeDefined();
+        expectSweep(updateSpy.mock.calls[0], PROJECT_ID, [VIEW_ID]);
       });
 
       test("an update that does not set isDefault=true touches nothing", async () => {
@@ -249,58 +320,47 @@ describe.each(cases)(
         for (const data of [{ name: "Renamed" }, { isDefault: false }] as Array<
           Partial<SavedViewModel>
         >) {
-          await service.onBeforeUpdate({
-            query: { _id: VIEW_ID.toString() },
-            data: data,
-          } as unknown as UpdateBy<SavedViewModel>);
+          await service.onUpdateSuccess(onUpdate(data), [VIEW_ID]);
         }
 
         expect(findSpy).not.toHaveBeenCalled();
         expect(updateSpy).not.toHaveBeenCalled();
       });
 
-      test("a bulk promotion demotes the others in each affected project", async () => {
-        const otherProjectId: ObjectID = new ObjectID(
-          "33333333-3333-4333-8333-333333333333",
-        );
-        const first: SavedViewModel = buildModel();
-        first._id = VIEW_ID.toString();
-        first.projectId = PROJECT_ID;
-        const second: SavedViewModel = buildModel();
-        second._id = "44444444-4444-4444-8444-444444444444";
-        second.projectId = otherProjectId;
-        mockFindBy([first, second]);
+      test("an update that wrote no view touches nothing", async () => {
+        const findSpy: jest.SpyInstance = mockFindBy([]);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        await service.onBeforeUpdate({
-          query: { isDefault: false },
-          data: { isDefault: true },
-        } as unknown as UpdateBy<SavedViewModel>);
+        await service.onUpdateSuccess(onUpdate({ isDefault: true }), []);
+
+        expect(findSpy).not.toHaveBeenCalled();
+        expect(updateSpy).not.toHaveBeenCalled();
+      });
+
+      test("a bulk promotion demotes the others in each affected project", async () => {
+        mockFindBy([
+          view(VIEW_ID, PROJECT_ID),
+          view(SECOND_VIEW_ID, OTHER_PROJECT_ID),
+        ]);
+        const updateSpy: jest.SpyInstance = mockUpdateBy();
+
+        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [
+          VIEW_ID,
+          SECOND_VIEW_ID,
+        ]);
 
         expect(updateSpy).toHaveBeenCalledTimes(2);
-        const projectIds: Array<unknown> = updateSpy.mock.calls.map(
-          (call: Array<unknown>) => {
-            return (
-              (call[0] as Record<string, unknown>)["query"] as Record<
-                string,
-                unknown
-              >
-            )["projectId"];
-          },
-        );
-        expect(projectIds).toEqual([PROJECT_ID, otherProjectId]);
+        expectSweep(updateSpy.mock.calls[0], PROJECT_ID, [VIEW_ID]);
+        expectSweep(updateSpy.mock.calls[1], OTHER_PROJECT_ID, [
+          SECOND_VIEW_ID,
+        ]);
       });
 
       test("a matched view with no project is skipped rather than swept globally", async () => {
-        const orphan: SavedViewModel = buildModel();
-        orphan._id = VIEW_ID.toString();
-        mockFindBy([orphan]);
+        mockFindBy([view(VIEW_ID, null)]);
         const updateSpy: jest.SpyInstance = mockUpdateBy();
 
-        await service.onBeforeUpdate({
-          query: { _id: VIEW_ID.toString() },
-          data: { isDefault: true },
-        } as unknown as UpdateBy<SavedViewModel>);
+        await service.onUpdateSuccess(onUpdate({ isDefault: true }), [VIEW_ID]);
 
         expect(updateSpy).not.toHaveBeenCalled();
       });
