@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceLabelRule";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -7,7 +7,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NetworkDeviceRulePatternValidator from "../Utils/NetworkDevice/RulePatternValidator";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -25,6 +25,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeCreate(createBy);
+
     NetworkDeviceRulePatternValidator.validate({
       namePattern: createBy.data.networkDeviceNamePattern,
       descriptionPattern: createBy.data.networkDeviceDescriptionPattern,
@@ -37,6 +40,9 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // The project's own records only, before anything here reads one.
+    await super.onBeforeUpdate(updateBy);
+
     NetworkDeviceRulePatternValidator.validate({
       namePattern: (updateBy.data as any)["networkDeviceNamePattern"] as
         | string

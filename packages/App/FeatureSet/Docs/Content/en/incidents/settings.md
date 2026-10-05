@@ -447,6 +447,8 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **A new rule starts on.** Creating a rule does not ask whether it should be enabled: it starts enabled, exactly as one created through the API or Terraform does, and every other switch on the form starts the way the API would store it — **Notify Owners** on an owner rule is on, for example. To pause a rule without deleting it, switch **Enabled** off on its edit form; the list shows a green **Enabled** or red **Disabled** pill for each rule. Grouping rules are the exception: their create form shows the **Enabled** switch, already on.
 
+**A rule names only your project's records.** The monitors, labels, severities, on-call policies, roles and teams a rule picks are your project's, and the people are its members — the form's pickers offer nothing else. Rules saved through the API, Terraform or a workflow are held to the same: a rule that names a record from another project, a record that does not exist, or someone who is not a member of the project is refused, and the error names the field and the id. Editing a rule checks only what the edit adds, so a rule that names someone who has since left the project can still be saved. When a rule runs, it adds only your project's own teams as owners and pages only your project's own on-call policies.
+
 ## Incident grouping rules
 
 **Incidents → Rules → Grouping Rules** (`/dashboard/{projectId}/incidents/settings/grouping-rules`) puts related incidents into one episode. When a database goes down and 20 monitors open incidents within five minutes, a rule can put all 20 into one episode that your team acknowledges and resolves together. **Alerts → Rules → Grouping Rules** does the same for alerts.

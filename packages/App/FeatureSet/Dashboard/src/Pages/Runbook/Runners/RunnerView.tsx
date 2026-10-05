@@ -1,5 +1,8 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
+import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAgentRunner";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -187,8 +190,11 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
            * tells the truth about a Runner. connectionStatus is written once
            * on create and once on the first heartbeat and never again, so a
            * Runner that died months ago still has it set to "connected".
+           *
+           * The name and the posture say whether the Kubernetes agent chart
+           * installed this Runner, which decides how it is upgraded.
            */
-          selectMoreFields: { lastAlive: true },
+          selectMoreFields: { lastAlive: true, name: true, hostInfo: true },
           fields: [
             {
               field: { connectionStatus: true },
@@ -240,7 +246,21 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
                   return notReportedYet();
                 }
 
-                return <span>{item.agentVersion.toString()}</span>;
+                /*
+                 * A sign beside an outdated version opens how to upgrade
+                 * it: the Runner's image, or - for a Runner the Kubernetes
+                 * agent chart installed - the chart.
+                 */
+                return (
+                  <AgentVersion
+                    kind={
+                      isKubernetesAgentRunnerRow(item)
+                        ? AgentKind.KubernetesAgent
+                        : AgentKind.Runner
+                    }
+                    version={item.agentVersion.toString()}
+                  />
+                );
               },
             },
             {

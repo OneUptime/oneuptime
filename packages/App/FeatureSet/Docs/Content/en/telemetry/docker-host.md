@@ -91,6 +91,8 @@ Within a minute or so the host should appear in the OneUptime dashboard with met
 
 ## Upgrading the Agent
 
+When the agent is older than your OneUptime, a warning sign appears beside **Agent Version** on the Docker host's **Overview**. Select it to see these commands.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

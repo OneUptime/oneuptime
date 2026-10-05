@@ -33,6 +33,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import ObjectID from "../../../Types/ObjectID";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
  * Issue #3394, the internal callers.
@@ -174,6 +175,8 @@ function delegatedArgs(): Record<string, unknown> {
 }
 
 beforeEach(() => {
+  // The teams, users and records these writes name are the project's (see ProjectReferenceCheck).
+  stubProjectDirectory({});
   delegate = jest
     .spyOn(OwnerRuleAssignment, "addOwners")
     .mockResolvedValue({ userIds: [], teamIds: [] });

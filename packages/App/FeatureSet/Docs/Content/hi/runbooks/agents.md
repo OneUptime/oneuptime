@@ -64,6 +64,15 @@ docker run --name oneuptime-runner --restart unless-stopped \
 - सत्यापित करें कि host `curl` से OneUptime URL तक पहुँचता है।
 - सत्यापित करें कि ID और key बिना whitespace के copy हुए हैं।
 
+### 5. एजेंट को अप-टू-डेट रखें
+
+जब कोई एजेंट आपके OneUptime से पुराना संस्करण चलाता है, तो उसके पेज पर उसके **Runbook एजेंट संस्करण** के पास एक चेतावनी चिह्न दिखता है। अपग्रेड करने का तरीका देखने के लिए उसे चुनें: नई image pull करें और container हटाएँ, फिर चरण 2 का install कमांड दोबारा चलाएँ। जिस एजेंट को Kubernetes एजेंट के chart ने इंस्टॉल किया है, उसे chart से ही अपग्रेड किया जाता है।
+
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
+
 ## किसी step को एजेंट की ओर इंगित करें
 
 अपने runbook में एक Bash या JavaScript step जोड़ें। फ़ॉर्म में एक **Runbook Agent** ड्रॉपडाउन होता है जिसमें वर्तमान प्रोजेक्ट के सभी एजेंट सूचीबद्ध हैं (साथ ही connected/disconnected इंडिकेटर):

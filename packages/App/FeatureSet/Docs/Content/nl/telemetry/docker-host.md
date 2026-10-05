@@ -91,6 +91,8 @@ Binnen ongeveer een minuut zou de host in het OneUptime-dashboard moeten verschi
 
 ## De agent upgraden
 
+Als de agent ouder is dan je OneUptime, verschijnt er een waarschuwingsteken naast **Agentversie** in het **Overzicht** van de Docker-host. Selecteer het om deze commando's te zien.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

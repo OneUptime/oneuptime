@@ -35,6 +35,8 @@ import ResourceOverview, {
   ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
+import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
@@ -386,7 +388,16 @@ const ServerlessFunctionOverview: FunctionComponent<
     { label: "Cloud Account ID", value: fn.cloudAccountId },
     { label: "Function Version (faas.version)", value: fn.functionVersion },
     { label: "Runtime", value: runtime },
-    { label: "Agent Version", value: fn.agentVersion },
+    {
+      label: "Agent Version",
+      value: fn.agentVersion,
+      element: (
+        <AgentVersion
+          kind={AgentKind.ServerlessSdk}
+          version={fn.agentVersion}
+        />
+      ),
+    },
   ];
 
   /*
