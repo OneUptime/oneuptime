@@ -27,7 +27,7 @@ La integración SSO proporciona los siguientes beneficios:
    - Ingresa la **URL de inicio de sesión** de tu proveedor de identidad
    - Ingresa el **Emisor** (ID de entidad) de tu proveedor de identidad
    - Pega el **Certificado público** de tu proveedor de identidad
-   - En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: las personas que inician sesión por primera vez se unen a estos equipos
+   - En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: las personas que inician sesión por primera vez se unen a estos equipos. Solo se aceptan equipos a los que podrías invitar a alguien: un equipo que da más acceso del que tienes se indica bajo **Equipos**
    - Todo lo demás se rellena en **Más campos**: el **Método de firma** (`RSA-SHA256`), el **Método de resumen** (`SHA256`) y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor de identidad lo necesita
 
 3. **Obtener los metadatos SSO de OneUptime**
@@ -294,10 +294,12 @@ Un proyecto también puede iniciar sesión mediante un proveedor de OpenID Conne
 1. Registra una aplicación (un cliente OIDC) en tu proveedor de identidad y copia su **URL del emisor**, su **ID de cliente** y su **Secreto de cliente**.
 2. En OneUptime, ve a **Ajustes del proyecto** > **Seguridad** > **OIDC** y haz clic en **Crear OIDC**.
 3. Introduce un **Nombre** (lo que la gente ve en la página de inicio de sesión), la **URL del emisor**, el **ID de cliente** y el **Secreto de cliente**. También puedes pegar la URL de descubrimiento del proveedor en **URL del emisor**.
-4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás se rellena en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de los claims `email` y `name`, y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor lo necesita.
+4. En el paso **Inicio de sesión**, **Equipos** empieza con el equipo de miembros de tu proyecto: quienes inician sesión por primera vez se unen a estos equipos. Todo lo demás se rellena en **Más campos**: la **URL de descubrimiento** (el emisor seguido de `/.well-known/openid-configuration`), los **Alcances** (`openid email profile`), los nombres de los claims `email` y `name`, y una descripción («Sign in with» y el nombre). Cámbialos solo si tu proveedor lo necesita. Solo se aceptan equipos a los que podrías invitar a alguien: un equipo que da más acceso del que tienes se indica bajo **Equipos**.
 5. Guarda. Se abre el diálogo **Configuración de OIDC** con la **URI de redirección**: añádela a las URI de redirección permitidas de tu aplicación. Un proveedor nuevo empieza deshabilitado; después, edítalo y activa **Habilitado**.
 6. Usa el enlace de la tarjeta **Probar OpenID Connect (OIDC)** para iniciar sesión con el proveedor antes de exigir SSO en el proyecto.
 
 ## Notas sobre SSO y roles
 
 OneUptime actualmente no admite la asignación de roles SAML desde tu proveedor de identidad. El control de acceso basado en roles debe configurarse por separado dentro de los **Ajustes del proyecto** > **SSO** de OneUptime, donde puedes asignar roles predeterminados para usuarios SSO.
+
+Los equipos de un proveedor deciden lo que pueden hacer las personas que inician sesión con él, así que un proveedor solo se guarda con equipos a los que la persona que lo guarda podría invitar a alguien. Cada vez que se guarda se vuelven a comprobar: un proveedor cuyos equipos dan más acceso del que tienes solo puede cambiarlo alguien cuyo acceso los abarque, como un propietario del proyecto. Los proveedores guardados antes de esta comprobación siguen añadiendo a las personas a sus equipos.

@@ -19,6 +19,8 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 
 ### Configurando o SCIM de Projeto
 
+Somente um proprietário do projeto pode adicionar ou alterar a conexão SCIM de um projeto, ou redefinir seu token Bearer: pelo SCIM, seu provedor de identidade pode adicionar pessoas a qualquer equipe do projeto. Qualquer outra pessoa que possa abrir **Configurações do projeto** > **Segurança** > **SCIM** ainda pode ver e excluir conexões.
+
 1. **Navegar para as Configurações do Projeto**
 
    - Vá para o seu projeto do OneUptime

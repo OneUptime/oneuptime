@@ -27,7 +27,7 @@ L'integrazione SSO fornisce i seguenti vantaggi:
    - Inserisci l'**URL di accesso** dal tuo provider di identità
    - Inserisci l'**Emittente** (Entity ID) dal tuo provider di identità
    - Incolla il **Certificato pubblico** dal tuo provider di identità
-   - Nel passaggio **Accesso**, **Team** parte dal team dei membri del tuo progetto: chi accede per la prima volta entra in questi team
+   - Nel passaggio **Accesso**, **Team** parte dal team dei membri del tuo progetto: chi accede per la prima volta entra in questi team. Sono accettati solo i team a cui potresti invitare qualcuno: un team che dà più accesso di quello che hai viene indicato sotto **Team**
    - Tutto il resto viene compilato in **Altri campi**: il **Metodo di firma** (`RSA-SHA256`), il **Metodo di digest** (`SHA256`) e una descrizione («Sign in with» e il nome). Modificali solo se il tuo provider di identità lo richiede
 
 3. **Ottieni i Metadati SSO di OneUptime**
@@ -294,10 +294,12 @@ Un progetto può accedere anche tramite un provider OpenID Connect, come Google 
 1. Registra un'app (un client OIDC) presso il tuo provider di identità e copia il suo **URL dell'emittente**, il **Client ID** e il **Client Secret**.
 2. In OneUptime, vai su **Impostazioni del progetto** > **Sicurezza** > **OIDC** e clicca su **Crea: OIDC**.
 3. Inserisci un **Nome** (ciò che le persone vedono nella pagina di accesso), l'**URL dell'emittente**, il **Client ID** e il **Client Secret**. Puoi anche incollare l'URL di discovery del provider in **URL dell'emittente**.
-4. Nel passaggio **Accesso**, **Team** parte dal team dei membri del tuo progetto: chi accede per la prima volta entra in questi team. Tutto il resto viene compilato in **Altri campi**: l'**URL di discovery** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Ambiti** (`openid email profile`), i nomi dei claim `email` e `name` e una descrizione («Sign in with» e il nome). Modificali solo se il tuo provider lo richiede.
+4. Nel passaggio **Accesso**, **Team** parte dal team dei membri del tuo progetto: chi accede per la prima volta entra in questi team. Tutto il resto viene compilato in **Altri campi**: l'**URL di discovery** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Ambiti** (`openid email profile`), i nomi dei claim `email` e `name` e una descrizione («Sign in with» e il nome). Modificali solo se il tuo provider lo richiede. Sono accettati solo i team a cui potresti invitare qualcuno: un team che dà più accesso di quello che hai viene indicato sotto **Team**.
 5. Salva. Si apre la finestra **OIDC Configuration** con il **Redirect URI**: aggiungilo ai redirect URI consentiti della tua app. Un nuovo provider parte disabilitato; poi modificalo e attiva **Abilitato**.
 6. Usa il link della scheda **Test OpenID Connect (OIDC)** per accedere tramite il provider prima di rendere obbligatorio l'SSO per il progetto.
 
 ## Note su SSO e Ruoli
 
 OneUptime attualmente non supporta il mapping dei ruoli SAML dal tuo provider di identità. L'accesso basato sui ruoli deve essere configurato separatamente all'interno delle **Impostazioni del progetto** > **SSO** di OneUptime, dove puoi assegnare ruoli predefiniti per gli utenti SSO.
+
+I team di un provider decidono cosa possono fare le persone che accedono con esso, quindi un provider viene salvato solo con team a cui chi lo salva potrebbe invitare qualcuno. Ogni salvataggio li controlla di nuovo: un provider i cui team danno più accesso di quello che hai può essere modificato solo da qualcuno il cui accesso li copre, come un proprietario del progetto. I provider salvati prima di questo controllo continuano ad aggiungere le persone ai loro team.

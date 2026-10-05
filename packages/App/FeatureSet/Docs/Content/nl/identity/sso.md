@@ -27,7 +27,7 @@ SSO-integratie biedt de volgende voordelen:
    - Voer de **Aanmeldings-URL** in van uw identiteitsprovider
    - Voer de **Uitgever** (Entiteit-ID) in van uw identiteitsprovider
    - Plak het **Openbaar certificaat** van uw identiteitsprovider
-   - In de stap **Aanmelden** begint **Teams** bij het ledenteam van uw project: mensen die zich voor het eerst aanmelden, worden lid van deze teams
+   - In de stap **Aanmelden** begint **Teams** bij het ledenteam van uw project: mensen die zich voor het eerst aanmelden, worden lid van deze teams. Alleen teams waarvoor u zelf iemand zou kunnen uitnodigen worden geaccepteerd: een team dat meer toegang geeft dan u hebt, wordt onder **Teams** genoemd
    - Al het andere wordt onder **Meer velden** ingevuld: de **Handtekeningmethode** (`RSA-SHA256`), de **Digest-methode** (`SHA256`) en een beschrijving ('Sign in with' en de naam). Wijzig ze alleen als uw identiteitsprovider dat vereist
 
 3. **OneUptime SSO-metagegevens ophalen**
@@ -294,10 +294,12 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 1. Registreer een app (een OIDC-client) bij uw identiteitsprovider en kopieer de **Uitgever-URL**, **Client-ID** en **Client-secret**.
 2. Navigeer in OneUptime naar **Projectinstellingen** > **Beveiliging** > **OIDC** en klik op **OIDC aanmaken**.
 3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
-4. In de stap **Aanmelden** staat bij **Teams** al het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. Al het andere wordt onder **Meer velden** ingevuld: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vereist.
+4. In de stap **Aanmelden** staat bij **Teams** al het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. Al het andere wordt onder **Meer velden** ingevuld: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vereist. Alleen teams waarvoor u zelf iemand zou kunnen uitnodigen worden geaccepteerd: een team dat meer toegang geeft dan u hebt, wordt onder **Teams** genoemd.
 5. Sla op. Het venster **OIDC Configuration** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit; bewerk hem daarna en zet **Ingeschakeld** aan.
 6. Gebruik de link op de kaart **Test OpenID Connect (OIDC)** om via de provider in te loggen voordat u SSO voor het project verplicht maakt.
 
 ## Opmerkingen over SSO en rollen
 
 OneUptime ondersteunt momenteel geen koppeling van SAML-rollen vanuit uw identiteitsprovider. Op rollen gebaseerde toegang moet afzonderlijk worden geconfigureerd binnen **Projectinstellingen** > **SSO** in OneUptime, waar u standaardrollen voor SSO-gebruikers kunt toewijzen.
+
+De teams van een provider bepalen wat mensen die zich ermee aanmelden kunnen doen. Een provider wordt daarom alleen opgeslagen met teams waarvoor de persoon die hem opslaat iemand zou kunnen uitnodigen. Elke keer opslaan controleert ze opnieuw: een provider waarvan de teams meer toegang geven dan u hebt, kan alleen worden gewijzigd door iemand wiens toegang ze omvat, zoals een projecteigenaar. Providers die vóór deze controle zijn opgeslagen, blijven mensen aan hun teams toevoegen.

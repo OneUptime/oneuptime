@@ -19,6 +19,8 @@ Project SCIM allows identity providers to manage team members within OneUptime p
 
 ### Setting Up Project SCIM
 
+Only a project owner can add or change a project's SCIM connection, or reset its bearer token: through SCIM, your identity provider can add people to any team in the project. Everyone else who can open **Project Settings** > **Security** > **SCIM** can still view and delete connections.
+
 1. **Navigate to Project Settings**
 
    - Go to your OneUptime project

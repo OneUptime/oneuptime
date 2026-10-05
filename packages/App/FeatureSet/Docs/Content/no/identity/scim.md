@@ -19,6 +19,8 @@ Prosjekt-SCIM lar identitetsleverandører administrere teammedlemmer innenfor On
 
 ### Konfigurere prosjekt-SCIM
 
+Bare en prosjekteier kan legge til eller endre et prosjekts SCIM-tilkobling eller tilbakestille bærertokenet: Via SCIM kan identitetsleverandøren din legge til personer i et hvilket som helst team i prosjektet. Alle andre som kan åpne **Prosjektinnstillinger** > **Sikkerhet** > **SCIM**, kan fortsatt se og slette tilkoblinger.
+
 1. **Naviger til prosjektinnstillinger**
 
    - Gå til OneUptime-prosjektet ditt
