@@ -134,7 +134,29 @@ interface PostgresClient {
  * Built before the upgrade, this migration finds it and does nothing. An
  * INVALID copy from an earlier stopped build is dropped and rebuilt, since IF
  * NOT EXISTS would accept it forever; one that is still being built
- * (pg_stat_progress_create_index) is left to finish.
+ * (pg_stat_progress_create_index) is left to finish. Postgres hides another
+ * role's progress from a role without pg_read_all_stats (index_relid reads
+ * NULL), so a hidden build in this database counts as this one: an
+ * operator's build running as the superuser is never dropped from under it.
+ *
+ * WHAT IT CANNOT DO
+ *
+ * A backup (pg_dump) holds its snapshot and an ACCESS SHARE lock on every
+ * table for as long as it runs. An online build waits for that snapshot at
+ * its very end, and dropping what it leaves waits for that lock, so a build
+ * during a backup longer than the wait bound leaves an INVALID copy that the
+ * log asks the operator to drop. And a migration runs once: one that left the
+ * index to the operator is not tried again by a later upgrade. Retrying from
+ * the running app instead would mean DDL and session settings on pooled
+ * connections (PgBouncer in Helm), which migrations deliberately avoid.
+ *
+ * A connection lost mid-build fails the migration, like any migration: it
+ * cannot be recorded on that connection either, and the next start runs it
+ * again - dropping the leftover, or leaving a build still running to finish.
+ *
+ * The single-column "projectId" index stays although this one leads with the
+ * same column: where the build was left to the operator, every lookup by
+ * project still needs it.
  */
 export class AddLlmLogProjectCreatedAtIndex1798300000000
   implements MigrationInterface
@@ -165,7 +187,7 @@ export class AddLlmLogProjectCreatedAtIndex1798300000000
 
     if (before === "building") {
       logger.warn(
-        `${this.name}: an online build of ${LLM_LOG_PROJECT_CREATED_AT_INDEX} is in progress; leaving it to finish. If that build fails, drop the INVALID index it leaves and build it again: ${this.getRunbook(true)}`,
+        `${this.name}: ${LLM_LOG_PROJECT_CREATED_AT_INDEX} is still being built (or another role is building an index this role cannot see); leaving it to finish. If that build fails, or it was not this index, drop the INVALID index and build it again: ${this.getRunbook(true)}`,
       );
       return;
     }
@@ -284,14 +306,18 @@ export class AddLlmLogProjectCreatedAtIndex1798300000000
 
   /*
    * The index of this name on the LlmLog the build names - resolved through
-   * the search path exactly as the build resolves it.
+   * the search path exactly as the build resolves it. It is being built when
+   * a build of it shows progress, or when an index build in this database
+   * hides its progress from this role (index_relid NULL): that may be it.
    */
   private async getIndexState(queryRunner: QueryRunner): Promise<IndexState> {
     const rows: Array<{ isValid: boolean; isBuilding: boolean }> =
       await queryRunner.query(
         `SELECT x.indisvalid AS "isValid",
            EXISTS (SELECT 1 FROM pg_stat_progress_create_index p
-                   WHERE p.index_relid = x.indexrelid) AS "isBuilding"
+                   WHERE p.datname = current_database()
+                     AND (p.index_relid = x.indexrelid OR p.index_relid IS NULL)
+           ) AS "isBuilding"
          FROM pg_index x
          JOIN pg_class c ON c.oid = x.indexrelid
          WHERE x.indrelid = to_regclass('"LlmLog"') AND c.relname = $1`,

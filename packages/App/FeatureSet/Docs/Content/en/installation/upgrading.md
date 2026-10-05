@@ -516,7 +516,13 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
 
 If the log says an unfinished (INVALID) copy was left behind, drop it first
 with `DROP INDEX CONCURRENTLY IF EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT";`.
-An index you build this way before upgrading is kept as it is.
+That happens when a backup runs through the upgrade: the backup holds the
+table until it finishes. An index you build this way before upgrading is kept
+as it is.
+
+On Helm with `migrate.hook: true`, `helm upgrade` waits for the migrations, by
+default for 5 minutes. If your AI Logs table is very large, run this upgrade
+with `--timeout 20m`.
 
 ### Verify the edition and the license
 

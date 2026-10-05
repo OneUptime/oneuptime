@@ -527,6 +527,8 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
      */
     async function runUp(
       migration: AddLlmLogProjectCreatedAtIndex1798300000000 = new AddLlmLogProjectCreatedAtIndex1798300000000(),
+      // Runs it as this role (SET ROLE), as an app whose role is not the superuser.
+      role?: string,
     ): Promise<Run> {
       const queryRunner: QueryRunner = database.createQueryRunner();
       const client: {
@@ -535,6 +537,10 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
       const statements: Array<string> = [];
       const query: (...args: Array<unknown>) => Promise<unknown> =
         client.query.bind(client);
+
+      if (role) {
+        await query(`SET ROLE "${role}"`);
+      }
 
       client.query = (...args: Array<unknown>): Promise<unknown> => {
         const statement: unknown = args[0];
@@ -563,6 +569,10 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
         };
       } finally {
         client.query = query;
+        if (role) {
+          // Nothing this test set may follow the connection back into the pool.
+          await query(`RESET ROLE`);
+        }
         await queryRunner.release();
       }
     }
@@ -719,57 +729,85 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
       ]);
     });
 
+    interface BlockedBuild {
+      // Commits the writer, so the build can finish, and waits for it.
+      finish: () => Promise<void>;
+      // Rolls back and releases whatever is still open.
+      release: () => Promise<void>;
+    }
+
+    /*
+     * An online build of the index, by the superuser, held INVALID and in
+     * progress by an open writer, as an operator's runbook build is while AI
+     * calls are being logged.
+     */
+    async function startBlockedBuild(): Promise<BlockedBuild> {
+      const writer: QueryRunner = database.createQueryRunner();
+      const builder: QueryRunner = database.createQueryRunner();
+      await writer.connect();
+      await builder.connect();
+
+      await writer.startTransaction();
+      await writer.query(
+        `INSERT INTO "LlmLog" ("_id", "createdAt", "updatedAt", "version",
+           "projectId", "status") VALUES (gen_random_uuid(), now(), now(), 1, $1::uuid, 'Success')`,
+        [busyProjectId.toString()],
+      );
+      const build: Promise<unknown> = builder.query(
+        LLM_LOG_PROJECT_CREATED_AT_INDEX_BUILD,
+      );
+
+      let inProgress: boolean = false;
+      for (let attempt: number = 0; attempt < 50 && !inProgress; attempt++) {
+        const rows: Array<unknown> = await database.query(
+          `SELECT 1 FROM pg_stat_progress_create_index p
+           JOIN pg_class c ON c.oid = p.index_relid
+           JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE c.relname = $1 AND n.nspname = $2`,
+          [LLM_LOG_PROJECT_CREATED_AT_INDEX, schema],
+        );
+        inProgress = rows.length > 0;
+        if (!inProgress) {
+          await new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, 100);
+          });
+        }
+      }
+      expect(inProgress).toBe(true);
+
+      return {
+        finish: async (): Promise<void> => {
+          await writer.commitTransaction();
+          await build;
+        },
+        release: async (): Promise<void> => {
+          if (writer.isTransactionActive) {
+            await writer.rollbackTransaction();
+          }
+          await writer.release();
+          await builder.release();
+        },
+      };
+    }
+
     /*
      * An online build still running is INVALID until it finishes. Dropping
      * it would wait behind it, so the migration leaves it alone and returns
      * at once.
      */
     test("an online build still in progress is left to finish, never dropped", async () => {
-      const writer: QueryRunner = database.createQueryRunner();
-      const builder: QueryRunner = database.createQueryRunner();
-      await writer.connect();
-      await builder.connect();
+      const blocked: BlockedBuild = await startBlockedBuild();
 
       try {
-        // An open writer makes the online build wait with its index INVALID.
-        await writer.startTransaction();
-        await writer.query(
-          `INSERT INTO "LlmLog" ("_id", "createdAt", "updatedAt", "version",
-             "projectId", "status") VALUES (gen_random_uuid(), now(), now(), 1, $1::uuid, 'Success')`,
-          [busyProjectId.toString()],
-        );
-        const build: Promise<unknown> = builder.query(
-          LLM_LOG_PROJECT_CREATED_AT_INDEX_BUILD,
-        );
-
-        let inProgress: boolean = false;
-        for (let attempt: number = 0; attempt < 50 && !inProgress; attempt++) {
-          const rows: Array<unknown> = await database.query(
-            `SELECT 1 FROM pg_stat_progress_create_index p
-             JOIN pg_class c ON c.oid = p.index_relid
-             JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE c.relname = $1 AND n.nspname = $2`,
-            [LLM_LOG_PROJECT_CREATED_AT_INDEX, schema],
-          );
-          inProgress = rows.length > 0;
-          if (!inProgress) {
-            await new Promise<void>((resolve: () => void): void => {
-              setTimeout(resolve, 100);
-            });
-          }
-        }
-        expect(inProgress).toBe(true);
-
         const { warn } = silenceLogs();
         const startedAt: number = Date.now();
         const run: Run = await runUp();
 
         expect(Date.now() - startedAt).toBeLessThan(3_000);
         expect(indexDdl(run)).toEqual([]);
-        expect(String(warn.mock.calls[0]?.[0])).toContain("in progress");
+        expect(String(warn.mock.calls[0]?.[0])).toContain("still being built");
 
-        await writer.commitTransaction();
-        await build;
+        await blocked.finish();
         expect(await usageIndexes()).toEqual([
           expect.objectContaining({
             name: LLM_LOG_PROJECT_CREATED_AT_INDEX,
@@ -777,11 +815,90 @@ describePostgres("LlmLog daily usage index against Postgres", () => {
           }),
         ]);
       } finally {
-        if (writer.isTransactionActive) {
-          await writer.rollbackTransaction();
+        await blocked.release();
+      }
+    });
+
+    /*
+     * Postgres hides another role's build progress from a role without
+     * pg_read_all_stats: index_relid reads NULL. The app often migrates as
+     * such a role while an operator runs the runbook as the superuser, so a
+     * hidden build counts as this one and is never dropped from under them.
+     */
+    test("a build by another role, whose progress this role cannot see, is left to finish", async () => {
+      const role: string = `llm_log_usage_${ObjectID.generate()
+        .toString()
+        .replace(/-/g, "")
+        .slice(0, 12)}`;
+      await database.query(`CREATE ROLE "${role}" NOLOGIN NOSUPERUSER`);
+
+      try {
+        // The app's role owns the table, as it owns every table it migrates.
+        await database.query(
+          `GRANT USAGE, CREATE ON SCHEMA "${schema}" TO "${role}"`,
+        );
+        await database.query(
+          `ALTER TABLE "${schema}"."LlmLog" OWNER TO "${role}"`,
+        );
+
+        const blocked: BlockedBuild = await startBlockedBuild();
+
+        try {
+          const { warn } = silenceLogs();
+          const run: Run = await runUp(
+            new AddLlmLogProjectCreatedAtIndex1798300000000(),
+            role,
+          );
+
+          expect(indexDdl(run)).toEqual([]);
+          expect(String(warn.mock.calls[0]?.[0])).toContain(
+            "still being built",
+          );
+
+          await blocked.finish();
+          expect(await usageIndexes()).toEqual([
+            expect.objectContaining({
+              name: LLM_LOG_PROJECT_CREATED_AT_INDEX,
+              isValid: true,
+            }),
+          ]);
+        } finally {
+          await blocked.release();
         }
-        await writer.release();
-        await builder.release();
+      } finally {
+        // DROP OWNED takes the clone with it; the next test clones afresh.
+        await database.query(`DROP OWNED BY "${role}"`);
+        await database.query(`DROP ROLE "${role}"`);
+      }
+    });
+
+    test("the hidden progress is what that role really sees", async () => {
+      /*
+       * Proves the test above runs the case it means to: as the app's role,
+       * the superuser's build shows in this database with no index named.
+       */
+      const role: string = `llm_log_usage_${ObjectID.generate()
+        .toString()
+        .replace(/-/g, "")
+        .slice(0, 12)}`;
+      await database.query(`CREATE ROLE "${role}" NOLOGIN NOSUPERUSER`);
+      const blocked: BlockedBuild = await startBlockedBuild();
+      const observer: QueryRunner = database.createQueryRunner();
+      await observer.connect();
+
+      try {
+        await observer.query(`SET ROLE "${role}"`);
+        const seen: Array<{ indexRelid: unknown }> = await observer.query(
+          `SELECT index_relid AS "indexRelid" FROM pg_stat_progress_create_index
+           WHERE datname = current_database()`,
+        );
+        expect(seen).toEqual([{ indexRelid: null }]);
+      } finally {
+        await observer.query(`RESET ROLE`);
+        await observer.release();
+        await blocked.finish();
+        await blocked.release();
+        await database.query(`DROP ROLE "${role}"`);
       }
     });
 

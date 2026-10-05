@@ -27,6 +27,7 @@ const PREVIOUS_NOTE_HEADING: string = "### AI has no limits by default";
 const NEXT_NOTE_HEADING: string = "### Verify the edition and the license";
 
 const SQL_BLOCK: RegExp = /```sql\n([\s\S]*?)\n```/g;
+const HELM_TIMEOUT: RegExp = /`--timeout (\d+)m`/;
 const WHITESPACE: RegExp = /\s+/g;
 
 const MINUTES_IN_WORDS: Record<number, string> = {
@@ -117,6 +118,19 @@ describe("the AI Logs index upgrade note", () => {
   it("gives the drop the migration's log asks for when a copy was left INVALID", () => {
     expect(flat(note())).toContain(
       `\`${LLM_LOG_PROJECT_CREATED_AT_INDEX_DROP};\``,
+    );
+  });
+
+  it("gives a blocking Helm hook more time than the build may take", () => {
+    const timeout: RegExpMatchArray | null = flat(note()).match(HELM_TIMEOUT);
+
+    expect(flat(note())).toContain("`migrate.hook: true`");
+    expect(timeout).not.toBeNull();
+    // Helm's own default, which a large table's build can outlast.
+    expect(flat(note())).toContain("by default for 5 minutes");
+    expect(Number(timeout![1]) * 60_000).toBeGreaterThan(
+      LLM_LOG_INDEX_BUILD_LIMITS.buildTimeoutInMs +
+        LLM_LOG_INDEX_BUILD_LIMITS.lockWaitTimeoutInMs,
     );
   });
 });

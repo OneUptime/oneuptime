@@ -4,6 +4,7 @@ import type { SpyInstance } from "jest-mock";
 import path from "path";
 import { QueryRunner } from "typeorm";
 import { PostgresQueryTimeoutMs } from "../../../../Server/EnvironmentConfig";
+import dataSourceOptions from "../../../../Server/Infrastructure/Postgres/DataSourceOptions";
 import {
   AddLlmLogProjectCreatedAtIndex1798300000000,
   LLM_LOG_INDEX_BUILD_LIMITS,
@@ -77,6 +78,8 @@ interface FakeDatabase {
   stateAfterFailedBuild?: IndexState;
   connectError?: Error;
   dropError?: Error;
+  // The connection is gone by the time the settings are put back.
+  restoreError?: Error;
 }
 
 interface FakeRun {
@@ -103,6 +106,14 @@ function fakeDatabase(database: FakeDatabase): FakeRun {
         expect(statement).toContain("pg_stat_progress_create_index");
         // The LlmLog the build names, resolved the way the build resolves it.
         expect(statement).toContain(`x.indrelid = to_regclass('"LlmLog"')`);
+        /*
+         * A build in this database whose progress this role may not see
+         * (another role's: index_relid reads NULL) may be this index's.
+         */
+        expect(statement).toContain("p.datname = current_database()");
+        expect(statement).toContain(
+          "(p.index_relid = x.indexrelid OR p.index_relid IS NULL)",
+        );
         statements.push(LOOKUP);
         return state === "missing"
           ? []
@@ -110,6 +121,10 @@ function fakeDatabase(database: FakeDatabase): FakeRun {
       }
 
       statements.push(statement);
+
+      if (database.restoreError && statement.endsWith("= DEFAULT")) {
+        throw database.restoreError;
+      }
 
       if (statement === LLM_LOG_PROJECT_CREATED_AT_INDEX_DROP) {
         if (database.dropError) {
@@ -277,7 +292,7 @@ describe("up()", () => {
 
     expect(run.statements).toEqual([LOOKUP]);
     const message: string = lastWarning(warn);
-    expect(message).toContain("in progress");
+    expect(message).toContain("still being built");
     expect(message).toContain(
       `${LLM_LOG_PROJECT_CREATED_AT_INDEX_DROP}; ${LLM_LOG_PROJECT_CREATED_AT_INDEX_BUILD};`,
     );
@@ -420,6 +435,25 @@ describe("up()", () => {
       ).resolves.toBeUndefined();
     }
   });
+
+  /*
+   * Not a stopped build but a lost connection: TypeORM could not record the
+   * migration on it either, so it fails like any migration would, and the
+   * next start runs it again.
+   */
+  test("a connection lost by the time the settings go back fails the migration, with that error", async () => {
+    spyOnLogs();
+    const lost: Error = new Error("Connection terminated unexpectedly");
+    const run: FakeRun = fakeDatabase({
+      state: "missing",
+      buildError: new Error("Connection terminated unexpectedly"),
+      restoreError: lost,
+    });
+
+    await expect(
+      new AddLlmLogProjectCreatedAtIndex1798300000000().up(run.runner),
+    ).rejects.toBe(lost);
+  });
 });
 
 describe("down()", () => {
@@ -460,6 +494,26 @@ describe("the migration runs", () => {
         return migration === AddLlmLogProjectCreatedAtIndex1798300000000;
       }),
     ).toHaveLength(1);
+  });
+
+  /*
+   * TypeORM honours `transaction = false` only when it runs migrations one
+   * transaction each; in "all" mode it refuses the whole run
+   * (ForbiddenTransactionModeOverrideError), on every install.
+   */
+  test("the app runs migrations one transaction each, the mode that lets it opt out", () => {
+    const optingOut: Array<string> = SchemaMigrations.filter(
+      (migration: unknown): boolean => {
+        const instance: Record<string, unknown> =
+          new (migration as new () => Record<string, unknown>)();
+        return Object.prototype.hasOwnProperty.call(instance, "transaction");
+      },
+    ).map((migration: unknown): string => {
+      return (migration as { name: string }).name;
+    });
+
+    expect(optingOut).toContain(MIGRATION_CLASS_NAME);
+    expect(dataSourceOptions.migrationsTransactionMode).toBe("each");
   });
 
   test("it runs after the project daily limits whose sum it serves", () => {
