@@ -379,6 +379,66 @@ describe("the compact color field's popover in a dialog", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  test("is placed again when its content changes size on its own - the Tailwind runtime styling it late", async () => {
+    setViewport(VIEWPORT.width, VIEWPORT.height);
+
+    /*
+     * jsdom has no ResizeObserver; a browser has. Stand one in that hands
+     * its callback over, to be called the way a browser would.
+     */
+    const callbacks: Array<() => void> = [];
+    const observed: Array<Element> = [];
+    const original: unknown = (window as unknown as Record<string, unknown>)[
+      "ResizeObserver"
+    ];
+
+    class FakeResizeObserver {
+      public constructor(callback: () => void) {
+        callbacks.push(callback);
+      }
+
+      public observe(element: Element): void {
+        observed.push(element);
+      }
+
+      public disconnect(): void {}
+    }
+
+    (window as unknown as Record<string, unknown>)["ResizeObserver"] =
+      FakeResizeObserver;
+
+    try {
+      popupContentHeight = 100;
+      const { field } = renderInModal({
+        anchor: makeRect(440, 360, 400, 40),
+      });
+
+      const popup: HTMLElement = open(field);
+
+      // 100px fits under the field (212px of body below it).
+      expect(popup.style.top).toBe("404px");
+      // The popover and what is inside it are watched.
+      expect(observed).toContain(popup);
+      expect(observed.length).toBeGreaterThan(1);
+
+      // Styled at last, it is taller than the room below.
+      popupContentHeight = 230;
+
+      act(() => {
+        for (const callback of callbacks) {
+          callback();
+        }
+      });
+
+      await waitFor(() => {
+        expect(popup.style.bottom).toBe(`${VIEWPORT.height - 360 + 4}px`);
+      });
+    } finally {
+      (window as unknown as Record<string, unknown>)["ResizeObserver"] =
+        original;
+    }
+  });
+
   test("Tab keeps focus inside the portalled popover", () => {
     setViewport(VIEWPORT.width, VIEWPORT.height);
     const { field } = renderInModal({ anchor: makeRect(440, 300, 400, 40) });
