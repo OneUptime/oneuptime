@@ -16,7 +16,16 @@ import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import DigestMethod from "../../../Types/SSO/DigestMethod";
 import SignatureMethod from "../../../Types/SSO/SignatureMethod";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A SAML PROVIDER CREATED WITH ONLY WHAT THE IDENTITY PROVIDER GIVES IS

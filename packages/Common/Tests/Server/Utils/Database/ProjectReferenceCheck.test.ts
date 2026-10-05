@@ -6,6 +6,7 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
 import Team from "../../../../Models/DatabaseModels/Team";
 import User from "../../../../Models/DatabaseModels/User";
+import UserNotificationRule from "../../../../Models/DatabaseModels/UserNotificationRule";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import HostOwnerRuleService from "../../../../Server/Services/HostOwnerRuleService";
 import HostOwnerTeamService from "../../../../Server/Services/HostOwnerTeamService";
@@ -351,6 +352,36 @@ describe("ProjectReferenceCheck.validateCreate", () => {
     }
   });
 
+  test("a root write that names its project by the relation is checked against that project", async () => {
+    // `project: { _id }` instead of projectId: TypeORM saves it to the same column.
+    const ofProject: (projectId: string) => HostOwnerRule = (
+      projectId: string,
+    ): HostOwnerRule => {
+      return ownerRule({
+        project: { _id: projectId },
+        ownerTeams: [stub(Team, OWN_TEAM)],
+      });
+    };
+
+    await expect(
+      ProjectReferenceCheck.validateCreate({
+        service: HostOwnerRuleService,
+        createBy: createOf(ofProject(PROJECT_ID.toString()), { isRoot: true }),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(
+      await refusalOf(
+        ProjectReferenceCheck.validateCreate({
+          service: HostOwnerRuleService,
+          createBy: createOf(ofProject(OTHER_PROJECT_ID.toString()), {
+            isRoot: true,
+          }),
+        }),
+      ),
+    ).toContain(`"${OWN_TEAM}"`);
+  });
+
   test("a write with no project to compare against, or no references, asks nothing", async () => {
     await ProjectReferenceCheck.validateCreate({
       service: HostOwnerRuleService,
@@ -658,5 +689,131 @@ describe("ProjectReferenceCheck reading what an update's records hold", () => {
 
     expect(query["_id"]).toBe(RULE_ID);
     expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
+  });
+});
+
+describe("ProjectReferenceCheck with lists a service checks itself", () => {
+  test("leaves out the lists a service names, and only those", () => {
+    const columns: Array<string> = ProjectReferenceCheck.getCheckedColumns(
+      new HostOwnerRule(),
+      [],
+      ["hostLabels"],
+    ).map((column: ProjectReferenceColumn): string => {
+      return column.column;
+    });
+
+    expect(columns).not.toContain("hostLabels");
+    expect(columns).toContain("ownerUsers");
+    expect(columns).toContain("ownerTeams");
+  });
+
+  test("a list named as a relation is still checked, and a relation named as a list too", () => {
+    const columns: Array<string> = ProjectReferenceCheck.getCheckedColumns(
+      new HostOwnerTeam(),
+      ["ownerTeams"],
+      ["team"],
+    ).map((column: ProjectReferenceColumn): string => {
+      return column.column;
+    });
+
+    expect(columns).toContain("team");
+    expect(columns).toContain("host");
+  });
+
+  test("a create is checked on every other list, in one answer", async () => {
+    const message: string = await refusalOf(
+      ProjectReferenceCheck.validateCreate({
+        service: HostOwnerRuleService,
+        createBy: createOf(
+          ownerRule({
+            hostLabels: [stub(Label, FOREIGN_LABEL)],
+            ownerTeams: [stub(Team, FOREIGN_TEAM)],
+          }),
+        ),
+        listsCheckedByService: ["hostLabels"],
+      }),
+    );
+
+    expect(message).toBe(
+      refusal("host owner rule", [`Owner Teams "${FOREIGN_TEAM}"`]),
+    );
+  });
+
+  test("an update is checked on every other list", async () => {
+    jest.spyOn(HostOwnerRuleService, "findBy").mockResolvedValue([] as never);
+
+    await expect(
+      ProjectReferenceCheck.validateUpdate({
+        service: HostOwnerRuleService,
+        updateBy: updateOf<HostOwnerRule>({ hostLabels: [FOREIGN_LABEL] }),
+        listsCheckedByService: ["hostLabels"],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(
+      await refusalOf(
+        ProjectReferenceCheck.validateUpdate({
+          service: HostOwnerRuleService,
+          updateBy: updateOf<HostOwnerRule>({
+            hostLabels: [FOREIGN_LABEL],
+            ownerTeams: [FOREIGN_TEAM],
+          }),
+          listsCheckedByService: ["hostLabels"],
+        }),
+      ),
+    ).toBe(refusal("host owner rule", [`Owner Teams "${FOREIGN_TEAM}"`]));
+  });
+});
+
+describe("ProjectReferenceCheck.isServerWrite", () => {
+  test("is a root write with no project on the request", () => {
+    expect(ProjectReferenceCheck.isServerWrite({ isRoot: true })).toBe(true);
+  });
+
+  test("is not a workflow's write, which carries its project", () => {
+    expect(
+      ProjectReferenceCheck.isServerWrite({
+        isRoot: true,
+        tenantId: PROJECT_ID,
+      }),
+    ).toBe(false);
+  });
+
+  test("is not a person's write, nor a master admin's", () => {
+    expect(ProjectReferenceCheck.isServerWrite(USER_PROPS)).toBe(false);
+    expect(ProjectReferenceCheck.isServerWrite({ isMasterAdmin: true })).toBe(
+      false,
+    );
+    expect(ProjectReferenceCheck.isServerWrite({})).toBe(false);
+  });
+});
+
+describe("ProjectReferenceCheck with a relation whose metadata names itself", () => {
+  test("reads the person through the id column a notification rule is written with", () => {
+    const user: ProjectReferenceColumn | undefined =
+      ProjectReferenceCheck.getReferenceColumns(
+        new UserNotificationRule(),
+      ).find((column: ProjectReferenceColumn): boolean => {
+        return column.column === "user";
+      });
+
+    expect(user?.idColumn).toBe("userId");
+  });
+
+  test("refuses someone who is not a member, sent by id", async () => {
+    const rule: UserNotificationRule = new UserNotificationRule();
+    rule.userId = new ObjectID(STRANGER);
+
+    expect(
+      await refusalOf(
+        ProjectReferenceCheck.validateCreate({
+          service:
+            ProjectScopedReferenceValidator.getLookupService(
+              UserNotificationRule,
+            ),
+          createBy: createOf(rule),
+        }),
+      ),
+    ).toBe(refusal("notification rule", [`User "${STRANGER}"`]));
   });
 });

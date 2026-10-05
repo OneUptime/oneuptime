@@ -25,6 +25,16 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test: issue #3039 — the write paths that used to accept a
@@ -144,6 +154,19 @@ const stepsReferencing: (statusId: string) => JSONObject = (
 describe("missing-reference guard on write", () => {
   beforeEach(() => {
     validatorCalls = [];
+    stubProjectDirectory({});
+    /*
+     * These tests pin each service's own check of the state it writes. The
+     * generic check every service runs first (ProjectReferencesService, the
+     * row's parent and the rest) is held to by
+     * ProjectScopedReferencesEverywhere.
+     */
+    jest
+      .spyOn(ProjectReferenceCheck, "validateCreate")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(ProjectReferenceCheck, "validateUpdate")
+      .mockResolvedValue(undefined as never);
   });
 
   afterEach(() => {

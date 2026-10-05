@@ -35,6 +35,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
@@ -336,6 +345,7 @@ describe.each(ORDER_CASES)("$label", (orderCase: OrderCase) => {
   beforeEach(() => {
     table = useInMemoryTable(orderCase.service, startingRows(orderCase));
     orderCase.stubCollaborators();
+    stubProjectDirectory({});
   });
 
   describe("create", () => {

@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/RumApplication";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -46,7 +46,7 @@ const RUM_APPLICATION_NAMING: DiscoveredResourceNaming<Model> =
     identityName: "app name",
   });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -56,6 +56,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     DiscoveredResourceCreate.fillName({
       createBy,
       naming: RUM_APPLICATION_NAMING,

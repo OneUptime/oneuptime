@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import VMwareVCenterLabelRuleEngineService from "./VMwareVCenterLabelRuleEngineService";
 import VMwareVCenterOwnerRuleEngineService from "./VMwareVCenterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/VMwareVCenter";
@@ -69,7 +69,7 @@ const VMWARE_VCENTER_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "vCenter",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -591,6 +591,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     ResourceAiAccessSettings.checkCreate({
       resourceType: AiResourceType.VMwareVCenter,
       createBy,
@@ -609,6 +611,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

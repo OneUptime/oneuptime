@@ -1,5 +1,5 @@
 import { IsBillingEnabled } from "../EnvironmentConfig";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
@@ -33,12 +33,22 @@ export interface WorkspaceLogData {
   statusPageAnnouncementId?: ObjectID | undefined;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3);
     }
+  }
+
+  /*
+   * Delivery logs are written by OneUptime as it sends each message, naming the
+   * records it sends about, and some are written before the message goes out -
+   * refusing one would stop the message. A log row written by a workflow is
+   * checked like any other write.
+   */
+  protected override checksServerWrites(): boolean {
+    return false;
   }
 
   public async createWorkspaceLog(

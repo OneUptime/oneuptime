@@ -15,7 +15,7 @@ import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserRegistrationToken from "../Utils/UserRegistrationToken";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
 import TeamPermissionService from "./TeamPermissionService";
@@ -79,7 +79,7 @@ export interface OnCallLeaveCleanupResult {
   rotatedProjectFeedIds: Array<string>;
 }
 
-export class TeamMemberService extends DatabaseService<TeamMember> {
+export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   /*
    * Caches the user's accepted team memberships per project. Auth middleware
    * calls this on every authenticated request to evaluate the `Owned`
@@ -92,6 +92,17 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
 
   public constructor() {
     super(TeamMember);
+  }
+
+  /*
+   * The user is the person being invited, who is not a member of the
+   * project until this row exists - an invitation by email names someone
+   * who may not even have an account yet - so the membership the generic
+   * check asks for cannot apply to them. The team must be the project's own,
+   * for every caller, workflows included.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["user"];
   }
 
   /*
@@ -122,6 +133,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
     const teamId: ObjectID | null =
@@ -523,6 +536,8 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<TeamMember>,
   ): Promise<OnUpdate<TeamMember>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * CurrentUser may set this column so an invitee can accept a pending
      * invitation. The inverse transition is not a safe way to leave: merely

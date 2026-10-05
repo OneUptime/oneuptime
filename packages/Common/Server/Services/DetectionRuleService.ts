@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/DetectionRule";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -13,7 +13,7 @@ import {
 import SigmaRuleParser from "../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import SigmaClickhouseCompiler from "../Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -72,6 +72,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     this.validateSigmaRule(createBy.data.sigmaRuleYaml);
     this.validateEvaluationInterval(createBy.data.evaluationIntervalInMinutes);
     this.validateMatchCountThreshold(createBy.data.matchCountThreshold);
@@ -110,6 +112,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     if (updateBy.data.sigmaRuleYaml !== undefined) {
       this.validateSigmaRule(updateBy.data.sigmaRuleYaml as string);
     }

@@ -2,7 +2,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnUpdate, OnDelete } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateService from "./ScheduledMaintenanceStateService";
@@ -42,7 +42,7 @@ const TIMESTAMP_ANCHOR_SOURCES: Record<string, string> = {
   [ScheduledMaintenanceMeasurementAnchorType.ScheduledEndsAt]: "endsAt",
 };
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public static readonly METRIC_NAME_PREFIX: string =
     "oneuptime.scheduled-maintenance.measurement.";
 
@@ -54,6 +54,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     /*
      * Made from the name when the create leaves the key out; a key that was
      * sent must be valid and not another measurement's.
@@ -112,6 +114,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Read as a bag of keys rather than as Partial<Model>: this model carries
      * enough relations that checking assignability against it blows the

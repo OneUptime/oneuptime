@@ -1,5 +1,4 @@
 import { Service as NetworkDeviceServiceType } from "../../../Server/Services/NetworkDeviceService";
-import NetworkSnmpCredentialProfileService from "../../../Server/Services/NetworkSnmpCredentialProfileService";
 import ProbeService from "../../../Server/Services/ProbeService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -11,6 +10,18 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { EntityManager } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  ProjectDirectoryStub,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -49,6 +60,8 @@ const OTHER_PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 const PROBE_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
+// A profile of another project: not in this project's directory.
+const OTHER_PROJECT_PROFILE_ID: string = "44444444-4444-4444-8444-0000000000ff";
 const PROFILE_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
@@ -159,6 +172,7 @@ function stubProbeAttachability(probeProjectId: ObjectID | undefined): {
 describe("assigning a probe to a device is tenant-checked", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   /*
@@ -306,18 +320,54 @@ describe("assigning a probe to a device is tenant-checked", () => {
 });
 
 describe("assigning an SNMP credential profile to a device is tenant-checked", () => {
-  let profileFindSpy: {
-    mockResolvedValue: (value: never) => unknown;
-    mock: { calls: Array<Array<unknown>> };
-  };
+  const MISSING_PROFILE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-0000000000dd",
+  );
+  const SECOND_PROFILE_ID: ObjectID = new ObjectID(
+    "77777777-7777-4777-8777-777777777777",
+  );
+
+  let directory: ProjectDirectoryStub;
 
   beforeEach(() => {
     jest.restoreAllMocks();
-    profileFindSpy = jest.spyOn(
-      NetworkSnmpCredentialProfileService,
-      "findOneById",
-    ) as unknown as typeof profileFindSpy;
+    // The project's profiles: PROFILE_ID and a second one. Nothing else.
+    directory = stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: {
+        NetworkSnmpCredentialProfile: [
+          PROFILE_ID.toString(),
+          SECOND_PROFILE_ID.toString(),
+        ],
+      },
+    });
   });
+
+  function profileLookups(): Array<{ ids: Array<string> }> {
+    return directory.recordLookups.filter(
+      (lookup: { model: string }): boolean => {
+        return lookup.model === "NetworkSnmpCredentialProfile";
+      },
+    );
+  }
+
+  function updateAssigning(
+    spelling: "id" | "relation",
+    profileId: ObjectID,
+  ): UpdateBy<NetworkDevice> {
+    return {
+      query: { _id: DEVICE_ID.toString() },
+      data:
+        spelling === "id"
+          ? { snmpCredentialProfileId: profileId }
+          : {
+              snmpCredentialProfile: new NetworkSnmpCredentialProfile(
+                profileId,
+              ),
+            },
+      props: { isRoot: true },
+    } as unknown as UpdateBy<NetworkDevice>;
+  }
 
   /*
    * The same early-return hazard as the probe, and a worse consequence: a
@@ -332,13 +382,14 @@ describe("assigning an SNMP credential profile to a device is tenant-checked", (
       jest
         .spyOn(service, "findBy")
         .mockResolvedValue([matchedDevice()] as never);
-      profileFindSpy.mockResolvedValue(
-        profileInProject(OTHER_PROJECT_ID) as never,
-      );
 
       await expect(
-        internals.onBeforeUpdate(profileOnlyUpdate(spelling)),
-      ).rejects.toThrow(/must belong to the same project/);
+        internals.onBeforeUpdate(
+          updateAssigning(spelling, new ObjectID(OTHER_PROJECT_PROFILE_ID)),
+        ),
+      ).rejects.toThrow(
+        `references records that are not in this project: SNMP Credential Profile "${OTHER_PROJECT_PROFILE_ID}"`,
+      );
     },
   );
 
@@ -346,7 +397,6 @@ describe("assigning an SNMP credential profile to a device is tenant-checked", (
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    profileFindSpy.mockResolvedValue(profileInProject(PROJECT_ID) as never);
 
     await expect(
       internals.onBeforeUpdate(profileOnlyUpdate("id")),
@@ -357,55 +407,70 @@ describe("assigning an SNMP credential profile to a device is tenant-checked", (
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    profileFindSpy.mockResolvedValue(profileInProject(PROJECT_ID) as never);
 
     await internals.onBeforeUpdate(profileOnlyUpdate("id"));
 
-    expect(profileFindSpy.mock.calls.length).toBeGreaterThan(0);
+    expect(profileLookups().length).toBeGreaterThan(0);
   });
 
-  test("refuses a profile that does not exist at all", async () => {
+  test("refuses a profile that does not exist at all, exactly as one of another project", async () => {
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    profileFindSpy.mockResolvedValue(null as never);
 
-    await expect(
-      internals.onBeforeUpdate(profileOnlyUpdate("id")),
-    ).rejects.toThrow(BadDataException);
+    let missing: string = "";
+    let foreign: string = "";
+
+    try {
+      await internals.onBeforeUpdate(updateAssigning("id", MISSING_PROFILE_ID));
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadDataException);
+      missing = (error as Error).message;
+    }
+
+    try {
+      await internals.onBeforeUpdate(
+        updateAssigning("id", new ObjectID(OTHER_PROJECT_PROFILE_ID)),
+      );
+    } catch (error) {
+      foreign = (error as Error).message;
+    }
+
+    expect(missing).not.toBe("");
+    expect(
+      missing.replace(MISSING_PROFILE_ID.toString(), OTHER_PROJECT_PROFILE_ID),
+    ).toBe(foreign);
   });
 
   test("checks the profile on create too", async () => {
     const { internals } = buildDeviceService();
 
-    profileFindSpy.mockResolvedValue(
-      profileInProject(OTHER_PROJECT_ID) as never,
-    );
-
     const device: NetworkDevice = new NetworkDevice();
     device.projectId = PROJECT_ID;
-    device.snmpCredentialProfileId = PROFILE_ID;
+    device.snmpCredentialProfileId = new ObjectID(OTHER_PROJECT_PROFILE_ID);
 
     await expect(
       internals.onBeforeCreate({
         data: device,
         props: { isRoot: true },
       } as CreateBy<NetworkDevice>),
-    ).rejects.toThrow(/must belong to the same project/);
+    ).rejects.toThrow(
+      `references records that are not in this project: SNMP Credential Profile "${OTHER_PROJECT_PROFILE_ID}"`,
+    );
   });
 
   test("refuses a payload that points the two profile spellings at different rows", async () => {
     const { service, internals } = buildDeviceService();
 
     jest.spyOn(service, "findBy").mockResolvedValue([matchedDevice()] as never);
-    profileFindSpy.mockResolvedValue(profileInProject(PROJECT_ID) as never);
 
+    // Both are the project's own, so it is the contradiction that is refused.
     const conflicting: UpdateBy<NetworkDevice> = {
       query: { _id: DEVICE_ID.toString() },
       data: {
         snmpCredentialProfileId: PROFILE_ID,
         snmpCredentialProfile: new NetworkSnmpCredentialProfile(
-          new ObjectID("77777777-7777-4777-8777-777777777777"),
+          SECOND_PROFILE_ID,
         ),
       },
       props: { isRoot: true },
@@ -425,7 +490,7 @@ describe("assigning an SNMP credential profile to a device is tenant-checked", (
       props: { isRoot: true },
     } as unknown as UpdateBy<NetworkDevice>);
 
-    expect(profileFindSpy.mock.calls).toHaveLength(0);
+    expect(profileLookups()).toHaveLength(0);
   });
 });
 
@@ -446,6 +511,7 @@ describe("assigning an SNMP credential profile to a device is tenant-checked", (
 describe("the polling claim query refuses a probe from another project", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    stubProjectDirectory({});
   });
 
   async function capturedClaimSql(): Promise<string> {

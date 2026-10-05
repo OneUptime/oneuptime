@@ -2,7 +2,7 @@ import crypto from "crypto";
 import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import Model, {
@@ -81,7 +81,7 @@ const PROBE_AUTH_KEY_REVOKED_SENTINEL: string = "revoked";
  */
 const PROBE_CACHE_OPERATION_TIMEOUT_IN_MS: number = 2000;
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -426,6 +426,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -602,6 +604,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const carryForward: any = {
       probesToNotifyOwners: [],
     };

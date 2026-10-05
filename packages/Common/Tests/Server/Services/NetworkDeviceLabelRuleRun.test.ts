@@ -9,6 +9,15 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { LabelRuleRunResult } from "../../../Types/NetworkAutomation/RuleRunResult";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Contract under test - "Run now" for a network device label rule
@@ -197,6 +206,7 @@ describe("NetworkDeviceLabelRuleEngineService.applyRuleToExistingNetworkDevices"
     // Silence the logs the failure-path tests deliberately provoke.
     jest.spyOn(console, "error").mockImplementation(() => {});
     jest.spyOn(console, "warn").mockImplementation(() => {});
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

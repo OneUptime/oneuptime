@@ -1,10 +1,11 @@
-import DatabaseService, { EntityManager } from "./DatabaseService";
+import { EntityManager } from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorTest from "../../Models/DatabaseModels/MonitorTest";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { MonitorStepProbeResponse } from "../../Models/DatabaseModels/MonitorProbe";
 
-export class Service extends DatabaseService<MonitorTest> {
+export class Service extends ProjectReferencesService<MonitorTest> {
   private static readonly STALE_TEST_CLAIM_TIMEOUT_IN_MINUTES: number = 10;
 
   public constructor() {

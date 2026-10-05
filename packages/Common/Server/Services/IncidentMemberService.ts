@@ -1,5 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentMember";
 import IncidentFeedService from "./IncidentFeedService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -20,7 +20,7 @@ import IncidentRoleService from "./IncidentRoleService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import TeamMemberService from "./TeamMemberService";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -29,6 +29,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.incidentId) {
       throw new BadDataException("incidentId is required");
     }

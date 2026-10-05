@@ -29,6 +29,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Regression coverage for the team-creator escalation chain:
@@ -302,6 +311,7 @@ describe("TeamPermissionService grant ceiling", () => {
   beforeEach(() => {
     jest.spyOn(TeamService, "findOneBy").mockResolvedValue(editableTeam());
     jest.spyOn(TeamPermissionService, "findOneBy").mockResolvedValue(null);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

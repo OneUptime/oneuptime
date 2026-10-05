@@ -19,6 +19,19 @@ import { getDeletedAgentRunnerRebindNote } from "../../../Types/Kubernetes/Kuber
 import ObjectID from "../../../Types/ObjectID";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import {
+  stubGenericReferenceCheck,
+  stubProjectDirectory,
+} from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+  stubGenericReferenceCheck();
+});
 
 /*
  * Contract under test — the kubernetes-agent marker is server-owned.
@@ -257,6 +270,8 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
       .mockImplementation(async (): Promise<Array<Runner>> => {
         return rows;
       });
+    stubProjectDirectory({});
+    stubGenericReferenceCheck();
   });
 
   afterEach(() => {

@@ -22,6 +22,15 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * The scheduled maintenance twin of
@@ -198,6 +207,7 @@ describe("ScheduledMaintenanceMeasurementService", () => {
     jest
       .spyOn(ScheduledMaintenanceStateService, "findBy")
       .mockResolvedValue([] as Array<ScheduledMaintenanceState> as never);
+    stubProjectDirectory({});
   });
 
   afterEach(() => {

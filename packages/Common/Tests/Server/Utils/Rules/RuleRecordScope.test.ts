@@ -156,3 +156,67 @@ describe("RuleRecordScope.keepRecordsInProject", () => {
     expect(kept).toEqual([own]);
   });
 });
+
+/*
+ * keepIdsInProject is the same for engines that hold plain ids - a label
+ * rule's labels - except that a read that fails is passed on: the engine
+ * reports it as the failure it is, never as a rule with nothing to add.
+ */
+describe("RuleRecordScope.keepIdsInProject", () => {
+  let warnings: Array<string>;
+
+  beforeEach(() => {
+    stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { Label: [OWN_POLICY, SECOND_OWN_POLICY] },
+    });
+
+    warnings = [];
+
+    jest.spyOn(logger, "warn").mockImplementation(((message: unknown) => {
+      warnings.push(String(message));
+    }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function keepIds(ids: Array<string>): Promise<Array<string>> {
+    return RuleRecordScope.keepIdsInProject({
+      projectId: PROJECT_ID,
+      ids: ids,
+      modelType: Label,
+      description: "labels of host label rules",
+      logAttributes: { projectId: PROJECT_ID.toString() },
+    });
+  }
+
+  test("keeps the project's own ids in the order given, and names the others", async () => {
+    expect(
+      await keepIds([SECOND_OWN_POLICY, FOREIGN_POLICY, OWN_POLICY]),
+    ).toEqual([SECOND_OWN_POLICY, OWN_POLICY]);
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain(`"${FOREIGN_POLICY}"`);
+    expect(warnings[0]).toContain("labels of host label rules");
+  });
+
+  test("passes a failed read on instead of keeping nothing", async () => {
+    jest
+      .spyOn(ProjectScopedReferenceValidator, "findIdsInProject")
+      .mockRejectedValue(new Error("Database is down") as never);
+
+    await expect(keepIds([OWN_POLICY])).rejects.toThrow("Database is down");
+  });
+
+  test("asks nothing for no ids", async () => {
+    const lookups: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ProjectScopedReferenceValidator,
+      "findIdsInProject",
+    );
+
+    await expect(keepIds([])).resolves.toEqual([]);
+    expect(lookups).not.toHaveBeenCalled();
+  });
+});

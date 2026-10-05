@@ -29,6 +29,15 @@ import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../../Types/OnCallDutyPoli
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * A NEW ON-CALL POLICY PAGES SOMEONE FROM THE START.

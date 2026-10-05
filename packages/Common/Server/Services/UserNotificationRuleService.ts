@@ -10,7 +10,7 @@ import Markdown, { MarkdownContentType } from "../Types/Markdown";
 import EmailColorUtil from "../../Utils/Email/EmailColorUtil";
 import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import CallService from "./CallService";
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
 import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
 import SeriesLabelDisplay from "../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
@@ -586,7 +586,7 @@ const responderSourceProse: ResponderSourceProseFunction = (
 const DELETION_IMPACT_PAGE_SIZE: number = LIMIT_PER_PROJECT;
 const MAX_DELETION_IMPACT_PAGES: number = 50;
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -5277,6 +5277,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const carrier: RuleColumnCarrier =
       createBy.data as unknown as RuleColumnCarrier;
 
@@ -5606,6 +5608,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const patch: RuleColumnCarrier =
       updateBy.data as unknown as RuleColumnCarrier;
 

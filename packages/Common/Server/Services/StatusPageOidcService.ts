@@ -1,11 +1,11 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/StatusPageOidc";
 import { fillOidcProviderDefaults } from "../../Types/SSO/OidcProviderDefaults";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -21,6 +21,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     fillOidcProviderDefaults(createBy.data);
 
     return { createBy, carryForward: null };

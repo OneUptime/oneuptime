@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
@@ -270,15 +270,28 @@ const KUBERNETES_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnIdentifier(
   KUBERNETES_CLUSTER_IDENTITY,
 );
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * The AI access Runner and credential are checked by this service's own
+   * hooks (validateAiAccessBindingsBelongToProject): pinned to the project,
+   * the credential to a Kubernetes one, another project's answered like a
+   * missing one. Everything else a cluster names - its labels - is checked
+   * by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["aiAccessRunner", "aiAccessCredential"];
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const projectId: ObjectID | undefined =
       createBy.data.projectId ||
       createBy.data.project?.id ||
@@ -377,6 +390,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
 
     this.validateAiRemediationSettings(data);

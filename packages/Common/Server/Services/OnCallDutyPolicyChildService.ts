@@ -20,11 +20,19 @@ import TablePermission from "../Types/Database/Permissions/TablePermission";
 import Query from "../Types/Database/Query";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 
-/** Authorize escalation configuration before any create hook can change it. */
+/*
+ * Authorize escalation configuration before any create hook can change it.
+ *
+ * The policy, escalation rule, team, user and schedule a row names must be
+ * the project's own (ProjectReferencesService), for root writes too - a
+ * workflow writes as root, and the authorization below only runs for the
+ * people it authorizes. Escalation pages whoever these rows name.
+ */
 export default class OnCallDutyPolicyChildService<
   TBaseModel extends BaseModel,
-> extends DatabaseService<TBaseModel> {
+> extends ProjectReferencesService<TBaseModel> {
   public override async create(
     createBy: CreateBy<TBaseModel>,
   ): Promise<TBaseModel> {

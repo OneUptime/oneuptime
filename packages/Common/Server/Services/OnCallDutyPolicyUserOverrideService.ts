@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
@@ -53,7 +53,7 @@ interface ScheduleServiceForOverrides {
   }) => Promise<void>;
 }
 
-export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
+export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverride> {
   public constructor() {
     super(OnCallDutyPolicyUserOverride);
   }
@@ -172,6 +172,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   protected override async onBeforeCreate(
     createBy: CreateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnCreate<OnCallDutyPolicyUserOverride>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.data.startsAt || !createBy.data.endsAt) {
       throw new BadDataException("Start time and end time are required");
     }
@@ -322,6 +324,8 @@ export class Service extends DatabaseService<OnCallDutyPolicyUserOverride> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnUpdate<OnCallDutyPolicyUserOverride>> {
+    await super.onBeforeUpdate(updateBy);
+
     /*
      * Capture each affected override's PRE-update project + overrideUserId so
      * onUpdateSuccess can also refresh the OLD user's schedules. onUpdateSuccess

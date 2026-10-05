@@ -12,7 +12,16 @@ import NetworkSiteType from "../../../Models/DatabaseModels/NetworkSiteType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * NetworkSiteService imports the complete monitoring/alerting service graph.
@@ -92,6 +101,11 @@ function makeSite(data: {
   }
 
   return site;
+}
+
+// The project check's answer for a parent that is not the project's.
+function parentRefusal(parentId: ObjectID): string {
+  return `This network site type references records that are not in this project: Parent Site Type "${parentId.toString()}". Please pick values from this project and try again.`;
 }
 
 function createBy(data: Partial<NetworkSiteType>): CreateBy<NetworkSiteType> {
@@ -257,7 +271,48 @@ describe("NetworkSiteTypeService create hierarchy validation", () => {
     ).rejects.toThrow("unit-level leaf rules must be validated");
   });
 
-  it("rejects a missing parent", async () => {
+  /*
+   * The parent must be the project's own (ProjectReferencesService): the
+   * check is pinned to the project, so another project's type and one that
+   * does not exist get the same answer, before the service reads anything.
+   */
+  it("rejects a missing parent, and one of another project in the same words", async () => {
+    // The project's only type is typeId(5).
+    stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: { NetworkSiteType: [typeId(5).toString()] },
+    });
+    const findOneByIdSpy: jest.SpyInstance = jest.spyOn(
+      NetworkSiteTypeService,
+      "findOneById",
+    );
+
+    // typeId(1) exists nowhere; typeId(6) is another project's.
+    for (const parentId of [typeId(1), typeId(6)]) {
+      await expect(
+        (NetworkSiteTypeService as any).onBeforeCreate(
+          createBy({ parentNetworkSiteTypeId: parentId }),
+        ),
+      ).rejects.toThrow(parentRefusal(parentId));
+    }
+
+    expect(findOneByIdSpy).not.toHaveBeenCalled();
+  });
+
+  it("answers a parent of another project like a missing one in its own read too", async () => {
+    // Every id passes the project check here; the service's read is the last word.
+    jest
+      .spyOn(NetworkSiteTypeService, "findOneById")
+      .mockResolvedValue(makeType({ index: 1, projectId: OTHER_PROJECT_ID }));
+
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeCreate(
+        createBy({ parentNetworkSiteTypeId: typeId(1) }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException("Parent Network Site Type not found."),
+    );
+
     jest.spyOn(NetworkSiteTypeService, "findOneById").mockResolvedValue(null);
 
     await expect(
@@ -267,18 +322,6 @@ describe("NetworkSiteTypeService create hierarchy validation", () => {
     ).rejects.toThrow(
       new BadDataException("Parent Network Site Type not found."),
     );
-  });
-
-  it("rejects a parent from another project", async () => {
-    jest
-      .spyOn(NetworkSiteTypeService, "findOneById")
-      .mockResolvedValue(makeType({ index: 1, projectId: OTHER_PROJECT_ID }));
-
-    await expect(
-      (NetworkSiteTypeService as any).onBeforeCreate(
-        createBy({ parentNetworkSiteTypeId: typeId(1) }),
-      ),
-    ).rejects.toThrow("must belong to the same project");
   });
 
   it("rejects a unit-level parent", async () => {
@@ -383,12 +426,19 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
       "findBy",
     );
 
+    /*
+     * A person's update carries the project, so the project check reads
+     * nothing the type holds when both ids are the project's own.
+     */
     await expect(
       (NetworkSiteTypeService as any).onBeforeUpdate(
-        updateBy({
-          parentNetworkSiteTypeId: typeId(3),
-          parentNetworkSiteType: makeType({ index: 4 }),
-        }),
+        updateBy(
+          {
+            parentNetworkSiteTypeId: typeId(3),
+            parentNetworkSiteType: makeType({ index: 4 }),
+          },
+          { tenantId: PROJECT_ID },
+        ),
       ),
     ).rejects.toThrow("Conflicting parent Network Site Type references");
     expect(findBySpy).not.toHaveBeenCalled();
@@ -443,29 +493,41 @@ describe("NetworkSiteTypeService update hierarchy validation", () => {
     ).rejects.toThrow("cannot be moved under one of its descendants");
   });
 
-  it("rejects a missing, cross-project, or unit-level parent", async () => {
-    const cases: Array<{ parent: NetworkSiteType | null; message: string }> = [
-      { parent: null, message: "not found" },
-      {
-        parent: makeType({ index: 4, projectId: OTHER_PROJECT_ID }),
-        message: "same project",
+  it("rejects a missing or cross-project parent in the same words, and a unit-level one", async () => {
+    // The project's types: the moving one and typeId(5) (unit-level).
+    stubProjectDirectory({
+      projectId: PROJECT_ID,
+      records: {
+        NetworkSiteType: [typeId(2).toString(), typeId(5).toString()],
       },
-      {
-        parent: makeType({ index: 4, isUnitLevel: true }),
-        message: "unit-level",
-      },
-    ];
+    });
 
-    for (const testCase of cases) {
-      jest.restoreAllMocks();
-      mockParentUpdate({ parent: testCase.parent });
+    // typeId(4) exists nowhere; typeId(6) is another project's.
+    for (const parentId of [typeId(4), typeId(6)]) {
+      mockParentUpdate({
+        parent: makeType({ index: 4, projectId: OTHER_PROJECT_ID }),
+      });
 
       await expect(
         (NetworkSiteTypeService as any).onBeforeUpdate(
-          updateBy({ parentNetworkSiteTypeId: typeId(4) }),
+          updateBy(
+            { parentNetworkSiteTypeId: parentId },
+            { tenantId: PROJECT_ID },
+          ),
         ),
-      ).rejects.toThrow(testCase.message);
+      ).rejects.toThrow(parentRefusal(parentId));
     }
+
+    mockParentUpdate({ parent: makeType({ index: 5, isUnitLevel: true }) });
+
+    await expect(
+      (NetworkSiteTypeService as any).onBeforeUpdate(
+        updateBy(
+          { parentNetworkSiteTypeId: typeId(5) },
+          { tenantId: PROJECT_ID },
+        ),
+      ),
+    ).rejects.toThrow("unit-level");
   });
 
   /*

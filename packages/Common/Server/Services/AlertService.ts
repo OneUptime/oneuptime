@@ -11,6 +11,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertCustomField from "../../Models/DatabaseModels/AlertCustomField";
 import CustomFieldMappingService from "./CustomFieldMappingService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
@@ -45,7 +46,10 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
-import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import {
+  getAffectedResourceColumns,
+  getAffectedResourceRelations,
+} from "../Utils/Database/AffectedResourceRelations";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
@@ -123,12 +127,32 @@ interface AlertUpdateCarryForward {
   monitorChanges: Dictionary<AlertMonitorChange>;
 }
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * The severity, the monitor status and the monitor, the on-call
+   * policies, the labels, the SLOs and the affected-resource lists are checked
+   * by this service's own hooks below, with ProjectScopedReferenceValidator and
+   * its own words. Everything else an alert names - its episode, its state, the
+   * probe that opened it - is checked by ProjectReferencesService.
+   */
+  protected override getRelationsCheckedByService(): Array<string> {
+    return ["alertSeverity", "monitorStatusWhenThisAlertWasCreated", "monitor"];
+  }
+
+  protected override getListsCheckedByService(): Array<string> {
+    return [
+      "labels",
+      "onCallDutyPolicies",
+      "serviceLevelObjectives",
+      ...getAffectedResourceColumns(this.getModel()),
+    ];
   }
 
   @CaptureSpan()
@@ -306,6 +330,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = applyAlertSelfPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -688,6 +714,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create alert.");
     }

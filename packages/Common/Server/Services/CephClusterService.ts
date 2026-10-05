@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import CephClusterLabelRuleEngineService from "./CephClusterLabelRuleEngineService";
 import CephClusterOwnerRuleEngineService from "./CephClusterOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/CephCluster";
@@ -49,7 +49,7 @@ const CEPH_CLUSTER_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "Ceph cluster",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
@@ -581,6 +581,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     ResourceAiAccessSettings.checkCreate({
       resourceType: AiResourceType.CephCluster,
       createBy,
@@ -599,6 +601,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     return {
       updateBy,
       carryForward: await ResourceAiAccessSettings.checkUpdate({

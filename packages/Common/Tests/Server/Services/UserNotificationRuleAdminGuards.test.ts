@@ -40,6 +40,15 @@ import UserNotificationEventType from "../../../Types/UserNotification/UserNotif
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+
+/*
+ * The records these tests name are their project's own: the services check
+ * every reference against the project (ProjectReferencesService).
+ */
+beforeEach(() => {
+  stubProjectDirectory({});
+});
 
 /*
  * Phase 3 opens UserNotificationRule to project administrators so that somebody
@@ -444,6 +453,7 @@ describe("UserNotificationRule administrative write guards", () => {
         .mockResolvedValue(undefined as never),
       methodFinds: methodFinds,
     };
+    stubProjectDirectory({});
   });
 
   afterEach(() => {
