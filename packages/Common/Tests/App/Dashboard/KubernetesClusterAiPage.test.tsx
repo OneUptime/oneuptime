@@ -1138,6 +1138,17 @@ describe("the agent card's ⋯", () => {
       locked: [],
     },
     {
+      name: "an admin reading an older server's status, with no agent field at all",
+      permissions: ADMIN_PERMISSIONS,
+      status: (): KubernetesClusterAiAccessStatus => {
+        const older: Partial<KubernetesClusterAiAccessStatus> = legacyStatus();
+        delete older.aiAgent;
+        return older as KubernetesClusterAiAccessStatus;
+      },
+      expected: ["Test connection"],
+      locked: [],
+    },
+    {
       name: "an admin of an advanced binding with the agent online",
       permissions: ADMIN_PERMISSIONS,
       status: (): KubernetesClusterAiAccessStatus => {
