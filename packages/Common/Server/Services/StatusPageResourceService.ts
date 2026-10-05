@@ -289,11 +289,13 @@ export class Service extends ProjectReferencesService<Model> {
    * bulk add modal, and the API.
    *
    * The check is status-page-wide rather than per group: a monitor in two
-   * groups is still a monitor a visitor sees twice.
+   * groups is still a monitor a visitor sees twice. It reads the page in its
+   * own project only, so it says nothing about another project's page.
    */
   @CaptureSpan()
   public async isResourceAlreadyOnStatusPage(data: {
     statusPageId: ObjectID;
+    projectId: ObjectID;
     monitorId?: ObjectID | null | undefined;
     monitorGroupId?: ObjectID | null | undefined;
     excludeResourceId?: ObjectID | null | undefined;
@@ -304,6 +306,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const query: Query<Model> = {
       statusPageId: data.statusPageId,
+      projectId: data.projectId,
     };
 
     if (data.monitorId) {
@@ -341,6 +344,13 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId || createBy.data.projectId;
+
+    if (!projectId) {
+      throw new BadDataException("Status Page Resource projectId is required");
+    }
+
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
       createBy.data as unknown as StatusPageResourceTargetInput,
     );
@@ -348,6 +358,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (
       await this.isResourceAlreadyOnStatusPage({
         statusPageId: createBy.data.statusPageId,
+        projectId: projectId,
         monitorId: target.monitorId,
         monitorGroupId: target.monitorGroupId,
       })
@@ -358,6 +369,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.data.order) {
       const query: Query<Model> = {
         statusPageId: createBy.data.statusPageId,
+        projectId: projectId,
         statusPageGroupId:
           createBy.data.statusPageGroupId || QueryHelper.isNull(),
       };
@@ -510,6 +522,9 @@ export class Service extends ProjectReferencesService<Model> {
       const resourceBeingUpdated: Model | null = await this.findOneBy({
         query: {
           _id: updateBy.query._id!,
+          ...(updateBy.props.tenantId
+            ? { projectId: updateBy.props.tenantId }
+            : {}),
         },
         props: {
           isRoot: true,
@@ -517,6 +532,7 @@ export class Service extends ProjectReferencesService<Model> {
         select: {
           _id: true,
           statusPageId: true,
+          projectId: true,
           monitorId: true,
           monitorGroupId: true,
         },
@@ -545,9 +561,11 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (
         resourceBeingUpdated?.statusPageId &&
+        resourceBeingUpdated.projectId &&
         !isTargetUnchanged &&
         (await this.isResourceAlreadyOnStatusPage({
           statusPageId: resourceBeingUpdated.statusPageId,
+          projectId: resourceBeingUpdated.projectId,
           monitorId: updatedTarget.monitorId,
           monitorGroupId: updatedTarget.monitorGroupId,
           excludeResourceId: resourceBeingUpdated.id,

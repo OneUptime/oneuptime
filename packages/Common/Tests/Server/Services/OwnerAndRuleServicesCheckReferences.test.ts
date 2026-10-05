@@ -351,6 +351,35 @@ describe("rule and owner services", () => {
       return [serviceCase.file];
     }),
   )(
+    "%s leaves no list to a check of its own, and checks OneUptime's own writes too",
+    (file: string) => {
+      const service: DatabaseService<DatabaseBaseModel> = loadService(file);
+
+      const lists: (() => Array<string>) | undefined = (
+        service as unknown as { getListsCheckedByService?: () => Array<string> }
+      ).getListsCheckedByService;
+
+      expect(lists ? lists.call(service) : []).toEqual([]);
+
+      /*
+       * The engines add owners, page policies and attach labels as root, so
+       * those writes are checked too (see OwnerRuleAssignment.createOwner).
+       */
+      const checksServerWrites: (() => boolean) | undefined = (
+        service as unknown as { checksServerWrites?: () => boolean }
+      ).checksServerWrites;
+
+      expect(checksServerWrites ? checksServerWrites.call(service) : true).toBe(
+        true,
+      );
+    },
+  );
+
+  test.each(
+    CHECKED_CASES.map((serviceCase: ServiceCase) => {
+      return [serviceCase.file];
+    }),
+  )(
     "%s refuses another project's record in every list and relation it writes, root writes included",
     async (file: string) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(file);

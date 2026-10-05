@@ -8,6 +8,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import AlertFeedService from "./AlertFeedService";
 import AlertOwnerTeamService from "./AlertOwnerTeamService";
 import AlertOwnerUserService from "./AlertOwnerUserService";
@@ -387,7 +388,7 @@ function withNumber(label: string, number: string): string {
 const NOT_VISIBLE_ALERTS_MESSAGE: string =
   "One or more of the selected alerts do not exist in this project, or you do not have access to them.";
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -481,6 +482,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
     return { updateBy, carryForward: null };
   }
@@ -501,6 +504,8 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     const data: Record<string, unknown> = createBy.data as unknown as Record<
       string,
       unknown

@@ -332,6 +332,7 @@ export class Service extends ProjectReferencesService<Model> {
       contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
+          projectId: projectId,
           subscriberEmail: data.data.subscriberEmail,
         },
         select: {
@@ -380,6 +381,7 @@ export class Service extends ProjectReferencesService<Model> {
       contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
+          projectId: projectId,
           subscriberPhone: data.data.subscriberPhone,
         },
         select: {
