@@ -20,7 +20,7 @@ import {
  * trace Recording Rules opened on Basic Info too, with what the rule
  * computes on a second step. Now:
  *
- *   - a pipeline rule walks Match (the name, the filters, Filter Condition
+ *   - a pipeline rule walks Match (the name, the filters, Match Condition
  *     only once there are two filters, then the description, the one
  *     service it is for and Enabled folded under More fields), then Action,
  *     unchanged;

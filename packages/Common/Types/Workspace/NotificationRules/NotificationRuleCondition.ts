@@ -183,6 +183,45 @@ export class NotificationRuleConditionUtil {
     return null;
   }
 
+  /*
+   * A condition with nothing in it yet - the row Add Condition draws, its
+   * value "" - or one emptied again: no value, an empty list, or blank text.
+   * A rule or summary is saved without such rows. A condition with text in
+   * it ("Incident Title contains database") is not empty: the notification
+   * rule table used to keep only conditions holding a list, so a rule saved
+   * with a text condition lost it and fired for every event.
+   */
+  public static isEmptyCondition(
+    condition: NotificationRuleCondition,
+  ): boolean {
+    const value: string | Array<string> | undefined = condition.value;
+
+    if (!value) {
+      return true;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+
+    if (typeof value === "string") {
+      return value.trim().length === 0;
+    }
+
+    return false;
+  }
+
+  // The conditions with something in them, in their order.
+  public static withoutEmptyConditions(
+    conditions: Array<NotificationRuleCondition>,
+  ): Array<NotificationRuleCondition> {
+    return conditions.filter(
+      (condition: NotificationRuleCondition): boolean => {
+        return !NotificationRuleConditionUtil.isEmptyCondition(condition);
+      },
+    );
+  }
+
   public static hasValueField(data: {
     checkOn: NotificationRuleConditionCheckOn;
     conditionType: ConditionType | undefined;

@@ -178,7 +178,8 @@ describe("getRuleDetailFields", () => {
       item: rule,
     });
 
-    expect(expected).toBe("Match all: Monitor Name matches pattern “prod-.*”");
+    // One condition is simply the condition: All or Any only from two.
+    expect(expected).toBe("Monitor Name matches pattern “prod-.*”");
     expect(
       renderElement(fieldTitled(detail, "Match Criteria"), rule),
     ).toHaveTextContent(expected);

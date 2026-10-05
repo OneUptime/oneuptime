@@ -248,7 +248,7 @@ export default class RunbookSecret extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ReadRunbookSecret,
+      Permission.CreateRunbookSecret,
     ],
     read: [
       Permission.ProjectOwner,

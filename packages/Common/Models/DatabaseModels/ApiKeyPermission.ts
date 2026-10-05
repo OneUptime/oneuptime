@@ -267,7 +267,7 @@ export default class APIKeyPermission extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

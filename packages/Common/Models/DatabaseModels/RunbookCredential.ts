@@ -569,11 +569,7 @@ export default class RunbookCredential extends BaseModel {
   public runners?: Array<Runner> = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateRunbookCredential,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

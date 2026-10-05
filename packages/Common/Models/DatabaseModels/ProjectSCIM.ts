@@ -380,7 +380,7 @@ export default class ProjectSCIM extends BaseModel {
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.ProjectOwner],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

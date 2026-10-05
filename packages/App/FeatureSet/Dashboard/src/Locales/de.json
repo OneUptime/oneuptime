@@ -25317,5 +25317,15 @@
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} stand hinter {{shown}} der {{count}} Untersuchungen hier.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} stand hinter {{shown}} von {{count}} Untersuchung hier.",
   "The project had reached its own daily AI limit.": "Das Projekt hatte sein eigenes tägliches KI-Limit erreicht.",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 your time, at the start of the next week, day or month.": "Spätere Zusammenfassungen folgen zur selben Uhrzeit. Lassen Sie das Feld leer, um um 09:00 Uhr Ihrer Zeit zu Beginn der nächsten Woche, des nächsten Tages oder Monats zu starten.",
+  "Posted With State Change To": "Posted With State Change To",
+  "Posted With State Change To ID": "Posted With State Change To ID",
+  "Should all conditions match, or just any one of them?": "Sollen alle Bedingungen zutreffen oder nur eine beliebige davon?",
+  "Should all filters match, or just any one of them?": "Sollen alle Filter zutreffen oder nur ein beliebiger davon?",
+  "The first summary goes out {{date}}.": "Die erste Zusammenfassung wird am {{date}} gesendet.",
+  "This criteria is met when this filter matches:": "Dieses Kriterium ist erfüllt, wenn dieser Filter zutrifft:",
+  "This rule runs when all of these conditions are met:": "Diese Regel wird ausgeführt, wenn alle diese Bedingungen erfüllt sind:",
+  "This rule runs when any one of these conditions is met:": "Diese Regel wird ausgeführt, wenn eine beliebige dieser Bedingungen erfüllt ist:",
+  "This rule runs when this condition is met:": "Diese Regel wird ausgeführt, wenn diese Bedingung erfüllt ist:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Diese Regel hat noch einen Standard-Zuständigen, der von einer älteren Version dieses Formulars festgelegt wurde. Öffnen Sie diesen Abschnitt, um sie als Eigentümer hinzuzufügen oder ihn zu entfernen."
 }

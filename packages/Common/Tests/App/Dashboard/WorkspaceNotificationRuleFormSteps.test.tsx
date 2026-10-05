@@ -315,7 +315,8 @@ describe("Create a Slack notification rule for incidents", () => {
     expect(
       within(dialog()).getByRole("button", { name: "Add Condition" }),
     ).toBeVisible();
-    expect(within(dialog()).getByRole("radio", { name: "Any" })).toBeVisible();
+    // No conditions yet: nothing to combine, so no All / Any.
+    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
     expect(
       within(dialog()).queryByRole("switch", {
         name: /^Post to Existing Slack Channel/,
@@ -444,11 +445,121 @@ describe("Create a Slack notification rule for incidents", () => {
     expect(call.model.workspaceType).toBe(WorkspaceType.Slack);
     expect(rule["shouldPostToExistingChannel"]).toBe(true);
     expect(rule["existingChannelNames"]).toBe("#incidents");
-    // What the Conditions step held: no conditions, any match.
-    expect(rule["filterCondition"]).toBe(FilterCondition.Any);
+    /*
+     * What the Conditions step held: no conditions - and All, which a new
+     * rule starts on, kept although the step never asked.
+     */
+    expect(rule["filterCondition"]).toBe(FilterCondition.All);
     expect(rule["filters"]).toEqual([]);
     // The Destination step's own key is form-only: never sent.
     expect(call.miscDataProps).toEqual({});
+  });
+
+  /*
+   * All or Any is asked only once there are two conditions to combine, under
+   * them; a rule with fewer is created with All, which it never asked.
+   */
+  test("asks All or Any only once there are two conditions, and creates the rule with the one picked", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toConditions(user);
+
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Add Condition" }),
+    );
+    await settle();
+    fireEvent.change(within(dialog()).getAllByRole("textbox")[0]!, {
+      target: { value: "database" },
+    });
+    await settle();
+
+    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Add Condition" }),
+    );
+    await settle();
+    fireEvent.change(within(dialog()).getAllByRole("textbox")[1]!, {
+      target: { value: "postgres" },
+    });
+    await settle();
+
+    const all: HTMLElement = await within(dialog()).findByRole("radio", {
+      name: "All",
+    });
+    expect(all).toBeChecked();
+
+    await user.click(within(dialog()).getByRole("radio", { name: "Any" }));
+    await settle();
+
+    await next(user);
+    await waitForStep("Destination");
+    await settle();
+    await user.click(switchNamed(/^Create Slack Channel/));
+    fireEvent.change(
+      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
+      { target: { value: "oneuptime-incident-" } },
+    );
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["filterCondition"]).toBe(FilterCondition.Any);
+    expect(
+      (rule["filters"] as Array<JSONObject>).map(
+        (filter: JSONObject): unknown => {
+          return filter["value"];
+        },
+      ),
+    ).toEqual(["database", "postgres"]);
+  });
+
+  test("creates a rule with one condition with All, which it never asked", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.Incident,
+    );
+
+    await toConditions(user);
+
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Add Condition" }),
+    );
+    await settle();
+    fireEvent.change(within(dialog()).getAllByRole("textbox")[0]!, {
+      target: { value: "database" },
+    });
+    await settle();
+
+    expect(within(dialog()).queryAllByRole("radio")).toHaveLength(0);
+
+    await next(user);
+    await waitForStep("Destination");
+    await settle();
+    await user.click(switchNamed(/^Create Slack Channel/));
+    fireEvent.change(
+      await within(dialog()).findByPlaceholderText("oneuptime-incident-"),
+      { target: { value: "oneuptime-incident-" } },
+    );
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const rule: JSONObject = createCall().model
+      .notificationRule as unknown as JSONObject;
+
+    expect(rule["filterCondition"]).toBe(FilterCondition.All);
+    expect(rule["filters"]).toEqual([
+      expect.objectContaining({ value: "database" }),
+    ]);
   });
 
   test("keeps what the Destination step chose when going back to Conditions and on again", async () => {

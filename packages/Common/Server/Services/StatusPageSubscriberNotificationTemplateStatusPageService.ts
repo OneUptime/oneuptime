@@ -11,6 +11,13 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import SubscriberTemplateIncidentRecordAccess from "../Utils/StatusPage/SubscriberTemplateIncidentRecordAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+// The two names of each reference this service checks, ID column first.
+const TEMPLATE_KEYS: Array<string> = [
+  "statusPageSubscriberNotificationTemplateId",
+  "statusPageSubscriberNotificationTemplate",
+];
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+
 /*
  * Linking a custom subscriber notification template to a status page sends
  * that page's subscribers whatever the template places. A template may place
@@ -38,10 +45,7 @@ export class Service extends ProjectReferencesService<Model> {
       // The template, under either of its names (the two must agree).
       const templateId: ObjectID | null = RelationIdUtil.readConsistent(
         createBy.data as unknown as Record<string, unknown>,
-        [
-          "statusPageSubscriberNotificationTemplateId",
-          "statusPageSubscriberNotificationTemplate",
-        ],
+        TEMPLATE_KEYS,
         "Status Page Subscriber Notification Template",
       );
 
@@ -64,29 +68,30 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const data: {
-      statusPageSubscriberNotificationTemplateId?: unknown;
-      statusPageId?: unknown;
-    } = updateBy.data as unknown as {
-      statusPageSubscriberNotificationTemplateId?: unknown;
-      statusPageId?: unknown;
-    };
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
 
-    const writesTemplate: boolean =
-      data.statusPageSubscriberNotificationTemplateId !== undefined &&
-      data.statusPageSubscriberNotificationTemplateId !== null;
-    const writesStatusPage: boolean = data.statusPageId !== undefined;
+    // The template and the page, each under either of its names.
+    const writtenTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      TEMPLATE_KEYS,
+      "Status Page Subscriber Notification Template",
+    );
+    const writesStatusPage: boolean = RelationIdUtil.isPresent(
+      data,
+      STATUS_PAGE_KEYS,
+    );
 
-    if (!writesTemplate && !writesStatusPage) {
+    if (!writtenTemplateId && !writesStatusPage) {
       return { updateBy, carryForward: null };
     }
 
     let templateIds: Array<ObjectID> = [];
 
-    if (writesTemplate) {
-      templateIds = [
-        new ObjectID(String(data.statusPageSubscriberNotificationTemplateId)),
-      ];
+    if (writtenTemplateId) {
+      templateIds = [writtenTemplateId];
     } else {
       // Moved to another page: the templates the links already point at.
       const query: Query<Model> = updateBy.props.tenantId

@@ -734,7 +734,11 @@ describe("a monitor's evaluation log in German", () => {
     expect(normalizedText(name.parentElement)).toBe(
       "Nicht ausgewertet, weil zuerst “Kriterium 1” zutraf.",
     );
-    expect(skipped).toHaveTextContent("Bedingung: Beliebig");
+    /*
+     * A skipped criteria was not evaluated and lists no filters, so it says
+     * nothing of how they combine (All or Any appears only with two).
+     */
+    expect(skipped).not.toHaveTextContent("Bedingung:");
   });
 
   test("an action names its incident and time in German", () => {

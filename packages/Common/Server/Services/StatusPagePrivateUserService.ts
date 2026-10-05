@@ -5,6 +5,7 @@ import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import logger from "../Utils/Logger";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectSMTPConfigService from "./ProjectSmtpConfigService";
@@ -18,12 +19,16 @@ import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import HashedString from "../../Types/HashedString";
+import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
+
+// The status page's two names, ID column first: a write may use either.
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -36,12 +41,23 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * The status page under either of its names, kept in the ID column for
+     * the check below and for onCreateSuccess, which mails the invitation
+     * from the page the saved row names.
+     */
+    const statusPageId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
     // check if this user is already invited.
-    if (createBy.data.statusPageId && createBy.data.email) {
+    if (statusPageId && createBy.data.email) {
       const statusPageUser: Model | null = await this.findOneBy({
         query: {
           email: createBy.data.email,
-          statusPageId: createBy.data.statusPageId,
+          statusPageId: statusPageId,
         },
         props: {
           isRoot: true,

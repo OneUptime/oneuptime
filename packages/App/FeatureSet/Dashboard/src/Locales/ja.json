@@ -25317,5 +25317,15 @@
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "ここでの調査 {{count}} 件のうち {{shown}} 件は {{name}} が発生元でした。",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "ここでの調査 {{count}} 件のうち {{shown}} 件は {{name}} が発生元でした。",
   "The project had reached its own daily AI limit.": "プロジェクト独自の 1 日あたりの AI 上限に達していました。",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 your time, at the start of the next week, day or month.": "以降のサマリーは同じ時刻に送信されます。空欄のままにすると、次の週・日・月の始めの 09:00（あなたのタイムゾーン）に開始します。",
+  "Posted With State Change To": "Posted With State Change To",
+  "Posted With State Change To ID": "Posted With State Change To ID",
+  "Should all conditions match, or just any one of them?": "すべての条件に一致する必要がありますか、それともいずれか 1 つでよいですか？",
+  "Should all filters match, or just any one of them?": "すべてのフィルターに一致する必要がありますか、それともいずれか 1 つでよいですか？",
+  "The first summary goes out {{date}}.": "最初のサマリーは {{date}} に送信されます。",
+  "This criteria is met when this filter matches:": "このフィルターに一致すると、この条件を満たします:",
+  "This rule runs when all of these conditions are met:": "このルールは、次の条件をすべて満たすと実行されます:",
+  "This rule runs when any one of these conditions is met:": "このルールは、次の条件のいずれか 1 つを満たすと実行されます:",
+  "This rule runs when this condition is met:": "このルールは、次の条件を満たすと実行されます:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。"
 }
