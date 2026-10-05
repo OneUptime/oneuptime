@@ -31,6 +31,7 @@ import PublicDashboardRateLimit from "../../../Server/Middleware/PublicDashboard
 import DashboardService from "../../../Server/Services/DashboardService";
 import FileService from "../../../Server/Services/FileService";
 import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
 import StatusPageFooterLinkService from "../../../Server/Services/StatusPageFooterLinkService";
 import StatusPageHeaderLinkService from "../../../Server/Services/StatusPageHeaderLinkService";
@@ -51,6 +52,7 @@ import File from "../../../Models/DatabaseModels/File";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import User from "../../../Models/DatabaseModels/User";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../Types/Dictionary";
 import MimeType from "../../../Types/File/MimeType";
 import { JSONObject } from "../../../Types/JSON";
@@ -295,6 +297,18 @@ describe("public routes serve only a record's own files", () => {
           next();
         },
       );
+
+    /*
+     * A member route reads the project's plan when billing is on (CI runs
+     * with it on), and notes the project's activity.
+     */
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    } as never);
+    jest
+      .spyOn(ProjectService, "updateLastActive")
+      .mockResolvedValue(undefined as never);
 
     // Where a route falls back to a default image, it says so plainly.
     jest
