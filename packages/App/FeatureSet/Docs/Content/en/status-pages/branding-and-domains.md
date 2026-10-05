@@ -34,6 +34,8 @@ The first card, **Logo and Cover Image**, has an **Edit Images** button that ope
 - **Title and Description** — the card notes this is also used for SEO. **Edit** opens **Page Title** (placeholder `Please enter page title here.`) and **Page Description**. This is what search engines and link previews show, so write it for a customer, not for your team.
 - **Favicon** — **Edit Favicon** opens the **Favicon** image upload. This is the little icon in the browser tab.
 
+The logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it. Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none.
+
 ### Header links
 
 The **Header Links** table ("Header Links for your status page") holds the links in the status page's header. Each link has a **Title** and a **Link** (a URL, placeholder `https://link.com`), and rows are reordered by dragging. With none configured the table says **No status header link for this status page**, with **Create Status Page Header Link** under it.
