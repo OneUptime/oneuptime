@@ -1,4 +1,5 @@
 import { AgentPosture } from "./Posture";
+import { AGENT_AI_FIXES_SETTING_VALUES } from "./Common/Types/AI/AgentAiSettings";
 
 /*
  * What the agent knows about itself right now, for GET /status: the first
@@ -39,6 +40,15 @@ export interface AgentStatusSnapshot {
   writeNamespaces: Array<string> | null;
   podNamespace: string | null;
   kubectlVersion: string | null;
+  /*
+   * What this agent lets OneUptime AI do, as reported (null before the
+   * first report), and whether its configuration names it (false: these
+   * are the agent's defaults, which apply only where nobody chose the
+   * settings on the cluster's AI agent page).
+   */
+  aiInvestigation: boolean | null;
+  aiFixes: string | null;
+  aiSettingsConfigured: boolean | null;
   runningJobId: string | null;
   jobsRun: number;
   lastJobAt: string | null;
@@ -107,6 +117,15 @@ export default class AgentStatus {
       writeNamespaces: this.posture ? [...this.posture.writeNamespaces] : null,
       podNamespace: this.posture?.podNamespace || null,
       kubectlVersion: this.posture?.kubectlVersion || null,
+      aiInvestigation: this.posture
+        ? this.posture.aiSettings.investigation
+        : null,
+      aiFixes: this.posture
+        ? AGENT_AI_FIXES_SETTING_VALUES[this.posture.aiSettings.fixes]
+        : null,
+      aiSettingsConfigured: this.posture
+        ? this.posture.aiSettings.isConfigured
+        : null,
       runningJobId: this.runningJobId,
       jobsRun: this.jobsRun,
       lastJobAt: toIso(this.lastJobAt),

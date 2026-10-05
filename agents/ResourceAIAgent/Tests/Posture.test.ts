@@ -66,6 +66,11 @@ describe("the reported posture", () => {
       reachable: true,
       details: { engine: "docker" },
       reportedAt: "2026-09-29T08:00:00.000Z",
+      aiSettings: {
+        investigation: true,
+        fixes: "Disabled",
+        isConfigured: false,
+      },
     });
   });
 

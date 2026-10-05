@@ -44,6 +44,7 @@ const POSTURE: AgentPosture = {
   allowWrites: false,
   allowNodeOperations: false,
   writeNamespaces: [],
+  aiSettings: { investigation: true, fixes: "Disabled", isConfigured: false },
 };
 
 function response(overrides: Partial<IngestResponse>): IngestResponse {

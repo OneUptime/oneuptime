@@ -10,12 +10,18 @@
  * card and ladder that reads a tier or a mode means the same thing for a
  * cluster and for any other resource.
  *
- * Imports only ./AiResourceType on purpose: the resource AI agent
- * (agents/ResourceAIAgent) carries a byte-identical copy of this directory
- * and must compile without the rest of Common.
+ * Imports only ./AiResourceType and ../AI/AgentAiSettings (which import
+ * nothing else) on purpose: the resource AI agent (agents/ResourceAIAgent)
+ * carries byte-identical copies of this directory and of that file and
+ * must compile without the rest of Common.
  */
 
 import AiResourceType, { isAiResourceType } from "./AiResourceType";
+import {
+  AgentAiSettings,
+  AgentAiSettingsSource,
+  parseReportedAgentAiSettings,
+} from "../AI/AgentAiSettings";
 
 /*
  * The tier the resource command policy assigns to one command. Tiers are the
@@ -192,6 +198,15 @@ export interface ResourceAiAgentPosture {
   details?: Record<string, string | number | boolean | null> | undefined;
   // ISO 8601, stamped by the agent.
   reportedAt?: string | undefined;
+  /*
+   * What the agent's configuration lets OneUptime AI do on the resource
+   * (its ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES; see
+   * Types/AI/AgentAiSettings). Present only when the configuration names
+   * them: OneUptime then applies them to the resource, and the AI agent
+   * page shows them read-only. Absent from an agent configured before
+   * these settings existed.
+   */
+  aiSettings?: AgentAiSettings | undefined;
 }
 
 // Bounds parseResourceAiAgentPosture holds every posture to.
@@ -378,6 +393,15 @@ export function parseResourceAiAgentPosture(
     posture.reportedAt = reportedAt;
   }
 
+  // Reported but unreadable fails closed (parseReportedAgentAiSettings).
+  const aiSettings: AgentAiSettings | undefined = parseReportedAgentAiSettings(
+    raw["aiSettings"],
+  );
+
+  if (aiSettings) {
+    posture.aiSettings = aiSettings;
+  }
+
   return posture;
 }
 
@@ -454,6 +478,15 @@ export interface ResourceAiAccessStatus {
   resourceName: string;
   isAiInvestigationEnabled: boolean;
   aiRemediationMode: ResourceAiRemediationMode;
+  /*
+   * Where isAiInvestigationEnabled and aiRemediationMode are set (see
+   * AgentAiSettingsSource): "agent" when the resource's AI agent reports
+   * them from its configuration (ONEUPTIME_AI_INVESTIGATION,
+   * ONEUPTIME_AI_FIXES) and OneUptime applies them; "oneuptime" otherwise.
+   * Absent from a server older than the setting, which reads as
+   * "oneuptime".
+   */
+  aiSettingsSource?: AgentAiSettingsSource | undefined;
   /*
    * Operator-authored command patterns Automatic mode may run without
    * approval even though they are RiskyWrite. Normalized; empty when unset.
