@@ -91,6 +91,8 @@ docker logs -f oneuptime-docker-agent
 
 ## ارتقای عامل
 
+وقتی عامل از OneUptime شما قدیمی‌تر باشد، کنار **Agent Version** در **Overview** میزبان Docker یک نشانه هشدار ظاهر می‌شود. آن را برگزینید تا این فرمان‌ها را ببینید.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

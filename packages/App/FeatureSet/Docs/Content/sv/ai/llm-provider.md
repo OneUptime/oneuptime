@@ -18,6 +18,8 @@ Om du använder **OneUptime SaaS** (molnhanterad version) kan du använda den **
 
 Om du föredrar att använda dina egna API-nycklar eller en specifik leverantör, kan du fortfarande konfigurera en anpassad LLM-leverantör enligt instruktionerna nedan.
 
+OneUptime SaaS kan bara nå LLM-slutpunkter på det öppna internet. Den kan inte ansluta till en modell i ditt privata nätverk, till exempel en egeninstallerad Ollama- eller vLLM-server. Om du vill använda en modell som du kör själv kan du installera OneUptime själv i ett nätverk som når den, eller exponera modellen på en offentlig slutpunkt — se [Välja Bas-URL för en egeninstallerad modell](#välja-bas-url-för-en-egeninstallerad-modell).
+
 ## Leverantörer som stöds
 
 OneUptime stöder för närvarande följande LLM-leverantörer:
@@ -98,28 +100,58 @@ Model Name: claude-3-5-sonnet-20241022
 Ollama låter dig köra öppen källkods-LLM:er lokalt eller i din egen infrastruktur.
 
 1. Installera Ollama från [ollama.ai](https://ollama.ai)
-2. Hämta din önskade modell: `ollama pull llama2`
-3. Se till att Ollama körs och är tillgänglig
+2. Hämta din önskade modell: `ollama pull llama3.1`
+3. Se till att Ollama körs och kan nås från OneUptime-servern. En installation direkt på maskinen lyssnar bara på `127.0.0.1`, så starta den med `OLLAMA_HOST=0.0.0.0:11434` för att ta emot anslutningar från andra maskiner och containrar (den officiella Docker-avbildningen `ollama/ollama` gör redan det)
 4. Välj **Ollama** som LLM-typ
-5. Ange Bas-URL:en (t.ex. `http://localhost:11434`)
+5. Ange Bas-URL:en: Ollama-serverns adress så som OneUptime-servern når den, t.ex. `http://ollama:11434` (OneUptime lägger själv till `/api/chat`). `localhost` fungerar inte — se [Välja Bas-URL för en egeninstallerad modell](#välja-bas-url-för-en-egeninstallerad-modell)
 6. Ange modellnamnet du hämtade
 
-**Exempelkonfiguration:**
+**Exempelkonfiguration (Ollama som en tjänst med namnet `ollama` i OneUptimes Docker Compose-nätverk):**
 
 ```
-Name: Local Ollama
+Name: Self-Hosted Ollama
 LLM Type: Ollama
-Base URL: http://localhost:11434
-Model Name: llama2
+Base URL: http://ollama:11434
+Model Name: llama3.1
 ```
+
+**Öka kontextfönstret.** Om inget annat anges kör Ollama en modell med ett litet kontextfönster (4096 tokens i aktuella versioner, 2048 i äldre) och klipper tyst bort allt som inte får plats. OneUptimes AI-funktioner skickar sina verktygsdefinitioner med varje förfrågan, och enbart de kan uppta flera tusen tokens. När de klipps bort visas inget fel: modellen svarar bara att den inte har något verktyg för frågan. Ange ett större `num_ctx` i leverantörens **Ytterligare parametrar**:
+
+```json
+{ "options": { "num_ctx": 16384 } }
+```
+
+OneUptime slår ihop det här `options`-objektet med de alternativ som skickas till Ollama, så ange bara de inställningar du vill ändra. Ett större kontextfönster kräver mer minne, så välj en storlek som din modell stöder och din hårdvara klarar. Vill du i stället höja standardvärdet för alla klienter anger du `OLLAMA_CONTEXT_LENGTH` på Ollama-servern. För en global leverantör som registreras från `GLOBAL_LLM_PROVIDER_*`-variabler anger du fältet i Admin Dashboard under **Inställningar** > **Globala LLM-leverantörer**; synkroniseringen vid start rör inte det fältet.
 
 **Populära Ollama-modeller:**
 
-- `llama2` – Metas Llama 2-modell
-- `llama3` – Metas Llama 3-modell
-- `mistral` – Mistral AIs modell
-- `codellama` – Kodspecialiserad Llama-modell
-- `mixtral` – Mistrals mixture of experts-modell
+- `llama3.1` – Metas Llama 3.1-modell, den äldsta Llama-modellen med stöd för verktygsanrop
+- `llama3.3` – Metas Llama 3.3-modell
+- `qwen2.5` – Alibabas Qwen 2.5-modell
+- `mistral-nemo` – Mistral AI:s Nemo-modell
+
+> Obs! OneUptimes AI-funktioner är agentiska — de förlitar sig i hög grad på verktygsanrop. Använd `llama3.1` eller senare (eller en annan modell med stöd för verktygsanrop). Små modeller eller modeller utan stöd för verktygsanrop (t.ex. `llama2`, den ursprungliga `llama3`) ger dåliga resultat: de kan inte fråga dina monitorer, incidenter eller din telemetri, så utredningar kommer tillbaka tomma eller påhittade.
+
+### Välja Bas-URL för en egeninstallerad modell
+
+Bas-URL:en för en egeninstallerad modell — Ollama, vLLM, LM Studio eller någon annan OpenAI-kompatibel server — måste vara en adress som **OneUptime-servern** kan nå. Din webbläsare ansluter aldrig till den.
+
+**Loopback-adresser avvisas alltid.** Innan OneUptime ansluter kontrollerar den varje adress som värdnamnet i Bas-URL:en slås upp till. `localhost`, `127.0.0.1`, `[::1]` och `0.0.0.0`, liksom link-local-adresser och molnens metadataadresser som `169.254.169.254`, avvisas i alla installationer, även egeninstallerade. Det är avsiktligt: en leverantörs Bas-URL får inte kunna användas för att nå tjänster på själva OneUptime-servern. Inuti Docker Compose eller Kubernetes skulle `localhost` dessutom vara OneUptime-containern, inte maskinen som kör din modell.
+
+Använd i stället en privat adress eller ett internt värdnamn:
+
+| Var modellservern körs | Bas-URL |
+| --- | --- |
+| En tjänst i OneUptimes Docker Compose-nätverk (`oneuptime`) | Tjänstens namn, t.ex. `http://ollama:11434` |
+| Samma Kubernetes-kluster som OneUptime | Servicens DNS-namn, t.ex. `http://ollama.<namespace>.svc.cluster.local:11434` — samma mönster som den [medföljande vLLM](#egeninstallerad-vllm-på-kubernetes-helm) |
+| Själva värdmaskinen, utanför alla containrar | Värdens LAN-IP, t.ex. `http://192.168.1.20:11434`, eller `http://host.docker.internal:11434` i Docker Desktop |
+| En annan maskin i ditt nätverk | Dess privata IP eller interna värdnamn, t.ex. `http://10.0.0.12:11434` |
+
+OpenAI-kompatibla servrar följer samma regler med sin egen port och `/v1`-sökväg, t.ex. `http://vllm:8000/v1`, eller `http://192.168.1.20:1234/v1` för LM Studio. Precis som en Ollama-installation direkt på maskinen lyssnar LM Studio bara på `127.0.0.1` tills du slår på **Serve on Local Network** i dess serverinställningar.
+
+**Privata adresser fungerar i egeninstallerade miljöer.** En egeninstallerad OneUptime kan nå privata nätverksadresser, till exempel `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` och IPv6 `fc00::/7`, såvida du inte sätter `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`, som avvisar dem på samma sätt som OneUptime Cloud.
+
+**OneUptime Cloud (SaaS) kan inte nå privata nätverk.** Den avvisar privata nätverksadresser, och värdnamn som slås upp till sådana, för alla LLM-leverantörer. För att använda en modell som körs i din egen infrastruktur kan du antingen installera OneUptime själv i ett nätverk som når den, eller exponera modellen på en offentligt nåbar slutpunkt. Skydda en offentlig slutpunkt med en API-nyckel: leverantören **Ollama** skickar inga inloggningsuppgifter, medan **OpenAI Compatible** skickar API-nyckeln som bearer-token (Ollama erbjuder också ett OpenAI-kompatibelt API under `/v1`, så det kan stå bakom en omvänd proxy som kontrollerar nyckeln).
 
 ### OpenAI Compatible (vLLM, LocalAI, LM Studio etc.)
 
@@ -127,7 +159,7 @@ Använd leverantören **OpenAI Compatible** för alla servrar som implementerar 
 
 1. Starta din OpenAI-kompatibla server och notera dess bas-URL (den slutar oftast på `/v1`)
 2. Välj **OpenAI Compatible** som LLM-typ
-3. Ange **Bas-URL** (krävs), t.ex. `http://your-server:8000/v1`
+3. Ange **Bas-URL** (krävs), t.ex. `http://your-server:8000/v1`. Den måste kunna nås från OneUptime-servern, alltså inte `localhost` — se [Välja Bas-URL för en egeninstallerad modell](#välja-bas-url-för-en-egeninstallerad-modell)
 4. Ange **Modellnamn** (krävs) — det måste matcha en modell som din server exponerar
 5. Ange **API-nyckel** endast om din server kräver det; lämna fältet tomt för nyckelfria servrar
 
@@ -161,7 +193,7 @@ Om du kör OneUptime själv med Helm-chartet kan du köra [vLLM](https://docs.vl
 Om du inaktiverade automatisk registrering (`vllm.globalProvider.enabled: false`) skapar du leverantören manuellt:
 
 1. Välj **OpenAI Compatible** som LLM-typ (vLLM talar OpenAI-API:et)
-2. Ange bas-URL:en i klustret: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1`
+2. Ange bas-URL:en i klustret: `http://<release>-vllm.<namespace>.svc.cluster.local:8000/v1` (byt ut `cluster.local` om du har ändrat `global.clusterDomain`)
 3. Ange modellnamnet: det fullständiga HuggingFace-modell-id:t (eller `vllm.servedModelName` om du angett ett sådant)
 4. Ange API-nyckeln endast om du satt `vllm.apiKey`; lämna den tom för en nyckelfri vLLM
 
@@ -175,7 +207,7 @@ Model Name: Qwen/Qwen2.5-1.5B-Instruct
 API Key: (leave blank unless vllm.apiKey is set)
 ```
 
-Se [Helm chart-README:n](https://github.com/OneUptime/oneuptime/tree/master/HelmChart/Public/oneuptime#local-models-with-vllm) för GPU-schemaläggning, spärrade modeller och inställningsalternativ.
+Se [Helm-chartens vLLM-guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/ai-vllm.md) för GPU-schemaläggning, spärrade modeller och inställningsalternativ.
 
 ## Använda anpassade Bas-URL:er
 
@@ -197,8 +229,9 @@ För företagsdistributioner eller när du använder proxytjänster kan du ange 
 ### Anslutningsproblem
 
 - **OpenAI/Anthropic**: Verifiera att din API-nyckel är giltig och har tillräckliga krediter
-- **Ollama**: Se till att Ollama-servern körs och att Bas-URL:en är korrekt
+- **Ollama**: Se till att Ollama-servern körs, lyssnar på en adress som OneUptime-servern kan nå (`OLLAMA_HOST=0.0.0.0:11434` för en installation direkt på maskinen), och att Bas-URL:en pekar på den adressen
 - **OpenAI Compatible**: Kontrollera att Bas-URL:en slutar på `/v1` (eller matchar din server), att Modellnamnet matchar en modell som din server exponerar, och ange endast en API-nyckel om din server kräver det
+- **"…points to an address OneUptime is not allowed to connect to"**: Bas-URL:en slås upp till en avvisad adress — `localhost` eller en annan loopback-adress, eller i OneUptime Cloud en privat nätverksadress. (OneUptime Cloud rapporterar i stället ett avvisat värdnamn som "…could not be reached".) Se [Välja Bas-URL för en egeninstallerad modell](#välja-bas-url-för-en-egeninstallerad-modell)
 - **Brandvägg**: Kontrollera att ditt nätverk tillåter utgående anslutningar till leverantörens API
 
 ### Modellen hittas inte

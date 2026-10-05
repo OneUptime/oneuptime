@@ -10,6 +10,7 @@ import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { RUNNER_CONTAINER_NAME, RUNNER_IMAGE } from "./RunnerImage";
 
 export interface ComponentProps {
   runnerId: ObjectID;
@@ -44,11 +45,11 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const dockerCommand: string = `docker run --name oneuptime-runner --restart unless-stopped \\
+  const dockerCommand: string = `docker run --name ${RUNNER_CONTAINER_NAME} --restart unless-stopped \\
   -e ONEUPTIME_RUNNER_ID=${props.runnerId.toString()} \\
   -e ONEUPTIME_RUNNER_KEY=${props.runnerKey} \\
   -e ONEUPTIME_URL=${host} \\
-  -d oneuptime/runner:release`;
+  -d ${RUNNER_IMAGE}`;
 
   return (
     <div className="space-y-5">

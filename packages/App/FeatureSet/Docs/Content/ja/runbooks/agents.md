@@ -64,6 +64,15 @@ docker run --name oneuptime-runner --restart unless-stopped \
 - ホストから `curl` で OneUptime URL に到達できるか確認。
 - ID とキーが空白なしでコピーされているか確認。
 
+### 5. エージェントを最新に保つ
+
+エージェントが OneUptime より古いバージョンを実行している場合、そのページの **Runner のバージョン** の横に警告サインが表示されます。それを選ぶと、アップグレード方法が表示されます: 新しいイメージを pull してコンテナを削除し、手順 2 のインストールコマンドをもう一度実行します。Kubernetes エージェントの chart がインストールしたエージェントは、代わりに chart でアップグレードします。
+
+```bash
+docker pull oneuptime/runner:release
+docker rm -f oneuptime-runner
+```
+
 ## ステップをエージェントに向ける
 
 Runbook で Bash または JavaScript のステップを追加します。フォームには **Runbook エージェント** のドロップダウンがあり、現在のプロジェクト内のすべてのエージェント (接続/切断インジケータ付き) が並んでいます:

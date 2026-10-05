@@ -91,6 +91,8 @@ docker logs -f oneuptime-docker-agent
 
 ## Обновление агента
 
+Если агент старше вашего OneUptime, рядом с **Версия агента** на странице **Обзор** Docker-хоста появляется предупреждающий знак. Выберите его, чтобы увидеть эти команды.
+
 ```bash
 docker pull oneuptime/docker-agent:release
 docker rm -f oneuptime-docker-agent

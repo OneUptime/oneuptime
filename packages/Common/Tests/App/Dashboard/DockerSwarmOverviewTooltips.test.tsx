@@ -441,6 +441,57 @@ describe("Docker Swarm overview page", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * The Swarm agent reports the collector version its compose file pins, so
+   * an agent on this release's pin is up to date whatever the server's own
+   * version is - and its chip is the plain gray one.
+   */
+  test("an agent on the collector this release pins keeps the plain chip, with no sign", async () => {
+    await renderOverview();
+
+    expect(screen.getByTestId("agent-version-chip")).toHaveTextContent(
+      "Agent 0.161.0",
+    );
+    expect(
+      screen.queryByTestId("agent-version-outdated"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an agent behind the pinned collector gets the sign, which opens how to upgrade it", async () => {
+    getItemMock.mockImplementation(async () => {
+      const model: DockerSwarmCluster = cluster();
+      model.agentVersion = "0.154.0";
+      return model;
+    });
+    await renderOverview();
+
+    const chip: HTMLElement = screen.getByRole("button", {
+      name: "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.",
+    });
+    expect(chip).toHaveTextContent("Agent 0.154.0");
+    // Still in the hero's chip row, after the Docker version.
+    expect(chip.parentElement).toBe(
+      screen.getByText("Docker 27.1.1").closest("div.flex-wrap"),
+    );
+
+    fireEvent.click(chip);
+    await flush();
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Upgrade the OneUptime Docker Swarm Agent",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual(["Install script", "Docker Compose"]);
+  });
+
   test("tiles show the inventory counts they explain", async () => {
     await renderOverview();
 

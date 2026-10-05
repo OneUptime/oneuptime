@@ -165,6 +165,23 @@ export function getPodmanComposeFile(data: {
         max-file: "3"`;
 }
 
+/*
+ * Moving an installed agent to the newest image. The guide's "Upgrade or
+ * uninstall the agent" topic and the upgrade dialog beside an outdated agent
+ * version (Components/AgentVersion) both show this command, so the two never
+ * drift. With the Podman CLI it pulls the image and removes the running
+ * container; the `podman run` command then starts it again on the new image.
+ */
+export function getPodmanAgentUpgradeCommand(
+  method: PodmanInstallMethod,
+): string {
+  if (method === "podman-cli") {
+    return `podman pull ${PODMAN_AGENT_IMAGE}
+podman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`;
+  }
+  return "podman compose pull\npodman compose up -d";
+}
+
 function getAiAgentRunCommand(data: GuideData): string {
   return [
     "podman run -d",
@@ -402,11 +419,7 @@ ${
       markdown: cli
         ? `**Upgrade** — pull the latest image and remove the running agent:
 
-${codeBlock(
-  "bash",
-  `podman pull ${PODMAN_AGENT_IMAGE}
-podman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`,
-)}
+${codeBlock("bash", getPodmanAgentUpgradeCommand("podman-cli"))}
 
 Then run the \`podman run\` command from step 2 again. Added the OneUptime AI agent? Upgrade it the same way: \`podman pull ${PODMAN_AI_AGENT_IMAGE}\`, remove it and start it again.
 
@@ -417,7 +430,7 @@ ${codeBlock("bash", `podman rm -f ${PODMAN_AGENT_CONTAINER_NAME}`)}
 If you added the OneUptime AI agent, remove it too: \`podman rm -f ${PODMAN_AI_AGENT_CONTAINER_NAME}\`.`
         : `**Upgrade** — in the folder that holds docker-compose.yml, pull the latest images and recreate the containers:
 
-${codeBlock("bash", "podman compose pull\npodman compose up -d")}
+${codeBlock("bash", getPodmanAgentUpgradeCommand("podman-compose"))}
 
 **Uninstall** — stop and remove everything the file started:
 

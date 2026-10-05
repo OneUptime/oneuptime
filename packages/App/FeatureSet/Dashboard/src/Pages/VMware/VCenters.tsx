@@ -1,4 +1,6 @@
 import PageMap from "../../Utils/PageMap";
+import AgentVersion from "../../Components/AgentVersion/AgentVersion";
+import { AgentKind } from "../../Components/AgentVersion/AgentKind";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -294,8 +296,16 @@ const VMwareVCenters: FunctionComponent<
               agentVersion: true,
             },
             title: "Agent Version",
-            type: FieldType.Text,
+            type: FieldType.Element,
             hideOnMobile: true,
+            getElement: (item: VMwareVCenter): ReactElement => {
+              return (
+                <AgentVersion
+                  kind={AgentKind.VMwareAgent}
+                  version={item.agentVersion}
+                />
+              );
+            },
           },
           {
             field: {
