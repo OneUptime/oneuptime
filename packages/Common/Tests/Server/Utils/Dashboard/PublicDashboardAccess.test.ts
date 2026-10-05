@@ -77,6 +77,15 @@ const storedDashboard: (options: StoredDashboardOptions) => Dashboard = (
   return dashboard;
 };
 
+// A refusal's error; a Granted result has none.
+const errorOf: (result: PublicDashboardAccessResult) => Error | undefined = (
+  result: PublicDashboardAccessResult,
+): Error | undefined => {
+  return result.access === PublicDashboardAccess.Granted
+    ? undefined
+    : result.error;
+};
+
 const decide: (
   dashboard: Dashboard | null,
   visitor: PublicDashboardVisitor,
@@ -107,8 +116,10 @@ describe("the link answers nobody (NotFound) for a dashboard it does not serve",
 
     expect(result.access).toBe(PublicDashboardAccess.NotFound);
     expect(result.isMasterPasswordRequired).toBe(false);
-    expect(result.error).toBeInstanceOf(NotAuthenticatedException);
-    expect(result.error?.message).toBe(PUBLIC_DASHBOARD_NOT_AVAILABLE_MESSAGE);
+    expect(errorOf(result)).toBeInstanceOf(NotAuthenticatedException);
+    expect(errorOf(result)?.message).toBe(
+      PUBLIC_DASHBOARD_NOT_AVAILABLE_MESSAGE,
+    );
   });
 
   test.each(
@@ -197,8 +208,8 @@ describe("for every Sharing choice, the link answers what the choice says", () =
 
     expect(anonymous.access).toBe(PublicDashboardAccess.PasswordRequired);
     expect(anonymous.isMasterPasswordRequired).toBe(true);
-    expect(anonymous.error).toBeInstanceOf(MasterPasswordRequiredException);
-    expect(anonymous.error?.message).toBe(
+    expect(errorOf(anonymous)).toBeInstanceOf(MasterPasswordRequiredException);
+    expect(errorOf(anonymous)?.message).toBe(
       DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
     );
 
@@ -242,7 +253,7 @@ describe("a locked dashboard (the switch on, no password) fails closed", () => {
 
       expect(result.access).toBe(PublicDashboardAccess.PasswordRequired);
       expect(result.isMasterPasswordRequired).toBe(true);
-      expect(result.error).toBeInstanceOf(MasterPasswordRequiredException);
+      expect(errorOf(result)).toBeInstanceOf(MasterPasswordRequiredException);
     },
   );
 });
@@ -276,11 +287,11 @@ describe("the IP allowlist", () => {
     });
 
     expect(result.access).toBe(PublicDashboardAccess.Forbidden);
-    expect(result.error).toBeInstanceOf(ForbiddenException);
-    expect(result.error?.message).toBe(
+    expect(errorOf(result)).toBeInstanceOf(ForbiddenException);
+    expect(errorOf(result)?.message).toBe(
       getPublicDashboardAddressBlockedMessage(OTHER_IP),
     );
-    expect(result.error?.message).toBe(
+    expect(errorOf(result)?.message).toBe(
       `Your IP address ${OTHER_IP} is blocked from accessing this dashboard.`,
     );
   });
@@ -292,7 +303,7 @@ describe("the IP allowlist", () => {
     );
 
     expect(result.access).toBe(PublicDashboardAccess.Forbidden);
-    expect(result.error?.message).toBe(
+    expect(errorOf(result)?.message).toBe(
       PUBLIC_DASHBOARD_ADDRESS_UNKNOWN_MESSAGE,
     );
   });
