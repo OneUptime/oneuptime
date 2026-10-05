@@ -67,19 +67,11 @@ export default class VMUtil {
         shouldEscapeForJSON,
       );
 
-      const variablesInArgument: Array<string> = [];
+      type ResolveVariableFunction = (variable: string) => string | undefined;
 
-      const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
-
-      let match: RegExpExecArray | null = null;
-
-      while ((match = regex.exec(valueToReplaceInPlaceCopy)) !== null) {
-        if (match[1]) {
-          variablesInArgument.push(match[1]);
-        }
-      }
-
-      for (const variable of variablesInArgument) {
+      const resolveVariable: ResolveVariableFunction = (
+        variable: string,
+      ): string | undefined => {
         const foundValue: JSONValue = VMUtil.deepFind(
           storageMap as any,
           variable as any,
@@ -87,38 +79,62 @@ export default class VMUtil {
 
         // Skip replacement if the variable is not found in the storageMap.
         if (foundValue === undefined) {
-          continue;
+          return undefined;
         }
-
-        let valueToReplaceInPlace: string;
 
         // Properly serialize objects to JSON strings
         if (typeof foundValue === "object" && foundValue !== null) {
-          valueToReplaceInPlace = JSON.stringify(foundValue, null, 2);
-        } else {
-          valueToReplaceInPlace = foundValue as string;
+          return JSON.stringify(foundValue, null, 2);
         }
 
-        if (valueToReplaceInPlaceCopy.trim() === "{{" + variable + "}}") {
-          valueToReplaceInPlaceCopy = valueToReplaceInPlace;
-        } else {
-          const replacement: string = shouldEscapeForJSON
-            ? VMUtil.serializeValueForJSON(valueToReplaceInPlace)
-            : `${valueToReplaceInPlace}`;
+        return foundValue as string;
+      };
 
-          /*
-           * Function form, not the string form. String.replace treats $&, $1,
-           * $` and $' in the REPLACEMENT as substitution patterns, so a
-           * resolved value of "50$" or "a$&b" rewrote itself using the matched
-           * text. A function replacement is taken literally.
-           */
-          valueToReplaceInPlaceCopy = valueToReplaceInPlaceCopy.replace(
-            "{{" + variable + "}}",
-            () => {
-              return replacement;
-            },
-          );
+      const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
+
+      const firstMatch: RegExpMatchArray | null =
+        valueToReplaceInPlaceCopy.match(/{{(.*?)}}/);
+
+      if (firstMatch && firstMatch[0] === valueToReplaceInPlaceCopy.trim()) {
+        /*
+         * The whole string is a single placeholder, so it becomes the raw
+         * value: a number stays a number, and an object arrives as JSON rather
+         * than escaped into a string literal.
+         */
+        const value: string | undefined = resolveVariable(firstMatch[1]!);
+
+        if (value !== undefined) {
+          valueToReplaceInPlaceCopy = value;
         }
+      } else {
+        /*
+         * One pass over the template, never a rescan. Substituting one
+         * variable at a time into the progressively rewritten string let a
+         * resolved value that itself carried {{...}} text — an email subject,
+         * a request body, an API response — be matched by a later
+         * placeholder: that substitution landed inside the value, and the
+         * placeholder the template author wrote was left unrendered. A global
+         * replace only matches placeholders in the template it started with.
+         *
+         * Function form, not the string form. String.replace treats $&, $1,
+         * $` and $' in the REPLACEMENT as substitution patterns, so a
+         * resolved value of "50$" or "a$&b" rewrote itself using the matched
+         * text. A function replacement is taken literally.
+         */
+        valueToReplaceInPlaceCopy = valueToReplaceInPlaceCopy.replace(
+          regex,
+          (placeholder: string, variable: string): string => {
+            const value: string | undefined = resolveVariable(variable);
+
+            if (value === undefined) {
+              return placeholder;
+            }
+
+            return shouldEscapeForJSON
+              ? VMUtil.serializeValueForJSON(value)
+              : `${value}`;
+          },
+        );
       }
 
       valueToReplaceInPlace = valueToReplaceInPlaceCopy;

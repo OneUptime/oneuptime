@@ -3,7 +3,9 @@ import CreatePermission from "../../../Server/Types/Database/Permissions/CreateP
 import DeletePermission from "../../../Server/Types/Database/Permissions/DeletePermission";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import ReadPermission from "../../../Server/Types/Database/Permissions/ReadPermission";
+import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdatePermission from "../../../Server/Types/Database/Permissions/UpdatePermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import Log from "../../../Models/AnalyticsModels/Log";
 import Label from "../../../Models/DatabaseModels/Label";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -274,6 +276,11 @@ interface WriteEntryPoint {
   name: string;
   // Spies on the Create/Update/Delete check the entry point delegates to.
   spyOnUnderlying: () => jest.SpyInstance<any, any>;
+  /*
+   * True when the entry point lets root through itself and never reaches the
+   * check it delegates to; the others hand root on to that check.
+   */
+  rootSkipsUnderlying?: boolean;
   // Calls the entry point; a synchronous throw becomes a rejection.
   call: (
     props: DatabaseCommonInteractionProps,
@@ -287,6 +294,38 @@ const fetchExistingLabel: () => Promise<Label | null> =
   };
 
 const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
+  {
+    /*
+     * Asked before a write's hooks run, so a hook never acts for a caller
+     * the write is refused to.
+     */
+    name: "checkTableWritePermission",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(TablePermission, "checkTableLevelPermissions");
+    },
+    rootSkipsUnderlying: true,
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return ModelPermission.checkTableWritePermission(
+        Label,
+        props,
+        DatabaseRequestType.Update,
+      );
+    },
+  },
+  {
+    // The rows an update or delete may change, read before its hooks run.
+    name: "getUpdatableQuery",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(UpdatePermission, "getUpdatableQuery");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return await ModelPermission.getUpdatableQuery(
+        Label,
+        { _id: labelId.toString(), projectId },
+        props,
+      );
+    },
+  },
   {
     name: "checkCreatePermissions",
     spyOnUnderlying: (): jest.SpyInstance<any, any> => {
@@ -469,7 +508,9 @@ describe("the Postgres permission layer (ModelPermission)", () => {
           }),
         ).toBeUndefined();
 
-        expect(underlying).toHaveBeenCalledTimes(1);
+        expect(underlying).toHaveBeenCalledTimes(
+          entryPoint.rootSkipsUnderlying ? 0 : 1,
+        );
       },
     );
   });
@@ -712,8 +753,10 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
       "checkCreatePermissions",
       "checkDeletePermissionByModel",
       "checkDeleteQueryPermission",
+      "checkTableWritePermission",
       "checkUpdatePermissionByModel",
       "checkUpdateQueryPermissions",
+      "getUpdatableQuery",
     ],
   },
   {
