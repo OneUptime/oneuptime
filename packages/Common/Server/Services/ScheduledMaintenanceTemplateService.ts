@@ -13,10 +13,10 @@ import MonitorStatusService from "./MonitorStatusService";
 import StatusPageService from "./StatusPageService";
 import Dictionary from "../../Types/Dictionary";
 import ProjectScopedReferenceValidator, {
+  getRelationAndIdColumnReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import {
@@ -412,18 +412,20 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * By both of the relation's names: the API takes the ID column and the
+   * relation alike, and the template's cards write the relation. A write
+   * may carry both; each is checked.
+   */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
-    return [
-      {
-        modelName: "Monitor Status",
-        id:
-          resolveReferenceId(data.changeMonitorStatusToId) ||
-          resolveReferenceId(data.changeMonitorStatusTo),
-        service: MonitorStatusService,
-      },
-    ];
+    return getRelationAndIdColumnReferences({
+      modelName: "Monitor Status",
+      service: MonitorStatusService,
+      idColumnValue: data.changeMonitorStatusToId,
+      relationValue: data.changeMonitorStatusTo,
+    });
   }
 
   private async getProjectIdsForUpdateQuery(

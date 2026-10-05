@@ -25189,5 +25189,6 @@
   "Removed. Telemetry is kept for the project's default retention from now on.": "Borttagen. Telemetri lagras från och med nu med projektets standardlagringstid.",
   "Retention Override": "Åsidosättning för lagring",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Vissa typer av telemetri lagras med en egen lagringstid, inte projektets standard. Ditt abonnemang omfattar inte lagring efter telemetrityp: du kan ta bort den, men för att ange den igen behöver du {{planName}}-abonnemanget.",
-  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Telemetri härifrån lagras med en egen lagringstid, inte projektets. Ditt abonnemang omfattar inte åsidosättningar för lagring: du kan ta bort den här, men för att ange en igen behöver du {{planName}}-abonnemanget."
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Telemetri härifrån lagras med en egen lagringstid, inte projektets. Ditt abonnemang omfattar inte åsidosättningar för lagring: du kan ta bort den här, men för att ange en igen behöver du {{planName}}-abonnemanget.",
+  "Monitors keep their status.": "Monitorer behåller sin status."
 }

@@ -25189,5 +25189,6 @@
   "Removed. Telemetry is kept for the project's default retention from now on.": "Удалено. Теперь телеметрия хранится по сроку хранения проекта по умолчанию.",
   "Retention Override": "Переопределение хранения",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "Некоторые типы телеметрии хранятся по собственному сроку хранения, а не по сроку проекта по умолчанию. Ваш тариф не включает хранение по типу телеметрии: вы можете удалить его, но чтобы задать его снова, нужен тариф {{planName}}.",
-  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Телеметрия отсюда хранится по собственному сроку хранения, а не по сроку проекта. Ваш тариф не включает переопределения хранения: вы можете удалить это, но чтобы задать его снова, нужен тариф {{planName}}."
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "Телеметрия отсюда хранится по собственному сроку хранения, а не по сроку проекта. Ваш тариф не включает переопределения хранения: вы можете удалить это, но чтобы задать его снова, нужен тариф {{planName}}.",
+  "Monitors keep their status.": "Мониторы сохраняют свой статус."
 }

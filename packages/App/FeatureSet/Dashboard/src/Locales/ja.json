@@ -25189,5 +25189,6 @@
   "Removed. Telemetry is kept for the project's default retention from now on.": "削除しました。今後、テレメトリはプロジェクトのデフォルトの保持期間で保持されます。",
   "Retention Override": "保持期間の上書き",
   "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "一部のテレメトリタイプは、プロジェクトのデフォルトではなく独自の保持期間で保持されています。ご利用のプランにはテレメトリタイプ別の保持期間が含まれていません。削除はできますが、再び設定するには {{planName}} プランが必要です。",
-  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "ここからのテレメトリは、プロジェクトのものではなく独自の保持期間で保持されています。ご利用のプランには保持期間の上書きが含まれていません。この上書きは削除できますが、再び設定するには {{planName}} プランが必要です。"
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "ここからのテレメトリは、プロジェクトのものではなく独自の保持期間で保持されています。ご利用のプランには保持期間の上書きが含まれていません。この上書きは削除できますが、再び設定するには {{planName}} プランが必要です。",
+  "Monitors keep their status.": "モニターのステータスは変わりません。"
 }
