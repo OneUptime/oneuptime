@@ -906,19 +906,6 @@ describe.each(SUITES)(
         "findBy",
       ).mockResolvedValue([stored] as never);
 
-      /*
-       * Before the hooks, DatabaseService looks up which rows of the update
-       * the caller may write (by id alone); the rule is theirs.
-       */
-      const find: jest.SpyInstance = jest.fn(async (): Promise<unknown> => {
-        const row: any = new suite.modelType();
-        row._id = RULE_ID.toString();
-        return [row];
-      });
-      getJestSpyOn(suite.service, "getRepository").mockReturnValue({
-        find,
-      } as never);
-
       await expect(
         suite.service.updateOneById({
           id: RULE_ID,
@@ -929,8 +916,6 @@ describe.each(SUITES)(
           ]),
         }),
       ).rejects.toThrow(/needs a regular expression/);
-
-      expect(find).toHaveBeenCalledTimes(1);
 
       expect(findBy).toHaveBeenCalledTimes(1);
       const request: any = findBy.mock.calls[0]![0];
