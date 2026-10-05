@@ -223,6 +223,37 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — IncomingRequest", () =
       }),
     ).toBe("{{monitorName}} on Prod API");
   });
+
+  /*
+   * The same holds for a list in the body that the template loops over: the
+   * loop's output used to be substituted into again, so an element's
+   * placeholder text came out as the monitor's name.
+   */
+  test("placeholder text in a body list the template loops over renders as written", () => {
+    const monitor: Monitor = new Monitor();
+    monitor.name = "Prod API";
+
+    const receivedAt: Date = new Date("2026-09-13T10:00:00.000Z");
+    const request: IncomingMonitorRequest = {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      requestHeaders: {},
+      requestBody: {
+        alerts: [{ summary: "{{monitorName}}" }, { summary: "disk full" }],
+      },
+      requestMethod: HTTPMethod.POST,
+      incomingRequestReceivedAt: receivedAt,
+      checkedAt: receivedAt,
+    };
+
+    expect(
+      MonitorTemplateUtil.processTemplateString({
+        value:
+          "{{#each requestBody.alerts}}{{summary}}; {{/each}}on {{monitorName}}",
+        storageMap: build(MonitorType.IncomingRequest, request, { monitor }),
+      }),
+    ).toBe("{{monitorName}}; disk full; on Prod API");
+  });
 });
 
 describe("MonitorTemplateUtil.buildTemplateStorageMap — Ping / IP / Port", () => {
