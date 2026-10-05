@@ -336,6 +336,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * whatever the caller's permissions are (the permission entry points ask
    * the same question), so no hook - several of which write on the caller's
    * behalf - should have run for it first.
+   *
+   * And for a create, update or delete, whether the caller may write this
+   * table at all in the project the request is made in: the first question
+   * the full permission check asks after the hooks, asked here as well, so a
+   * hook never acts - unsetting the project's default, making room in an
+   * order, deleting child rows - for someone the write is refused to.
    */
   private checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
@@ -350,6 +356,126 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     PublicPermission.checkIfUserIsLoggedIn(this.modelType, props, type);
+
+    if (
+      type === DatabaseRequestType.Create ||
+      type === DatabaseRequestType.Update ||
+      type === DatabaseRequestType.Delete
+    ) {
+      ModelPermission.checkTableWritePermission(this.modelType, props, type);
+    }
+  }
+
+  /*
+   * Before the hooks of an update or delete: the rows of it this caller may
+   * write. A service's onBeforeUpdate / onBeforeDelete reads the rows the
+   * write names to act on them - it unsets the other defaults of their
+   * project, closes the gap they leave in an order, deletes their child rows,
+   * carries them forward to the success hook - and it is handed the query the
+   * caller sent, before the permission check narrows it. So the query is
+   * narrowed here first, the same way that check narrows it, and the rows
+   * found are the only ones the hooks get to see:
+   *
+   *  - none: the write changes nothing, so it returns at once and no hook
+   *    runs (the same 0 it returned before, without anything done first);
+   *  - some: the query handed on is pinned to them by _id, and the window to
+   *    them, so a hook reading "the rows this write names" reads exactly
+   *    those. A query that already names its one row by _id is left as sent.
+   *
+   * The full check still runs after the hooks, on whatever they hand back.
+   * Root and master admin callers write any row, so nothing changes for
+   * them; nor with ignoreHooks, where no hook runs. Returns whether there is
+   * anything left to write.
+   */
+  private async keepRowsCallerMayWrite(
+    write: {
+      query: Query<TBaseModel>;
+      skip: PositiveNumber | number;
+      limit: PositiveNumber | number;
+      props: DatabaseCommonInteractionProps;
+    },
+    type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
+  ): Promise<boolean> {
+    if (
+      write.props.isRoot ||
+      write.props.isMasterAdmin ||
+      write.props.ignoreHooks
+    ) {
+      return true;
+    }
+
+    const query: Query<TBaseModel> = this.getRuleCriteriaEffectiveEnabledQuery(
+      write.query,
+    );
+
+    const writableQuery: Query<TBaseModel> =
+      type === DatabaseRequestType.Delete
+        ? await ModelPermission.checkDeleteQueryPermission(
+            this.modelType,
+            query,
+            write.props,
+          )
+        : await ModelPermission.getUpdatableQuery(
+            this.modelType,
+            query,
+            write.props,
+          );
+
+    const rows: Array<TBaseModel> = await this._findBy({
+      query: writableQuery,
+      select: { _id: true } as Select<TBaseModel>,
+      skip: this.normalizePositiveNumber(write.skip) ?? 0,
+      limit: this.normalizePositiveNumber(write.limit) ?? LIMIT_MAX,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    const rowIds: Array<string> = [];
+
+    for (const row of rows) {
+      if (row._id) {
+        rowIds.push(row._id.toString());
+      }
+    }
+
+    if (rowIds.length === 0) {
+      return false;
+    }
+
+    write.query = this.pinQueryToRows(write.query, rowIds);
+    write.skip = 0;
+    write.limit = rowIds.length;
+
+    return true;
+  }
+
+  /*
+   * The query, narrowed to these rows by _id. Kept as it is when it already
+   * names exactly the one row (a plain id, as updateOneById and deleteOneById
+   * send it), so hooks that read query._id as an id still can. Otherwise
+   * every other condition is kept and _id is set to the row, or the rows.
+   */
+  private pinQueryToRows(
+    query: Query<TBaseModel>,
+    rowIds: Array<string>,
+  ): Query<TBaseModel> {
+    const pinnedId: unknown =
+      rowIds.length === 1 ? rowIds[0]! : QueryHelper.any(rowIds);
+
+    if (Array.isArray(query)) {
+      return { _id: pinnedId } as Query<TBaseModel>;
+    }
+
+    const sentId: unknown = (query as Record<string, unknown>)["_id"];
+
+    if (
+      rowIds.length === 1 &&
+      (typeof sentId === "string" || sentId instanceof ObjectID) &&
+      sentId.toString().toLowerCase() === rowIds[0]!.toLowerCase()
+    ) {
+      return query;
+    }
+
+    return { ...query, _id: pinnedId } as Query<TBaseModel>;
   }
 
   protected async onBeforeCreate(
@@ -2933,6 +3059,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.checkCallerBeforeHooks(deleteBy.props, DatabaseRequestType.Delete);
 
+      // Only the rows the caller may delete reach the hook. See the helper.
+      if (
+        !(await this.keepRowsCallerMayWrite(
+          deleteBy,
+          DatabaseRequestType.Delete,
+        ))
+      ) {
+        return 0;
+      }
+
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
         ? { deleteBy, carryForward: [] }
         : await this.onBeforeDelete(deleteBy);
@@ -2999,6 +3135,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
         throw new BadDataException("Delete not allowed");
+      }
+
+      // Only the rows the caller may delete reach the hook. See the helper.
+      if (
+        !(await this.keepRowsCallerMayWrite(
+          deleteBy,
+          DatabaseRequestType.Delete,
+        ))
+      ) {
+        return 0;
       }
 
       const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
@@ -3633,6 +3779,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.enforceTenantRelationMatchesScalar(updateBy.data, updateBy.props);
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
+
+      // Only the rows the caller may update reach the hook. See the helper.
+      if (
+        !(await this.keepRowsCallerMayWrite(
+          updateBy,
+          DatabaseRequestType.Update,
+        ))
+      ) {
+        return 0;
+      }
 
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
