@@ -10,6 +10,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProjectScopedReferenceValidator, {
   HeldRelationIds,
   ProjectScopedReference,
+  ProjectScopedReferenceException,
   resolveReferenceId,
   resolveReferenceIds,
 } from "./ProjectScopedReferenceValidator";
@@ -51,6 +52,9 @@ export interface ProjectReferenceColumn {
   modelName: string;
   service: DatabaseService<DatabaseBaseModel>;
 }
+
+// A reference and the column it was written to.
+type ColumnReference = ProjectScopedReference & { column: string };
 
 // Relations the server stamps itself, never a reference the caller picks.
 const SERVER_STAMPED_ID_COLUMNS: Array<string> = [
@@ -223,10 +227,14 @@ export default class ProjectReferenceCheck {
    * the project, must not be locked against editing. An empty list or a
    * cleared relation only removes references and needs no check.
    *
-   * Hooks run before the tenant narrows the query, so what the matched
-   * records hold is read per project (getHeldRelationIds) and only the
-   * caller's project is used; a root or master admin update with no tenant
-   * is checked against each matched record's own project.
+   * With a tenant - the caller's own project, the common case - the ids are
+   * checked first, and only those that are not the project's are looked for
+   * among what the matched records hold: an update that names only the
+   * project's records reads nothing else. Hooks run before the tenant
+   * narrows the query, so what the matched records hold is read per project
+   * (getHeldRelationIds) and only the caller's project is used. A root or
+   * master admin update with no tenant is checked against each matched
+   * record's own project.
    */
   public static async validateUpdate<TModel extends DatabaseBaseModel>(data: {
     service: DatabaseService<TModel>;
@@ -243,68 +251,109 @@ export default class ProjectReferenceCheck {
     const payload: Dictionary<unknown> = (data.updateBy.data ||
       {}) as unknown as Dictionary<unknown>;
 
-    const written: Array<{
-      column: ProjectReferenceColumn;
-      ids: Array<string>;
-    }> = [];
+    const references: Array<ColumnReference> = [];
 
     for (const column of ProjectReferenceCheck.getCheckedColumns(
       model,
       data.relationsCheckedByService,
     )) {
-      const ids: Array<string> = ProjectReferenceCheck.getWrittenIds(
-        payload,
-        column,
-      );
-
-      if (ids.length > 0) {
-        written.push({ column: column, ids: ids });
+      for (const id of ProjectReferenceCheck.getWrittenIds(payload, column)) {
+        references.push({
+          modelName: column.modelName,
+          id: id,
+          service: column.service,
+          column: column.column,
+        });
       }
     }
 
-    if (written.length === 0) {
+    if (references.length === 0) {
       return;
     }
 
-    const heldIds: HeldRelationIds =
-      await ProjectScopedReferenceValidator.getHeldRelationIds({
+    const subject: string = ProjectReferenceCheck.getSubject(model);
+    const tenantId: ObjectID | undefined = data.updateBy.props.tenantId;
+
+    const readHeldIds: (
+      columns: Array<string>,
+    ) => Promise<HeldRelationIds> = (
+      columns: Array<string>,
+    ): Promise<HeldRelationIds> => {
+      return ProjectScopedReferenceValidator.getHeldRelationIds({
         service: data.service as unknown as DatabaseService<DatabaseBaseModel>,
         query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
-        columns: written.map(
-          (entry: { column: ProjectReferenceColumn }): string => {
-            return entry.column.column;
-          },
-        ),
+        columns: Array.from(new Set<string>(columns)),
       });
+    };
 
-    const projectIds: Array<string> = data.updateBy.props.tenantId
-      ? [data.updateBy.props.tenantId.toString()]
-      : Array.from(heldIds.keys());
+    const isHeld: (
+      held: Dictionary<Set<string>>,
+      reference: ColumnReference,
+    ) => boolean = (
+      held: Dictionary<Set<string>>,
+      reference: ColumnReference,
+    ): boolean => {
+      return Boolean(
+        held[reference.column]?.has(
+          normalizeId(reference.id?.toString() || ""),
+        ),
+      );
+    };
 
-    for (const projectId of projectIds) {
-      const held: Dictionary<Set<string>> =
-        heldIds.get(normalizeId(projectId)) || {};
+    if (tenantId) {
+      const unavailable: Array<ColumnReference> =
+        (await ProjectScopedReferenceValidator.getUnavailableReferences({
+          projectId: tenantId,
+          references: references,
+          subject: subject,
+        })) as Array<ColumnReference>;
 
-      const references: Array<ProjectScopedReference> = [];
-
-      for (const entry of written) {
-        for (const id of entry.ids) {
-          if (held[entry.column.column]?.has(normalizeId(id))) {
-            continue;
-          }
-
-          references.push({
-            modelName: entry.column.modelName,
-            id: id,
-            service: entry.column.service,
-          });
-        }
+      if (unavailable.length === 0) {
+        return;
       }
 
+      const heldIds: HeldRelationIds = await readHeldIds(
+        unavailable.map((reference: ColumnReference): string => {
+          return reference.column;
+        }),
+      );
+
+      const held: Dictionary<Set<string>> =
+        heldIds.get(normalizeId(tenantId.toString())) || {};
+
+      const refused: Array<ColumnReference> = unavailable.filter(
+        (reference: ColumnReference): boolean => {
+          return !isHeld(held, reference);
+        },
+      );
+
+      if (refused.length === 0) {
+        return;
+      }
+
+      throw new ProjectScopedReferenceException(
+        ProjectScopedReferenceValidator.getRefusalMessage({
+          subject: subject,
+          described: ProjectScopedReferenceValidator.describeReferences(refused),
+        }),
+      );
+    }
+
+    const heldIds: HeldRelationIds = await readHeldIds(
+      references.map((reference: ColumnReference): string => {
+        return reference.column;
+      }),
+    );
+
+    for (const [projectId, held] of heldIds) {
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: new ObjectID(projectId),
-        references: references,
-        subject: ProjectReferenceCheck.getSubject(model),
+        references: references.filter(
+          (reference: ColumnReference): boolean => {
+            return !isHeld(held, reference);
+          },
+        ),
+        subject: subject,
       });
     }
   }

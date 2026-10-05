@@ -13,6 +13,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import { JSONObject, ObjectType } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Regression test for a support report: a customer could not create an API
@@ -32,6 +33,10 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
  * The existing MonitorStepsProjectValidator tests import the validator first,
  * before anything that closes the cycle, and never name a user, which is why
  * they did not catch it.
+ *
+ * A user is checked by membership in the project (TeamMember rows, read
+ * through ProjectScopedReferenceValidator's own lookup), never through
+ * UserService; every other model through its service.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -254,6 +259,33 @@ type ServiceModule = {
   default?: LookupService | undefined;
 };
 
+type ReferenceValidatorModule = {
+  default: {
+    findProjectMemberIds: (data: {
+      projectId: ObjectID;
+      userIds: Array<string>;
+    }) => Promise<Set<string>>;
+  };
+};
+
+// The isolated module registry's own ProjectScopedReferenceValidator.
+const requireReferenceValidator: () => ReferenceValidatorModule["default"] =
+  (): ReferenceValidatorModule["default"] => {
+    return (
+      jest.requireActual(
+        "../../../../Server/Utils/Database/ProjectScopedReferenceValidator",
+      ) as ReferenceValidatorModule
+    ).default;
+  };
+
+// Every model but User, which is checked by membership.
+const MODELS_WITH_A_SERVICE_LOOKUP: Array<MonitorStepsReferenceModel> =
+  Object.values(MonitorStepsReferenceModel).filter(
+    (model: MonitorStepsReferenceModel): boolean => {
+      return model !== MonitorStepsReferenceModel.User;
+    },
+  );
+
 describe("MonitorStepsProjectValidator load order", () => {
   afterEach(() => {
     /*
@@ -282,6 +314,7 @@ describe("MonitorStepsProjectValidator load order", () => {
       new Map();
 
     let validator: ValidatorModule["default"] | null = null;
+    let referenceValidator: ReferenceValidatorModule["default"] | null = null;
 
     jest.isolateModules((): void => {
       for (const model of ALL_MODELS) {
@@ -298,7 +331,15 @@ describe("MonitorStepsProjectValidator load order", () => {
           "../../../../Server/Utils/Monitor/MonitorStepsProjectValidator",
         ) as ValidatorModule
       ).default;
+
+      referenceValidator = requireReferenceValidator();
     });
+
+    const memberLookup: SpyInstance = jest
+      .spyOn(referenceValidator!, "findProjectMemberIds")
+      .mockResolvedValue(
+        new Set<string>([ID_BY_MODEL[MonitorStepsReferenceModel.User]]),
+      );
 
     const lookups: Map<MonitorStepsReferenceModel, Array<unknown>> = new Map();
 
@@ -325,12 +366,16 @@ describe("MonitorStepsProjectValidator load order", () => {
       }),
     ).resolves.toBeUndefined();
 
-    for (const model of ALL_MODELS) {
+    for (const model of MODELS_WITH_A_SERVICE_LOOKUP) {
       expect({ model, lookups: lookups.get(model)!.length }).toEqual({
         model,
         lookups: 1,
       });
     }
+
+    // The owner user and the member are one membership lookup, never UserService's.
+    expect(lookups.get(MonitorStepsReferenceModel.User)).toEqual([]);
+    expect(memberLookup).toHaveBeenCalledTimes(1);
   });
 
   it("accepts incident owner users and members when loaded in the API server's import order", async () => {
@@ -345,6 +390,7 @@ describe("MonitorStepsProjectValidator load order", () => {
      * owner user, and a member role for that same user.
      */
     let validator: ValidatorModule["default"] | null = null;
+    let referenceValidator: ReferenceValidatorModule["default"] | null = null;
     const serviceByModel: Map<MonitorStepsReferenceModel, LookupService> =
       new Map();
 
@@ -356,6 +402,8 @@ describe("MonitorStepsProjectValidator load order", () => {
           "../../../../Server/Utils/Monitor/MonitorStepsProjectValidator",
         ) as ValidatorModule
       ).default;
+
+      referenceValidator = requireReferenceValidator();
 
       for (const model of ALL_MODELS) {
         serviceByModel.set(
@@ -376,6 +424,10 @@ describe("MonitorStepsProjectValidator load order", () => {
     }
 
     const userId: string = ID_BY_MODEL[MonitorStepsReferenceModel.User];
+
+    const memberLookup: SpyInstance = jest
+      .spyOn(referenceValidator!, "findProjectMemberIds")
+      .mockResolvedValue(new Set<string>([userId]));
 
     await expect(
       validator!.validateMonitorStepsBelongToProject({
@@ -462,9 +514,11 @@ describe("MonitorStepsProjectValidator load order", () => {
       }),
     ).resolves.toBeUndefined();
 
+    // The owner user and the member are one membership lookup.
+    expect(memberLookup).toHaveBeenCalledTimes(1);
     expect(
       serviceByModel.get(MonitorStepsReferenceModel.User)!.findBy,
-    ).toHaveBeenCalledTimes(1);
+    ).not.toHaveBeenCalled();
     expect(
       serviceByModel.get(MonitorStepsReferenceModel.IncidentRole)!.findBy,
     ).toHaveBeenCalledTimes(1);

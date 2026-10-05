@@ -112,12 +112,6 @@ interface RequestedReference {
   id: string;
 }
 
-// One reference as the message lists it: the lookup it went to, and its key.
-interface OrderedReference {
-  service: DatabaseService<DatabaseBaseModel>;
-  key: string;
-}
-
 /*
  * Ids are matched case-insensitively.
  *
@@ -131,6 +125,9 @@ interface OrderedReference {
 function normalizeId(id: string): string {
   return id.trim().toLowerCase();
 }
+
+// The users table: a person, who has no project of their own.
+const USER_TABLE_NAME: string = "User";
 
 /*
  * The plain lookup services, one per model, created on first use: a service
@@ -211,13 +208,42 @@ export default class ProjectScopedReferenceValidator {
     // Used in the error message, e.g. "incident" -> "This incident references…".
     subject?: string | undefined;
   }): Promise<void> {
+    const unavailable: Array<ProjectScopedReference> =
+      await ProjectScopedReferenceValidator.getUnavailableReferences(data);
+
+    if (unavailable.length === 0) {
+      return;
+    }
+
+    throw new ProjectScopedReferenceException(
+      ProjectScopedReferenceValidator.getRefusalMessage({
+        subject: data.subject,
+        described:
+          ProjectScopedReferenceValidator.describeReferences(unavailable),
+      }),
+    );
+  }
+
+  /*
+   * The references (each one given, in the order given) whose id is not the
+   * project's - another project's record, one that matches nothing, a user
+   * who is not a member - without throwing, for a caller that exempts some
+   * of them first (an update saving back ids its record already holds; see
+   * ProjectReferenceCheck). See the comment at the top of this file for what
+   * counts.
+   */
+  public static async getUnavailableReferences(data: {
+    projectId: ObjectID | undefined;
+    references: Array<ProjectScopedReference>;
+    subject?: string | undefined;
+  }): Promise<Array<ProjectScopedReference>> {
     if (!data.projectId) {
       /*
        * Root/internal writes do not always carry a project. Callers resolve the
        * project themselves where they can; when they cannot there is nothing to
        * compare against and the check is a no-op.
        */
-      return;
+      return [];
     }
 
     const projectId: ObjectID = data.projectId;
@@ -230,9 +256,6 @@ export default class ProjectScopedReferenceValidator {
       DatabaseService<DatabaseBaseModel>,
       Map<string, RequestedReference>
     > = new Map();
-
-    // Each reference once, in the order given, for the message.
-    const orderedReferences: Array<OrderedReference> = [];
 
     for (const reference of data.references) {
       const id: string = reference.id?.toString().trim() || "";
@@ -268,10 +291,6 @@ export default class ProjectScopedReferenceValidator {
 
       const existing: RequestedReference | undefined = requested.get(key);
 
-      if (!existing) {
-        orderedReferences.push({ service: reference.service, key: key });
-      }
-
       requested.set(key, {
         modelName: existing?.modelName || reference.modelName,
         id: existing?.id || id,
@@ -286,7 +305,7 @@ export default class ProjectScopedReferenceValidator {
     }
 
     if (idsByService.size === 0) {
-      return;
+      return [];
     }
 
     const unavailableByService: Map<
@@ -305,46 +324,64 @@ export default class ProjectScopedReferenceValidator {
       );
     }
 
-    /*
-     * Everything wrong is reported in one go, so a caller fixing a payload
-     * with several bad ids does not discover them one round-trip at a time.
-     * One clause covers them all: whether an id belongs to another project,
-     * matches nothing, or names someone who is not a member is not this
-     * project's business to say, so each is described by the field the
-     * caller filled in and the id they sent - never by what the id resolved
-     * to.
-     */
-    const described: Array<string> = [];
+    return data.references.filter(
+      (reference: ProjectScopedReference): boolean => {
+        const id: string = reference.id?.toString().trim() || "";
 
-    for (const reference of orderedReferences) {
-      if (!unavailableByService.get(reference.service)?.has(reference.key)) {
+        return Boolean(
+          id &&
+            unavailableByService.get(reference.service)?.has(normalizeId(id)),
+        );
+      },
+    );
+  }
+
+  /*
+   * How a refusal lists references: by the field the caller filled in and
+   * the id they sent - never by what the id resolved to - each id once per
+   * lookup, in the order given. Whether an id belongs to another project,
+   * matches nothing, or names someone who is not a member is not this
+   * project's business to say, so all of them read the same; and everything
+   * wrong is listed in one go, so a caller fixing a payload with several bad
+   * ids does not discover them one round-trip at a time.
+   */
+  public static describeReferences(
+    references: Array<ProjectScopedReference>,
+  ): Array<string> {
+    const described: Array<string> = [];
+    const seen: Map<DatabaseService<DatabaseBaseModel>, Set<string>> =
+      new Map();
+
+    for (const reference of references) {
+      const id: string = reference.id?.toString().trim() || "";
+
+      if (!id) {
         continue;
       }
 
-      const requested: RequestedReference = idsByService
-        .get(reference.service)!
-        .get(reference.key)!;
+      if (!seen.has(reference.service)) {
+        seen.set(reference.service, new Set<string>());
+      }
+
+      const seenForService: Set<string> = seen.get(reference.service)!;
+
+      if (seenForService.has(normalizeId(id))) {
+        continue;
+      }
+
+      seenForService.add(normalizeId(id));
 
       // Echo the id as the caller wrote it, not the normalized key.
-      described.push(`${requested.modelName} "${requested.id}"`);
+      described.push(`${reference.modelName} "${id}"`);
     }
 
-    if (described.length === 0) {
-      return;
-    }
-
-    throw new ProjectScopedReferenceException(
-      ProjectScopedReferenceValidator.getRefusalMessage({
-        subject: data.subject,
-        described: described,
-      }),
-    );
+    return described;
   }
 
   // The one refusal every reference check answers with.
   public static getRefusalMessage(data: {
     subject?: string | undefined;
-    // `Label "<id>"`, as validateReferencesBelongToProject describes each.
+    // `Label "<id>"`, as describeReferences describes each.
     described: Array<string>;
   }): string {
     return `This ${data.subject || "request"} references records that are not in this project: ${data.described.join(", ")}. Please pick values from this project and try again.`;
@@ -712,9 +749,16 @@ export default class ProjectScopedReferenceValidator {
     return lookupServices.get(type) as unknown as DatabaseService<TModel>;
   }
 
-  // Whether a referenced model is a person, checked by membership.
+  /*
+   * Whether a referenced model is a person, checked by membership. Known by
+   * its table as well as its class: a second copy of the model class (a
+   * module loaded twice) must not turn the membership check into none.
+   */
   public static isUserModel(model: DatabaseBaseModel): boolean {
-    return model instanceof User;
+    return (
+      model instanceof User ||
+      (Boolean(model.tableName) && model.tableName === USER_TABLE_NAME)
+    );
   }
 
   /*
