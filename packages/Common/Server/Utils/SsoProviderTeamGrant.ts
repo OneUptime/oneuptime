@@ -2,6 +2,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import Team from "../../Models/DatabaseModels/Team";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import TableColumnType from "../../Types/Database/TableColumnType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
@@ -35,7 +36,10 @@ import CaptureSpan from "./Telemetry/CaptureSpan";
  *                   leaves them alone. Every save is weighed, not only one
  *                   that changes the teams: the identity provider's address,
  *                   certificate or client decide who arrives in those teams
- *                   as surely as the teams decide what they arrive to.
+ *                   as surely as the teams decide what they arrive to. The
+ *                   one exception is switching a provider off with nothing
+ *                   else changed: it only stops people signing in, so anyone
+ *                   who may edit the provider may do it.
  *   SCIM            every team in the project, because its Groups endpoints
  *                   reach them all. Every project has its Owners team, which
  *                   holds Project Owner and cannot be changed, so that is
@@ -240,6 +244,18 @@ export default class SsoProviderTeamGrant {
       );
     }
 
+    const canGrantEveryTeam: boolean =
+      TeamPermissionService.canGrantEveryPermission(data.props);
+
+    /*
+     * A SCIM connection reaches every team, Owners among them, and only an
+     * owner may hand on Owners' Project Owner: anyone else is refused before
+     * any team is read (the model's own access control says the same).
+     */
+    if (data.kind === SsoProviderKind.Scim && !canGrantEveryTeam) {
+      throw new NotAuthorizedException(SCIM_SAVE_REFUSAL_MESSAGE);
+    }
+
     const providerTeams: Array<Team> =
       await SsoProviderTeamGrant.findProjectTeams({
         projectId: projectId,
@@ -247,17 +263,8 @@ export default class SsoProviderTeamGrant {
       });
 
     // A project owner may hand on any team: nothing more to read.
-    if (TeamPermissionService.canGrantEveryPermission(data.props)) {
+    if (canGrantEveryTeam) {
       return;
-    }
-
-    /*
-     * A SCIM connection reaches every team, Owners among them, and only an
-     * owner may hand on Owners' Project Owner: anyone else is refused
-     * without weighing team by team.
-     */
-    if (data.kind === SsoProviderKind.Scim) {
-      throw new NotAuthorizedException(SCIM_SAVE_REFUSAL_MESSAGE);
     }
 
     const refusedTeamIds: Array<ObjectID> =
@@ -336,11 +343,12 @@ export default class SsoProviderTeamGrant {
    * edit), then read again by id alone, so a filter in the query cannot hide
    * some of a row's teams. Each row's teams after the save are weighed - the
    * ones the update writes, or the ones the row has - once per project and
-   * set of teams. The write is then held to exactly the rows that were
-   * weighed.
+   * set of teams, unless the update only switches a SAML or OIDC provider
+   * off. The write is then held to exactly the rows that were checked.
    *
    * Root and master admins are weighed only when the update writes teams,
-   * and then only for the teams being the project's own.
+   * and then only for the teams being the project's own; their write is held
+   * to the checked rows too.
    */
   @CaptureSpan()
   public static async checkUpdate<TModel extends BaseModel>(data: {
@@ -391,21 +399,34 @@ export default class SsoProviderTeamGrant {
       });
 
     if (selectedIds.length > 0) {
+      const model: BaseModel = data.service.getModel();
+      const updateData: Record<string, unknown> =
+        updateBy.data as unknown as Record<string, unknown>;
+
+      // The row's project and teams, and what it holds in every written column.
+      const select: Record<string, unknown> = {
+        _id: true,
+        projectId: true,
+        teams: {
+          _id: true,
+        },
+      };
+
+      for (const column of Object.keys(updateData)) {
+        if (!model.isTableColumn(column) || select[column]) {
+          continue;
+        }
+
+        select[column] = SsoProviderTeamGrant.isRelationColumn(model, column)
+          ? { _id: true }
+          : true;
+      }
+
       const rows: Array<TModel> = await data.service.findAllBy({
         query: {
           _id: QueryHelper.any(selectedIds),
         } as Query<TModel>,
-        select: {
-          _id: true,
-          projectId: true,
-          ...(writesTeams
-            ? {}
-            : {
-                teams: {
-                  _id: true,
-                },
-              }),
-        } as unknown as Select<TModel>,
+        select: select as unknown as Select<TModel>,
         props: {
           isRoot: true,
         },
@@ -415,6 +436,25 @@ export default class SsoProviderTeamGrant {
 
       for (const row of rows) {
         const record: ProviderRecord = row as unknown as ProviderRecord;
+
+        /*
+         * Switching a provider off, with nothing else changed, only stops
+         * people signing in: anyone who may edit the provider may do it, so
+         * a provider can be stopped at once. Turning it back on is a save
+         * like any other.
+         */
+        if (
+          !isPrivileged &&
+          data.kind !== SsoProviderKind.Scim &&
+          SsoProviderTeamGrant.isOnlySwitchingOff({
+            model: model,
+            row: row,
+            updateData: updateData,
+          })
+        ) {
+          continue;
+        }
+
         const teams: unknown = writesTeams ? updatedTeams : record.teams || [];
         const key: string = [
           record.projectId?.toString().toLowerCase() || "",
@@ -440,14 +480,96 @@ export default class SsoProviderTeamGrant {
       }
     }
 
-    if (!isPrivileged) {
-      updateBy.query = {
-        ...updateBy.query,
-        _id: QueryHelper.any(selectedIds),
-      } as Query<TModel>;
-      updateBy.skip = 0;
-    }
+    // The write goes to exactly the rows that were checked, and no others.
+    updateBy.query = {
+      ...updateBy.query,
+      _id: QueryHelper.any(selectedIds),
+    } as Query<TModel>;
+    updateBy.skip = 0;
 
     return updateBy;
+  }
+
+  /*
+   * A column's value as text, to tell whether an update changes it: a URL
+   * or an id as what it reads, nothing as empty. Null for a value whose text
+   * does not say what it holds (a plain object), which never compares equal.
+   */
+  private static asText(value: unknown): string | null {
+    if (value === undefined || value === null) {
+      return "";
+    }
+
+    const text: string = String(value);
+
+    return text === "[object Object]" ? null : text;
+  }
+
+  private static isRelationColumn(model: BaseModel, column: string): boolean {
+    const type: TableColumnType | undefined =
+      model.getTableColumnMetadata(column)?.type;
+
+    return (
+      type === TableColumnType.EntityArray || type === TableColumnType.Entity
+    );
+  }
+
+  /*
+   * Whether an update only switches the provider off: it writes isEnabled
+   * false, and every other column it writes already holds what it writes.
+   * Anything that cannot be compared counts as a change.
+   */
+  private static isOnlySwitchingOff(data: {
+    model: BaseModel;
+    row: BaseModel;
+    updateData: Record<string, unknown>;
+  }): boolean {
+    if (data.updateData["isEnabled"] !== false) {
+      return false;
+    }
+
+    const stored: Record<string, unknown> = data.row as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const column of Object.keys(data.updateData)) {
+      if (column === "isEnabled") {
+        continue;
+      }
+
+      if (!data.model.isTableColumn(column)) {
+        return false;
+      }
+
+      const current: unknown = stored[column];
+      const updated: unknown = data.updateData[column];
+
+      if (SsoProviderTeamGrant.isRelationColumn(data.model, column)) {
+        if (
+          RelationValueUtil.haveSameRelationIds(
+            current ?? [],
+            updated ?? [],
+          ) !== true
+        ) {
+          return false;
+        }
+
+        continue;
+      }
+
+      const currentText: string | null = SsoProviderTeamGrant.asText(current);
+      const updatedText: string | null = SsoProviderTeamGrant.asText(updated);
+
+      if (
+        currentText === null ||
+        updatedText === null ||
+        currentText !== updatedText
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

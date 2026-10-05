@@ -56,8 +56,11 @@ import TeamPermissionService from "../../../Server/Services/TeamPermissionServic
 import TeamService from "../../../Server/Services/TeamService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import BillingPermissions from "../../../Server/Types/Database/Permissions/BillingPermission";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import SelectPermission from "../../../Server/Types/Database/Permissions/SelectPermission";
+import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Select from "../../../Server/Types/Database/Select";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -421,6 +424,8 @@ interface FakeProvider {
   id: ObjectID;
   projectId: ObjectID;
   teams: Array<FakeTeam>;
+  // What the provider holds in its other columns.
+  fields?: Record<string, unknown> | undefined;
 }
 
 let providers: Array<FakeProvider> = [];
@@ -456,6 +461,7 @@ function stubProviderReads(
         })
         .map((provider: FakeProvider): BaseModel => {
           const model: BaseModel = new modelType();
+          Object.assign(model, provider.fields || {});
           model.id = provider.id;
           (model as unknown as Record<string, unknown>)["projectId"] =
             provider.projectId;
@@ -663,11 +669,15 @@ async function create(
   )) as OnCreate<BaseModel>;
 }
 
-function storeProvider(teams: Array<FakeTeam>): FakeProvider {
+function storeProvider(
+  teams: Array<FakeTeam>,
+  fields?: Record<string, unknown> | undefined,
+): FakeProvider {
   const provider: FakeProvider = {
     id: PROVIDER_ID,
     projectId: PROJECT_ID,
     teams: teams,
+    fields: fields,
   };
   providers.push(provider);
   return provider;
@@ -1112,7 +1122,10 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
         _id: PROVIDER_ID.toString(),
         projectId: PROJECT_ID,
       });
-      // ...then each of them again, by id only, with its teams.
+      /*
+       * ...then each of them again, by id only, with its teams and what it
+       * holds in every column the update writes.
+       */
       expect(
         (reads[1]![0] as { query: Record<string, unknown> }).query,
       ).toEqual({
@@ -1120,7 +1133,12 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
       });
       expect(
         (reads[1]![0] as { select: Record<string, unknown> }).select,
-      ).toEqual({ _id: true, projectId: true, teams: { _id: true } });
+      ).toEqual({
+        _id: true,
+        projectId: true,
+        teams: { _id: true },
+        name: true,
+      });
     });
 
     test("holds the write to exactly the rows that were weighed", async () => {
@@ -1192,10 +1210,11 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
           propsFor(caller),
         );
 
-        // Not narrowed to the weighed rows: nothing about it was weighed.
+        // Held to the rows whose project was checked.
         expect(result.updateBy.query).toEqual({
-          _id: PROVIDER_ID.toString(),
+          _id: { anyOf: [PROVIDER_ID.toString().toLowerCase()] },
         });
+        expect(result.updateBy.skip).toBe(0);
         expect(database.updatePermissionChecks).not.toHaveBeenCalled();
         expect(database.permissionReads).not.toHaveBeenCalled();
 
@@ -1211,6 +1230,166 @@ describe.each([SAML, OIDC])("$label", (providerCase: ProviderCase) => {
         expect(error?.message).toBe(TEAMS_NOT_IN_PROJECT_MESSAGE);
       },
     );
+
+    test.each([
+      ["a master admin", MASTER_ADMIN],
+      ["root", ROOT],
+    ])(
+      "by %s that writes teams to many providers checks each one's own project, and writes only those",
+      async (_name: string, caller: Caller) => {
+        const second: ObjectID = new ObjectID(
+          "5e000000-0000-4000-8000-0000000002b1",
+        );
+
+        providers.push(
+          { id: PROVIDER_ID, projectId: PROJECT_ID, teams: [READERS] },
+          { id: second, projectId: PROJECT_ID, teams: [] },
+        );
+
+        const updateBy: UpdateBy<BaseModel> = {
+          query: {},
+          data: { teams: [toTeamModel(MEMBERS)] },
+          props: propsFor(caller),
+          skip: 5,
+          limit: 10,
+        } as unknown as UpdateBy<BaseModel>;
+
+        const result: OnUpdate<BaseModel> = (await callHook(
+          providerCase.service,
+          "onBeforeUpdate",
+          updateBy,
+        )) as OnUpdate<BaseModel>;
+
+        expect(result.updateBy.query).toEqual({
+          _id: {
+            anyOf: [
+              PROVIDER_ID.toString().toLowerCase(),
+              second.toString().toLowerCase(),
+            ],
+          },
+        });
+        // The rows were picked once, with the update's own window.
+        expect(result.updateBy.skip).toBe(0);
+
+        // A provider of another project among them: Members is not its team.
+        providers.push({
+          id: new ObjectID("5e000000-0000-4000-8000-0000000002b2"),
+          projectId: OTHER_PROJECT_ID,
+          teams: [],
+        });
+
+        const error: Error | null = await refusal(
+          callHook(providerCase.service, "onBeforeUpdate", {
+            query: {},
+            data: { teams: [toTeamModel(MEMBERS)] },
+            props: propsFor(caller),
+            skip: 0,
+            limit: 10,
+          }),
+        );
+
+        expect(error).toBeInstanceOf(BadDataException);
+        expect(error?.message).toBe(TEAMS_NOT_IN_PROJECT_MESSAGE);
+      },
+    );
+
+    test("that only switches the provider off is accepted from anyone allowed to edit it, and reads no team", async () => {
+      storeProvider([OWNERS], { name: "Okta", isEnabled: true });
+
+      const result: OnUpdate<BaseModel> = await update(
+        providerCase,
+        { isEnabled: false },
+        propsFor(ADMIN_CALLER),
+      );
+
+      expect(database.teamReads).not.toHaveBeenCalled();
+      expect(database.permissionReads).not.toHaveBeenCalled();
+      // Still held to the rows that were checked.
+      expect(result.updateBy.query).toEqual({
+        _id: { anyOf: [PROVIDER_ID.toString().toLowerCase()] },
+        projectId: PROJECT_ID,
+      });
+    });
+
+    test("that switches it off from the edit form, which sends every field, is accepted when nothing else changed", async () => {
+      const stored: Record<string, unknown> = {
+        name: "Okta",
+        description: "Sign in with Okta",
+        issuerURL: "https://idp.example.com/sso",
+        isEnabled: true,
+      };
+
+      storeProvider([OWNERS, MEMBERS], stored);
+
+      await expect(
+        update(
+          providerCase,
+          {
+            ...stored,
+            _id: PROVIDER_ID.toString(),
+            // The form holds the teams in its own order, as plain ids.
+            teams: [
+              { _id: MEMBERS.id.toString() },
+              { _id: OWNERS.id.toString().toUpperCase() },
+            ],
+            isEnabled: false,
+          },
+          propsFor(ADMIN_CALLER),
+        ),
+      ).resolves.toBeDefined();
+      expect(database.permissionReads).not.toHaveBeenCalled();
+    });
+
+    test("that switches it off and changes anything else, or switches it on, is weighed as usual", async () => {
+      storeProvider([OWNERS], {
+        name: "Okta",
+        description: "Sign in with Okta",
+        isEnabled: true,
+      });
+
+      for (const data of [
+        { isEnabled: false, name: "Renamed" },
+        { isEnabled: false, issuerURL: "https://idp.example.com/elsewhere" },
+        { isEnabled: false, teams: [toTeamModel(OWNERS), toTeamModel(ADMIN)] },
+        // A value that cannot be compared counts as a change.
+        { isEnabled: false, description: { text: "Sign in with Okta" } },
+        { isEnabled: true },
+      ]) {
+        const error: Error | null = await refusal(
+          update(providerCase, data, propsFor(ADMIN_CALLER)),
+        );
+
+        expect({
+          data,
+          refused: error instanceof NotAuthorizedException,
+        }).toEqual({
+          data,
+          refused: true,
+        });
+        expect(error?.message).toContain("Owners");
+      }
+    });
+
+    test("that switches it off while writing a value that cannot be read as text is weighed as usual", async () => {
+      // Two different values whose text says nothing of what they hold.
+      storeProvider([OWNERS], {
+        description: { lines: ["Sign in with Okta"] },
+        isEnabled: true,
+      });
+
+      const error: Error | null = await refusal(
+        update(
+          providerCase,
+          {
+            isEnabled: false,
+            description: { lines: ["Sign in somewhere else"] },
+          },
+          propsFor(ADMIN_CALLER),
+        ),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+    });
 
     test("of many providers weighs each project and set of teams once", async () => {
       providers.push(
@@ -1348,12 +1527,24 @@ describe(SCIM.label, () => {
     );
   });
 
-  test("someone who is not a project owner is refused without reading a single team's permissions", async () => {
+  test("someone who is not a project owner is refused before a single team is read", async () => {
     await refusal(create(SCIM, [ADMIN], propsFor(ADMIN_IN_MEMBERS)));
 
-    // The default teams are still checked to be the project's own.
-    expect(database.teamReads).toHaveBeenCalledTimes(1);
+    expect(database.teamReads).not.toHaveBeenCalled();
     expect(database.permissionReads).not.toHaveBeenCalled();
+  });
+
+  test("someone who is not a project owner is told who can save it, whatever teams they name", async () => {
+    for (const teams of [[OTHER_PROJECTS_TEAM], [OWNERS], []]) {
+      const error: Error | null = await refusal(
+        create(SCIM, teams, propsFor(ADMIN_CALLER)),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error?.message).toBe(SCIM_SAVE_REFUSAL_MESSAGE);
+    }
+
+    expect(database.teamReads).not.toHaveBeenCalled();
   });
 
   test("a project owner may create one, with or without default teams", async () => {
@@ -1403,6 +1594,8 @@ describe(SCIM.label, () => {
     ["turning on push groups", { enablePushGroups: true }],
     ["resetting its bearer token", { bearerToken: "a".repeat(64) }],
     ["changing its default teams", { teams: [{ _id: ADMIN.id.toString() }] }],
+    // A SAML or OIDC provider may be switched off by any editor; not this.
+    ["sending an off switch", { isEnabled: false }],
   ])(
     "%s is a save like any other",
     async (_name: string, data: Record<string, unknown>) => {
@@ -1500,6 +1693,150 @@ describe("a SCIM connection's bearer token", () => {
         grantable: [],
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * The model says the same as the hook: creating or changing a SCIM
+ * connection is a project owner's to do, so every gate that reads the
+ * model's access control (the API's own table check, the Dashboard's
+ * buttons) agrees with the save.
+ */
+describe("who may create or change a SCIM connection", () => {
+  test("the model lets a project owner create and change one; reading and deleting are as they were", () => {
+    const connection: ProjectSCIM = new ProjectSCIM();
+
+    expect(connection.createRecordPermissions).toEqual([
+      Permission.ProjectOwner,
+    ]);
+    expect(connection.updateRecordPermissions).toEqual([
+      Permission.ProjectOwner,
+    ]);
+    expect(connection.readRecordPermissions).toEqual(
+      expect.arrayContaining([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ReadProjectSSO,
+        Permission.Viewer,
+      ]),
+    );
+    expect(connection.deleteRecordPermissions).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.DeleteProjectSSO,
+    ]);
+  });
+
+  test.each(
+    CALLERS.filter((caller: Caller): boolean => {
+      return !caller.isRoot && !caller.isMasterAdmin;
+    }).map((caller: Caller): [string, Caller] => {
+      return [caller.name, caller];
+    }),
+  )("the update's table check, for %s", (_name: string, caller: Caller) => {
+    const holdsProjectOwner: boolean = (caller.rows || []).some(
+      (row: UserPermission): boolean => {
+        return (
+          row.permission === Permission.ProjectOwner && !row.isBlockPermission
+        );
+      },
+    );
+
+    // The plan is not what is asked here.
+    getJestSpyOn(
+      BillingPermissions,
+      "checkBillingPermissions",
+    ).mockImplementation((): void => {
+      return undefined;
+    });
+
+    let error: unknown = null;
+
+    try {
+      TablePermission.checkTableLevelPermissions(
+        ProjectSCIM,
+        propsFor(caller),
+        DatabaseRequestType.Update,
+      );
+    } catch (err) {
+      error = err;
+    }
+
+    if (holdsProjectOwner) {
+      // A blocked owner passes here; the hook refuses them (above).
+      expect(error).toBeNull();
+      return;
+    }
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("a blocked project owner, whom the table check lets through, is refused by the save", async () => {
+    storeProvider([READERS]);
+
+    const error: Error | null = await refusal(
+      update(
+        SCIM,
+        { name: "Renamed" },
+        propsFor(
+          callerNamed(
+            "a project owner blocked from Project Owner, who is also an admin and a member",
+          ),
+        ),
+      ),
+    );
+
+    expect(error?.message).toBe(SCIM_SAVE_REFUSAL_MESSAGE);
+  });
+});
+
+/*
+ * An invitation meets the same ceiling, over the same rows. A project owner
+ * may hand on every team, so nothing is read for one.
+ */
+describe("TeamPermissionService.assertCanGrantTeamPermissions", () => {
+  test("reads nothing for a project owner", async () => {
+    await expect(
+      TeamPermissionService.assertCanGrantTeamPermissions({
+        teamId: OWNERS.id,
+        projectId: PROJECT_ID,
+        props: propsFor(OWNER),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(database.permissionReads).not.toHaveBeenCalled();
+  });
+
+  test("weighs every row of the team for anyone else", async () => {
+    await expect(
+      TeamPermissionService.assertCanGrantTeamPermissions({
+        teamId: OWNERS.id,
+        projectId: PROJECT_ID,
+        props: propsFor(ADMIN_CALLER),
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    await expect(
+      TeamPermissionService.assertCanGrantTeamPermissions({
+        teamId: ADMIN.id,
+        projectId: PROJECT_ID,
+        props: propsFor(ADMIN_CALLER),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(database.permissionReads).toHaveBeenCalledTimes(2);
+  });
+
+  test("a project owner of another project is refused before anything is read", async () => {
+    await expect(
+      TeamPermissionService.assertCanGrantTeamPermissions({
+        teamId: OWNERS.id,
+        projectId: PROJECT_ID,
+        props: propsFor(OWNER, OTHER_PROJECT_ID),
+      }),
+    ).rejects.toThrow();
+
+    expect(database.permissionReads).not.toHaveBeenCalled();
   });
 });
 

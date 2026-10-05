@@ -10,6 +10,7 @@ import GrantablePermission, {
   TeamPermissionGrant,
 } from "Common/UI/Utils/GrantablePermission";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import User from "Common/UI/Utils/User";
 
 /*
  * WHICH TEAMS THE PERSON FILLING IN A PROVIDER FORM COULD PUT ON IT.
@@ -114,58 +115,67 @@ export const getFormTeamIds: (value: unknown) => Array<string> = (
   return ids;
 };
 
-type BuildSsoTeamGrantsFunction = (data: {
+// What is read for a project: its teams and their permission rows.
+export interface SsoTeamData {
   // Every team in the project, oldest first.
   teams: Array<{ id: string; name: string }>;
   // Every permission row of those teams, allows and blocks.
   permissionRows: Array<SsoTeamPermissionRow>;
-  canGrantTeam: CanGrantTeamFunction;
-}) => Array<SsoTeamGrant>;
+}
 
-export const buildSsoTeamGrants: BuildSsoTeamGrantsFunction = (data: {
-  teams: Array<{ id: string; name: string }>;
-  permissionRows: Array<SsoTeamPermissionRow>;
-  canGrantTeam: CanGrantTeamFunction;
-}): Array<SsoTeamGrant> => {
+type BuildSsoTeamGrantsFunction = (
+  data: SsoTeamData & {
+    canGrantTeam: CanGrantTeamFunction;
+  },
+) => Array<SsoTeamGrant>;
+
+export const buildSsoTeamGrants: BuildSsoTeamGrantsFunction = (
+  data: SsoTeamData & {
+    canGrantTeam: CanGrantTeamFunction;
+  },
+): Array<SsoTeamGrant> => {
+  // Every team's rows, gathered in one pass.
+  const grantsByTeam: Map<string, Array<TeamPermissionGrant>> = new Map<
+    string,
+    Array<TeamPermissionGrant>
+  >();
+
+  for (const row of data.permissionRows) {
+    const teamId: string = row.teamId.toLowerCase();
+    const grants: Array<TeamPermissionGrant> = grantsByTeam.get(teamId) || [];
+
+    grants.push({
+      permission: row.permission,
+      scope: row.scope,
+      labelIds: row.labelIds,
+    });
+    grantsByTeam.set(teamId, grants);
+  }
+
   return data.teams.map((team: { id: string; name: string }): SsoTeamGrant => {
     const teamId: string = team.id.toLowerCase();
-
-    const grants: Array<TeamPermissionGrant> = data.permissionRows
-      .filter((row: SsoTeamPermissionRow): boolean => {
-        return row.teamId.toLowerCase() === teamId;
-      })
-      .map((row: SsoTeamPermissionRow): TeamPermissionGrant => {
-        return {
-          permission: row.permission,
-          scope: row.scope,
-          labelIds: row.labelIds,
-        };
-      });
 
     return {
       id: teamId,
       name: team.name,
-      canGrant: data.canGrantTeam(grants),
+      canGrant: data.canGrantTeam(grantsByTeam.get(teamId) || []),
     };
   });
 };
 
-type FetchSsoTeamGrantsFunction = (data: {
+type FetchSsoTeamDataFunction = (data: {
   projectId: ObjectID;
   modelAPI?: typeof ModelAPI | undefined;
-  // Defaults to the signed-in user's own permissions.
-  canGrantTeam?: CanGrantTeamFunction | undefined;
-}) => Promise<Array<SsoTeamGrant>>;
+}) => Promise<SsoTeamData>;
 
 /*
  * The project's teams and their permission rows, both small lists, read in
  * parallel. Throws when either cannot be read.
  */
-export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
+export const fetchSsoTeamData: FetchSsoTeamDataFunction = async (data: {
   projectId: ObjectID;
   modelAPI?: typeof ModelAPI | undefined;
-  canGrantTeam?: CanGrantTeamFunction | undefined;
-}): Promise<Array<SsoTeamGrant>> => {
+}): Promise<SsoTeamData> => {
   const modelAPI: typeof ModelAPI = data.modelAPI || ModelAPI;
 
   const [teams, permissions]: [ListResult<Team>, ListResult<TeamPermission>] =
@@ -193,11 +203,11 @@ export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
+        // Allows and blocks alike: both are handed on with the team.
         select: {
           _id: true,
           teamId: true,
           permission: true,
-          isBlockPermission: true,
           scope: true,
           labels: {
             _id: true,
@@ -207,7 +217,7 @@ export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
       }),
     ]);
 
-  return buildSsoTeamGrants({
+  return {
     teams: teams.data
       .filter((team: Team): boolean => {
         return Boolean(team.id);
@@ -241,7 +251,21 @@ export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
             }),
         };
       }),
-    canGrantTeam: data.canGrantTeam || canSignedInUserGrantTeam,
+  };
+};
+
+/*
+ * What a project's teams mean for the signed-in user, with the permissions
+ * they hold at this moment. Worked out each time it is asked, so the answer
+ * follows their permissions even when the rows were read before those had
+ * loaded.
+ */
+export const getSignedInUserTeamGrants: (
+  teamData: SsoTeamData,
+) => Array<SsoTeamGrant> = (teamData: SsoTeamData): Array<SsoTeamGrant> => {
+  return buildSsoTeamGrants({
+    ...teamData,
+    canGrantTeam: canSignedInUserGrantTeam,
   });
 };
 
@@ -252,54 +276,69 @@ export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
  */
 export const SSO_TEAM_GRANTS_CACHE_TTL_MS: number = 30000;
 
-interface CachedSsoTeamGrants {
+interface CachedSsoTeamData {
   readAt: number;
-  grants: Promise<Array<SsoTeamGrant>>;
+  teamData: Promise<SsoTeamData>;
 }
 
-const cachedGrantsByProject: Map<string, CachedSsoTeamGrants> = new Map<
+const cachedTeamData: Map<string, CachedSsoTeamData> = new Map<
   string,
-  CachedSsoTeamGrants
+  CachedSsoTeamData
 >();
 
-/*
- * fetchSsoTeamGrants for the signed-in user, read once per project for
- * SSO_TEAM_GRANTS_CACHE_TTL_MS. A read that fails is not kept.
- */
-export const fetchSsoTeamGrantsOnce: (data: {
-  projectId: ObjectID;
-  now?: (() => number) | undefined;
-}) => Promise<Array<SsoTeamGrant>> = (data: {
-  projectId: ObjectID;
-  now?: (() => number) | undefined;
-}): Promise<Array<SsoTeamGrant>> => {
-  const now: number = (data.now || Date.now)();
-  const key: string = data.projectId.toString().toLowerCase();
-  const cached: CachedSsoTeamGrants | undefined =
-    cachedGrantsByProject.get(key);
+type GetCacheKeyFunction = (projectId: ObjectID) => string;
 
-  if (cached && now - cached.readAt < SSO_TEAM_GRANTS_CACHE_TTL_MS) {
-    return cached.grants;
+// One entry per signed-in user and project: what someone may read is theirs.
+const getCacheKey: GetCacheKeyFunction = (projectId: ObjectID): string => {
+  let userId: string = "";
+
+  try {
+    userId = User.getUserId()?.toString() || "";
+  } catch {
+    userId = "";
   }
 
-  const grants: Promise<Array<SsoTeamGrant>> = fetchSsoTeamGrants({
+  return `${userId}|${projectId.toString()}`.toLowerCase();
+};
+
+/*
+ * fetchSsoTeamData, read once per signed-in user and project for
+ * SSO_TEAM_GRANTS_CACHE_TTL_MS. A read that fails is not kept. What the rows
+ * mean for the person is getSignedInUserTeamGrants's to say, when asked.
+ */
+export const fetchSsoTeamDataOnce: (data: {
+  projectId: ObjectID;
+  now?: (() => number) | undefined;
+}) => Promise<SsoTeamData> = (data: {
+  projectId: ObjectID;
+  now?: (() => number) | undefined;
+}): Promise<SsoTeamData> => {
+  const now: number = (data.now || Date.now)();
+  const key: string = getCacheKey(data.projectId);
+  const cached: CachedSsoTeamData | undefined = cachedTeamData.get(key);
+
+  if (cached && now - cached.readAt < SSO_TEAM_GRANTS_CACHE_TTL_MS) {
+    return cached.teamData;
+  }
+
+  const teamData: Promise<SsoTeamData> = fetchSsoTeamData({
     projectId: data.projectId,
   });
 
-  cachedGrantsByProject.set(key, { readAt: now, grants: grants });
+  cachedTeamData.set(key, { readAt: now, teamData: teamData });
 
-  grants.catch(() => {
-    if (cachedGrantsByProject.get(key)?.grants === grants) {
-      cachedGrantsByProject.delete(key);
+  teamData.catch(() => {
+    if (cachedTeamData.get(key)?.teamData === teamData) {
+      cachedTeamData.delete(key);
     }
   });
 
-  return grants;
+  return teamData;
 };
 
-// Forgets every project's grants (the tests start each case afresh).
+// Forgets everything read (the tests start each case afresh).
 export const clearSsoTeamGrantsCache: () => void = (): void => {
-  cachedGrantsByProject.clear();
+  cachedTeamData.clear();
 };
 
 /**

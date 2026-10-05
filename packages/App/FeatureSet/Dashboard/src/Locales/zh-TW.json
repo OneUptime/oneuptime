@@ -24896,5 +24896,5 @@
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "您無法透過此提供者將使用者加入 {{teams}}：這會授予超出您自身權限的存取權限。請選擇您可以邀請他人加入的團隊，或請專案擁有者儲存此提供者。",
   "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "您無法透過此提供者將使用者加入 {{teams}}：這會授予超出您自身權限的存取權限。請選擇您可以邀請他人加入的團隊，或請專案擁有者儲存此提供者。",
   "Only a project owner can add or change SCIM connections.": "只有專案擁有者可以新增或變更 SCIM 連線。",
-  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team. You can still see the connections and delete them.": "透過 SCIM，您的身分識別提供者可以將使用者加入此專案中的任何團隊，因此新增連線、變更連線或檢視、重設其 Bearer Token 都需要涵蓋所有團隊的存取權限。您仍然可以檢視和刪除連線。"
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one, or seeing or resetting its bearer token takes access that covers every team.": "透過 SCIM，您的身分識別提供者可以將使用者加入此專案中的任何團隊，因此新增連線、變更連線或檢視、重設其 Bearer Token 都需要涵蓋所有團隊的存取權限。"
 }

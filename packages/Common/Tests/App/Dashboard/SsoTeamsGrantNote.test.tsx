@@ -47,6 +47,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 
 let isMasterAdminForTest: boolean = false;
 let projectPermissionsForTest: unknown = null;
+let userIdForTest: string = "5f000000-0000-4000-8000-0000000000c1";
 
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
@@ -76,8 +77,8 @@ jest.mock("../../../UI/Utils/User", () => {
       isMasterAdmin: (): boolean => {
         return isMasterAdminForTest;
       },
-      getUserId: (): null => {
-        return null;
+      getUserId: (): string => {
+        return userIdForTest;
       },
     },
   };
@@ -156,13 +157,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import {
   SSO_TEAM_GRANTS_CACHE_TTL_MS,
+  SsoTeamData,
   SsoTeamGrant,
   buildSsoTeamGrants,
   canSignedInUserGrantTeam,
   clearSsoTeamGrantsCache,
-  fetchSsoTeamGrants,
-  fetchSsoTeamGrantsOnce,
+  fetchSsoTeamData,
+  fetchSsoTeamDataOnce,
   getFormTeamIds,
+  getSignedInUserTeamGrants,
   getTeamsBeyondGrant,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Sso/SsoTeamGrants";
 import SsoTeamsGrantNote, {
@@ -337,6 +340,7 @@ function idOf(team: FixtureTeam): string {
 beforeEach(() => {
   isMasterAdminForTest = false;
   projectPermissionsForTest = null;
+  userIdForTest = "5f000000-0000-4000-8000-0000000000c1";
   mockServer.lists = [];
   mockServer.failLists = false;
   mockServer.record = {};
@@ -455,10 +459,12 @@ describe("which teams the person could hand on", () => {
   test("reads the project's teams, oldest first, and every row with its scope and labels", async () => {
     signIn(CALLERS[1]!);
 
-    const grants: Array<SsoTeamGrant> = await fetchSsoTeamGrants({
-      projectId: PROJECT_ID,
-      modelAPI: ModelAPI,
-    });
+    const grants: Array<SsoTeamGrant> = getSignedInUserTeamGrants(
+      await fetchSsoTeamData({
+        projectId: PROJECT_ID,
+        modelAPI: ModelAPI,
+      }),
+    );
 
     expect(
       grants.map((grant: SsoTeamGrant): [string, boolean] => {
@@ -491,7 +497,6 @@ describe("which teams the person could hand on", () => {
       _id: true,
       teamId: true,
       permission: true,
-      isBlockPermission: true,
       scope: true,
       labels: { _id: true },
     });
@@ -504,26 +509,28 @@ describe("which teams the person could hand on", () => {
     unreadable.teamId = READERS.id;
     unreadable.projectId = PROJECT_ID;
 
-    const grants: Array<SsoTeamGrant> = await fetchSsoTeamGrants({
-      projectId: PROJECT_ID,
-      modelAPI: {
-        getList: async (data: {
-          modelType: unknown;
-        }): Promise<{
-          data: Array<unknown>;
-          count: number;
-          skip: number;
-          limit: number;
-        }> => {
-          const rows: Array<unknown> =
-            data.modelType === TeamPermission
-              ? [unreadable]
-              : listFor(data.modelType);
+    const grants: Array<SsoTeamGrant> = getSignedInUserTeamGrants(
+      await fetchSsoTeamData({
+        projectId: PROJECT_ID,
+        modelAPI: {
+          getList: async (data: {
+            modelType: unknown;
+          }): Promise<{
+            data: Array<unknown>;
+            count: number;
+            skip: number;
+            limit: number;
+          }> => {
+            const rows: Array<unknown> =
+              data.modelType === TeamPermission
+                ? [unreadable]
+                : listFor(data.modelType);
 
-          return { data: rows, count: rows.length, skip: 0, limit: 10000 };
-        },
-      } as unknown as typeof ModelAPI,
-    });
+            return { data: rows, count: rows.length, skip: 0, limit: 10000 };
+          },
+        } as unknown as typeof ModelAPI,
+      }),
+    );
 
     expect(
       grants.find((grant: SsoTeamGrant): boolean => {
@@ -549,12 +556,12 @@ describe("which teams the person could hand on", () => {
       return now;
     };
 
-    const first: Array<SsoTeamGrant> = await fetchSsoTeamGrantsOnce({
+    const first: SsoTeamData = await fetchSsoTeamDataOnce({
       projectId: PROJECT_ID,
       now: clock,
     });
     now += SSO_TEAM_GRANTS_CACHE_TTL_MS - 1;
-    const again: Array<SsoTeamGrant> = await fetchSsoTeamGrantsOnce({
+    const again: SsoTeamData = await fetchSsoTeamDataOnce({
       projectId: PROJECT_ID,
       now: clock,
     });
@@ -564,9 +571,48 @@ describe("which teams the person could hand on", () => {
     expect(again).toBe(first);
 
     now += 1;
-    await fetchSsoTeamGrantsOnce({ projectId: PROJECT_ID, now: clock });
+    await fetchSsoTeamDataOnce({ projectId: PROJECT_ID, now: clock });
 
     expect(mockServer.lists).toHaveLength(4);
+  });
+
+  test("what one person read is never handed to someone else who signs in", async () => {
+    signIn(CALLERS[0]!);
+
+    await fetchSsoTeamDataOnce({ projectId: PROJECT_ID });
+
+    expect(mockServer.lists).toHaveLength(2);
+
+    userIdForTest = "5f000000-0000-4000-8000-0000000000c2";
+    signIn(CALLERS[1]!);
+
+    await fetchSsoTeamDataOnce({ projectId: PROJECT_ID });
+
+    // Read afresh, as the person now signed in.
+    expect(mockServer.lists).toHaveLength(4);
+  });
+
+  test("the rows are weighed with the permissions held when asked, not when they were read", async () => {
+    // Read before this person's permissions have loaded.
+    const teamData: SsoTeamData = await fetchSsoTeamDataOnce({
+      projectId: PROJECT_ID,
+    });
+
+    const canGrantAdmin: () => boolean | undefined = ():
+      | boolean
+      | undefined => {
+      return getSignedInUserTeamGrants(teamData).find(
+        (grant: SsoTeamGrant): boolean => {
+          return grant.name === ADMIN.name;
+        },
+      )?.canGrant;
+    };
+
+    expect(canGrantAdmin()).toBe(false);
+
+    signIn(CALLERS[1]!);
+
+    expect(canGrantAdmin()).toBe(true);
   });
 
   test("a read that fails is not kept", async () => {
@@ -574,24 +620,26 @@ describe("which teams the person could hand on", () => {
     mockServer.failLists = true;
 
     await expect(
-      fetchSsoTeamGrantsOnce({ projectId: PROJECT_ID }),
+      fetchSsoTeamDataOnce({ projectId: PROJECT_ID }),
     ).rejects.toThrow();
 
     mockServer.failLists = false;
 
-    const grants: Array<SsoTeamGrant> = await fetchSsoTeamGrantsOnce({
+    const teamData: SsoTeamData = await fetchSsoTeamDataOnce({
       projectId: PROJECT_ID,
     });
 
-    expect(grants).toHaveLength(PROJECT_TEAMS.length);
+    expect(teamData.teams).toHaveLength(PROJECT_TEAMS.length);
   });
 
   test("a master admin may hand on every team, as on the server", async () => {
     isMasterAdminForTest = true;
 
-    const grants: Array<SsoTeamGrant> = await fetchSsoTeamGrants({
-      projectId: PROJECT_ID,
-    });
+    const grants: Array<SsoTeamGrant> = getSignedInUserTeamGrants(
+      await fetchSsoTeamData({
+        projectId: PROJECT_ID,
+      }),
+    );
 
     expect(
       grants.every((grant: SsoTeamGrant): boolean => {
@@ -639,8 +687,8 @@ describe("side by side with the server", () => {
     async (caller: Caller) => {
       signIn(caller);
 
-      const dashboard: Array<SsoTeamGrant> = await fetchSsoTeamGrants({
-        projectId: PROJECT_ID,
+      const dashboard: Array<SsoTeamGrant> = buildSsoTeamGrants({
+        ...(await fetchSsoTeamData({ projectId: PROJECT_ID })),
         canGrantTeam: canSignedInUserGrantTeam,
       });
 
@@ -761,6 +809,27 @@ describe("the note under Teams", () => {
     expect(
       screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
     ).not.toBeInTheDocument();
+  });
+
+  test("follows the person's permissions once they have loaded", async () => {
+    // Drawn before this person's permissions have loaded.
+    const { rerender } = await renderNote([idOf(ADMIN)]);
+
+    expect(
+      await screen.findByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).toHaveTextContent("Admin");
+
+    signIn(CALLERS[1]!);
+
+    await act(async (): Promise<void> => {
+      rerender([idOf(ADMIN)]);
+    });
+
+    expect(
+      screen.queryByTestId(SSO_TEAMS_GRANT_NOTE_TEST_ID),
+    ).not.toBeInTheDocument();
+    // Nothing read again for it.
+    expect(mockServer.lists).toHaveLength(2);
   });
 
   test("a project owner is never warned", async () => {

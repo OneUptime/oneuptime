@@ -15,8 +15,9 @@ import React, {
   useState,
 } from "react";
 import {
-  SsoTeamGrant,
-  fetchSsoTeamGrantsOnce,
+  SsoTeamData,
+  fetchSsoTeamDataOnce,
+  getSignedInUserTeamGrants,
   getTeamsBeyondGrant,
 } from "./SsoTeamGrants";
 
@@ -25,7 +26,8 @@ import {
  * would refuse to save, named, the moment they are picked (see
  * SsoTeamGrants). Says nothing while every picked team is one the person
  * could invite someone to, while the teams are still being read, or when
- * they cannot be read.
+ * they cannot be read. The teams are weighed against the person's
+ * permissions as they are when the note is drawn.
  */
 
 export const SSO_TEAMS_GRANT_NOTE_TEST_ID: string = "sso-teams-grant-note";
@@ -39,7 +41,7 @@ const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [grants, setGrants] = useState<Array<SsoTeamGrant> | null>(null);
+  const [teamData, setTeamData] = useState<SsoTeamData | null>(null);
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -49,10 +51,10 @@ const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    fetchSsoTeamGrantsOnce({ projectId })
-      .then((found: Array<SsoTeamGrant>) => {
+    fetchSsoTeamDataOnce({ projectId })
+      .then((found: SsoTeamData) => {
         if (isMounted) {
-          setGrants(found);
+          setTeamData(found);
         }
       })
       .catch(() => {
@@ -66,15 +68,16 @@ const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
 
   const teamNames: Array<string> = getTeamsBeyondGrant({
     selectedTeams: props.selectedTeams,
-    grants,
+    grants: teamData ? getSignedInUserTeamGrants(teamData) : null,
   });
 
   if (teamNames.length === 0) {
     return <></>;
   }
 
+  // A div, not a p: the icon draws a div of its own.
   return (
-    <p
+    <div
       role="note"
       data-testid={SSO_TEAMS_GRANT_NOTE_TEST_ID}
       className="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
@@ -91,7 +94,7 @@ const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
           { teams: teamNames.join(", ") },
         )}
       </span>
-    </p>
+    </div>
   );
 };
 

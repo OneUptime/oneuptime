@@ -224,9 +224,8 @@ describe("what Settings > SCIM tells everyone else", () => {
     expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain(
       "seeing or resetting its bearer token",
     );
-    expect(SCIM_SAVE_ACCESS_DESCRIPTION).toContain(
-      "You can still see the connections and delete them.",
-    );
+    // Not everyone who sees the page may delete a connection.
+    expect(SCIM_SAVE_ACCESS_DESCRIPTION).not.toContain("delete");
   });
 
   test("both strings are entries in every locale, and en.json maps each to itself", () => {

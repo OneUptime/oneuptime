@@ -246,6 +246,11 @@ export class Service extends DatabaseService<Model> {
 
     this.assertProjectMatchesTenant(data.projectId, data.props);
 
+    // A project owner may hand on every row: nothing to read.
+    if (this.canGrantEveryPermission(data.props)) {
+      return;
+    }
+
     const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
       teamIds: [data.teamId],
       projectId: data.projectId,

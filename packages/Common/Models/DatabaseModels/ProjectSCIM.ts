@@ -39,12 +39,14 @@ import {
   delete: PlanType.Scale,
 })
 @TenantColumn("projectId")
+/*
+ * Created and changed by a project owner only: through its Groups endpoints a
+ * connection can add people to any team, Owners included, so saving one takes
+ * the access that could invite people to every team
+ * (Server/Utils/SsoProviderTeamGrant). Reading and deleting are unchanged.
+ */
 @TableAccessControl({
-  create: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.CreateProjectSSO,
-  ],
+  create: [Permission.ProjectOwner],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -60,11 +62,7 @@ import {
     Permission.ProjectAdmin,
     Permission.DeleteProjectSSO,
   ],
-  update: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.EditProjectSSO,
-  ],
+  update: [Permission.ProjectOwner],
 })
 @CrudApiEndpoint(new Route("/project-scim"))
 @TableMetadata({

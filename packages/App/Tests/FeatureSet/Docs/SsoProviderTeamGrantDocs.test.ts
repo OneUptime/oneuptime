@@ -11,8 +11,9 @@ import path from "path";
  *
  *   - Project SSO, SAML: the Teams bullet of the set-up steps;
  *   - Project SSO, OIDC: step 4, which picks the teams;
- *   - the closing notes: why, that every save checks again, and that
- *     providers saved earlier keep working;
+ *   - the closing notes: why, that every save checks again, that providers
+ *     saved earlier keep working, and that anyone who may edit a provider
+ *     can still switch it off;
  *   - SCIM: before the project set-up steps, who may add or change a
  *     connection or see its token, and why.
  */
@@ -131,15 +132,15 @@ describe("in English", () => {
     );
   });
 
-  it("the closing notes say why, that every save checks again, and that earlier providers keep working", () => {
+  it("the closing notes say why, that every save checks again, that earlier providers keep working, and that a provider can always be switched off", () => {
     expect(closingParagraphs("en")).toContain(
-      "A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams.",
+      "A provider's teams decide what people who sign in with it can do, so a provider is saved only with teams the person saving it could invite someone to. Every save checks them again: a provider whose teams give more access than you have can only be changed by someone whose access covers them, such as a project owner. Providers saved before this check keep signing people in to their teams. Anyone who may edit a provider can still switch it off, so it can be stopped at once.",
     );
   });
 
   it("the SCIM page says who may add or change a connection, and why, before the steps", () => {
     expect(scimLeadIn("en")).toBe(
-      "Only a project owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project. Everyone else who can open **Project Settings** > **Security** > **SCIM** can still see the connections and delete them.",
+      "Only a project owner can add or change a project's SCIM connection, or see or reset its bearer token: through SCIM, your identity provider can add people to any team in the project.",
     );
   });
 });
@@ -172,13 +173,12 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
     expect(paragraphs[1]!.length).toBeGreaterThan(100);
   });
 
-  it("the SCIM page names SCIM and its settings page before the project set-up steps", () => {
+  it("the SCIM page names SCIM twice before the project set-up steps", () => {
     const leadIn: string = scimLeadIn(language);
 
     expect(leadIn).not.toMatch(/^\d\. /);
-    // The connection, what SCIM lets the identity provider do, the page.
-    expect(leadIn.split("SCIM").length - 1).toBeGreaterThanOrEqual(3);
-    expect(boldTermsOf(leadIn)).toHaveLength(3);
-    expect(boldTermsOf(leadIn)[2]).toBe("SCIM");
+    // The connection, and what SCIM lets the identity provider do.
+    expect(leadIn.split("SCIM").length - 1).toBe(2);
+    expect(boldTermsOf(leadIn)).toHaveLength(0);
   });
 });
