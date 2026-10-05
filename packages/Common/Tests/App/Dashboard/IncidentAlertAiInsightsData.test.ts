@@ -560,6 +560,19 @@ describe("why incidents were not investigated", () => {
       "For a reason this page does not know yet.",
     );
   });
+
+  test("a code that names an object's own property is no reason either", () => {
+    for (const code of [
+      "constructor",
+      "toString",
+      "__proto__",
+      "hasOwnProperty",
+    ]) {
+      expect(describeNotInvestigatedReason("incident", code)).toBe(
+        "For a reason this page does not know yet.",
+      );
+    }
+  });
 });
 
 describe("the monitors, services, coverage and fix pull requests", () => {

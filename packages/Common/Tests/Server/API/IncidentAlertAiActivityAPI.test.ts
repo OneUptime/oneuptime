@@ -31,7 +31,6 @@ import {
   beforeEach,
   describe,
   expect,
-  jest,
   test,
 } from "@jest/globals";
 
@@ -418,9 +417,21 @@ describe("the insights routes", () => {
       coverage: { subjects: 0, investigatedSubjects: 0, notInvestigated: [] },
       attention: [],
       problems: [],
+      hotspots: [],
       monitors: [],
       services: [],
-      fixOutcomes: null,
+      fixOutcomes: {
+        total: 0,
+        planning: 0,
+        awaitingApproval: 0,
+        appliedAutomatically: 0,
+        appliedAfterApproval: 0,
+        dismissed: 0,
+        noFixFound: 0,
+        verified: 0,
+        failed: 0,
+        verifying: 0,
+      },
       fixTaskOutcomes: {
         total: 0,
         pullRequestsOpened: 0,
@@ -429,14 +440,9 @@ describe("the insights routes", () => {
         failed: 0,
         cancelled: 0,
       },
-      verdicts: {
-        confirmed: 0,
-        rejected: 0,
-        matched: 0,
-        partlyMatched: 0,
-        mismatched: 0,
-      },
+      fixesHidden: false,
       trend: [],
+      preventiveInsights: [],
       isPartial: false,
     };
   }

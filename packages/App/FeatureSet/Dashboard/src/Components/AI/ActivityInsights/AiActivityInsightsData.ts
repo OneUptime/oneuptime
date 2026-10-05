@@ -935,10 +935,16 @@ export function describeNotInvestigatedReason(
   subjectKind: "incident" | "alert",
   code: string | undefined,
 ): string {
+  const reasons: Record<InvestigationNotStartedCode, string> =
+    NOT_INVESTIGATED_REASONS[subjectKind];
+  // Only a code of the table: never one of an object's own properties.
+  const reason: string | undefined =
+    code && Object.prototype.hasOwnProperty.call(reasons, code)
+      ? reasons[code as InvestigationNotStartedCode]
+      : undefined;
+
   return translateTemplate(
-    NOT_INVESTIGATED_REASONS[subjectKind][
-      code as InvestigationNotStartedCode
-    ] || translationKey("For a reason this page does not know yet."),
+    reason || translationKey("For a reason this page does not know yet."),
   );
 }
 
