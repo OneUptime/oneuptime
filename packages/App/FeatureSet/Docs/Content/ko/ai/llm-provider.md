@@ -20,6 +20,39 @@ OneUptime의 LLM 공급자는 인시던트 관리 워크플로를 자동화하�
 
 OneUptime SaaS는 공용 인터넷에 있는 LLM 엔드포인트에만 연결할 수 있습니다. 자체 호스팅한 Ollama나 vLLM 서버처럼 사설 네트워크에 있는 모델에는 연결할 수 없습니다. 직접 운영하는 모델을 사용하려면 그 모델에 연결할 수 있는 네트워크에서 OneUptime을 자체 호스팅하거나, 모델을 공용 엔드포인트로 노출하세요. 자세한 내용은 [자체 호스팅 모델의 기본 URL 선택](#자체-호스팅-모델의-기본-url-선택)을 참조하세요.
 
+## 자체 호스팅: 환경 변수만으로 설정하기
+
+자체 호스팅 인스턴스에서 **모든 프로젝트에 한 번에** AI 기능을 켜는 가장 빠른 방법은 OneUptime 서버에 `GLOBAL_LLM_PROVIDER_*` 환경 변수를 설정하는 것입니다. Docker Compose에서는 `config.env`에, Helm에서는 values로 설정합니다. 시작 시 OneUptime은 이 변수로 글로벌 LLM 공급자를 등록하고 계속 동기화합니다. 프로젝트마다 대시보드에서 설정할 필요가 없으며, 자체 공급자가 없는 프로젝트에서는 AI 수정 작업도 이 공급자를 사용합니다.
+
+| 변수 | 설명 |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | 활성화하려면 필수입니다. `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` 중 하나 |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | API 키 — OpenAI, Azure OpenAI, Anthropic, Groq, Mistral의 경우 필수, Ollama나 키가 필요 없는 OpenAI 호환 서버에는 필요 없음 |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | API 엔드포인트 — Azure OpenAI, Ollama, OpenAI 호환 서버의 경우 필수 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 사용할 모델 (OpenAI 호환 서버의 경우 필수, 그 외에는 권장) |
+| `GLOBAL_LLM_PROVIDER_NAME` | 대시보드에 표시되는 친숙한 이름 (선택 사항) |
+
+**예시: 자체 호스팅 Ollama**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# OneUptime 서버가 접근할 수 있는 주소. localhost는 절대 안 됨:
+# 아래 "자체 호스팅 모델의 기본 URL 선택" 참고.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# API 키 필요 없음 — Ollama는 키 없이 동작합니다.
+```
+
+**예시: OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+동기화는 선언적입니다. 변수를 바꾸면 다음 재시작 때 공급자가 업데이트되고, `GLOBAL_LLM_PROVIDER_TYPE`을 지우면 공급자가 삭제됩니다. 관리자 대시보드에서 수동으로 만든 글로벌 공급자는 절대 건드리지 않습니다. 프로젝트는 여전히 **프로젝트 설정** > **AI** > **LLM 공급자**에서 자체 공급자를 추가할 수 있으며, 프로젝트가 소유한 공급자가 항상 글로벌 공급자보다 우선합니다.
+
 ## 지원되는 공급자
 
 OneUptime은 현재 다음 LLM 공급자를 지원합니다:

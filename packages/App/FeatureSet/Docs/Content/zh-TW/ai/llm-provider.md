@@ -20,6 +20,39 @@ OneUptime 中的 LLM 供應商可協助您自動化並強化事件管理工作�
 
 OneUptime SaaS 只能連線到公用網際網路上的 LLM 端點，無法連線到您私有網路中的模型，例如自行託管的 Ollama 或 vLLM 伺服器。若要使用您自己執行的模型，請在能連到該模型的網路中自行託管 OneUptime，或將模型公開在公用端點上——請參閱[為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)。
 
+## 自行託管：只用環境變數完成設定
+
+在自行託管的執行個體上，要**一次為所有專案**啟用 AI 功能，最快的方式是在 OneUptime 伺服器上設定 `GLOBAL_LLM_PROVIDER_*` 環境變數——Docker Compose 寫在 `config.env` 中，Helm 則透過 values 設定。啟動時，OneUptime 會依據這些變數註冊一個 Global LLM Provider（並保持同步）；不需要在儀表板中逐一為每個專案設定，專案沒有自己的供應商時，AI 修正任務也會使用它。
+
+| 變數 | 描述 |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | 啟用時必填。可為下列其中之一：`OpenAI`、`AzureOpenAI`、`Anthropic`、`Groq`、`Mistral`、`Ollama`、`OpenAICompatible` |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | API 金鑰——OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 或不需金鑰的 OpenAI 相容伺服器則不需要 |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | API 端點——Azure OpenAI、Ollama 與 OpenAI 相容伺服器為必填 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 要使用的模型（OpenAI 相容伺服器為必填，其他情況建議填寫） |
+| `GLOBAL_LLM_PROVIDER_NAME` | 選填的易記名稱，會顯示在儀表板中 |
+
+**範例：自行託管的 Ollama**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# OneUptime 伺服器能連線到的位址。絕不能用 localhost：
+# 請參閱下文 "為自行託管的模型選擇基底 URL"。
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# 不需要 API 金鑰——Ollama 不使用金鑰。
+```
+
+**範例：OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+同步是宣告式的：變更變數後，供應商會在下次重新啟動時更新；移除 `GLOBAL_LLM_PROVIDER_TYPE` 則會將其刪除。在管理儀表板中手動建立的全域供應商永遠不會被更動。專案仍可在 **專案設定** > **人工智慧** > **LLM 提供商** 下新增自己的供應商——專案自有的供應商一律優先於全域供應商。
+
 ## 支援的供應商
 
 OneUptime 目前支援以下 LLM 供應商：

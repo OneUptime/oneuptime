@@ -20,6 +20,39 @@ OneUptime の LLM プロバイダーは、インシデント管理ワークフ�
 
 OneUptime SaaS から接続できるのは、パブリックインターネット上の LLM エンドポイントだけです。セルフホストの Ollama や vLLM サーバーなど、プライベートネットワーク上のモデルには接続できません。自分で運用しているモデルを使うには、そのモデルに到達できるネットワーク上で OneUptime をセルフホストするか、モデルをパブリックなエンドポイントで公開してください。詳しくは [セルフホストモデルのベース URL の選び方](#セルフホストモデルのベース-url-の選び方) をご覧ください。
 
+## セルフホスト: 環境変数だけでセットアップ
+
+セルフホストのインスタンスで **すべてのプロジェクトに一度に** AI 機能を有効にする最も手早い方法は、OneUptime サーバーに `GLOBAL_LLM_PROVIDER_*` 環境変数を設定することです。Docker Compose なら `config.env` に、Helm なら values で設定します。起動時に OneUptime はこれらの変数からグローバル LLM プロバイダーを登録し、以後も同期を保ちます。プロジェクトごとにダッシュボードで設定する必要はなく、プロジェクトに独自のプロバイダーがない場合は AI 修正タスクもこのプロバイダーを使います。
+
+| 変数 | 説明 |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | 有効にするには必須。`OpenAI`、`AzureOpenAI`、`Anthropic`、`Groq`、`Mistral`、`Ollama`、`OpenAICompatible` のいずれか |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | API キー。OpenAI、Azure OpenAI、Anthropic、Groq、Mistral では必須。Ollama やキー不要の OpenAI 互換サーバーでは不要 |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | API エンドポイント。Azure OpenAI、Ollama、OpenAI 互換サーバーでは必須 |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | 使用するモデル（OpenAI 互換サーバーでは必須、それ以外では推奨） |
+| `GLOBAL_LLM_PROVIDER_NAME` | ダッシュボードに表示される、任意のわかりやすい名前 |
+
+**例: セルフホストの Ollama**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# OneUptime サーバーから到達できるアドレス。localhost は不可:
+# 後述の "セルフホストモデルのベース URL の選び方" を参照。
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# API キーは不要 — Ollama はキーなしで動作します。
+```
+
+**例: OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+同期は宣言的です。変数を変更すると次回の再起動時にプロバイダーが更新され、`GLOBAL_LLM_PROVIDER_TYPE` を削除するとプロバイダーも削除されます。管理ダッシュボードで手動作成したグローバルプロバイダーには一切手を加えません。各プロジェクトは引き続き **プロジェクト設定** > **AI** > **LLM プロバイダー** で独自のプロバイダーを追加でき、プロジェクトが所有するプロバイダーは常にグローバルプロバイダーより優先されます。
+
 ## サポートされているプロバイダー
 
 OneUptime は現在、以下の LLM プロバイダーをサポートしています。

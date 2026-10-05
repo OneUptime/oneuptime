@@ -20,6 +20,39 @@ OneUptime में LLM Providers आपके incident management workflow क�
 
 OneUptime SaaS केवल public internet पर मौजूद LLM endpoints तक पहुँच सकता है। यह आपके private network पर किसी मॉडल से, जैसे self-hosted Ollama या vLLM server से, connect नहीं कर सकता। जो मॉडल आप खुद चलाते हैं उसका उपयोग करने के लिए, OneUptime को ऐसे network पर self-host करें जहाँ से वह मॉडल तक पहुँच सके, या मॉडल को किसी public endpoint पर उपलब्ध कराएँ — देखें [Self-hosted मॉडल के लिए बेस URL चुनना](#self-hosted-मॉडल-के-लिए-बेस-url-चुनना)।
 
+## Self-hosted: Environment variables से zero-config setup
+
+Self-hosted instance पर **सभी projects के लिए एक साथ** AI सुविधाएं चालू करने का सबसे तेज़ तरीका है अपने OneUptime server पर `GLOBAL_LLM_PROVIDER_*` environment variables सेट करना — Docker Compose के लिए `config.env` में, या Helm values के ज़रिए। Startup पर OneUptime इनसे एक Global LLM Provider register करता है (और उसे sync में रखता है); हर project के लिए dashboard में अलग से setup की ज़रूरत नहीं पड़ती, और जिस project का अपना provider नहीं है, उसके AI fix tasks भी इसी का उपयोग करते हैं।
+
+| Variable | विवरण |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | चालू करने के लिए आवश्यक। इनमें से एक: `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | API key — OpenAI, Azure OpenAI, Anthropic, Groq, और Mistral के लिए आवश्यक; Ollama या बिना key वाले OpenAI-compatible servers के लिए ज़रूरी नहीं |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | API endpoint — Azure OpenAI, Ollama, और OpenAI-compatible servers के लिए आवश्यक |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | उपयोग किया जाने वाला मॉडल (OpenAI-compatible servers के लिए आवश्यक, बाकी के लिए अनुशंसित) |
+| `GLOBAL_LLM_PROVIDER_NAME` | Dashboard में दिखने वाला वैकल्पिक friendly name |
+
+**उदाहरण: self-hosted Ollama**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# ऐसा address जिस तक OneUptime server पहुँच सके। localhost कभी नहीं: नीचे
+# "Self-hosted मॉडल के लिए बेस URL चुनना" देखें।
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# API key की ज़रूरत नहीं — Ollama keyless है।
+```
+
+**उदाहरण: OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+Sync declarative है: variables बदलने पर अगले restart पर provider update हो जाता है, और `GLOBAL_LLM_PROVIDER_TYPE` हटाने पर वह हट जाता है। Admin Dashboard में manually बनाए गए global providers को कभी नहीं छुआ जाता। Projects अब भी **प्रोजेक्ट सेटिंग्स** > **एआई** > **LLM प्रदाता** के अंतर्गत अपना provider जोड़ सकते हैं — project का अपना provider हमेशा global provider पर प्राथमिकता पाता है।
+
 ## समर्थित Providers
 
 OneUptime वर्तमान में निम्नलिखित LLM providers का समर्थन करता है:

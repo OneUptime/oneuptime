@@ -20,6 +20,39 @@ Om du föredrar att använda dina egna API-nycklar eller en specifik leverantör
 
 OneUptime SaaS kan bara nå LLM-slutpunkter på det öppna internet. Den kan inte ansluta till en modell i ditt privata nätverk, till exempel en egeninstallerad Ollama- eller vLLM-server. Om du vill använda en modell som du kör själv kan du installera OneUptime själv i ett nätverk som når den, eller exponera modellen på en offentlig slutpunkt — se [Välja Bas-URL för en egeninstallerad modell](#välja-bas-url-för-en-egeninstallerad-modell).
 
+## Egeninstallerad: konfiguration med bara miljövariabler
+
+På en egeninstallerad instans är det snabbaste sättet att aktivera AI-funktioner för **alla projekt på en gång** att ange miljövariablerna `GLOBAL_LLM_PROVIDER_*` på din OneUptime-server — i `config.env` för Docker Compose eller via Helm-värden. Vid start registrerar OneUptime en global LLM-leverantör utifrån dem (och håller den synkroniserad); ingen konfiguration i instrumentpanelen behövs för varje projekt, och AI-korrigeringsuppgifter använder den också när ett projekt saknar en egen leverantör.
+
+| Variabel | Beskrivning |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | Krävs för att aktivera. En av: `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | API-nyckel — krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral; behövs inte för Ollama eller OpenAI-kompatibla servrar utan nyckel |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | API-slutpunkt — krävs för Azure OpenAI, Ollama och OpenAI-kompatibla servrar |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modell att använda (krävs för OpenAI-kompatibla servrar, rekommenderas annars) |
+| `GLOBAL_LLM_PROVIDER_NAME` | Valfritt beskrivande namn som visas i instrumentpanelen |
+
+**Exempel: egeninstallerad Ollama**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# En adress som OneUptime-servern kan nå. Aldrig localhost: se
+# "Välja Bas-URL för en egeninstallerad modell" nedan.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# Ingen API-nyckel behövs — Ollama används utan nyckel.
+```
+
+**Exempel: OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+Synkroniseringen är deklarativ: ändrar du variablerna uppdateras leverantören vid nästa omstart, och tar du bort `GLOBAL_LLM_PROVIDER_TYPE` raderas den. Globala leverantörer som skapats manuellt i Admin Dashboard rörs aldrig. Projekt kan fortfarande lägga till en egen leverantör under **Projektinställningar** > **AI** > **LLM-leverantörer** — en leverantör som projektet själv äger har alltid företräde framför den globala.
+
 ## Leverantörer som stöds
 
 OneUptime stöder för närvarande följande LLM-leverantörer:

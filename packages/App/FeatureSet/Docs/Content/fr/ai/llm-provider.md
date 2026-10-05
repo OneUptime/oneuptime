@@ -20,6 +20,39 @@ Si vous préférez utiliser vos propres clés API ou un fournisseur spécifique,
 
 OneUptime SaaS ne peut joindre que des endpoints LLM sur l'internet public. Il ne peut pas se connecter à un modèle situé sur votre réseau privé, comme un serveur Ollama ou vLLM auto-hébergé. Pour utiliser un modèle que vous exécutez vous-même, auto-hébergez OneUptime sur un réseau qui peut le joindre, ou exposez le modèle sur un endpoint public — voir [Choisir l'URL de base d'un modèle auto-hébergé](#choisir-lurl-de-base-dun-modèle-auto-hébergé).
 
+## Auto-hébergé : zéro configuration avec les variables d'environnement
+
+Sur une instance auto-hébergée, le moyen le plus rapide d'activer les fonctionnalités IA pour **tous les projets à la fois** est de définir les variables d'environnement `GLOBAL_LLM_PROVIDER_*` sur votre serveur OneUptime — dans `config.env` pour Docker Compose, ou via les valeurs Helm. Au démarrage, OneUptime enregistre à partir de ces variables un fournisseur LLM global (et le maintient synchronisé) ; aucune configuration par projet n'est nécessaire dans le tableau de bord, et les tâches de correctif IA l'utilisent aussi lorsqu'un projet n'a pas son propre fournisseur.
+
+| Variable | Description |
+| --- | --- |
+| `GLOBAL_LLM_PROVIDER_TYPE` | Obligatoire pour l'activer. L'une des valeurs : `OpenAI`, `AzureOpenAI`, `Anthropic`, `Groq`, `Mistral`, `Ollama`, `OpenAICompatible` |
+| `GLOBAL_LLM_PROVIDER_API_KEY` | Clé API — requise pour OpenAI, Azure OpenAI, Anthropic, Groq et Mistral ; inutile pour Ollama ou les serveurs compatibles OpenAI sans clé |
+| `GLOBAL_LLM_PROVIDER_BASE_URL` | Point de terminaison de l'API — requis pour Azure OpenAI, Ollama et les serveurs compatibles OpenAI |
+| `GLOBAL_LLM_PROVIDER_MODEL_NAME` | Modèle à utiliser (requis pour les serveurs compatibles OpenAI, recommandé ailleurs) |
+| `GLOBAL_LLM_PROVIDER_NAME` | Nom convivial facultatif affiché dans le tableau de bord |
+
+**Exemple : Ollama auto-hébergé**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+# Une adresse que le serveur OneUptime peut joindre. Jamais localhost : voir
+# "Choisir l'URL de base d'un modèle auto-hébergé" plus bas.
+GLOBAL_LLM_PROVIDER_BASE_URL=http://ollama:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
+# Aucune clé API nécessaire — Ollama fonctionne sans clé.
+```
+
+**Exemple : OpenAI**
+
+```bash
+GLOBAL_LLM_PROVIDER_TYPE=OpenAI
+GLOBAL_LLM_PROVIDER_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
+```
+
+La synchronisation est déclarative : modifier les variables met à jour le fournisseur au prochain redémarrage, et retirer `GLOBAL_LLM_PROVIDER_TYPE` le supprime. Les fournisseurs globaux créés manuellement dans le tableau de bord d'administration ne sont jamais modifiés. Les projets peuvent toujours ajouter leur propre fournisseur sous **Paramètres du projet** > **IA** > **Fournisseurs LLM** — un fournisseur propre au projet a toujours la priorité sur le fournisseur global.
+
 ## Fournisseurs pris en charge
 
 OneUptime prend actuellement en charge les fournisseurs LLM suivants :
