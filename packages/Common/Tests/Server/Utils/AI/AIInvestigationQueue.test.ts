@@ -6,6 +6,8 @@ import AIAlertInvestigationRunner from "../../../../Server/Utils/AI/SRE/AlertInv
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import LlmLogService from "../../../../Server/Services/LlmLogService";
+import logger from "../../../../Server/Utils/Logger";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import {
   getInvestigationSubjectLockKey,
@@ -403,7 +405,13 @@ describe("AIInvestigationQueue", () => {
    * Insight triage has no setting. It used to run on a fixed cap of 3 that
    * nobody could raise; with no limit by default it has none.
    */
-  test("subjectless insight work has no cap: it never reads the project or counts running work", async () => {
+  /*
+   * Subjectless work has no cap of its own, so nothing reads a cap column or
+   * counts running work. The project's own daily AI limits (Project
+   * Settings → AI Features) are a ceiling over every lane, subjectless work
+   * included, so the one project read left is of those two columns.
+   */
+  test("subjectless insight work has no cap: it reads no cap and counts no running work, only the project's own daily limits", async () => {
     const findProject: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({
@@ -424,7 +432,11 @@ describe("AIInvestigationQueue", () => {
       triggeredByAiInsightId: ObjectID.generate(),
     });
 
-    expect(findProject).not.toHaveBeenCalled();
+    expect(
+      findProject.mock.calls.map((call: Array<unknown>): unknown => {
+        return (call[0] as { select: unknown }).select;
+      }),
+    ).toEqual([{ aiDailyTokenLimit: true, aiDailySpendLimitInUSD: true }]);
     expect(count).not.toHaveBeenCalled();
     expect(claim).toHaveBeenCalledTimes(1);
   });
@@ -468,16 +480,28 @@ describe("AIInvestigationQueue", () => {
       triggeredByAlertId: ObjectID.generate(),
     });
 
-    expect(findProject.mock.calls[0]![0]).toEqual(
+    /*
+     * The claim gate also reads the project's own daily AI limits; only the
+     * cap reads are asked about here.
+     */
+    const capReads: Array<unknown> = findProject.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .filter((request: unknown): boolean => {
+        const select: Record<string, unknown> =
+          (request as { select?: Record<string, unknown> }).select || {};
+        return !("aiDailyTokenLimit" in select);
+      });
+
+    expect(capReads).toEqual([
       expect.objectContaining({
         select: { incidentAiMaxConcurrentInvestigations: true },
       }),
-    );
-    expect(findProject.mock.calls[1]![0]).toEqual(
       expect.objectContaining({
         select: { alertAiMaxConcurrentInvestigations: true },
       }),
-    );
+    ]);
   });
 
   // The cap used to be clamped to 25 whatever the project set.
@@ -710,5 +734,172 @@ describe("AIInvestigationQueue", () => {
         }),
       }),
     );
+  });
+});
+
+/*
+ * The project's own daily AI limits (Project Settings → AI Features → More
+ * settings) are a ceiling over every lane - incident, alert and subjectless
+ * work alike. Once one is reached every model call is refused until
+ * midnight UTC, so the queue records no intent it could not run (the skip
+ * is recorded with its own reason), and leaves an already-queued run
+ * queued rather than claiming it to fail. Under the ceiling, nothing
+ * changes.
+ */
+describe("AIInvestigationQueue and the project's own daily AI limits", () => {
+  const projectId: ObjectID = ObjectID.generate();
+
+  function projectAt(limit: number | undefined, used: number): void {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      aiDailyTokenLimit: limit,
+    } as unknown as Project);
+    jest.spyOn(LlmLogService, "getProjectUsageSince").mockResolvedValue({
+      totalTokens: used,
+      billedCostInUSDCents: 0,
+    });
+  }
+
+  beforeEach(() => {
+    mockBudgetOk();
+    jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue();
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    ["an incident investigation", { subjectIncidentId: ObjectID.generate() }],
+    ["an alert investigation", { subjectAlertId: ObjectID.generate() }],
+    ["insight triage", { subjectAIInsightId: ObjectID.generate() }],
+    [
+      "a remediation plan",
+      { subjectAutoRemediationSuggestionId: ObjectID.generate() },
+    ],
+  ])(
+    "%s is not enqueued once the limit is reached, and the skip says why",
+    async (_name: string, subject: Record<string, ObjectID>) => {
+      projectAt(1000, 1000);
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+      const notEnqueued: jest.Mock = jest.fn(async (): Promise<void> => {
+        return undefined;
+      });
+
+      const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
+        projectId,
+        ...subject,
+        onNotEnqueued: notEnqueued,
+      });
+
+      expect(runId).toBeNull();
+      expect(create).not.toHaveBeenCalled();
+      expect(notEnqueued).toHaveBeenCalledTimes(1);
+      expect(notEnqueued.mock.calls[0]![0]).toBe("project_daily_limit_reached");
+    },
+  );
+
+  test("under the limit, the run is enqueued as before", async () => {
+    projectAt(1000, 999);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+
+    const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId,
+      subjectIncidentId: ObjectID.generate(),
+    });
+
+    expect(runId).not.toBeNull();
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  test("with no limit set, nothing is counted and the run is enqueued", async () => {
+    projectAt(undefined, 999_999_999);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+
+    await AIInvestigationQueue.enqueue({
+      projectId,
+      subjectAlertId: ObjectID.generate(),
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(LlmLogService.getProjectUsageSince).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Fails open: a limit that cannot be read does not stop the queue - the
+   * model call itself refuses past the limit.
+   */
+  test("limits that cannot be read never stop the queue", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      aiDailyTokenLimit: 10,
+    } as unknown as Project);
+    jest
+      .spyOn(LlmLogService, "getProjectUsageSince")
+      .mockRejectedValue(new Error("database down"));
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+
+    await AIInvestigationQueue.enqueue({
+      projectId,
+      subjectIncidentId: ObjectID.generate(),
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["an incident run", { triggeredByIncidentId: ObjectID.generate() }],
+    ["an alert run", { triggeredByAlertId: ObjectID.generate() }],
+    ["subjectless insight work", { triggeredByAiInsightId: ObjectID.generate() }],
+  ])(
+    "%s queued before the limit was reached stays queued, unclaimed",
+    async (_name: string, subject: Record<string, ObjectID>) => {
+      projectAt(1000, 1500);
+      const claim: jest.SpyInstance = jest.spyOn(
+        AIRunService,
+        "attemptStatusTransition",
+      );
+
+      await AIInvestigationQueue.processRun({
+        id: ObjectID.generate(),
+        projectId,
+        attemptCount: 0,
+        ...subject,
+      });
+
+      expect(claim).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a queued run under the limit is claimed", async () => {
+    projectAt(1000, 10);
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId,
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+    });
+
+    expect(claim).toHaveBeenCalledTimes(1);
   });
 });

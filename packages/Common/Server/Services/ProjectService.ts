@@ -84,6 +84,7 @@ import ProjectAiDailyLimits, {
   PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
   ProjectAiDailyLimitColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -382,11 +383,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * Runs on every create and update, before the write, for each of the
    * project's own daily AI limits the data carries (Types/AI/
    * ProjectAiDailyLimits). A blank one is stored as null - no limit, which
-   * is what clearing the field in the dashboard means - and a limit must
-   * otherwise be a whole number within its bounds, at least 1: AI is turned
-   * off with Enable AI, not with a limit of 0. The spend limit counts only
-   * what is billed to AI credits, so on a server without billing it cannot
-   * be set (it would limit nothing); clearing it is always allowed.
+   * is what clearing the field in the dashboard means - a typed "200000"
+   * as the number it is, and a limit must otherwise be a whole number within
+   * its bounds, at least 1: AI is turned off with Enable AI, not with a
+   * limit of 0. The spend limit counts only what is billed to AI credits,
+   * so on a server without billing it cannot be set (it would limit
+   * nothing); clearing it is always allowed.
    */
   public applyAiDailyLimitRules(
     data: Partial<Record<ProjectAiDailyLimitColumn, unknown>>,
@@ -407,6 +409,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
       ) {
         values[column] = null;
       }
+
+      values[column] = coerceNumericColumnValue(values[column]);
 
       const error: string | null = ProjectAiDailyLimits.getWriteError(
         column,
