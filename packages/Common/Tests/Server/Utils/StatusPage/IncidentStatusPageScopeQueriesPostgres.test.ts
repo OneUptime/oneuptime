@@ -51,6 +51,8 @@ const TABLES: Array<string> = [
   "Project",
   "ProjectSMTPConfig",
   "ProjectCallSMSConfig",
+  // A page's logo file is read to decide whether its emails show the logo.
+  "File",
   "StatusPage",
   "StatusPageGroup",
   "Monitor",
