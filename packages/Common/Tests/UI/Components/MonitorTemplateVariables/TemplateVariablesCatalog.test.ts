@@ -62,7 +62,6 @@ const INFRA_TYPES: Array<MonitorType> = [
 const IDENTITY_ONLY_TYPES: Array<MonitorType> = [
   MonitorType.Manual,
   MonitorType.IoTDevice,
-  MonitorType.IncomingEmail,
   MonitorType.SQLQuery,
   MonitorType.Logs,
   MonitorType.Traces,
@@ -112,6 +111,17 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "requestBody",
       "requestHeaders",
       "incomingRequestReceivedAt",
+    ],
+  },
+  {
+    monitorType: MonitorType.IncomingEmail,
+    title: "Incoming Email",
+    keys: [
+      "emailSubject",
+      "emailFrom",
+      "emailTo",
+      "emailBody",
+      "emailReceivedAt",
     ],
   },
   {
@@ -737,6 +747,7 @@ describe("TemplateVariablesCatalog.getTemplateVariableGroups", () => {
   it.each([
     [MonitorType.API, undefined],
     [MonitorType.SSLCertificate, undefined],
+    [MonitorType.IncomingEmail, undefined],
     [MonitorType.Kubernetes, ["host.name", "region"]],
     [MonitorType.Metrics, undefined],
   ])(
@@ -790,5 +801,117 @@ describe("TemplateVariablesCatalog.getTemplateVariableGroups", () => {
 
     expect(names).toContain("monitorName");
     expect(names).toContain("host.name");
+  });
+});
+
+/*
+ * Incoming Email monitors. The docs promised these variables long before the
+ * picker listed them, so the group is pinned on its own: what it offers, and
+ * what it tells the reader about titles, masking and scheduled checks. Its
+ * keys are held to the server by MonitorTemplateUtilIncomingEmail.test.ts.
+ */
+describe("TemplateVariablesCatalog.getVariables - Incoming Email", () => {
+  const INCOMING_EMAIL_GROUP_TITLE: string = "Incoming Email";
+
+  function incomingEmailGroup(): TemplateVariableGroup {
+    const group: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IncomingEmail,
+      }),
+      INCOMING_EMAIL_GROUP_TITLE,
+    );
+
+    expect(group).toBeDefined();
+    return group!;
+  }
+
+  function variable(key: string): TemplateVariable {
+    const found: TemplateVariable | undefined =
+      incomingEmailGroup().variables.find(
+        (candidate: TemplateVariable): boolean => {
+          return candidate.key === key;
+        },
+      );
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  it("follows the identity and resource groups, with no series labels even when attribute keys are passed", () => {
+    const groups: Array<TemplateVariableGroup> =
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.IncomingEmail,
+        seriesAttributeKeys: ["host.name"],
+      });
+
+    expect(titlesOf(groups)).toEqual([
+      ...ALWAYS_GROUP_TITLES,
+      INCOMING_EMAIL_GROUP_TITLE,
+    ]);
+  });
+
+  it("is offered to Incoming Email monitors only", () => {
+    for (const monitorType of Object.values(
+      MonitorType,
+    ) as Array<MonitorType>) {
+      if (monitorType === MonitorType.IncomingEmail) {
+        continue;
+      }
+
+      expect(
+        titlesOf(TemplateVariablesCatalog.getVariables({ monitorType })),
+      ).not.toContain(INCOMING_EMAIL_GROUP_TITLE);
+    }
+  });
+
+  it("says a scheduled check uses the last email, and how much of a value a title gets", () => {
+    const description: string = incomingEmailGroup().description || "";
+
+    expect(description).toContain(
+      "A scheduled check for missing email uses the last email received.",
+    );
+    expect(description).toContain(
+      "In a title, each value is cut to one line of at most",
+    );
+  });
+
+  it("shows the recipient's example masked, the way {{emailTo}} renders the monitor's address", () => {
+    expect(variable("emailTo").example).toContain("[REDACTED]@");
+    expect(variable("emailTo").description).toContain(
+      "This monitor's own address is masked.",
+    );
+  });
+
+  it("gives the received time's example in the ISO 8601 form it renders in, and says when it is empty", () => {
+    expect(variable("emailReceivedAt").example).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
+    expect(variable("emailReceivedAt").description).toContain(
+      "Empty until the first email arrives.",
+    );
+  });
+
+  it("offers the editor every email variable", () => {
+    const names: Array<string> =
+      TemplateVariablesCatalog.getTemplateVariableGroups({
+        monitorType: MonitorType.IncomingEmail,
+      }).flatMap((group: EditorTemplateVariableGroup): Array<string> => {
+        return group.variables.map(
+          (editorVariable: EditorTemplateVariable): string => {
+            return editorVariable.name;
+          },
+        );
+      });
+
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "monitorName",
+        "emailSubject",
+        "emailFrom",
+        "emailTo",
+        "emailBody",
+        "emailReceivedAt",
+      ]),
+    );
   });
 });

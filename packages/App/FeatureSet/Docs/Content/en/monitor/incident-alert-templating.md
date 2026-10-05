@@ -8,6 +8,7 @@ The following monitor types support dynamic templating with their respective var
 
 - **Website and API Monitors**: Response data, headers, status codes, timing
 - **Incoming Request Monitors**: Request data, headers, methods, timing
+- **Incoming Email Monitors**: Email subject, sender, recipients, body, time received
 - **Ping Monitors**: Connectivity status, response times, failure causes
 - **Port Monitors**: Port connectivity, response times, timeout status
 - **IP Monitors**: IP reachability, ping times, failure information
@@ -43,6 +44,18 @@ The following monitor types support dynamic templating with their respective var
 When the criteria has **Group incidents and alerts by a payload field** turned on, the extracted grouping key is also available, under a variable named after the **last segment** of the grouping path. Grouping by `requestBody.alerts[*].labels.alertname` gives you `{{alertname}}`; grouping by `requestBody.alerts[*].fingerprint` gives you `{{fingerprint}}`. The full `requestBody` is still available alongside it.
 
 > **Note:** `[*]` is only understood in the grouping path fields themselves — here it does not resolve, so the placeholder is printed verbatim, braces and all. Inside a title or description, `{{requestBody.alerts[0].annotations.summary}}` always reads the first alert in the payload, not the one the incident was opened for. Use the grouping variable and the payload's shared fields (`commonLabels`, `commonAnnotations`) instead. See [Incoming Request Monitor](/docs/monitor/incoming-request-monitor).
+
+### Incoming Email Monitors
+
+| Variable          | Description                                                       | Type     |
+| ----------------- | ----------------------------------------------------------------- | -------- |
+| `emailSubject`    | The subject of the email.                                         | `string` |
+| `emailFrom`       | The sender's email address.                                       | `string` |
+| `emailTo`         | Who the email was sent to, with the monitor's own address masked. | `string` |
+| `emailBody`       | The plain text body of the email.                                 | `string` |
+| `emailReceivedAt` | When the email was received, as an ISO 8601 timestamp in UTC.     | `string` |
+
+In a title, each of these is cut to one line of at most 150 characters. Descriptions and remediation notes get the full value. See [Incoming Email Monitor](/docs/monitor/incoming-email-monitor#template-variables).
 
 ### Ping Monitors
 

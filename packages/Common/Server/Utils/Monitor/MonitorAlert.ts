@@ -586,6 +586,13 @@ export default class MonitorAlert {
               seriesLabels,
             });
 
+          // A title is one bounded line; see buildTitleStorageMap.
+          const titleStorageMap: JSONObject =
+            MonitorTemplateUtil.buildTitleStorageMap({
+              monitorType: input.monitor.monitorType!,
+              storageMap,
+            });
+
           /*
            * Render the criteria's template, then make it say WHICH
            * series it is about.
@@ -604,7 +611,7 @@ export default class MonitorAlert {
           alert.title = SeriesContextEnricher.enrichTitle({
             title: MonitorTemplateUtil.processTemplateString({
               value: criteriaAlert.title,
-              storageMap,
+              storageMap: titleStorageMap,
             }),
             seriesLabels,
           });
