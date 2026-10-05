@@ -1,6 +1,7 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
+import Select from "../../../Types/BaseDatabase/Select";
 import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
@@ -13,14 +14,25 @@ import PermissionGate, {
 import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import { BulkActionProps } from "../ModelTable/BaseModelTable";
+import Column from "../ModelTable/Column";
 import ModelTable, {
   ComponentProps as ModelTableComponentProps,
 } from "../ModelTable/ModelTable";
-import { withRuleEnabledOnEditOnly } from "./RuleEnabledField";
+import {
+  doesRuleAddNothing,
+  getRuleActionColumns,
+  getRuleActionSelect,
+  RuleActionColumns,
+} from "./RuleAction";
+import RuleAddsNothingPill from "./RuleAddsNothingPill";
+import {
+  RULE_ENABLED_COLUMN,
+  withRuleEnabledOnEditOnly,
+} from "./RuleEnabledField";
 import RuleView from "./RuleView";
 import RunRuleNowModal from "./RunRuleNowModal";
 import getRunRulesBulkAction from "./RunRulesBulkAction";
-import React, { Fragment, ReactElement, useState } from "react";
+import React, { Fragment, ReactElement, useMemo, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends ModelTableComponentProps<TBaseModel> {
@@ -48,6 +60,53 @@ function getParentRoute(): Route {
   );
 }
 
+// The rule's status column: the one its Enabled switch is shown in.
+function isStatusColumn<TBaseModel extends BaseModel>(
+  column: Column<TBaseModel>,
+): boolean {
+  return Object.keys(column.field || {})[0] === RULE_ENABLED_COLUMN;
+}
+
+/*
+ * A label or owner rule that adds nothing when it matches - one saved
+ * before the form asked what it adds (RuleAction) - says so beside its
+ * status: "Adds nothing". Every other row is drawn exactly as the page drew
+ * it.
+ */
+function withAddsNothingMarker<TBaseModel extends BaseModel>(
+  columns: Array<Column<TBaseModel>>,
+  action: RuleActionColumns,
+): Array<Column<TBaseModel>> {
+  return columns.map((column: Column<TBaseModel>): Column<TBaseModel> => {
+    const getElement: Column<TBaseModel>["getElement"] = column.getElement;
+
+    if (!getElement || !isStatusColumn(column)) {
+      return column;
+    }
+
+    return {
+      ...column,
+      getElement: (
+        item: TBaseModel,
+        onBeforeFetchData?: TBaseModel | undefined,
+      ): ReactElement => {
+        const status: ReactElement = getElement(item, onBeforeFetchData);
+
+        if (!doesRuleAddNothing(item, action)) {
+          return status;
+        }
+
+        return (
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            {status}
+            <RuleAddsNothingPill />
+          </span>
+        );
+      },
+    };
+  });
+}
+
 /*
  * A table of rules. For rules that can be run - label, owner, privacy, and
  * status page and SLO monitor rules - it adds "Run Now" to each row and to
@@ -55,6 +114,9 @@ function getParentRoute(): Route {
  *
  * Every rule starts on: the create form leaves out the rule's Enabled
  * switch, which stays on the edit form and in the table (RuleEnabledField).
+ *
+ * A label or owner rule that adds nothing - saved before the form asked
+ * what it adds - says "Adds nothing" beside its status (RuleAction).
  */
 const RuleTable: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -72,6 +134,53 @@ const RuleTable: <TBaseModel extends BaseModel>(
   const ruleType: RuleRunType | null = RuleRunTypeUtil.fromTableName(
     model.tableName,
   );
+
+  /*
+   * A label or owner rule's table reads what each rule adds, so a rule that
+   * adds nothing says so beside its status. Only for a viewer who may read
+   * all of it: selecting a column one may not read fails the whole list
+   * (PermissionGate.canReadColumn), and a rule is never said to add nothing
+   * from part of what it adds.
+   */
+  const ruleAction: RuleActionColumns | null = useMemo(() => {
+    return getRuleActionColumns(new props.modelType());
+  }, [props.modelType]);
+
+  const canReadRuleAction: boolean = Boolean(
+    ruleAction &&
+      [...ruleAction.listColumns, ...ruleAction.switchColumns].every(
+        (column: string): boolean => {
+          return PermissionGate.canReadColumn(model, column);
+        },
+      ),
+  );
+
+  const readsRuleAction: RuleActionColumns | null =
+    ruleAction && canReadRuleAction ? ruleAction : null;
+
+  /*
+   * Kept as they are until the page's own change: the table works its
+   * columns out again whenever it is handed new ones, and this table draws
+   * again for its own reasons too (the Run Now dialog opening).
+   */
+  const columns: ModelTableComponentProps<TBaseModel>["columns"] =
+    useMemo(() => {
+      return readsRuleAction
+        ? withAddsNothingMarker<TBaseModel>(
+            tableProps.columns || [],
+            readsRuleAction,
+          )
+        : tableProps.columns;
+    }, [tableProps.columns, readsRuleAction]);
+
+  const selectMoreFields: Select<TBaseModel> | undefined = useMemo(() => {
+    return readsRuleAction
+      ? ({
+          ...(tableProps.selectMoreFields || {}),
+          ...getRuleActionSelect(readsRuleAction),
+        } as Select<TBaseModel>)
+      : tableProps.selectMoreFields;
+  }, [tableProps.selectMoreFields, readsRuleAction]);
 
   if (viewRuleId) {
     return (
@@ -155,6 +264,14 @@ const RuleTable: <TBaseModel extends BaseModel>(
       ? withRuleEnabledOnEditOnly<TBaseModel>(tableProps.formFields)
       : tableProps.formFields,
   };
+
+  if (readsRuleAction) {
+    ruleTableProps.columns = columns;
+
+    if (selectMoreFields) {
+      ruleTableProps.selectMoreFields = selectMoreFields;
+    }
+  }
 
   const isViewable: boolean =
     props.isViewable ??

@@ -82,6 +82,8 @@ import WorkspaceNotificationRuleService, {
 } from "./WorkspaceNotificationRuleService";
 import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
+  ProjectScopedReference,
   ProjectScopedRelation,
   resolveReferenceId,
   resolveReferenceIds,
@@ -117,6 +119,16 @@ import ProbeMonitorsNotification, {
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
   "monitorTemplate",
+];
+
+/*
+ * The two names of a monitor's current status, ID column first. A write may
+ * name it under either, and the two must agree (RelationIdUtil
+ * .readConsistent), so the status the service acts on is the status stored.
+ */
+const CURRENT_MONITOR_STATUS_KEYS: Array<string> = [
+  "currentMonitorStatusId",
+  "currentMonitorStatus",
 ];
 
 /*
@@ -685,11 +697,18 @@ export class Service extends ProjectReferencesService<Model> {
      * project undeletable — the same shape monitorSteps had. The
      * 1785240000000 migration repaired the rows that existed then; this stops
      * new ones. It stays NO ACTION on purpose: deleting a status monitors are
-     * currently in should be blocked, not cascaded.
+     * currently in should be blocked, not cascaded. By both of its names:
+     * every name that holds an id is checked, and two that disagree are
+     * refused.
      */
-    const currentMonitorStatusId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
-      resolveReferenceId(updateBy.data.currentMonitorStatus);
+    const currentMonitorStatusReferences: Array<ProjectScopedReference> =
+      getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentMonitorStatusId",
+        relation: "currentMonitorStatus",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      });
 
     const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
 
@@ -809,7 +828,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    if (currentMonitorStatusId) {
+    if (currentMonitorStatusReferences.length > 0) {
       const projectIds: Array<ObjectID> = updateBy.props.tenantId
         ? [updateBy.props.tenantId]
         : await this.getProjectIdsForUpdateQuery(updateBy);
@@ -819,13 +838,7 @@ export class Service extends ProjectReferencesService<Model> {
           {
             projectId: projectId,
             subject: "monitor",
-            references: [
-              {
-                modelName: "Monitor Status",
-                id: currentMonitorStatusId,
-                service: MonitorStatusService,
-              },
-            ],
+            references: currentMonitorStatusReferences,
           },
         );
       }
@@ -1375,14 +1388,22 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
-    if (
-      onUpdate.updateBy.data.currentMonitorStatusId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The status the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedMonitorStatusId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        CURRENT_MONITOR_STATUS_KEYS,
+        "Monitor Status",
+      );
+
+    if (updatedMonitorStatusId && onUpdate.updateBy.props.tenantId) {
       await this.changeMonitorStatus(
         onUpdate.updateBy.props.tenantId as ObjectID,
         updatedItemIds as Array<ObjectID>,
-        onUpdate.updateBy.data.currentMonitorStatusId as ObjectID,
+        updatedMonitorStatusId,
         true, // notifyOwners = true
         "This status was changed when the monitor was updated.",
         undefined,
@@ -1833,7 +1854,15 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    createBy.data.currentMonitorStatusId = monitorStatus.id;
+    /*
+     * Whatever status the write named under either name: stamp leaves no
+     * other name of it to be stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      CURRENT_MONITOR_STATUS_KEYS,
+      monitorStatus.id,
+    );
 
     return { createBy, carryForward: null };
   }

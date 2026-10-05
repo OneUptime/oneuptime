@@ -41,5 +41,6 @@ To run a rule you need permission to edit the rule **and** to edit the resources
 
 ## Related
 
+- [Label and Owner Rules](/docs/configuration/label-and-owner-rules)
 - [Import and Export Label Rules](/docs/configuration/label-rule-import-export)
 - [Incident Settings and Rules](/docs/incidents/settings)

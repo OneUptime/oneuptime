@@ -796,9 +796,10 @@ export class Service extends ProjectReferencesService<Model> {
     dataKeys: Array<string>,
   ): boolean {
     if (RelationIdUtil.isWritten(dataKeys, PROBE_RELATION_KEYS)) {
-      const probeId: ObjectID | null = RelationIdUtil.read(
+      const probeId: ObjectID | null = RelationIdUtil.readConsistent(
         data,
         PROBE_RELATION_KEYS,
+        "Probe",
       );
 
       if (probeId?.toString() !== scan.probeId?.toString()) {

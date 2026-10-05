@@ -493,6 +493,39 @@ addresses moved from `…/settings/ai` and `…/settings/auto-remediation-rules`
 `…/ai/settings` and `…/ai/auto-remediation-rules`. The old addresses open the
 new pages, so bookmarks keep working.
 
+### The AI Logs get an index for the daily AI limits
+
+A project's daily AI limits (**Project Settings → AI Features → More
+settings**) and the incident and alert daily token limits add up the day's AI
+Logs before every AI call. Until now that read every AI Log the project had
+ever written, and a self-hosted install keeps them all. The upgrade adds an
+index on the AI Logs (`LlmLog`), on the project and the time of each call, so
+each check reads only that day's. The AI Logs page lists a project's logs
+faster too.
+
+Nothing to do: the index is built online during the upgrade
+(`CREATE INDEX CONCURRENTLY`), and AI calls keep working while it builds. On a
+large AI Logs table this takes a few minutes. The build waits at most two
+minutes behind any one long-running transaction, such as a backup, and runs at
+most fifteen. If it cannot finish, the upgrade still completes, the limits keep
+working without the index, and the log says so and how to build it. Run this
+on the OneUptime database, outside a transaction, at any time:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
+  ON "LlmLog" ("projectId", "createdAt");
+```
+
+If the log says an unfinished (INVALID) copy was left behind, drop it first
+with `DROP INDEX CONCURRENTLY IF EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT";`.
+That happens when a backup runs through the upgrade: the backup holds the
+table until it finishes. An index you build this way before upgrading is kept
+as it is.
+
+On Helm with `migrate.hook: true`, `helm upgrade` waits for the migrations, by
+default for 5 minutes. If your AI Logs table is very large, run this upgrade
+with `--timeout 20m`.
+
 ### Verify the edition and the license
 
 - The **edition label in the Admin Dashboard header** names the edition that is

@@ -11,6 +11,7 @@ import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
 import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
   afterEach,
   beforeEach,
@@ -49,6 +50,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const DEFAULT_OPERATIONAL_STATUS_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
+// Another status of the project, which a write may name for the monitor.
+const OTHER_STATUS_ID: string = "33333333-3333-4333-8333-333333333333";
 
 describe("MonitorService.onBeforeCreate operational status selection", () => {
   let findOneByMock: MockFunction;
@@ -141,5 +144,42 @@ describe("MonitorService.onBeforeCreate operational status selection", () => {
     expect(monitor.currentMonitorStatusId?.toString()).toBe(
       DEFAULT_OPERATIONAL_STATUS_ID.toString(),
     );
+  });
+
+  /*
+   * TypeORM stores a relation over its ID column, so a status the write
+   * named under the relation would be stored in place of the operational
+   * status the service stamps - unless the stamp leaves no relation beside
+   * it (RelationIdUtil.stamp).
+   */
+  test("a status the write named under the relation is replaced by the operational status, written under the ID column alone", async () => {
+    stubProjectDirectory({});
+
+    const monitor: Monitor = new Monitor();
+    monitor.monitorType = MonitorType.Manual;
+    (monitor as unknown as Record<string, unknown>)["currentMonitorStatus"] = {
+      _id: OTHER_STATUS_ID,
+    };
+
+    const createBy: CreateBy<Monitor> = {
+      data: monitor,
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    } as CreateBy<Monitor>;
+
+    await (
+      MonitorService as unknown as {
+        onBeforeCreate: (c: CreateBy<Monitor>) => Promise<unknown>;
+      }
+    ).onBeforeCreate(createBy);
+
+    expect(createBy.data.currentMonitorStatusId?.toString()).toBe(
+      DEFAULT_OPERATIONAL_STATUS_ID.toString(),
+    );
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        createBy.data,
+        "currentMonitorStatus",
+      ),
+    ).toBe(false);
   });
 });

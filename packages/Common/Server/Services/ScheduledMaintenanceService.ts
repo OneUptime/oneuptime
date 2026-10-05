@@ -37,12 +37,13 @@ import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/Scheduled
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
-  resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
   getAffectedResourceColumns,
   getAffectedResourceRelations,
@@ -156,6 +157,16 @@ type AttachmentsBeforeUpdate = {
 
 // Keyed by event id.
 type UpdateCarryForward = Dictionary<AttachmentsBeforeUpdate>;
+
+/*
+ * The two names of an event's state, ID column first. A write may name it
+ * under either, and the two must agree (RelationIdUtil.readConsistent), so
+ * the state the service acts on is the state stored.
+ */
+const STATE_KEYS: Array<string> = [
+  "currentScheduledMaintenanceStateId",
+  "currentScheduledMaintenanceState",
+];
 
 /*
  * What the write actually attached to and detached from one event, from its
@@ -970,13 +981,28 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
-    const stateId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.currentScheduledMaintenanceStateId) ||
-      resolveReferenceId(updateBy.data.currentScheduledMaintenanceState);
-
-    const monitorStatusId: ObjectID | string | undefined =
-      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
-      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+    /*
+     * The state and the monitor status, each by both of its names: the API
+     * takes the ID column and the relation alike, and every name that holds
+     * an id is checked. Two names that disagree are refused before anything
+     * is read.
+     */
+    const references: Array<ProjectScopedReference> = [
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "currentScheduledMaintenanceStateId",
+        relation: "currentScheduledMaintenanceState",
+        modelName: "Scheduled Maintenance State",
+        service: ScheduledMaintenanceStateService,
+      }),
+      ...getWrittenRelationReferences({
+        payload: updateBy.data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
+        modelName: "Monitor Status",
+        service: MonitorStatusService,
+      }),
+    ];
 
     // An empty list only removes rows and needs no check.
     const relations: Array<ProjectScopedRelation> =
@@ -990,7 +1016,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         },
       );
 
-    if (!stateId && !monitorStatusId && relations.length === 0) {
+    if (references.length === 0 && relations.length === 0) {
       return;
     }
 
@@ -1015,17 +1041,8 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         : undefined;
 
     for (const projectId of projectIds) {
-      const references: Array<ProjectScopedReference> = [
-        {
-          modelName: "Scheduled Maintenance State",
-          id: stateId,
-          service: ScheduledMaintenanceStateService,
-        },
-        {
-          modelName: "Monitor Status",
-          id: monitorStatusId,
-          service: MonitorStatusService,
-        },
+      const referencesInProject: Array<ProjectScopedReference> = [
+        ...references,
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: updateBy.data,
           relations: relations,
@@ -1034,18 +1051,14 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         }),
       ];
 
-      if (
-        references.every((reference: ProjectScopedReference) => {
-          return !reference.id;
-        })
-      ) {
+      if (referencesInProject.length === 0) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "scheduled maintenance event",
-        references: references,
+        references: referencesInProject,
       });
     }
   }
@@ -1278,13 +1291,22 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       );
     }
 
-    createBy.data.currentScheduledMaintenanceStateId =
-      scheduledMaintenanceState.id;
+    /*
+     * Every event starts scheduled, whatever state the write named under
+     * either name: stamp leaves no other name of it to be stored instead.
+     */
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      STATE_KEYS,
+      scheduledMaintenanceState.id,
+    );
 
     /*
-     * changeMonitorStatusToId comes straight from the API caller or a
-     * template, and nothing checked it belongs to this project. Persisting
-     * another project's id leaves that project undeletable.
+     * The monitor status to switch to comes straight from the API caller or
+     * a template, under either of its names, and nothing checked it belongs
+     * to this project. Persisting another project's id leaves that project
+     * undeletable. Every name that holds an id is checked, and two that
+     * disagree are refused.
      *
      * The monitors, labels and status pages lists are checked too: the event
      * changes the status of every listed monitor and notifies the subscribers
@@ -1301,13 +1323,13 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       projectId: projectId,
       subject: "scheduled maintenance event",
       references: [
-        {
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "changeMonitorStatusToId",
+          relation: "changeMonitorStatusTo",
           modelName: "Monitor Status",
-          id:
-            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
-            resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
-        },
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -2471,16 +2493,22 @@ ${scheduledMaintenance.description || "No description provided."}
       }
     }
 
-    if (
-      onUpdate.updateBy.data.currentScheduledMaintenanceStateId &&
-      onUpdate.updateBy.props.tenantId
-    ) {
+    /*
+     * The state the update wrote, under either of its names: onBeforeUpdate
+     * refused two that disagree, so this reads one value.
+     */
+    const updatedStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      STATE_KEYS,
+      "Scheduled Maintenance State",
+    );
+
+    if (updatedStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
         await this.changeScheduledMaintenanceState({
           projectId: onUpdate.updateBy.props.tenantId as ObjectID,
           scheduledMaintenanceId: itemId,
-          scheduledMaintenanceStateId: onUpdate.updateBy.data
-            .currentScheduledMaintenanceStateId as ObjectID,
+          scheduledMaintenanceStateId: updatedStateId,
           shouldNotifyStatusPageSubscribers: true,
           isSubscribersNotified: false,
           notifyOwners: true, // notifyOwners = true

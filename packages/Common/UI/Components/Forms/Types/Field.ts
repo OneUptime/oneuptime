@@ -336,6 +336,16 @@ export default interface Field<TEntity> {
   doNotShowWhenCreating?: boolean | undefined;
 
   /*
+   * `required` applies to a Create form only: on an Edit form the field is
+   * optional. For what a new record must have but an older one may lack - a
+   * label or owner rule must add something when it is made, yet a rule saved
+   * before the form asked can still be renamed or switched off
+   * (Dashboard Utils/Form/ResourceRuleForm). Read by ModelForm, which knows
+   * whether it creates or edits; a BasicForm used on its own ignores it.
+   */
+  doNotRequireWhenEditing?: boolean | undefined;
+
+  /*
    * The field only drives the form: it fills in, or edits a part of,
    * fields that are saved, and its own value is never sent. ModelForm
    * leaves it out of the request's misc data, where the value of a field

@@ -38,6 +38,7 @@ import Name from "../../Types/Name";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
@@ -78,6 +79,10 @@ export interface OnCallLeaveCleanupResult {
   rotatedScheduleFeedIds: Array<string>;
   rotatedProjectFeedIds: Array<string>;
 }
+
+// The two names of a membership's team and person, ID column first.
+const TEAM_KEYS: Array<string> = ["teamId", "team"];
+const USER_KEYS: Array<string> = ["userId", "user"];
 
 export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   /*
@@ -135,10 +140,31 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   ): Promise<OnCreate<TeamMember>> {
     await super.onBeforeCreate(createBy);
 
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The team and the person, each under either of its names: the two must
+     * agree (RelationIdUtil.readConsistent), and each is then written under
+     * its ID column alone (stamp), so every check below reads the team and
+     * the person the membership is stored with.
+     */
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
-    const teamId: ObjectID | null =
-      createBy.data.teamId || createBy.data.team?.id || null;
+    const teamId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      TEAM_KEYS,
+      "Team",
+    );
+    const namedUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
+      USER_KEYS,
+      "User",
+    );
+
+    if (namedUserId) {
+      RelationIdUtil.stamp(createData, USER_KEYS, namedUserId);
+    }
 
     if (!projectId) {
       throw new BadDataException("Project Id is required to invite a member");
@@ -149,7 +175,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     createBy.data.projectId = projectId;
-    createBy.data.teamId = teamId;
+    RelationIdUtil.stamp(createData, TEAM_KEYS, teamId);
 
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
       if (
@@ -368,7 +394,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         }
       }
 
-      createBy.data.userId = user.id!;
+      RelationIdUtil.stamp(createData, USER_KEYS, user.id!);
 
       invitedUser = user;
     }
@@ -381,7 +407,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     const member: TeamMember | null = await this.findOneBy({
       query: {
         userId: createBy.data.userId!,
-        teamId: createBy.data.teamId || new ObjectID(createBy.data.team!._id!),
+        teamId: teamId,
       },
       props: {
         isRoot: true,

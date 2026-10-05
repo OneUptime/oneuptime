@@ -40,7 +40,8 @@ const THIRTEEN_TO_FOURTEEN_HEADING: string =
 const NOTE_HEADING: string = "### AI has no limits by default";
 const PREVIOUS_NOTE_HEADING: string =
   "### New projects start with every AI feature on";
-const NEXT_NOTE_HEADING: string = "### Verify the edition and the license";
+const NEXT_NOTE_HEADING: string =
+  "### The AI Logs get an index for the daily AI limits";
 
 // How long a queued investigation waits in a lane with a cap before it expires.
 const QUEUE_EXPIRY_IN_MINUTES: number = 30;

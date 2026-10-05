@@ -451,19 +451,39 @@ describe.each(KINDS)(
      * A write may name the status by both names; each one is checked
      * against the template's project.
      */
-    test("both names in one write: a status of another project behind one of the project's own is refused", async () => {
+    test("both names in one write naming two statuses: refused, whichever name holds which", async () => {
+      /*
+       * Two names that disagree are refused before anything is read, so a
+       * status of another project behind one of the project's own is never
+       * looked up, let alone stored.
+       */
+      const conflict: RegExp =
+        /^Conflicting .* references were provided\. changeMonitorStatusToId and changeMonitorStatusTo are names for the same field/;
+
       await expect(
         put(kind, {
           changeMonitorStatusToId: DEGRADED_STATUS_ID,
           changeMonitorStatusTo: { _id: FOREIGN_STATUS_ID },
         }),
-      ).rejects.toThrow(`Monitor Status "${FOREIGN_STATUS_ID}"`);
+      ).rejects.toThrow(conflict);
 
       await expect(
         put(kind, {
           changeMonitorStatusToId: FOREIGN_STATUS_ID,
           changeMonitorStatusTo: { _id: DEGRADED_STATUS_ID },
         }),
+      ).rejects.toThrow(conflict);
+
+      expect(repositoryUpdate).not.toHaveBeenCalled();
+    });
+
+    test("a status of another project under either name alone is refused", async () => {
+      await expect(
+        put(kind, { changeMonitorStatusTo: { _id: FOREIGN_STATUS_ID } }),
+      ).rejects.toThrow(`Monitor Status "${FOREIGN_STATUS_ID}"`);
+
+      await expect(
+        put(kind, { changeMonitorStatusToId: FOREIGN_STATUS_ID }),
       ).rejects.toThrow(`Monitor Status "${FOREIGN_STATUS_ID}"`);
 
       expect(repositoryUpdate).not.toHaveBeenCalled();
@@ -529,15 +549,21 @@ describe("PUT an incident template's Initial Incident State", () => {
     for (const data of [
       { initialIncidentState: { _id: FOREIGN_STATE_ID } },
       { initialIncidentStateId: FOREIGN_STATE_ID },
-      {
-        initialIncidentStateId: INVESTIGATING_STATE_ID,
-        initialIncidentState: { _id: FOREIGN_STATE_ID },
-      },
     ]) {
       await expect(put(INCIDENT_TEMPLATE, data)).rejects.toThrow(
         `Incident State "${FOREIGN_STATE_ID}"`,
       );
     }
+
+    // Behind one of the project's own, the two names disagree: refused as such.
+    await expect(
+      put(INCIDENT_TEMPLATE, {
+        initialIncidentStateId: INVESTIGATING_STATE_ID,
+        initialIncidentState: { _id: FOREIGN_STATE_ID },
+      }),
+    ).rejects.toThrow(
+      /^Conflicting .* references were provided\. initialIncidentStateId and initialIncidentState are names for the same field/,
+    );
 
     expect(repositoryUpdate).not.toHaveBeenCalled();
   });
