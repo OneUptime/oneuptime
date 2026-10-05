@@ -4,6 +4,7 @@ import { Black } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
+import { CriteriaFilter } from "Common/Types/Monitor/CriteriaFilter";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
@@ -43,6 +44,12 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const filters: Array<CriteriaFilter> =
+    props.monitorCriteriaInstance.data?.filters || [];
+  // As the evaluator reads a criteria saved without one.
+  const filterCondition: FilterCondition =
+    props.monitorCriteriaInstance.data?.filterCondition || FilterCondition.All;
+
   return (
     <div className="mb-4">
       {props.monitorCriteriaInstance.data?.description && (
@@ -56,29 +63,25 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Filter} className="h-5 w-5 text-gray-900" />
           {/*
            * All or Any is named only once there are two filters to combine
-           * (isFilterConditionNeeded): one filter is simply the filter.
+           * (isFilterConditionNeeded): one filter is simply the filter, and
+           * no filter is no sentence at all. A criteria saved without a
+           * condition is evaluated as All, so that is what it says.
            */}
           <div
             className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500"
             data-testid="monitor-criteria-filters-heading"
           >
-            {isFilterConditionNeeded(
-              props.monitorCriteriaInstance.data?.filters,
-            ) ? (
+            {isFilterConditionNeeded(filters) ? (
               <>
                 <span className="font-medium text-gray-900">
                   {translator.translateTemplate("Filters ({{condition}})", {
-                    condition: translatableTerm(
-                      props.monitorCriteriaInstance.data?.filterCondition || "",
-                    ),
+                    condition: translatableTerm(filterCondition),
                   })}
                 </span>{" "}
                 {translator.translateTemplate(
                   "{{condition}} of these can match for this criteria to be met:",
                   {
-                    condition: translatableTerm(
-                      props.monitorCriteriaInstance.data?.filterCondition || "",
-                    ),
+                    condition: translatableTerm(filterCondition),
                   },
                 )}
               </>
@@ -86,9 +89,14 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               <>
                 <span className="font-medium text-gray-900">
                   {translator.translateText("Filters")}
-                </span>{" "}
-                {translator.translateText(
-                  "This criteria is met when this filter matches:",
+                </span>
+                {filters.length === 1 && (
+                  <>
+                    {" "}
+                    {translator.translateText(
+                      "This criteria is met when this filter matches:",
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -96,11 +104,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         </div>
 
         <CriteriaFilters
-          criteriaFilters={props.monitorCriteriaInstance?.data?.filters || []}
-          filterCondition={
-            props.monitorCriteriaInstance?.data?.filterCondition ||
-            FilterCondition.Any
-          }
+          criteriaFilters={filters}
+          filterCondition={filterCondition}
         />
       </div>
 

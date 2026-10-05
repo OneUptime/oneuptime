@@ -86,6 +86,9 @@ const getScheduleColumns: (
     nextSendAt: source[
       "nextSendAt"
     ] as WorkspaceSummaryScheduleColumns["nextSendAt"],
+    isEnabled: source[
+      "isEnabled"
+    ] as WorkspaceSummaryScheduleColumns["isEnabled"],
   };
 };
 
@@ -162,10 +165,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
   /*
    * A summary rescheduled - how often, or the first summary's date, really
-   * changed - gets its next send worked out again (the dashboard's edit form
-   * sends the schedule back unchanged on every save, and that changes
-   * nothing). It used to keep the next send it had: a new first summary
-   * date did nothing, and a new interval waited for the old one's send.
+   * changed - or switched back on gets its next send worked out again (the
+   * dashboard's edit form sends the schedule back unchanged on every save,
+   * and that changes nothing). It used to keep the next send it had: a new
+   * first summary date did nothing, a new interval waited for the old one's
+   * send, and a summary switched back on after a month sent at once for
+   * the month it was off.
    *
    * An update of one summary - every update from the dashboard or the API
    * by id - carries its next send in the same write. One that matched
@@ -182,7 +187,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     >;
     const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
 
-    if (!WorkspaceSummaryScheduleUtil.isScheduleWrite(write)) {
+    if (!WorkspaceSummaryScheduleUtil.isRescheduleWrite(write)) {
       return { updateBy: updateBy, carryForward: null };
     }
 
@@ -204,6 +209,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         recurringInterval: true,
         sendFirstReportAt: true,
         nextSendAt: true,
+        isEnabled: true,
       },
       props: {
         isRoot: true,

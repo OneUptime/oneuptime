@@ -98,6 +98,32 @@ describe("the sentence over a rule's conditions", () => {
     );
   });
 
+  test.each([FilterCondition.All, FilterCondition.Any, undefined])(
+    "over no conditions says no sentence, as the rule runs on every event (%s)",
+    (filterCondition: FilterCondition | undefined) => {
+      renderConditions([], filterCondition);
+
+      expect(
+        screen.queryByTestId("notification-rule-conditions-sentence"),
+      ).not.toBeInTheDocument();
+      expect(
+        getRuleConditionsSentence({
+          filters: [],
+          filterCondition: filterCondition,
+        }),
+      ).toBeUndefined();
+    },
+  );
+
+  test("over conditions it does not hold at all says no sentence either", () => {
+    expect(
+      getRuleConditionsSentence({
+        filters: undefined,
+        filterCondition: FilterCondition.All,
+      }),
+    ).toBeUndefined();
+  });
+
   test("reads a rule saved without a match condition as any, as it always did", () => {
     expect(
       getRuleConditionsSentence({

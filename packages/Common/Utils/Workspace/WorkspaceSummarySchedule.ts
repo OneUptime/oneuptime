@@ -31,8 +31,15 @@ import StatusPageReportScheduleUtil from "../StatusPage/ReportSchedule";
  *
  * A schedule the caller sends is kept. On an update, the next send is
  * worked out again only when how often or the first summary's date really
- * changes - editing a summary's name leaves its schedule alone - and never
- * for the worker's own writes, which move nextSendAt alone.
+ * changes, or the summary is switched back on - editing a summary's name
+ * leaves its schedule alone - and never for the worker's own writes, which
+ * move nextSendAt alone. The worker moves it to the schedule's first
+ * occurrence after now (getNextSendAfterDue), so a next send long past is
+ * sent once, not caught up on with a summary a minute.
+ *
+ * Every step counts whole calendar units in UTC: the summary stores no
+ * time zone, so a summary at 09:00 in Berlin goes out at 08:00 there once
+ * the clocks go back.
  *
  * Pure and synchronous, and in Common/Utils rather than Common/Server, so
  * the service that stores a summary and the form that shows the next one
@@ -44,6 +51,7 @@ export interface WorkspaceSummaryScheduleColumns {
   recurringInterval?: Recurring | JSONObject | null | undefined;
   sendFirstReportAt?: Date | string | null | undefined;
   nextSendAt?: Date | string | null | undefined;
+  isEnabled?: boolean | null | undefined;
 }
 
 // What a write to a summary has to carry as well.
@@ -219,6 +227,36 @@ export default class WorkspaceSummaryScheduleUtil {
     );
   }
 
+  /*
+   * Whether an update may move the next send: one that touches the
+   * schedule, or switches the summary on (a summary switched back on must
+   * not send at once for the time it was off).
+   */
+  public static isRescheduleWrite(
+    write: WorkspaceSummaryScheduleColumns,
+  ): boolean {
+    return this.isScheduleWrite(write) || write.isEnabled === true;
+  }
+
+  /*
+   * Where the report worker moves a summary's next send once it has sent
+   * it: the schedule's first occurrence after now, counted from the send
+   * that was due - one interval on, normally. A next send long past (a
+   * worker that was down) is not caught up on with a summary a minute: the
+   * worker sends once and moves on to the next occurrence still ahead.
+   */
+  public static getNextSendAfterDue(data: {
+    dueAt: Date;
+    recurringInterval: Recurring | JSONObject;
+    now?: Date | undefined;
+  }): Date {
+    return Recurring.getNextDateAfter({
+      startDate: data.dueAt,
+      recurring: Recurring.fromJSON(data.recurringInterval),
+      afterDate: data.now || OneUptimeDate.getCurrentDate(),
+    });
+  }
+
   private static isSameRecurring(
     first: Recurring | undefined,
     second: Recurring | undefined,
@@ -296,14 +334,15 @@ export default class WorkspaceSummaryScheduleUtil {
    * The schedule columns an update of one summary has to carry as well:
    * `write` is what the caller sends, `stored` what the summary holds now.
    *
-   * Only a write that really changes how often or the first summary's date
-   * gets a new next send: the first summary while it is ahead, else the
-   * first occurrence of the new schedule after now. A summary with no first
-   * summary date of its own - most made before the dashboard sent one -
-   * keeps the time of day of the send it has coming; one with nothing
-   * coming at all starts at the default first summary. Nothing is added to
-   * a write that carries a next send of its own (the report worker's), or to
-   * one that leaves the schedule as it is - editing a summary's name sends
+   * Only a write that really changes how often or the first summary's date,
+   * or switches the summary back on, gets a new next send: the first
+   * summary while it is ahead, else the first occurrence of the schedule
+   * after now. A summary with no first summary date of its own - most made
+   * before the dashboard sent one - keeps the time of day of the send it
+   * has coming; one with nothing coming at all starts at the default first
+   * summary. Nothing is added to a write that carries a next send of its
+   * own (the report worker's), or to one that leaves the schedule as it is
+   * and the summary on or off as it was - editing a summary's name sends
    * its schedule back unchanged.
    */
   public static getUpdateWrite(data: {
@@ -315,7 +354,7 @@ export default class WorkspaceSummaryScheduleUtil {
     const stored: WorkspaceSummaryScheduleColumns = data.stored;
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
 
-    if (!this.isScheduleWrite(write) || write.nextSendAt !== undefined) {
+    if (!this.isRescheduleWrite(write) || write.nextSendAt !== undefined) {
       return {};
     }
 
@@ -339,7 +378,15 @@ export default class WorkspaceSummaryScheduleUtil {
       !this.isSameRecurring(recurring, storedRecurring) ||
       !this.isSameDate(startDate, storedStartDate);
 
-    if (!isRescheduled || !recurring) {
+    /*
+     * Switched back on: the next send it had may be long past, and the
+     * worker would send at once for the time it was off. It goes out at the
+     * schedule's next occurrence instead.
+     */
+    const isTurningOn: boolean =
+      write.isEnabled === true && stored.isEnabled === false;
+
+    if ((!isRescheduled && !isTurningOn) || !recurring) {
       return {};
     }
 

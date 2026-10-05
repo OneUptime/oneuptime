@@ -339,6 +339,43 @@ describe("the criteria's read-only view", () => {
       "Filters (Any) Any of these can match for this criteria to be met:",
     );
   });
+
+  test.each([FilterCondition.All, FilterCondition.Any])(
+    "over no filters says no sentence about a filter (%s)",
+    (filterCondition: FilterCondition) => {
+      renderView(buildCriteria([], filterCondition));
+
+      expect(heading()).toBe("Filters");
+    },
+  );
+
+  test("over filters it does not hold at all says no sentence either", () => {
+    const instance: MonitorCriteriaInstance = buildCriteria(
+      [],
+      FilterCondition.All,
+    );
+    delete (instance.data as { filters?: Array<CriteriaFilter> }).filters;
+
+    renderView(instance);
+
+    expect(heading()).toBe("Filters");
+  });
+
+  test("reads two filters saved without a condition as All, as the evaluator does", () => {
+    // Saved through the API or Terraform with no filterCondition.
+    const instance: MonitorCriteriaInstance = buildCriteria(
+      [SLOW_RESPONSE, OFFLINE],
+      FilterCondition.All,
+    );
+    delete (instance.data as { filterCondition?: FilterCondition })
+      .filterCondition;
+
+    renderView(instance);
+
+    expect(heading()).toBe(
+      "Filters (All) All of these can match for this criteria to be met:",
+    );
+  });
 });
 
 describe("a monitor's evaluation log", () => {

@@ -500,3 +500,124 @@ describe("an update of a summary", () => {
     ).toEqual({});
   });
 });
+
+describe("switching a summary back on", () => {
+  const STORED_WEEKLY_ON: {
+    recurringInterval: Recurring;
+    sendFirstReportAt: Date;
+    nextSendAt: Date;
+    isEnabled: boolean;
+  } = {
+    recurringInterval: every(EventInterval.Week, 1),
+    sendFirstReportAt: at("2026-09-07T09:00:00.000Z"),
+    nextSendAt: at("2026-10-12T09:00:00.000Z"),
+    isEnabled: true,
+  };
+
+  test("is an update that may move the next send; switching it off is not", () => {
+    expect(
+      WorkspaceSummaryScheduleUtil.isRescheduleWrite({ isEnabled: true }),
+    ).toBe(true);
+    expect(
+      WorkspaceSummaryScheduleUtil.isRescheduleWrite({ isEnabled: false }),
+    ).toBe(false);
+    expect(WorkspaceSummaryScheduleUtil.isRescheduleWrite({})).toBe(false);
+  });
+
+  test("after months off sends at the schedule's next occurrence, not at once for the time it missed", () => {
+    expect(
+      describeWrite(
+        WorkspaceSummaryScheduleUtil.getUpdateWrite({
+          write: { isEnabled: true },
+          stored: {
+            recurringInterval: every(EventInterval.Week, 1),
+            sendFirstReportAt: at("2026-06-01T09:00:00.000Z"),
+            nextSendAt: at("2026-07-06T09:00:00.000Z"),
+            isEnabled: false,
+          },
+          now: NOW,
+        }),
+      ),
+    ).toEqual({ nextSendAt: "2026-10-12T09:00:00.000Z" });
+  });
+
+  test("with no first summary date of its own keeps the time of day it had", () => {
+    expect(
+      describeWrite(
+        WorkspaceSummaryScheduleUtil.getUpdateWrite({
+          write: { isEnabled: true },
+          stored: {
+            recurringInterval: every(EventInterval.Day, 1),
+            sendFirstReportAt: null,
+            nextSendAt: at("2026-08-01T15:20:00.000Z"),
+            isEnabled: false,
+          },
+          now: NOW,
+        }),
+      ),
+    ).toEqual({ nextSendAt: "2026-10-05T15:20:00.000Z" });
+  });
+
+  test("that was on already - every save of the edit form - adds nothing", () => {
+    expect(
+      WorkspaceSummaryScheduleUtil.getUpdateWrite({
+        write: { isEnabled: true },
+        stored: STORED_WEEKLY_ON,
+        now: NOW,
+      }),
+    ).toEqual({});
+  });
+
+  test("switching it off adds nothing: an off summary is not sent at all", () => {
+    expect(
+      WorkspaceSummaryScheduleUtil.getUpdateWrite({
+        write: { isEnabled: false },
+        stored: STORED_WEEKLY_ON,
+        now: NOW,
+      }),
+    ).toEqual({});
+  });
+});
+
+describe("the report worker's next send, once it has sent", () => {
+  test("is one interval on from the send that was due", () => {
+    expect(
+      WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+        dueAt: at("2026-10-05T11:59:00.000Z"),
+        recurringInterval: every(EventInterval.Week, 1),
+        now: NOW,
+      }).toISOString(),
+    ).toBe("2026-10-12T11:59:00.000Z");
+  });
+
+  test("is the next occurrence still ahead after a send long past - one summary, not a burst", () => {
+    // Due three months ago: a weekly summary at Monday 09:00.
+    expect(
+      WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+        dueAt: at("2026-07-06T09:00:00.000Z"),
+        recurringInterval: every(EventInterval.Week, 1),
+        now: NOW,
+      }).toISOString(),
+    ).toBe("2026-10-12T09:00:00.000Z");
+  });
+
+  test("keeps a monthly summary on its day", () => {
+    expect(
+      WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+        dueAt: at("2026-10-01T09:00:00.000Z"),
+        recurringInterval: every(EventInterval.Month, 1).toJSON(),
+        now: NOW,
+      }).toISOString(),
+    ).toBe("2026-11-01T09:00:00.000Z");
+  });
+
+  test("throws for an interval that cannot be read, which the worker retries", () => {
+    expect(() => {
+      WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+        dueAt: at("2026-10-05T11:59:00.000Z"),
+        recurringInterval: { _type: "Recurring" },
+        now: NOW,
+      });
+    }).toThrow();
+  });
+});

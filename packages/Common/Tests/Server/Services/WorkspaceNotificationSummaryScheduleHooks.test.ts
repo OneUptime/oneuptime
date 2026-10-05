@@ -125,7 +125,7 @@ function stored(
   columns: Partial<
     Pick<
       WorkspaceNotificationSummary,
-      "recurringInterval" | "sendFirstReportAt" | "nextSendAt"
+      "recurringInterval" | "sendFirstReportAt" | "nextSendAt" | "isEnabled"
     >
   >,
 ): WorkspaceNotificationSummary {
@@ -358,6 +358,43 @@ describe("updating a summary", () => {
     expect(
       iso((onUpdate.updateBy.data as Record<string, unknown>)["nextSendAt"]),
     ).toBe("2026-10-21T17:00:00.000Z");
+  });
+
+  test("that switches it back on after months off sends at the next occurrence, not at once", async () => {
+    const findBy: jest.SpyInstance<any, any> = getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockResolvedValue([
+      stored(SUMMARY_ID, {
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: at("2026-06-01T09:00:00.000Z"),
+        nextSendAt: at("2026-07-06T09:00:00.000Z"),
+        isEnabled: false,
+      }),
+    ]);
+
+    const onUpdate: OnUpdate<WorkspaceNotificationSummary> =
+      await hooks.onBeforeUpdate(updateBy({ isEnabled: true }));
+
+    expect(
+      iso((onUpdate.updateBy.data as Record<string, unknown>)["nextSendAt"]),
+    ).toBe("2026-10-12T09:00:00.000Z");
+    expect(findBy.mock.calls[0]![0]["select"]).toEqual(
+      expect.objectContaining({ isEnabled: true }),
+    );
+  });
+
+  test("that switches it off reads nothing and adds nothing", async () => {
+    const findBy: jest.SpyInstance<any, any> = getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockResolvedValue([]);
+
+    const onUpdate: OnUpdate<WorkspaceNotificationSummary> =
+      await hooks.onBeforeUpdate(updateBy({ isEnabled: false }));
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(onUpdate.updateBy.data).toEqual({ isEnabled: false });
   });
 
   test("with an interval that cannot be read is refused before anything is read", async () => {

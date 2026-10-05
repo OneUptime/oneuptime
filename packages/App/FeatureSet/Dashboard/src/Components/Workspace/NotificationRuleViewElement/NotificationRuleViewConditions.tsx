@@ -50,10 +50,15 @@ export const RULE_CONDITIONS_SENTENCES: {
 export const getRuleConditionsSentence: (data: {
   filters: Array<NotificationRuleCondition> | undefined;
   filterCondition: FilterCondition | undefined;
-}) => string = (data: {
+}) => string | undefined = (data: {
   filters: Array<NotificationRuleCondition> | undefined;
   filterCondition: FilterCondition | undefined;
-}): string => {
+}): string | undefined => {
+  // No conditions: the rule runs for every event, which its view says itself.
+  if (!data.filters || data.filters.length === 0) {
+    return undefined;
+  }
+
   if (!isFilterConditionNeeded(data.filters)) {
     return RULE_CONDITIONS_SENTENCES.one;
   }
@@ -67,20 +72,21 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const sentence: string | undefined = getRuleConditionsSentence({
+    filters: props.criteriaFilters,
+    filterCondition: props.filterCondition,
+  });
 
   return (
     <div>
-      <div
-        className="text-gray-700 text-sm py-2"
-        data-testid="notification-rule-conditions-sentence"
-      >
-        {translator.translateText(
-          getRuleConditionsSentence({
-            filters: props.criteriaFilters,
-            filterCondition: props.filterCondition,
-          }),
-        )}
-      </div>
+      {sentence && (
+        <div
+          className="text-gray-700 text-sm py-2"
+          data-testid="notification-rule-conditions-sentence"
+        >
+          {translator.translateText(sentence)}
+        </div>
+      )}
 
       <div className="ml-3 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
         <ul role="list" className="space-y-6">
