@@ -1,4 +1,5 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { getPlanNeededToComeBack } from "Common/Types/Billing/PlanGatedChoice";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   getStatusPageAccess,
@@ -413,9 +414,8 @@ export const getPlanNeededForAccess: (data: {
 /*
  * Moving a page off a choice the project's plan does not include - one a
  * trial left private, on a project now on Free: the move needs no plan, but
- * coming back does. The plan coming back needs, or null when the move is
- * not one of those (it needs a plan itself, or coming back needs none). The
- * dialog says so before the move is saved.
+ * coming back does (Common/Types/Billing/PlanGatedChoice). The plan coming
+ * back needs, or null; the dialog says so before the move is saved.
  */
 export const getPlanNeededToComeBackToAccess: (data: {
   from: StatusPageAccessState;
@@ -426,20 +426,28 @@ export const getPlanNeededToComeBackToAccess: (data: {
   to: StatusPageAccess;
   getPlanNeeded: (column: string, value: unknown) => PlanType | null;
 }): PlanType | null => {
-  const current: StatusPageAccess = getStatusPageAccess(data.from);
-
-  if (current === data.to || getPlanNeededForAccess(data)) {
-    return null;
-  }
-
-  return getPlanNeededForAccess({
-    from: getStatusPageAccessStateAfter({
-      from: data.from,
-      to: data.to,
-      isPasswordEntered: false,
-    }),
-    to: current,
-    getPlanNeeded: data.getPlanNeeded,
+  return getPlanNeededToComeBack<StatusPageAccess, StatusPageAccessState>({
+    from: data.from,
+    to: data.to,
+    getChoice: getStatusPageAccess,
+    getStateAfter: (move: {
+      from: StatusPageAccessState;
+      to: StatusPageAccess;
+    }): StatusPageAccessState => {
+      return getStatusPageAccessStateAfter({
+        ...move,
+        isPasswordEntered: false,
+      });
+    },
+    getPlanNeededForMove: (move: {
+      from: StatusPageAccessState;
+      to: StatusPageAccess;
+    }): PlanType | null => {
+      return getPlanNeededForAccess({
+        ...move,
+        getPlanNeeded: data.getPlanNeeded,
+      });
+    },
   });
 };
 

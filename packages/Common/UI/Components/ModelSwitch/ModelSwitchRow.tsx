@@ -22,10 +22,12 @@ import {
 } from "./ModelSwitchEvents";
 import {
   getPlanNeededToChangeColumn,
+  getPlanNeededToFlipSwitch,
   getStoredValueForSwitch,
   getSwitchPlanLeftover,
   ModelSwitchColumn,
   SWITCH_PLAN_LEFTOVER_COPY,
+  SWITCH_PLAN_LOCKED_COPY,
   SwitchPlanLeftover,
 } from "./ModelSwitchUtil";
 import React, {
@@ -134,6 +136,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * status `${dataTestId}-status`.
    */
   dataTestId?: string | undefined;
+  /*
+   * Lock the switch, saying the plan, whenever flipping it from where it is
+   * needs a plan the project does not have - instead of letting the server
+   * refuse it. For a switch drawn under a plan's upsell, which is there only
+   * so what a trial left on can be switched back off: once it is, it stays.
+   */
+  locksWhenPlanNeeded?: boolean | undefined;
 }
 
 export enum ModelSwitchSaveState {
@@ -198,6 +207,16 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     model,
     props.column,
   );
+
+  // Locked by the plan: see locksWhenPlanNeeded.
+  const planNeededToFlip: PlanType | null = props.locksWhenPlanNeeded
+    ? getPlanNeededToFlipSwitch({
+        model: model,
+        column: props.column,
+        isOn: isOn,
+        isInverted: props.isInverted,
+      })
+    : null;
 
   useEffect(() => {
     return subscribeToModelSwitchSaved({
@@ -269,7 +288,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   };
 
   const change: (value: boolean) => void = (value: boolean): void => {
-    if (isBusyRef.current || !updateGate.isAllowed) {
+    if (isBusyRef.current || !updateGate.isAllowed || planNeededToFlip) {
       return;
     }
 
@@ -373,7 +392,17 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   const isLocked: boolean =
     saveState === ModelSwitchSaveState.Saving ||
     saveState === ModelSwitchSaveState.Confirming ||
-    !updateGate.isAllowed;
+    !updateGate.isAllowed ||
+    Boolean(planNeededToFlip);
+
+  // Why it is locked: the missing permission first, then the plan.
+  const lockedReason: string | undefined =
+    updateGate.disabledReason ||
+    (planNeededToFlip
+      ? translator.translateTemplate(SWITCH_PLAN_LOCKED_COPY, {
+          planName: planNeededToFlip,
+        })
+      : undefined);
 
   const getSaveStateElement: () => ReactNode = (): ReactNode => {
     if (saveState === ModelSwitchSaveState.Saving) {
@@ -419,7 +448,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
           description={description}
           value={isOn}
           disabled={isLocked}
-          tooltip={updateGate.disabledReason}
+          tooltip={lockedReason}
           error={error || undefined}
           dataTestId={props.dataTestId}
           onChange={(value: boolean) => {

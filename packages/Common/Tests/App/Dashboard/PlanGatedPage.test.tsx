@@ -352,6 +352,24 @@ describe("PlanGatedPage draws what can still be switched off under the upsell", 
     },
   );
 
+  test("not while the plan is unknown, or one the Dashboard cannot read: the upsell shows, nothing under it", () => {
+    billingEnabledForTest = true;
+    currentPlanForTest = null;
+
+    const { unmount } = renderWithBelowPlan();
+
+    expectUpsell("Scale");
+    expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+    unmount();
+
+    currentPlanThrows = true;
+
+    renderWithBelowPlan();
+
+    expectUpsell("Scale");
+    expect(screen.queryByTestId("below-plan")).not.toBeInTheDocument();
+  });
+
   test("self-hosted (billing off), only the page shows", () => {
     billingEnabledForTest = false;
 

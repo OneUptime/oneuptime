@@ -170,11 +170,16 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
       "Components/Project/RequireSsoForLoginLeftover.tsx",
     );
 
-    // Read once: only whether the project requires SSO.
+    /*
+     * Read once: only whether the project requires SSO, by the server's own
+     * rule for "off" - and the card starts from what was read.
+     */
     expect(leftover).toContain("select: { requireSsoForLogin: true, }");
-    expect(leftover).toContain("project?.requireSsoForLogin === true");
     expect(leftover).toContain(
-      "<RequireSsoForLoginCard projectId={props.projectId} isPlanLeftover={true} />",
+      'isPlanGatedColumnOff( project.getTableColumnMetadata("requireSsoForLogin"), project.requireSsoForLogin, )',
+    );
+    expect(leftover).toContain(
+      "<RequireSsoForLoginCard projectId={props.projectId} isPlanLeftover={true} initialProject={requiringProject} />",
     );
 
     const card: string = readDashboard(
@@ -184,6 +189,9 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
     expect(card).toContain(
       "cardDescription={ props.isPlanLeftover ? undefined : RequireSsoForLoginSwitchCopy.cardDescription }",
     );
+    // Once off, it locks: turning it on again needs Scale.
+    expect(card).toContain("locksWhenPlanNeeded={props.isPlanLeftover}");
+    expect(card).toContain("initialItem={props.initialProject}");
   });
 });
 

@@ -25139,5 +25139,16 @@
   "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.": "kubectl コマンドはダッシュボードから再実行されず、その出力もここには表示されません。レポートには OneUptime AI が出力から読み取った内容が引用されています。クラスターの AI ログページ（AI → ログ）に、OneUptime AI がそこで実行したすべての kubectl コマンドが一覧表示されます。",
   "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "ご利用のプランにはこの設定が含まれていません。オフにすることはできますが、再びオンにするには {{planName}} プランが必要です。",
   "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "ご利用のプランにはこの設定が含まれていません。オンにすることはできますが、再びオフにするには {{planName}} プランが必要です。",
-  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "ご利用のプランには「{{choiceName}}」が含まれていないため、後で再び選ぶには {{planName}} プランが必要です。"
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "ご利用のプランには「{{choiceName}}」が含まれていないため、後で再び選ぶには {{planName}} プランが必要です。",
+  "Changing this setting needs the {{planName}} plan.": "この設定を変更するには {{planName}} プランが必要です。",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "今後、各テレメトリタイプはプロジェクトのデフォルトの保持期間で保持されます（独自の保持期間を持つサービスやリソースを除く）。すでに保存されているデータは、保存時の保持期間のままです。",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "今後、ここからのテレメトリはプロジェクトの保持期間で保持されます。すでに保存されているデータは、保存時の保持期間のままです。",
+  "Is Public": "Is Public",
+  "Remove Override": "上書きを削除",
+  "Remove the retention override?": "保持期間の上書きを削除しますか？",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "削除しました。今後、ここからのテレメトリはプロジェクトの保持期間で保持されます。",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "削除しました。今後、テレメトリはプロジェクトのデフォルトの保持期間で保持されます。",
+  "Retention Override": "保持期間の上書き",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "一部のテレメトリタイプは、プロジェクトのデフォルトではなく独自の保持期間で保持されています。ご利用のプランにはテレメトリタイプ別の保持期間が含まれていません。削除はできますが、再び設定するには {{planName}} プランが必要です。",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "ここからのテレメトリは、プロジェクトのものではなく独自の保持期間で保持されています。ご利用のプランには保持期間の上書きが含まれていません。この上書きは削除できますが、再び設定するには {{planName}} プランが必要です。"
 }

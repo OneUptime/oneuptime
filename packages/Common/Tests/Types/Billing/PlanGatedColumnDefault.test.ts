@@ -229,6 +229,26 @@ describe("a column with no default: nothing set is the default", () => {
   });
 });
 
+describe("a switch with no declared default (no plan-gated column has one today)", () => {
+  const switchColumn: TableColumnMetadata = column({
+    type: TableColumnType.Boolean,
+  });
+
+  test("is off when it holds nothing, so false and null are its default, as the dashboard's switches read it", () => {
+    expect(isPlanGatedColumnDefault(switchColumn, false)).toBe(true);
+    expect(isPlanGatedColumnDefault(switchColumn, null)).toBe(true);
+  });
+
+  test("true, or anything that is not a boolean, is not", () => {
+    for (const value of [true, "false", 0, ""]) {
+      expect([value, isPlanGatedColumnDefault(switchColumn, value)]).toEqual([
+        value,
+        false,
+      ]);
+    }
+  });
+});
+
 describe("JSON defaults (no plan-gated column has one today)", () => {
   const jsonColumn: TableColumnMetadata = column({
     type: TableColumnType.JSON,

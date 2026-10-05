@@ -4,6 +4,7 @@ import EnterpriseFeatureUpgrade, {
 } from "../EnterpriseEdition/EnterpriseFeatureUpgrade";
 import {
   EnterpriseRequiredPlan,
+  isKnownToBeBelowPlan,
   isPlanFeatureEligible,
 } from "../../Enterprise/EnterpriseEligibility";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
@@ -24,7 +25,9 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * `belowPlan` is drawn under the upsell - the page's switches for what a
  * trial (or a move to a lower plan) left on, which the server lets go back
  * to their defaults whatever the plan. It draws nothing while nothing is
- * left on.
+ * left on, and only once the project's plan is known to be below
+ * (isKnownToBeBelowPlan): not while the plan loads, when the upsell shows
+ * for every project.
  */
 
 // The upsell card's own props; its plan comes from `requiredPlan`.
@@ -57,7 +60,11 @@ const PlanGatedPage: FunctionComponent<ComponentProps> = (
           requiredPlan={props.requiredPlan}
           reason={EnterpriseUpgradeReason.Plan}
         />
-        {props.belowPlan || <></>}
+        {props.belowPlan && isKnownToBeBelowPlan(props.requiredPlan) ? (
+          props.belowPlan
+        ) : (
+          <></>
+        )}
       </>
     );
   }

@@ -1,4 +1,5 @@
 import Project from "Common/Models/DatabaseModels/Project";
+import { isPlanGatedColumnOff } from "Common/Types/Billing/PlanGatedColumnDefault";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -21,11 +22,12 @@ import RequireSsoForLoginCard from "./RequireSsoForLoginCard";
  * can be turned off; turning it on again needs Scale, which the switch's
  * pill and note say.
  *
- * Read once, when the page opens. Once drawn, the card stays after the
- * switch is turned off, so its "Saved" shows and the switch can be read.
- * A project that does not require SSO - nearly all of them - gets nothing
- * under the upsell, and so does one whose read fails: the upsell is the
- * page.
+ * Read once, when the page opens, and the card is handed what was read
+ * (no second read). Once drawn, the card stays after the switch is turned
+ * off, so its "Saved" shows and the switch can be read - locked then,
+ * saying that requiring SSO again needs Scale. A project that does not
+ * require SSO - nearly all of them - gets nothing under the upsell, and so
+ * does one whose read fails: the upsell is the page.
  */
 
 export interface ComponentProps {
@@ -38,13 +40,16 @@ export const REQUIRE_SSO_FOR_LOGIN_LEFTOVER_TEST_ID: string =
 const RequireSsoForLoginLeftover: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [isRequired, setIsRequired] = useState<boolean>(false);
+  // The project as read, while it still requires SSO.
+  const [requiringProject, setRequiringProject] = useState<Project | null>(
+    null,
+  );
   const projectIdString: string = props.projectId.toString();
 
   useEffect(() => {
     let isCurrent: boolean = true;
 
-    setIsRequired(false);
+    setRequiringProject(null);
 
     ModelAPI.getItem<Project>({
       modelType: Project,
@@ -54,8 +59,15 @@ const RequireSsoForLoginLeftover: FunctionComponent<ComponentProps> = (
       },
     })
       .then((project: Project | null): void => {
-        if (isCurrent && project?.requireSsoForLogin === true) {
-          setIsRequired(true);
+        if (
+          isCurrent &&
+          project &&
+          !isPlanGatedColumnOff(
+            project.getTableColumnMetadata("requireSsoForLogin"),
+            project.requireSsoForLogin,
+          )
+        ) {
+          setRequiringProject(project);
         }
       })
       .catch((): void => {
@@ -67,7 +79,7 @@ const RequireSsoForLoginLeftover: FunctionComponent<ComponentProps> = (
     };
   }, [projectIdString]);
 
-  if (!isRequired) {
+  if (!requiringProject) {
     return <></>;
   }
 
@@ -76,6 +88,7 @@ const RequireSsoForLoginLeftover: FunctionComponent<ComponentProps> = (
       <RequireSsoForLoginCard
         projectId={props.projectId}
         isPlanLeftover={true}
+        initialProject={requiringProject}
       />
     </div>
   );

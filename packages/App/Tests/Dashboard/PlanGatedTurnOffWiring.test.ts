@@ -16,13 +16,22 @@ import path from "path";
  *     a private status page public - needs no plan, and its dialog says what
  *     coming back takes (ChoiceRows' CHOICE_PLAN_LEFTOVER_COPY);
  *   - "Require SSO for Login" stays reachable under the Scale upsell while a
- *     project still requires SSO.
+ *     project still requires SSO, and locks once off (turning it on again
+ *     needs Scale);
+ *   - a retention override a trial left set is shown, with a Remove button,
+ *     under the retention pages' upsell (RetentionOverrideLeftover).
+ *
+ * What a page draws under its upsell waits until the project is known to be
+ * below the plan (isKnownToBeBelowPlan), so a project on the plan never
+ * reads anything for it while its plan loads.
  *
  * This holds the source to that, and the new sentences to a translation in
  * every language. The behaviour is tested in Common/Tests (PlanGatedTurnOff,
- * PlanGatedTurnOffWrites, PlanGatedColumnDefault, ModelSwitchRow,
- * ModelSwitchUtil, DashboardSharingCard, StatusPageAccessCard,
- * StatusPageReportsCard, PlanGatedPage, SsoPages).
+ * PlanGatedTurnOffWrites, PlanGatedColumnDefault, PlanGatedChoice,
+ * ModelSwitchRow, ModelSwitchUtil, ModelSwitchCard, DashboardSharingCard,
+ * StatusPageAccessCard, StatusPageReportsCard, PlanGatedPage,
+ * EnterprisePluginPage, SsoPages, TelemetryRetentionShells,
+ * RetentionOverrideLeftover).
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -58,6 +67,25 @@ const NEW_SENTENCES: Array<string> = [
   "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.",
   "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.",
   "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.",
+  "Changing this setting needs the {{planName}} plan.",
+];
+
+// The retention override card's, written once in RetentionOverrideLeftoverCopy.
+const RETENTION_SENTENCES: Array<string> = [
+  "Retention Override",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.",
+  "Removed. Telemetry from here is kept for the project's retention from now on.",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.",
+  "Removed. Telemetry is kept for the project's default retention from now on.",
+  "Remove Override",
+  "Remove the retention override?",
+];
+
+const ALL_NEW_SENTENCES: Array<string> = [
+  ...NEW_SENTENCES,
+  ...RETENTION_SENTENCES,
 ];
 
 // Source with comments dropped and whitespace collapsed.
@@ -124,12 +152,27 @@ describe("the sentences that say a paid feature can still be switched off", () =
     expect(switchUtil).toContain(NEW_SENTENCES[0]);
     expect(switchUtil).toContain(NEW_SENTENCES[1]);
     expect(choiceRows).toContain(NEW_SENTENCES[2]);
+    expect(switchUtil).toContain(NEW_SENTENCES[3]);
+
+    const retentionCopy: string = readSource(
+      path.join(
+        DASHBOARD_SRC,
+        "Components/TelemetryResource/RetentionOverrideLeftoverCopy.ts",
+      ),
+    );
+
+    for (const sentence of RETENTION_SENTENCES) {
+      expect([sentence, retentionCopy.includes(sentence)]).toEqual([
+        sentence,
+        true,
+      ]);
+    }
   });
 
   test("are keys of the English locale", () => {
     const english: Record<string, unknown> = readLocale("en");
 
-    for (const sentence of NEW_SENTENCES) {
+    for (const sentence of ALL_NEW_SENTENCES) {
       expect([sentence, english[sentence]]).toEqual([sentence, sentence]);
     }
   });
@@ -139,7 +182,7 @@ describe("the sentences that say a paid feature can still be switched off", () =
     (locale: string) => {
       const translations: Record<string, unknown> = readLocale(locale);
 
-      for (const sentence of NEW_SENTENCES) {
+      for (const sentence of ALL_NEW_SENTENCES) {
         const translated: unknown = translations[sentence];
 
         expect([locale, typeof translated]).toEqual([locale, "string"]);
@@ -185,7 +228,7 @@ describe("the dashboard asks the server's rule, per value", () => {
       'import { isPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";',
     );
     expect(switchUtil).toContain(
-      "if (isPlanGatedColumnDefault(metadata, value)) { return null; }",
+      "if (isPlanGatedColumnDefault(getColumnMetadata(model, column), value)) { return null; }",
     );
 
     const columnPermission: string = readSource(
@@ -261,11 +304,54 @@ describe("the dashboard asks the server's rule, per value", () => {
     ).toContain("getPlanNeededToComeBackToDashboardAccess({");
   });
 
-  test("a plan-gated page draws what can still be switched off under its upsell", () => {
+  test("a plan-gated page draws what can still be switched off under its upsell, once the plan is known to be below", () => {
     const gate: string = readSource(
       path.join(DASHBOARD_SRC, "Components/Billing/PlanGatedPage.tsx"),
     );
 
-    expect(gate).toContain("{props.belowPlan || <></>}");
+    expect(gate).toContain(
+      "{props.belowPlan && isKnownToBeBelowPlan(props.requiredPlan) ? ( props.belowPlan ) : ( <></> )}",
+    );
+
+    const pluginPage: string = readSource(
+      path.join(DASHBOARD_SRC, "Enterprise/EnterprisePluginPage.tsx"),
+    );
+
+    // Under the plan upsell only: never the edition one.
+    expect(pluginPage).toContain(
+      "props.belowPlan && !isEligible && isKnownToBeBelowPlan(props.requiredPlan)",
+    );
+  });
+
+  test("the retention pages hand their override card to the upsell", () => {
+    const resourceShell: string = readSource(
+      path.join(
+        DASHBOARD_SRC,
+        "Components/TelemetryResource/TelemetryResourceRetentionSettings.tsx",
+      ),
+    );
+
+    expect(resourceShell).toContain(
+      "belowPlan={ <RetentionOverrideLeftover<TModel> modelType={props.modelType} modelId={props.modelId} kind={RetentionOverrideLeftoverKind.Resource} /> }",
+    );
+
+    const projectPage: string = readSource(
+      path.join(DASHBOARD_SRC, "Pages/Settings/TelemetrySettings.tsx"),
+    );
+
+    expect(projectPage).toContain(
+      "belowPlan={ <RetentionOverrideLeftover<Project> modelType={Project} modelId={ProjectUtil.getCurrentProjectId()!} kind={RetentionOverrideLeftoverKind.Project} /> }",
+    );
+
+    const card: string = readSource(
+      path.join(
+        DASHBOARD_SRC,
+        "Components/TelemetryResource/RetentionOverrideLeftover.tsx",
+      ),
+    );
+
+    // It removes the override by writing the columns' default: nothing set.
+    expect(card).toContain("isPlanGatedColumnOff(");
+    expect(card).toContain("ModelAPI.updateById<TModel>({");
   });
 });

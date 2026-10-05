@@ -761,6 +761,94 @@ describe("ModelSwitchRow lets a paid feature be switched off on any plan", () =>
     expect(leftover()).not.toBeInTheDocument();
   });
 
+  // The switch's description, as a screen reader is handed it.
+  function describedText(): string {
+    return (theSwitch().getAttribute("aria-describedby") || "")
+      .split(" ")
+      .filter((id: string): boolean => {
+        return id.length > 0;
+      })
+      .map((id: string): string => {
+        return document.getElementById(id)?.textContent || "";
+      })
+      .join(" ");
+  }
+
+  function requireSsoRow(
+    props?: Partial<ComponentProps<Project>>,
+  ): ReactElement {
+    return rowFor<Project>({
+      modelType: Project,
+      column: "requireSsoForLogin",
+      title: "Require SSO for Login",
+      ...props,
+    });
+  }
+
+  test("drawn only to be switched back off (locksWhenPlanNeeded): it turns off at once, then locks, saying the plan", async () => {
+    plan = PlanType.Growth;
+
+    render(requireSsoRow({ initialValue: true, locksWhenPlanNeeded: true }));
+
+    // On, below Scale: turning it off is free, so it can be pressed.
+    expect(theSwitch()).not.toHaveAttribute("aria-disabled", "true");
+
+    await press();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateCall().data).toEqual({ requireSsoForLogin: false });
+    expect(theSwitch()).toHaveAttribute("aria-checked", "false");
+
+    // Off now: turning it on again needs Scale, so it is locked, with why.
+    expect(theSwitch()).toHaveAttribute("aria-disabled", "true");
+    expect(describedText()).toContain(
+      "Changing this setting needs the Scale plan.",
+    );
+
+    // A press does nothing: no request, no dialog.
+    await press();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+    expect(theSwitch()).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("locksWhenPlanNeeded starting off, below the plan: locked from the start, with why", () => {
+    plan = PlanType.Free;
+
+    render(requireSsoRow({ initialValue: false, locksWhenPlanNeeded: true }));
+
+    expect(theSwitch()).toHaveAttribute("aria-disabled", "true");
+    expect(describedText()).toContain(
+      "Changing this setting needs the Scale plan.",
+    );
+  });
+
+  test("locksWhenPlanNeeded on a plan that has the feature, or with billing off, locks nothing", () => {
+    for (const current of [PlanType.Scale, null]) {
+      plan = current;
+
+      render(requireSsoRow({ initialValue: false, locksWhenPlanNeeded: true }));
+
+      expect([current, theSwitch().getAttribute("aria-disabled")]).not.toEqual([
+        current,
+        "true",
+      ]);
+      expect(describedText()).not.toContain("Changing this setting needs");
+
+      cleanup();
+    }
+  });
+
+  test("without locksWhenPlanNeeded a switch below its plan stays pressable: the server has the last word, as before", () => {
+    plan = PlanType.Growth;
+
+    render(requireSsoRow({ initialValue: false }));
+
+    expect(theSwitch()).not.toHaveAttribute("aria-disabled", "true");
+    expect(describedText()).not.toContain("Changing this setting needs");
+  });
+
   test("no sentence for someone who may not change it: the switch is locked, with why", () => {
     plan = PlanType.Free;
     permissionsForTest = [Permission.ProjectMember];

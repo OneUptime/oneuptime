@@ -25139,5 +25139,16 @@
   "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.": "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.",
   "Your plan does not include this setting. You can turn it off, but turning it on again needs the {{planName}} plan.": "طرح شما این تنظیم را ندارد. می‌توانید آن را خاموش کنید، اما برای روشن کردن دوباره‌اش به طرح {{planName}} نیاز دارید.",
   "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.": "طرح شما این تنظیم را ندارد. می‌توانید آن را روشن کنید، اما برای خاموش کردن دوباره‌اش به طرح {{planName}} نیاز دارید.",
-  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "طرح شما «{{choiceName}}» را ندارد، پس برای انتخاب دوباره‌ی آن در آینده به طرح {{planName}} نیاز دارید."
+  "Your plan does not include “{{choiceName}}”, so picking it again later needs the {{planName}} plan.": "طرح شما «{{choiceName}}» را ندارد، پس برای انتخاب دوباره‌ی آن در آینده به طرح {{planName}} نیاز دارید.",
+  "Changing this setting needs the {{planName}} plan.": "برای تغییر این تنظیم به طرح {{planName}} نیاز دارید.",
+  "From now on, each type of telemetry is kept for the project's default retention, unless a service or resource has its own. What is already stored keeps the retention it was stored with.": "از این پس هر نوع تله‌متری با مدت نگهداری پیش‌فرض پروژه نگهداری می‌شود، مگر اینکه سرویس یا منبعی مدت نگهداری خودش را داشته باشد. آنچه از قبل ذخیره شده، مدت نگهداری‌ای را که با آن ذخیره شده است حفظ می‌کند.",
+  "From now on, telemetry from here is kept for the project's retention. What is already stored keeps the retention it was stored with.": "از این پس تله‌متری از اینجا با مدت نگهداری پروژه نگهداری می‌شود. آنچه از قبل ذخیره شده، مدت نگهداری‌ای را که با آن ذخیره شده است حفظ می‌کند.",
+  "Is Public": "Is Public",
+  "Remove Override": "حذف بازنویسی",
+  "Remove the retention override?": "بازنویسی نگهداری حذف شود؟",
+  "Removed. Telemetry from here is kept for the project's retention from now on.": "حذف شد. از این پس تله‌متری از اینجا با مدت نگهداری پروژه نگهداری می‌شود.",
+  "Removed. Telemetry is kept for the project's default retention from now on.": "حذف شد. از این پس تله‌متری با مدت نگهداری پیش‌فرض پروژه نگهداری می‌شود.",
+  "Retention Override": "بازنویسی نگهداری",
+  "Some types of telemetry are kept for their own retention, not the project's default. Your plan does not include retention by telemetry type: you can remove it, but setting it again needs the {{planName}} plan.": "برخی انواع تله‌متری با مدت نگهداری خودشان نگهداری می‌شوند، نه با مدت نگهداری پیش‌فرض پروژه. طرح شما نگهداری بر اساس نوع تله‌متری را ندارد: می‌توانید آن را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید.",
+  "Telemetry from here is kept for its own retention, not the project's. Your plan does not include retention overrides: you can remove this one, but setting one again needs the {{planName}} plan.": "تله‌متری از اینجا با مدت نگهداری خودش نگهداری می‌شود، نه با مدت نگهداری پروژه. طرح شما بازنویسی‌های نگهداری را ندارد: می‌توانید این یکی را حذف کنید، اما برای تعیین دوباره‌ی آن به طرح {{planName}} نیاز دارید."
 }

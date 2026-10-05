@@ -391,6 +391,10 @@ jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
       getConfirmation?:
         | ((isTurningOn: boolean) => MockSwitchConfirmation | undefined)
         | undefined;
+      locksWhenPlanNeeded?: boolean | undefined;
+      initialItem?:
+        | ({ id?: { toString: () => string } | null } & Record<string, unknown>)
+        | undefined;
       dataTestId: string;
     }): ReactElement => {
       const turningOn: MockSwitchConfirmation | undefined =
@@ -417,6 +421,13 @@ jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
             turningOn?.submitButtonType ===
               buttonModule.ButtonStyleType["DANGER"],
           )}
+          data-locks-when-plan-needed={String(
+            Boolean(props.locksWhenPlanNeeded),
+          )}
+          data-initial-item-id={props.initialItem?.id?.toString() || ""}
+          data-initial-value={
+            props.initialItem ? String(props.initialItem[props.column]) : ""
+          }
         />
       );
     },
@@ -1348,6 +1359,15 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
       expect(requireSso).toHaveAttribute("data-asks-turning-off", "false");
       expect(requireSso).toHaveAttribute("data-asks-turning-on", "true");
       expect(requireSso).toHaveAttribute("data-danger-turning-on", "true");
+      /*
+       * Drawn only to be switched off: once off it locks, naming the plan
+       * turning it on again needs, so the switch cannot be pressed into a
+       * refusal. And it starts from the project already read for it: the
+       * card reads nothing more.
+       */
+      expect(requireSso).toHaveAttribute("data-locks-when-plan-needed", "true");
+      expect(requireSso).toHaveAttribute("data-initial-item-id", PROJECT_ID);
+      expect(requireSso).toHaveAttribute("data-initial-value", "true");
 
       // Under the upsell, not in place of it.
       expect(
@@ -1405,6 +1425,15 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
     expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
       "data-card-description",
       "Test SSO with the link above before you require it.",
+    );
+    // The full page's switch is not a leftover: it never locks, and reads its own.
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-locks-when-plan-needed",
+      "false",
+    );
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-initial-item-id",
+      "",
     );
     // The page itself knows: nothing is read for the switch under an upsell.
     expect(allRequests()).toEqual([]);

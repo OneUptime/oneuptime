@@ -20,7 +20,9 @@ import TableColumnType from "../Database/TableColumnType";
  * column to that). A column that declares none holds nothing until it is
  * set - null - and for a text column the empty string is nothing too: every
  * reader of these columns treats it as nothing set (no allowlist, no custom
- * code, no token).
+ * code, no token). A switch with no declared default is off when it holds
+ * nothing, so false is its default as well, as the dashboard's switches read
+ * it (ModelSwitchUtil.getColumnBooleanDefault).
  *
  * The comparison is exact. A value of another type ("false" for false, "14"
  * for 14) or a blank line where nothing is expected is not the default, and
@@ -123,6 +125,10 @@ export const isPlanGatedColumnDefault: (
   if (defaultValue === undefined || defaultValue === null) {
     if (value === null) {
       return true;
+    }
+
+    if (metadata.type === TableColumnType.Boolean) {
+      return value === false;
     }
 
     return value === "" && EMPTY_TEXT_COLUMN_TYPES.includes(metadata.type);

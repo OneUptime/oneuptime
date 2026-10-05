@@ -10,12 +10,14 @@ import { getJestSpyOn } from "../../Spy";
 import {
   getColumnBooleanDefault,
   getPlanNeededToChangeColumn,
+  getPlanNeededToFlipSwitch,
   getPlanNeededToWriteColumn,
   getStoredValueForSwitch,
   getSwitchPlanLeftover,
   isModelSwitchOn,
   ModelSwitchColumn,
   SWITCH_PLAN_LEFTOVER_COPY,
+  SWITCH_PLAN_LOCKED_COPY,
 } from "../../../UI/Components/ModelSwitch/ModelSwitchUtil";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -389,6 +391,72 @@ describe("getSwitchPlanLeftover", () => {
     );
     expect(SWITCH_PLAN_LEFTOVER_COPY.on).toBe(
       "Your plan does not include this setting. You can turn it on, but turning it off again needs the {{planName}} plan.",
+    );
+  });
+});
+
+describe("getPlanNeededToFlipSwitch: the plan the next flip needs", () => {
+  test("below the plan, flipping back to the default needs none, flipping on names the plan", () => {
+    plan = PlanType.Growth;
+
+    // Requiring SSO is a Scale feature, off by default.
+    expect(
+      getPlanNeededToFlipSwitch({
+        model: new Project(),
+        column: "requireSsoForLogin",
+        isOn: true,
+      }),
+    ).toBe(null);
+    expect(
+      getPlanNeededToFlipSwitch({
+        model: new Project(),
+        column: "requireSsoForLogin",
+        isOn: false,
+      }),
+    ).toBe(PlanType.Scale);
+  });
+
+  test("an inverted switch is read the right way round", () => {
+    plan = PlanType.Growth;
+
+    // "Show Powered By": on stores false (the default); off stores true (Scale).
+    expect(
+      getPlanNeededToFlipSwitch({
+        model: new StatusPage(),
+        column: "hidePoweredByOneUptimeBranding",
+        isOn: true,
+        isInverted: true,
+      }),
+    ).toBe(PlanType.Scale);
+    expect(
+      getPlanNeededToFlipSwitch({
+        model: new StatusPage(),
+        column: "hidePoweredByOneUptimeBranding",
+        isOn: false,
+        isInverted: true,
+      }),
+    ).toBe(null);
+  });
+
+  test("on a plan that has it, or with billing off, no flip needs a plan", () => {
+    for (const current of [PlanType.Scale, null]) {
+      plan = current;
+
+      for (const isOn of [true, false]) {
+        expect(
+          getPlanNeededToFlipSwitch({
+            model: new Project(),
+            column: "requireSsoForLogin",
+            isOn: isOn,
+          }),
+        ).toBe(null);
+      }
+    }
+  });
+
+  test("its lock names the plan", () => {
+    expect(SWITCH_PLAN_LOCKED_COPY).toBe(
+      "Changing this setting needs the {{planName}} plan.",
     );
   });
 });

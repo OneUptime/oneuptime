@@ -1,4 +1,5 @@
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import { getPlanNeededToComeBack } from "Common/Types/Billing/PlanGatedChoice";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
   DASHBOARD_MASTER_PASSWORD_COLUMN,
@@ -333,9 +334,8 @@ export const getPlanNeededForDashboardAccess: (data: {
 /*
  * Moving a dashboard off a choice the project's plan does not include - one
  * a trial left public, on a project now on Free: the move needs no plan, but
- * coming back does. The plan coming back needs, or null when the move is
- * not one of those (it needs a plan itself, or coming back needs none). The
- * dialog says so before the move is saved.
+ * coming back does (Common/Types/Billing/PlanGatedChoice). The plan coming
+ * back needs, or null; the dialog says so before the move is saved.
  */
 export const getPlanNeededToComeBackToDashboardAccess: (data: {
   from: DashboardAccessState;
@@ -346,20 +346,28 @@ export const getPlanNeededToComeBackToDashboardAccess: (data: {
   to: DashboardAccess;
   getPlanNeeded: (column: string, value: unknown) => PlanType | null;
 }): PlanType | null => {
-  const current: DashboardAccess = getDashboardAccess(data.from);
-
-  if (current === data.to || getPlanNeededForDashboardAccess(data)) {
-    return null;
-  }
-
-  return getPlanNeededForDashboardAccess({
-    from: getDashboardAccessStateAfter({
-      from: data.from,
-      to: data.to,
-      isPasswordEntered: false,
-    }),
-    to: current,
-    getPlanNeeded: data.getPlanNeeded,
+  return getPlanNeededToComeBack<DashboardAccess, DashboardAccessState>({
+    from: data.from,
+    to: data.to,
+    getChoice: getDashboardAccess,
+    getStateAfter: (move: {
+      from: DashboardAccessState;
+      to: DashboardAccess;
+    }): DashboardAccessState => {
+      return getDashboardAccessStateAfter({
+        ...move,
+        isPasswordEntered: false,
+      });
+    },
+    getPlanNeededForMove: (move: {
+      from: DashboardAccessState;
+      to: DashboardAccess;
+    }): PlanType | null => {
+      return getPlanNeededForDashboardAccess({
+        ...move,
+        getPlanNeeded: data.getPlanNeeded,
+      });
+    },
   });
 };
 

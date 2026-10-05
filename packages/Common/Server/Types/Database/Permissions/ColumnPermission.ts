@@ -165,23 +165,25 @@ export default class ColumnPermissions {
         );
       }
 
-      /*
-       * A paid feature can always be switched off: a create or update that
-       * puts a plan-gated column back to its default - the feature off, what
-       * every plan's records start with - needs no plan (see
-       * PlanGatedColumnDefault). Anything else written to it still does.
-       */
-      const isPlanGatedDefaultWrite: boolean =
-        (requestType === DatabaseRequestType.Create ||
-          requestType === DatabaseRequestType.Update) &&
-        isPlanGatedColumnDefault(tableColumnMetadata, (data as any)[key]);
-
       if (
         IsBillingEnabled &&
         props.currentPlan &&
-        !isPlanGatedDefaultWrite &&
         model.getColumnBillingAccessControl(key)
       ) {
+        /*
+         * A paid feature can always be switched off: a create or update that
+         * puts a plan-gated column back to its default - the feature off,
+         * what every plan's records start with - needs no plan (see
+         * PlanGatedColumnDefault). Anything else written to it still does.
+         */
+        if (
+          (requestType === DatabaseRequestType.Create ||
+            requestType === DatabaseRequestType.Update) &&
+          isPlanGatedColumnDefault(tableColumnMetadata, (data as any)[key])
+        ) {
+          continue;
+        }
+
         const billingAccessControl: ColumnBillingAccessControl =
           model.getColumnBillingAccessControl(key);
 
