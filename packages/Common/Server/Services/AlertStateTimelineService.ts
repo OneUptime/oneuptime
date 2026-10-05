@@ -8,6 +8,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -21,6 +22,7 @@ import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -89,34 +91,27 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         } as LogAttributes);
       }
 
-      if (
-        (createBy.data.createdByUserId ||
-          createBy.data.createdByUser ||
-          createBy.props.userId) &&
-        !createBy.data.rootCause
-      ) {
-        let userId: ObjectID | undefined = createBy.data.createdByUserId;
+      // Who made the change, under either name of it: see CreatedByUser.
+      const changedByUserId: ObjectID | null = CreatedByUser.getId(
+        createBy.data,
+        createBy.props,
+      );
 
-        if (createBy.props.userId) {
-          userId = createBy.props.userId;
-        }
-
-        if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-          userId = createBy.data.createdByUser.id;
-        }
-
-        if (userId) {
-          createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
-            {
-              userId: userId!,
-              projectId: createBy.data.projectId || createBy.props.tenantId!,
-            },
-          )}`;
-        }
+      if (changedByUserId && !createBy.data.rootCause) {
+        createBy.data.rootCause = `Alert state created by ${await UserService.getUserMarkdownString(
+          {
+            userId: changedByUserId,
+            projectId: createBy.data.projectId || createBy.props.tenantId!,
+          },
+        )}`;
       }
 
-      const alertStateId: ObjectID | undefined | null =
-        createBy.data.alertStateId || createBy.data.alertState?.id;
+      // Under either of its names; the two must agree.
+      const alertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["alertStateId", "alertState"],
+        "Alert State",
+      );
 
       if (!alertStateId) {
         throw new BadDataException("alertStateId is null");

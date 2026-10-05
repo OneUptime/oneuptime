@@ -17,6 +17,7 @@ import {
 } from "@simplewebauthn/server";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Redis, { ClientType } from "../Infrastructure/Redis";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
@@ -867,10 +868,15 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("User id is required");
     }
 
-    createBy.data.userId = createBy.props.userId;
+    // The session user's own, and no other name of it to be stored instead.
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["userId", "user"],
+      createBy.props.userId,
+    );
 
     const user: User | null = await UserService.findOneById({
-      id: createBy.data.userId,
+      id: createBy.props.userId,
       props: {
         isRoot: true,
       },

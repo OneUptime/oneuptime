@@ -1,5 +1,6 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import OnCallDutyPolicyUserOverride from "../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -189,16 +190,25 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       throw new BadDataException("Start time must be before end time");
     }
 
-    // make sure overrideUser and routealertsToUser are not the same
-    const overrideUserId: ObjectID | undefined | null =
-      createBy.data.overrideUserId || createBy.data.overrideUser?.id;
+    /*
+     * make sure overrideUser and routealertsToUser are not the same - each
+     * under either of its names (the two must agree)
+     */
+    const overrideUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["overrideUserId", "overrideUser"],
+      "Override User",
+    );
 
     if (!overrideUserId) {
       throw new BadDataException("Override user is required");
     }
 
-    const routeAlertsToUserId: ObjectID | undefined | null =
-      createBy.data.routeAlertsToUserId || createBy.data.routeAlertsToUser?.id;
+    const routeAlertsToUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["routeAlertsToUserId", "routeAlertsToUser"],
+      "Route Alerts To User",
+    );
 
     if (!routeAlertsToUserId) {
       throw new BadDataException("Route alerts to user is required");

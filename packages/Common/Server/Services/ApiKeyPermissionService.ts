@@ -185,9 +185,12 @@ export class Service extends ProjectReferencesService<Model> {
      * during save. From here onward the validated scalar IDs are the only
      * persistence source of truth.
      */
-    createBy.data.apiKeyId = apiKeyId;
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["apiKeyId", "apiKey"],
+      apiKeyId,
+    );
     createBy.data.projectId = projectId;
-    delete createBy.data.apiKey;
     delete createBy.data.project;
 
     return { apiKeyId, projectId };

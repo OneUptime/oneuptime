@@ -525,9 +525,8 @@ describe("IncidentService: where the custom field check sits", () => {
     const check: number = body.indexOf(
       "this.validateCustomFieldValuesOnCreate(",
     );
-    const template: number = body.indexOf(
-      "createBy.data.createdIncidentTemplateId",
-    );
+    // Where the template the incident is declared from starts being copied.
+    const template: number = body.indexOf("} else if (incidentTemplateId) {");
     const mapping: number = body.indexOf(
       "CustomFieldMappingService.applyMappingsToCreate(",
     );

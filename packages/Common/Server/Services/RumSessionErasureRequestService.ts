@@ -5,6 +5,7 @@ import Model, {
 } from "../../Models/DatabaseModels/RumSessionErasureRequest";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OneUptimeDate from "../../Types/Date";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CreateBy from "../Types/Database/CreateBy";
@@ -92,15 +93,20 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.chunksDeleted = 0;
 
     if (createBy.props.userId) {
-      createBy.data.requestedByUserId = createBy.props.userId;
+      RelationIdUtil.stamp(
+        createBy.data as unknown as Record<string, unknown>,
+        ["requestedByUserId", "requestedByUser"],
+        createBy.props.userId,
+      );
     } else {
       /*
        * No authenticated user (an API key, say). Deleting rather than
        * leaving the field alone matters: a client-supplied value would
        * otherwise persist and attribute the erasure to somebody who never
-       * asked for it.
+       * asked for it - under either of its names.
        */
       delete createBy.data.requestedByUserId;
+      delete createBy.data.requestedByUser;
     }
 
     return { createBy, carryForward: null };

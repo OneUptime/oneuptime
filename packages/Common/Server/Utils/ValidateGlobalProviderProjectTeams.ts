@@ -5,6 +5,7 @@ import Project from "../../Models/DatabaseModels/Project";
 import Team from "../../Models/DatabaseModels/Team";
 import QueryHelper from "../Types/Database/QueryHelper";
 import TeamService from "../Services/TeamService";
+import RelationIdUtil from "./Database/RelationIdUtil";
 
 /*
  * The Admin Dashboard attach form submits the chosen project via the `project`
@@ -20,22 +21,17 @@ export const resolveAttachmentProjectId: (data: {
   projectId?: ObjectID | undefined;
   project?: Project | undefined;
 }): ObjectID | undefined => {
-  if (data.projectId) {
-    return data.projectId;
-  }
-
-  const project: (Project & { _id?: string }) | undefined = data.project as
-    | (Project & { _id?: string })
-    | undefined;
-
-  if (!project) {
-    return undefined;
-  }
-
-  const idString: string | undefined =
-    project._id?.toString() || (project.id ? project.id.toString() : undefined);
-
-  return idString ? new ObjectID(idString) : undefined;
+  /*
+   * Under either of its names - the two must agree - so the teams are
+   * checked against the project the attachment is stored on.
+   */
+  return (
+    RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["projectId", "project"],
+      "Project",
+    ) || undefined
+  );
 };
 
 /*

@@ -5,10 +5,12 @@ import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import NetworkSiteService from "./NetworkSiteService";
 import UserService from "./UserService";
+import CreatedByUser from "../Utils/Database/CreatedByUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
@@ -1095,34 +1097,27 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       createBy.data.startsAt = OneUptimeDate.getCurrentDate();
     }
 
-    if (
-      (createBy.data.createdByUserId ||
-        createBy.data.createdByUser ||
-        createBy.props.userId) &&
-      !createBy.data.rootCause
-    ) {
-      let userId: ObjectID | undefined = createBy.data.createdByUserId;
+    // Who made the change, under either name of it: see CreatedByUser.
+    const changedByUserId: ObjectID | null = CreatedByUser.getId(
+      createBy.data,
+      createBy.props,
+    );
 
-      if (createBy.props.userId) {
-        userId = createBy.props.userId;
-      }
-
-      if (createBy.data.createdByUser && createBy.data.createdByUser.id) {
-        userId = createBy.data.createdByUser.id;
-      }
-
-      if (userId) {
-        createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString(
-          {
-            userId: userId!,
-            projectId: createBy.data.projectId || createBy.props.tenantId!,
-          },
-        )}`;
-      }
+    if (changedByUserId && !createBy.data.rootCause) {
+      createBy.data.rootCause = `Monitor status created by ${await UserService.getUserMarkdownString(
+        {
+          userId: changedByUserId,
+          projectId: createBy.data.projectId || createBy.props.tenantId!,
+        },
+      )}`;
     }
 
-    const monitorStatusId: ObjectID | undefined | null =
-      createBy.data.monitorStatusId || createBy.data.monitorStatus?.id;
+    // Under either of its names; the two must agree.
+    const monitorStatusId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["monitorStatusId", "monitorStatus"],
+      "Monitor Status",
+    );
 
     if (!monitorStatusId) {
       throw new BadDataException("monitorStatusId is null");

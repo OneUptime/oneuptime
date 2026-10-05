@@ -33,7 +33,7 @@ import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import SloLegacyMonitorLabelAdoption from "../Utils/Slo/SloLegacyMonitorLabelAdoption";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -95,10 +95,16 @@ export class Service extends ProjectReferencesService<Model> {
     // The project's own records only, before anything here reads one.
     await super.onBeforeCreate(createBy);
 
-    const serviceLevelObjectiveId: ObjectID | string | undefined =
-      resolveReferenceId(
-        createBy.data.serviceLevelObjectiveId ||
-          createBy.data.serviceLevelObjective,
+    /*
+     * The SLO, under either of its names: the two must agree, so the SLO the
+     * rule is checked against - and whose legacy labels it adopts below - is
+     * the one stored.
+     */
+    const serviceLevelObjectiveId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["serviceLevelObjectiveId", "serviceLevelObjective"],
+        "Service Level Objective",
       );
 
     if (!serviceLevelObjectiveId) {

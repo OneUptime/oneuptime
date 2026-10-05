@@ -21,7 +21,7 @@ import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
-  getRelationAndIdColumnReferences,
+  getWrittenRelationReferences,
   HeldRelationIds,
   ProjectScopedReference,
   ProjectScopedRelation,
@@ -326,29 +326,32 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Each relation by both of its names: the API takes the ID column and the
    * relation alike, and the template's cards write the relation. A write
-   * may carry both; each is checked.
+   * may carry both; each is checked, and the two must agree.
    */
   private getProjectScopedReferences(
     data: Model | QueryDeepPartialEntity<Model>,
   ): Array<ProjectScopedReference> {
     return [
-      ...getRelationAndIdColumnReferences({
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "initialIncidentStateId",
+        relation: "initialIncidentState",
         modelName: "Incident State",
         service: IncidentStateService,
-        idColumnValue: data.initialIncidentStateId,
-        relationValue: data.initialIncidentState,
       }),
-      ...getRelationAndIdColumnReferences({
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "incidentSeverityId",
+        relation: "incidentSeverity",
         modelName: "Incident Severity",
         service: IncidentSeverityService,
-        idColumnValue: data.incidentSeverityId,
-        relationValue: data.incidentSeverity,
       }),
-      ...getRelationAndIdColumnReferences({
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "changeMonitorStatusToId",
+        relation: "changeMonitorStatusTo",
         modelName: "Monitor Status",
         service: MonitorStatusService,
-        idColumnValue: data.changeMonitorStatusToId,
-        relationValue: data.changeMonitorStatusTo,
       }),
     ];
   }

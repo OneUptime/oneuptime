@@ -7,6 +7,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -152,8 +153,12 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("onCallDutyPolicyScheduleLayerId is required");
     }
 
-    const userId: ObjectID | undefined | null =
-      createBy.data.userId || createBy.data.user?.id;
+    // The person, under either of their names (the two must agree).
+    const userId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["userId", "user"],
+      "User",
+    );
 
     if (!userId) {
       throw new BadDataException("userId is required");

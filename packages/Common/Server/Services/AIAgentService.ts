@@ -176,13 +176,16 @@ export class Service extends ProjectReferencesService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    await FileService.makeRecordFilePublic({
-      fileId: RelationIdUtil.read(
-        createdItem as unknown as Record<string, unknown>,
-        ["iconFileId", "iconFile"],
-      ),
-      projectId: createdItem.projectId || null,
-    });
+    /*
+     * The icon is read back from the saved row, like an update's: whichever
+     * name the create sent it under, that is the one stored.
+     */
+    if (createdItem.id) {
+      await FileService.makeStoredIconsPublic({
+        service: this,
+        recordIds: [createdItem.id],
+      });
+    }
 
     await ProjectDefaultRow.afterCreate({
       service: this,
