@@ -1696,7 +1696,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * checks after the hooks would otherwise see a create that names nothing.
    * The relation stays, so the two names hold the same id, which is what
    * TypeORM stores. Each name is still checked against its own create list,
-   * and a relation and its ID column share one (UpdatePermissionLists).
+   * and a relation shares its ID column's (UpdatePermissionLists names the
+   * few kept apart, whose relation nobody may send).
    *
    * An ID column the create sets already is left as it is: a request whose
    * two names disagree has been refused just before this, and a write
