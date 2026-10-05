@@ -1,3 +1,4 @@
+import File from "../../../Models/DatabaseModels/File";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -1173,6 +1174,51 @@ describe("StatusPageAPI manage-subscription templates", () => {
         "Manage your Subscription for Acme Cloud Status",
       );
       expect(mail["subject"]).toBe(expectedSubject);
+    });
+
+    it("email shows the page's logo only when the page's logo route serves it", async () => {
+      // A page without its own SMTP server sends the styled default.
+      const withLogo: (projectId: ObjectID | null) => StatusPage = (
+        projectId: ObjectID | null,
+      ): StatusPage => {
+        const page: StatusPage = statusPageFixture({});
+        const logo: File = new File();
+        logo._id = "5e000000-0000-4000-8000-000000000005";
+
+        if (projectId) {
+          logo.projectId = projectId;
+        }
+
+        page.logoFileId = new ObjectID(logo._id);
+        page.logoFile = logo;
+        return page;
+      };
+
+      for (const [projectId, served] of [
+        [PROJECT_ID, true],
+        [new ObjectID("5e000000-0000-4000-8000-000000000006"), false],
+        [null, false],
+      ] as Array<[ObjectID | null, boolean]>) {
+        mockOf(MailService.sendMail).mockClear();
+        pageToSend = withLogo(projectId);
+
+        const request: ExpressRequest = await callManageSubscription({
+          subscriberEmail: SUBSCRIBER_EMAIL,
+        });
+        expectSucceeded(request);
+
+        const logoUrl: unknown = (sentMail()[0]!["vars"] as JSONObject)[
+          "logoUrl"
+        ];
+
+        if (served) {
+          expect(logoUrl).toMatch(
+            new RegExp(`/status-page-api/logo/${pageToSend._id}$`),
+          );
+        } else {
+          expect(logoUrl).toBe("");
+        }
+      }
     });
 
     it("sms without a custom template sends the dashboard's default text", async () => {
