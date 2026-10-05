@@ -101,7 +101,8 @@ function fakeDatabase(database: FakeDatabase): FakeRun {
       if (statement.includes("FROM pg_index")) {
         expect(params).toEqual([LLM_LOG_PROJECT_CREATED_AT_INDEX]);
         expect(statement).toContain("pg_stat_progress_create_index");
-        expect(statement).toContain("current_schema()");
+        // The LlmLog the build names, resolved the way the build resolves it.
+        expect(statement).toContain(`x.indrelid = to_regclass('"LlmLog"')`);
         statements.push(LOOKUP);
         return state === "missing"
           ? []

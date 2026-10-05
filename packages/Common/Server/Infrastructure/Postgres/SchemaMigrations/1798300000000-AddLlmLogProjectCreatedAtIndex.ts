@@ -82,8 +82,9 @@ interface PostgresClient {
  * the table, Postgres scanned all of LlmLog. OneUptime Cloud keeps three days
  * of AI Logs; a self-hosted install keeps them all, and paid for that history
  * on every AI call. On a clone with a million rows (one project 60% of them)
- * the project limit's sum read 71,400 pages (83 ms) and the incident lane's
- * 69,000 (690 ms); through this index each reads under ten pages.
+ * the project limit's sum read all 71,400 pages of the table (83 ms), and the
+ * incident lane's the same pages plus a subquery per row (690 ms); through
+ * this index each reads about ten pages, in a fraction of a millisecond.
  *
  * The AI Logs page gains too: it lists a project's rows newest first, which
  * this index serves in order instead of sorting the whole history.
@@ -281,6 +282,10 @@ export class AddLlmLogProjectCreatedAtIndex1798300000000
     }
   }
 
+  /*
+   * The index of this name on the LlmLog the build names - resolved through
+   * the search path exactly as the build resolves it.
+   */
   private async getIndexState(queryRunner: QueryRunner): Promise<IndexState> {
     const rows: Array<{ isValid: boolean; isBuilding: boolean }> =
       await queryRunner.query(
@@ -289,8 +294,7 @@ export class AddLlmLogProjectCreatedAtIndex1798300000000
                    WHERE p.index_relid = x.indexrelid) AS "isBuilding"
          FROM pg_index x
          JOIN pg_class c ON c.oid = x.indexrelid
-         JOIN pg_namespace n ON n.oid = c.relnamespace
-         WHERE c.relname = $1 AND n.nspname = current_schema()`,
+         WHERE x.indrelid = to_regclass('"LlmLog"') AND c.relname = $1`,
         [LLM_LOG_PROJECT_CREATED_AT_INDEX],
       );
 
