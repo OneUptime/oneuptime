@@ -108,6 +108,12 @@ import ListOrderMaintainer, {
 } from "../Utils/Database/ListOrderMaintainer";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import { toListOrderNumber } from "../../Utils/ListOrder";
+import FileOwnership, {
+  FileReferenceCheck,
+  FileReferenceColumn,
+  FileReferenceOwner,
+  normalizeFileId,
+} from "../Utils/File/FileOwnership";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -477,6 +483,128 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     return true;
+  }
+
+  /*
+   * A record may point only at its own files: a project's record at files
+   * uploaded in its project, a person at a picture they uploaded (see
+   * FileOwnership). Asked of every create and update that points one of the
+   * model's File columns at a file - root and hook-free writes too, since a
+   * workflow or an API call can carry any id - once the caller is known to
+   * be allowed the write, so a refusal tells nobody else anything. The
+   * refusal is the same for a file of another owner, of none, or one that
+   * does not exist.
+   */
+  private async assertFileReferencesOwnedOnCreate(
+    data: TBaseModel,
+  ): Promise<void> {
+    const columns: Array<FileReferenceColumn> =
+      FileOwnership.getFileReferenceColumns(this.model);
+
+    if (columns.length === 0) {
+      return;
+    }
+
+    const checks: Array<FileReferenceCheck> = [];
+    let owner: FileReferenceOwner | null | undefined = undefined;
+
+    for (const column of columns) {
+      const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
+        data,
+        column,
+      );
+
+      if (!fileIds || fileIds.length === 0) {
+        continue;
+      }
+
+      if (owner === undefined) {
+        // The record's project as it will be saved: the tenant is stamped.
+        owner = FileOwnership.getOwner(this.model, data);
+      }
+
+      if (owner === null) {
+        // A record outside any project (a global probe or AI agent).
+        return;
+      }
+
+      checks.push({ owner, column, fileIds });
+    }
+
+    await FileOwnership.assertOwned(checks);
+  }
+
+  /*
+   * The update's half of assertFileReferencesOwnedOnCreate, on the rows the
+   * update reads before it writes them - each row's project (the tenant
+   * column) and the files it points at now (the written columns, read as
+   * they are) - so the rows checked are the rows written. Only the files a
+   * row does not point at already are checked: nothing about a file can
+   * change once it is uploaded, and a record saved before files had owners
+   * keeps saving the file it has. Returns the checks; the caller runs them
+   * before it writes anything.
+   */
+  private getFileReferenceChecksOnUpdate(data: {
+    data: PartialEntity<TBaseModel>;
+    rows: Array<TBaseModel>;
+  }): Array<FileReferenceCheck> {
+    const columns: Array<FileReferenceColumn> =
+      FileOwnership.getFileReferenceColumns(this.model);
+
+    if (columns.length === 0) {
+      return [];
+    }
+
+    const written: Array<{
+      column: FileReferenceColumn;
+      fileIds: Array<ObjectID>;
+    }> = [];
+
+    for (const column of columns) {
+      const fileIds: Array<ObjectID> | null = FileOwnership.readWrittenFileIds(
+        data.data,
+        column,
+      );
+
+      if (fileIds && fileIds.length > 0) {
+        written.push({ column, fileIds });
+      }
+    }
+
+    if (written.length === 0) {
+      return [];
+    }
+
+    const rows: Array<TBaseModel> = data.rows;
+
+    const checks: Array<FileReferenceCheck> = [];
+
+    for (const row of rows) {
+      const owner: FileReferenceOwner | null = FileOwnership.getOwner(
+        this.model,
+        row,
+      );
+
+      if (!owner) {
+        continue;
+      }
+
+      for (const { column, fileIds } of written) {
+        const held: Set<string> = FileOwnership.readStoredFileIds(row, column);
+
+        const added: Array<ObjectID> = fileIds.filter(
+          (fileId: ObjectID): boolean => {
+            return !held.has(normalizeFileId(fileId));
+          },
+        );
+
+        if (added.length > 0) {
+          checks.push({ owner, column, fileIds: added });
+        }
+      }
+    }
+
+    return checks;
   }
 
   /*
@@ -2014,6 +2142,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       data,
       _createdBy.props,
     );
+
+    // Only the record's own files. See the helper.
+    await this.assertFileReferencesOwnedOnCreate(data);
 
     /*
      * A drag-ordered list (@ListOrderColumn): the new row goes to the end of
@@ -4013,6 +4144,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             props: { isRoot: true, ignoreHooks: true },
           })
         : [];
+
+      /*
+       * Only each record's own files, checked on the very rows this write
+       * is about to write, as they are before it. See the helper.
+       */
+      await FileOwnership.assertOwned(
+        this.getFileReferenceChecksOnUpdate({ data: data, rows: items }),
+      );
 
       /*
        * save() has upsert semantics: if the located row is hard-deleted by a

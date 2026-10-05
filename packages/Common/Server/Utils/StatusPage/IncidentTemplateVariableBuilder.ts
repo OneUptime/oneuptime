@@ -461,6 +461,7 @@ export class IncidentTemplateVariables {
           field.markdown.source,
           true,
           `incident ${this.incident.id?.toString() || ""} custom field "${field.name}"`,
+          this.incident.projectId,
         ),
       );
 

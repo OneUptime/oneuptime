@@ -137,6 +137,8 @@ On the dashboard's **Branding** page, you can configure:
 - **Logo** — upload a PNG or SVG to show in the header.
 - **Favicon** — the small icon in the browser tab.
 
+The logo and the favicon are files uploaded in the dashboard's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again." or "The favicon's file could not be found. Upload the favicon again." The public dashboard shows only images of its own project.
+
 Branding applies only when the dashboard is viewed publicly. Internal viewers always see OneUptime's branding.
 
 Visitors see the branding only once they may view the dashboard. Before the password is entered, a dashboard shared with a password shows only its page title and favicon, and search engines and link previews see its page title but not its page description. A dashboard with an IP allowlist shows its branding only to the addresses on the list, and search engines and link previews see none of it.
