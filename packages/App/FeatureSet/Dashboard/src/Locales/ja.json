@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "ルールは保存から 1 分以内に、毎分のメトリクスの書き込みを開始します。",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "このルールに一致すると、これらのラベルが付けられます。すでに付いているラベルが重複して追加されることはありません。",
   "e.g. Add Platform as owners": "例: Platform を所有者として追加",
-  "e.g. Add production": "例: production を追加"
+  "e.g. Add production": "例: production を追加",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "このプロバイダー経由で {{teams}} にユーザーを追加することはできません。あなたが持つ以上のアクセス権が与えられるためです。誰かを招待できるチームを選ぶか、プロジェクトのオーナーにこのプロバイダーの保存を依頼してください。",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "このプロバイダー経由で {{teams}} にユーザーを追加することはできません。あなたが持つ以上のアクセス権が与えられるためです。誰かを招待できるチームを選ぶか、プロジェクトのオーナーにこのプロバイダーの保存を依頼してください。",
+  "Only a project owner can add or change SCIM connections.": "SCIM 接続を追加または変更できるのはプロジェクトのオーナーだけです。",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "SCIM を通じて、ID プロバイダーはこのプロジェクトの任意のチームにユーザーを追加できます。そのため、接続の追加や変更、ベアラートークンのリセットには、すべてのチームを対象とするアクセス権が必要です。接続の表示と削除は引き続き行えます。"
 }

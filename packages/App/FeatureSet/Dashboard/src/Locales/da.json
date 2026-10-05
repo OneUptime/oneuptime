@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "Reglen skriver sin måling hvert minut, fra senest et minut efter, at den er gemt.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Når denne regel matcher, tilføjes disse etiketter. Etiketter, der allerede er tilføjet, tilføjes ikke to gange.",
   "e.g. Add Platform as owners": "f.eks. Tilføj Platform som ejere",
-  "e.g. Add production": "f.eks. Tilføj production"
+  "e.g. Add production": "f.eks. Tilføj production",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "Du kan ikke tilføje personer til {{teams}} via denne udbyder: disse teams giver mere adgang, end du har. Vælg teams, du kunne invitere nogen til, eller bed en projektejer om at gemme denne udbyder.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "Du kan ikke tilføje personer til {{teams}} via denne udbyder: dette team giver mere adgang, end du har. Vælg teams, du kunne invitere nogen til, eller bed en projektejer om at gemme denne udbyder.",
+  "Only a project owner can add or change SCIM connections.": "Kun en projektejer kan tilføje eller ændre SCIM-forbindelser.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "Via SCIM kan din identitetsudbyder tilføje personer til ethvert team i dette projekt, så det kræver adgang til alle teams at tilføje en forbindelse, ændre en eller nulstille dens bearer-token. Du kan stadig se og slette forbindelser."
 }

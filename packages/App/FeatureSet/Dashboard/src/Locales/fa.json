@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "این قاعده هر دقیقه متریک خود را می‌نویسد و ظرف یک دقیقه پس از ذخیره شدن شروع می‌کند.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "وقتی این قاعده مطابقت کند، این برچسب‌ها افزوده می‌شوند. برچسب‌هایی که از قبل افزوده شده‌اند دوباره افزوده نمی‌شوند.",
   "e.g. Add Platform as owners": "برای نمونه افزودن Platform به‌عنوان مالک",
-  "e.g. Add production": "برای نمونه افزودن production"
+  "e.g. Add production": "برای نمونه افزودن production",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "نمی‌توانید از طریق این ارائه‌دهنده افراد را به {{teams}} اضافه کنید: این تیم‌ها دسترسی بیشتری از دسترسی شما می‌دهند. تیم‌هایی را انتخاب کنید که می‌توانید کسی را به آن‌ها دعوت کنید، یا از مالک پروژه بخواهید این ارائه‌دهنده را ذخیره کند.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "نمی‌توانید از طریق این ارائه‌دهنده افراد را به {{teams}} اضافه کنید: این تیم دسترسی بیشتری از دسترسی شما می‌دهد. تیم‌هایی را انتخاب کنید که می‌توانید کسی را به آن‌ها دعوت کنید، یا از مالک پروژه بخواهید این ارائه‌دهنده را ذخیره کند.",
+  "Only a project owner can add or change SCIM connections.": "فقط مالک پروژه می‌تواند اتصال‌های SCIM را اضافه یا تغییر دهد.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "از طریق SCIM، ارائه‌دهندهٔ هویت شما می‌تواند افراد را به هر تیمی در این پروژه اضافه کند؛ بنابراین افزودن یک اتصال، تغییر آن یا بازنشانی توکن Bearer آن به دسترسی‌ای نیاز دارد که همهٔ تیم‌ها را پوشش دهد. همچنان می‌توانید اتصال‌ها را ببینید و حذف کنید."
 }

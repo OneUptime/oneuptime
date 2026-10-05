@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "De regel schrijft zijn metriek elke minuut weg, te beginnen binnen een minuut na het opslaan.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Wanneer deze regel overeenkomt, worden deze labels toegevoegd. Labels die al zijn toegevoegd, worden niet twee keer toegevoegd.",
   "e.g. Add Platform as owners": "bijv. Platform als eigenaren toevoegen",
-  "e.g. Add production": "bijv. production toevoegen"
+  "e.g. Add production": "bijv. production toevoegen",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "U kunt via deze provider geen mensen toevoegen aan {{teams}}: die teams geven meer toegang dan u hebt. Kies teams waarvoor u iemand zou kunnen uitnodigen, of vraag een projecteigenaar deze provider op te slaan.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "U kunt via deze provider geen mensen toevoegen aan {{teams}}: dat team geeft meer toegang dan u hebt. Kies teams waarvoor u iemand zou kunnen uitnodigen, of vraag een projecteigenaar deze provider op te slaan.",
+  "Only a project owner can add or change SCIM connections.": "Alleen een projecteigenaar kan SCIM-verbindingen toevoegen of wijzigen.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "Via SCIM kan uw identiteitsprovider mensen toevoegen aan elk team in dit project. Een verbinding toevoegen, wijzigen of het bearer-token ervan opnieuw instellen vereist daarom toegang die alle teams omvat. U kunt verbindingen nog steeds bekijken en verwijderen."
 }

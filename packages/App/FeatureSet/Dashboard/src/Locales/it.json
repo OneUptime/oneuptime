@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "La regola scrive la sua metrica ogni minuto, iniziando entro un minuto dal salvataggio.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Quando questa regola corrisponde, queste etichette vengono aggiunte. Le etichette già aggiunte non vengono aggiunte due volte.",
   "e.g. Add Platform as owners": "ad es. Aggiungi Platform come proprietari",
-  "e.g. Add production": "ad es. Aggiungi production"
+  "e.g. Add production": "ad es. Aggiungi production",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "Non puoi aggiungere persone a {{teams}} tramite questo provider: questi team danno più accesso di quello che hai. Scegli team a cui potresti invitare qualcuno oppure chiedi a un proprietario del progetto di salvare questo provider.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "Non puoi aggiungere persone a {{teams}} tramite questo provider: questo team dà più accesso di quello che hai. Scegli team a cui potresti invitare qualcuno oppure chiedi a un proprietario del progetto di salvare questo provider.",
+  "Only a project owner can add or change SCIM connections.": "Solo un proprietario del progetto può aggiungere o modificare le connessioni SCIM.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "Tramite SCIM, il tuo provider di identità può aggiungere persone a qualsiasi team di questo progetto, quindi aggiungere una connessione, modificarla o reimpostarne il token Bearer richiede un accesso che copra tutti i team. Puoi comunque visualizzare ed eliminare le connessioni."
 }

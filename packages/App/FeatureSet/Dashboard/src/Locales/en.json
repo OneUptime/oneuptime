@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "The rule writes its metric every minute, starting within a minute of being saved.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "When this rule matches, these labels are attached. Labels already attached are not added twice.",
   "e.g. Add Platform as owners": "e.g. Add Platform as owners",
-  "e.g. Add production": "e.g. Add production"
+  "e.g. Add production": "e.g. Add production",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+  "Only a project owner can add or change SCIM connections.": "Only a project owner can add or change SCIM connections.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections."
 }

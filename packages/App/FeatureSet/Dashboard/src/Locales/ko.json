@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "규칙은 저장 후 1분 이내에 시작하여 매분 메트릭을 기록합니다.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "이 규칙이 일치하면 이 레이블이 추가됩니다. 이미 추가된 레이블은 중복으로 추가되지 않습니다.",
   "e.g. Add Platform as owners": "예: Platform을 소유자로 추가",
-  "e.g. Add production": "예: production 추가"
+  "e.g. Add production": "예: production 추가",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "이 공급자를 통해 {{teams}}에 사용자를 추가할 수 없습니다. 내가 가진 것보다 더 많은 액세스 권한이 부여되기 때문입니다. 다른 사람을 초대할 수 있는 팀을 선택하거나 프로젝트 소유자에게 이 공급자를 저장해 달라고 요청하세요.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "이 공급자를 통해 {{teams}}에 사용자를 추가할 수 없습니다. 내가 가진 것보다 더 많은 액세스 권한이 부여되기 때문입니다. 다른 사람을 초대할 수 있는 팀을 선택하거나 프로젝트 소유자에게 이 공급자를 저장해 달라고 요청하세요.",
+  "Only a project owner can add or change SCIM connections.": "SCIM 연결을 추가하거나 변경할 수 있는 사람은 프로젝트 소유자뿐입니다.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "SCIM을 통해 ID 공급자는 이 프로젝트의 모든 팀에 사용자를 추가할 수 있습니다. 따라서 연결을 추가하거나 변경하거나 Bearer 토큰을 재설정하려면 모든 팀을 포괄하는 액세스 권한이 필요합니다. 연결 보기와 삭제는 계속 할 수 있습니다."
 }

@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "A regra grava sua métrica a cada minuto, começando em até um minuto após ser salva.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Quando esta regra corresponde, estes rótulos são anexados. Rótulos já anexados não são adicionados duas vezes.",
   "e.g. Add Platform as owners": "ex.: Adicionar Platform como proprietários",
-  "e.g. Add production": "ex.: Adicionar production"
+  "e.g. Add production": "ex.: Adicionar production",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "Você não pode adicionar pessoas a {{teams}} por meio deste provedor: essas equipes dão mais acesso do que você tem. Escolha equipes para as quais você poderia convidar alguém ou peça a um proprietário do projeto que salve este provedor.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "Você não pode adicionar pessoas a {{teams}} por meio deste provedor: essa equipe dá mais acesso do que você tem. Escolha equipes para as quais você poderia convidar alguém ou peça a um proprietário do projeto que salve este provedor.",
+  "Only a project owner can add or change SCIM connections.": "Somente um proprietário do projeto pode adicionar ou alterar conexões SCIM.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "Pelo SCIM, seu provedor de identidade pode adicionar pessoas a qualquer equipe deste projeto. Por isso, adicionar uma conexão, alterá-la ou redefinir seu token Bearer exige um acesso que abranja todas as equipes. Você ainda pode ver e excluir conexões."
 }

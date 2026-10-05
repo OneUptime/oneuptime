@@ -218,9 +218,13 @@ export const fetchSsoTeamGrants: FetchSsoTeamGrantsFunction = async (data: {
           name: team.name?.toString() || "",
         };
       }),
+    /*
+     * A row whose permission did not come back still counts against its
+     * team - nobody holds an unknown permission - as it does on the server.
+     */
     permissionRows: permissions.data
       .filter((row: TeamPermission): boolean => {
-        return Boolean(row.teamId && row.permission);
+        return Boolean(row.teamId);
       })
       .map((row: TeamPermission): SsoTeamPermissionRow => {
         return {

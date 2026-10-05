@@ -24892,5 +24892,9 @@
   "The rule writes its metric every minute, starting within a minute of being saved.": "La regla escribe su métrica cada minuto, a partir del minuto siguiente a guardarla.",
   "When this rule matches, these labels are attached. Labels already attached are not added twice.": "Cuando esta regla coincide, se añaden estas etiquetas. Las etiquetas ya añadidas no se añaden dos veces.",
   "e.g. Add Platform as owners": "p. ej. Añadir Platform como propietarios",
-  "e.g. Add production": "p. ej. Añadir production"
+  "e.g. Add production": "p. ej. Añadir production",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.": "No puedes añadir personas a {{teams}} a través de este proveedor: esos equipos dan más acceso del que tienes. Elige equipos a los que podrías invitar a alguien o pide a un propietario del proyecto que guarde este proveedor.",
+  "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider._one": "No puedes añadir personas a {{teams}} a través de este proveedor: ese equipo da más acceso del que tienes. Elige equipos a los que podrías invitar a alguien o pide a un propietario del proyecto que guarde este proveedor.",
+  "Only a project owner can add or change SCIM connections.": "Solo un propietario del proyecto puede añadir o cambiar conexiones SCIM.",
+  "Through SCIM, your identity provider can add people to any team in this project, so adding a connection, changing one or resetting its bearer token takes access that covers every team. You can still view and delete connections.": "Mediante SCIM, tu proveedor de identidad puede añadir personas a cualquier equipo de este proyecto, así que añadir una conexión, cambiarla o restablecer su token Bearer requiere un acceso que abarque todos los equipos. Todavía puedes ver y eliminar conexiones."
 }
