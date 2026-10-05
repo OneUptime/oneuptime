@@ -195,6 +195,21 @@ export default class AIInvestigationQueue {
       return null;
     }
 
+    /*
+     * The project's own daily AI limits (Project Settings → AI Features →
+     * More settings), a ceiling over every lane: once one is reached every
+     * model call is refused until midnight UTC, so recording intent now
+     * would only queue a run that fails or expires. Fails open (the model
+     * call still enforces the limits).
+     */
+    if (await AIService.getReachedProjectDailyLimit({ projectId })) {
+      await recordSkip("project_daily_limit_reached");
+      logger.debug(
+        `AI: not enqueueing investigation for project ${projectId.toString()} — the project has reached its own daily AI limit.`,
+      );
+      return null;
+    }
+
     const runType: AIRunType = data.subjectAutoRemediationSuggestionId
       ? data.remediationRunType || AIRunType.RemediationPlan
       : AIRunType.Investigation;
@@ -613,9 +628,10 @@ export default class AIInvestigationQueue {
 
   /*
    * The claim-time cost gates: the concurrency cap and the preventive-lane
-   * sub-cap (only when the lane has a cap), then the daily budget. A run
-   * failing these stays Queued — the poller retries and the TTL expires what
-   * never fits. Fails cheap (skip) on gate errors.
+   * sub-cap (only when the lane has a cap), then the lane's daily budget and
+   * the project's own daily AI limits. A run failing these stays Queued —
+   * the poller retries and the TTL expires what never fits. Fails cheap
+   * (skip) on gate errors.
    */
   private static async passesClaimGates(run: QueuedRunRef): Promise<boolean> {
     if (run.triggeredByIncidentId && run.triggeredByAlertId) {
@@ -665,6 +681,16 @@ export default class AIInvestigationQueue {
     if (budget.exhausted) {
       logger.debug(
         `AI: leaving run ${run.id.toString()} queued — daily autonomous token budget exhausted.`,
+      );
+      return false;
+    }
+
+    // The project's own daily AI limits, over every lane (see enqueue).
+    if (
+      await AIService.getReachedProjectDailyLimit({ projectId: run.projectId })
+    ) {
+      logger.debug(
+        `AI: leaving run ${run.id.toString()} queued — the project has reached its own daily AI limit.`,
       );
       return false;
     }

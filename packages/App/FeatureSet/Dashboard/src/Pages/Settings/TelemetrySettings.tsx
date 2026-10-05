@@ -1,6 +1,8 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import { getTelemetryRetentionUpsell } from "../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import RetentionOverrideLeftover from "../../Components/TelemetryResource/RetentionOverrideLeftover";
+import { RetentionOverrideLeftoverKind } from "../../Components/TelemetryResource/RetentionOverrideLeftoverCopy";
 import { TELEMETRY_RETENTION_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import EnterprisePluginPage from "../../Enterprise/EnterprisePluginPage";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
@@ -15,7 +17,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * Settings > Telemetry. The project's default retention is part of every
  * edition; retention by telemetry type is Enterprise
  * (ee/Dashboard/TelemetryRetention), shown when the project may use it and
- * this build includes it, and as an upsell card otherwise.
+ * this build includes it, and as an upsell card otherwise - with, on
+ * OneUptime Cloud below the plan, the retention by type a trial left set
+ * under it, so it can be removed (RetentionOverrideLeftover).
  */
 const TelemetrySettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -67,6 +71,13 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         pluginProps={props}
         requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}
         upsell={getTelemetryRetentionUpsell("of each type")}
+        belowPlan={
+          <RetentionOverrideLeftover<Project>
+            modelType={Project}
+            modelId={ProjectUtil.getCurrentProjectId()!}
+            kind={RetentionOverrideLeftoverKind.Project}
+          />
+        }
       />
     </Fragment>
   );

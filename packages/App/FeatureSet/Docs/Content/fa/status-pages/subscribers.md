@@ -110,6 +110,8 @@
 
 رویداد نگهداری زمان‌بندی‌شده مجموعه ستون‌های مشترک خودش را دارد: **Should subscribers be notified when event is created?**، **Should subscribers be notified when event is changed to ongoing?**، **Should subscribers be notified when event is changed to ended?**، به‌علاوه **Subscriber notifications before the event** و **Next subscriber notification before the event at?** برای هشدارهای پیشاپیش. مقدار **Status Pages** روی رویداد تصمیم می‌گیرد روی کدام صفحه‌ها پدیدار شود، و **Should be visible on status page?** تصمیم می‌گیرد اصلاً پدیدار شود یا نه.
 
+**یادداشتی که با تغییر وضعیت فرستاده شود همان یک پیام است.** اگر در پنجره تغییر وضعیت رویداد (یا کنش گروهی **Change State**)، وقتی **Notify Status Page Subscribers** روشن است، **Public Note** بنویسید، مشترکان در هر کانال یادداشت را می‌گیرند، نه پیام جداگانه تغییر وضعیت را: یک پیام، نه دو. یادداشتی که جز فاصله چیزی در آن نیست منتشر نمی‌شود و مشترکان پیام تغییر وضعیت را می‌گیرند. وقتی این کادر خاموش است، نه تغییر وضعیت به کسی خبر می‌دهد و نه یادداشتش. از راه API، یادداشت با تغییر وضعیت در `"miscDataProps": {"publicNote": "..."}` روی `POST /api/scheduled-maintenance-state-timeline` می‌رود و `shouldStatusPageSubscribersBeNotified` برای هر دو تصمیم می‌گیرد (اگر فرستاده نشود، تغییر وضعیت خبر می‌دهد و یادداشتش نه).
+
 ### حادثه‌ها
 
 `Incident` سومین نوع رویداد است. اینکه اصلاً چه چیزی حادثه‌ای را به صفحه وضعیت می‌رساند — کدام منابع را لمس می‌کند و کدام وضعیت‌ها آن را دیده نگه می‌دارند — در [وضعیت‌ها و شدت‌های حادثه](/docs/incidents/states-and-severities) پوشش داده شده است.

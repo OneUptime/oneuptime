@@ -10,6 +10,7 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import { isPlanGatedColumnDefault } from "../../../../Types/Billing/PlanGatedColumnDefault";
 import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 import Columns from "../../../../Types/Database/Columns";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
@@ -169,6 +170,20 @@ export default class ColumnPermissions {
         props.currentPlan &&
         model.getColumnBillingAccessControl(key)
       ) {
+        /*
+         * A paid feature can always be switched off: a create or update that
+         * puts a plan-gated column back to its default - the feature off,
+         * what every plan's records start with - needs no plan (see
+         * PlanGatedColumnDefault). Anything else written to it still does.
+         */
+        if (
+          (requestType === DatabaseRequestType.Create ||
+            requestType === DatabaseRequestType.Update) &&
+          isPlanGatedColumnDefault(tableColumnMetadata, (data as any)[key])
+        ) {
+          continue;
+        }
+
         const billingAccessControl: ColumnBillingAccessControl =
           model.getColumnBillingAccessControl(key);
 

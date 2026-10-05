@@ -22,13 +22,13 @@
 
 ## 1단계 — OpenTelemetry Collector 설치
 
-사용 중인 OS에 해당하는 섹션을 선택하세요. 모든 예제는 [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 최신 `otelcol-contrib` 릴리스를 설치한다고 가정합니다.
+사용 중인 OS에 해당하는 섹션을 선택하세요. 모든 예제는 [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 `otelcol-contrib` **v0.161.0**을 설치합니다. 이는 OneUptime이 고정한 릴리스로, 2단계의 구성이 호스트의 에이전트 버전으로 보고합니다 (아래의 "컬렉터 업그레이드" 참조).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ Debian 패키지는 바이너리를 `/usr/bin/otelcol-contrib`에, 기본 구성
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ Windows에서는 업스트림 **`otelcol-contrib`** 릴리스를 다운로드하
 **권한이 상승된** PowerShell 프롬프트에서 블록 전체를 한 번에 실행하세요 — 각 줄은 그 위에서 설정한 변수에 의존합니다:
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`**는 내보내기 전에 레코드를 그룹화하여 레코드당 한 번의 HTTP 왕복 비용을 지불하지 않도록 합니다.
 - **`resource`**는 모든 레코드에 `service.name`을 스탬프로 찍습니다. 각 머신이 OneUptime에서 자체 텔레메트리 서비스로 나타나기를 원한다면 호스트마다 다른 값(예: `prod-web-01`)을 사용하세요.
+- **`oneuptime.agent.version`**은 이 구성이 대상으로 하는 컬렉터 릴리스입니다. OneUptime은 이를 호스트의 **에이전트 버전**으로 표시합니다. 설치하는 컬렉터와 함께일 때만 변경하세요 (아래의 "컬렉터 업그레이드" 참조).
 - **`otlphttp`**는 ingestion token을 첨부하여 HTTPS를 통해 OneUptime으로 전송합니다.
 
 ### 호스트 메트릭 (Linux, macOS, Windows)
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ sc.exe query "otelcol-contrib"
 3. **메트릭**을 여세요 — 호스트 메트릭(CPU, 메모리, 파일 시스템 등)이 1분 이내에 나타나야 합니다.
 4. **로그**를 여세요 — 파일 로그 / journald 항목 / Windows Event Logs가 스트리밍되어 들어와야 합니다. 유용한 검색 가능 속성으로는 `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, `winlog.provider.name`이 있습니다.
 5. `systemd`(Linux) 또는 `windows_service`(Windows) receiver를 활성화했다면, **인프라 → 호스트**를 열고 호스트를 선택한 다음 **Systemd Units** / **서비스** 탭을 확인하세요 — 스크레이프된 모든 유닛이 현재 상태와 함께 나열되어야 합니다.
+
+## 컬렉터 업그레이드
+
+이 페이지의 모든 구성은 `resource` 프로세서에서 대상 컬렉터 릴리스를 `oneuptime.agent.version`으로 표시합니다. OneUptime은 이를 호스트 **개요**의 **에이전트 버전**으로 보여 주며, OneUptime이 더 새로운 릴리스를 고정하면 그 옆에 경고 표시를 붙입니다. 표시를 선택하면 설치한 방식에 맞는 업그레이드 방법을 볼 수 있습니다. 구성을 다시 저장한 다음 새 릴리스를 이전 릴리스 위에 설치합니다.
+
+직접 업그레이드하려면, 이 릴리스를 설치한 방식대로 새 릴리스를 설치하고(1단계, 새 `VERSION` 사용), 구성의 `oneuptime.agent.version`을 같은 버전으로 설정한 뒤 컬렉터를 다시 시작하세요(3단계). 구성에 버전을 표시하지 않는 컬렉터는 버전을 보여 주지 않으며 경고 표시도 붙지 않습니다.
 
 ## 수집되는 데이터 양 줄이기
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **OneUptime이 생성해 준 구성을 편집하고 있나요?** 위의 파이프라인은 이 페이지의 전체 예제와 일치합니다. 대시보드(Hosts → Documentation)에서 제공하는 구성은 이름이 다릅니다: 프로세서가 `resourcedetection`과 `batch`이며(`resource` 프로세서는 **없습니다**) exporter는 `otlphttp/oneuptime`입니다. 정의되지 않은 프로세서를 참조하면 Collector가 시작 시 `references processor "resource" which is not configured` 오류와 함께 중단됩니다. 이 블록을 그 위에 붙여넣지 말고, 이미 있는 것에 filter를 추가하세요:
+> **OneUptime이 생성해 준 구성을 편집하고 있나요?** 위의 파이프라인은 이 페이지의 전체 예제와 일치합니다. 대시보드(Hosts → Documentation)에서 제공하는 구성은 이름이 다릅니다: 프로세서는 `resourcedetection`, `resource`, `batch`이며 exporter는 `otlphttp/oneuptime`입니다. 정의되지 않은 프로세서나 exporter를 참조하면 Collector가 시작 시 중단됩니다. 이 블록을 그 위에 붙여넣지 말고, 이미 있는 것에 filter를 추가하세요:
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> `resourcedetection`은 유지하세요 — OneUptime은 이것이 설정하는 `host.name` / `host.id`를 사용하여 텔레메트리를 호스트에 매칭합니다. 또한 그 생성된 구성은 **메트릭 전용**입니다: 직접 추가하기 전까지는 `logs:` 파이프라인이 없으므로, `filelog`나 `journald` 리시버를 함께 추가하기 전까지 `filter/drop-low-severity`는 필터링할 대상이 없습니다.
+> `resourcedetection`은 유지하세요 — OneUptime은 이것이 설정하는 `host.name` / `host.id`를 사용하여 텔레메트리를 호스트에 매칭합니다. Collector의 버전을 보고하는 `resource`도 유지하세요. 또한 그 생성된 구성은 **메트릭 전용**입니다: 직접 추가하기 전까지는 `logs:` 파이프라인이 없으므로, `filelog`나 `journald` 리시버를 함께 추가하기 전까지 `filter/drop-low-severity`는 필터링할 대상이 없습니다.
 
 > **macOS에서는 Homebrew가 아니라 tarball을 사용하세요.** Homebrew 포뮬러는 **core** Collector를 제공하는데 `filter`는 contrib 전용 프로세서입니다 — YAML이 올바른지 여부와 관계없이 Collector가 시작을 거부합니다.
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:

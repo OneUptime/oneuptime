@@ -42,6 +42,7 @@ import { AddMonitorLinkedResourcesAndRemediationDecision1797800000000 } from "./
 import { BackfillFileOwners1797900000000 } from "./1797900000000-BackfillFileOwners";
 import { TurnOnResourceAiInvestigationByDefault1798000000000 } from "./1798000000000-TurnOnResourceAiInvestigationByDefault";
 import { StartFileUploadsPrivate1798100000000 } from "./1798100000000-StartFileUploadsPrivate";
+import { AddProjectAiDailyLimits1798200000000 } from "./1798200000000-AddProjectAiDailyLimits";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1284,4 +1285,5 @@ export default [
   BackfillFileOwners1797900000000,
   TurnOnResourceAiInvestigationByDefault1798000000000,
   StartFileUploadsPrivate1798100000000,
+  AddProjectAiDailyLimits1798200000000,
 ];

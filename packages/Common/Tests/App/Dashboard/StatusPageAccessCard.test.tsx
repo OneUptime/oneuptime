@@ -78,6 +78,7 @@ import StatusPageAccessCopy, {
   STATUS_PAGE_ACCESS_CARD_TEST_ID,
   STATUS_PAGE_ACCESS_CHANGE_PASSWORD_TEST_ID,
   STATUS_PAGE_ACCESS_NOBODY_CAN_SIGN_IN_TEST_ID,
+  STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID,
   STATUS_PAGE_ACCESS_SIGN_IN_METHODS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -758,22 +759,23 @@ describe("plans (OneUptime Cloud)", () => {
     expect(updateByIdMock).not.toHaveBeenCalled();
   });
 
-  test("on Free, a private page moves between the private choices, and only going public needs Growth", async () => {
+  test("on Free, a private page moves between the private choices with no plan, and its dialog says nothing about plans", async () => {
     plan = PlanType.Free;
     stored = { ...SIGN_IN_PAGE, hasMasterPassword: true };
 
     await renderCard();
 
     expect(
-      within(row(StatusPageAccess.Anyone)).getByText("Growth Plan"),
-    ).toBeInTheDocument();
-    expect(choice(StatusPageAccess.Anyone)).toBeDisabled();
-    expect(
       within(row(StatusPageAccess.Password)).queryByText("Growth Plan"),
     ).not.toBeInTheDocument();
     expect(choice(StatusPageAccess.Password)).toBeEnabled();
 
     await pick(StatusPageAccess.Password);
+
+    expect(
+      screen.queryByTestId(STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID),
+    ).not.toBeInTheDocument();
+
     await submitDialog();
 
     await waitFor(() => {
@@ -783,6 +785,90 @@ describe("plans (OneUptime Cloud)", () => {
     // No public switch in the write, so Free may make it.
     expect(sent()).toEqual([{ enableMasterPassword: true }]);
   });
+
+  test("on Free, a page a trial left private can always be made public again: no plan for that, and the dialog says making it private again needs Growth", async () => {
+    plan = PlanType.Free;
+    stored = { ...SIGN_IN_PAGE };
+
+    await renderCard();
+
+    // A paid feature can always be switched off: going public needs no plan.
+    expect(
+      within(row(StatusPageAccess.Anyone)).queryByText("Growth Plan"),
+    ).not.toBeInTheDocument();
+    expect(choice(StatusPageAccess.Anyone)).toBeEnabled();
+
+    await pick(StatusPageAccess.Anyone);
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      ACCESS_CONFIRMATION_COPY[StatusPageAccess.Anyone].title,
+    );
+    expect(
+      screen.getByTestId(STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID),
+    ).toHaveTextContent(
+      "Your plan does not include “Only people who sign in”, so picking it again later needs the Growth plan.",
+    );
+
+    await submitDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The public switch back to its default, alone.
+    expect(sent()).toEqual([{ isPublicStatusPage: true }]);
+    expect(checkedChoices()).toEqual([StatusPageAccess.Anyone]);
+
+    // Public now: making it private again needs Growth, and cannot be picked.
+    for (const access of [StatusPageAccess.SignIn, StatusPageAccess.Password]) {
+      expect(within(row(access)).getByText("Growth Plan")).toBeInTheDocument();
+      expect(choice(access)).toBeDisabled();
+    }
+  });
+
+  test("on Free, a password page goes public with its password switch, and the dialog names the password choice", async () => {
+    plan = PlanType.Free;
+    stored = { ...PASSWORD_PAGE };
+
+    await renderCard();
+
+    await pick(StatusPageAccess.Anyone);
+
+    expect(
+      screen.getByTestId(STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID),
+    ).toHaveTextContent(
+      "Your plan does not include “Anyone with the password”, so picking it again later needs the Growth plan.",
+    );
+
+    await submitDialog();
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sent()).toEqual([
+      { isPublicStatusPage: true, enableMasterPassword: false },
+    ]);
+  });
+
+  test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "on %s, going public says nothing about plans: going private again is included",
+    async (current: PlanType) => {
+      plan = current;
+      stored = { ...SIGN_IN_PAGE };
+
+      await renderCard();
+
+      await pick(StatusPageAccess.Anyone);
+
+      expect(screen.getByTestId("modal-title")).toHaveTextContent(
+        ACCESS_CONFIRMATION_COPY[StatusPageAccess.Anyone].title,
+      );
+      expect(
+        screen.queryByTestId(STATUS_PAGE_ACCESS_PLAN_LEFTOVER_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
     "on %s, nothing needs a plan",

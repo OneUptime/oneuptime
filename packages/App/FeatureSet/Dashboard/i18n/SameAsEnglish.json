@@ -108,6 +108,7 @@
   "etcd",
   "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
   "kube-proxy",
+  "macOS",
   "name@example.com",
   "openid email profile",
   "{ \"Authorization\": \"Bearer ...\" }",

@@ -22,13 +22,13 @@ Vous pouvez exécuter le **collecteur OpenTelemetry** en tant que service direct
 
 ## Étape 1 — Installer le collecteur OpenTelemetry
 
-Choisissez la section correspondant à votre système d'exploitation. Tous les exemples supposent que vous installez la dernière version `otelcol-contrib` depuis [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases).
+Choisissez la section correspondant à votre système d'exploitation. Tous les exemples installent `otelcol-contrib` **v0.161.0** depuis [opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) : la version que fixe OneUptime, et que les configurations de l'étape 2 indiquent comme version de l'agent de l'hôte (voir « Mettre à niveau le collecteur » ci-dessous).
 
 ### Linux (Debian / Ubuntu)
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ Le paquet Debian installe le binaire dans `/usr/bin/otelcol-contrib`, la configu
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ Les chemins correspondent à ceux du paquet Debian (`/usr/bin/otelcol-contrib`, 
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ Le nom de l'artefact doit **commencer par `otelcol-contrib_`**. La version core 
 Depuis une invite PowerShell **avec privilèges élevés**, exécutez le bloc dans son intégralité — chaque ligne dépend des variables définies au-dessus :
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** regroupe les enregistrements avant l'exportation afin que vous n'ayez pas à effectuer un aller-retour HTTP par enregistrement.
 - **`resource`** estampille chaque enregistrement avec `service.name`. Utilisez une valeur différente par hôte (par exemple `prod-web-01`) si vous souhaitez que chaque machine apparaisse comme son propre service de télémétrie dans OneUptime.
+- **`oneuptime.agent.version`** est la version du collecteur à laquelle cette configuration est destinée. OneUptime l'affiche comme **Version de l'agent** de l'hôte ; ne la modifiez qu'en même temps que le collecteur que vous installez (voir « Mettre à niveau le collecteur » ci-dessous).
 - **`otlphttp`** envoie les données vers OneUptime via HTTPS avec le jeton d'ingestion joint.
 
 ### Métriques de l'hôte (Linux, macOS, Windows)
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ Le service s'exécute par défaut sous `LocalSystem`, qui dispose des privilège
 3. Ouvrez **Métriques** — les métriques de l'hôte (CPU, mémoire, système de fichiers, etc.) devraient apparaître en moins d'une minute.
 4. Ouvrez **Journaux** — vos journaux de fichiers / entrées journald / journaux d'événements Windows devraient arriver en flux continu. Les attributs utiles pour la recherche incluent `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` et `winlog.provider.name`.
 5. Si vous avez activé le récepteur `systemd` (Linux) ou `windows_service` (Windows), ouvrez **Infrastructure → Hôtes**, choisissez l'hôte et consultez l'onglet **Systemd Units** / **Services** — chaque unité collectée devrait y figurer avec son état actuel.
+
+## Mettre à niveau le collecteur
+
+Chaque configuration de cette page estampille, dans son processeur `resource`, la version du collecteur à laquelle elle est destinée sous la forme `oneuptime.agent.version`. OneUptime l'affiche comme **Version de l'agent** dans la **Vue d'ensemble** de l'hôte, et place un signe d'avertissement à côté lorsque OneUptime fixe une version plus récente. Sélectionnez le signe pour voir comment mettre à niveau selon votre mode d'installation : la configuration enregistrée à nouveau, puis la nouvelle version installée par-dessus l'ancienne.
+
+Pour mettre à niveau à la main, installez la nouvelle version comme vous avez installé celle-ci (étape 1, avec la nouvelle `VERSION`), réglez `oneuptime.agent.version` dans votre configuration sur la même version et redémarrez le collecteur (étape 3). Un collecteur dont la configuration n'estampille aucune version n'en affiche aucune, ni jamais de signe.
 
 ## Réduire le volume de données collectées
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **Vous modifiez la configuration générée pour vous par OneUptime ?** Le pipeline ci-dessus correspond aux exemples complets de cette page. La configuration issue du tableau de bord (Hôtes → Documentation) nomme les choses différemment : ses processeurs sont `resourcedetection` et `batch` (il n'y a **pas** de processeur `resource`) et son exportateur est `otlphttp/oneuptime`. Référencer un processeur qui n'est pas défini arrête le collecteur au démarrage avec `references processor "resource" which is not configured`. Ajoutez le filtre à ce qui existe déjà plutôt que de coller ce bloc par-dessus :
+> **Vous modifiez la configuration générée pour vous par OneUptime ?** Le pipeline ci-dessus correspond aux exemples complets de cette page. La configuration issue du tableau de bord (Hôtes → Documentation) nomme les choses différemment : ses processeurs sont `resourcedetection`, `resource` et `batch`, et son exportateur est `otlphttp/oneuptime`. Référencer un processeur ou un exportateur qui n'est pas défini arrête le collecteur au démarrage. Ajoutez le filtre à ce qui existe déjà plutôt que de coller ce bloc par-dessus :
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> Conservez `resourcedetection` — OneUptime associe la télémétrie à un hôte à l'aide des `host.name` / `host.id` qu'il définit. Cette configuration générée est également **uniquement métriques** : elle n'a pas de pipeline `logs:` tant que vous n'en ajoutez pas un, de sorte qu'un `filter/drop-low-severity` n'a rien à filtrer tant que vous n'ajoutez pas un récepteur `filelog` ou `journald` à côté.
+> Conservez `resourcedetection` — OneUptime associe la télémétrie à un hôte à l'aide des `host.name` / `host.id` qu'il définit — ainsi que `resource`, qui indique la version du collecteur. Cette configuration générée est également **uniquement métriques** : elle n'a pas de pipeline `logs:` tant que vous n'en ajoutez pas un, de sorte qu'un `filter/drop-low-severity` n'a rien à filtrer tant que vous n'ajoutez pas un récepteur `filelog` ou `journald` à côté.
 
 > **Sur macOS, utilisez l'archive tarball, pas Homebrew.** La formule Homebrew fournit le collecteur **core**, et `filter` est un processeur disponible uniquement dans contrib — le collecteur refusera de démarrer, que votre YAML soit correct ou non.
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:

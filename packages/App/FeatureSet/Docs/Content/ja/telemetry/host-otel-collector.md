@@ -22,13 +22,13 @@
 
 ## ステップ 1 — OpenTelemetry Collector のインストール
 
-ご利用の OS のセクションを選んでください。すべての例では、[opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) から最新の `otelcol-contrib` リリースをインストールすることを前提としています。
+ご利用の OS のセクションを選んでください。すべての例では、[opentelemetry-collector-releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) から `otelcol-contrib` **v0.161.0** をインストールします。これは OneUptime が固定しているリリースで、ステップ 2 の設定がホストのエージェントバージョンとして報告します（下記の「コレクターをアップグレードする」を参照）。
 
 ### Linux（Debian / Ubuntu）
 
 ```bash
 ARCH=$(dpkg --print-architecture)   # amd64 or arm64
-VERSION=0.156.0                      # pick the latest release tag
+VERSION=0.161.0                      # the release OneUptime pins
 
 curl -L -o otelcol-contrib.deb \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.deb"
@@ -42,7 +42,7 @@ Debian パッケージは、バイナリを `/usr/bin/otelcol-contrib` に、デ
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 sudo rpm -ivh \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.rpm"
@@ -54,7 +54,7 @@ sudo rpm -ivh \
 
 ```bash
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/arm64/arm64/')
-VERSION=0.156.0
+VERSION=0.161.0
 
 curl -L -o otelcol-contrib.tar.gz \
   "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_darwin_${ARCH}.tar.gz"
@@ -83,7 +83,7 @@ Windows では、アップストリームの **`otelcol-contrib`** リリース�
 **管理者権限の** PowerShell プロンプトから、ブロック全体をまとめて実行してください。各行は、その上で設定した変数に依存します。
 
 ```powershell
-$VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
+$VERSION = "0.161.0"                          # the release OneUptime pins; v0.155.0+ has the Services tab
 $ARCH    = "amd64"                            # use "arm64" on ARM hosts
 $dest    = "C:\Program Files\otelcol-contrib"
 $tar     = "$env:TEMP\otelcol-contrib.tar.gz"
@@ -131,6 +131,9 @@ processors:
       - key: service.name
         value: host-telemetry
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -141,6 +144,7 @@ exporters:
 
 - **`batch`** はエクスポート前にレコードをまとめるので、レコードごとに 1 回の HTTP ラウンドトリップを発生させずに済みます。
 - **`resource`** はすべてのレコードに `service.name` を付与します。各マシンを OneUptime 上で独自のテレメトリサービスとして表示したい場合は、ホストごとに異なる値（例: `prod-web-01`）を使用してください。
+- **`oneuptime.agent.version`** は、この設定が対象とするコレクターのリリースです。OneUptime はこれをホストの **エージェントバージョン** として表示します。インストールするコレクターと一緒にだけ変更してください（下記の「コレクターをアップグレードする」を参照）。
 - **`otlphttp`** は、取り込みトークンを付与して HTTPS 経由で OneUptime に送信します。
 
 ### ホストメトリクス（Linux、macOS、Windows）
@@ -416,6 +420,9 @@ processors:
       - key: service.name
         value: linux-host
         action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
 
 exporters:
   otlphttp:
@@ -489,6 +496,9 @@ processors:
     attributes:
       - key: service.name
         value: macos-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -574,6 +584,9 @@ processors:
     attributes:
       - key: service.name
         value: windows-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:
@@ -673,6 +686,12 @@ sc.exe query "otelcol-contrib"
 3. **メトリクス** を開きます — ホストメトリクス（CPU、メモリ、ファイルシステムなど）が 1 分以内に表示されるはずです。
 4. **ログ** を開きます — ファイルログ / journald のエントリ / Windows イベントログがストリーミングされてくるはずです。検索に役立つ属性には、`log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id`、`winlog.provider.name` などがあります。
 5. `systemd`（Linux）または `windows_service`（Windows）レシーバーを有効にした場合は、**インフラストラクチャ → ホスト** を開いてホストを選択し、**Systemd Units** / **サービス** タブを確認します — スクレイプされたすべてのユニットが現在の状態とともに一覧表示されるはずです。
+
+## コレクターをアップグレードする
+
+このページのどの設定も、`resource` プロセッサで、対象とするコレクターのリリースを `oneuptime.agent.version` として付与します。OneUptime はこれをホストの **概要** に **エージェントバージョン** として表示し、OneUptime がより新しいリリースを固定すると、その横に警告マークを付けます。マークを選ぶと、インストールした方法に合わせたアップグレード手順が表示されます。設定をもう一度保存し、その後で新しいリリースを古いリリースの上にインストールします。
+
+手動でアップグレードするには、このリリースと同じ方法で新しいリリースをインストールし（ステップ 1、新しい `VERSION` で）、設定の `oneuptime.agent.version` を同じバージョンにしてから、コレクターを再起動します（ステップ 3）。設定がバージョンを付与しないコレクターはバージョンを表示せず、マークも付きません。
 
 ## 収集するデータ量を削減する
 
@@ -850,18 +869,18 @@ service:
       exporters: [otlphttp]
 ```
 
-> **OneUptime が生成した設定を編集していますか?** 上記のパイプラインは、このページの完全な例と対応しています。ダッシュボード（Hosts → Documentation）から取得できる設定は、名前の付け方が異なります。プロセッサは `resourcedetection` と `batch` であり（`resource` プロセッサは **ありません**）、エクスポーターは `otlphttp/oneuptime` です。定義されていないプロセッサを参照すると、コレクターは起動時に `references processor "resource" which is not configured` で停止します。このブロックを上書きで貼り付けるのではなく、すでにあるものにフィルターを追加してください。
+> **OneUptime が生成した設定を編集していますか?** 上記のパイプラインは、このページの完全な例と対応しています。ダッシュボード（Hosts → Documentation）から取得できる設定は、名前の付け方が異なります。プロセッサは `resourcedetection`、`resource`、`batch` で、エクスポーターは `otlphttp/oneuptime` です。定義されていないプロセッサやエクスポーターを参照すると、コレクターは起動時に停止します。このブロックを上書きで貼り付けるのではなく、すでにあるものにフィルターを追加してください。
 >
 > ```yaml
 > service:
 >   pipelines:
 >     metrics:
 >       receivers: [hostmetrics]
->       processors: [filter/drop-metrics, resourcedetection, batch]
+>       processors: [filter/drop-metrics, resourcedetection, resource, batch]
 >       exporters: [otlphttp/oneuptime]
 > ```
 >
-> `resourcedetection` は残してください — OneUptime は、それが設定する `host.name` / `host.id` を使ってテレメトリをホストに対応付けます。その生成された設定はまた **メトリクス専用** です。自分で追加するまで `logs:` パイプラインを持たないため、`filelog` または `journald` レシーバーを併せて追加するまで、`filter/drop-low-severity` にはフィルターする対象がありません。
+> `resourcedetection` は残してください — OneUptime は、それが設定する `host.name` / `host.id` を使ってテレメトリをホストに対応付けます。コレクターのバージョンを報告する `resource` も残してください。その生成された設定はまた **メトリクス専用** です。自分で追加するまで `logs:` パイプラインを持たないため、`filelog` または `journald` レシーバーを併せて追加するまで、`filter/drop-low-severity` にはフィルターする対象がありません。
 
 > **macOS では、Homebrew ではなくアーカイブ（tarball）を使用してください。** Homebrew の formula は **core** コレクターを同梱していますが、`filter` は contrib 専用のプロセッサです — YAML が正しいかどうかに関わらず、コレクターは起動を拒否します。
 
@@ -913,6 +932,9 @@ processors:
     attributes:
       - key: service.name
         value: linux-host
+        action: upsert
+      - key: oneuptime.agent.version
+        value: "0.161.0"
         action: upsert
 
 exporters:

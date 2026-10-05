@@ -249,9 +249,12 @@ never scrolls sideways, and a name longer than the row still truncates.
 `1.9.0`, so its Agent Version on Cluster Details carries the warning sign: the spec
 hovers it for "A newer agent is available: 14.0.14", opens the upgrade dialog, reads
 the chart's upgrade command, closes it with the keyboard and checks the focus comes
-back. Without `?appVersion` the same version reads as plain text, and the Host
-Overview's agent version (an OpenTelemetry Collector, which OneUptime does not release)
-never carries the sign. At a phone's width the dialog fits the screen.
+back. Without `?appVersion` the same version reads as plain text. At a phone's width
+the dialog fits the screen. The Host Overview's collector reports `0.154.0`, older than
+the `0.161.0` the host guide pins, so its Agent Version carries the sign without any
+`?appVersion`: the spec opens the host upgrade, checks the four Linux tabs (the fixture
+host reports `os.type` linux), the link to the host's setup guide for the config, and
+the Docker and Debian commands.
 
 ## Explorers: a double-click right after a drag
 

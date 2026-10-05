@@ -208,8 +208,9 @@ export class Service extends ProjectReferencesService<Model> {
    * Two callers share this throttle with DISJOINT extras shapes: the
    * metrics snapshot flush (pveVersion + counts, every batch) and the
    * fenced autoDiscoverProxmoxCluster maintenance path (agentVersion
-   * only — and usually an all-null fingerprint, since the shipped
-   * agent config does not stamp oneuptime.agent.version). The single
+   * only — the oneuptime.agent.version the shipped agent config stamps;
+   * a cluster that pushes its own metrics sends none, an all-null
+   * fingerprint that never touches the enrichment gates). The single
    * fingerprint covers the whole extras object, so each alternation
    * between the two shapes busts the throttle: at most one extra
    * Postgres UPDATE per maintenance-fence window (~5 min), which is

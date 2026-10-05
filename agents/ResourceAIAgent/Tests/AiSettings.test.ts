@@ -8,7 +8,14 @@ import {
 import assert from "assert";
 import fs from "fs";
 import { AddressInfo } from "net";
-import { after, afterEach, before, beforeEach, describe, test } from "node:test";
+import {
+  after,
+  afterEach,
+  before,
+  beforeEach,
+  describe,
+  test,
+} from "node:test";
 import ResourceAiAgent from "../Agent";
 import AgentStatus, { AgentStatusSnapshot } from "../AgentStatus";
 import { AgentConfig, ParsedConfig, parseConfig } from "../Config";
@@ -155,9 +162,12 @@ describe("reading the settings from the .env", () => {
   });
 
   test("a write-target list over the bounds still keeps the agent read-only", () => {
-    const targets: string = Array.from({ length: 65 }, (_: unknown, i: number) => {
-      return `t-${i}`;
-    }).join(",");
+    const targets: string = Array.from(
+      { length: 65 },
+      (_: unknown, i: number) => {
+        return `t-${i}`;
+      },
+    ).join(",");
     const parsed: ParsedConfig = parse({
       ONEUPTIME_AI_FIXES: "automatic",
       ONEUPTIME_AI_ALLOW_WRITES: "true",
@@ -219,8 +229,7 @@ describe("the posture carries what the .env allows", () => {
 
     assert.deepStrictEqual(sent.aiSettings, expected);
     assert.deepStrictEqual(
-      parseResourceAiAgentPosture(JSON.parse(JSON.stringify(sent)))
-        ?.aiSettings,
+      parseResourceAiAgentPosture(JSON.parse(JSON.stringify(sent)))?.aiSettings,
       expected,
     );
   });

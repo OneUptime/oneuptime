@@ -268,7 +268,18 @@ They are folded under **More settings** at the bottom of each signal type's AI s
 | Daily token limit         | Optional maximum tokens per UTC day for autonomous AI work linked to this signal type, including investigations, remediation, and follow-up fix tasks. Incident and alert usage is counted separately. When one limit is reached, only that signal type's AI work is paused until the next day — interactive AI chat is never blocked. Unset (the default) means **no limit**; set **0** to pause that lane. | Incidents or Alerts > AI > Settings |
 | Daily fix-task limit      | Maximum incident- or alert-linked fix tasks created per UTC day. Each signal type has its own limit. Unset (the default) means **no limit**; set 0 to pause that lane's fix tasks.                                                                                                                                                                                                                           | Incidents or Alerts > AI > Settings |
 
-AI work outside incidents and alerts — insight triage, and fix tasks for exceptions, insights and performance regressions — has no setting and none of these limits. Its pull requests count against a repository's **Max Open Fix Pull Requests** (on the repository's **Settings** page) once you set one; unset means no cap, and 0 blocks AI fix pull requests for that repository.
+AI work outside incidents and alerts — insight triage, and fix tasks for exceptions, insights and performance regressions — has no setting of its own and none of the limits in the table; only the project's own daily limits (below) apply to it. Its pull requests count against a repository's **Max Open Fix Pull Requests** (on the repository's **Settings** page) once you set one; unset means no cap, and 0 blocks AI fix pull requests for that repository.
+
+### The project's own daily limits
+
+Above every limit in the table, a project can cap what OneUptime AI uses in a day, whatever it is doing: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, workflows, runbooks, and Slack or Microsoft Teams questions alike. The limits are on **Project Settings → AI Features**, folded under **More settings**, in the **Daily limits** card:
+
+- **Daily AI Token Limit**: the most tokens the project's AI may use each day, through any LLM provider.
+- **Daily AI Spend Limit (USD)**, on OneUptime Cloud: the most AI credits, in whole US dollars, the project's AI may spend each day. Only AI billed to the project's AI credits counts, so it never stops AI that runs on the project's own LLM provider. Self-hosted installations do not bill AI, so they do not offer it.
+
+Unset (the default) means **no limit**. A limit is a whole number of at least 1; to turn AI off, use **Enable AI**. A day is a UTC day, like the incident and alert limits: usage is counted from midnight UTC, and the count starts again at the next midnight UTC. Folded, the section says what applies and what AI used today, for example "At most 200,000 tokens a day. Used today: 45,210 tokens." Only a project owner or someone with **Manage Billing** can change the limits: the same people who can turn AI off.
+
+Once a limit is reached, new AI work stops until midnight UTC. A call that is already running finishes, and every call after it is refused with one sentence that says which limit was reached, how much was used, and where to change it. Ask AI, a **Generate with AI** button, a workflow, a runbook step, and Slack and Microsoft Teams answer with that sentence, and every refused call is listed in the AI Logs (Project Settings > AI > AI Logs) with the status **Budget Exceeded**. Automatic investigations, postmortem drafts, and insight triage are not started at all. An incident or alert created meanwhile says so in its AI investigation card, with a link to the limits. The incident and alert daily token limits still apply under the project's own: AI stops at whichever is reached first.
 
 ## Trust and safety
 
@@ -317,4 +328,4 @@ Every insight has **Confirm** and **Dismiss** buttons — use them even when you
 - An LLM provider must be configured (project-specific or the cloud global provider).
 - Investigations trigger on **newly created** incidents and alerts only — turning the switches on does not investigate historical signals.
 - The `baseline_anomaly` check needs about two weeks of metric history before its hour-of-week baselines are reliable; before that it reports "insufficient baseline data" rather than guessing.
-- On OneUptime Cloud with the global provider, investigations consume metered AI tokens (see Project Settings > AI Credits). Bring your own provider key for unmetered usage.
+- On OneUptime Cloud with the global provider, investigations consume metered AI tokens (see Project Settings > AI Credits). Bring your own provider key for unmetered usage, or cap what AI may spend each day with a daily AI spend limit (Project Settings → AI Features → More settings).
