@@ -303,15 +303,17 @@ describe("PUT an incident", () => {
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/i") as never);
 
-    jest.spyOn(IncidentSeverityService, "findOneBy").mockImplementation((async (
-      findOneBy: { query: { _id: unknown } },
-    ): Promise<IncidentSeverity> => {
-      const id: string = String(findOneBy.query._id).toLowerCase();
-      const severity: IncidentSeverity = new IncidentSeverity();
-      severity._id = id;
-      severity.name = SEVERITY_NAMES[id] || "Unknown";
-      return severity;
-    }) as never);
+    jest
+      .spyOn(IncidentSeverityService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: { _id: unknown };
+      }): Promise<IncidentSeverity> => {
+        const id: string = String(findOneBy.query._id).toLowerCase();
+        const severity: IncidentSeverity = new IncidentSeverity();
+        severity._id = id;
+        severity.name = SEVERITY_NAMES[id] || "Unknown";
+        return severity;
+      }) as never);
 
     feed = getJestMockFunction();
     feed.mockResolvedValue(undefined as never);
@@ -522,15 +524,17 @@ describe("PUT an alert", () => {
       .spyOn(AlertService, "getAlertLinkInDashboard")
       .mockResolvedValue(URL.fromString("https://oneuptime.test/a") as never);
 
-    jest.spyOn(AlertSeverityService, "findOneBy").mockImplementation((async (
-      findOneBy: { query: { _id: unknown } },
-    ): Promise<AlertSeverity> => {
-      const id: string = String(findOneBy.query._id).toLowerCase();
-      const severity: AlertSeverity = new AlertSeverity();
-      severity._id = id;
-      severity.name = SEVERITY_NAMES[id] || "Unknown";
-      return severity;
-    }) as never);
+    jest
+      .spyOn(AlertSeverityService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: { _id: unknown };
+      }): Promise<AlertSeverity> => {
+        const id: string = String(findOneBy.query._id).toLowerCase();
+        const severity: AlertSeverity = new AlertSeverity();
+        severity._id = id;
+        severity.name = SEVERITY_NAMES[id] || "Unknown";
+        return severity;
+      }) as never);
 
     feed = getJestMockFunction();
     feed.mockResolvedValue(undefined as never);
@@ -611,14 +615,7 @@ describe("PUT a scheduled maintenance event or an announcement as a master admin
       "subscriberNotificationStatus",
     ],
   ] as Array<
-    [
-      string,
-      { new (): BaseModel },
-      unknown,
-      () => BaseModel,
-      string,
-      string,
-    ]
+    [string, { new (): BaseModel }, unknown, () => BaseModel, string, string]
   >)(
     "%s: its 'created' message is not queued again",
     async (

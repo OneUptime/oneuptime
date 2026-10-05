@@ -47,7 +47,9 @@ describe("changing an incident's severity", () => {
 
   test("names every way a severity is changed, the ID column the API and Terraform write among them", () => {
     expect(page).toContain("**Changing an incident's severity**");
-    expect(page).toContain("through the API or Terraform (`incidentSeverityId`)");
+    expect(page).toContain(
+      "through the API or Terraform (`incidentSeverityId`)",
+    );
     expect(page).toContain("with a workflow or with the AI tools");
     expect(page).toContain("whichever way it is sent");
 

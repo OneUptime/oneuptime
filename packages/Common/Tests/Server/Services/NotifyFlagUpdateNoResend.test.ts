@@ -430,14 +430,12 @@ describe("what an incident update decides from the flag reads it as it is after 
     stubService(incidentCase);
 
     // Every page asked about is one the caller can read.
-    jest
-      .spyOn(StatusPageService, "findBy")
-      .mockImplementation((async (findBy: {
-        query: { _id: unknown };
-      }): Promise<Array<unknown>> => {
-        void findBy;
-        return [];
-      }) as never);
+    jest.spyOn(StatusPageService, "findBy").mockImplementation((async (findBy: {
+      query: { _id: unknown };
+    }): Promise<Array<unknown>> => {
+      void findBy;
+      return [];
+    }) as never);
   });
 
   function hiddenIncident(flag: boolean): BaseModel {

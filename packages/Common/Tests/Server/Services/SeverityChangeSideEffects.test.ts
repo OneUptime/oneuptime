@@ -72,9 +72,7 @@ const SEVERITY_NAMES: Record<string, string> = {
   [CRITICAL]: "Critical Incident",
 };
 
-type OnBeforeUpdate = (
-  updateBy: UpdateBy<never>,
-) => Promise<OnUpdate<never>>;
+type OnBeforeUpdate = (updateBy: UpdateBy<never>) => Promise<OnUpdate<never>>;
 type OnUpdateSuccess = (
   onUpdate: OnUpdate<never>,
   updatedItemIds: Array<ObjectID>,
@@ -155,35 +153,35 @@ describe("an incident update runs the severity side effects exactly when the sev
     storedSeverities = { [RECORD_ID]: MINOR };
 
     incidentReads = getJestMockFunction();
-    incidentReads.mockImplementation(
-      async (): Promise<Array<Incident>> => {
-        return Object.entries(storedSeverities).map(
-          ([id, severityId]: [string, string | null]): Incident => {
-            const incident: Incident = new Incident();
-            incident._id = id;
-            incident.projectId = PROJECT_ID;
-            if (severityId) {
-              incident.incidentSeverityId = new ObjectID(severityId);
-            }
-            return incident;
-          },
-        );
-      },
-    );
+    incidentReads.mockImplementation(async (): Promise<Array<Incident>> => {
+      return Object.entries(storedSeverities).map(
+        ([id, severityId]: [string, string | null]): Incident => {
+          const incident: Incident = new Incident();
+          incident._id = id;
+          incident.projectId = PROJECT_ID;
+          if (severityId) {
+            incident.incidentSeverityId = new ObjectID(severityId);
+          }
+          return incident;
+        },
+      );
+    });
     jest
       .spyOn(IncidentService, "findBy")
       .mockImplementation(incidentReads as never);
 
-    jest.spyOn(IncidentService, "findOneById").mockImplementation((async (
-      findOneById: { id: ObjectID },
-    ): Promise<Incident> => {
-      const incident: Incident = new Incident();
-      incident._id = findOneById.id.toString();
-      incident.projectId = PROJECT_ID;
-      incident.incidentNumber = 42;
-      incident.incidentNumberWithPrefix = "INC-42";
-      return incident;
-    }) as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (findOneById: {
+        id: ObjectID;
+      }): Promise<Incident> => {
+        const incident: Incident = new Incident();
+        incident._id = findOneById.id.toString();
+        incident.projectId = PROJECT_ID;
+        incident.incidentNumber = 42;
+        incident.incidentNumberWithPrefix = "INC-42";
+        return incident;
+      }) as never);
 
     jest
       .spyOn(IncidentService, "getIncidentLinkInDashboard")
@@ -322,10 +320,7 @@ describe("an incident update runs the severity side effects exactly when the sev
       "the ID column, as the API, Terraform, workflows and AI write it",
       { incidentSeverityId: new ObjectID(CRITICAL) },
     ],
-    [
-      "the ID column as a bare id string",
-      { incidentSeverityId: CRITICAL },
-    ],
+    ["the ID column as a bare id string", { incidentSeverityId: CRITICAL }],
     [
       "the relation, as the dashboard's forms send it",
       { incidentSeverity: { _id: CRITICAL } },
@@ -349,7 +344,10 @@ describe("an incident update runs the severity side effects exactly when the sev
   test.each([
     ["the ID column", { incidentSeverityId: new ObjectID(MINOR) }],
     ["the ID column as a bare id string", { incidentSeverityId: MINOR }],
-    ["the ID column in another case", { incidentSeverityId: MINOR.toUpperCase() }],
+    [
+      "the ID column in another case",
+      { incidentSeverityId: MINOR.toUpperCase() },
+    ],
     ["the relation", { incidentSeverity: { _id: MINOR } }],
     [
       "both names",
@@ -545,16 +543,18 @@ describe("an alert update runs the severity side effects exactly when the severi
     });
     jest.spyOn(AlertService, "findBy").mockImplementation(alertReads as never);
 
-    jest.spyOn(AlertService, "findOneById").mockImplementation((async (
-      findOneById: { id: ObjectID },
-    ): Promise<Alert> => {
-      const alert: Alert = new Alert();
-      alert._id = findOneById.id.toString();
-      alert.projectId = PROJECT_ID;
-      alert.alertNumber = 7;
-      alert.alertNumberWithPrefix = "ALT-7";
-      return alert;
-    }) as never);
+    jest
+      .spyOn(AlertService, "findOneById")
+      .mockImplementation((async (findOneById: {
+        id: ObjectID;
+      }): Promise<Alert> => {
+        const alert: Alert = new Alert();
+        alert._id = findOneById.id.toString();
+        alert.projectId = PROJECT_ID;
+        alert.alertNumber = 7;
+        alert.alertNumberWithPrefix = "ALT-7";
+        return alert;
+      }) as never);
 
     jest
       .spyOn(AlertService, "getAlertLinkInDashboard")
