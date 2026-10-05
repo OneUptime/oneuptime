@@ -21,6 +21,7 @@ import {
   getResourceAiAccessRequestBody,
   getResourceAiAgentCardCommand,
   getResourceAiAgentCardState,
+  getResourceAiAgentInstallInvestigationText,
   getResourceAiAgentMetaParts,
   getResourceAiAgentPageSubtitle,
   getResourceAiAgentReadyText,
@@ -615,14 +616,37 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   );
 };
 
-// The install instructions: the compose snippet, how to start it, and what it reads.
+/*
+ * The install instructions: that AI investigations are on by default, so
+ * the agent is the only step (said while the resource's investigation
+ * switch is on — someone may have turned it off before installing), the
+ * compose snippet, how to start it, and what it reads.
+ */
 function InstallInstructions(props: {
   install: ResourceAiAgentInstall;
+  descriptor: ResourceAiAgentDescriptor;
+  isInvestigationEnabled: boolean;
 }): ReactElement {
   const translator: Translator = useTranslator();
 
   return (
     <div className="space-y-3" data-testid="ai-agent-install">
+      {props.isInvestigationEnabled ? (
+        <div
+          className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2"
+          data-testid="ai-agent-install-investigation"
+        >
+          <Icon
+            icon={IconProp.MagnifyingGlass}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
+          />
+          <p className="text-xs leading-5 text-emerald-900">
+            {getResourceAiAgentInstallInvestigationText(props.descriptor)}
+          </p>
+        </div>
+      ) : (
+        <></>
+      )}
       <p className="text-xs text-gray-600" data-testid="ai-agent-install-where">
         {props.install.whereText}
       </p>
@@ -1296,7 +1320,11 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
           </p>
 
           {install ? (
-            <InstallInstructions install={install} />
+            <InstallInstructions
+              install={install}
+              descriptor={descriptor}
+              isInvestigationEnabled={status.isAiInvestigationEnabled}
+            />
           ) : command === "logs" ? (
             <div data-testid="ai-agent-logs-command">
               <CodeBlock

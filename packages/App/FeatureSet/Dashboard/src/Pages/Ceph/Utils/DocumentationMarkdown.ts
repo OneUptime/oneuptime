@@ -379,7 +379,9 @@ docker logs -f ${CEPH_AGENT_CONTAINER}`,
 
 Look for \`Everything is ready. Begin running and processing data.\` in the logs. The cluster then appears automatically in the **Ceph** section, usually within a minute or so.
 
-${aiAgent}`,
+${aiAgent}
+
+**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only \`ceph\` commands, and changes nothing unless you allow fixes.`,
   };
 }
 

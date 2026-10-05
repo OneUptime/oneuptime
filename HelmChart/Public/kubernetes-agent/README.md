@@ -18,10 +18,13 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent --create-namespace \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
-  --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
+  --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER> \
+  --set aiAgent.enabled=true
 ```
 
 Your cluster appears in OneUptime within a few minutes.
+
+**AI investigations are on by default.** `aiAgent.enabled=true` — the chart's default, spelled out above — runs the [Kubernetes AI agent](#kubernetes-ai-agent-ai-investigations-and-fixes), so OneUptime AI investigates incidents and alerts on this cluster with read-only `kubectl` and changes nothing. Fixes stay off until you allow them. To install without it, use `--set aiAgent.enabled=false` instead.
 
 ## Pick a preset
 
@@ -41,6 +44,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod \
+  --set aiAgent.enabled=true \
   --set preset=gke-autopilot
 ```
 
@@ -52,6 +56,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
   --set oneuptime.url=https://oneuptime.com \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod \
+  --set aiAgent.enabled=true \
   --set preset=eks-fargate
 ```
 

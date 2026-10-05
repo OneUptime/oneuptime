@@ -1129,6 +1129,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/H
 sudo bash install.sh
 ```
 
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this host with it, and the host's **Overview** shows the agent's status. To stop, turn investigation off under **What AI may do** on the AI agent page, or remove the agent.
 - It registers under `HOST_NAME`; leave it empty to use the host's own hostname, which is what this collector reports as `host.name` unless you set another name. The two must match, so the agent serves the Host this collector created. It shows up on the host's **AI → AI agent** page in OneUptime.
 - It runs the **host's own** programs, entering the host's namespaces with `nsenter`, so it runs privileged, as root, with `pid: host` — it is root on the host. The agent's command policy is the limit: read-only commands unless you set `ONEUPTIME_AI_ALLOW_WRITES=true`, never a shell, `sudo` or a program outside its list, and never itself, this collector's unit or anything in `ONEUPTIME_AI_PROTECTED_TARGETS`.
 - With `ONEUPTIME_AI_ALLOW_WRITES=true`, `ONEUPTIME_AI_WRITE_TARGETS` (full unit names such as `nginx.service,app-*`) limits which units a fix may touch. Then choose on the AI agent page whether each fix needs a person's approval.
