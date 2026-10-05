@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -764,6 +765,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                   quietDescription:
                     PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                 },
+                // Offered only to someone who may post a public note.
+                noteModel: new ScheduledMaintenancePublicNote(),
               },
             ),
             formType: FormType.Create,

@@ -144,7 +144,7 @@ Die Benachrichtigung wird pro Zeitachsenzeile über **Statusseiten-Abonnenten be
 - **Der Vorfall ist auf der Statusseite nicht sichtbar** (`isVisibleOnStatusPage` ist aus).
 - **Auf der Statusseite sind Vorfälle abgeschaltet** (`showIncidentsOnStatusPage` ist aus). Das gilt pro Statusseite – andere Seiten, die denselben Monitor zeigen, werden trotzdem benachrichtigt.
 
-**Noch etwas, das das Ergebnis verändert.** Tippen Sie eine **Öffentliche Notiz** in den Statuswechsel-Dialog, wird die Zeitachsenzeile als bereits benachrichtigt markiert statt eingereiht. Die Notiz selbst ist es, die die Abonnenten erreicht, sie bekommen also eine Nachricht statt zwei. Der Ereignistyp hinter der schlichten Statuswechsel-Nachricht heißt `Subscriber Incident State Changed`.
+**Noch etwas, das das Ergebnis verändert.** Tippen Sie eine **Öffentliche Notiz** in den Statuswechsel-Dialog, wird die Zeitachsenzeile als bereits benachrichtigt markiert statt eingereiht. Die Notiz selbst ist es, die die Abonnenten erreicht, sie bekommen also eine Nachricht statt zwei. Diese Nachricht nennt auf jedem Kanal den neuen Status, wie es die Statuswechsel-Nachricht getan hätte: etwa `[Resolved Incident] <title>` im Betreff der E-Mail und `**Status:** Resolved` in Slack und Microsoft Teams. Die Notiz braucht die Berechtigung, öffentliche Notizen anzulegen: Ohne sie bietet der Dialog die Notiz nicht an, und ein Statuswechsel, der mit einer Notiz gesendet wird, wird abgelehnt – der Status bleibt, wie er war. Der Ereignistyp hinter der schlichten Statuswechsel-Nachricht heißt `Subscriber Incident State Changed`.
 
 Wer diese erhält und wie die Vorlagen gewählt werden, steht unter [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
 

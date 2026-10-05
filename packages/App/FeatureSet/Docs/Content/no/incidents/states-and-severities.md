@@ -144,7 +144,7 @@ Varsling bes om per tidslinjerad med **Varsle statussideabonnenter** (`shouldSta
 - **Hendelsen er ikke synlig på statussiden** (`isVisibleOnStatusPage` er av).
 - **Statussiden har hendelser slått av** (`showIncidentsOnStatusPage` er av). Denne gjelder per statusside — andre sider som viser den samme overvåkingen får fortsatt varsel.
 
-**Én ting til som endrer utfallet.** Skriver du et **Offentlig notat** i dialogen for tilstandsendring, merkes tidslinjeraden som allerede varslet i stedet for å køes. Det er selve notatet som når abonnentene, så de får én melding i stedet for to. Hendelsestypen bak den rene tilstandsendringsmeldingen er `Subscriber Incident State Changed`.
+**Én ting til som endrer utfallet.** Skriver du et **Offentlig notat** i dialogen for tilstandsendring, merkes tidslinjeraden som allerede varslet i stedet for å køes. Det er selve notatet som når abonnentene, så de får én melding i stedet for to. Den meldingen nevner den nye tilstanden på hver kanal, slik tilstandsendringsmeldingen ville ha gjort: for eksempel `[Resolved Incident] <title>` i e-postens emne og `**Status:** Resolved` i Slack og Microsoft Teams. Notatet krever tillatelse til å opprette offentlige notater: uten den tilbyr dialogen ikke notatet, og en tilstandsendring sendt med et notat avvises, så tilstanden forblir uendret. Hendelsestypen bak den rene tilstandsendringsmeldingen er `Subscriber Incident State Changed`.
 
 For hvem som mottar disse og hvordan malene velges, se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers).
 

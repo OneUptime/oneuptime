@@ -7,6 +7,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -526,6 +527,8 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
                 "Post a private note about this state change.",
               ),
               noteTemplates: noteTemplates,
+              // Offered only to someone who may post a private note.
+              noteModel: new IncidentEpisodeInternalNote(),
             }),
             formType: FormType.Create,
           }}

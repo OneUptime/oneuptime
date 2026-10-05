@@ -144,7 +144,7 @@ A notificação é solicitada por linha da linha do tempo, com **Notificar assin
 - **O incidente não está visível na página de status** (`isVisibleOnStatusPage` está desativado).
 - **A página de status está com incidentes desligados** (`showIncidentsOnStatusPage` está desativado). Este é por página de status — outras páginas que mostram o mesmo monitor ainda são notificadas.
 
-**Mais uma coisa que muda o resultado.** Se você digitar uma **Nota pública** no modal de mudança de estado, a linha da linha do tempo é marcada como já notificada em vez de enfileirada. A própria nota é o que chega aos assinantes, então eles recebem uma mensagem em vez de duas. O tipo de evento por trás da mensagem simples de mudança de estado é `Subscriber Incident State Changed`.
+**Mais uma coisa que muda o resultado.** Se você digitar uma **Nota pública** no modal de mudança de estado, a linha da linha do tempo é marcada como já notificada em vez de enfileirada. A própria nota é o que chega aos assinantes, então eles recebem uma mensagem em vez de duas. Essa mensagem nomeia o novo estado em todos os canais, como a mensagem de mudança de estado faria: por exemplo, `[Resolved Incident] <title>` no assunto do e-mail e `**Status:** Resolved` no Slack e no Microsoft Teams. Publicar a nota exige permissão para criar notas públicas: sem ela, o modal não oferece a nota, e uma mudança de estado enviada com uma nota é recusada, então o estado continua como estava. O tipo de evento por trás da mensagem simples de mudança de estado é `Subscriber Incident State Changed`.
 
 Para saber quem recebe essas mensagens e como os modelos são escolhidos, veja [Assinantes e comunicados](/docs/status-pages/subscribers).
 
