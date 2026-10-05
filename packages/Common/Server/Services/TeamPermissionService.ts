@@ -93,6 +93,52 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * ProjectOwner held for the whole project, with nothing blocking it: the
+   * one grant that lets its holder hand on any permission
+   * (assertCanGrantPermission).
+   */
+  private holdsUnblockedProjectOwner(
+    callerPermissions: Array<UserPermission>,
+    callerBlocks: Array<UserPermission>,
+  ): boolean {
+    return (
+      callerPermissions.some((permission: UserPermission) => {
+        return (
+          permission.permission === Permission.ProjectOwner &&
+          this.permissionCoversGrant(permission, PermissionScope.All, [])
+        );
+      }) &&
+      !callerBlocks.some((permission: UserPermission) => {
+        return permission.permission === Permission.ProjectOwner;
+      })
+    );
+  }
+
+  /**
+   * Whether the caller may hand on any permission at all, so no grant of
+   * theirs needs weighing row by row: root, a master admin, or someone who
+   * holds ProjectOwner for the whole project with nothing blocking it.
+   */
+  public canGrantEveryPermission(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    return this.holdsUnblockedProjectOwner(
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    );
+  }
+
   /**
    * A permission editor may only delegate authority they already hold. This
    * is deliberately stricter than the table-level "may edit team
@@ -128,17 +174,7 @@ export class Service extends DatabaseService<Model> {
      * it. Every non-owner therefore falls through to the exact permission and
      * scope comparison below, including ProjectAdmin.
      */
-    if (
-      callerPermissions.some((permission: UserPermission) => {
-        return (
-          permission.permission === Permission.ProjectOwner &&
-          this.permissionCoversGrant(permission, PermissionScope.All, [])
-        );
-      }) &&
-      !callerBlocks.some((permission: UserPermission) => {
-        return permission.permission === Permission.ProjectOwner;
-      })
-    ) {
+    if (this.holdsUnblockedProjectOwner(callerPermissions, callerBlocks)) {
       return;
     }
 
@@ -210,12 +246,40 @@ export class Service extends DatabaseService<Model> {
 
     this.assertProjectMatchesTenant(data.projectId, data.props);
 
-    const permissions: Array<Model> = await this.findBy({
+    // A project owner may hand on every row: nothing to read.
+    if (this.canGrantEveryPermission(data.props)) {
+      return;
+    }
+
+    const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
+      teamIds: [data.teamId],
+      projectId: data.projectId,
+    });
+
+    for (const permission of permissions) {
+      this.assertCanGrantTeamRow(permission, data.props);
+    }
+  }
+
+  /*
+   * Every allow and block row of these teams in `projectId`: what adding
+   * someone to them hands on. Read the same way for an invitation and for a
+   * provider's teams, so both are weighed against the same rows.
+   */
+  private async findRowsHandedOnWithTeams(data: {
+    teamIds: Array<ObjectID>;
+    projectId: ObjectID;
+  }): Promise<Array<Model>> {
+    return await this.findBy({
       query: {
-        teamId: data.teamId,
+        teamId:
+          data.teamIds.length === 1
+            ? data.teamIds[0]!
+            : QueryHelper.any(data.teamIds),
         projectId: data.projectId,
       },
       select: {
+        teamId: true,
         permission: true,
         labels: {
           _id: true,
@@ -228,15 +292,77 @@ export class Service extends DatabaseService<Model> {
         isRoot: true,
       },
     });
+  }
+
+  // One team row against the ceiling, as assertCanGrantPermission weighs it.
+  private assertCanGrantTeamRow(
+    row: Model,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    this.assertCanGrantPermission({
+      permission: row.permission!,
+      labelIds: this.getLabelIds(row.labels),
+      scope: row.scope,
+      props: props,
+    });
+  }
+
+  /**
+   * Which of these teams the caller could not add someone to: the same
+   * ceiling as assertCanGrantTeamPermissions, over the same rows, answered
+   * for several teams at once and without stopping at the first refusal, so
+   * a save that hands several teams on (the teams of an SSO provider, see
+   * Utils/SsoProviderTeamGrant) can name every team it refuses.
+   *
+   * Only rows of `projectId` are read, so the caller resolves the teams to
+   * that project first. Nothing is refused to root or a master admin.
+   */
+  @CaptureSpan()
+  public async findTeamsCallerCannotGrant(data: {
+    teamIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<ObjectID>> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return [];
+    }
+
+    this.assertProjectMatchesTenant(data.projectId, data.props);
+
+    if (data.teamIds.length === 0 || this.canGrantEveryPermission(data.props)) {
+      return [];
+    }
+
+    const permissions: Array<Model> = await this.findRowsHandedOnWithTeams({
+      teamIds: data.teamIds,
+      projectId: data.projectId,
+    });
+
+    const refusedTeamIds: Set<string> = new Set<string>();
 
     for (const permission of permissions) {
-      this.assertCanGrantPermission({
-        permission: permission.permission!,
-        labelIds: this.getLabelIds(permission.labels),
-        scope: permission.scope,
-        props: data.props,
-      });
+      const teamId: string | undefined = permission.teamId
+        ?.toString()
+        .toLowerCase();
+
+      if (!teamId || refusedTeamIds.has(teamId)) {
+        continue;
+      }
+
+      try {
+        this.assertCanGrantTeamRow(permission, data.props);
+      } catch (err) {
+        if (!(err instanceof NotAuthorizedException)) {
+          throw err;
+        }
+
+        refusedTeamIds.add(teamId);
+      }
     }
+
+    return data.teamIds.filter((teamId: ObjectID): boolean => {
+      return refusedTeamIds.has(teamId.toString().toLowerCase());
+    });
   }
 
   @CaptureSpan()

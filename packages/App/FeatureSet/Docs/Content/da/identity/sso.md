@@ -27,7 +27,7 @@ SSO-integration giver følgende fordele:
    - Indtast **Log på-URL** fra din identitetsudbyder
    - Indtast **Udsteder** (Entity ID) fra din identitetsudbyder
    - Indsæt **Offentligt certifikat** fra din identitetsudbyder
-   - I trinnet **Login** starter **Teams** med dit projekts medlemsteam: personer, der logger på første gang, kommer med i disse teams
+   - I trinnet **Login** starter **Teams** med dit projekts medlemsteam: personer, der logger på første gang, kommer med i disse teams. Kun teams, du selv kunne invitere nogen til, accepteres: et team, der giver mere adgang, end du har, nævnes under **Teams**
    - Resten udfyldes under **Flere felter**: **Signaturmetode** (`RSA-SHA256`), **Digest-metode** (`SHA256`) og en beskrivelse ("Sign in with" og navnet). Ændr dem kun, hvis din identitetsudbyder kræver det
 
 3. **Hent OneUptime SSO-metadata**
@@ -294,10 +294,12 @@ Et projekt kan også logge ind via en OpenID Connect-udbyder, f.eks. Google Work
 1. Registrer en app (en OIDC-klient) hos din identitetsudbyder, og kopiér dens **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**.
 2. Gå i OneUptime til **Projektindstillinger** > **Sikkerhed** > **OIDC**, og klik på **Opret OIDC**.
 3. Indtast et **Navn** (det, folk ser på login-siden), **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**. Du kan også indsætte udbyderens discovery-URL i **Udsteder-URL**.
-4. I trinnet **Login** er **Teams** allerede sat til dit projekts medlemsteam: personer, der logger ind for første gang, kommer med i disse teams. Resten udfyldes under **Flere felter**: **Discovery-URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), claim-navnene `email` og `name` samt en beskrivelse ("Sign in with" og navnet). Ændr dem kun, hvis din udbyder kræver det.
+4. I trinnet **Login** er **Teams** allerede sat til dit projekts medlemsteam: personer, der logger ind for første gang, kommer med i disse teams. Resten udfyldes under **Flere felter**: **Discovery-URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), claim-navnene `email` og `name` samt en beskrivelse ("Sign in with" og navnet). Ændr dem kun, hvis din udbyder kræver det. Kun teams, du selv kunne invitere nogen til, accepteres: et team, der giver mere adgang, end du har, nævnes under **Teams**.
 5. Gem. Dialogen **OIDC Configuration** åbner med **Redirect URI**: tilføj den til din apps tilladte redirect-URI'er. En ny udbyder er slået fra fra start; rediger den derefter, og slå **Aktiveret** til.
 6. Brug linket på kortet **Test OpenID Connect (OIDC)** til at logge ind via udbyderen, før du gør SSO obligatorisk for projektet.
 
 ## Noter om SSO og roller
 
 OneUptime understøtter i øjeblikket ikke tilknytning af SAML-roller fra din identitetsudbyder. Rollebaseret adgang skal konfigureres separat i OneUptimes **Projektindstillinger** > **SSO**-indstillinger, hvor du kan tildele standardroller til SSO-brugere.
+
+En udbyders teams bestemmer, hvad de personer, der logger ind med den, kan gøre, så en udbyder gemmes kun med teams, som den person, der gemmer den, kunne invitere nogen til. Hver gang den gemmes, kontrolleres de igen: En udbyder, hvis teams giver mere adgang, end du har, kan kun ændres af en person, hvis adgang dækker dem, for eksempel en projektejer. Udbydere, der blev gemt før denne kontrol, bliver ved med at tilføje personer til deres teams. Alle, der må redigere en udbyder, kan stadig slå den fra, så den kan stoppes med det samme.

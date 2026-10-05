@@ -1,0 +1,145 @@
+import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
+import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  SsoProviderTeamsFooterFunction,
+  readSsoFormValue,
+} from "Common/UI/Components/Sso/SsoProviderFormFields";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
+import {
+  SsoTeamData,
+  canSignedInUserGrantEveryTeam,
+  fetchSsoTeamDataOnce,
+  getTeamsBeyondGrant,
+} from "./SsoTeamGrants";
+
+/*
+ * Under a project SSO provider's Teams field: the picked teams the server
+ * would refuse to save, named, the moment they are picked (see
+ * SsoTeamGrants). Says nothing while every picked team is one the person
+ * could invite someone to, while the teams are still being read, or when
+ * they cannot be read, and reads nothing for someone who may hand on every
+ * team. The picked teams are weighed against the person's permissions as
+ * they are when the note is drawn.
+ *
+ * Switching a saved provider off, with nothing else changed, is the one save
+ * the server takes whatever its teams are, so an edit form with Enabled off
+ * says so too.
+ */
+
+export const SSO_TEAMS_GRANT_NOTE_TEST_ID: string = "sso-teams-grant-note";
+
+export const SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID: string =
+  "sso-teams-grant-note-switch-off";
+
+export interface ComponentProps {
+  // What the Teams field holds now.
+  selectedTeams: unknown;
+  /*
+   * Whether the form edits a saved provider and has it switched off: that
+   * save is accepted when nothing else changes.
+   */
+  isSavedProviderSwitchedOff?: boolean | undefined;
+}
+
+const SsoTeamsGrantNote: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [teamData, setTeamData] = useState<SsoTeamData | null>(null);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    // Someone who may hand on every team is never warned: nothing to read.
+    if (!projectId || canSignedInUserGrantEveryTeam()) {
+      return;
+    }
+
+    fetchSsoTeamDataOnce({ projectId })
+      .then((found: SsoTeamData) => {
+        if (isMounted) {
+          setTeamData(found);
+        }
+      })
+      .catch(() => {
+        // Nothing is said; the server explains its refusal on Save.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const teamNames: Array<string> = canSignedInUserGrantEveryTeam()
+    ? []
+    : getTeamsBeyondGrant({
+        selectedTeams: props.selectedTeams,
+        teamData: teamData,
+      });
+
+  if (teamNames.length === 0) {
+    return <></>;
+  }
+
+  // A div, not a p: the icon draws a div of its own.
+  return (
+    <div
+      role="note"
+      data-testid={SSO_TEAMS_GRANT_NOTE_TEST_ID}
+      className="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+    >
+      <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>
+        {translator.translatePlural(
+          {
+            one: "You can't add people to {{teams}} through this provider: it gives more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+            other:
+              "You can't add people to {{teams}} through this provider: they give more access than you have. Choose teams you could invite someone to, or ask a project owner to save this provider.",
+          },
+          teamNames.length,
+          { teams: teamNames.join(", ") },
+        )}
+        {props.isSavedProviderSwitchedOff ? (
+          <span data-testid={SSO_TEAMS_GRANT_NOTE_SWITCH_OFF_TEST_ID}>
+            {" "}
+            {translator.translateText(
+              "Switching it off, with nothing else changed, is still allowed.",
+            )}
+          </span>
+        ) : (
+          <></>
+        )}
+      </span>
+    </div>
+  );
+};
+
+/*
+ * A provider form's getTeamsFooterElement: the note, for what Teams holds
+ * now. An edit form's values carry the provider's id.
+ */
+export const getSsoTeamsGrantNote: SsoProviderTeamsFooterFunction = (
+  values: unknown,
+): ReactElement => {
+  return (
+    <SsoTeamsGrantNote
+      selectedTeams={readSsoFormValue(values, "teams")}
+      isSavedProviderSwitchedOff={
+        Boolean(readSsoFormValue(values, "_id")) &&
+        readSsoFormValue(values, "isEnabled") === false
+      }
+    />
+  );
+};
+
+export default SsoTeamsGrantNote;
