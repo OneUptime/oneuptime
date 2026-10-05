@@ -294,8 +294,8 @@ describe("a subscriber's unsubscribe token, minted on create", () => {
       .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false } as never);
     // Nobody is subscribed with this address yet.
     jest
-      .spyOn(StatusPageSubscriberService, "findOneBy")
-      .mockResolvedValue(null as never);
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([] as never);
 
     const onCreate: OnCreate<StatusPageSubscriber> = await (
       StatusPageSubscriberService as unknown as {
@@ -453,9 +453,10 @@ describe("who added a subscriber (Is Added By Team), set on create", () => {
     jest
       .spyOn(ProjectService, "getCurrentPlan")
       .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false } as never);
+    // Nobody is subscribed with this address yet.
     jest
-      .spyOn(StatusPageSubscriberService, "findOneBy")
-      .mockResolvedValue(null as never);
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([] as never);
 
     jest
       .spyOn(DatabaseService.prototype, "create")

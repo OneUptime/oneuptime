@@ -90,9 +90,23 @@ describe("User two-factor self-service API integration", () => {
     } as unknown as OneUptimeRequest;
   };
 
+  /*
+   * Nothing written, and nothing read but the one lookup DatabaseService
+   * makes before the update's hooks: which of the rows the request names the
+   * caller may update, by id alone (see DatabaseServicePermissionBeforeHooks).
+   */
   const expectNoWrite: () => void = (): void => {
     expect(update).not.toHaveBeenCalled();
-    expect(find).not.toHaveBeenCalled();
+    const readsOfRowContent: Array<unknown> = find.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        const select: Record<string, unknown> =
+          ((call[0] as FindBy<User>).select as Record<string, unknown>) || {};
+        return Object.keys(select).some((column: string): boolean => {
+          return column !== "_id";
+        });
+      },
+    );
+    expect(readsOfRowContent).toHaveLength(0);
     expect(rows.get(OWNER_ID)?.enableTwoFactorAuth).toBe(true);
     expect(rows.get(OTHER_ID)?.enableTwoFactorAuth).toBe(true);
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
@@ -231,25 +245,48 @@ describe("User two-factor self-service API integration", () => {
       Permission.CurrentUser,
     );
 
+    /*
+     * Refused before the hook: an account may only be updated by its own
+     * user, and the caller has none, so it may update no row at all.
+     */
     await expect(api.updateItem(request, response)).rejects.toThrow(
-      BadDataException,
+      new NotAuthorizedException("A user session is required to update User."),
     );
 
     expectNoWrite();
   });
 
-  test.each([UserType.User, UserType.MasterAdmin])(
-    "blocks %s from disabling a foreign account through ordinary CRUD",
-    async (userType: UserType): Promise<void> => {
-      await expect(
-        api.updateItem(requestFor({ id: OTHER_ID, userType }), response),
-      ).rejects.toThrow(
-        "You can only turn off two factor authentication for your own account.",
-      );
+  test("blocks a User from disabling a foreign account through ordinary CRUD", async () => {
+    /*
+     * The account is not one the user may update, so the request is refused
+     * before the hook's own owner guard is reached.
+     */
+    await expect(
+      api.updateItem(
+        requestFor({ id: OTHER_ID, userType: UserType.User }),
+        response,
+      ),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to access another user's User.",
+      ),
+    );
 
-      expectNoWrite();
-    },
-  );
+    expectNoWrite();
+  });
+
+  test("blocks a MasterAdmin from disabling a foreign account through ordinary CRUD", async () => {
+    await expect(
+      api.updateItem(
+        requestFor({ id: OTHER_ID, userType: UserType.MasterAdmin }),
+        response,
+      ),
+    ).rejects.toThrow(
+      "You can only turn off two factor authentication for your own account.",
+    );
+
+    expectNoWrite();
+  });
 
   test("foreign self-service enabling still obeys the existing row permissions", async () => {
     await expect(
@@ -280,7 +317,7 @@ describe("User two-factor self-service API integration", () => {
         }),
         response,
       ),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(NotAuthorizedException);
 
     expectNoWrite();
   });
@@ -294,7 +331,7 @@ describe("User two-factor self-service API integration", () => {
         }),
         response,
       ),
-    ).rejects.toThrow(BadDataException);
+    ).rejects.toThrow(NotAuthorizedException);
 
     expectNoWrite();
   });

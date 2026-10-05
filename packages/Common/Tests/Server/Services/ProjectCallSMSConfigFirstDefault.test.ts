@@ -39,14 +39,18 @@ import {
  * always sends one - is kept, and a project that already has a config keeps
  * the one it uses.
  *
- * The hook also takes the default from the project's other configs, so it
- * makes sure the caller may create (or, for an update, change) a config
- * before it counts or writes anything.
+ * A config saved as the default takes the default from the project's other
+ * configs once it exists (onCreateSuccess, onUpdateSuccess), never before:
+ * DatabaseService refuses a caller who may not create or change a config
+ * before any hook runs, and onBeforeCreate itself only decides the new
+ * config's flag.
  *
  * These pin ProjectCallSMSConfigService: onBeforeCreate on its own, the full
  * create() path for a non-root member (where whatever the hook writes is
- * held to the caller's column permissions), and onBeforeUpdate. The billing
- * plan's part is pinned in ProjectCallSMSConfigFirstDefaultBilling.test.ts.
+ * held to the caller's column permissions), and the success hooks. Every
+ * service with a project default is driven end to end in
+ * ProjectDefaultRowWrites.test.ts. The billing plan's part is pinned in
+ * ProjectCallSMSConfigFirstDefaultBilling.test.ts.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -208,8 +212,14 @@ type OnBeforeCreateFunction = (
   createBy: CreateBy<ProjectCallSMSConfig>,
 ) => Promise<OnCreate<ProjectCallSMSConfig>>;
 
-type OnBeforeUpdateFunction = (
-  updateBy: UpdateBy<ProjectCallSMSConfig>,
+type OnCreateSuccessFunction = (
+  onCreate: OnCreate<ProjectCallSMSConfig>,
+  createdItem: ProjectCallSMSConfig,
+) => Promise<ProjectCallSMSConfig>;
+
+type OnUpdateSuccessFunction = (
+  onUpdate: OnUpdate<ProjectCallSMSConfig>,
+  updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<ProjectCallSMSConfig>>;
 
 type RunBeforeCreateFunction = (
@@ -229,29 +239,65 @@ const runBeforeCreate: RunBeforeCreateFunction = async (
   ).onBeforeCreate({ data: config, props: props });
 };
 
-type RunBeforeUpdateFunction = (
-  updateBy: UpdateBy<ProjectCallSMSConfig>,
-) => Promise<OnUpdate<ProjectCallSMSConfig>>;
+// Calls the protected success hooks exactly as create() and update do.
+const runCreateSuccess: (
+  createdItem: ProjectCallSMSConfig,
+) => Promise<ProjectCallSMSConfig> = async (
+  createdItem: ProjectCallSMSConfig,
+): Promise<ProjectCallSMSConfig> => {
+  return await (
+    ProjectCallSMSConfigService as unknown as {
+      onCreateSuccess: OnCreateSuccessFunction;
+    }
+  ).onCreateSuccess(
+    {
+      createBy: { data: createdItem, props: rootProps() },
+      carryForward: [],
+    },
+    createdItem,
+  );
+};
 
-const runBeforeUpdate: RunBeforeUpdateFunction = async (
-  updateBy: UpdateBy<ProjectCallSMSConfig>,
+const runUpdateSuccess: (
+  data: Record<string, unknown>,
+  updatedItemIds: Array<ObjectID>,
+) => Promise<OnUpdate<ProjectCallSMSConfig>> = async (
+  data: Record<string, unknown>,
+  updatedItemIds: Array<ObjectID>,
 ): Promise<OnUpdate<ProjectCallSMSConfig>> => {
   return await (
     ProjectCallSMSConfigService as unknown as {
-      onBeforeUpdate: OnBeforeUpdateFunction;
+      onUpdateSuccess: OnUpdateSuccessFunction;
     }
-  ).onBeforeUpdate(updateBy);
+  ).onUpdateSuccess(
+    {
+      updateBy: {
+        query: { _id: CONFIG_ID.toString() },
+        data: data as UpdateBy<ProjectCallSMSConfig>["data"],
+        limit: 1,
+        skip: 0,
+        props: rootProps(),
+      },
+      carryForward: null,
+    },
+    updatedItemIds,
+  );
 };
 
-// The one write that takes the default from the project's other configs.
-const expectDefaultTakenFromOthers: (projectId: ObjectID) => void = (
+/*
+ * The one write that takes the default from the project's other configs:
+ * every other default config of the project, as root, keeping `keepId`.
+ */
+const expectDefaultTakenFromOthers: (
   projectId: ObjectID,
-): void => {
+  keepId: ObjectID,
+) => void = (projectId: ObjectID, keepId: ObjectID): void => {
   expect(updateCalls).toHaveLength(1);
 
   const updateBy: UpdateBy<ProjectCallSMSConfig> = updateCalls[0]!;
 
   expect(Object.keys(updateBy.query).sort()).toEqual([
+    "_id",
     "isProjectDefault",
     "projectId",
   ]);
@@ -259,6 +305,7 @@ const expectDefaultTakenFromOthers: (projectId: ObjectID) => void = (
     projectId.toString(),
   );
   expect(updateBy.query.isProjectDefault).toBe(true);
+  expect(JSON.stringify(updateBy.query._id)).toContain(keepId.toString());
   expect(updateBy.data).toEqual({ isProjectDefault: false });
   expect(updateBy.props).toEqual({ isRoot: true });
 };
@@ -289,8 +336,8 @@ describe.each([
 
       expect(result.createBy.data.isProjectDefault).toBe(true);
       expect(projectCounts()).toHaveLength(1);
-      // Nothing else in the project to take it from, but asked all the same.
-      expectDefaultTakenFromOthers(PROJECT_ID);
+      // Decided here; nothing else is changed until the config is saved.
+      expect(updateCalls).toHaveLength(0);
     });
 
     test("a null choice says nothing either: the first config becomes the default", async () => {
@@ -359,7 +406,7 @@ describe.each([
       expect(updateCalls).toHaveLength(0);
     });
 
-    test("an explicit true on a later config is kept, and takes the default from the one that had it", async () => {
+    test("an explicit true on a later config is kept, and nothing else is changed before it is saved", async () => {
       configsInProject = 2;
 
       const result: OnCreate<ProjectCallSMSConfig> = await runBeforeCreate(
@@ -369,7 +416,7 @@ describe.each([
 
       expect(result.createBy.data.isProjectDefault).toBe(true);
       expect(projectCounts()).toHaveLength(0);
-      expectDefaultTakenFromOthers(PROJECT_ID);
+      expect(updateCalls).toHaveLength(0);
     });
 
     test("counts the project's configs as root, by project and nothing else", async () => {
@@ -423,35 +470,31 @@ describe("ProjectCallSMSConfigService onBeforeCreate without a project", () => {
   });
 });
 
-describe("ProjectCallSMSConfigService onBeforeCreate for someone who may not create configs", () => {
-  test.each([
-    ["a member who may only read them", configReaderProps],
-    ["an owner of another project", strangerProps],
-  ] as Array<[string, PropsBuilder]>)(
-    "%s is refused before the project's configs are counted",
-    async (_label: string, buildProps: PropsBuilder) => {
-      configsInProject = 0;
+describe("ProjectCallSMSConfigService onCreateSuccess", () => {
+  test("a config saved as the default takes it from the project's other configs, keeping itself", async () => {
+    const created: ProjectCallSMSConfig = buildConfig({
+      isProjectDefault: true,
+    });
+    created._id = CONFIG_ID.toString();
 
-      await expect(
-        runBeforeCreate(buildConfig(), buildProps()),
-      ).rejects.toBeInstanceOf(NotAuthorizedException);
+    const result: ProjectCallSMSConfig = await runCreateSuccess(created);
 
-      expect(countCalls).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
-    },
-  );
+    expect(result).toBe(created);
+    expectDefaultTakenFromOthers(PROJECT_ID, CONFIG_ID);
+  });
 
   test.each([
-    ["a member who may only read them", configReaderProps],
-    ["an owner of another project", strangerProps],
-  ] as Array<[string, PropsBuilder]>)(
-    "%s asking for the default is refused before it is taken from the config that has it",
-    async (_label: string, buildProps: PropsBuilder) => {
-      configsInProject = 1;
+    ["off", false],
+    ["left to the column's default", undefined],
+  ])(
+    "a config saved with the default %s takes nothing",
+    async (_label: string, isProjectDefault: boolean | undefined) => {
+      const created: ProjectCallSMSConfig = buildConfig(
+        isProjectDefault === undefined ? {} : { isProjectDefault },
+      );
+      created._id = CONFIG_ID.toString();
 
-      await expect(
-        runBeforeCreate(buildConfig({ isProjectDefault: true }), buildProps()),
-      ).rejects.toBeInstanceOf(NotAuthorizedException);
+      await runCreateSuccess(created);
 
       expect(updateCalls).toHaveLength(0);
     },
@@ -462,8 +505,10 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
   let save: MockFunction;
 
   beforeEach(() => {
+    // Saves the config and gives it its id, as the database does.
     save = getJestMockFunction().mockImplementation(
       async (entity: ProjectCallSMSConfig): Promise<ProjectCallSMSConfig> => {
+        entity._id = CONFIG_ID.toString();
         return entity;
       },
     );
@@ -538,6 +583,49 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
     expect(updateCalls).toHaveLength(0);
   });
 
+  test.each([
+    ["a member who may only read them", configReaderProps],
+    ["an owner of another project", strangerProps],
+  ] as Array<[string, PropsBuilder]>)(
+    "%s asking for the default is refused before any hook: nothing counted, changed or saved",
+    async (_label: string, buildProps: PropsBuilder) => {
+      configsInProject = 1;
+
+      await expect(
+        ProjectCallSMSConfigService.create({
+          data: buildConfig({ projectId: undefined, isProjectDefault: true }),
+          props: buildProps(),
+        }),
+      ).rejects.toBeInstanceOf(NotAuthorizedException);
+
+      expect(countCalls).toHaveLength(0);
+      expect(updateCalls).toHaveLength(0);
+      expect(save).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a member's config saved as the default takes it from the others once it exists", async () => {
+    configsInProject = 1;
+
+    const saved: ProjectCallSMSConfig =
+      await ProjectCallSMSConfigService.create({
+        data: buildConfig({ projectId: undefined, isProjectDefault: true }),
+        props: configCreatorProps(),
+      });
+
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(saved.isProjectDefault).toBe(true);
+    // Taken after the save, from the configs of the caller's project only.
+    expect(save.mock.invocationCallOrder[0]!).toBeLessThan(
+      (ProjectCallSMSConfigService.updateBy as unknown as MockFunction).mock
+        .invocationCallOrder[0]!,
+    );
+    expect(updateCalls).toHaveLength(1);
+    expect((updateCalls[0]!.query.projectId as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
   test("a member who may only read configs is refused, and nothing is counted, changed or saved", async () => {
     configsInProject = 0;
 
@@ -568,7 +656,7 @@ describe("ProjectCallSMSConfigService create() with the first-config default", (
   });
 });
 
-describe("ProjectCallSMSConfigService onBeforeUpdate", () => {
+describe("ProjectCallSMSConfigService onUpdateSuccess", () => {
   let findCalls: Array<FindBy<ProjectCallSMSConfig>>;
 
   beforeEach(() => {
@@ -590,99 +678,28 @@ describe("ProjectCallSMSConfigService onBeforeUpdate", () => {
       );
   });
 
-  type UpdateRequestFunction = (
-    props: DatabaseCommonInteractionProps,
-    data?: Record<string, unknown>,
-  ) => UpdateBy<ProjectCallSMSConfig>;
-
-  // "Set as Project Default" on a row: updateOneById with that one column.
-  const makeDefaultRequest: UpdateRequestFunction = (
-    props: DatabaseCommonInteractionProps,
-    data: Record<string, unknown> = { isProjectDefault: true },
-  ): UpdateBy<ProjectCallSMSConfig> => {
-    return {
-      query: {
-        _id: CONFIG_ID.toString(),
-      },
-      data: data as UpdateBy<ProjectCallSMSConfig>["data"],
-      limit: 1,
-      skip: 0,
-      props: props,
-    };
-  };
-
-  // The write that takes the default from the project's other configs.
-  const expectDefaultTakenFromTheOthers: () => void = (): void => {
-    expect(updateCalls).toHaveLength(1);
-
-    const updateBy: UpdateBy<ProjectCallSMSConfig> = updateCalls[0]!;
-
-    expect((updateBy.query.projectId as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
+  test("making a config the default takes it from the others in its project, keeping the config", async () => {
+    const result: OnUpdate<ProjectCallSMSConfig> = await runUpdateSuccess(
+      { isProjectDefault: true },
+      [CONFIG_ID],
     );
-    expect(updateBy.query.isProjectDefault).toBe(true);
-    // Every config of the project but the one being made the default.
-    expect(JSON.stringify(updateBy.query._id)).toContain(CONFIG_ID.toString());
-    expect(updateBy.data).toEqual({ isProjectDefault: false });
-    expect(updateBy.props).toEqual({ isRoot: true });
-  };
 
-  test("a root caller makes a config the default and takes it from the others", async () => {
-    const updateBy: UpdateBy<ProjectCallSMSConfig> =
-      makeDefaultRequest(rootProps());
-
-    const result: OnUpdate<ProjectCallSMSConfig> =
-      await runBeforeUpdate(updateBy);
-
+    // The project is read from the config the update wrote, by its id.
     expect(findCalls).toHaveLength(1);
-    expect(findCalls[0]!.query).toEqual({ _id: CONFIG_ID.toString() });
+    expect(JSON.stringify(findCalls[0]!.query._id)).toContain(
+      CONFIG_ID.toString(),
+    );
     expect(findCalls[0]!.props).toEqual({ isRoot: true });
-    expectDefaultTakenFromTheOthers();
-    expect(result.updateBy).toBe(updateBy);
+    expectDefaultTakenFromOthers(PROJECT_ID, CONFIG_ID);
+    expect(result.updateBy.data).toEqual({ isProjectDefault: true });
   });
 
-  test("a member who may edit configs looks the config up within their own project", async () => {
-    // An update reads the rows it changes, so editing comes with reading.
-    await runBeforeUpdate(
-      makeDefaultRequest(
-        memberProps([
-          Permission.ReadProjectCallSMSConfig,
-          Permission.EditProjectCallSMSConfig,
-        ]),
-      ),
-    );
+  test("an update that wrote no config takes the default from nobody", async () => {
+    await runUpdateSuccess({ isProjectDefault: true }, []);
 
-    expect(findCalls).toHaveLength(1);
-
-    const query: Record<string, unknown> = findCalls[0]!.query as Record<
-      string,
-      unknown
-    >;
-
-    expect(query["_id"]).toBe(CONFIG_ID.toString());
-    // Scoped to the caller's project, however the permission layer spells it.
-    expect(JSON.stringify(query["projectId"])).toContain(PROJECT_ID.toString());
-    expect(JSON.stringify(query["projectId"])).not.toContain(
-      OTHER_PROJECT_ID.toString(),
-    );
-    expectDefaultTakenFromTheOthers();
+    expect(findCalls).toHaveLength(0);
+    expect(updateCalls).toHaveLength(0);
   });
-
-  test.each([
-    ["a member who may only read configs", configReaderProps],
-    ["a member who may only create them", configCreatorProps],
-    ["an owner of another project", strangerProps],
-  ] as Array<[string, PropsBuilder]>)(
-    "%s is refused before any config is looked up or changed",
-    async (_label: string, buildProps: PropsBuilder) => {
-      await expect(
-        runBeforeUpdate(makeDefaultRequest(buildProps())),
-      ).rejects.toBeInstanceOf(NotAuthorizedException);
-
-      expect(findCalls).toHaveLength(0);
-      expect(updateCalls).toHaveLength(0);
-    },
-  );
 
   test.each([
     ["turning the default off", { isProjectDefault: false }],
@@ -690,7 +707,7 @@ describe("ProjectCallSMSConfigService onBeforeUpdate", () => {
   ])(
     "%s leaves the project's other configs alone",
     async (_label: string, data: Record<string, unknown>) => {
-      await runBeforeUpdate(makeDefaultRequest(rootProps(), data));
+      await runUpdateSuccess(data, [CONFIG_ID]);
 
       expect(findCalls).toHaveLength(0);
       expect(updateCalls).toHaveLength(0);

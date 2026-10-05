@@ -29,6 +29,43 @@ export default class UpdatePermission {
     });
   }
 
+  /*
+   * The rows an update may change, as a query: the caller's query narrowed
+   * exactly as checkUpdatePermissions narrows it (the project, the user, the
+   * labels and the owned scope), and refused for the same table-level
+   * reasons. What the update writes is left out: the edition and column
+   * checks need the data a service's hooks have not finished with yet, and
+   * checkUpdatePermissions asks them once they have. So this refuses nothing
+   * that check would let through.
+   */
+  @CaptureSpan()
+  public static async getUpdatableQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Query<TBaseModel>> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return query;
+    }
+
+    TablePermission.checkTableLevelPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Update,
+    );
+
+    const checkBasePermission: CheckPermissionBaseInterface<TBaseModel> =
+      await BasePermission.checkPermissions(
+        modelType,
+        query,
+        null,
+        props,
+        DatabaseRequestType.Update,
+      );
+
+    return checkBasePermission.query;
+  }
+
   @CaptureSpan()
   public static async checkUpdatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
