@@ -55,6 +55,11 @@ const SAVED_RULE: IncidentNotificationRule = {
       conditionType: ConditionType.Contains,
       value: "database",
     },
+    {
+      checkOn: NotificationRuleConditionCheckOn.IncidentTitle,
+      conditionType: ConditionType.Contains,
+      value: "postgres",
+    },
   ],
   shouldCreateNewChannel: true,
   newChannelTemplateName: "oneuptime-incident-",
@@ -124,15 +129,41 @@ afterEach(() => {
 });
 
 describe("the Conditions half", () => {
-  test("asks for the match and the conditions, and nothing about where to post", async () => {
+  test("asks for the conditions, and nothing about where to post", async () => {
     await renderPart({ part: NotificationRuleFormPart.Conditions });
 
     expect(
       await screen.findByRole("button", { name: "Add Condition" }),
     ).toBeVisible();
-    expect(screen.getByRole("radio", { name: "Any" })).toBeVisible();
-    expect(screen.getByRole("radio", { name: "All" })).toBeVisible();
+    // No conditions yet: nothing to combine, so no All / Any.
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
+  });
+
+  test("asks All or Any, under the conditions, once there are two", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Conditions,
+      value: SAVED_RULE,
+    });
+
+    const all: HTMLElement = await screen.findByRole("radio", { name: "All" });
+    const any: HTMLElement = screen.getByRole("radio", { name: "Any" });
+
+    expect(all).toBeVisible();
+    expect(any).toBeVisible();
+    // All first, as everywhere else the choice is offered.
+    expect(
+      all.compareDocumentPosition(any) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Below the conditions and their Add Condition button.
+    expect(
+      screen
+        .getByRole("button", { name: "Add Condition" })
+        .compareDocumentPosition(all) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("radiogroup", { name: /^Match Condition/ }),
+    ).toBeVisible();
   });
 
   test("opens on a saved rule's match", async () => {

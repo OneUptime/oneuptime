@@ -446,9 +446,10 @@ describe("the project's stepped forms", () => {
     /*
      * Grouping rules ask two questions and then create: Grouping (how to
      * group, how close together, name) and which incidents. Group By shows
-     * only for a custom mix of switches, and the last three only behind
-     * "Show advanced settings" (each switch-and-minutes setting is one
-     * control, so Episode Lifecycle holds three).
+     * only for a custom mix of switches. Everything else a rule can do -
+     * paging and owners, the episode lifecycle, the details - is one More
+     * fields fold at the end of Grouping, one row there, where a Show
+     * advanced settings switch used to add three more steps.
      */
     ...[
       ["Alerts/Settings/AlertGroupingRules.tsx", "Alert"],
@@ -457,14 +458,7 @@ describe("the project's stepped forms", () => {
       return [
         `${DASHBOARD}/Pages/${file}`,
         `ModelTable: Settings > ${kind} Grouping Rules`,
-        [
-          "grouping",
-          "group-by",
-          "match-criteria",
-          "episode-lifecycle",
-          "details",
-          "on-call-ownership",
-        ],
+        ["grouping", "group-by", "match-criteria"],
       ];
     }),
     /*

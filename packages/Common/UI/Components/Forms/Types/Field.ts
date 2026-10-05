@@ -272,6 +272,20 @@ export default interface Field<TEntity> {
    */
   isAtDefault?: ((values: FormValues<TEntity>) => boolean) | undefined;
   /*
+   * For a custom element that keeps what it edits in other form values - a
+   * switch and its minutes in two of a rule's columns, a line about an old
+   * setting the record still holds - what it is set to, worked out from
+   * those values: the element's own form value says nothing of it. Null
+   * while it holds nothing of the user's; otherwise what its chip on a
+   * folded section's header says after its name, already in the reader's
+   * language ("30 minutes"), or "" for the name alone. A folded section and
+   * a review step read it in place of the field's own value and default:
+   * whether the field is set and what its chip says (isFormFieldValueSet,
+   * getFoldedFieldValue), and what its review row shows (FormSummary, which
+   * reads "" as Configured). isAtDefault is not asked.
+   */
+  getFoldedValue?: ((values: FormValues<TEntity>) => string | null) | undefined;
+  /*
    * The default of the column the field writes, as its model declares it -
    * filled in by ModelForm, on Create and Edit alike, for a field that names
    * no default of its own (Utils/CreateFormDefaults). Not a value the field

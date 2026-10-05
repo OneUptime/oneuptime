@@ -1,4 +1,7 @@
 import FilterCondition from "Common/Types/Filter/FilterCondition";
+import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import NotificationRuleConditionElement from "./NotificationRuleViewCondition";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleCondition from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
@@ -26,18 +29,64 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
 }
 
+/*
+ * The sentence above a rule's conditions. All or Any is said only when
+ * there are two or more conditions to combine (isFilterConditionNeeded):
+ * one condition is simply the condition. A rule saved without a match
+ * condition reads as "any", as it always did here.
+ */
+export const RULE_CONDITIONS_SENTENCES: {
+  readonly one: string;
+  readonly all: string;
+  readonly any: string;
+} = {
+  one: translationKey("This rule runs when this condition is met:"),
+  all: translationKey("This rule runs when all of these conditions are met:"),
+  any: translationKey(
+    "This rule runs when any one of these conditions is met:",
+  ),
+};
+
+export const getRuleConditionsSentence: (data: {
+  filters: Array<NotificationRuleCondition> | undefined;
+  filterCondition: FilterCondition | undefined;
+}) => string | undefined = (data: {
+  filters: Array<NotificationRuleCondition> | undefined;
+  filterCondition: FilterCondition | undefined;
+}): string | undefined => {
+  // No conditions: the rule runs for every event, which its view says itself.
+  if (!data.filters || data.filters.length === 0) {
+    return undefined;
+  }
+
+  if (!isFilterConditionNeeded(data.filters)) {
+    return RULE_CONDITIONS_SENTENCES.one;
+  }
+
+  return data.filterCondition === FilterCondition.All
+    ? RULE_CONDITIONS_SENTENCES.all
+    : RULE_CONDITIONS_SENTENCES.any;
+};
+
 const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const sentence: string | undefined = getRuleConditionsSentence({
+    filters: props.criteriaFilters,
+    filterCondition: props.filterCondition,
+  });
+
   return (
     <div>
-      <div className="text-gray-700 text-sm py-2">
-        This rule will be executed if
-        <span className="font-semibold">
-          &nbsp;{props.filterCondition?.toLowerCase() || "any"} &nbsp;
-        </span>
-        of the following conditions are met:
-      </div>
+      {sentence && (
+        <div
+          className="text-gray-700 text-sm py-2"
+          data-testid="notification-rule-conditions-sentence"
+        >
+          {translator.translateText(sentence)}
+        </div>
+      )}
 
       <div className="ml-3 mt-5 mb-5 bg-gray-50 rounded rounded-xl p-5 border border-2 border-gray-100">
         <ul role="list" className="space-y-6">

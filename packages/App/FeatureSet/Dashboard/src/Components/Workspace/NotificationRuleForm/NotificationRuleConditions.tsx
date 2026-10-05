@@ -17,6 +17,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   value: Array<NotificationRuleCondition> | undefined;
@@ -32,17 +33,49 @@ export interface ComponentProps {
   monitorStatus: Array<MonitorStatus>;
 }
 
+/*
+ * A condition and the key its row is drawn under. The key is the row's own,
+ * made when the row is - never its position: rows keyed by position drew,
+ * after the first of two conditions was deleted, the deleted condition in
+ * the row that was left (each row keeps what it shows in its own state),
+ * while the rule held the other one. Removing a condition is how a rule
+ * goes back to one, where All / Any is no longer asked.
+ */
+interface ConditionRow {
+  key: string;
+  condition: NotificationRuleCondition;
+}
+
+const toRows: (
+  conditions: Array<NotificationRuleCondition>,
+) => Array<ConditionRow> = (
+  conditions: Array<NotificationRuleCondition>,
+): Array<ConditionRow> => {
+  return conditions.map(
+    (condition: NotificationRuleCondition): ConditionRow => {
+      return { key: ObjectID.generate().toString(), condition: condition };
+    },
+  );
+};
+
 const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [notificationRuleConditions, setNotificationRuleConditions] =
-    React.useState<Array<NotificationRuleCondition>>(props.value || []);
+  const [rows, setRows] = React.useState<Array<ConditionRow>>(() => {
+    return toRows(props.value || []);
+  });
+
+  const notificationRuleConditions: Array<NotificationRuleCondition> = rows.map(
+    (row: ConditionRow): NotificationRuleCondition => {
+      return row.condition;
+    },
+  );
 
   useEffect(() => {
-    if (notificationRuleConditions && props.onChange) {
+    if (props.onChange) {
       props.onChange(notificationRuleConditions);
     }
-  }, [notificationRuleConditions]);
+  }, [rows]);
 
   const checkOnByEventType: Array<NotificationRuleConditionCheckOn> =
     NotificationRuleConditionUtil.getCheckOnByEventType(props.eventType);
@@ -56,32 +89,31 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
         </p>
       )}
 
-      {notificationRuleConditions.map(
-        (i: NotificationRuleCondition, index: number) => {
-          return (
-            <NotificationRuleConditionElement
-              {...props}
-              key={index}
-              initialValue={i}
-              onDelete={() => {
-                // remove the criteria filter
-                const index: number = notificationRuleConditions.indexOf(i);
-                const newNotificationRuleConditions: Array<NotificationRuleCondition> =
-                  [...notificationRuleConditions];
-                newNotificationRuleConditions.splice(index, 1);
-                setNotificationRuleConditions(newNotificationRuleConditions);
-              }}
-              onChange={(value: NotificationRuleCondition) => {
-                const index: number = notificationRuleConditions.indexOf(i);
-                const newNotificationRuleConditions: Array<NotificationRuleCondition> =
-                  [...notificationRuleConditions];
-                newNotificationRuleConditions[index] = value;
-                setNotificationRuleConditions(newNotificationRuleConditions);
-              }}
-            />
-          );
-        },
-      )}
+      {rows.map((row: ConditionRow) => {
+        return (
+          <NotificationRuleConditionElement
+            {...props}
+            key={row.key}
+            initialValue={row.condition}
+            onDelete={() => {
+              setRows((current: Array<ConditionRow>) => {
+                return current.filter((item: ConditionRow): boolean => {
+                  return item.key !== row.key;
+                });
+              });
+            }}
+            onChange={(value: NotificationRuleCondition) => {
+              setRows((current: Array<ConditionRow>) => {
+                return current.map((item: ConditionRow): ConditionRow => {
+                  return item.key === row.key
+                    ? { key: item.key, condition: value }
+                    : item;
+                });
+              });
+            }}
+          />
+        );
+      })}
       <div className="mt-3 -ml-3">
         <Button
           title="Add Condition"
@@ -103,21 +135,23 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
               return;
             }
 
-            const newNotificationRuleConditions: Array<NotificationRuleCondition> =
-              [...notificationRuleConditions];
-
             const conditionTypes: Array<ConditionType> =
               NotificationRuleConditionUtil.getConditionTypeByCheckOn(
                 firstCheckOn,
               );
 
-            newNotificationRuleConditions.push({
-              checkOn: firstCheckOn,
-              conditionType: conditionTypes[0],
-              value: "",
+            setRows((current: Array<ConditionRow>) => {
+              return [
+                ...current,
+                ...toRows([
+                  {
+                    checkOn: firstCheckOn,
+                    conditionType: conditionTypes[0],
+                    value: "",
+                  },
+                ]),
+              ];
             });
-
-            setNotificationRuleConditions(newNotificationRuleConditions);
           }}
         />
       </div>

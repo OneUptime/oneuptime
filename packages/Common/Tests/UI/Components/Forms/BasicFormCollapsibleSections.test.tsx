@@ -1,5 +1,6 @@
 import BasicForm from "../../../../UI/Components/Forms/BasicForm";
 import Field, {
+  CustomElementProps,
   FormFieldCollapsibleSection,
 } from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
@@ -778,5 +779,167 @@ describe("BasicForm section summaries", () => {
       );
     });
     expect(setChips()).toEqual([]);
+  });
+});
+
+/*
+ * A custom element that keeps what it edits in other form values - a
+ * grouping rule's "Reopen recently resolved episodes" switch and its
+ * minutes, kept in two of the rule's columns - says itself what it is set
+ * to (Field.getFoldedValue). The folded header follows the values it edits,
+ * never its own carrier value, so turning it on draws a chip and turning it
+ * off again takes the chip away, on Create and on Edit alike.
+ */
+describe("BasicForm More fields with a custom element that keeps its value elsewhere", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const advanced: FormFieldCollapsibleSection<JSONObject> =
+    getAdvancedFormSection<JSONObject>();
+
+  interface ReopenValue {
+    enabled: boolean;
+    minutes: number;
+  }
+
+  const REOPEN_FIELDS: Fields<JSONObject> = [
+    {
+      field: { name: true },
+      title: "Rule Name",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      dataTestId: "rule-name",
+    },
+    {
+      field: { reopenSetting: true },
+      title: "Reopen recently resolved episodes",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      customElementDrawsOwnLabel: true,
+      collapsibleSection: advanced,
+      // A carrier: there from the start, so the field's own check runs.
+      getDefaultValue: (): boolean => {
+        return true;
+      },
+      getFoldedValue: (values: FormValues<JSONObject>): string | null => {
+        return values["enableReopen"] === true
+          ? `${String(values["reopenMinutes"])} minutes`
+          : null;
+      },
+      onChange: (
+        value: ReopenValue,
+        currentValues: FormValues<JSONObject>,
+        setNewFormValues: (values: FormValues<JSONObject>) => void,
+      ): void => {
+        setNewFormValues({
+          ...currentValues,
+          enableReopen: value.enabled,
+          reopenMinutes: value.minutes,
+        });
+      },
+      getCustomElement: (
+        values: FormValues<JSONObject>,
+        props: CustomElementProps,
+      ): ReactElement => {
+        const enabled: boolean = values["enableReopen"] === true;
+
+        return (
+          <button
+            type="button"
+            data-testid="reopen-toggle"
+            onClick={(): void => {
+              props.onChange?.({ enabled: !enabled, minutes: 30 });
+            }}
+          >
+            {enabled ? "Reopen: on" : "Reopen: off"}
+          </button>
+        );
+      },
+    },
+    {
+      field: { note: true },
+      title: "Note",
+      fieldType: FormFieldSchemaType.Text,
+      dataTestId: "note",
+      collapsibleSection: advanced,
+    },
+  ];
+
+  async function moreFieldsButton(): Promise<HTMLElement> {
+    return screen.findByRole("button", { name: "More fields" });
+  }
+
+  test("names it, unset, on a new form, though its carrier value is there", async () => {
+    renderForm({ fields: REOPEN_FIELDS, initialValues: { name: "Storms" } });
+
+    await moreFieldsButton();
+
+    expect(listedNames()).toEqual([
+      "Reopen recently resolved episodes",
+      "Note",
+    ]);
+    expect(setChips()).toEqual([]);
+    expect(screen.queryByText("Configured")).toBeNull();
+  });
+
+  test("draws a chip that says what it edits once it is turned on, and takes it away when turned off", async () => {
+    const { user, handleSubmit }: RenderFormResult = renderForm({
+      fields: REOPEN_FIELDS,
+      initialValues: { name: "Storms" },
+    });
+
+    const header: HTMLElement = await moreFieldsButton();
+
+    await user.click(header);
+    await user.click(screen.getByTestId("reopen-toggle"));
+    expect(screen.getByTestId("reopen-toggle")).toHaveTextContent("Reopen: on");
+
+    await user.click(header);
+    expect(setChips()).toEqual([
+      "Reopen recently resolved episodes: 30 minutes",
+    ]);
+    expect(screen.getByTestId("folded-section-icon")).toHaveClass(
+      "bg-indigo-50",
+    );
+
+    /*
+     * Off again: its carrier now holds what the control handed over last,
+     * but the values it edits say it is off - no chip.
+     */
+    await user.click(header);
+    await user.click(screen.getByTestId("reopen-toggle"));
+    await user.click(header);
+    expect(setChips()).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: "Save Rule" }));
+
+    expect(handleSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Storms",
+        enableReopen: false,
+        reopenMinutes: 30,
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test("stays folded on an Edit form that has it on, its chip saying what it is set to", async () => {
+    renderForm({
+      fields: REOPEN_FIELDS,
+      initialValues: { name: "Storms", enableReopen: true, reopenMinutes: 45 },
+    });
+
+    const header: HTMLElement = await moreFieldsButton();
+
+    await waitFor(() => {
+      expect(setChips()).toEqual([
+        "Reopen recently resolved episodes: 45 minutes",
+      ]);
+    });
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    // Read out with the header, set and unset alike.
+    expect(description(header)).toBe(
+      "Reopen recently resolved episodes: 45 minutes, Note",
+    );
   });
 });

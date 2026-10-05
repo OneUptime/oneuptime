@@ -1,7 +1,7 @@
 import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
-import Recurring from "Common/Types/Events/Recurring";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
+import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
 import WorkspaceNotificationSummaryService from "Common/Server/Services/WorkspaceNotificationSummaryService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
@@ -32,11 +32,19 @@ RunCron(
 
     for (const summary of summariesToSend) {
       try {
-        // Calculate next send time using calendar-correct math
-        const nextSendAt: Date = Recurring.getNextDateInterval(
-          summary.nextSendAt!,
-          summary.recurringInterval!,
-        );
+        /*
+         * The schedule's first occurrence after now, counted from the send
+         * that was due (WorkspaceSummaryScheduleUtil) - one interval on,
+         * normally. Moving on by one interval from a send long past (a
+         * worker that was down) left it in the past, and the summary went
+         * out once a minute until it caught up.
+         */
+        const nextSendAt: Date =
+          WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+            dueAt: summary.nextSendAt!,
+            recurringInterval: summary.recurringInterval!,
+            now: OneUptimeDate.getCurrentDate(),
+          });
 
         // Update nextSendAt first to prevent double-sends
         await WorkspaceNotificationSummaryService.updateOneById({

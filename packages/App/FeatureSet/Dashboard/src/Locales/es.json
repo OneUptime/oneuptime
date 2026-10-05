@@ -25316,5 +25316,16 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} investigaciones, {{failed}} fallidas",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} estuvo detrás de {{shown}} de las {{count}} investigaciones de aquí.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} estuvo detrás de {{shown}} de {{count}} investigación de aquí.",
-  "The project had reached its own daily AI limit.": "El proyecto había alcanzado su propio límite diario de IA."
+  "The project had reached its own daily AI limit.": "El proyecto había alcanzado su propio límite diario de IA.",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 your time, at the start of the next week, day or month.": "Los siguientes resúmenes se envían a la misma hora del día. Déjalo vacío para empezar a las 09:00, tu hora, al comienzo de la próxima semana, día o mes.",
+  "Posted With State Change To": "Posted With State Change To",
+  "Posted With State Change To ID": "Posted With State Change To ID",
+  "Should all conditions match, or just any one of them?": "¿Deben coincidir todas las condiciones o solo una de ellas?",
+  "Should all filters match, or just any one of them?": "¿Deben coincidir todos los filtros o solo uno de ellos?",
+  "The first summary goes out {{date}}.": "El primer resumen se envía el {{date}}.",
+  "This criteria is met when this filter matches:": "Este criterio se cumple cuando este filtro coincide:",
+  "This rule runs when all of these conditions are met:": "Esta regla se ejecuta cuando se cumplen todas estas condiciones:",
+  "This rule runs when any one of these conditions is met:": "Esta regla se ejecuta cuando se cumple cualquiera de estas condiciones:",
+  "This rule runs when this condition is met:": "Esta regla se ejecuta cuando se cumple esta condición:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Esta regla todavía tiene un asignado predeterminado establecido por una versión anterior de este formulario. Abre esta sección para añadirlos como propietarios o quitarlo."
 }

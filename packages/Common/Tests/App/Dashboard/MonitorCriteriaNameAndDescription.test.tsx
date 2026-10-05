@@ -506,13 +506,26 @@ describe("Add Criteria", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add Criteria" }));
 
-    // Both criteria answer "Any"; the new one's radio group is the second.
+    /*
+     * One filter each: nothing to combine, so neither criteria asks All or
+     * Any. A second filter on the new one brings its radio group in - the
+     * only one on the page.
+     */
+    expect(screen.queryAllByRole("radiogroup")).toHaveLength(0);
+
+    const addFilterButtons: Array<HTMLElement> = screen.getAllByRole("button", {
+      name: "Add Filter",
+    });
+    fireEvent.click(addFilterButtons[addFilterButtons.length - 1]!);
+
     const radioGroups: Array<HTMLElement> = screen.getAllByRole("radiogroup");
-    fireEvent.click(within(radioGroups[1]!).getByLabelText("Any"));
+    expect(radioGroups).toHaveLength(1);
+    fireEvent.click(within(radioGroups[0]!).getByLabelText("Any"));
 
     const added: MonitorCriteriaInstance =
       harness.latest().data!.monitorCriteriaInstanceArray[1]!;
 
+    expect(added.data!.filters).toHaveLength(2);
     expect(added.data!.filterCondition).toBe(FilterCondition.Any);
     expect(
       CriteriaNameUtil.isNameFromFilters({
