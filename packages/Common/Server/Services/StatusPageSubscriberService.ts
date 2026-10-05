@@ -134,12 +134,12 @@ const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
 
 /*
  * What onBeforeCreate hands onCreateSuccess: the status page the subscriber
- * is for, and the cancelled subscription of the same contact on that page
- * that the new one replaces, if there is one.
+ * is for, and the cancelled subscriptions of the same contact on that page
+ * that the new one replaces (none, as a rule, or one).
  */
 interface SubscriberCreateCarryForward {
   statusPage: StatusPage;
-  replacedSubscriberId: ObjectID | null;
+  replacedSubscriberIds: Array<ObjectID>;
 }
 
 // How many subscribers the backfill and the token top-up handle per statement.
@@ -315,14 +315,19 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    let subscriber: Model | null = null;
+    /*
+     * Every subscription this contact already has on the page - all of them,
+     * not one: while a cancelled one is being replaced (see onCreateSuccess)
+     * the contact has both it and the new one, and the new one must count.
+     */
+    let contactSubscriptions: Array<Model> = [];
 
     if (data.data.subscriberEmail) {
       logger.debug(`Subscriber Email: ${data.data.subscriberEmail}`, {
         projectId: data.data.projectId?.toString(),
         statusPageId: data.data.statusPageId?.toString(),
       } as LogAttributes);
-      subscriber = await this.findOneBy({
+      contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
           subscriberEmail: data.data.subscriberEmail,
@@ -331,15 +336,20 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           isUnsubscribed: true,
         },
+        limit: LIMIT_MAX,
+        skip: 0,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
-      logger.debug(`Found Subscriber by Email: ${JSON.stringify(subscriber)}`, {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
+      logger.debug(
+        `Found Subscribers by Email: ${JSON.stringify(contactSubscriptions)}`,
+        {
+          projectId: data.data.projectId?.toString(),
+          statusPageId: data.data.statusPageId?.toString(),
+        } as LogAttributes,
+      );
     }
 
     if (data.data.subscriberPhone) {
@@ -365,7 +375,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      subscriber = await this.findOneBy({
+      contactSubscriptions = await this.findBy({
         query: {
           statusPageId: data.data.statusPageId,
           subscriberPhone: data.data.subscriberPhone,
@@ -374,19 +384,28 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           isUnsubscribed: true,
         },
+        limit: LIMIT_MAX,
+        skip: 0,
         props: {
           isRoot: true,
           ignoreHooks: true,
         },
       });
 
-      logger.debug(`Found Subscriber by Phone: ${JSON.stringify(subscriber)}`, {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
+      logger.debug(
+        `Found Subscribers by Phone: ${JSON.stringify(contactSubscriptions)}`,
+        {
+          projectId: data.data.projectId?.toString(),
+          statusPageId: data.data.statusPageId?.toString(),
+        } as LogAttributes,
+      );
     }
 
-    if (subscriber && !subscriber.isUnsubscribed) {
+    if (
+      contactSubscriptions.some((subscription: Model): boolean => {
+        return !subscription.isUnsubscribed;
+      })
+    ) {
       logger.debug("Subscriber is already subscribed and not unsubscribed.", {
         projectId: data.data.projectId?.toString(),
         statusPageId: data.data.statusPageId?.toString(),
@@ -401,8 +420,13 @@ export class Service extends DatabaseService<Model> {
      * and the cancelled one is removed once the new one exists
      * (onCreateSuccess) - so a create that is refused or fails leaves it.
      */
-    const replacedSubscriberId: ObjectID | null =
-      subscriber && subscriber.id ? subscriber.id : null;
+    const replacedSubscriberIds: Array<ObjectID> = contactSubscriptions
+      .map((subscription: Model): ObjectID | null => {
+        return subscription.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
 
     const statuspages: Array<StatusPage> =
       await this.getStatusPagesToSendNotification([data.data.statusPageId]);
@@ -589,7 +613,7 @@ export class Service extends DatabaseService<Model> {
 
     const carryForward: SubscriberCreateCarryForward = {
       statusPage: statuspage,
-      replacedSubscriberId: replacedSubscriberId,
+      replacedSubscriberIds: replacedSubscriberIds,
     };
 
     return { createBy: data, carryForward: carryForward };
@@ -1150,19 +1174,24 @@ export class Service extends DatabaseService<Model> {
      * one exists: links to the old one stop working. Only a cancelled one, of
      * the same status page and project as the new subscriber.
      */
-    if (carryForward?.replacedSubscriberId && createdItem.projectId) {
+    const replacedSubscriberIds: Array<ObjectID> =
+      carryForward?.replacedSubscriberIds || [];
+
+    if (replacedSubscriberIds.length > 0 && createdItem.projectId) {
       logger.debug("Subscriber is unsubscribed. Deleting old record.", {
         projectId: createdItem.projectId?.toString(),
         statusPageId: createdItem.statusPageId?.toString(),
       } as LogAttributes);
 
-      await this.deleteOneBy({
+      await this.deleteBy({
         query: {
-          _id: carryForward.replacedSubscriberId.toString(),
+          _id: QueryHelper.any(replacedSubscriberIds),
           projectId: createdItem.projectId,
           statusPageId: createdItem.statusPageId,
           isUnsubscribed: true,
         },
+        limit: replacedSubscriberIds.length,
+        skip: 0,
         props: {
           ignoreHooks: true,
           isRoot: true,
