@@ -25,7 +25,8 @@ import Permission from "../../../Types/Permission";
  * experience into their tables: what the list shows and selects, the
  * ready-made rules in place of an empty list and behind the card's "Create
  * from Template" button, the blank rule's starting values, which steps show
- * when, and that the form still reaches every column the old one did - the
+ * when, the one More fields fold everything beyond grouping sits in, and
+ * that the form still reaches every column the old one did - the
  * simplification hides choices, it removes none.
  *
  * ModelTable is a stand-in that records its props and draws the parts these
@@ -155,11 +156,15 @@ import {
   GroupingRuleKind,
   LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
   LegacyDefaultAssigneeAction,
-  SHOW_ADVANCED_SETTINGS_FIELD_KEY,
   getGroupingRuleSummarySelect,
   getNewGroupingRuleValues,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
+import {
+  ADVANCED_FORM_SECTION_ID,
+  MORE_FIELDS_SECTION_TITLE,
+} from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import IncidentGroupingRule from "../../../Models/DatabaseModels/IncidentGroupingRule";
 import AlertGroupingRule from "../../../Models/DatabaseModels/AlertGroupingRule";
@@ -284,6 +289,47 @@ function latestTable(): CapturedTable {
 
 function fieldKey(field: ModelField<any>): string {
   return Object.keys(field.field || {})[0] || "";
+}
+
+// The key a field is kept under in the form: its own, or its column's.
+function formKey(field: ModelField<any>): string {
+  return field.overrideFieldKey || fieldKey(field);
+}
+
+/*
+ * Values under which every field that can show does: the line about an old
+ * default assignee shows only while the rule has one.
+ */
+const EVERY_FIELD_SHOWS: Record<string, unknown> = {
+  defaultAssignToTeamId: "team",
+  defaultAssignToUserId: "user",
+};
+
+/*
+ * The fields the form draws on a step, in order: every field but the
+ * column registrations, which are never shown.
+ */
+function drawnOnStep(stepId: string): Array<ModelField<any>> {
+  return latestTable().formFields.filter((field: ModelField<any>) => {
+    return (
+      field.stepId === stepId &&
+      (!field.showIf || field.showIf(EVERY_FIELD_SHOWS))
+    );
+  });
+}
+
+function findByFormKey(key: string): ModelField<any> {
+  const found: ModelField<any> | undefined = latestTable().formFields.find(
+    (field: ModelField<any>) => {
+      return formKey(field) === key;
+    },
+  );
+
+  if (!found) {
+    throw new Error(`No field ${key}.`);
+  }
+
+  return found;
 }
 
 function stepShows(stepId: string, values: Record<string, unknown>): boolean {
@@ -489,7 +535,9 @@ describe.each(PAGES)(
       expect(owners.description).toBe(
         "Added as owners of every episode this rule opens, and notified like any other owner.",
       );
-      expect(owners.stepId).toBe("on-call-ownership");
+      // Folded under More fields, at the end of the Grouping step.
+      expect(owners.stepId).toBe("grouping");
+      expect(owners.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
       expect(owners.spanFullRow).toBe(true);
       expect(owners.required).toBe(false);
       // People first, then teams, saved to the rule's own two lists.
@@ -522,7 +570,7 @@ describe.each(PAGES)(
 
       for (const field of oldPair) {
         expect(field.showIf?.({ [fieldKey(field)]: "id" })).toBe(false);
-        expect(field.stepId).toBe("on-call-ownership");
+        expect(field.stepId).toBe("grouping");
       }
 
       expect(
@@ -547,7 +595,8 @@ describe.each(PAGES)(
 
       expect(line).toBeDefined();
       expect(line!.formOnly).toBe(true);
-      expect(line!.stepId).toBe("on-call-ownership");
+      expect(line!.stepId).toBe("grouping");
+      expect(line!.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
       expect(line!.fieldType).toBe(FormFieldSchemaType.CustomComponent);
 
       expect(line!.showIf!({})).toBe(false);
@@ -634,30 +683,215 @@ describe.each(PAGES)(
       expect(written).toEqual({});
     });
 
-    test("On-Call & Ownership has no section headings: each field says what it does", () => {
+    test("everything beyond grouping is one More fields fold, at the end of the Grouping step", () => {
       renderPage(pageCase);
 
-      const onTheStep: Array<ModelField<any>> = latestTable().formFields.filter(
+      const grouping: Array<ModelField<any>> = drawnOnStep("grouping");
+      const open: Array<string> = grouping
+        .filter((field: ModelField<any>) => {
+          return !field.collapsibleSection;
+        })
+        .map(formKey);
+      const folded: Array<ModelField<any>> = grouping.filter(
         (field: ModelField<any>) => {
-          return field.stepId === "on-call-ownership";
+          return Boolean(field.collapsibleSection);
         },
       );
 
-      expect(
-        onTheStep.filter((field: ModelField<any>) => {
-          return Boolean(field.sectionTitle);
+      // Two questions, the name and the switch stay on screen.
+      expect(open).toEqual([
+        GROUPING_MODE_FIELD_KEY,
+        "timeWindowSetting",
+        "name",
+        "isEnabled",
+      ]);
+
+      // Then the fold: every field of it after them, one after another.
+      expect(grouping.slice(open.length)).toEqual(folded);
+
+      // One section object, built once, so the form folds them together.
+      const sections: Set<FormFieldCollapsibleSection<any>> = new Set(
+        folded.map((field: ModelField<any>) => {
+          return field.collapsibleSection!;
         }),
-      ).toEqual([]);
-
-      const onCall: ModelField<any> | undefined = onTheStep.find(
-        (field: ModelField<any>) => {
-          return fieldKey(field) === "onCallDutyPolicies";
-        },
       );
+      expect(sections.size).toBe(1);
 
-      expect(onCall?.description).toBe(
+      const section: FormFieldCollapsibleSection<any> =
+        folded[0]!.collapsibleSection!;
+      expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
+      expect(section.title).toBe(MORE_FIELDS_SECTION_TITLE);
+      expect(section.title).toBe("More fields");
+      // Folded on an edit form too: its chips say what is set.
+      expect(section.openWhenConfigured).toBe(false);
+      expect(section.listFieldsWhileFolded).toBe(true);
+      // The fields themselves decide what is set; no rule of its own.
+      expect(section.isConfigured).toBeUndefined();
+      /*
+       * Folded, a sentence under the names says a rule still has the old
+       * default assignee to settle - and nothing for any other rule.
+       */
+      expect(section.getSummary?.({})).toBeUndefined();
+      expect(
+        section.getSummary?.(latestTable().createInitialValues),
+      ).toBeUndefined();
+      expect(section.getSummary?.({ defaultAssignToTeamId: "team" })).toEqual([
+        GROUPING_RULE_COPY.legacyAssigneeFoldedSummary,
+      ]);
+      expect(
+        section.getSummary?.({
+          defaultAssignToTeamId: null,
+          defaultAssignToUserId: null,
+        }),
+      ).toBeUndefined();
+
+      expect(folded.map(formKey)).toEqual(
+        pageCase.kind === GroupingRuleKind.Incident
+          ? [
+              "onCallDutyPolicies",
+              EPISODE_OWNERS_FIELD_KEY,
+              LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+              "episodeMemberRoleAssignments",
+              "reopenWindowSetting",
+              "resolveDelaySetting",
+              "inactivityTimeoutSetting",
+              "description",
+              "episodeTitleTemplate",
+              "episodeDescriptionTemplate",
+              "showEpisodeOnStatusPage",
+              "episodeLabels",
+            ]
+          : [
+              "onCallDutyPolicies",
+              EPISODE_OWNERS_FIELD_KEY,
+              LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+              "reopenWindowSetting",
+              "resolveDelaySetting",
+              "inactivityTimeoutSetting",
+              "description",
+              "episodeTitleTemplate",
+              "episodeDescriptionTemplate",
+              "episodeLabels",
+            ],
+      );
+    });
+
+    test("the fold has three small headings, and each field still says what it does", () => {
+      renderPage(pageCase);
+
+      const headed: Array<[string, string]> = drawnOnStep("grouping")
+        .filter((field: ModelField<any>) => {
+          return Boolean(field.sectionTitle);
+        })
+        .map((field: ModelField<any>): [string, string] => {
+          return [formKey(field), field.sectionTitle as string];
+        });
+
+      expect(headed).toEqual([
+        ["onCallDutyPolicies", "On-Call & Ownership"],
+        ["reopenWindowSetting", "Episode Lifecycle"],
+        ["description", "Details"],
+      ]);
+
+      /*
+       * The headings group them; they do not explain them. Every field in
+       * the fold still says what it does - a line of help of its own, or a
+       * control that draws its title and help itself (the lifecycle
+       * switches, the old default assignee's line) - except the rule's
+       * Description, whose title says it all.
+       */
+      const unexplained: Array<string> = drawnOnStep("grouping")
+        .filter((field: ModelField<any>) => {
+          return (
+            Boolean(field.collapsibleSection) &&
+            !field.description &&
+            !field.customElementDrawsOwnLabel
+          );
+        })
+        .map(formKey);
+
+      expect(unexplained).toEqual(["description"]);
+      expect(findByFormKey("onCallDutyPolicies").description).toBe(
         "On-call policies to fire when an episode is created by this rule.",
       );
+    });
+
+    test("a lifecycle setting's chip says its minutes while it is on, and nothing while it is off", () => {
+      renderPage(pageCase);
+
+      const cases: Array<[string, string, string, string]> = [
+        [
+          "reopenWindowSetting",
+          "enableReopenWindow",
+          "reopenWindowMinutes",
+          "45 minutes",
+        ],
+        [
+          "resolveDelaySetting",
+          "enableResolveDelay",
+          "resolveDelayMinutes",
+          "45 minutes",
+        ],
+        [
+          "inactivityTimeoutSetting",
+          "enableInactivityTimeout",
+          "inactivityTimeoutMinutes",
+          "45 minutes",
+        ],
+      ];
+
+      for (const [key, enabledColumn, minutesColumn, said] of cases) {
+        const field: ModelField<any> = findByFormKey(key);
+
+        expect(field.getFoldedValue).toBeDefined();
+        expect(
+          field.getFoldedValue!({ [enabledColumn]: true, [minutesColumn]: 45 }),
+        ).toBe(said);
+        expect(
+          field.getFoldedValue!({
+            [enabledColumn]: true,
+            [minutesColumn]: 180,
+          }),
+        ).toBe("3 hours");
+        // Off, or on with 0 minutes the engines ignore: not set.
+        expect(
+          field.getFoldedValue!({
+            [enabledColumn]: false,
+            [minutesColumn]: 45,
+          }),
+        ).toBeNull();
+        expect(
+          field.getFoldedValue!({ [enabledColumn]: true, [minutesColumn]: 0 }),
+        ).toBeNull();
+        expect(field.getFoldedValue!({})).toBeNull();
+        // Typed but not a number yet: set, its name alone.
+        expect(
+          field.getFoldedValue!({
+            [enabledColumn]: true,
+            [minutesColumn]: "abc",
+          }),
+        ).toBe("");
+      }
+    });
+
+    test("the old default assignee is a chip with its name while the rule has one", () => {
+      renderPage(pageCase);
+
+      const line: ModelField<any> = findByFormKey(
+        LEGACY_DEFAULT_ASSIGNEE_FIELD_KEY,
+      );
+
+      expect(line.getFoldedValue?.({ defaultAssignToTeamId: "team" })).toBe("");
+      expect(line.getFoldedValue?.({ defaultAssignToUser: { _id: "u" } })).toBe(
+        "",
+      );
+      expect(line.getFoldedValue?.({})).toBeNull();
+      expect(
+        line.getFoldedValue?.({
+          defaultAssignToTeamId: null,
+          defaultAssignToUserId: null,
+        }),
+      ).toBeNull();
     });
 
     test("its form-only controls are never saved", () => {
@@ -670,7 +904,7 @@ describe.each(PAGES)(
       }
     });
 
-    test("walks Grouping, Group By, Which, then the three advanced steps", () => {
+    test("walks Grouping, Group By for a custom mix, and Which - and no more", () => {
       renderPage(pageCase);
 
       expect(
@@ -681,10 +915,21 @@ describe.each(PAGES)(
         ["grouping", GROUPING_RULE_COPY.groupingStepTitle],
         ["group-by", "Group By"],
         ["match-criteria", GROUPING_RULE_COPY.whichStepTitle[pageCase.kind]],
-        ["episode-lifecycle", "Episode Lifecycle"],
-        ["details", "Details"],
-        ["on-call-ownership", "On-Call & Ownership"],
       ]);
+
+      // Every field is on one of them.
+      const stepIds: Array<string> = latestTable().formSteps.map(
+        (step: FormStep<any>) => {
+          return step.id;
+        },
+      );
+
+      for (const field of latestTable().formFields) {
+        expect({ field: formKey(field), step: field.stepId }).toEqual({
+          field: formKey(field),
+          step: expect.stringMatching(new RegExp(`^(${stepIds.join("|")})$`)),
+        });
+      }
     });
 
     test("Group By shows only for a custom mix", () => {
@@ -713,25 +958,32 @@ describe.each(PAGES)(
       ).toBe(false);
     });
 
-    test("the advanced steps show only behind Show advanced settings", () => {
+    test("no switch adds steps: Grouping and Which always show, whatever a rule uses", () => {
       renderPage(pageCase);
 
-      for (const stepId of [
-        "episode-lifecycle",
-        "details",
-        "on-call-ownership",
-      ]) {
-        expect(stepShows(stepId, {})).toBe(false);
-        expect(
-          stepShows(stepId, { [SHOW_ADVANCED_SETTINGS_FIELD_KEY]: false }),
-        ).toBe(false);
-        expect(
-          stepShows(stepId, { [SHOW_ADVANCED_SETTINGS_FIELD_KEY]: true }),
-        ).toBe(true);
+      const busyRule: Record<string, unknown> = {
+        enableReopenWindow: true,
+        reopenWindowMinutes: 30,
+        onCallDutyPolicies: ["policy"],
+        episodeOwnerUsers: ["user"],
+        description: "Production payments",
+        showAdvancedSettings: true,
+      };
+
+      for (const values of [{}, busyRule]) {
+        expect(stepShows("grouping", values)).toBe(true);
+        expect(stepShows("match-criteria", values)).toBe(true);
       }
 
-      expect(stepShows("grouping", {})).toBe(true);
-      expect(stepShows("match-criteria", {})).toBe(true);
+      // The retired switch is no field of the form any more.
+      expect(
+        latestTable().formFields.filter((field: ModelField<any>) => {
+          return (
+            formKey(field) === "showAdvancedSettings" ||
+            field.title === "Show advanced settings"
+          );
+        }),
+      ).toEqual([]);
     });
 
     test("an empty list offers the ready-made rules and a custom one", () => {

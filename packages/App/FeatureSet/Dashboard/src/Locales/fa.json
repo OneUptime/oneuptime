@@ -25326,5 +25326,6 @@
   "This criteria is met when this filter matches:": "این معیار زمانی برقرار است که این فیلتر مطابقت داشته باشد:",
   "This rule runs when all of these conditions are met:": "این قانون زمانی اجرا می‌شود که همه این شرط‌ها برقرار باشند:",
   "This rule runs when any one of these conditions is met:": "این قانون زمانی اجرا می‌شود که هر یک از این شرط‌ها برقرار باشد:",
-  "This rule runs when this condition is met:": "این قانون زمانی اجرا می‌شود که این شرط برقرار باشد:"
+  "This rule runs when this condition is met:": "این قانون زمانی اجرا می‌شود که این شرط برقرار باشد:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "این قاعده هنوز یک تخصیص‌یافتهٔ پیش‌فرض دارد که توسط نسخهٔ قدیمی‌تر این فرم تنظیم شده است. این بخش را باز کنید تا آن‌ها را به‌عنوان مالک اضافه کنید یا آن را حذف کنید."
 }

@@ -25326,5 +25326,6 @@
   "This criteria is met when this filter matches:": "Aan dit criterium is voldaan wanneer dit filter overeenkomt:",
   "This rule runs when all of these conditions are met:": "Deze regel wordt uitgevoerd wanneer aan al deze voorwaarden is voldaan:",
   "This rule runs when any one of these conditions is met:": "Deze regel wordt uitgevoerd wanneer aan een van deze voorwaarden is voldaan:",
-  "This rule runs when this condition is met:": "Deze regel wordt uitgevoerd wanneer aan deze voorwaarde is voldaan:"
+  "This rule runs when this condition is met:": "Deze regel wordt uitgevoerd wanneer aan deze voorwaarde is voldaan:",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Deze regel heeft nog een standaard toegewezene, ingesteld door een oudere versie van dit formulier. Open dit gedeelte om ze toe te voegen als eigenaren of om deze te verwijderen."
 }

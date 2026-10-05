@@ -28,9 +28,11 @@ import Permission, { UserPermission } from "../../../Types/Permission";
  * and the signed-in user are stubbed.
  *
  * What a person sees: two questions and Create for a new rule; Custom opens
- * the Group By switches; "Show advanced settings" adds the lifecycle, details
- * and on-call steps; an existing rule opens with whatever it uses showing,
- * and saving it untouched writes back exactly what it had.
+ * the Group By switches; everything else - paging and owners, the episode
+ * lifecycle, the details - is folded under More fields at the end of the
+ * Grouping step, which names what it holds and adds no step; an existing
+ * rule opens with that fold folded and a chip for each setting it uses, and
+ * saving it untouched writes back exactly what it had.
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
@@ -163,6 +165,10 @@ import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "../../../UI/Components/Modal/Modal";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 const WAIT_TIMEOUT: number = 20000;
 
@@ -369,6 +375,82 @@ function switchNamed(name: string): HTMLElement {
   return within(dialog()).getByRole("switch", { name });
 }
 
+// The rule's More fields: the fold at the end of the Grouping step.
+function moreFieldsHeader(): HTMLElement {
+  return within(dialog()).getByRole("button", { name: "More fields" });
+}
+
+function moreFieldsSection(): HTMLElement {
+  return moreFieldsHeader().closest(
+    '[data-testid="folded-section"]',
+  ) as HTMLElement;
+}
+
+async function openMoreFields(): Promise<void> {
+  if (moreFieldsHeader().getAttribute("aria-expanded") !== "true") {
+    await act(async (): Promise<void> => {
+      fireEvent.click(moreFieldsHeader());
+    });
+  }
+
+  await waitFor(() => {
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "true");
+  });
+}
+
+async function foldMoreFields(): Promise<void> {
+  if (moreFieldsHeader().getAttribute("aria-expanded") !== "false") {
+    await act(async (): Promise<void> => {
+      fireEvent.click(moreFieldsHeader());
+    });
+  }
+
+  await waitFor(() => {
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+  });
+}
+
+/*
+ * What the folded header lists, as read on screen: names, and the set ones
+ * with what they are set to ("On-Call Duty Policies: 1").
+ */
+function foldedItems(): Array<string> {
+  return listedNames(moreFieldsHeader());
+}
+
+// The chips: what the rule has set.
+function foldedChips(): Array<string> {
+  return setChips(moreFieldsHeader());
+}
+
+// "7 more": the unset names the header leaves out.
+function foldedMore(): string | null {
+  return (
+    within(moreFieldsHeader()).queryByTestId("folded-section-more")
+      ?.textContent || null
+  );
+}
+
+/*
+ * The sentence the folded header says under its names, when it says one:
+ * that the rule still has an old default assignee to settle.
+ */
+function moreFieldsSummary(): string | null {
+  return (
+    within(moreFieldsSection()).queryByTestId("collapsible-section-summary")
+      ?.textContent || null
+  );
+}
+
+// The small headings inside the fold, in order.
+function moreFieldsHeadings(): Array<string> {
+  return within(moreFieldsSection())
+    .queryAllByRole("heading", { level: 3 })
+    .map((heading: HTMLElement): string => {
+      return (heading.textContent || "").trim();
+    });
+}
+
 async function pickMode(mode: string): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(screen.getByTestId(`card-select-option-${mode}`));
@@ -403,7 +485,6 @@ const FORM_ONLY_KEYS: Array<string> = [
   "reopenWindowSetting",
   "resolveDelaySetting",
   "inactivityTimeoutSetting",
-  "showAdvancedSettings",
 ];
 
 describe("creating a grouping rule", () => {
@@ -434,10 +515,24 @@ describe("creating a grouping rule", () => {
     expect(minutesInput("time-window-setting")).toHaveValue(30);
     expect(nameInput()).toHaveValue("Group incidents from the same monitor");
     expect(switchNamed("Enabled")).toHaveAttribute("aria-checked", "true");
-    expect(switchNamed("Show advanced settings")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    /*
+     * Everything else is folded under More fields, which names what it
+     * holds - the first four, and how many more - and has nothing set.
+     */
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(foldedItems()).toEqual([
+      "On-Call Duty Policies",
+      "Episode Owners",
+      "Episode Role Assignments",
+      "Reopen recently resolved episodes",
+    ]);
+    expect(foldedMore()).toBe("7 more");
+    expect(foldedChips()).toEqual([]);
+    // No switch that adds steps any more, and nothing to settle.
+    expect(
+      within(dialog()).queryByText("Show advanced settings"),
+    ).not.toBeInTheDocument();
+    expect(moreFieldsSummary()).toBeNull();
     // The action is on the last step only: a plain Next here.
     expect(querySubmitButton()).not.toBeInTheDocument();
     expect(nextButton()).toHaveTextContent("Next");
@@ -659,41 +754,40 @@ describe("creating a grouping rule", () => {
     expect(activeStep()).toBe("Grouping");
   });
 
-  test("Show advanced settings adds the lifecycle, details and on-call steps", async () => {
+  test("More fields holds paging, owners, the episode lifecycle and the details, and opening it adds no step", async () => {
     await openIncidentCreateForm();
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
+    await openMoreFields();
 
-    await waitFor(() => {
-      expect(stepTitles()).toEqual([
-        "Grouping",
-        "Which Incidents",
-        "Episode Lifecycle",
-        "Details",
-        "On-Call & Ownership",
-      ]);
-    });
+    // Still two questions: Create is one Next away.
+    expect(stepTitles()).toEqual(["Grouping", "Which Incidents"]);
+    expect(activeStep()).toBe("Grouping");
+    // Open, the header lists nothing: the fields say it themselves.
+    expect(foldedItems()).toEqual([]);
 
-    await goToStep("Which Incidents");
-    // Every advanced step is optional, but Create is on the last step only.
-    expect(querySubmitButton()).not.toBeInTheDocument();
-    expect(nextButton()).toHaveTextContent("Next");
-    await goToStep("Episode Lifecycle");
+    // Three small headings: who is paged and owns, lifecycle, the details.
+    expect(moreFieldsHeadings()).toEqual([
+      "On-Call & Ownership",
+      "Episode Lifecycle",
+      "Details",
+    ]);
 
-    expect(switchNamed("Reopen recently resolved episodes")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    expect(switchNamed("Wait before resolving an episode")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
-    expect(switchNamed("Resolve quiet episodes")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    expect(
+      within(dialog()).getByRole("button", { name: "Add owner" }),
+    ).toBeVisible();
+    for (const name of [
+      "Reopen recently resolved episodes",
+      "Wait before resolving an episode",
+      "Resolve quiet episodes",
+      "Show Episodes on Status Page",
+    ]) {
+      expect(switchNamed(name)).toHaveAttribute("aria-checked", "false");
+    }
+    expect(
+      within(dialog()).getByPlaceholderText(
+        "Groups all critical incidents from production services",
+      ),
+    ).toBeVisible();
 
     await act(async (): Promise<void> => {
       fireEvent.click(switchNamed("Reopen recently resolved episodes"));
@@ -707,14 +801,15 @@ describe("creating a grouping rule", () => {
       target: { value: "240" },
     });
 
-    await goToStep("Details");
-    expect(
-      within(dialog()).getByPlaceholderText(
-        "Groups all critical incidents from production services",
-      ),
-    ).toBeInTheDocument();
+    // Folded again, the header says what is now set, in plain words.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([
+      "Reopen recently resolved episodes: 30 minutes",
+      "Resolve quiet episodes: 4 hours",
+    ]);
+    expect(stepTitles()).toEqual(["Grouping", "Which Incidents"]);
 
-    await goToStep("On-Call & Ownership");
+    await goToStep("Which Incidents");
     expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
 
     await clickSubmit();
@@ -731,32 +826,104 @@ describe("creating a grouping rule", () => {
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
   });
 
-  test("with advanced settings shown, Create waits for the last step, and the advanced steps keep their defaults", async () => {
+  test("a setting switched back off loses its chip, and is saved off", async () => {
     await openIncidentCreateForm();
 
+    await openMoreFields();
     await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
+      fireEvent.click(switchNamed("Wait before resolving an episode"));
     });
+    expect(minutesInput("resolve-delay-setting")).toHaveValue(5);
 
-    await waitFor(() => {
-      expect(stepTitles()).toContain("Episode Lifecycle");
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([
+      "Wait before resolving an episode: 5 minutes",
+    ]);
+
+    await openMoreFields();
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait before resolving an episode"));
     });
-
-    expect(querySubmitButton()).not.toBeInTheDocument();
-    expect(nextButton()).toHaveTextContent("Next");
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([]);
 
     await goToStep("Which Incidents");
-
-    // Every step left is optional, and still the action waits for the last.
-    expect(querySubmitButton()).not.toBeInTheDocument();
-
-    await walkOnAndSubmit();
+    await clickSubmit();
     await waitForSave();
 
-    expect(activeStep()).toBe("On-Call & Ownership");
+    expect(submitted()["enableResolveDelay"]).toBe(false);
+    // Kept, so switching it back on later starts where it was.
+    expect(submitted()["resolveDelayMinutes"]).toBe(5);
+  });
+
+  test("a lifecycle setting with no usable minutes opens the fold and stops the form on Grouping", async () => {
+    await openIncidentCreateForm();
+
+    await openMoreFields();
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Wait before resolving an episode"));
+    });
+    fireEvent.change(minutesInput("resolve-delay-setting"), {
+      target: { value: "" },
+    });
+
+    // Folded, with minutes that are not a number yet: a chip, no minutes.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual(["Wait before resolving an episode"]);
+
+    await clickNext();
+
+    await waitFor(() => {
+      expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "true");
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resolve-delay-setting-error"),
+      ).toHaveTextContent(
+        "Enter a whole number of minutes between 1 and 525600.",
+      );
+    });
+    expect(activeStep()).toBe("Grouping");
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+    fireEvent.change(minutesInput("resolve-delay-setting"), {
+      target: { value: "15" },
+    });
+
+    await goToStep("Which Incidents");
+    await clickSubmit();
+    await waitForSave();
+
+    expect(submitted()).toEqual(
+      expect.objectContaining({
+        enableResolveDelay: true,
+        resolveDelayMinutes: 15,
+      }),
+    );
+  });
+
+  test("left folded, More fields saves no lifecycle setting, owner or policy", async () => {
+    await openIncidentCreateForm();
+
+    await goToStep("Which Incidents");
+    await clickSubmit();
+    await waitForSave();
+
     expect(submitted()["enableReopenWindow"]).not.toBe(true);
     expect(submitted()["enableResolveDelay"]).not.toBe(true);
     expect(submitted()["enableInactivityTimeout"]).not.toBe(true);
+    expect(submitted()["showEpisodeOnStatusPage"]).not.toBe(true);
+
+    for (const list of [
+      "onCallDutyPolicies",
+      "episodeOwnerUsers",
+      "episodeOwnerTeams",
+      "episodeLabels",
+    ]) {
+      expect(
+        ((submitted()[list] as Array<unknown> | undefined) || []).length,
+      ).toBe(0);
+    }
   });
 
   test("the alert form asks about alerts and saves the alert switches", async () => {
@@ -773,6 +940,35 @@ describe("creating a grouping rule", () => {
         "Group alerts from the same monitor",
       ),
     ).toHaveValue("Group alerts from the same monitor");
+
+    // The same fold, without status pages or episode roles.
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(foldedItems()).toEqual([
+      "On-Call Duty Policies",
+      "Episode Owners",
+      "Reopen recently resolved episodes",
+      "Wait before resolving an episode",
+    ]);
+    expect(foldedMore()).toBe("5 more");
+
+    await openMoreFields();
+    expect(moreFieldsHeadings()).toEqual([
+      "On-Call & Ownership",
+      "Episode Lifecycle",
+      "Details",
+    ]);
+    expect(
+      within(dialog()).queryByText("Show Episodes on Status Page"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByText("Episode Role Assignments"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).getByPlaceholderText(
+        "Groups all critical alerts from production services",
+      ),
+    ).toBeVisible();
+    await foldMoreFields();
 
     await pickMode("title");
     await waitFor(() => {
@@ -871,16 +1067,15 @@ describe("editing an existing grouping rule", () => {
     );
     expect(stepTitles()).toEqual(["Grouping", "Which Incidents"]);
     expect(minutesInput("time-window-setting")).toHaveValue(60);
-    expect(switchNamed("Show advanced settings")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    // Nothing beyond grouping: More fields is folded, with no chip.
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(foldedChips()).toEqual([]);
     // Save Changes is on Which Incidents, the last step: Next here.
     expect(querySubmitButton()).not.toBeInTheDocument();
     expect(nextButton()).toHaveTextContent("Next");
   });
 
-  test("a custom mix with lifecycle and paging opens with all of it showing", async () => {
+  test("a custom mix with lifecycle and paging opens with More fields folded, a chip for each", async () => {
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
     policy._id = POLICY_ID;
 
@@ -898,21 +1093,98 @@ describe("editing an existing grouping rule", () => {
       "aria-checked",
       "true",
     );
-    expect(switchNamed("Show advanced settings")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    expect(stepTitles()).toEqual([
-      "Grouping",
-      "Group By",
-      "Which Incidents",
-      "Episode Lifecycle",
-      "Details",
-      "On-Call & Ownership",
-    ]);
+    expect(stepTitles()).toEqual(["Grouping", "Group By", "Which Incidents"]);
     expect(
       switchNamed("Only group incidents that arrive close together"),
     ).toHaveAttribute("aria-checked", "false");
+
+    /*
+     * Folded on an edit form too, and nothing the rule does is hidden: each
+     * setting it uses is a chip that says what it is set to, and every set
+     * one is listed whatever the order.
+     */
+    await waitFor(() => {
+      expect(foldedChips()).toEqual([
+        "On-Call Duty Policies: 1",
+        "Reopen recently resolved episodes: 45 minutes",
+      ]);
+    });
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(foldedItems()).toEqual([
+      "On-Call Duty Policies: 1",
+      "Episode Owners",
+      "Episode Role Assignments",
+      "Reopen recently resolved episodes: 45 minutes",
+      "Wait before resolving an episode",
+      "Resolve quiet episodes",
+    ]);
+    expect(foldedMore()).toBe("5 more");
+
+    // Opened, the settings are there as the rule has them.
+    await openMoreFields();
+    expect(switchNamed("Reopen recently resolved episodes")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(minutesInput("reopen-window-setting")).toHaveValue(45);
+  });
+
+  test("every setting a rule uses is named on the folded header", async () => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy._id = POLICY_ID;
+
+    await openIncidentEditForm(
+      existingRule({
+        groupByMonitor: true,
+        enableReopenWindow: true,
+        reopenWindowMinutes: 1440,
+        enableResolveDelay: true,
+        resolveDelayMinutes: 1,
+        enableInactivityTimeout: true,
+        inactivityTimeoutMinutes: 120,
+        description: "Production payments",
+        episodeTitleTemplate: "{{monitorName}} storm",
+        episodeDescriptionTemplate: "Started by {{incidentTitle}}",
+        showEpisodeOnStatusPage: true,
+        onCallDutyPolicies: [policy],
+        episodeMemberRoleAssignments: [
+          {
+            userId: "0000000e-0000-4000-8000-000000000001",
+            incidentRoleId: "0000000f-0000-4000-8000-000000000001",
+          },
+        ],
+      }),
+    );
+
+    await waitFor(() => {
+      expect(foldedChips()).toEqual([
+        "On-Call Duty Policies: 1",
+        "Episode Role Assignments: 1",
+        "Reopen recently resolved episodes: 1 day",
+        "Wait before resolving an episode: 1 minute",
+        "Resolve quiet episodes: 2 hours",
+        "Description",
+        "Episode Title Template: {{monitorName}} storm",
+        "Episode Description Template",
+        "Show Episodes on Status Page: On",
+      ]);
+    });
+    // The two left unset are named too: nothing is counted away.
+    expect(foldedItems()).toEqual([
+      "On-Call Duty Policies: 1",
+      "Episode Owners",
+      "Episode Role Assignments: 1",
+      "Reopen recently resolved episodes: 1 day",
+      "Wait before resolving an episode: 1 minute",
+      "Resolve quiet episodes: 2 hours",
+      "Description",
+      "Episode Title Template: {{monitorName}} storm",
+      "Episode Description Template",
+      "Show Episodes on Status Page: On",
+      "Episode Labels",
+    ]);
+    expect(foldedMore()).toBeNull();
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
   });
 
   test("saving an existing rule untouched writes back exactly what it had", async () => {
@@ -1017,24 +1289,11 @@ describe("editing an existing grouping rule", () => {
     );
   });
 
-  test("an advanced setting can be turned on for a rule that had none", async () => {
+  test("a setting under More fields can be turned on for a rule that had none", async () => {
     await openIncidentEditForm(existingRule({ groupByMonitor: true }));
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
-
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(
-          within(dialog()).getByRole("navigation", { name: "Progress" }),
-        ).getByText("Episode Lifecycle"),
-      );
-    });
-
-    await waitFor(() => {
-      expect(activeStep()).toBe("Episode Lifecycle");
-    });
+    expect(foldedChips()).toEqual([]);
+    await openMoreFields();
 
     await act(async (): Promise<void> => {
       fireEvent.click(switchNamed("Wait before resolving an episode"));
@@ -1079,25 +1338,10 @@ describe("editing an existing grouping rule", () => {
       switchNamed("Only group incidents that arrive close together"),
     ).toHaveAttribute("aria-checked", "true");
     expect(minutesInput("time-window-setting")).toHaveValue(60);
-    // Nothing the engines act on lives behind the switch.
-    expect(switchNamed("Show advanced settings")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
+    // The engines act on none of the three: no chip says they are on.
+    expect(foldedChips()).toEqual([]);
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(
-          within(dialog()).getByRole("navigation", { name: "Progress" }),
-        ).getByText("Episode Lifecycle"),
-      );
-    });
-    await waitFor(() => {
-      expect(activeStep()).toBe("Episode Lifecycle");
-    });
+    await openMoreFields();
 
     for (const name of [
       "Reopen recently resolved episodes",
@@ -1133,19 +1377,8 @@ describe("editing an existing grouping rule", () => {
       }),
     );
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(
-          within(dialog()).getByRole("navigation", { name: "Progress" }),
-        ).getByText("Episode Lifecycle"),
-      );
-    });
-    await waitFor(() => {
-      expect(activeStep()).toBe("Episode Lifecycle");
-    });
+    expect(foldedChips()).toEqual([]);
+    await openMoreFields();
 
     await act(async (): Promise<void> => {
       fireEvent.click(switchNamed("Reopen recently resolved episodes"));
@@ -1165,10 +1398,10 @@ describe("editing an existing grouping rule", () => {
 });
 
 /*
- * Who owns the episodes a rule opens. On-Call & Ownership asks with one
- * people picker - Episode Owners - saved to the rule's episodeOwnerUsers
- * and episodeOwnerTeams, which the engines make owners of every episode the
- * rule opens. It replaced "Default Assign To Team" and "Default Assign To
+ * Who owns the episodes a rule opens. More fields asks, under On-Call &
+ * Ownership, with one people picker - Episode Owners - saved to the rule's
+ * episodeOwnerUsers and episodeOwnerTeams, which the engines make owners of
+ * every episode the rule opens. It replaced "Default Assign To Team" and "Default Assign To
  * User", which filled an assignee no page ever showed. A rule saved with
  * that pair gets a line under the owners that names it, with Add as owners
  * and Remove; either one clears the pair when the rule is saved.
@@ -1289,26 +1522,14 @@ describe("who owns the episodes a grouping rule opens", () => {
     return button.closest('[role="group"]') as HTMLElement;
   }
 
-  // Walks on with Next, as a person would, to the last step.
+  /*
+   * Opens More fields on the Grouping step, as a person would, to the
+   * On-Call & Ownership heading.
+   */
   async function goToOnCallAndOwnership(): Promise<void> {
-    for (
-      let step: number = 0;
-      step < 8 && activeStep() !== "On-Call & Ownership";
-      step++
-    ) {
-      const before: string = activeStep();
-
-      await clickNext();
-
-      await waitFor(
-        () => {
-          expect(activeStep()).not.toBe(before);
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-    }
-
-    expect(activeStep()).toBe("On-Call & Ownership");
+    expect(activeStep()).toBe("Grouping");
+    await openMoreFields();
+    expect(moreFieldsHeadings()[0]).toBe("On-Call & Ownership");
   }
 
   // Opens the picker's list, picks each name in turn, and closes it again.
@@ -1394,15 +1615,8 @@ describe("who owns the episodes a grouping rule opens", () => {
     );
   }
 
-  test("a new rule's On-Call & Ownership asks for Episode Owners with one picker, and no default assignee", async () => {
+  test("a new rule's More fields ask for Episode Owners with one picker, and no default assignee", async () => {
     await openIncidentCreateForm();
-
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
-    await waitFor(() => {
-      expect(stepTitles()).toContain("On-Call & Ownership");
-    });
 
     await goToOnCallAndOwnership();
 
@@ -1434,13 +1648,6 @@ describe("who owns the episodes a grouping rule opens", () => {
   test("owners picked on a new rule are saved as the rule's episode owners", async () => {
     await openIncidentCreateForm();
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
-    await waitFor(() => {
-      expect(stepTitles()).toContain("On-Call & Ownership");
-    });
-
     await goToOnCallAndOwnership();
     await pickOwners(["Ada Lovelace", "Platform"]);
 
@@ -1449,7 +1656,11 @@ describe("who owns the episodes a grouping rule opens", () => {
       "PlatformTeam",
     ]);
 
-    await clickSubmit();
+    // Folded, the header counts them.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual(["Episode Owners: 2"]);
+
+    await walkOnAndSubmit();
     await waitForSave();
 
     expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([ADA]);
@@ -1471,11 +1682,11 @@ describe("who owns the episodes a grouping rule opens", () => {
       }),
     );
 
-    // Owners are behind Show advanced settings, which the rule opens with.
-    expect(switchNamed("Show advanced settings")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    // Folded, the header says the rule has two owners - and nothing more.
+    await waitFor(() => {
+      expect(foldedChips()).toEqual(["Episode Owners: 2"]);
+    });
+    expect(moreFieldsSummary()).toBeNull();
 
     await goToOnCallAndOwnership();
 
@@ -1504,10 +1715,21 @@ describe("who owns the episodes a grouping rule opens", () => {
       }),
     );
 
-    // Nothing a rule does is hidden from the person editing it.
-    expect(switchNamed("Show advanced settings")).toHaveAttribute(
-      "aria-checked",
-      "true",
+    /*
+     * Nothing a rule does is hidden from the person editing it: folded, the
+     * header names the old default assignee as a chip, and says under its
+     * names where to settle it - the old form's last step, where Save
+     * Changes was, used to put the line in front of whoever saved.
+     */
+    await waitFor(() => {
+      expect(foldedChips()).toEqual(["Default assignee"]);
+    });
+    expect(moreFieldsSummary()).toBe(
+      "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.",
+    );
+    // Read out with the header, after the names it lists.
+    expect(moreFieldsHeader()).toHaveAccessibleDescription(
+      /Default assignee.*Open this section to add them as owners or remove it\.$/,
     );
 
     await goToOnCallAndOwnership();
@@ -1587,6 +1809,10 @@ describe("who owns the episodes a grouping rule opens", () => {
       ]);
     });
 
+    // Settled: the header's chip for it is gone, the owners counted.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual(["Episode Owners: 3"]);
+
     await saveFromTheLastStep();
     await waitForSave();
 
@@ -1623,6 +1849,11 @@ describe("who owns the episodes a grouping rule opens", () => {
       ).not.toBeInTheDocument();
     });
     expect(chipNamesIn(ownersPicker())).toEqual([]);
+
+    // Settled: folded again, no chip for it and no sentence about it.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([]);
+    expect(moreFieldsSummary()).toBeNull();
 
     await saveFromTheLastStep();
     await waitForSave();
@@ -1703,17 +1934,10 @@ describe("who owns the episodes a grouping rule opens", () => {
       formType: FormType.Create,
     });
 
-    await act(async (): Promise<void> => {
-      fireEvent.click(switchNamed("Show advanced settings"));
-    });
-    await waitFor(() => {
-      expect(stepTitles()).toContain("On-Call & Ownership");
-    });
-
     await goToOnCallAndOwnership();
     await pickOwners(["Bob Stone", "Database"]);
 
-    await clickSubmit();
+    await walkOnAndSubmit();
     await waitForSave();
 
     expect(idsOf(submitted()["episodeOwnerUsers"])).toEqual([BOB]);
