@@ -419,16 +419,26 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Use the release name and namespace you installed the agent with, if they differ (`helm list -A | grep kubernetes-agent` shows them). Without `helm repo update`, Helm may resolve the chart you installed from, which does not know `aiAgent` and fails with `Additional property aiAgent is not allowed`. Published chart versions follow the OneUptime version, so if `helm show values oneuptime/kubernetes-agent | grep aiAgent` prints nothing, your index is still old. To run the chart without the AI agent, pass `--set aiAgent.enabled=false`.
 
+### What AI may do
+
+What OneUptime AI may do on the cluster is set in the chart, with two values, and the cluster's AI agent page shows them under **What AI may do** without a way to change them there:
+
+- `aiAgent.investigation` — `true`: AI runs read-only `kubectl` while it investigates an incident or alert on the cluster. `false`: it still investigates, with the data OneUptime already has.
+- `aiAgent.fixes` — `off`, `ask-for-approval`, `automatic` or `bypass-approval` (below). Every level but `off` grants the AI agent write access; `off` grants none, and the agent then refuses every write itself.
+
+The AI agent reports both to OneUptime, which applies them to the cluster and refuses a change made anywhere else — the AI agent page, the API or Terraform. **Change** on that page shows the command for the option you pick. Both are unset in `values.yaml`: a release that sets neither lets the agent use its defaults (investigation on, fixes off), and OneUptime applies those only to a cluster whose settings nobody chose on its AI agent page — settings someone chose there are kept as they are, and the page shows how to move them to the chart.
+
 ### Let AI fix what it finds
 
-Fixes are off until you grant write access — a separate, optional step, and one chart flag. The recommended form grants it only in the namespaces AI may fix, with node operations off:
+Fixes are off until you turn them on with `aiAgent.fixes` — a separate, optional step that also grants the AI agent write access. The recommended form grants it only in the namespaces AI may fix, with node operations off:
 
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent --reuse-values \
   --set aiAgent.enabled=true \
-  --set aiAgent.remediation.enabled=true \
+  --set aiAgent.investigation=true \
+  --set aiAgent.fixes=ask-for-approval \
   --set "aiAgent.remediation.namespaces={web,api}" \
   --set aiAgent.remediation.nodeOperations=false
 ```
@@ -440,30 +450,33 @@ helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent --reuse-values \
   --set aiAgent.enabled=true \
-  --set aiAgent.remediation.enabled=true \
+  --set aiAgent.investigation=true \
+  --set aiAgent.fixes=ask-for-approval \
   --set-json 'aiAgent.remediation.namespaces=[]'
 ```
 
 Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole upgrade — the collector's too — with `namespaces "api" not found`. Create it first, or take it off the list, and take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the stored list; `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) goes back to cluster-wide — not `={}`, which Helm reads as one empty name. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes.
 
-If nobody has chosen AI settings for the cluster yet, granting write access starts it in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If someone already picked AI settings on the cluster's AI agent page, they are kept exactly as chosen — the mode stays **Off** unless someone changed it, because the server never flips a switch an operator owns — so open the AI agent page after the upgrade and pick the mode under **What AI may do**. Turning fixes on takes a Project Owner, a Project Admin or **Edit Auto Remediation Rule**:
+`aiAgent.fixes` picks how fixes run; to turn them off again, upgrade with `--set aiAgent.fixes=off`, which also removes the write access:
 
-- **ask for approval** — a human approves every plan with one click;
+- **ask-for-approval** — OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident;
 - **automatic** — safe changes run on their own; a riskier change never does. When the round could only find riskier fixes, it ends by proposing exactly those for one-click approval; when it also ran a safe fix, the riskier one is proposed only if verification shows the safe fix did not recover the signal (the follow-up round, which asks);
-- **bypass approval** — AI does not ask: every change the policy allows runs on its own, follow-up rounds included, except that a round asks when the hourly circuit breaker trips, when another unattended OneUptime AI round is still changing or verifying the same cluster, or when it follows a fix whose rollback did not complete.
+- **bypass-approval** — AI does not ask: every change the policy allows runs on its own, follow-up rounds included, except that a round asks when the hourly circuit breaker trips, when another unattended OneUptime AI round is still changing or verifying the same cluster, or when it follows a fix whose rollback did not complete.
 
-Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and so do a `drain`, a `taint` and a `patch` of a node (a drain evicts pods in every namespace, the agent's own included, and a `NoExecute` taint does too, whether `kubectl taint` or a node `patch` sets it); a custom resource is judged by its namespace, even one named like a built-in kind; and the AI agent never changes anything in its own namespace, outside `aiAgent.remediation.namespaces`, or on a node with `aiAgent.remediation.nodeOperations=false`. OneUptime reads that scope from what the AI agent reports and refuses such a fix when it is proposed or approved, not only in the agent. In both unattended modes a round proposes its plan for approval instead of running it when the hourly circuit breaker trips or another unattended round already holds the cluster. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and who may change the mode.
+Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and so do a `drain`, a `taint` and a `patch` of a node (a drain evicts pods in every namespace, the agent's own included, and a `NoExecute` taint does too, whether `kubectl taint` or a node `patch` sets it); a custom resource is judged by its namespace, even one named like a built-in kind; and the AI agent never changes anything in its own namespace, outside `aiAgent.remediation.namespaces`, or on a node with `aiAgent.remediation.nodeOperations=false`. OneUptime reads that scope from what the AI agent reports and refuses such a fix when it is proposed or approved, not only in the agent. In both unattended modes a round proposes its plan for approval instead of running it when the hourly circuit breaker trips or another unattended round already holds the cluster. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run and what the command policy refuses outright.
 
 **What the write access amounts to.** Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets — a pod template can name any image, ServiceAccount and Secret volume. So the chart's RBAC bounds *where* the AI agent may write, not what a write may do: the command policy refuses pod-template security patches, patches that replace the pod spec or a whole `containers` list, `set serviceaccount`, `create … --image`, `expose --overrides` (which can create a Job or any other kind of object instead of a Service) and patch bodies that are not JSON. It does not refuse `set image`, or a patch of an image field: that is a riskier change — the new image runs as the workload's own ServiceAccount, with its Secrets — which a human approves unless the cluster bypasses approvals or its allowlist names the command. With `aiAgent.remediation.namespaces` empty the write role is bound cluster-wide, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or the agent's own namespace; there the policy and the AI agent hold the line. List namespaces and the chart binds it in those alone, and a write anywhere else is refused when it is proposed or approved, and again by the AI agent.
 
 ### AI agent values
 
-`aiAgent.remediation.*` and `aiAgent.extraEnv` are not set in `values.yaml`, so a value stored under the old `aiAccess` key keeps applying until you set them (see [Upgrading the Agent](#upgrading-the-agent)). The defaults the table gives for them apply only when neither the `aiAgent` key nor the `aiAccess` one is set.
+`aiAgent.remediation.*` and `aiAgent.extraEnv` are not set in `values.yaml`, so a value stored under the old `aiAccess` key keeps applying until you set them (see [Upgrading the Agent](#upgrading-the-agent)). The defaults the table gives for them apply only when neither the `aiAgent` key nor the `aiAccess` one is set. `aiAgent.investigation` and `aiAgent.fixes` are not set either, so AI settings chosen on a cluster's AI agent page stay until you set one of them.
 
 | Value | Default | What it does |
 | --- | --- | --- |
 | `aiAgent.enabled` | `true` | Run the Kubernetes AI agent with read-only RBAC (cluster-wide). `false` removes it. |
-| `aiAgent.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. It never grants Secrets, `exec`, `attach`, `port-forward`, CRDs or RBAC writes, so a change to any other kind — deleting a Deployment, labelling a Service or ConfigMap — fails with `Forbidden` even when approved. |
+| `aiAgent.investigation` | unset (`true`) | Whether OneUptime AI runs read-only `kubectl` while it investigates. The cluster's AI agent page shows it read-only. |
+| `aiAgent.fixes` | unset (`off`) | `off`, `ask-for-approval`, `automatic` or `bypass-approval`. Every level but `off` grants the write verbs below. The cluster's AI agent page shows it read-only. |
+| `aiAgent.remediation.enabled` | `false` | Deprecated by `aiAgent.fixes`, and read only while that is unset. Also grant the write verbs OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. It never grants Secrets, `exec`, `attach`, `port-forward`, CRDs or RBAC writes, so a change to any other kind — deleting a Deployment, labelling a Service or ConfigMap — fails with `Forbidden` even when approved. |
 | `aiAgent.remediation.namespaces` | `[]` | Bind the write role only in these namespaces, one RoleBinding each; a write elsewhere is refused when it is proposed or approved, and by the AI agent. Each must already exist, or the upgrade fails. Empty binds it cluster-wide; `--set-json 'aiAgent.remediation.namespaces=[]'` resets a stored list (`--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`). The agent's own namespace cannot be listed. |
 | `aiAgent.remediation.nodeOperations` | `true` | With `remediation.enabled`, also grant cordon/uncordon/taint (patch on nodes) and drain (pod evictions), cluster-wide. Set `false` to keep fixes off nodes: no node RBAC, node operations are refused when proposed or approved, and the AI agent refuses them (`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false`). |
 | `aiAgent.image.repository` | `oneuptime/kubernetes-ai-agent` | The agent image. Point it at your mirror if nodes cannot pull from Docker Hub. |
@@ -513,7 +526,7 @@ The chart now runs the [Kubernetes AI agent](#kubernetes-ai-agent) by default. I
 
 Your `aiAccess` settings carry over:
 
-- Write access (`aiAccess.enabled` with `aiAccess.remediation.enabled`), `aiAccess.remediation.namespaces`, `aiAccess.remediation.nodeOperations` and `aiAccess.extraEnv` keep applying until you set the matching `aiAgent.*` value, which always wins. Revoke write access with `--set aiAgent.remediation.enabled=false`, go back to cluster-wide with `--set-json 'aiAgent.remediation.namespaces=[]'`, and clear a stored proxy setting with `--set-json 'aiAgent.extraEnv=[]'`.
+- Write access (`aiAccess.enabled` with `aiAccess.remediation.enabled`), `aiAccess.remediation.namespaces`, `aiAccess.remediation.nodeOperations` and `aiAccess.extraEnv` keep applying until you set the matching `aiAgent.*` value, which always wins. Revoke write access with `--set aiAgent.fixes=off`, go back to cluster-wide with `--set-json 'aiAgent.remediation.namespaces=[]'`, and clear a stored proxy setting with `--set-json 'aiAgent.extraEnv=[]'`.
 - `aiAccess.enabled=false` does not turn the AI agent off; `--set aiAgent.enabled=false` does.
 - `aiAccess.image` and `aiAccess.resources` are not carried over: the AI agent is a different image, with its own `aiAgent.image` and `aiAgent.resources`.
 - In OneUptime, each cluster keeps its AI settings, with two changes made when the server is upgraded: a cluster whose Runner someone had unbound or deleted (the in-cluster Runner or any other) starts with **Investigate with kubectl** and fixes off (turn them back on on its AI agent page), and **Automatic** or **Bypass approval** on a cluster whose project never turned on **Enable AI Command Execution** becomes **Ask for approval** — that switch used to hold those fixes back, and fixes through the AI agent no longer need it.

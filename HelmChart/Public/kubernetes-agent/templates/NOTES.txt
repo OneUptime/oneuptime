@@ -105,15 +105,29 @@ it, and a self-hosted OneUptime server older than this chart has no AI agent
 API, so upgrade OneUptime first):
   kubectl logs -n {{ .Release.Namespace }} -l component=ai-agent --tail=100
 Turn it off with --set aiAgent.enabled=false.
-{{- if $aiAgent.allowWrites }}
+{{- if $aiAgent.aiSettingsConfigured }}
 
-A cluster whose agent connects for the first time with write access starts in
-"ask for approval", unless AI settings were already picked on its AI agent
-page before the install, which are kept as chosen. Otherwise pick how fixes
-run on that page.
+What OneUptime AI may do on this cluster, set by this release: investigation
+{{ ternary "on" "off" $aiAgent.investigation }}, fixes {{ $aiAgent.fixes }}. The cluster's AI agent page shows them;
+change them here, with aiAgent.investigation (true or false) and
+aiAgent.fixes (off, ask-for-approval, automatic or bypass-approval).
+{{- else }}
+
+This release does not set what OneUptime AI may do on this cluster, so the
+agent uses its defaults (investigation on, fixes {{ $aiAgent.fixes }}), unless
+someone already chose them on the cluster's AI agent page, which keeps them.
+To set them here instead:
+  --set aiAgent.investigation=true --set aiAgent.fixes={{ $aiAgent.fixes }}
+{{- end }}
+{{- if $aiAgent.allowWrites }}
 {{- if eq $aiAgent.writesKey "aiAccess.remediation.enabled" }}
-Write access was carried over from aiAccess.remediation.enabled; change it
-with aiAgent.remediation.* from now on.
+
+Write access was carried over from aiAccess.remediation.enabled; set
+aiAgent.fixes from now on.
+{{- else if eq $aiAgent.writesKey "aiAgent.remediation.enabled" }}
+
+Write access comes from aiAgent.remediation.enabled, which aiAgent.fixes
+replaces: set aiAgent.fixes from now on.
 {{- end }}
 
 What write access amounts to: patch on workloads and pods (and create on
@@ -153,11 +167,10 @@ a node fix already when it is proposed or approved.
 {{- end }}
 {{- else }}
 
-To let OneUptime AI also fix what it finds, grant write access in the
-namespaces it may change (each must already exist), then pick how fixes run
-on the cluster's AI agent page:
+To let OneUptime AI also fix what it finds, pick how fixes run and the
+namespaces it may change (each must already exist):
   helm repo update
-  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAgent.remediation.enabled=true --set "aiAgent.remediation.namespaces={web,api}" --set aiAgent.remediation.nodeOperations=false
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAgent.investigation={{ $aiAgent.investigation }} --set aiAgent.fixes=ask-for-approval --set "aiAgent.remediation.namespaces={web,api}" --set aiAgent.remediation.nodeOperations=false
 {{- end }}
 {{- else }}
 
