@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} indagini, {{failed}} non riuscite",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} era all'origine di {{shown}} delle {{count}} indagini qui.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} era all'origine di {{shown}} indagine su {{count}} qui.",
-  "The project had reached its own daily AI limit.": "Il progetto aveva raggiunto il proprio limite giornaliero di IA."
+  "The project had reached its own daily AI limit.": "Il progetto aveva raggiunto il proprio limite giornaliero di IA.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Questa regola ha ancora un assegnatario predefinito impostato da una versione precedente di questo modulo. Apri questa sezione per aggiungerli come proprietari o rimuoverlo."
 }

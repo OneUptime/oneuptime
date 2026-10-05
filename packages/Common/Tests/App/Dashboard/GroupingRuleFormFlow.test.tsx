@@ -431,6 +431,17 @@ function foldedMore(): string | null {
   );
 }
 
+/*
+ * The sentence the folded header says under its names, when it says one:
+ * that the rule still has an old default assignee to settle.
+ */
+function moreFieldsSummary(): string | null {
+  return (
+    within(moreFieldsSection()).queryByTestId("collapsible-section-summary")
+      ?.textContent || null
+  );
+}
+
 // The small headings inside the fold, in order.
 function moreFieldsHeadings(): Array<string> {
   return within(moreFieldsSection())
@@ -517,10 +528,11 @@ describe("creating a grouping rule", () => {
     ]);
     expect(foldedMore()).toBe("7 more");
     expect(foldedChips()).toEqual([]);
-    // No switch that adds steps any more.
+    // No switch that adds steps any more, and nothing to settle.
     expect(
       within(dialog()).queryByText("Show advanced settings"),
     ).not.toBeInTheDocument();
+    expect(moreFieldsSummary()).toBeNull();
     // The action is on the last step only: a plain Next here.
     expect(querySubmitButton()).not.toBeInTheDocument();
     expect(nextButton()).toHaveTextContent("Next");
@@ -1670,10 +1682,11 @@ describe("who owns the episodes a grouping rule opens", () => {
       }),
     );
 
-    // Folded, the header says the rule has two owners.
+    // Folded, the header says the rule has two owners - and nothing more.
     await waitFor(() => {
       expect(foldedChips()).toEqual(["Episode Owners: 2"]);
     });
+    expect(moreFieldsSummary()).toBeNull();
 
     await goToOnCallAndOwnership();
 
@@ -1704,11 +1717,19 @@ describe("who owns the episodes a grouping rule opens", () => {
 
     /*
      * Nothing a rule does is hidden from the person editing it: folded, the
-     * header names the old default assignee as a chip.
+     * header names the old default assignee as a chip, and says under its
+     * names where to settle it - the old form's last step, where Save
+     * Changes was, used to put the line in front of whoever saved.
      */
     await waitFor(() => {
       expect(foldedChips()).toEqual(["Default assignee"]);
     });
+    expect(moreFieldsSummary()).toBe(
+      "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.",
+    );
+    expect(moreFieldsHeader()).toHaveAccessibleDescription(
+      expect.stringContaining("Open this section to add them as owners"),
+    );
 
     await goToOnCallAndOwnership();
 
@@ -1827,6 +1848,11 @@ describe("who owns the episodes a grouping rule opens", () => {
       ).not.toBeInTheDocument();
     });
     expect(chipNamesIn(ownersPicker())).toEqual([]);
+
+    // Settled: folded again, no chip for it and no sentence about it.
+    await foldMoreFields();
+    expect(foldedChips()).toEqual([]);
+    expect(moreFieldsSummary()).toBeNull();
 
     await saveFromTheLastStep();
     await waitForSave();

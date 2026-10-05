@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} بررسی، {{failed}} ناموفق",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} پشت {{shown}} مورد از {{count}} بررسی اینجا بود.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} پشت {{shown}} مورد از {{count}} بررسی اینجا بود.",
-  "The project had reached its own daily AI limit.": "پروژه به سقف روزانه هوش مصنوعی خودش رسیده بود."
+  "The project had reached its own daily AI limit.": "پروژه به سقف روزانه هوش مصنوعی خودش رسیده بود.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "این قاعده هنوز یک تخصیص‌یافتهٔ پیش‌فرض دارد که توسط نسخهٔ قدیمی‌تر این فرم تنظیم شده است. این بخش را باز کنید تا آن‌ها را به‌عنوان مالک اضافه کنید یا آن را حذف کنید."
 }

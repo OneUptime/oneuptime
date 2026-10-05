@@ -34,6 +34,7 @@ import {
   GROUPING_RULE_TEMPLATES,
   GroupingRuleKind,
   GroupingRuleValues,
+  getGroupingRuleMoreFieldsSummary,
   getGroupingRuleSummarySelect,
   getGroupingRuleSummaryText,
 } from "../../../Utils/GroupingRule/GroupingRuleSetup";
@@ -178,11 +179,20 @@ const KIND: GroupingRuleKind = GroupingRuleKind.Incident;
  * episodes, reopening and resolving them, their titles and labels - folded
  * under More fields at the end of the Grouping step. Folded, its header names
  * what it holds and draws what a rule uses as chips ("On-Call Duty
- * Policies: 2"), on an edit form too. Built once: every field in it names
- * this one section, which is how the form folds them together.
+ * Policies: 2"), on an edit form too, with a sentence under them while the
+ * rule still has an old default assignee to settle. Built once: every field
+ * in it names this one section, which is how the form folds them together.
  */
 const MORE_FIELDS: FormFieldCollapsibleSection<IncidentGroupingRule> =
-  getAdvancedFormSection<IncidentGroupingRule>();
+  getAdvancedFormSection<IncidentGroupingRule>({
+    getSummary: (
+      values: FormValues<IncidentGroupingRule>,
+    ): Array<string> | undefined => {
+      return getGroupingRuleMoreFieldsSummary(
+        values as unknown as GroupingRuleValues,
+      );
+    },
+  });
 
 /*
  * Grouping rules, made simple to set up (see Utils/GroupingRule/

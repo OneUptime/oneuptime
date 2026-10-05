@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} undersøgelser, {{failed}} mislykkedes",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} stod bag {{shown}} af de {{count}} undersøgelser her.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} stod bag {{shown}} af {{count}} undersøgelse her.",
-  "The project had reached its own daily AI limit.": "Projektet havde nået sin egen daglige AI-grænse."
+  "The project had reached its own daily AI limit.": "Projektet havde nået sin egen daglige AI-grænse.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Denne regel har stadig en standardtildelt, angivet af en ældre version af denne formular. Åbn dette afsnit for at tilføje dem som ejere eller fjerne den."
 }

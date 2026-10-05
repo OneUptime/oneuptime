@@ -727,6 +727,23 @@ describe.each(PAGES)(
       expect(section.listFieldsWhileFolded).toBe(true);
       // The fields themselves decide what is set; no rule of its own.
       expect(section.isConfigured).toBeUndefined();
+      /*
+       * Folded, a sentence under the names says a rule still has the old
+       * default assignee to settle - and nothing for any other rule.
+       */
+      expect(section.getSummary?.({})).toBeUndefined();
+      expect(
+        section.getSummary?.(latestTable().createInitialValues),
+      ).toBeUndefined();
+      expect(section.getSummary?.({ defaultAssignToTeamId: "team" })).toEqual([
+        GROUPING_RULE_COPY.legacyAssigneeFoldedSummary,
+      ]);
+      expect(
+        section.getSummary?.({
+          defaultAssignToTeamId: null,
+          defaultAssignToUserId: null,
+        }),
+      ).toBeUndefined();
 
       expect(folded.map(formKey)).toEqual(
         pageCase.kind === GroupingRuleKind.Incident

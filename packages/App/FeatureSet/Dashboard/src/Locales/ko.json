@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: 조사 {{investigations}}건, 실패 {{failed}}건",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "이곳의 조사 {{count}}건 중 {{shown}}건이 {{name}}에서 비롯되었습니다.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "이곳의 조사 {{count}}건 중 {{shown}}건이 {{name}}에서 비롯되었습니다.",
-  "The project had reached its own daily AI limit.": "프로젝트 자체의 일일 AI 한도에 도달했습니다."
+  "The project had reached its own daily AI limit.": "프로젝트 자체의 일일 AI 한도에 도달했습니다.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "이 규칙에는 이 양식의 이전 버전에서 설정된 기본 담당자가 아직 남아 있습니다. 이 섹션을 열어 소유자로 추가하거나 제거하세요."
 }

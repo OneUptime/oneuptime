@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} investigaciones, {{failed}} fallidas",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} estuvo detrás de {{shown}} de las {{count}} investigaciones de aquí.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} estuvo detrás de {{shown}} de {{count}} investigación de aquí.",
-  "The project had reached its own daily AI limit.": "El proyecto había alcanzado su propio límite diario de IA."
+  "The project had reached its own daily AI limit.": "El proyecto había alcanzado su propio límite diario de IA.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Esta regla todavía tiene un asignado predeterminado establecido por una versión anterior de este formulario. Abre esta sección para añadirlos como propietarios o quitarlo."
 }

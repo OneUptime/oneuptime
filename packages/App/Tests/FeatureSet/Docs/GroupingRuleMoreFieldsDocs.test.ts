@@ -135,6 +135,10 @@ describe("the docs on the grouping rule form", () => {
       "Opening it adds no step: **Create Incident Grouping Rule** is on **Which Incidents**, the last step.",
     );
     expect(settings).toContain("so editing a rule never hides what it does");
+    // The old default assignee is called out on the folded header.
+    expect(settings).toContain(
+      "a **Default assignee** chip, and a sentence under it asking you to settle it",
+    );
     // No three steps to walk through any more.
     expect(settings).not.toContain("adds three steps");
     expect(settings).not.toContain("walks through them without asking");

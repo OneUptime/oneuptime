@@ -104,13 +104,13 @@ export const INACTIVITY_TIMEOUT_SETTING_FIELD_KEY: string =
   "inactivityTimeoutSetting";
 
 /*
- * Who owns the episodes a rule opens: the On-Call & Ownership step's Episode
- * Owners, one people picker kept in the rule's episodeOwnerUsers and
- * episodeOwnerTeams. The engines make each of them an owner of every episode
- * the rule opens - listed on the episode's Owners page and notified like any
- * owner (GroupingRuleEpisodeOwners, on the server).
+ * Who owns the episodes a rule opens: Episode Owners, under On-Call &
+ * Ownership in the rule's More fields - one people picker kept in the rule's
+ * episodeOwnerUsers and episodeOwnerTeams. The engines make each of them an
+ * owner of every episode the rule opens - listed on the episode's Owners page
+ * and notified like any owner (GroupingRuleEpisodeOwners, on the server).
  *
- * The step used to ask "Default Assign To Team" and "Default Assign To User"
+ * The form used to ask "Default Assign To Team" and "Default Assign To User"
  * instead: two dropdowns the engines copied into the episode's
  * assignedToTeam and assignedToUser, which nothing in OneUptime reads - no
  * page, notification or worker. A rule saved with them keeps them: the API
@@ -209,6 +209,7 @@ export const GROUPING_RULE_COPY: {
   legacyAssigneeAddAsOwners: string;
   legacyAssigneeRemove: string;
   legacyAssigneeLookupFailed: string;
+  legacyAssigneeFoldedSummary: string;
 } = {
   cardDescription: {
     [GroupingRuleKind.Incident]:
@@ -305,6 +306,9 @@ export const GROUPING_RULE_COPY: {
   legacyAssigneeRemove: "Remove",
   // In place of the names, when looking them up failed.
   legacyAssigneeLookupFailed: "Their names could not be loaded.",
+  // Under the folded More fields header, while the rule still has one.
+  legacyAssigneeFoldedSummary:
+    "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.",
 };
 
 export interface GroupingModeOption {
@@ -1283,18 +1287,37 @@ export const getMinutesSettingFoldedValue: (data: {
     return null;
   }
 
-  // Saved before the box had a ceiling: the engines use it as it is.
+  /*
+   * On, a stored value is already the minutes the engines use (a usable
+   * number, one saved before the box had a ceiling, or the fallback); typed
+   * text is read the way the box reads it.
+   */
   const minutes: number | null =
-    parseMinutes(display.minutes) ??
-    (typeof display.minutes === "number" &&
-    Number.isInteger(display.minutes) &&
-    display.minutes > 0
+    typeof display.minutes === "number"
       ? display.minutes
-      : null);
+      : parseMinutes(display.minutes);
 
   return minutes === null
     ? ""
     : formatGroupingDuration({ minutes, translate: data.translate });
+};
+
+/*
+ * What the rule's folded More fields says under the names it lists: that the
+ * rule still has the old default assignee, and where to settle it. The line
+ * that names them, with Add as owners and Remove, is inside the fold, which
+ * stays folded on an edit form - and the old form's last step, where Save
+ * Changes was, used to put that line in front of everyone who saved. Nothing
+ * while the rule has none.
+ */
+export const getGroupingRuleMoreFieldsSummary: (
+  values: GroupingRuleValues,
+) => Array<string> | undefined = (
+  values: GroupingRuleValues,
+): Array<string> | undefined => {
+  return getLegacyDefaultAssignee(values)
+    ? [GROUPING_RULE_COPY.legacyAssigneeFoldedSummary]
+    : undefined;
 };
 
 type ReadIdFunction = (value: unknown) => string | null;

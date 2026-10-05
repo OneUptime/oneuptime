@@ -279,8 +279,10 @@ export default interface Field<TEntity> {
    * while it holds nothing of the user's; otherwise what its chip on a
    * folded section's header says after its name, already in the reader's
    * language ("30 minutes"), or "" for the name alone. A folded section and
-   * a review step read it in place of the field's own value and default
-   * (isFormFieldValueSet, getFoldedFieldValue); isAtDefault is not asked.
+   * a review step read it in place of the field's own value and default:
+   * whether the field is set and what its chip says (isFormFieldValueSet,
+   * getFoldedFieldValue), and what its review row shows (FormSummary, which
+   * reads "" as Configured). isAtDefault is not asked.
    */
   getFoldedValue?: ((values: FormValues<TEntity>) => string | null) | undefined;
   /*

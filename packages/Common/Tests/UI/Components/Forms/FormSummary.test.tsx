@@ -653,9 +653,11 @@ describe("FormSummary: folded sections", () => {
   /*
    * A folded custom element that keeps its value elsewhere - a switch and
    * its minutes in two columns - says itself whether it is set
-   * (Field.getFoldedValue): its own value is a carrier, always there.
+   * (Field.getFoldedValue): its own value is a carrier, always there. As
+   * ModelForm hands it on: its column under `field`, its own key apart.
    */
   const REOPEN: Field<JSONObject> = {
+    field: { reopenWindowMinutes: true },
     overrideFieldKey: "reopenWindowSetting",
     title: "Reopen recently resolved episodes",
     fieldType: FormFieldSchemaType.CustomComponent,
@@ -853,6 +855,80 @@ describe("FormSummary: folded sections", () => {
       ).toBe(listed);
     },
   );
+
+  test("a folded custom setting is reviewed with what it says it is set to, not its carrier", () => {
+    renderSummary({
+      values: {
+        ...UNTOUCHED,
+        reopenWindowSetting: true,
+        enableReopenWindow: true,
+      },
+      fields: [TITLE, REOPEN],
+      steps: FOLDED_STEPS,
+    });
+
+    expect(
+      screen.getByText("Reopen recently resolved episodes"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("form-summary-folded-value")).toHaveTextContent(
+      "30 minutes",
+    );
+  });
+
+  test("set with nothing more to say, a folded custom setting reads Configured", () => {
+    renderSummary({
+      values: { ...UNTOUCHED, defaultAssignToUserId: "user" },
+      fields: [
+        TITLE,
+        {
+          ...REOPEN,
+          field: { defaultAssignToUserId: true },
+          overrideFieldKey: "legacyDefaultAssignee",
+          title: "Default assignee",
+          getFoldedValue: (values: FormValues<JSONObject>): string | null => {
+            return values["defaultAssignToUserId"] ? "" : null;
+          },
+        },
+      ],
+      steps: FOLDED_STEPS,
+    });
+
+    expect(screen.getByText("Default assignee")).toBeInTheDocument();
+    expect(screen.getByTestId("form-summary-folded-value")).toHaveTextContent(
+      "Configured",
+    );
+  });
+
+  test("a folded custom setting that says it is off is left out of the review", () => {
+    renderSummary({
+      values: {
+        ...UNTOUCHED,
+        reopenWindowSetting: true,
+        enableReopenWindow: false,
+      },
+      fields: [TITLE, REOPEN],
+      steps: FOLDED_STEPS,
+    });
+
+    expect(screen.queryByText("Reopen recently resolved episodes")).toBeNull();
+    expect(screen.queryByTestId("form-summary-folded-value")).toBeNull();
+  });
+
+  test("an open custom setting that says it holds nothing reviews as empty, never Configured", () => {
+    renderSummary({
+      values: { ...UNTOUCHED, reopenWindowSetting: true },
+      fields: [TITLE, { ...REOPEN, collapsibleSection: undefined }],
+      steps: FOLDED_STEPS,
+    });
+
+    // Not folded: listed whatever it holds, and it holds nothing to say.
+    expect(
+      screen.getByText("Reopen recently resolved episodes"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("form-summary-folded-value")).toHaveTextContent(
+      /^$/,
+    );
+  });
 });
 
 /*

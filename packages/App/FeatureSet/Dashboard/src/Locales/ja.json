@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: 調査 {{investigations}} 件、失敗 {{failed}} 件",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "ここでの調査 {{count}} 件のうち {{shown}} 件は {{name}} が発生元でした。",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "ここでの調査 {{count}} 件のうち {{shown}} 件は {{name}} が発生元でした。",
-  "The project had reached its own daily AI limit.": "プロジェクト独自の 1 日あたりの AI 上限に達していました。"
+  "The project had reached its own daily AI limit.": "プロジェクト独自の 1 日あたりの AI 上限に達していました。",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。"
 }

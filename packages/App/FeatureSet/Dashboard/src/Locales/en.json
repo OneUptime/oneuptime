@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} investigations, {{failed}} failed",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} was behind {{shown}} of the {{count}} investigations here.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} was behind {{shown}} of the {{count}} investigation here.",
-  "The project had reached its own daily AI limit.": "The project had reached its own daily AI limit."
+  "The project had reached its own daily AI limit.": "The project had reached its own daily AI limit.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it."
 }

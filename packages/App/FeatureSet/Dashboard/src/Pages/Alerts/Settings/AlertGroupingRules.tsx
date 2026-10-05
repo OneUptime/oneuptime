@@ -28,6 +28,7 @@ import {
   GROUPING_RULE_TEMPLATES,
   GroupingRuleKind,
   GroupingRuleValues,
+  getGroupingRuleMoreFieldsSummary,
   getGroupingRuleSummarySelect,
   getGroupingRuleSummaryText,
 } from "../../../Utils/GroupingRule/GroupingRuleSetup";
@@ -171,10 +172,20 @@ const KIND: GroupingRuleKind = GroupingRuleKind.Alert;
  * Everything a rule can do beyond grouping - paging on-call and owning its
  * episodes, reopening and resolving them, their titles and labels - folded
  * under More fields at the end of the Grouping step, as on the incident
- * rules. Built once: every field in it names this one section.
+ * rules - with a sentence under its names while the rule still has an old
+ * default assignee to settle. Built once: every field in it names this one
+ * section.
  */
 const MORE_FIELDS: FormFieldCollapsibleSection<AlertGroupingRule> =
-  getAdvancedFormSection<AlertGroupingRule>();
+  getAdvancedFormSection<AlertGroupingRule>({
+    getSummary: (
+      values: FormValues<AlertGroupingRule>,
+    ): Array<string> | undefined => {
+      return getGroupingRuleMoreFieldsSummary(
+        values as unknown as GroupingRuleValues,
+      );
+    },
+  });
 
 /*
  * The alert twin of Incidents > Settings > Grouping Rules, kept to the same

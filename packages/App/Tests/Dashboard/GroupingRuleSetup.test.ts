@@ -37,6 +37,7 @@ import {
   getGroupingRuleUiStrings,
   getLegacyDefaultAssignee,
   getMinutesSettingDisplay,
+  getGroupingRuleMoreFieldsSummary,
   getMinutesSettingFoldedValue,
   getMinutesSettingValues,
   getMinutesValidationError,
@@ -1430,6 +1431,78 @@ describe("getMinutesSettingFoldedValue", () => {
         }
       }
     }
+  });
+});
+
+/*
+ * The sentence under the folded More fields header while a rule still has
+ * the old default assignee. The line that settles it is inside the fold,
+ * which stays folded on an edit form, so the header says it is there.
+ */
+describe("getGroupingRuleMoreFieldsSummary", () => {
+  const USER: string = "0000000e-0000-4000-8000-000000000001";
+  const TEAM: string = "0000000b-0000-4000-8000-000000000001";
+
+  test.each([
+    ["a user", { defaultAssignToUserId: USER }],
+    ["a team, as an ObjectID", { defaultAssignToTeamId: new ObjectID(TEAM) }],
+    ["both", { defaultAssignToUserId: USER, defaultAssignToTeamId: TEAM }],
+    ["a related row the API returned", { defaultAssignToUser: { _id: USER } }],
+  ])(
+    "says the rule still has one when it names %s",
+    (_label: string, values: GroupingRuleValues) => {
+      expect(getGroupingRuleMoreFieldsSummary(values)).toEqual([
+        GROUPING_RULE_COPY.legacyAssigneeFoldedSummary,
+      ]);
+    },
+  );
+
+  test.each([
+    ["a blank rule", {}],
+    [
+      "a settled one",
+      { defaultAssignToUserId: null, defaultAssignToTeamId: null },
+    ],
+    ["owners only", { episodeOwnerUsers: [USER], episodeOwnerTeams: [TEAM] }],
+    [
+      "every other setting",
+      {
+        enableReopenWindow: true,
+        reopenWindowMinutes: 30,
+        onCallDutyPolicies: ["policy"],
+        description: "Production payments",
+      },
+    ],
+  ])("says nothing for %s", (_label: string, values: GroupingRuleValues) => {
+    expect(getGroupingRuleMoreFieldsSummary(values)).toBeUndefined();
+  });
+
+  test("says nothing for a new rule of either kind, or a template's", () => {
+    for (const kind of KINDS) {
+      expect(
+        getGroupingRuleMoreFieldsSummary(
+          getNewGroupingRuleValues({ kind, translate: english }),
+        ),
+      ).toBeUndefined();
+
+      for (const template of GROUPING_RULE_TEMPLATES) {
+        expect(
+          getGroupingRuleMoreFieldsSummary(
+            getTemplateRuleValues({ template, kind, translate: english }),
+          ),
+        ).toBeUndefined();
+      }
+    }
+  });
+
+  test("is one whole sentence pair that says where to settle it, in the copy every locale translates", () => {
+    const sentence: string = GROUPING_RULE_COPY.legacyAssigneeFoldedSummary;
+
+    expect(sentence).toContain("default assignee");
+    expect(sentence).toContain("older version of this form");
+    expect(sentence).toContain("Open this section");
+    expect(sentence).toContain("add them as owners or remove it");
+    expect(getGroupingRuleUiStrings()).toContain(sentence);
   });
 });
 

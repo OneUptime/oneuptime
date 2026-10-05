@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: {{investigations}} utredningar, {{failed}} misslyckades",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "{{name}} låg bakom {{shown}} av de {{count}} utredningarna här.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "{{name}} låg bakom {{shown}} av {{count}} utredning här.",
-  "The project had reached its own daily AI limit.": "Projektet hade nått sin egen dagliga AI-gräns."
+  "The project had reached its own daily AI limit.": "Projektet hade nått sin egen dagliga AI-gräns.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Den här regeln har fortfarande en standardansvarig som angavs av en äldre version av det här formuläret. Öppna det här avsnittet för att lägga till dem som ägare eller ta bort den."
 }

@@ -25316,5 +25316,6 @@
   "{{date}}: {{investigations}} investigations, {{failed}} failed": "{{date}}: расследований — {{investigations}}, неудачных — {{failed}}",
   "{{name}} was behind {{shown}} of the {{count}} investigations here.": "Монитор «{{name}}» вызвал расследований здесь: {{shown}} из {{count}}.",
   "{{name}} was behind {{shown}} of the {{count}} investigations here._one": "Монитор «{{name}}» вызвал {{shown}} из {{count}} расследования здесь.",
-  "The project had reached its own daily AI limit.": "Проект достиг собственного дневного лимита ИИ."
+  "The project had reached its own daily AI limit.": "Проект достиг собственного дневного лимита ИИ.",
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "У этого правила всё ещё есть ответственный по умолчанию, заданный в прежней версии этой формы. Откройте этот раздел, чтобы добавить их владельцами или удалить его."
 }
