@@ -2,7 +2,6 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import yaml from "js-yaml";
 
 /*
  * The docs say AI investigations are on by default wherever an AI agent is
@@ -41,6 +40,21 @@ const DASHBOARD_DIR: string = path.join(
 
 const ON_FLAG: string = "--set aiAgent.enabled=true";
 const OFF_FLAG: string = "--set aiAgent.enabled=false";
+
+/*
+ * js-yaml from Common/node_modules, as OpenTelemetryCollectorExampleDocs
+ * .test.ts loads it and for the same reason: Common declares js-yaml 4, App
+ * declares no YAML parser.
+ */
+interface JsYamlModule {
+  load: (text: string) => unknown;
+}
+
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+const yaml: JsYamlModule = require(
+  path.join(REPO_ROOT, "packages", "Common", "node_modules", "js-yaml"),
+);
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 function read(relativeToContent: string): string {
   return fs.readFileSync(path.join(CONTENT_DIR, relativeToContent), "utf8");
