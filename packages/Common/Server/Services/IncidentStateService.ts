@@ -182,5 +182,58 @@ export class Service extends DatabaseService<IncidentState> {
 
     return ackIncidentState;
   }
+
+  /*
+   * The project's created state: where a new incident episode starts when
+   * its create names no state (IncidentEpisodeService), as every one a
+   * grouping rule opens does.
+   */
+  @CaptureSpan()
+  public async getCreatedIncidentStateId(
+    projectId: ObjectID,
+  ): Promise<ObjectID> {
+    const createdIncidentState: IncidentState | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!createdIncidentState || !createdIncidentState.id) {
+      throw new BadDataException(
+        "Created incident state not found for this project. Please add created incident state from settings.",
+      );
+    }
+
+    return createdIncidentState.id;
+  }
+
+  // Whether one of the project's incident states is its resolved state.
+  @CaptureSpan()
+  public async isResolvedIncidentState(data: {
+    projectId: ObjectID;
+    incidentStateId: ObjectID;
+  }): Promise<boolean> {
+    const incidentState: IncidentState | null = await this.findOneBy({
+      query: {
+        _id: data.incidentStateId.toString(),
+        projectId: data.projectId,
+      },
+      select: {
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(incidentState?.isResolvedState);
+  }
 }
 export default new Service();

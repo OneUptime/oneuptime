@@ -871,7 +871,8 @@ export class Service extends ProjectReferencesService<Model> {
     RelationIdUtil.stamp(
       createData,
       ALERT_STATE_KEYS,
-      pickedAlertStateId || (await this.getCreatedAlertStateId(projectId)),
+      pickedAlertStateId ||
+        (await AlertStateService.getCreatedAlertStateId(projectId)),
     );
 
     /*
@@ -916,33 +917,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
-  }
-
-  /*
-   * The project's created state: where an alert starts when the write picks
-   * none, as every alert OneUptime raises itself does.
-   */
-  private async getCreatedAlertStateId(projectId: ObjectID): Promise<ObjectID> {
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alertState || !alertState.id) {
-      throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
-      );
-    }
-
-    return alertState.id;
   }
 
   @CaptureSpan()

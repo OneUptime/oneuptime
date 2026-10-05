@@ -134,6 +134,53 @@ describe("the declare page on alerts and episodes", () => {
   });
 });
 
+describe("the Persian declare page on alerts and episodes", () => {
+  const declaring: string = read("fa", "incidents/declaring-incidents");
+
+  test("says the same, with the form's field names as on screen", () => {
+    expect(declaring).toContain(
+      "**هشدارها و اپیزودها هم در وضعیتی که برمی‌گزینید آغاز می‌شوند.**",
+    );
+
+    for (const name of [
+      "**Create Alert**",
+      "**Create Episode**",
+      "**Initial State**",
+      "**More fields**",
+      "`currentAlertStateId`",
+      "`currentIncidentStateId`",
+    ]) {
+      expect(declaring).toContain(name);
+    }
+  });
+
+  test("links to the Persian API reference section, which exists under that anchor", () => {
+    const link: RegExpMatchArray | null = declaring.match(
+      /\]\(\/docs\/api-reference\/api-reference#([^)]+)\)/,
+    );
+
+    expect(link).not.toBeNull();
+    expect(link![1]).toBe(slugify(FA_HEADING.replace(/^#+\s*/, "")));
+  });
+});
+
+describe("the upgrade notes on the state a create names", () => {
+  test("tell API and Terraform users the state they send on create is now kept", () => {
+    const text: string = section(
+      read("en", "installation/upgrading"),
+      "### Other changes in 14",
+    );
+
+    expect(text).toContain(
+      "**A new alert or episode starts in the state its create names.**",
+    );
+    expect(text).toContain("`current_alert_state_id`");
+    expect(text).toContain(
+      "(/docs/api-reference/api-reference#the-state-a-new-record-starts-in)",
+    );
+  });
+});
+
 describe("the subscribers page on an incident episode's first state", () => {
   test("says the created notification announces it, once", () => {
     const text: string = section(
@@ -143,7 +190,7 @@ describe("the subscribers page on an incident episode's first state", () => {
 
     expect(text).toContain("An episode created in a later state");
     expect(text).toContain(
-      "its first state is never sent again as a state change",
+      "its first state is never sent on its own as a state change",
     );
   });
 });

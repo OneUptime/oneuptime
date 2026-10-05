@@ -76,6 +76,13 @@ const GROUPING_RULE_KEYS: Array<string> = [
   "incidentGroupingRule",
 ];
 
+/*
+ * Why an episode's first timeline row sends status page subscribers
+ * nothing: the episode's created notification is the one message about it.
+ */
+export const EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE: string =
+  "The episode's first state is part of its created notification, so it is not sent to subscribers on its own.";
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -255,24 +262,28 @@ export class Service extends ProjectReferencesService<Model> {
       createData,
       INCIDENT_STATE_KEYS,
       pickedIncidentStateId ||
-        (await this.getCreatedIncidentStateId(projectId)),
+        (await IncidentStateService.getCreatedIncidentStateId(projectId)),
     );
 
     /*
-     * An episode recorded as already resolved is resolved from the moment it
-     * exists. Grouping, auto-resolve and the unresolved episode lists read
-     * resolvedAt, which the first timeline row would otherwise set only once
-     * onCreateSuccess reaches it, after the workspace channels.
+     * resolvedAt follows the state the episode starts in. One recorded as
+     * already resolved is resolved from the moment it exists: grouping,
+     * auto-resolve and the unresolved episode lists read resolvedAt, which
+     * the first timeline row would otherwise set only once onCreateSuccess
+     * reaches it, after the workspace channels - and sets again then, to the
+     * moment that row records. Any other episode has none yet, whatever the
+     * write sent: the first timeline row would clear it anyway.
      */
     if (
       pickedIncidentStateId &&
-      !createBy.data.resolvedAt &&
-      (await this.isResolvedIncidentState({
+      (await IncidentStateService.isResolvedIncidentState({
         projectId: projectId,
         incidentStateId: pickedIncidentStateId,
       }))
     ) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createData["resolvedAt"];
     }
 
     // Auto-generate episode number
@@ -327,58 +338,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
-  }
-
-  /*
-   * The project's created state: where an episode starts when the write
-   * picks none, as every episode a grouping rule opens does.
-   */
-  private async getCreatedIncidentStateId(
-    projectId: ObjectID,
-  ): Promise<ObjectID> {
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
-      );
-    }
-
-    return incidentState.id;
-  }
-
-  // Whether one of the project's incident states is its resolved state.
-  private async isResolvedIncidentState(data: {
-    projectId: ObjectID;
-    incidentStateId: ObjectID;
-  }): Promise<boolean> {
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          _id: data.incidentStateId.toString(),
-          projectId: data.projectId,
-        },
-        select: {
-          isResolvedState: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    return Boolean(incidentState?.isResolvedState);
   }
 
   @CaptureSpan()
@@ -437,26 +396,14 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         try {
-          /*
-           * The episode's first state is part of its created notification,
-           * as an incident's is (IncidentService
-           * .handleIncidentStateChangeAsync): marked as told when the
-           * subscribers are told the episode was created, and as not to be
-           * told when they are not - never a second message, whichever state
-           * the episode starts in.
-           */
-          const notifiesSubscribersOnCreate: boolean =
-            createdItem.shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated !==
-            false;
-
           await this.changeEpisodeState({
             projectId: createdItem.projectId!,
             episodeId: createdItem.id!,
             incidentStateId: createdItem.currentIncidentStateId!,
             notifyOwners: false,
             rootCause: undefined,
-            shouldNotifyStatusPageSubscribers: notifiesSubscribersOnCreate,
-            isSubscribersNotified: notifiesSubscribersOnCreate,
+            // Told with the episode's created notification, if at all.
+            isFirstState: true,
             props: {
               isRoot: true,
             },
@@ -761,14 +708,14 @@ export class Service extends ProjectReferencesService<Model> {
     props: DatabaseCommonInteractionProps;
     cascadeToIncidents?: boolean;
     /*
-     * Whether status page subscribers are to hear about this change, and
-     * whether they already have, as IncidentService.changeIncidentState
-     * takes them: set for the episode's first state, which its created
-     * notification tells. Left out, the row takes the columns' defaults:
-     * queued for subscribers.
+     * The episode's first state, written when it is created. It is part of
+     * the episode's created notification - which tells subscribers about the
+     * episode, or skips it - and is never sent to them on its own, whichever
+     * state the episode starts in: the row is written as Skipped, saying
+     * why, instead of being queued. Left out, the row is queued for
+     * subscribers like any state change.
      */
-    shouldNotifyStatusPageSubscribers?: boolean | undefined;
-    isSubscribersNotified?: boolean | undefined;
+    isFirstState?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -778,8 +725,7 @@ export class Service extends ProjectReferencesService<Model> {
       rootCause,
       props,
       cascadeToIncidents,
-      shouldNotifyStatusPageSubscribers,
-      isSubscribersNotified,
+      isFirstState,
     } = data;
 
     // Get last episode state timeline
@@ -818,15 +764,12 @@ export class Service extends ProjectReferencesService<Model> {
     stateTimeline.projectId = projectId;
     stateTimeline.isOwnerNotified = !notifyOwners;
 
-    if (shouldNotifyStatusPageSubscribers !== undefined) {
-      stateTimeline.shouldStatusPageSubscribersBeNotified =
-        shouldNotifyStatusPageSubscribers;
-    }
-
-    if (isSubscribersNotified !== undefined) {
-      stateTimeline.subscriberNotificationStatus = isSubscribersNotified
-        ? StatusPageSubscriberNotificationStatus.Success
-        : StatusPageSubscriberNotificationStatus.Pending;
+    if (isFirstState) {
+      stateTimeline.shouldStatusPageSubscribersBeNotified = false;
+      stateTimeline.subscriberNotificationStatus =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      stateTimeline.subscriberNotificationStatusMessage =
+        EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE;
     }
 
     if (rootCause) {

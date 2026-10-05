@@ -19,7 +19,9 @@ import IncidentEpisodeLabelRuleEngineService from "../../../Server/Services/Inci
 import IncidentEpisodeOnCallRuleEngineService from "../../../Server/Services/IncidentEpisodeOnCallRuleEngineService";
 import IncidentEpisodeOwnerRuleEngineService from "../../../Server/Services/IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "../../../Server/Services/IncidentEpisodePrivacyRuleEngineService";
-import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
+import IncidentEpisodeService, {
+  EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE,
+} from "../../../Server/Services/IncidentEpisodeService";
 import IncidentEpisodeStateTimelineService from "../../../Server/Services/IncidentEpisodeStateTimelineService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -76,8 +78,8 @@ jest.mock("../../../Server/Utils/Logger");
  *     unresolved lists read;
  *   - its first timeline row is that state, with no owner notification of
  *     its own (the "created" notification names the state), and an incident
- *     episode's first row never sends subscribers a second message: they are
- *     told when the episode is created, as for an incident.
+ *     episode's first row never sends subscribers a message of its own: they
+ *     hear about the episode through its created notification, if at all.
  *
  * The services' own hooks run; which records the project has is a stand-in
  * (stubProjectDirectory), and so is every service the hooks call out to.
@@ -622,6 +624,34 @@ describe.each(
     expect(stateLookups).toHaveLength(1);
     expect(createdStateLookups()).toBe(1);
   });
+
+  test("a resolvedAt the write sent is not kept: resolvedAt follows the state the episode starts in", async () => {
+    const yesterday: Date = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    // Starting before resolved, or in the created state: none.
+    for (const values of [
+      { [kind.relation]: { _id: ACKNOWLEDGED_STATE } },
+      {},
+    ]) {
+      const data: Record<string, unknown> = await create(kind, {
+        ...values,
+        resolvedAt: yesterday,
+      });
+
+      expect(data["resolvedAt"]).toBeUndefined();
+    }
+
+    // Starting resolved: the moment it was created, not the one sent.
+    const before: number = Date.now();
+    const resolved: Record<string, unknown> = await create(kind, {
+      [kind.relation]: { _id: RESOLVED_STATE },
+      resolvedAt: yesterday,
+    });
+
+    expect((resolved["resolvedAt"] as Date).getTime()).toBeGreaterThanOrEqual(
+      before - 1000,
+    );
+  });
 });
 
 /*
@@ -821,49 +851,49 @@ describe("the first timeline row is the state the record starts in", () => {
       expect(row["isOwnerNotified"]).toBe(true);
     });
 
+    /*
+     * Its created notification is the one message about the episode: the
+     * first state is never queued for subscribers on its own, whichever
+     * state it is and whether or not the episode tells subscribers it was
+     * created. The row says so as it is written, instead of waiting for the
+     * job - which used to skip a first row only in the created state, and
+     * would have sent an episode created as Acknowledged twice.
+     */
     test.each([
-      ["an acknowledged", ACKNOWLEDGED_STATE],
-      ["a resolved", RESOLVED_STATE],
-      ["the created", CREATED_STATE],
-    ])(
-      "subscribers told the episode was created are not sent its first state again: %s state",
-      async (_name: string, state: string) => {
+      ["an acknowledged state, subscribers told", ACKNOWLEDGED_STATE, true],
+      ["a resolved state, subscribers told", RESOLVED_STATE, true],
+      ["the created state, subscribers told", CREATED_STATE, true],
+      [
+        "an acknowledged state, subscribers not told",
+        ACKNOWLEDGED_STATE,
+        false,
+      ],
+      ["the created state, subscribers not told", CREATED_STATE, false],
+      [
+        "an acknowledged state, the column's default",
+        ACKNOWLEDGED_STATE,
+        undefined,
+      ],
+    ] as Array<[string, string, boolean | undefined]>)(
+      "the first state is never sent to subscribers on its own: %s",
+      async (
+        _name: string,
+        state: string,
+        notifiesOnCreate: boolean | undefined,
+      ) => {
         const row: Record<string, unknown> = await firstRowOf(
-          episodeIn(state, true),
+          episodeIn(state, notifiesOnCreate),
         );
 
-        expect(row["shouldStatusPageSubscribersBeNotified"]).toBe(true);
+        expect(row["shouldStatusPageSubscribersBeNotified"]).toBe(false);
         expect(row["subscriberNotificationStatus"]).toBe(
-          StatusPageSubscriberNotificationStatus.Success,
+          StatusPageSubscriberNotificationStatus.Skipped,
+        );
+        expect(row["subscriberNotificationStatusMessage"]).toBe(
+          EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE,
         );
       },
     );
-
-    test("an episode created without telling subscribers does not tell them its first state either", async () => {
-      const row: Record<string, unknown> = await firstRowOf(
-        episodeIn(ACKNOWLEDGED_STATE, false),
-      );
-
-      expect(row["shouldStatusPageSubscribersBeNotified"]).toBe(false);
-      /*
-       * Left Pending for the job, which marks a row nobody is to be told
-       * about as Skipped.
-       */
-      expect(row["subscriberNotificationStatus"]).toBe(
-        StatusPageSubscriberNotificationStatus.Pending,
-      );
-    });
-
-    test("an episode that does not say (the column's default) counts as telling subscribers", async () => {
-      const row: Record<string, unknown> = await firstRowOf(
-        episodeIn(ACKNOWLEDGED_STATE, undefined),
-      );
-
-      expect(row["shouldStatusPageSubscribersBeNotified"]).toBe(true);
-      expect(row["subscriberNotificationStatus"]).toBe(
-        StatusPageSubscriberNotificationStatus.Success,
-      );
-    });
   });
 
   test("a later state change of an incident episode is unaffected: its row is queued for subscribers as before", async () => {
@@ -886,4 +916,166 @@ describe("the first timeline row is the state the record starts in", () => {
     expect(rows[0]!["shouldStatusPageSubscribersBeNotified"]).toBeUndefined();
     expect(rows[0]!["subscriberNotificationStatus"]).toBeUndefined();
   });
+});
+
+/*
+ * The lookups the create hooks share, on the state services: the project's
+ * created state, and whether a state is its resolved state. Each is pinned
+ * to the project and reads only what it needs.
+ */
+describe("the state services' starting-state lookups", () => {
+  interface Lookup {
+    name: string;
+    stateService: unknown;
+    getCreatedStateId: (projectId: ObjectID) => Promise<ObjectID>;
+    isResolvedState: (
+      projectId: ObjectID,
+      stateId: ObjectID,
+    ) => Promise<boolean>;
+    stateModel: new () => StateModel;
+    noCreatedState: string;
+  }
+
+  const LOOKUPS: Array<Lookup> = [
+    {
+      name: "alert states",
+      stateService: AlertStateService,
+      getCreatedStateId: (projectId: ObjectID): Promise<ObjectID> => {
+        return AlertStateService.getCreatedAlertStateId(projectId);
+      },
+      isResolvedState: (
+        projectId: ObjectID,
+        stateId: ObjectID,
+      ): Promise<boolean> => {
+        return AlertStateService.isResolvedAlertState({
+          projectId: projectId,
+          alertStateId: stateId,
+        });
+      },
+      stateModel: AlertState,
+      noCreatedState:
+        "Created alert state not found for this project. Please add created alert state from settings.",
+    },
+    {
+      name: "incident states",
+      stateService: IncidentStateService,
+      getCreatedStateId: (projectId: ObjectID): Promise<ObjectID> => {
+        return IncidentStateService.getCreatedIncidentStateId(projectId);
+      },
+      isResolvedState: (
+        projectId: ObjectID,
+        stateId: ObjectID,
+      ): Promise<boolean> => {
+        return IncidentStateService.isResolvedIncidentState({
+          projectId: projectId,
+          incidentStateId: stateId,
+        });
+      },
+      stateModel: IncidentState,
+      noCreatedState:
+        "Created incident state not found for this project. Please add created incident state from settings.",
+    },
+  ];
+
+  // Each read the lookup made: its query and what it selected.
+  function stubReads(
+    lookup: Lookup,
+    answer: StateModel | null,
+  ): Array<{
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+  }> {
+    const reads: Array<{
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    }> = [];
+
+    jest
+      .spyOn(
+        lookup.stateService as {
+          findOneBy: (...args: Array<unknown>) => Promise<unknown>;
+        },
+        "findOneBy",
+      )
+      .mockImplementation((async (findBy: {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+      }): Promise<StateModel | null> => {
+        reads.push({ query: findBy.query, select: findBy.select });
+        return answer;
+      }) as never);
+
+    return reads;
+  }
+
+  function state(lookup: Lookup, id: string, isResolved: boolean): StateModel {
+    const row: StateModel = new lookup.stateModel();
+    row._id = id;
+    row.isResolvedState = isResolved;
+    return row;
+  }
+
+  test.each(LOOKUPS)(
+    "$name: the created state is read pinned to the project, its id only",
+    async (lookup: Lookup) => {
+      const reads: Array<{
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+      }> = stubReads(lookup, state(lookup, CREATED_STATE, false));
+
+      expect(idOf(await lookup.getCreatedStateId(PROJECT_ID))).toBe(
+        CREATED_STATE,
+      );
+      expect(reads).toHaveLength(1);
+      expect(reads[0]!.query["isCreatedState"]).toBe(true);
+      expect(idOf(reads[0]!.query["projectId"])).toBe(idOf(PROJECT_ID));
+      expect(reads[0]!.select).toEqual({ _id: true });
+    },
+  );
+
+  test.each(LOOKUPS)(
+    "$name: a project without a created state is told to add one",
+    async (lookup: Lookup) => {
+      stubReads(lookup, null);
+
+      await expect(lookup.getCreatedStateId(PROJECT_ID)).rejects.toThrow(
+        lookup.noCreatedState,
+      );
+    },
+  );
+
+  test.each(LOOKUPS)(
+    "$name: whether a state is resolved is read pinned to the project",
+    async (lookup: Lookup) => {
+      const reads: Array<{
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+      }> = stubReads(lookup, state(lookup, RESOLVED_STATE, true));
+
+      expect(
+        await lookup.isResolvedState(PROJECT_ID, new ObjectID(RESOLVED_STATE)),
+      ).toBe(true);
+      expect(idOf(reads[0]!.query["_id"])).toBe(RESOLVED_STATE);
+      expect(idOf(reads[0]!.query["projectId"])).toBe(idOf(PROJECT_ID));
+      expect(reads[0]!.select).toEqual({ isResolvedState: true });
+    },
+  );
+
+  test.each(LOOKUPS)(
+    "$name: a state that is not resolved, or not the project's, is not resolved",
+    async (lookup: Lookup) => {
+      stubReads(lookup, state(lookup, ACKNOWLEDGED_STATE, false));
+      expect(
+        await lookup.isResolvedState(
+          PROJECT_ID,
+          new ObjectID(ACKNOWLEDGED_STATE),
+        ),
+      ).toBe(false);
+
+      stubReads(lookup, null);
+      expect(
+        await lookup.isResolvedState(PROJECT_ID, new ObjectID(FOREIGN_STATE)),
+      ).toBe(false);
+    },
+  );
 });

@@ -232,24 +232,29 @@ export class Service extends ProjectReferencesService<Model> {
     RelationIdUtil.stamp(
       createData,
       ALERT_STATE_KEYS,
-      pickedAlertStateId || (await this.getCreatedAlertStateId(projectId)),
+      pickedAlertStateId ||
+        (await AlertStateService.getCreatedAlertStateId(projectId)),
     );
 
     /*
-     * An episode recorded as already resolved is resolved from the moment it
-     * exists. Grouping, auto-resolve and the unresolved episode lists read
-     * resolvedAt, which the first timeline row would otherwise set only once
-     * onCreateSuccess reaches it, after the workspace channels.
+     * resolvedAt follows the state the episode starts in. One recorded as
+     * already resolved is resolved from the moment it exists: grouping,
+     * auto-resolve and the unresolved episode lists read resolvedAt, which
+     * the first timeline row would otherwise set only once onCreateSuccess
+     * reaches it, after the workspace channels - and sets again then, to the
+     * moment that row records. Any other episode has none yet, whatever the
+     * write sent: the first timeline row would clear it anyway.
      */
     if (
       pickedAlertStateId &&
-      !createBy.data.resolvedAt &&
-      (await this.isResolvedAlertState({
+      (await AlertStateService.isResolvedAlertState({
         projectId: projectId,
         alertStateId: pickedAlertStateId,
       }))
     ) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createData["resolvedAt"];
     }
 
     // Auto-generate episode number
@@ -270,54 +275,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
-  }
-
-  /*
-   * The project's created state: where an episode starts when the write
-   * picks none, as every episode a grouping rule opens does.
-   */
-  private async getCreatedAlertStateId(projectId: ObjectID): Promise<ObjectID> {
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alertState || !alertState.id) {
-      throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
-      );
-    }
-
-    return alertState.id;
-  }
-
-  // Whether one of the project's alert states is its resolved state.
-  private async isResolvedAlertState(data: {
-    projectId: ObjectID;
-    alertStateId: ObjectID;
-  }): Promise<boolean> {
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        _id: data.alertStateId.toString(),
-        projectId: data.projectId,
-      },
-      select: {
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Boolean(alertState?.isResolvedState);
   }
 
   @CaptureSpan()

@@ -180,7 +180,7 @@ On an episode created with it set to `false`, new public notes start with **Noti
 
 This covers public notes only. The episode's state changes (**Acknowledge**, **Resolve** and auto-resolve) still notify subscribers, because neither the episode's state change modal nor the form on its **State Timeline** page has a **Notify Status Page Subscribers** checkbox.
 
-An episode created in a later state — with **Initial State** on the **Create Episode** form, or a state sent through the API — is announced once, by its created notification, as an incident is: its first state is never sent again as a state change, and an episode created with `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated` set to `false` does not send it at all.
+An episode created in a later state — with **Initial State** on the **Create Episode** form, or a state sent through the API — is announced once, by its created notification: its first state is never sent on its own as a state change, whichever state it is, and an episode created with `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated` set to `false` does not announce it at all. The first row of its state timeline records that notification as skipped, with the reason.
 
 ### Telling subscribers about an edit
 
