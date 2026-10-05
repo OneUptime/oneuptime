@@ -2438,14 +2438,14 @@ describe("automatic investigation footer", () => {
       "Turn on automatic investigation?",
     );
     expect(confirm).toHaveTextContent(
-      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → Settings → AI.",
+      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
     );
     expect(
       within(confirm)
         .getByText("Open settings")
         .closest("a")
         ?.getAttribute("href"),
-    ).toBe(`/dashboard/${PROJECT_ID}/incidents/settings/ai`);
+    ).toBe(`/dashboard/${PROJECT_ID}/incidents/ai/settings`);
     expect(updateByIdSpy).not.toHaveBeenCalled();
 
     fireEvent.click(within(confirm).getByText("Turn on"));

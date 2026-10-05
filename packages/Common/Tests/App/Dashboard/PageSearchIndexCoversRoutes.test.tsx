@@ -19,6 +19,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import {
+  MOVED_AI_SECTION_PATHS,
   MOVED_INCIDENT_FORM_PATHS,
   MOVED_RUNNER_SETTINGS_PATHS,
 } from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
@@ -252,6 +253,9 @@ describe("every page that needs no record is offered by Search, or says why not"
       }),
       ...Object.keys(MOVED_ON_CALL_RULES_PATHS).map((part: string) => {
         return `/user-settings/${part}`;
+      }),
+      ...Object.values(MOVED_AI_SECTION_PATHS).flatMap((part: string) => {
+        return [`/incidents/${part}`, `/alerts/${part}`];
       }),
     ];
 

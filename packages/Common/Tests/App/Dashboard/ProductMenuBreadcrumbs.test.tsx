@@ -19,13 +19,14 @@ import { ReactElement } from "react";
  * header still reads "Incidents / Settings / SLA Rules", and only a user
  * notices.
  *
- * The latest move took the AI section out of the menu: the AI settings page
- * is now Settings → AI, and auto-remediation rules are a Rules page.
+ * The latest move gave Incidents and Alerts an AI section again, holding
+ * the AI settings page (as "Settings") and the auto-remediation rules, which
+ * left Settings and Rules for it.
  *
  * So rather than pinning the trails on their own, this derives the sections
  * from each rendered menu and requires the trails to agree. Adding a page to
- * Rules (or moving the AI page) without a matching breadcrumb fails here, for
- * whichever of the three products it was added to.
+ * Rules or AI without a matching breadcrumb fails here, for whichever of the
+ * three products it was added to.
  *
  * Settings is checked more loosely — only that the trail still says
  * "Settings". Those trails predate this change and word some leaf titles
@@ -78,8 +79,8 @@ interface Product {
   menu: ReactElement;
   getBreadcrumbs: BreadcrumbGetter;
   landingRoute: string;
-  // The product's AI settings page, filed under Settings as "AI".
-  aiSettingsPage: string | null;
+  // The pages of the product's AI section, with their menu titles, in order.
+  aiPages: Array<[string, string]>;
   rulePages: Array<[string, string]>;
 }
 
@@ -90,16 +91,18 @@ const PRODUCTS: Array<Product> = [
     menu: <AlertsSideMenu />,
     getBreadcrumbs: getAlertsBreadcrumbs,
     landingRoute: PageMap.ALERTS,
-    aiSettingsPage: PageMap.ALERTS_SETTINGS_AI,
+    aiPages: [
+      [PageMap.ALERTS_SETTINGS_AI, "Settings"],
+      [
+        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+        "Auto Remediation Rules",
+      ],
+    ],
     rulePages: [
       [PageMap.ALERTS_SETTINGS_GROUPING_RULES, "Grouping Rules"],
       [PageMap.ALERTS_SETTINGS_ON_CALL_RULES, "On-Call Rules"],
       [PageMap.ALERTS_SETTINGS_OWNER_RULES, "Owner Rules"],
       [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES, "Runbook Rules"],
-      [
-        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-        "Auto Remediation Rules",
-      ],
       [PageMap.ALERTS_SETTINGS_PRIVACY_RULES, "Privacy Rules"],
       [PageMap.ALERTS_SETTINGS_LABEL_RULES, "Label Rules"],
       [PageMap.ALERTS_SETTINGS_REMINDER_RULES, "Reminder Rules"],
@@ -111,16 +114,18 @@ const PRODUCTS: Array<Product> = [
     menu: <IncidentsSideMenu />,
     getBreadcrumbs: getIncidentsBreadcrumbs,
     landingRoute: PageMap.INCIDENTS,
-    aiSettingsPage: PageMap.INCIDENTS_SETTINGS_AI,
+    aiPages: [
+      [PageMap.INCIDENTS_SETTINGS_AI, "Settings"],
+      [
+        PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+        "Auto Remediation Rules",
+      ],
+    ],
     rulePages: [
       [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES, "Grouping Rules"],
       [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES, "On-Call Rules"],
       [PageMap.INCIDENTS_SETTINGS_OWNER_RULES, "Owner Rules"],
       [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES, "Runbook Rules"],
-      [
-        PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-        "Auto Remediation Rules",
-      ],
       [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES, "Privacy Rules"],
       [PageMap.INCIDENTS_SETTINGS_LABEL_RULES, "Label Rules"],
       [PageMap.INCIDENTS_SETTINGS_SLA_RULES, "SLA Rules"],
@@ -133,7 +138,7 @@ const PRODUCTS: Array<Product> = [
     menu: <ScheduledMaintenanceSideMenu />,
     getBreadcrumbs: getScheduleMaintenanceBreadcrumbs,
     landingRoute: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
-    aiSettingsPage: null,
+    aiPages: [],
     rulePages: [
       [
         PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES,
@@ -242,23 +247,23 @@ describe.each(
       cleanup();
     });
 
-    test("the AI settings page is filed under Settings, as AI", () => {
-      if (!product.aiSettingsPage) {
-        return;
-      }
-
-      expect(trailTitlesFor(product, product.aiSettingsPage)).toEqual([
-        "Project",
-        product.productCrumb,
-        "Settings",
-        "AI",
-      ]);
+    test("every page of the AI section is filed under AI, by its menu title", () => {
+      product.aiPages.forEach(([pageMapKey, title]: [string, string]) => {
+        expect(trailTitlesFor(product, pageMapKey)).toEqual([
+          "Project",
+          product.productCrumb,
+          "AI",
+          title,
+        ]);
+      });
     });
 
-    test("the menu has no AI section left for a trail to name", async () => {
+    test("the menu has an AI section exactly when the product has AI pages", async () => {
       await renderMenu(product.menu);
 
-      expect(sectionTitlesInOrder()).not.toContain("AI");
+      expect(sectionTitlesInOrder().includes("AI")).toBe(
+        product.aiPages.length > 0,
+      );
     });
 
     test("every rule page is named Rules, not Settings", () => {
@@ -274,26 +279,24 @@ describe.each(
       });
     });
 
-    test("no trail still files a rule page under Settings, or names the old AI section", () => {
+    test("no trail files a rule or AI page under Settings, or uses the AI section's old page names", () => {
+      [...product.rulePages, ...product.aiPages].forEach(
+        ([pageMapKey]: [string, string]) => {
+          const trail: Array<string> | undefined = trailTitlesFor(
+            product,
+            pageMapKey,
+          );
+
+          // "Settings" may only be the AI settings page's own title.
+          expect(trail?.slice(0, 3)).not.toContain("Settings");
+          expect(trail).not.toContain("Investigation");
+          expect(trail).not.toContain("Remediation");
+        },
+      );
+
+      // No rule page sits in the AI section, nor an AI page in Rules.
       product.rulePages.forEach(([pageMapKey]: [string, string]) => {
-        expect(trailTitlesFor(product, pageMapKey)).not.toContain("Settings");
-      });
-
-      [
-        ...product.rulePages.map(([pageMapKey]: [string, string]): string => {
-          return pageMapKey;
-        }),
-        ...(product.aiSettingsPage ? [product.aiSettingsPage] : []),
-      ].forEach((pageMapKey: string) => {
-        const trail: Array<string> | undefined = trailTitlesFor(
-          product,
-          pageMapKey,
-        );
-
-        expect(trail).not.toContain("Investigation");
-        expect(trail).not.toContain("Remediation");
-        // "AI" may only ever be the AI page's own title, never a section.
-        expect(trail?.slice(0, 3)).not.toContain("AI");
+        expect(trailTitlesFor(product, pageMapKey)?.[2]).toBe("Rules");
       });
     });
 
@@ -302,22 +305,28 @@ describe.each(
      * sides to say the same thing, so a page added to AI or Rules later cannot
      * quietly keep a Settings trail (or no trail at all).
      */
-    test("every Rules entry, and the AI entry, has a trail naming its menu section and title", async () => {
+    test("every Rules and AI entry has a trail naming its menu section and title", async () => {
       const entries: Array<MenuEntry> = await renderMenuEntries(product);
 
       const moved: Array<MenuEntry> = entries.filter(
         (entry: MenuEntry): boolean => {
-          return (
-            entry.section === "Rules" ||
-            entry.pageMapKey === product.aiSettingsPage
-          );
+          return entry.section === "Rules" || entry.section === "AI";
         },
       );
 
       // Guard against a vacuous pass if the menu stops rendering these entries.
       expect(moved.length).toBe(
-        product.rulePages.length + (product.aiSettingsPage ? 1 : 0),
+        product.rulePages.length + product.aiPages.length,
       );
+      expect(
+        moved
+          .filter((entry: MenuEntry): boolean => {
+            return entry.section === "AI";
+          })
+          .map((entry: MenuEntry): [string, string] => {
+            return [entry.pageMapKey, entry.title];
+          }),
+      ).toEqual(product.aiPages);
 
       moved.forEach((entry: MenuEntry) => {
         expect(trailTitlesFor(product, entry.pageMapKey)).toEqual([
@@ -386,22 +395,30 @@ describe("breadcrumb sections across products", () => {
    * either — an entry with nothing behind it in the menu would be matched by
    * a trail pointing nowhere.
    */
-  test("scheduled maintenance declares no AI settings page", () => {
+  test("scheduled maintenance declares no AI page", () => {
     const scheduledMaintenance: Product = PRODUCTS[2]!;
 
     expect(scheduledMaintenance.name).toBe("Scheduled maintenance");
-    expect(scheduledMaintenance.aiSettingsPage).toBeNull();
+    expect(scheduledMaintenance.aiPages).toEqual([]);
   });
 
-  test("incidents and alerts each file their own AI page under Settings", () => {
+  test("incidents and alerts each file their own AI pages under AI", () => {
     expect(
-      PRODUCTS.map((product: Product): string | null => {
-        return product.aiSettingsPage;
+      PRODUCTS.map((product: Product): Array<string> => {
+        return product.aiPages.map(([pageMapKey]: [string, string]) => {
+          return pageMapKey;
+        });
       }),
     ).toEqual([
-      PageMap.ALERTS_SETTINGS_AI,
-      PageMap.INCIDENTS_SETTINGS_AI,
-      null,
+      [
+        PageMap.ALERTS_SETTINGS_AI,
+        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      ],
+      [
+        PageMap.INCIDENTS_SETTINGS_AI,
+        PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      ],
+      [],
     ]);
   });
 

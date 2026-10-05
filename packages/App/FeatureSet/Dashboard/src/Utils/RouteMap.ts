@@ -904,15 +904,21 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_EPISODE_LABEL_RULE_VIEW]: `settings/label-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
-  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
-    "settings/auto-remediation-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
   [PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
-  [PageMap.INCIDENTS_SETTINGS_AI]: "settings/ai",
+
+  /*
+   * The AI section. Settings and Auto Remediation Rules were at settings/ai
+   * and settings/auto-remediation-rules, which forward here
+   * (MOVED_AI_SECTION_PATHS).
+   */
+  [PageMap.INCIDENTS_SETTINGS_AI]: "ai/settings",
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "ai/auto-remediation-rules",
 
   [PageMap.INCIDENT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,
@@ -977,12 +983,17 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_EPISODE_LABEL_RULE_VIEW]: `settings/label-rules/episodes/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
-  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]:
-    "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.ALERTS_SETTINGS_NUMBER_PREFIX]: "settings/number-prefix",
-  [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
+
+  /*
+   * The AI section. Settings and Auto Remediation Rules were at settings/ai
+   * and settings/auto-remediation-rules, which forward here
+   * (MOVED_AI_SECTION_PATHS).
+   */
+  [PageMap.ALERTS_SETTINGS_AI]: "ai/settings",
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: "ai/auto-remediation-rules",
 
   [PageMap.ALERT_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.ALERT_VIEW_STATE_TIMELINE]: `${RouteParams.ModelID}/state-timeline`,

@@ -148,7 +148,11 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedirect";
-import { MOVED_INCIDENT_FORM_PATHS } from "./MovedPagePaths";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import {
+  MOVED_AI_SECTION_PATHS,
+  MOVED_INCIDENT_FORM_PATHS,
+} from "./MovedPagePaths";
 
 const IncidentsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -191,6 +195,25 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         element={
           <MovedNumberPrefixPageRedirect
             pageMap={PageMap.INCIDENTS_SETTINGS_NUMBER_PREFIX}
+          />
+        }
+      />
+
+      {/*
+       * The AI settings and the Auto Remediation Rules moved into the AI
+       * section (…/ai/settings and …/ai/auto-remediation-rules). Their old
+       * URLs, in bookmarks, emails and older docs, forward there - outside
+       * the layout, so the side menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.aiSettings}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
+      />
+      <PageRoute
+        path={MOVED_AI_SECTION_PATHS.autoRemediationRules}
+        element={
+          <MovedPageRedirect
+            pageMap={PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES}
           />
         }
       />

@@ -324,7 +324,7 @@ describe.each<[InvestigationSubjectType]>([["alert"], ["incident"]])(
       ).toHaveAttribute(
         "href",
         expect.stringContaining(
-          `/${PROJECT_ID.toString()}/${subjectType}s/settings/ai`,
+          `/${PROJECT_ID.toString()}/${subjectType}s/ai/settings`,
         ),
       );
     });

@@ -413,6 +413,9 @@ describe("BreadcrumbTrailResolver", () => {
         `${PROJECT}/monitors/settings`,
         `${PROJECT}/incidents/settings`,
         `${PROJECT}/alerts/settings`,
+        // The AI sections of Incidents and Alerts: pages, but no page of their own.
+        `${PROJECT}/incidents/ai`,
+        `${PROJECT}/alerts/ai`,
         `${PROJECT}/traces/settings`,
         `${PROJECT}/traces/view`,
         `${PROJECT}/profiles/view`,

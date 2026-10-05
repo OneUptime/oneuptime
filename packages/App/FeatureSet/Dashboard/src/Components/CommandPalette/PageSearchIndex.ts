@@ -635,6 +635,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "AI",
+        pages: [
+          {
+            page: PageMap.INCIDENTS_SETTINGS_AI,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "ai settings",
+              "ai investigation",
+              "root cause",
+              "ai limits",
+            ],
+          },
+          {
+            page: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+            title: "Auto Remediation Rules",
+            icon: IconProp.Bolt,
+            keywords: ["self healing", "auto fix"],
+          },
+        ],
+      },
       workspaceSection({
         slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
@@ -661,12 +683,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.BookOpen,
           },
           {
-            page: PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
-            title: "Auto Remediation Rules",
-            icon: IconProp.Bolt,
-            keywords: ["self healing", "auto fix"],
-          },
-          {
             page: PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES,
             title: "Privacy Rules",
             icon: IconProp.Lock,
@@ -690,12 +706,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Settings",
         pages: [
-          {
-            page: PageMap.INCIDENTS_SETTINGS_AI,
-            title: "AI",
-            icon: IconProp.Sparkles,
-            keywords: ["ai investigation", "root cause"],
-          },
           {
             page: PageMap.INCIDENTS_SETTINGS_STATE,
             title: "Incident State",
@@ -793,6 +803,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "AI",
+        pages: [
+          {
+            page: PageMap.ALERTS_SETTINGS_AI,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "ai settings",
+              "ai investigation",
+              "root cause",
+              "ai limits",
+            ],
+          },
+          {
+            page: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+            title: "Auto Remediation Rules",
+            icon: IconProp.Bolt,
+            keywords: ["self healing", "auto fix"],
+          },
+        ],
+      },
       workspaceSection({
         slack: PageMap.ALERTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.ALERTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
@@ -819,12 +851,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.BookOpen,
           },
           {
-            page: PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
-            title: "Auto Remediation Rules",
-            icon: IconProp.Bolt,
-            keywords: ["self healing", "auto fix"],
-          },
-          {
             page: PageMap.ALERTS_SETTINGS_PRIVACY_RULES,
             title: "Privacy Rules",
             icon: IconProp.Lock,
@@ -842,12 +868,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       {
         title: "Settings",
         pages: [
-          {
-            page: PageMap.ALERTS_SETTINGS_AI,
-            title: "AI",
-            icon: IconProp.Sparkles,
-            keywords: ["ai investigation", "root cause"],
-          },
           {
             page: PageMap.ALERTS_SETTINGS_STATE,
             title: "Alert State",

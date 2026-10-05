@@ -17,9 +17,9 @@ import * as React from "react";
  * or added twice, or pointed at the wrong route. Nothing about any of those
  * looks wrong in a diff.
  *
- * The latest move: the AI section is gone. The AI settings page is the first
- * entry in Settings, called "AI", and auto-remediation rules sit in Rules
- * next to the other rule pages.
+ * The latest move: everything OneUptime AI does for alerts has an AI section
+ * of its own again, right after Episodes. The AI settings page left Settings
+ * for it, as "Settings", and the auto-remediation rules left Rules for it.
  *
  * So these render the real component against the real RouteMap rather than
  * asserting on its source, and every href is compared to the route the page is
@@ -97,12 +97,13 @@ describe("Alerts side menu", () => {
   });
 
   describe("sections", () => {
-    test("renders the five product sections in order, then Developer, with no AI section", async () => {
+    test("renders the product sections in order, AI right after Episodes, then Developer", async () => {
       await renderAlertsMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
         "Alerts",
         "Episodes",
+        "AI",
         "Workspace",
         "Rules",
         "Settings",
@@ -116,6 +117,7 @@ describe("Alerts side menu", () => {
 
       expect(isExpanded("Alerts")).toBe(true);
       expect(isExpanded("Episodes")).toBe(true);
+      expect(isExpanded("AI")).toBe(false);
       expect(isExpanded("Workspace")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
@@ -138,6 +140,7 @@ describe("Alerts side menu", () => {
 
         expect(isExpanded("Workspace")).toBe(true);
         expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+        expect(isExpanded("AI")).toBe(false);
         expect(isExpanded("Rules")).toBe(false);
         expect(isExpanded("Settings")).toBe(false);
         expect(activeLinkTitles()).toEqual([title]);
@@ -195,32 +198,66 @@ describe("Alerts side menu", () => {
     });
   });
 
-  describe("the AI settings page", () => {
-    test("is the first Settings entry, called AI, pointing at the AI settings page", async () => {
+  describe("the AI section", () => {
+    test("holds the AI settings page and the auto-remediation rules", async () => {
       await renderAlertsMenu();
 
-      expect(linksIn("Settings")[0]).toEqual({
-        title: "AI",
-        href: routeFor(PageMap.ALERTS_SETTINGS_AI),
-      });
+      expect(linksIn("AI")).toEqual([
+        {
+          title: "Settings",
+          href: routeFor(PageMap.ALERTS_SETTINGS_AI),
+        },
+        {
+          title: "Auto Remediation Rules",
+          href: routeFor(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
+        },
+      ]);
     });
 
-    test("is listed once, and only under Settings", async () => {
+    test("lives under …/alerts/ai, not under settings/ any more", async () => {
       await renderAlertsMenu();
 
-      const aiHref: string = routeFor(PageMap.ALERTS_SETTINGS_AI);
+      expect(
+        linksIn("AI").map((link: MenuLink): string => {
+          return link.href;
+        }),
+      ).toEqual([
+        `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
+        `/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`,
+      ]);
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/alerts/settings/ai`,
+      );
+      expect(hrefsInMenu()).not.toContain(
+        `/dashboard/${PROJECT_ID}/alerts/settings/auto-remediation-rules`,
+      );
+    });
+
+    test.each([
+      PageMap.ALERTS_SETTINGS_AI,
+      PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+    ])("%s is listed once, and only under AI", async (pageMapKey: string) => {
+      await renderAlertsMenu();
+
+      const href: string = routeFor(pageMapKey);
 
       expect(
-        hrefsInMenu().filter((href: string): boolean => {
-          return href === aiHref;
+        hrefsInMenu().filter((candidate: string): boolean => {
+          return candidate === href;
         }),
       ).toHaveLength(1);
-      for (const section of ["Alerts", "Episodes", "Workspace", "Rules"]) {
+      for (const section of [
+        "Alerts",
+        "Episodes",
+        "Workspace",
+        "Rules",
+        "Settings",
+      ]) {
         expect(
           linksIn(section).map((link: MenuLink): string => {
             return link.href;
           }),
-        ).not.toContain(aiHref);
+        ).not.toContain(href);
       }
     });
 
@@ -231,21 +268,60 @@ describe("Alerts side menu", () => {
       expect(titlesInMenu()).not.toContain("Remediation");
     });
 
-    test("carries an icon", async () => {
+    /*
+     * The two products configure AI independently - one page each - so their
+     * menu entries must never resolve to the same route.
+     */
+    test("its entries are alert routes, not the incident ones", async () => {
       await renderAlertsMenu();
 
-      expect(iconCountIn("Settings")).toBe(linksIn("Settings").length);
+      const hrefs: Array<string> = hrefsInMenu();
+
+      expect(hrefs).not.toContain(routeFor(PageMap.INCIDENTS_SETTINGS_AI));
+      expect(hrefs).not.toContain(
+        routeFor(PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES),
+      );
     });
 
-    // Settings is collapsed by default, so it must open itself on its pages.
-    test("opens the collapsed Settings section when you are on it", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/ai`);
+    test("every entry carries an icon", async () => {
       await renderAlertsMenu();
 
-      expect(isExpanded("Settings")).toBe(true);
-      expect(sectionBody("Settings").className).toContain("opacity-100");
-      expect(sectionBody("Settings").className).not.toContain("max-h-0");
+      expect(iconCountIn("AI")).toBe(linksIn("AI").length);
     });
+
+    test("starts collapsed, and opens with a click", async () => {
+      await renderAlertsMenu();
+
+      expect(isExpanded("AI")).toBe(false);
+      expect(sectionBody("AI")).toHaveClass("max-h-0", "opacity-0");
+
+      fireEvent.click(sectionToggle("AI"));
+
+      expect(isExpanded("AI")).toBe(true);
+      expect(sectionBody("AI")).toHaveClass("opacity-100");
+    });
+
+    // AI is collapsed by default, so it must open itself on its pages.
+    test.each([
+      ["Settings", PageMap.ALERTS_SETTINGS_AI],
+      [
+        "Auto Remediation Rules",
+        PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      ],
+    ])(
+      "opens itself on its %s page, marks it, and leaves Rules and Settings folded",
+      async (title: string, pageMapKey: string) => {
+        goTo(routeFor(pageMapKey));
+        await renderAlertsMenu();
+
+        expect(isExpanded("AI")).toBe(true);
+        expect(sectionBody("AI").className).toContain("opacity-100");
+        expect(sectionBody("AI").className).not.toContain("max-h-0");
+        expect(isExpanded("Rules")).toBe(false);
+        expect(isExpanded("Settings")).toBe(false);
+        expect(activeLinkTitles()).toEqual([title]);
+      },
+    );
   });
 
   describe("Rules section", () => {
@@ -268,10 +344,6 @@ describe("Alerts side menu", () => {
         {
           title: "Runbook Rules",
           href: routeFor(PageMap.ALERTS_SETTINGS_RUNBOOK_RULES),
-        },
-        {
-          title: "Auto Remediation Rules",
-          href: routeFor(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
         },
         {
           title: "Privacy Rules",
@@ -321,27 +393,35 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       expect(isExpanded("Rules")).toBe(false);
-      expect(linksIn("Rules")).toHaveLength(8);
+      expect(linksIn("Rules")).toHaveLength(7);
     });
 
     // Rules is collapsed by default, so it must open itself on its pages.
-    test("opens itself on the auto-remediation rules page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/auto-remediation-rules`);
+    test("opens itself on a rule page", async () => {
+      goTo(routeFor(PageMap.ALERTS_SETTINGS_GROUPING_RULES));
       await renderAlertsMenu();
 
       expect(isExpanded("Rules")).toBe(true);
+      expect(isExpanded("AI")).toBe(false);
+    });
+
+    // They are AI's rules, so they moved to the AI section with its settings.
+    test("no longer holds the auto-remediation rules", async () => {
+      await renderAlertsMenu();
+
+      expect(
+        linksIn("Rules").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("Auto Remediation Rules");
     });
   });
 
   describe("Settings section", () => {
-    test("holds the AI page first, then the configuration pages that are not rules", async () => {
+    test("holds the configuration pages that are not rules, and not AI's", async () => {
       await renderAlertsMenu();
 
       expect(linksIn("Settings")).toEqual([
-        {
-          title: "AI",
-          href: routeFor(PageMap.ALERTS_SETTINGS_AI),
-        },
         {
           title: "Alert State",
           href: routeFor(PageMap.ALERTS_SETTINGS_STATE),
@@ -403,7 +483,7 @@ describe("Alerts side menu", () => {
       expect(activeLinkTitles()).toEqual(["Number Prefix"]);
     });
 
-    test("does not hold the auto-remediation rules, which are a rule page", async () => {
+    test("does not hold the AI settings page or the auto-remediation rules, which are in AI", async () => {
       await renderAlertsMenu();
 
       const settingsHrefs: Array<string> = linksIn("Settings").map(
@@ -412,9 +492,15 @@ describe("Alerts side menu", () => {
         },
       );
 
+      expect(settingsHrefs).not.toContain(routeFor(PageMap.ALERTS_SETTINGS_AI));
       expect(settingsHrefs).not.toContain(
         routeFor(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
       );
+      expect(
+        linksIn("Settings").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("AI");
     });
 
     test("no longer holds any rule page", async () => {
@@ -481,7 +567,7 @@ describe("Alerts side menu", () => {
       await renderAlertsMenu();
 
       linksIn("Rules")
-        .concat(linksIn("Settings"), linksIn("Alerts"))
+        .concat(linksIn("Settings"), linksIn("Alerts"), linksIn("AI"))
         .forEach((link: MenuLink) => {
           expect(link.href).toContain(`/dashboard/${PROJECT_ID}/alerts`);
           expect(link.href).not.toContain(":");
@@ -500,18 +586,18 @@ describe("Alerts side menu", () => {
       setViewportWidth(MOBILE_WIDTH);
     });
 
-    test("names the Settings section on the AI page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/ai`);
+    test("names the AI section on the AI settings page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/ai/settings`);
       await renderAlertsMenu();
 
-      expect(mobileSummaryText()).toContain("Settings / AI");
+      expect(mobileSummaryText()).toContain("AI / Settings");
     });
 
-    test("names the Rules section on the auto-remediation rules page", async () => {
-      goTo(`/dashboard/${PROJECT_ID}/alerts/settings/auto-remediation-rules`);
+    test("names the AI section on the auto-remediation rules page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/alerts/ai/auto-remediation-rules`);
       await renderAlertsMenu();
 
-      expect(mobileSummaryText()).toContain("Rules / Auto Remediation Rules");
+      expect(mobileSummaryText()).toContain("AI / Auto Remediation Rules");
     });
 
     test("names the Rules section on a rule page", async () => {

@@ -285,14 +285,14 @@ async function runPendingEffects(): Promise<void> {
 function openIncidentPage(): void {
   openPage(
     <IncidentAISettings {...PAGE_PROPS} />,
-    `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
+    `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
   );
 }
 
 function openAlertPage(): void {
   openPage(
     <AlertAISettings {...PAGE_PROPS} />,
-    `/dashboard/${PROJECT_ID}/alerts/settings/ai`,
+    `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
   );
 }
 

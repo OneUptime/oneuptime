@@ -5,9 +5,9 @@ import {
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 
 /*
- * What the project's AI settings pages say, in one place: Incidents →
- * Settings → AI, Alerts → Settings → AI, AI → Insights → Settings and
- * Project Settings → AI Features.
+ * What the project's AI settings pages say, in one place: Incidents → AI
+ * → Settings, Alerts → AI → Settings, AI → Insights → Settings and Project
+ * Settings → AI Features.
  *
  * Those pages used to put every AI behaviour behind an Update button: the
  * incident and alert pages showed nine read-only rows whose Update opened a

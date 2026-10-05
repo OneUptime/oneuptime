@@ -817,7 +817,7 @@ describe("Incidents → Settings → AI", () => {
         currentProject={null}
         hasPaymentMethod={true}
       />,
-      `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
+      `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
     );
   }
 

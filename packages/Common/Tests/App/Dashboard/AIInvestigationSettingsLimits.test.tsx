@@ -106,7 +106,7 @@ interface SettingsPageCase {
 const PAGES: Array<SettingsPageCase> = [
   {
     name: "Alerts",
-    path: `/dashboard/${PROJECT_ID}/alerts/settings/ai`,
+    path: `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
     kind: "alert",
     render: (props: PageComponentProps): React.ReactElement => {
       return <AlertAISettings {...props} />;
@@ -132,7 +132,7 @@ const PAGES: Array<SettingsPageCase> = [
   },
   {
     name: "Incidents",
-    path: `/dashboard/${PROJECT_ID}/incidents/settings/ai`,
+    path: `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
     kind: "incident",
     render: (props: PageComponentProps): React.ReactElement => {
       return <IncidentAISettings {...props} />;
