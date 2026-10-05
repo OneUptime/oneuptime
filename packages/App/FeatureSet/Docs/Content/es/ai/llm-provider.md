@@ -85,6 +85,7 @@ Completa los siguientes campos:
 - **Clave de API**: Tu clave de API (requerida para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; opcional para Ollama y para servidores compatibles con OpenAI)
 - **Nombre del modelo**: El modelo específico a usar (por ejemplo, `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **URL base** (opcional): URL de punto de conexión de API personalizado (requerida para Azure OpenAI, Ollama y OpenAI Compatible; opcional para otros)
+- **Más campos**, plegado bajo los campos anteriores: **Establecer como predeterminado**, que viene activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada solicitud (por ejemplo, `{"temperature": 0.2}`)
 
 ## Configuración específica del proveedor
 

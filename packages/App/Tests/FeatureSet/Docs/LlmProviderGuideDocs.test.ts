@@ -1,5 +1,6 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
 import LlmType from "Common/Types/LLM/LlmType";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -131,17 +132,27 @@ function dashboardLabel(language: string, english: string): string {
   return typeof label === "string" ? label : english;
 }
 
-// The title the provider form gives one of its fields.
-function formFieldTitle(field: string): string {
+// One field of the provider form, from its key to the next field's.
+function formField(field: string): string {
   const form: string = fs.readFileSync(
     path.join(PACKAGES_ROOT, PROVIDER_FORM),
     "utf8",
   );
-  const match: RegExpMatchArray | null = form.match(
-    new RegExp(`field: \\{\\s*${field}: true,\\s*\\},[\\s\\S]*?title: "([^"]+)"`),
+  const start: number = form.search(
+    new RegExp(`field: \\{\\s*${field}: true,`),
   );
 
-  return match?.[1] || "";
+  if (start === -1) {
+    return "";
+  }
+
+  const next: number = form.indexOf("field: {", start + 1);
+
+  return form.slice(start, next === -1 ? undefined : next);
+}
+
+function formFieldTitle(field: string): string {
+  return formField(field).match(/title: "([^"]+)"/)?.[1] || "";
 }
 
 function hasBulletFor(markdown: string, label: string): boolean {
@@ -316,6 +327,41 @@ describe("every LLM provider guide calls the provider field what the form calls 
           return markdown.includes(name.toLowerCase());
         }),
       ).toEqual([]);
+    },
+  );
+});
+
+describe("every LLM provider guide says what is under More fields", () => {
+  test("the form folds Set as Default and Additional Parameters under More fields", () => {
+    expect(formFieldTitle("isDefault")).toBe("Set as Default");
+    expect(formFieldTitle("additionalParams")).toBe("Additional Parameters");
+
+    for (const field of ["isDefault", "additionalParams"]) {
+      expect(formField(field)).toContain(
+        "collapsibleSection: advancedSection",
+      );
+    }
+  });
+
+  test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+    "%s names the fold and both fields as the dashboard draws them",
+    (language: string) => {
+      const fold: string = dashboardLabel(language, MORE_FIELDS_SECTION_TITLE);
+      const bullet: string | undefined = readPage(language)
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith(`- **${fold}**`);
+        });
+
+      expect({ fold, bullet }).toEqual({ fold, bullet: expect.any(String) });
+
+      for (const field of ["isDefault", "additionalParams"]) {
+        expect(bullet).toContain(
+          `**${dashboardLabel(language, formFieldTitle(field))}**`,
+        );
+      }
+
+      expect(bullet).toContain('`{"temperature": 0.2}`');
     },
   );
 });

@@ -85,6 +85,7 @@ OneUptime 目前支援以下 LLM 供應商：
 - **API 金鑰**：您的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 與 OpenAI 相容伺服器則為選填）
 - **模型名稱**：要使用的特定模型（例如 `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
 - **基底 URL**（選填）：自訂 API 端點 URL（Azure OpenAI、Ollama 與 OpenAI Compatible 為必填，其他則為選填）
+- **更多欄位**：收合在上方欄位之下，包括 **設為預設**（新供應商預設為開啟，因為 AI 功能只會使用專案的預設供應商）和 **其他參數**（選填的 JSON 物件，其中的額外參數會隨每個請求傳送給供應商，例如 `{"temperature": 0.2}`）
 
 ## 各供應商專屬設定
 

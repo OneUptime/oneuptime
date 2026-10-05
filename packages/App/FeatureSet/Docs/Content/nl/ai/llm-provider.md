@@ -85,6 +85,7 @@ Vul de volgende velden in:
 - **API-sleutel**: Uw API-sleutel (vereist voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral; optioneel voor Ollama en OpenAI-compatibele servers)
 - **Modelnaam**: Het specifieke te gebruiken model (bijv. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **Basis-URL** (optioneel): Aangepaste API-eindpunt-URL (vereist voor Azure OpenAI, Ollama en OpenAI Compatible; optioneel voor anderen)
+- **Meer velden**, ingeklapt onder de velden hierboven: **Instellen als standaard**, dat voor een nieuwe provider aan staat omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
 ## Providerspecifieke configuratie
 

@@ -85,6 +85,7 @@ Fyll inn følgende felt:
 - **API-nøkkel**: API-nøkkelen din (påkrevd for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfritt for Ollama og OpenAI-kompatible servere)
 - **Modellnavn**: Den spesifikke modellen som skal brukes (f.eks. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **Basis-URL** (valgfritt): Egendefinert API-endepunkt-URL (påkrevd for Azure OpenAI, Ollama og OpenAI-kompatibel; valgfritt for andre)
+- **Flere felt**, slått sammen under feltene over: **Angi som standard**, som er slått på for en ny leverandør fordi AI-funksjoner bare bruker prosjektets standardleverandør, og **Ekstra parametere**, et valgfritt JSON-objekt med ekstra parametere som sendes til leverandøren med hver forespørsel (for eksempel `{"temperature": 0.2}`)
 
 ## Leverandørspesifikk konfigurasjon
 

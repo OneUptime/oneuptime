@@ -85,6 +85,7 @@ OneUptime वर्तमान में निम्नलिखित LLM pro
 - **API कुंजी**: आपकी API key (OpenAI, Azure OpenAI, Anthropic, Groq, और Mistral के लिए आवश्यक; Ollama और OpenAI-compatible servers के लिए वैकल्पिक)
 - **मॉडल नाम**: उपयोग करने के लिए विशिष्ट मॉडल (जैसे `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **बेस URL** (वैकल्पिक): Custom API endpoint URL (Azure OpenAI, Ollama, और OpenAI Compatible के लिए आवश्यक; अन्य के लिए वैकल्पिक)
+- **और फ़ील्ड**, ऊपर के fields के नीचे सिमटा हुआ: **डिफ़ॉल्ट के रूप में सेट करें**, जो नए provider के लिए चालू रहता है क्योंकि AI सुविधाएं केवल project के डिफ़ॉल्ट provider का उपयोग करती हैं, और **अतिरिक्त पैरामीटर**, अतिरिक्त parameters का एक वैकल्पिक JSON object जो हर request के साथ provider को भेजा जाता है (उदाहरण के लिए `{"temperature": 0.2}`)
 
 ## Provider-विशिष्ट Configuration
 

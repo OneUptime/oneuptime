@@ -85,6 +85,7 @@ OneUptime は現在、以下の LLM プロバイダーをサポートしてい�
 - **API キー**: API キー（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral では必須。Ollama と OpenAI 互換サーバーでは任意）
 - **モデル名**: 使用する特定のモデル（例: `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
 - **ベース URL**（任意）: カスタム API エンドポイント URL（Azure OpenAI、Ollama、OpenAI Compatible では必須、その他では任意）
+- **その他の項目**（上記の項目の下に折りたたまれています）: **デフォルトに設定** は、AI 機能がプロジェクトのデフォルトプロバイダーしか使わないため、新しいプロバイダーではオンになっています。**追加パラメーター** は、すべてのリクエストでプロバイダーに送る追加パラメーターを指定する任意の JSON オブジェクトです（例: `{"temperature": 0.2}`）
 
 ## プロバイダー別の設定
 

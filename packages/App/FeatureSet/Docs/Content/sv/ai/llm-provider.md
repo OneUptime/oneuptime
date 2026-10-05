@@ -85,6 +85,7 @@ Fyll i följande fält:
 - **API-nyckel**: Din API-nyckel (krävs för OpenAI, Azure OpenAI, Anthropic, Groq och Mistral; valfritt för Ollama och OpenAI-kompatibla servrar)
 - **Modellnamn**: Den specifika modell som ska användas (t.ex. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **Bas-URL** (valfritt): Anpassad API-slutpunkts-URL (krävs för Azure OpenAI, Ollama och OpenAI Compatible; valfritt för andra)
+- **Fler fält**, ihopfälld under fälten ovan: **Ange som standard**, som är påslaget för en ny leverantör eftersom AI-funktioner bara använder projektets standardleverantör, och **Ytterligare parametrar**, ett valfritt JSON-objekt med extra parametrar som skickas till leverantören med varje begäran (till exempel `{"temperature": 0.2}`)
 
 ## Leverantörsspecifik konfiguration
 

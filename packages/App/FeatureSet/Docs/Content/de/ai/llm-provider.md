@@ -85,6 +85,7 @@ Füllen Sie die folgenden Felder aus:
 - **API-Schlüssel**: Ihr API-Schlüssel (erforderlich für OpenAI, Azure OpenAI, Anthropic, Groq und Mistral; optional für Ollama und OpenAI-kompatible Server)
 - **Modellname**: Das spezifische zu verwendende Modell (z. B. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **Basis-URL** (optional): Benutzerdefinierte API-Endpunkt-URL (erforderlich für Azure OpenAI, Ollama und OpenAI Compatible; optional für andere)
+- **Weitere Felder**, unter den Feldern oben eingeklappt: **Als Standard festlegen**, bei einem neuen Anbieter eingeschaltet, weil KI-Funktionen nur den Standardanbieter des Projekts verwenden, und **Zusätzliche Parameter**, ein optionales JSON-Objekt mit weiteren Parametern, das bei jeder Anfrage an den Anbieter gesendet wird (zum Beispiel `{"temperature": 0.2}`)
 
 ## Anbieterspezifische Konfiguration
 

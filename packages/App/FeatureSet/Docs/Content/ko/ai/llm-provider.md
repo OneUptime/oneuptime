@@ -85,6 +85,7 @@ OneUptime은 현재 다음 LLM 공급자를 지원합니다:
 - **API 키**: API 키 (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral의 경우 필수; Ollama 및 OpenAI 호환 서버의 경우 선택 사항)
 - **모델 이름**: 사용할 특정 모델 (예: `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **기본 URL** (선택 사항): 커스텀 API 엔드포인트 URL (Azure OpenAI, Ollama, OpenAI Compatible의 경우 필수, 기타의 경우 선택 사항)
+- **추가 필드**(위 항목 아래에 접혀 있음): **기본값으로 설정**은 AI 기능이 프로젝트의 기본 공급자만 사용하므로 새 공급자에서는 켜져 있고, **추가 매개변수**는 요청할 때마다 공급자에게 보내는 추가 매개변수를 담은 선택 사항 JSON 객체입니다(예: `{"temperature": 0.2}`)
 
 ## 공급자별 구성
 
