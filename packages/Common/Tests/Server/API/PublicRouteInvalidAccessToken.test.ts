@@ -400,7 +400,7 @@ describe("public routes with an access-token cookie that no longer decodes", () 
       );
     });
 
-    it("answers a private dashboard's metadata like a missing dashboard's, for the dashboard's reason", async () => {
+    it("answers a private dashboard's metadata like a missing dashboard's", async () => {
       const result: HttpResult = await send({
         port,
         method: "POST",

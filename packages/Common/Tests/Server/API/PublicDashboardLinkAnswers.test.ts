@@ -53,6 +53,8 @@ import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
 import File from "../../../Models/DatabaseModels/File";
+import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import MimeType from "../../../Types/File/MimeType";
 import { DASHBOARD_MASTER_PASSWORD_COOKIE_IDENTIFIER } from "../../../Types/Dashboard/MasterPassword";
 import Dictionary from "../../../Types/Dictionary";
 import HashedString from "../../../Types/HashedString";
@@ -172,7 +174,7 @@ const CONTENT_COLUMNS: Array<string> = [
 const imageFile: (bytes: string) => File = (bytes: string): File => {
   const file: File = new File();
   file.file = Buffer.from(bytes);
-  file.fileType = "image/png";
+  file.fileType = MimeType.png;
   return file;
 };
 
@@ -211,7 +213,7 @@ const storedDashboard: (options: StoredOptions) => Dashboard = (
   dashboard.dashboardViewConfig = {
     components: [],
     heightInDashboardUnits: 10,
-  } as unknown as Dashboard["dashboardViewConfig"];
+  } as unknown as DashboardViewConfig;
   dashboard.isPublicDashboard = options.isPublicDashboard;
   dashboard.enableMasterPassword = options.enableMasterPassword === true;
   dashboard.isArchived = options.isArchived === true;

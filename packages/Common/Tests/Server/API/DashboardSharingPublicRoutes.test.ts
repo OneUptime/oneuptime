@@ -47,6 +47,7 @@ import {
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import File from "../../../Models/DatabaseModels/File";
+import MimeType from "../../../Types/File/MimeType";
 import {
   DASHBOARD_ACCESS_CHOICES,
   DashboardAccess,
@@ -131,7 +132,7 @@ const MISSING_DASHBOARD_ID: ObjectID = new ObjectID(
 const imageFile: (bytes: string) => File = (bytes: string): File => {
   const file: File = new File();
   file.file = Buffer.from(bytes);
-  file.fileType = "image/png";
+  file.fileType = MimeType.png;
   return file;
 };
 
