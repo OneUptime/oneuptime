@@ -113,7 +113,10 @@ function find(
   });
 }
 
-function get(actions: Array<AiAgentAction>, id: AiAgentActionId): AiAgentAction {
+function get(
+  actions: Array<AiAgentAction>,
+  id: AiAgentActionId,
+): AiAgentAction {
   const action: AiAgentAction | undefined = find(actions, id);
 
   if (!action) {

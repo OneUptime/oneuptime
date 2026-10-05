@@ -120,9 +120,7 @@ describe("CardMoreMenu", () => {
   });
 
   test("its menu is labelled by the button, under the name the card gave it", () => {
-    render(
-      <CardMoreMenu ariaLabel="AI agent actions">{items()}</CardMoreMenu>,
-    );
+    render(<CardMoreMenu ariaLabel="AI agent actions">{items()}</CardMoreMenu>);
 
     fireEvent.click(screen.getByRole("button", { name: "AI agent actions" }));
 

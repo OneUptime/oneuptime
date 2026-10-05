@@ -42,7 +42,10 @@ import Card from "../../../UI/Components/Card/Card";
 import CardMoreMenu from "../../../UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "../../../UI/Components/MoreMenu/MoreMenuItem";
 import Pill from "../../../UI/Components/Pill/Pill";
-import { getGlyphOfIcon, getGlyphOfMenuItem } from "../../UI/Components/MenuItemIcons";
+import {
+  getGlyphOfIcon,
+  getGlyphOfMenuItem,
+} from "../../UI/Components/MenuItemIcons";
 
 /*
  * The AI agent card's ⋯, on its own and in the card header it was made for:
@@ -277,9 +280,7 @@ describe("the ⋯", () => {
     const user: UserEventController = userEvent.setup();
     const handlers: Handlers = makeHandlers();
     render(
-      <AiAgentActionsMenu
-        actions={makeActions(handlers, { who: "reader" })}
-      />,
+      <AiAgentActionsMenu actions={makeActions(handlers, { who: "reader" })} />,
     );
 
     await userClick(user, getTrigger());
@@ -540,9 +541,9 @@ describe("the card's header buttons", () => {
     expect(buttons).toHaveLength(1);
     expect(buttons[0]!.type).toBe(AiAgentActionsMenu);
     expect(buttons[0]!.key).toBe("ai-agent-actions");
-    expect((buttons[0]!.props as { actions: Array<AiAgentAction> }).actions).toBe(
-      actions,
-    );
+    expect(
+      (buttons[0]!.props as { actions: Array<AiAgentAction> }).actions,
+    ).toBe(actions);
   });
 });
 
