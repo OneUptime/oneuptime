@@ -131,13 +131,17 @@ export const findSwatch: (
 };
 
 const WHITE: RGB = { red: 255, green: 255, blue: 255 };
-// The darkest text color of the light theme (gray-900).
-const NEAR_BLACK: RGB = { red: 17, green: 24, blue: 39 };
+
+/*
+ * WCAG's minimum for a graphic - the tick is one - against what it sits on.
+ */
+export const MIN_MARK_CONTRAST: number = 3;
 
 /**
- * Whether the tick drawn on a swatch should be dark rather than white: the
- * one of the two that stands out more on that color. Every palette color
- * takes a white tick; a pale custom color takes a dark one.
+ * Whether the tick drawn on a swatch should be dark rather than white. White
+ * is the tick a colored swatch is expected to carry, and every palette color
+ * holds it at 3:1 or more; a pale custom color, where white would fade into
+ * the swatch, takes a dark one.
  */
 export const shouldUseDarkMark: (value: string) => boolean = (
   value: string,
@@ -148,7 +152,7 @@ export const shouldUseDarkMark: (value: string) => boolean = (
     return false;
   }
 
-  return getContrastRatio(rgb, NEAR_BLACK) > getContrastRatio(rgb, WHITE);
+  return getContrastRatio(rgb, WHITE) < MIN_MARK_CONTRAST;
 };
 
 /*
