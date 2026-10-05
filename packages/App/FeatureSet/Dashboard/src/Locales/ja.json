@@ -25136,5 +25136,7 @@
   "{{title}} keeps coming back: OneUptime AI investigated it {{count}} times in the last {{days}} days.": "{{title}} keeps coming back: OneUptime AI investigated it {{count}} times in the last {{days}} days.",
   "{{title}} keeps coming back: OneUptime AI investigated it {{count}} times in the last {{days}} days._one": "{{title}} keeps coming back: OneUptime AI investigated it {{count}} time in the last {{days}} days.",
   "Infrastructure commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the resource's AI Logs page (AI → Logs) lists every command OneUptime AI ran there.": "インフラのコマンドはダッシュボードから再実行されず、その出力もここには表示されません。レポートには OneUptime AI が出力から読み取った内容が引用されています。リソースの AI ログページ（AI → ログ）に、OneUptime AI がそこで実行したすべてのコマンドが一覧表示されます。",
-  "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.": "kubectl コマンドはダッシュボードから再実行されず、その出力もここには表示されません。レポートには OneUptime AI が出力から読み取った内容が引用されています。クラスターの AI ログページ（AI → ログ）に、OneUptime AI がそこで実行したすべての kubectl コマンドが一覧表示されます。"
+  "kubectl commands are not re-run from the dashboard, and their output is not shown here. The report quotes what OneUptime AI read from it; the cluster's AI Logs page (AI → Logs) lists every kubectl command OneUptime AI ran there.": "kubectl コマンドはダッシュボードから再実行されず、その出力もここには表示されません。レポートには OneUptime AI が出力から読み取った内容が引用されています。クラスターの AI ログページ（AI → ログ）に、OneUptime AI がそこで実行したすべての kubectl コマンドが一覧表示されます。",
+  "Is Public": "Is Public",
+  "Monitors keep their status.": "モニターのステータスは変わりません。"
 }
