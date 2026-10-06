@@ -25807,5 +25807,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} 目前顯示的是 {{time}} 時的最後狀態；此頁面會自動重試。",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "之後的摘要會在每天相同的時間發送。留空則在下一週、下一天或下個月開始時，依摘要的時區於 09:00 開始。",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "摘要全年都會在此時區的同一時間發送，日光節約時間調整時鐘後也一樣。",
-  "Holds Monitors": "佔用監測器"
+  "Holds Monitors": "佔用監測器",
+  "Daily AI Spend Limit Reached At": "達到每日 AI 支出上限的時間",
+  "Daily AI Token Limit Reached At": "達到每日 AI 權杖上限的時間",
+  "Inherit labels from {{sources}}": "從 {{sources}} 繼承標籤",
+  "Inherit labels from {{sources}} and {{count}} more": "從 {{sources}} 及另外 {{count}} 個繼承標籤",
+  "Inherit labels from {{sources}} and {{count}} more_one": "從 {{sources}} 及另外 {{count}} 個繼承標籤",
+  "Inherit owners from {{sources}}": "從 {{sources}} 繼承擁有者",
+  "Inherit owners from {{sources}} and {{count}} more": "從 {{sources}} 及另外 {{count}} 個繼承擁有者",
+  "Inherit owners from {{sources}} and {{count}} more_one": "從 {{sources}} 及另外 {{count}} 個繼承擁有者",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的標籤或繼承標籤的來源命名。",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的擁有者或繼承擁有者的來源命名。"
 }

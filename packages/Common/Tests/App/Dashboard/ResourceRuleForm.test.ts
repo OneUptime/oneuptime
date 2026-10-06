@@ -1,10 +1,15 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import fs from "fs";
 import i18next from "i18next";
+import path from "path";
 import {
   FILLED_IN_RULE_NAME_KEY,
   followPicksWithRuleName,
+  followSwitchWithRuleName,
+  getFollowedRuleName,
   getInheritingLabelRuleActionFields,
   getInheritingOwnerRuleActionFields,
+  getInheritingRuleName,
   getLabelRuleActionFields,
   getLabelRuleFormSteps,
   getLabelRuleName,
@@ -14,17 +19,24 @@ import {
   getRuleNameAfterPick,
   INHERIT_LABELS_SECTION_ID,
   INHERIT_OWNERS_SECTION_ID,
+  INHERITED_FROM_TERMS,
   InheritingRuleRecord,
+  isAnythingPicked,
   isLabelPickRequired,
   isOwnerPickRequired,
   LABEL_INHERITANCE_WORDING,
+  LABEL_RULE_INHERIT_NAME_WORDING,
   LABEL_RULE_INHERITING_LABELS_DESCRIPTION,
+  LABEL_RULE_INHERITING_NAME_DESCRIPTION,
   LABEL_RULE_LABELS_DESCRIPTION,
   LABEL_RULE_NAME_DESCRIPTION,
   OWNER_INHERITANCE_WORDING,
+  OWNER_RULE_INHERIT_NAME_WORDING,
+  OWNER_RULE_INHERITING_NAME_DESCRIPTION,
   OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
   OWNER_RULE_NAME_DESCRIPTION,
   RULE_NAME_MAX_LENGTH,
+  RuleAddsKind,
   RuleInheritanceWording,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/ResourceRuleForm";
 import {
@@ -42,6 +54,10 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { OWNER_RULE_OWNERS_DESCRIPTION } from "../../../UI/Components/PeoplePicker/OwnersFormField";
 import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  fillTemplate,
+  toSentenceTerm,
+} from "../../../UI/Utils/TranslateTemplate";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -885,6 +901,681 @@ describe("the words of the inheriting forms", () => {
 });
 
 /*
+ * A RULE THAT ONLY INHERITS IS NAMED AFTER WHAT IT INHERITS FROM.
+ *
+ * An incident, alert or scheduled maintenance rule may pick nothing and only
+ * inherit; its name used to stay empty until somebody typed one. It is now
+ * filled in from its switches, the way a rule is named after its picks -
+ * "Inherit labels from monitors, hosts" - and follows them while the name is
+ * still the form's own. Once something is picked, the picks name the rule.
+ */
+
+type SwitchesFunction = (kind: RuleAddsKind) => ReadonlyArray<string>;
+
+const switchesOf: SwitchesFunction = (
+  kind: RuleAddsKind,
+): ReadonlyArray<string> => {
+  return kind === "labels" ? INHERITED_LABEL_COLUMNS : INHERITED_OWNER_COLUMNS;
+};
+
+type SwitchedOnFunction = (
+  kind: RuleAddsKind,
+  on: Array<number>,
+) => FormValues<Entity>;
+
+// A form's values with the switches at these places of the list on.
+const switchedOn: SwitchedOnFunction = (
+  kind: RuleAddsKind,
+  on: Array<number>,
+): FormValues<Entity> => {
+  const values: Record<string, unknown> = {};
+
+  switchesOf(kind).forEach((column: string, index: number): void => {
+    values[column] = on.includes(index);
+  });
+
+  return values as FormValues<Entity>;
+};
+
+describe("the name of a rule that only inherits", () => {
+  test("is empty while no switch is on", () => {
+    for (const kind of ["labels", "owners"] as Array<RuleAddsKind>) {
+      for (const record of RECORDS) {
+        expect(getInheritingRuleName({ kind, record, values: {} })).toBe("");
+        expect(
+          getInheritingRuleName({
+            kind,
+            record,
+            values: switchedOn(kind, []),
+          }),
+        ).toBe("");
+        expect(getInheritingRuleName({ kind, record, values: null })).toBe("");
+      }
+    }
+  });
+
+  test("names what one switch inherits from", () => {
+    expect(
+      getInheritingRuleName({
+        kind: "labels",
+        record: "incident",
+        values: { inheritLabelsFromMonitors: true },
+      }),
+    ).toBe("Inherit labels from monitors");
+    expect(
+      getInheritingRuleName({
+        kind: "owners",
+        record: "scheduledMaintenance",
+        values: { inheritOwnersFromServices: true },
+      }),
+    ).toBe("Inherit owners from services");
+    expect(
+      getInheritingRuleName({
+        kind: "labels",
+        record: "incident",
+        values: { inheritLabelsFromKubernetesClusters: true },
+      }),
+    ).toBe("Inherit labels from Kubernetes clusters");
+  });
+
+  test("an alert inherits from its one monitor, as its switch says", () => {
+    expect(
+      getInheritingRuleName({
+        kind: "labels",
+        record: "alert",
+        values: { inheritLabelsFromMonitors: true },
+      }),
+    ).toBe("Inherit labels from monitor");
+    expect(
+      getInheritingRuleName({
+        kind: "owners",
+        record: "alert",
+        values: { inheritOwnersFromMonitors: true },
+      }),
+    ).toBe("Inherit owners from monitor");
+  });
+
+  test("lists every switch that is on, in the order the form shows them", () => {
+    expect(
+      getInheritingRuleName({
+        kind: "labels",
+        record: "incident",
+        values: {
+          inheritLabelsFromServices: true,
+          inheritLabelsFromMonitors: true,
+          inheritLabelsFromDockerHosts: false,
+          inheritLabelsFromHosts: true,
+        },
+      }),
+    ).toBe("Inherit labels from monitors, hosts, services");
+  });
+
+  test("names all six, and still fits the Name column", () => {
+    for (const record of RECORDS) {
+      for (const kind of ["labels", "owners"] as Array<RuleAddsKind>) {
+        const name: string = getInheritingRuleName({
+          kind,
+          record,
+          values: switchedOn(kind, [0, 1, 2, 3, 4, 5]),
+        });
+
+        expect(name.length).toBeLessThanOrEqual(RULE_NAME_MAX_LENGTH);
+        expect(name).toBe(
+          `Inherit ${kind} from ${record === "alert" ? "monitor" : "monitors"}, hosts, Kubernetes clusters, Docker hosts, Podman hosts, services`,
+        );
+      }
+    }
+  });
+
+  test("counts a switch only when it is on", () => {
+    for (const value of ["true", 1, "on", null, undefined, false]) {
+      expect(
+        getInheritingRuleName({
+          kind: "labels",
+          record: "incident",
+          values: { inheritLabelsFromHosts: value },
+        }),
+      ).toBe("");
+    }
+  });
+
+  test("reads only its own kind's switches", () => {
+    expect(
+      getInheritingRuleName({
+        kind: "labels",
+        record: "incident",
+        values: switchedOn("owners", [0, 1, 2]),
+      }),
+    ).toBe("");
+    expect(
+      getInheritingRuleName({
+        kind: "owners",
+        record: "incident",
+        values: switchedOn("labels", [0]),
+      }),
+    ).toBe("");
+  });
+
+  test("names each switch's source, the six of every event", () => {
+    for (const record of RECORDS) {
+      expect(INHERITED_FROM_TERMS[record]).toHaveLength(6);
+      expect(INHERITED_FROM_TERMS[record].slice(1)).toEqual([
+        "Hosts",
+        "Kubernetes Clusters",
+        "Docker Hosts",
+        "Podman Hosts",
+        "Services",
+      ]);
+    }
+
+    expect(INHERITED_FROM_TERMS.incident[0]).toBe("Monitors");
+    expect(INHERITED_FROM_TERMS.scheduledMaintenance[0]).toBe("Monitors");
+    expect(INHERITED_FROM_TERMS.alert[0]).toBe("Monitor");
+  });
+
+  test("is worded like the picks' names: whole sentences with a slot for the list", () => {
+    expect(LABEL_RULE_INHERIT_NAME_WORDING).toEqual({
+      picksSlot: "sources",
+      allPicks: "Inherit labels from {{sources}}",
+      somePicks: {
+        one: "Inherit labels from {{sources}} and {{count}} more",
+        other: "Inherit labels from {{sources}} and {{count}} more",
+      },
+    });
+    expect(OWNER_RULE_INHERIT_NAME_WORDING).toEqual({
+      picksSlot: "sources",
+      allPicks: "Inherit owners from {{sources}}",
+      somePicks: {
+        one: "Inherit owners from {{sources}} and {{count}} more",
+        other: "Inherit owners from {{sources}} and {{count}} more",
+      },
+    });
+  });
+});
+
+describe("whether a rule picks anything", () => {
+  test("a label rule picks its labels", () => {
+    expect(isAnythingPicked("labels", {})).toBe(false);
+    expect(isAnythingPicked("labels", { labelsToAdd: [] })).toBe(false);
+    expect(isAnythingPicked("labels", { labelsToAdd: null })).toBe(false);
+    expect(isAnythingPicked("labels", null)).toBe(false);
+    expect(isAnythingPicked("labels", { labelsToAdd: ["id-production"] })).toBe(
+      true,
+    );
+    // An Edit form holds the rule's labels as it read them.
+    expect(
+      isAnythingPicked("labels", {
+        labelsToAdd: [{ _id: "id-production", name: "production" }],
+      }),
+    ).toBe(true);
+    // Owners are not labels.
+    expect(isAnythingPicked("labels", { ownerUsers: ["ada"] })).toBe(false);
+  });
+
+  test("an owner rule picks its people, or its teams", () => {
+    expect(isAnythingPicked("owners", {})).toBe(false);
+    expect(isAnythingPicked("owners", { ownerUsers: [], ownerTeams: [] })).toBe(
+      false,
+    );
+    expect(isAnythingPicked("owners", { ownerUsers: ["ada"] })).toBe(true);
+    expect(isAnythingPicked("owners", { ownerTeams: ["platform"] })).toBe(true);
+    expect(isAnythingPicked("owners", { labelsToAdd: ["id-production"] })).toBe(
+      false,
+    );
+  });
+});
+
+describe("the name, as what the rule adds changes", () => {
+  test("follows while it is the form's own, as with picks", () => {
+    // Empty: filled in.
+    expect(
+      getFollowedRuleName({
+        name: "",
+        filledInName: undefined,
+        previousName: "",
+        nextName: "Inherit labels from monitors",
+      }),
+    ).toBe("Inherit labels from monitors");
+
+    // The name the form filled in last.
+    expect(
+      getFollowedRuleName({
+        name: "Inherit labels from monitors",
+        filledInName: "Inherit labels from monitors",
+        previousName: "Inherit labels from monitors",
+        nextName: "Inherit labels from monitors, hosts",
+      }),
+    ).toBe("Inherit labels from monitors, hosts");
+
+    // An Edit form's rule, never renamed: the name it made before.
+    expect(
+      getFollowedRuleName({
+        name: "Inherit owners from services",
+        filledInName: undefined,
+        previousName: "Inherit owners from services",
+        nextName: "Inherit owners from hosts, services",
+      }),
+    ).toBe("Inherit owners from hosts, services");
+  });
+
+  test("is emptied with the last switch, so the next one is followed again", () => {
+    expect(
+      getFollowedRuleName({
+        name: "Inherit labels from monitors",
+        filledInName: "Inherit labels from monitors",
+        previousName: "Inherit labels from monitors",
+        nextName: "",
+      }),
+    ).toBe("");
+  });
+
+  test("never replaces a name somebody typed", () => {
+    expect(
+      getFollowedRuleName({
+        name: "Copy the monitors' labels",
+        filledInName: "Inherit labels from monitors",
+        previousName: "Inherit labels from monitors",
+        nextName: "Inherit labels from monitors, hosts",
+      }),
+    ).toBeNull();
+    expect(
+      getFollowedRuleName({
+        name: "Copy the monitors' labels",
+        filledInName: undefined,
+        previousName: "Inherit labels from monitors",
+        nextName: "",
+      }),
+    ).toBeNull();
+  });
+
+  test("stays as it is when it already is the new name", () => {
+    expect(
+      getFollowedRuleName({
+        name: "Inherit labels from hosts",
+        filledInName: "Inherit labels from hosts",
+        previousName: "Inherit labels from monitors",
+        nextName: "Inherit labels from hosts",
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("the onChange of an Inherit switch", () => {
+  type SetValuesMock = (values: FormValues<Entity>) => void;
+
+  test("names a rule that picks nothing after the switch turned on", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followSwitchWithRuleName<Entity>({
+      kind: "labels",
+      record: "incident",
+      column: "inheritLabelsFromMonitors",
+    })(
+      true,
+      { name: "", criteria: { conditions: [] } } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues).toHaveBeenCalledTimes(1);
+    expect(setNewFormValues.mock.calls[0]![0]).toEqual({
+      name: "Inherit labels from monitors",
+      [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors",
+      // Everything else the form holds is handed back as it was.
+      criteria: { conditions: [] },
+    });
+  });
+
+  test("adds the next switch to the name it filled in", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followSwitchWithRuleName<Entity>({
+      kind: "owners",
+      record: "alert",
+      column: "inheritOwnersFromServices",
+    })(
+      true,
+      {
+        name: "Inherit owners from monitor",
+        [FILLED_IN_RULE_NAME_KEY]: "Inherit owners from monitor",
+        inheritOwnersFromMonitors: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues.mock.calls[0]![0]).toEqual({
+      name: "Inherit owners from monitor, services",
+      [FILLED_IN_RULE_NAME_KEY]: "Inherit owners from monitor, services",
+      inheritOwnersFromMonitors: true,
+    });
+  });
+
+  test("takes a switch turned off out of the name, and empties it with the last", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followSwitchWithRuleName<Entity>({
+      kind: "labels",
+      record: "scheduledMaintenance",
+      column: "inheritLabelsFromHosts",
+    })(
+      false,
+      {
+        name: "Inherit labels from monitors, hosts",
+        [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors, hosts",
+        inheritLabelsFromMonitors: true,
+        inheritLabelsFromHosts: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+      name: "Inherit labels from monitors",
+    });
+
+    followSwitchWithRuleName<Entity>({
+      kind: "labels",
+      record: "scheduledMaintenance",
+      column: "inheritLabelsFromMonitors",
+    })(
+      false,
+      {
+        name: "Inherit labels from monitors",
+        [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors",
+        inheritLabelsFromMonitors: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues.mock.calls[1]![0]).toMatchObject({
+      name: "",
+      [FILLED_IN_RULE_NAME_KEY]: "",
+    });
+  });
+
+  test("follows on an Edit form whose rule was never renamed", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followSwitchWithRuleName<Entity>({
+      kind: "labels",
+      record: "incident",
+      column: "inheritLabelsFromPodmanHosts",
+    })(
+      true,
+      {
+        name: "Inherit labels from services",
+        inheritLabelsFromServices: true,
+        labelsToAdd: [],
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+      name: "Inherit labels from Podman hosts, services",
+    });
+  });
+
+  test("leaves a typed name alone", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followSwitchWithRuleName<Entity>({
+      kind: "labels",
+      record: "incident",
+      column: "inheritLabelsFromHosts",
+    })(
+      true,
+      {
+        name: "Copy what the monitors carry",
+        [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors",
+        inheritLabelsFromMonitors: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues).not.toHaveBeenCalled();
+  });
+
+  test("leaves the name of a rule that picks something to its picks", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followSwitchWithRuleName<Entity>({
+      kind: "labels",
+      record: "incident",
+      column: "inheritLabelsFromHosts",
+    })(
+      true,
+      {
+        name: "Add production",
+        [FILLED_IN_RULE_NAME_KEY]: "Add production",
+        labelsToAdd: ["id-production"],
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    followSwitchWithRuleName<Entity>({
+      kind: "owners",
+      record: "incident",
+      column: "inheritOwnersFromHosts",
+    })(
+      true,
+      {
+        name: "Add Platform as owners",
+        [FILLED_IN_RULE_NAME_KEY]: "Add Platform as owners",
+        ownerTeams: ["platform"],
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+    );
+
+    expect(setNewFormValues).not.toHaveBeenCalled();
+  });
+});
+
+describe("the picks of a rule that can inherit", () => {
+  type SetValuesMock = (values: FormValues<Entity>) => void;
+
+  const inheritName: (values: Record<string, unknown>) => string = (
+    values: Record<string, unknown>,
+  ): string => {
+    return getInheritingRuleName({
+      kind: "labels",
+      record: "incident",
+      values,
+    });
+  };
+
+  test("name the rule once picked, over the name its switches gave it", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followPicksWithRuleName<Entity>(getLabelRuleName, inheritName)(
+      ["id-production"],
+      {
+        name: "Inherit labels from monitors",
+        [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors",
+        inheritLabelsFromMonitors: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+      changeOf(["production"], []),
+    );
+
+    expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+      name: "Add production",
+      [FILLED_IN_RULE_NAME_KEY]: "Add production",
+    });
+  });
+
+  test("taken away, give the name back to the switches", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followPicksWithRuleName<Entity>(getLabelRuleName, inheritName)(
+      [],
+      {
+        name: "Add production",
+        [FILLED_IN_RULE_NAME_KEY]: "Add production",
+        inheritLabelsFromMonitors: true,
+        inheritLabelsFromHosts: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+      changeOf([], ["production"]),
+    );
+
+    expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+      name: "Inherit labels from monitors, hosts",
+      [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors, hosts",
+    });
+  });
+
+  test("taken away with no switch on, empty the name as before", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followPicksWithRuleName<Entity>(getLabelRuleName, inheritName)(
+      [],
+      {
+        name: "Add production",
+        [FILLED_IN_RULE_NAME_KEY]: "Add production",
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+      changeOf([], ["production"]),
+    );
+
+    expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({ name: "" });
+  });
+
+  test("never replace a name somebody typed", () => {
+    const setNewFormValues: MockFunction = getJestMockFunction();
+
+    followPicksWithRuleName<Entity>(getLabelRuleName, inheritName)(
+      ["id-production"],
+      {
+        name: "Production incidents",
+        [FILLED_IN_RULE_NAME_KEY]: "Inherit labels from monitors",
+        inheritLabelsFromMonitors: true,
+      } as FormValues<Entity>,
+      setNewFormValues as unknown as SetValuesMock,
+      changeOf(["production"], []),
+    );
+
+    expect(setNewFormValues).not.toHaveBeenCalled();
+  });
+});
+
+describe.each(RECORDS)(
+  "the %s forms, which can inherit, name a rule after its switches",
+  (record: InheritingRuleRecord) => {
+    type SetValuesMock = (values: FormValues<Entity>) => void;
+
+    test.each([
+      [
+        "labels",
+        (): Array<Field<Entity>> => {
+          return getInheritingLabelRuleActionFields<Entity>(record);
+        },
+      ],
+      [
+        "owners",
+        (): Array<Field<Entity>> => {
+          return getInheritingOwnerRuleActionFields<Entity>(record);
+        },
+      ],
+    ] as Array<[RuleAddsKind, () => Array<Field<Entity>>]>)(
+      "every %s switch names the rule as it turns on",
+      (kind: RuleAddsKind, fieldsOf: () => Array<Field<Entity>>) => {
+        const fields: Array<Field<Entity>> = fieldsOf();
+
+        switchesOf(kind).forEach((column: string, index: number): void => {
+          const setNewFormValues: MockFunction = getJestMockFunction();
+          const switchField: Field<Entity> = fieldByKey(fields, column);
+
+          expect(switchField.onChange).toBeDefined();
+
+          switchField.onChange!(
+            true,
+            {} as FormValues<Entity>,
+            setNewFormValues as unknown as SetValuesMock,
+          );
+
+          const source: string = INHERITED_FROM_TERMS[record][index]!;
+          const inSentence: string = source
+            .split(" ")
+            .map((word: string): string => {
+              return ["Kubernetes", "Docker", "Podman"].includes(word)
+                ? word
+                : word.toLowerCase();
+            })
+            .join(" ");
+
+          expect(setNewFormValues.mock.calls[0]![0]).toEqual({
+            name: `Inherit ${kind} from ${inSentence}`,
+            [FILLED_IN_RULE_NAME_KEY]: `Inherit ${kind} from ${inSentence}`,
+          });
+        });
+      },
+    );
+
+    test("the name says it follows what is inherited too", () => {
+      expect(
+        fieldByKey(getInheritingLabelRuleActionFields<Entity>(record), "name")
+          .description,
+      ).toBe(LABEL_RULE_INHERITING_NAME_DESCRIPTION);
+      expect(
+        fieldByKey(getInheritingOwnerRuleActionFields<Entity>(record), "name")
+          .description,
+      ).toBe(OWNER_RULE_INHERITING_NAME_DESCRIPTION);
+    });
+
+    test("taking every label away names the rule after its switches", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      fieldByKey(
+        getInheritingLabelRuleActionFields<Entity>(record),
+        "labelsToAdd",
+      ).onChange!(
+        [],
+        {
+          name: "Add production",
+          [FILLED_IN_RULE_NAME_KEY]: "Add production",
+          inheritLabelsFromServices: true,
+        } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+        changeOf([], ["production"]),
+      );
+
+      expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+        name: "Inherit labels from services",
+      });
+    });
+
+    test("taking every owner away names the rule after its switches", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      fieldByKey(getInheritingOwnerRuleActionFields<Entity>(record), "owners")
+        .onChange!(
+        { ownerUsers: [], ownerTeams: [] },
+        {
+          name: "Add Platform as owners",
+          [FILLED_IN_RULE_NAME_KEY]: "Add Platform as owners",
+          inheritOwnersFromHosts: true,
+        } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+        changeOf([], ["Platform"]),
+      );
+
+      expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+        name: "Inherit owners from hosts",
+      });
+    });
+  },
+);
+
+describe("the forms that cannot inherit", () => {
+  test("keep their name's help about what they add", () => {
+    expect(
+      fieldByKey(getLabelRuleActionFields<Entity>(), "name").description,
+    ).toBe(LABEL_RULE_NAME_DESCRIPTION);
+    expect(
+      fieldByKey(getOwnerRuleActionFields<Entity>(), "name").description,
+    ).toBe(OWNER_RULE_NAME_DESCRIPTION);
+  });
+});
+
+/*
  * The name is a whole sentence in the reader's language, the picks put
  * where its grammar wants them. The German below is a test locale keyed the
  * way Locales/en.json keys it (the plural's "other" form, plus "_one").
@@ -903,6 +1594,19 @@ describe("in another language", () => {
             "Add {{labels}} and {{count}} more_one":
               "{{labels}} und {{count}} weiteres hinzufügen",
             "Add {{owners}} as owners": "{{owners}} als Besitzer hinzufügen",
+            "Inherit labels from {{sources}}":
+              "Beschriftungen erben von: {{sources}}",
+            "Inherit labels from {{sources}} and {{count}} more":
+              "Beschriftungen erben von: {{sources}} und {{count}} weitere",
+            "Inherit labels from {{sources}} and {{count}} more_one":
+              "Beschriftungen erben von: {{sources}} und {{count}} weitere",
+            Monitors: "Monitore",
+            Hosts: "Hosts",
+            "Kubernetes Clusters":
+              "Kubernetes-Cluster mit einer sehr langen Bezeichnung",
+            "Docker Hosts": "Docker-Hosts mit einer sehr langen Bezeichnung",
+            "Podman Hosts": "Podman-Hosts",
+            Services: "Dienste",
           },
         },
       },
@@ -926,4 +1630,167 @@ describe("in another language", () => {
 
     expect(one).toBe(`${"a".repeat(60)} und 1 weiteres hinzufügen`);
   });
+
+  test("a rule that only inherits is named in the reader's words, sources too", () => {
+    expect(
+      getInheritingRuleName({
+        kind: "labels",
+        record: "incident",
+        values: {
+          inheritLabelsFromMonitors: true,
+          inheritLabelsFromHosts: true,
+        },
+      }),
+    ).toBe("Beschriftungen erben von: Monitore, Hosts");
+  });
+
+  test("the sources left out are counted, and the name fits its column", () => {
+    const name: string = getInheritingRuleName({
+      kind: "labels",
+      record: "incident",
+      values: switchedOn("labels", [0, 1, 2, 3, 4, 5]),
+    });
+
+    expect(name.length).toBeLessThanOrEqual(RULE_NAME_MAX_LENGTH);
+    expect(name).toMatch(
+      /^Beschriftungen erben von: Monitore, Hosts(, [^,]+)* und \d+ weitere$/,
+    );
+  });
+
+  /*
+   * The owners' sentence has no German wording in this locale: the name is
+   * English, its sources too - never German words in an English sentence.
+   */
+  test("a sentence the language has no wording for stays wholly English", () => {
+    expect(
+      getInheritingRuleName({
+        kind: "owners",
+        record: "incident",
+        values: {
+          inheritOwnersFromMonitors: true,
+          inheritOwnersFromServices: true,
+        },
+      }),
+    ).toBe("Inherit owners from monitors, services");
+  });
+});
+
+/*
+ * With the Dashboard's own locale files: every language words both names,
+ * keeps the {{sources}} slot, and fills it with its own words for what is
+ * inherited from, cased for the middle of its sentence.
+ */
+describe("in every language the Dashboard ships", () => {
+  const LOCALES_DIRECTORY: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+
+  type LocaleFunction = (code: string) => Record<string, string>;
+
+  const readLocale: LocaleFunction = (code: string): Record<string, string> => {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIRECTORY, `${code}.json`), "utf8"),
+    ) as Record<string, string>;
+  };
+
+  const LANGUAGES: Array<string> = fs
+    .readdirSync(LOCALES_DIRECTORY)
+    .filter((file: string): boolean => {
+      return file.endsWith(".json") && file !== "en.json";
+    })
+    .map((file: string): string => {
+      return file.replace(/\.json$/, "");
+    })
+    .sort();
+
+  const NAME_KEYS: Array<string> = [
+    LABEL_RULE_INHERIT_NAME_WORDING.allPicks,
+    LABEL_RULE_INHERIT_NAME_WORDING.somePicks.other,
+    OWNER_RULE_INHERIT_NAME_WORDING.allPicks,
+    OWNER_RULE_INHERIT_NAME_WORDING.somePicks.other,
+  ];
+
+  test("covers all sixteen", () => {
+    expect(LANGUAGES).toHaveLength(16);
+  });
+
+  test.each(LANGUAGES)(
+    "%s words both names, keeping the list's slot",
+    (code: string) => {
+      const locale: Record<string, string> = readLocale(code);
+
+      for (const key of NAME_KEYS) {
+        const wording: string | undefined = locale[key];
+
+        expect({ code, key, translated: wording !== key }).toEqual({
+          code,
+          key,
+          translated: true,
+        });
+        expect(wording).toContain("{{sources}}");
+      }
+
+      for (const key of [
+        LABEL_RULE_INHERITING_NAME_DESCRIPTION,
+        OWNER_RULE_INHERITING_NAME_DESCRIPTION,
+      ]) {
+        expect({ code, key, translated: locale[key] !== key }).toEqual({
+          code,
+          key,
+          translated: true,
+        });
+      }
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s names a rule that only inherits in its own words",
+    async (code: string) => {
+      const locale: Record<string, string> = readLocale(code);
+
+      if (!i18next.isInitialized) {
+        await i18next.init({
+          fallbackLng: false,
+          keySeparator: false,
+          nsSeparator: false,
+          interpolation: { escapeValue: false },
+        });
+      }
+
+      i18next.addResourceBundle(code, "translation", locale, true, true);
+      await i18next.changeLanguage(code);
+
+      const sourceIn: (term: string) => string = (term: string): string => {
+        return toSentenceTerm(locale[term] || term, code);
+      };
+
+      expect(
+        getInheritingRuleName({
+          kind: "labels",
+          record: "incident",
+          values: {
+            inheritLabelsFromMonitors: true,
+            inheritLabelsFromHosts: true,
+          },
+        }),
+      ).toBe(
+        fillTemplate(locale["Inherit labels from {{sources}}"]!, {
+          sources: `${sourceIn("Monitors")}, ${sourceIn("Hosts")}`,
+        }),
+      );
+
+      expect(
+        getInheritingRuleName({
+          kind: "owners",
+          record: "alert",
+          values: { inheritOwnersFromMonitors: true },
+        }),
+      ).toBe(
+        fillTemplate(locale["Inherit owners from {{sources}}"]!, {
+          sources: sourceIn("Monitor"),
+        }),
+      );
+    },
+  );
 });

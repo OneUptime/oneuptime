@@ -48,7 +48,7 @@ Export an existing rule to get an example for your resource type, then edit or a
 }
 ```
 
-Use JSON booleans for `isEnabled`, text for patterns, and arrays of names for linked resources. Invalid patterns, unknown fields, missing names, and ambiguous references prevent the whole batch from reaching the import step. Files and pasted JSON are limited to 10 MB.
+Use JSON booleans for `isEnabled`, text for patterns, and arrays of names for linked resources. Invalid patterns, unknown fields, missing names, and ambiguous references prevent the whole batch from reaching the import step. So does a rule that adds nothing — an empty `labelsToAdd` and, on an incident, alert or scheduled maintenance rule, no `inheritLabelsFrom…` switch set to `true` — because OneUptime refuses to create one (see [Label and Owner Rules](/docs/configuration/label-and-owner-rules#however-the-rule-is-made)). An export can contain such a rule if it was saved before that check; give it a label or remove it from the file before importing. Files and pasted JSON are limited to 10 MB.
 
 ## Copy between resource types
 

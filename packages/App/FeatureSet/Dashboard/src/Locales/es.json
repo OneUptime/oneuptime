@@ -25807,5 +25807,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Se muestra el último estado, del {{time}}; esta página vuelve a intentarlo por sí sola.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Los siguientes resúmenes se envían a la misma hora del día. Déjalo vacío para empezar a las 09:00 en la zona horaria del resumen, al comienzo de la próxima semana, día o mes.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Los resúmenes se envían a la misma hora del día en esta zona horaria todo el año, también después del cambio de hora.",
-  "Holds Monitors": "Retiene los monitores"
+  "Holds Monitors": "Retiene los monitores",
+  "Daily AI Spend Limit Reached At": "Límite diario de gasto de IA alcanzado el",
+  "Daily AI Token Limit Reached At": "Límite diario de tokens de IA alcanzado el",
+  "Inherit labels from {{sources}}": "Heredar etiquetas de: {{sources}}",
+  "Inherit labels from {{sources}} and {{count}} more": "Heredar etiquetas de: {{sources}} y {{count}} más",
+  "Inherit labels from {{sources}} and {{count}} more_one": "Heredar etiquetas de: {{sources}} y {{count}} más",
+  "Inherit owners from {{sources}}": "Heredar propietarios de: {{sources}}",
+  "Inherit owners from {{sources}} and {{count}} more": "Heredar propietarios de: {{sources}} y {{count}} más",
+  "Inherit owners from {{sources}} and {{count}} more_one": "Heredar propietarios de: {{sources}} y {{count}} más",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Lleva el nombre de las etiquetas que añade, o de dónde las hereda, hasta que escribas uno propio.",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Lleva el nombre de los propietarios que añade, o de dónde los hereda, hasta que escribas uno propio."
 }

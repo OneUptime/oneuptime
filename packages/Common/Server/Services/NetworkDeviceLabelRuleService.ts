@@ -1,4 +1,4 @@
-import ProjectReferencesService from "./ProjectReferencesService";
+import LabelAndOwnerRuleBaseService from "./LabelAndOwnerRuleBaseService";
 import Model from "../../Models/DatabaseModels/NetworkDeviceLabelRule";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -7,7 +7,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import NetworkDeviceRulePatternValidator from "../Utils/NetworkDevice/RulePatternValidator";
 
-export class Service extends ProjectReferencesService<Model> {
+export class Service extends LabelAndOwnerRuleBaseService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {
@@ -25,7 +25,10 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    // The project's own records only, before anything here reads one.
+    /*
+     * A rule that adds something, naming the project's own records only,
+     * before anything here reads one.
+     */
     await super.onBeforeCreate(createBy);
 
     NetworkDeviceRulePatternValidator.validate({

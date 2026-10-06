@@ -25807,5 +25807,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Viser siste status fra {{time}}; denne siden prøver igjen automatisk.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Senere sammendrag følger på samme tid på dagen. La feltet stå tomt for å starte kl. 09:00 i sammendragets tidssone, ved begynnelsen av neste uke, dag eller måned.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Sammendrag sendes på samme tid på dagen i denne tidssonen hele året, også etter at klokken er stilt om.",
-  "Holds Monitors": "Holder monitorer"
+  "Holds Monitors": "Holder monitorer",
+  "Daily AI Spend Limit Reached At": "Daglig AI-utgiftsgrense nådd",
+  "Daily AI Token Limit Reached At": "Daglig AI-tokengrense nådd",
+  "Inherit labels from {{sources}}": "Arv etiketter fra: {{sources}}",
+  "Inherit labels from {{sources}} and {{count}} more": "Arv etiketter fra: {{sources}} og {{count}} til",
+  "Inherit labels from {{sources}} and {{count}} more_one": "Arv etiketter fra: {{sources}} og {{count}} til",
+  "Inherit owners from {{sources}}": "Arv eiere fra: {{sources}}",
+  "Inherit owners from {{sources}} and {{count}} more": "Arv eiere fra: {{sources}} og {{count}} til",
+  "Inherit owners from {{sources}} and {{count}} more_one": "Arv eiere fra: {{sources}} og {{count}} til",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Navngitt etter etikettene den legger til, eller hvor den arver dem fra, til du skriver inn ditt eget navn.",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Navngitt etter eierne den legger til, eller hvor den arver dem fra, til du skriver inn ditt eget navn."
 }

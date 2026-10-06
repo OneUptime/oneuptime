@@ -455,9 +455,9 @@ Owner, Label and Privacy Rules only act on incidents and episodes created after 
 
 **Incidents → Rules → Label Rules** attaches labels to new incidents that match, and **Owner Rules** adds owner users and teams to them. **Alerts → Rules** and **Scheduled Maintenance → Rules** have the same two pages and work the same way. Creating a rule takes two steps: **Match**, the conditions an incident must meet, then **Labels** (or **Owners**), what the rule adds. Its **Name** is filled in from what you pick until you type a name of your own, and the optional **Description** (and an owner rule's **Notify Owners**) waits under **More fields**.
 
-**A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty; a new rule that neither names nor inherits anything cannot be saved. Episode rules, on the **Episode Rules** tab, have no inherit switches.
+**A rule can inherit.** Under **Labels to Add** (or **Owners**), the folded **Inherit Labels** (or **Inherit Owners**) section holds six switches that also hand on the labels (or owners) of the incident's monitors, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. A rule that inherits can leave **Labels to Add** empty, and is then named after what it inherits from (_Inherit labels from monitors, hosts_); a new rule that neither names nor inherits anything cannot be saved — from the form, the API or Terraform. Episode rules, on the **Episode Rules** tab, have no inherit switches.
 
-**Older rules that add nothing** — saved before the form asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
+**Older rules that add nothing** — saved before OneUptime asked what they add — can still be renamed, switched off or deleted, and the list marks each one **Adds nothing**. [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step.
 
 ## Incident grouping rules
 
