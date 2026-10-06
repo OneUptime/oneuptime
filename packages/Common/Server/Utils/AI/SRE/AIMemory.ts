@@ -3,6 +3,8 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import IncidentService from "../../../Services/IncidentService";
+import IncidentStateService from "../../../Services/IncidentStateService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
 
@@ -42,9 +44,18 @@ export default class AIMemory {
     labelNames: Array<string>;
   }): Promise<string> {
     try {
+      /*
+       * The project's resolved incidents (Common/Utils/ResolvedState): in
+       * its resolved state, or a state placed after it.
+       */
       const candidates: Array<Incident> = await IncidentService.findBy({
         query: {
           projectId: data.projectId,
+          currentIncidentStateId: QueryHelper.any(
+            await IncidentStateService.getResolvedIncidentStateIds(
+              data.projectId,
+            ),
+          ),
         },
         select: {
           _id: true,
@@ -52,9 +63,6 @@ export default class AIMemory {
           title: true,
           rootCause: true,
           createdAt: true,
-          currentIncidentState: {
-            isResolvedState: true,
-          },
           monitors: {
             name: true,
           },
@@ -86,7 +94,6 @@ export default class AIMemory {
         .filter((incident: Incident) => {
           return (
             incident.id?.toString() !== currentIdString &&
-            incident.currentIncidentState?.isResolvedState === true &&
             Boolean(incident.rootCause && incident.rootCause.trim().length > 0)
           );
         })

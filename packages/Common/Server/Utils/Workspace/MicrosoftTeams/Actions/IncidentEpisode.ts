@@ -192,7 +192,6 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
             currentIncidentState: {
               _id: true,
               name: true,
-              isResolvedState: true,
             },
           },
           props: {
@@ -205,7 +204,8 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      if (episode.currentIncidentState?.isResolvedState) {
+      // Resolved by the one rule (Common/Utils/ResolvedState).
+      if (await IncidentEpisodeService.isEpisodeResolved(episode.id!)) {
         logger.debug("Incident episode is already resolved");
         return;
       }

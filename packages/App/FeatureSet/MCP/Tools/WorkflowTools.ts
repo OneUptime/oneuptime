@@ -17,6 +17,7 @@ import McpCredentialUtil, {
 } from "../Types/McpCredential";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONArray } from "Common/Types/JSON";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 type StateFlag = "isAcknowledgedState" | "isResolvedState";
 
@@ -327,12 +328,18 @@ async function findStateId(data: {
   const statePath: string =
     data.kind === "incident" ? "/incident-state" : "/alert-state";
 
+  /*
+   * The project's acknowledged or resolved state: the first from the top
+   * that carries the flag - the one the dashboard's Acknowledge and Resolve
+   * move a record into (Common/Utils/ResolvedState).
+   */
   const response: unknown = await OneUptimeApiService.makeAuthenticatedApiCall({
     method: "POST",
     path: `/api${statePath}/get-list`,
     body: {
       query: { [data.flag]: true },
       select: { _id: true, name: true },
+      sort: { order: SortOrder.Ascending },
       skip: 0,
       limit: 1,
     } as JSONObject,

@@ -28,11 +28,13 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertService from "./AlertService";
+import AlertStateService from "./AlertStateService";
 import AlertSeverityService from "./AlertSeverityService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
 import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import IncidentService from "./IncidentService";
+import IncidentStateService from "./IncidentStateService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import LabelService from "./LabelService";
@@ -1260,9 +1262,10 @@ export class Service extends ProjectReferencesService<Model> {
       query: {
         projectId: data.projectId,
         seriesFingerprint: fingerprint,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        // Open: above the project's resolved state (Common/Utils/ResolvedState).
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(data.projectId),
+        ),
       },
       select: {
         _id: true,
@@ -1985,9 +1988,12 @@ export class Service extends ProjectReferencesService<Model> {
       query: {
         projectId: data.projectId,
         seriesFingerprint: fingerprint,
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        // Open: above the project's resolved state (Common/Utils/ResolvedState).
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            data.projectId,
+          ),
+        ),
       },
       select: {
         _id: true,

@@ -16,6 +16,8 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
+import IncidentStateService from "../../Services/IncidentStateService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import LabelService from "../../Services/LabelService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
@@ -53,6 +55,11 @@ export default class MonitorIncident {
   @CaptureSpan()
   public static async checkOpenIncidentsAndCloseIfResolved(input: {
     monitorId: ObjectID;
+    /*
+     * The monitor's project: its incident states say which of the monitor's
+     * incidents are still open (Common/Utils/ResolvedState).
+     */
+    projectId: ObjectID;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
@@ -99,13 +106,20 @@ export default class MonitorIncident {
      */
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Incident>> {
-    // check active incidents and if there are open incidents, do not create another incident.
+    /*
+     * check active incidents and if there are open incidents, do not create
+     * another incident. Open: in a state above the project's resolved state
+     * - an incident in a state placed after Resolved is over, and a new one
+     * is declared.
+     */
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitorId],
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.projectId,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -234,9 +248,11 @@ export default class MonitorIncident {
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitor.id!],
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -409,6 +425,7 @@ export default class MonitorIncident {
         ? input.openIncidents
         : await this.checkOpenIncidentsAndCloseIfResolved({
             monitorId: input.monitor.id!,
+            projectId: input.monitor.projectId!,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary:
               input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             rootCause: input.rootCause,
