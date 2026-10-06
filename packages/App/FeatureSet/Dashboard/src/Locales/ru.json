@@ -25804,5 +25804,9 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Показано последнее состояние на {{time}}; эта страница сама повторит попытку.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Следующие сводки приходят в то же время суток. Оставьте пустым, чтобы начать в 09:00 по часовому поясу сводки в начале следующей недели, дня или месяца.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Сводки приходят в одно и то же время суток в этом часовом поясе весь год, в том числе после перевода часов.",
-  "Holds Monitors": "Удерживает мониторы"
+  "Holds Monitors": "Удерживает мониторы",
+  "Not sent yet: incident hidden from status pages": "Ещё не отправлено: инцидент скрыт со страниц состояния",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Разбор этого инцидента был опубликован, пока инцидент был скрыт, поэтому подписчикам он ещё не отправлен. Если включить этот параметр, он будет им отправлен.",
+  "Daily AI Spend Limit Reached At": "Daily AI Spend Limit Reached At",
+  "Daily AI Token Limit Reached At": "Daily AI Token Limit Reached At"
 }

@@ -22,6 +22,17 @@ import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotifi
  * Taking it off the status page (or emptying its note) and publishing it
  * again tells them again: they saw it go, so its return is news.
  *
+ * The status page shows an incident's postmortem only while it shows the
+ * incident. A postmortem published while its incident is hidden from status
+ * pages reaches nobody: the job skips its notification, saying it waits for
+ * the incident (hiddenIncidentMessage). Making the incident visible is then
+ * the moment the status page first shows it, so that update queues the
+ * notification (isShownByUpdate) - once: only a notification skipped because
+ * the incident was hidden goes back in the queue, never one that was sent,
+ * failed or skipped for another reason, and hiding the incident and showing
+ * it again tells nobody twice. (Found in #4429: it used to stay skipped, so
+ * nobody was ever told.)
+ *
  * Whether subscribers are notified at all - Notify Subscribers
  * (notifySubscribersOnPostmortemPublished) - is read by the job that sends
  * it, never decided here (see NotifyFlagNeverQueuesOnUpdateGuard): an update
@@ -45,6 +56,40 @@ export interface IncidentPostmortemStoredState extends IncidentPostmortemState {
     | StatusPageSubscriberNotificationStatus
     | undefined
     | null;
+  /*
+   * Read only for an update that switches Visible on Status Page on
+   * (isIncidentShownBy): why the notification was settled, and whether the
+   * incident was shown on status pages before the update.
+   */
+  subscriberNotificationStatusMessageOnPostmortemPublished?:
+    | string
+    | undefined
+    | null;
+  isVisibleOnStatusPage?: boolean | undefined | null;
+}
+
+// Where the postmortem's subscriber notification stands, and why.
+export interface IncidentPostmortemNotificationState {
+  status: StatusPageSubscriberNotificationStatus | undefined | null;
+  message: string | undefined | null;
+}
+
+/*
+ * An incident as its Settings form loads it: whether turning Visible on
+ * Status Page on would send its postmortem (isWaitingForIncidentToShow).
+ */
+export interface IncidentPostmortemWaitingState
+  extends IncidentPostmortemState {
+  isVisibleOnStatusPage?: boolean | undefined | null;
+  notifySubscribersOnPostmortemPublished?: boolean | undefined | null;
+  subscriberNotificationStatusOnPostmortemPublished?:
+    | StatusPageSubscriberNotificationStatus
+    | undefined
+    | null;
+  subscriberNotificationStatusMessageOnPostmortemPublished?:
+    | string
+    | undefined
+    | null;
 }
 
 // The columns that decide whether the status page shows the postmortem.
@@ -57,6 +102,7 @@ export enum PostmortemNotificationAction {
   None = "None",
   Queue = "Queue",
   QueueIfSkippedMeanwhile = "QueueIfSkippedMeanwhile",
+  QueueIfSkippedAsHidden = "QueueIfSkippedAsHidden",
 }
 
 export default class IncidentPostmortemPublication {
@@ -76,6 +122,41 @@ export default class IncidentPostmortemPublication {
   // ...or switched on without a note.
   public static readonly noNoteMessage: string =
     "The postmortem has no note, so the status page does not show it. Skipping notifications to subscribers.";
+
+  /*
+   * Why the job skips a published postmortem of an incident hidden from
+   * status pages, and what happens next: it is sent when the incident is
+   * made visible (isShownByUpdate).
+   */
+  public static readonly hiddenIncidentMessage: string =
+    "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.";
+
+  /*
+   * The same skip as the job worded it before a hidden incident's postmortem
+   * was sent once the incident is shown. Incidents it skipped then still
+   * hold it, and showing them sends their postmortem too.
+   */
+  public static readonly earlierHiddenIncidentMessage: string =
+    "Incident is not visible on status page. Skipping notifications to subscribers.";
+
+  // What the notification says while it waits for the job, once the incident is shown.
+  public static readonly shownQueuedMessage: string =
+    "Incident made visible on status pages. Subscribers will be sent its postmortem shortly.";
+
+  /*
+   * How the dashboard labels a postmortem that waits for its hidden incident
+   * to be shown (see isWaitingForIncidentToShow), in place of "Notifications
+   * skipped.": it is not sent yet, rather than not to be sent.
+   */
+  public static readonly hiddenIncidentLabel: string =
+    "Not sent yet: incident hidden from status pages";
+
+  /*
+   * What the incident's Visible on Status Page switch says while turning it
+   * on would send the postmortem (isWaitingForIncidentToShow).
+   */
+  public static readonly sendsOnShowDescription: string =
+    "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.";
 
   /*
    * The note as the status page reads it: line endings written as "\n",
@@ -252,18 +333,112 @@ export default class IncidentPostmortemPublication {
   }
 
   /*
+   * Whether an update switches Visible on Status Page on: true, or a
+   * hand-written "true" (isSwitchedOn). Only such an update can show a
+   * postmortem that waits for its incident, so only it reads the incident's
+   * visibility before the write. An update that makes the incident private
+   * hides it instead: IncidentService switches it off before this is asked.
+   */
+  public static isIncidentShownBy(
+    written: Record<string, unknown> | undefined | null,
+  ): boolean {
+    if (!written) {
+      return false;
+    }
+
+    return this.isSwitchedOn(written["isVisibleOnStatusPage"]);
+  }
+
+  /*
+   * Whether the update shows the incident on status pages: it switches
+   * Visible on Status Page on for an incident that was hidden - switched
+   * off, or never set, which the status page and the send job read as
+   * hidden too. Writing it back on an incident already shown is no change.
+   * An incident the read before the write did not see counts as hidden
+   * before, so a real change is never missed.
+   */
+  public static isShownByUpdate(data: {
+    stored: IncidentPostmortemStoredState | undefined | null;
+    written: Record<string, unknown>;
+  }): boolean {
+    return (
+      this.isIncidentShownBy(data.written) &&
+      data.stored?.isVisibleOnStatusPage !== true
+    );
+  }
+
+  /*
+   * Whether the notification stands skipped only because the incident was
+   * hidden from status pages - in the job's words now, or as it put them
+   * before (earlierHiddenIncidentMessage). A skip for any other reason, and
+   * any other status, is not.
+   */
+  public static isHiddenIncidentSkip(
+    notification: IncidentPostmortemNotificationState | undefined | null,
+  ): boolean {
+    if (!notification) {
+      return false;
+    }
+
+    return (
+      notification.status === StatusPageSubscriberNotificationStatus.Skipped &&
+      (notification.message === this.hiddenIncidentMessage ||
+        notification.message === this.earlierHiddenIncidentMessage)
+    );
+  }
+
+  /*
+   * Whether showing the incident would send its postmortem now: the
+   * incident is hidden, its postmortem is published with Notify Subscribers
+   * on, and its notification was skipped only because the incident was
+   * hidden. What the incident's Settings form says under Visible on Status
+   * Page (sendsOnShowDescription), and what the postmortem's notification
+   * status is labelled (hiddenIncidentLabel). An incident shown since - one
+   * an earlier release showed without sending it - is not waiting: showing
+   * it again is no change.
+   */
+  public static isWaitingForIncidentToShow(
+    incident: IncidentPostmortemWaitingState | undefined | null,
+  ): boolean {
+    if (!incident) {
+      return false;
+    }
+
+    return (
+      incident.isVisibleOnStatusPage !== true &&
+      incident.notifySubscribersOnPostmortemPublished === true &&
+      this.isPublished(incident) &&
+      this.isHiddenIncidentSkip({
+        status: incident.subscriberNotificationStatusOnPostmortemPublished,
+        message: incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+      })
+    );
+  }
+
+  /*
    * What an update does to the postmortem's subscriber notification:
    *
-   * - nothing, unless it publishes the postmortem (isPublishedByUpdate),
-   *   and nothing when it sets the status itself (isStatusSetByUpdate);
-   * - Queue: put it back to Pending, from where it stood before the update;
-   * - QueueIfSkippedMeanwhile: it was on its way (isOnItsWay) when the
-   *   update read it. A Pending one is read afresh by the job, so it carries
-   *   the publish. But a run may already hold it, having read the postmortem
-   *   before the update published it, and skip it from that read; so once
-   *   the update is written, it is queued again if it was skipped in the
-   *   meantime. (The job looks again after such a skip too, for a skip
-   *   settled after that.)
+   * - nothing when it sets the status itself (isStatusSetByUpdate);
+   * - for an update that publishes the postmortem (isPublishedByUpdate):
+   *   - Queue: put it back to Pending, from where it stood before the
+   *     update;
+   *   - QueueIfSkippedMeanwhile: it was on its way (isOnItsWay) when the
+   *     update read it. A Pending one is read afresh by the job, so it
+   *     carries the publish. But a run may already hold it, having read the
+   *     postmortem before the update published it, and skip it from that
+   *     read; so once the update is written, it is queued again if it was
+   *     skipped in the meantime. (The job looks again after such a skip
+   *     too, for a skip settled after that.)
+   * - for an update that shows the incident (isShownByUpdate) whose
+   *   postmortem is published once it is written:
+   *   - QueueIfSkippedAsHidden: the notification was skipped because the
+   *     incident was hidden, or was on its way - and a run holding it may
+   *     skip it so, from a read made before the update. Once the update is
+   *     written, it is queued if it stands skipped for that reason then,
+   *     and only while it still does. A notification that was sent, failed
+   *     or skipped for another reason stays as it is: showing the incident
+   *     is no reason to send it (again);
+   * - nothing otherwise.
    *
    * Notify Subscribers plays no part: the job reads it when it would send.
    */
@@ -271,18 +446,36 @@ export default class IncidentPostmortemPublication {
     stored: IncidentPostmortemStoredState | undefined | null;
     written: Record<string, unknown>;
   }): PostmortemNotificationAction {
-    if (!this.isPublishedByUpdate(data) || this.isStatusSetByUpdate(data)) {
+    if (this.isStatusSetByUpdate(data)) {
       return PostmortemNotificationAction.None;
     }
 
-    if (
-      this.isOnItsWay(
-        data.stored?.subscriberNotificationStatusOnPostmortemPublished,
-      )
-    ) {
-      return PostmortemNotificationAction.QueueIfSkippedMeanwhile;
+    const storedStatus:
+      | StatusPageSubscriberNotificationStatus
+      | undefined
+      | null = data.stored?.subscriberNotificationStatusOnPostmortemPublished;
+
+    if (this.isPublishedByUpdate(data)) {
+      if (this.isOnItsWay(storedStatus)) {
+        return PostmortemNotificationAction.QueueIfSkippedMeanwhile;
+      }
+
+      return PostmortemNotificationAction.Queue;
     }
 
-    return PostmortemNotificationAction.Queue;
+    if (
+      this.isShownByUpdate(data) &&
+      this.isPublished(this.getStateAfterUpdate(data)) &&
+      (this.isOnItsWay(storedStatus) ||
+        this.isHiddenIncidentSkip({
+          status: storedStatus,
+          message:
+            data.stored?.subscriberNotificationStatusMessageOnPostmortemPublished,
+        }))
+    ) {
+      return PostmortemNotificationAction.QueueIfSkippedAsHidden;
+    }
+
+    return PostmortemNotificationAction.None;
   }
 }

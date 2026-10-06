@@ -25804,5 +25804,9 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} 正在显示 {{time}} 时的最后状态；此页面会自动重试。",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "之后的摘要会在每天相同的时间发送。留空则在下一周、下一天或下个月开始时，按摘要的时区于 09:00 开始。",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "摘要全年都会在此时区的同一时间发送，夏令时调整时钟后也一样。",
-  "Holds Monitors": "占用监视器"
+  "Holds Monitors": "占用监视器",
+  "Not sent yet: incident hidden from status pages": "尚未发送：事件在状态页面上隐藏",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "此事件的事后分析是在事件隐藏期间发布的，因此尚未发送给订阅者。开启此项后将发送给他们。",
+  "Daily AI Spend Limit Reached At": "Daily AI Spend Limit Reached At",
+  "Daily AI Token Limit Reached At": "Daily AI Token Limit Reached At"
 }

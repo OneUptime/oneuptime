@@ -25804,5 +25804,9 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Viser siste status fra {{time}}; denne siden prøver igjen automatisk.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Senere sammendrag følger på samme tid på dagen. La feltet stå tomt for å starte kl. 09:00 i sammendragets tidssone, ved begynnelsen av neste uke, dag eller måned.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Sammendrag sendes på samme tid på dagen i denne tidssonen hele året, også etter at klokken er stilt om.",
-  "Holds Monitors": "Holder monitorer"
+  "Holds Monitors": "Holder monitorer",
+  "Not sent yet: incident hidden from status pages": "Ikke sendt ennå: hendelse skjult på statussider",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Evalueringen av denne hendelsen ble publisert mens hendelsen var skjult, så den er ikke sendt til abonnentene ennå. Når du slår på dette, sendes den til dem.",
+  "Daily AI Spend Limit Reached At": "Daily AI Spend Limit Reached At",
+  "Daily AI Token Limit Reached At": "Daily AI Token Limit Reached At"
 }

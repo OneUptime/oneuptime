@@ -25804,5 +25804,9 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} {{time}} की अंतिम स्थिति दिखाई जा रही है; यह पेज अपने आप पुनः प्रयास करता है।",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "बाद के सारांश दिन के उसी समय भेजे जाते हैं। इसे खाली छोड़ें ताकि अगले सप्ताह, दिन या महीने की शुरुआत में सारांश के टाइमज़ोन के अनुसार 09:00 बजे शुरू हो।",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "सारांश पूरे साल इस टाइमज़ोन में दिन के उसी समय भेजे जाते हैं, घड़ियाँ बदलने के बाद भी।",
-  "Holds Monitors": "मॉनिटर थामे हुए"
+  "Holds Monitors": "मॉनिटर थामे हुए",
+  "Not sent yet: incident hidden from status pages": "अभी तक नहीं भेजा गया: घटना स्थिति पृष्ठों से छिपी हुई है",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "इस घटना का पोस्टमॉर्टम तब प्रकाशित हुआ था जब घटना छिपी हुई थी, इसलिए यह अभी तक सब्सक्राइबर्स को नहीं भेजा गया है। इसे चालू करने पर यह उन्हें भेज दिया जाता है।",
+  "Daily AI Spend Limit Reached At": "Daily AI Spend Limit Reached At",
+  "Daily AI Token Limit Reached At": "Daily AI Token Limit Reached At"
 }

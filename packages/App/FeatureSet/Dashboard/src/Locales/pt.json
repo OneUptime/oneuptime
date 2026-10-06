@@ -25804,5 +25804,9 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Mostrando o último status, de {{time}}; esta página tenta novamente por conta própria.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Os resumos seguintes saem à mesma hora do dia. Deixe em branco para começar às 09:00 no fuso horário do resumo, no início da próxima semana, do próximo dia ou mês.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Os resumos saem à mesma hora do dia neste fuso horário durante todo o ano, inclusive depois da mudança de horário.",
-  "Holds Monitors": "Retém os monitores"
+  "Holds Monitors": "Retém os monitores",
+  "Not sent yet: incident hidden from status pages": "Ainda não enviado: incidente oculto nas páginas de status",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "A análise post-mortem deste incidente foi publicada enquanto o incidente estava oculto, por isso ainda não foi enviada aos assinantes. Ao ativar esta opção, ela é enviada a eles.",
+  "Daily AI Spend Limit Reached At": "Daily AI Spend Limit Reached At",
+  "Daily AI Token Limit Reached At": "Daily AI Token Limit Reached At"
 }

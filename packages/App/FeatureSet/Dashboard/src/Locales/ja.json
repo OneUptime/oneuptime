@@ -25804,5 +25804,9 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} {{time}} 時点の最後のステータスを表示しています。このページは自動的に再試行します。",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "以降のサマリーは同じ時刻に送信されます。空欄のままにすると、次の週・日・月の始めの 09:00（サマリーのタイムゾーン）に開始します。",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "サマリーは、このタイムゾーンで一年中同じ時刻に送信されます。夏時間で時計が切り替わった後も同じです。",
-  "Holds Monitors": "モニターを保持"
+  "Holds Monitors": "モニターを保持",
+  "Not sent yet: incident hidden from status pages": "未送信: インシデントがステータスページで非表示",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "このインシデントのポストモーテムはインシデントが非表示の間に公開されたため、まだ購読者に送信されていません。これをオンにすると購読者に送信されます。",
+  "Daily AI Spend Limit Reached At": "Daily AI Spend Limit Reached At",
+  "Daily AI Token Limit Reached At": "Daily AI Token Limit Reached At"
 }

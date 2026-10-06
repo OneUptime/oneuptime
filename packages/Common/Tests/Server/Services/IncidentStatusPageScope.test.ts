@@ -1729,10 +1729,20 @@ describe("IncidentService.onBeforeUpdate: publishing tells the pages added while
 
     await runBeforeUpdate(publish());
 
+    /*
+     * The publish check's own read. (Showing the incident is read once more,
+     * for its postmortem: one published while the incident was hidden is
+     * sent when it is shown - IncidentPostmortemPublication.isShownByUpdate.)
+     */
+    expect(scopeAndNotificationReads()).toHaveLength(1);
+
     const findBy: {
       query: Record<string, unknown>;
       select: Record<string, unknown>;
-    } = incidentFindBy.mock.calls[0]![0];
+    } = scopeAndNotificationReads()[0]![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    };
 
     expect(findBy.select["statusPages"]).toEqual({ _id: true });
     expect(findBy.select["statusPagesNotifiedOnCreation"]).toBe(true);

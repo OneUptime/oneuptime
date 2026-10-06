@@ -16,6 +16,7 @@ import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import GenerateFromAIModal, {
   GenerateAIRequestData,
 } from "Common/UI/Components/AI/GenerateFromAIModal";
@@ -180,6 +181,8 @@ const IncidentPostmortem: FunctionComponent<
           id: "model-detail-incident-postmortem-note",
           selectMoreFields: {
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
+            // Whether a skipped notification still waits for the incident to show.
+            isVisibleOnStatusPage: true,
           },
           /*
            * The write-up and its files first, then the status page: whether
@@ -273,6 +276,18 @@ const IncidentPostmortem: FunctionComponent<
                     }
                     subscriberNotificationStatusMessage={
                       item.subscriberNotificationStatusMessageOnPostmortemPublished
+                    }
+                    /*
+                     * Published while the incident is hidden: not sent yet,
+                     * rather than not to be sent - it goes out when the
+                     * incident is made visible on status pages.
+                     */
+                    statusText={
+                      IncidentPostmortemPublication.isWaitingForIncidentToShow(
+                        item,
+                      )
+                        ? IncidentPostmortemPublication.hiddenIncidentLabel
+                        : undefined
                     }
                     onResendNotification={handleResendPostmortemNotification}
                   />
