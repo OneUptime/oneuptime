@@ -127,7 +127,12 @@ const ROUTES: ReadonlyArray<{
   isWrite: boolean;
 }> = [
   { method: "POST", uri: PATH, serves: "createItem", isWrite: true },
-  { method: "POST", uri: `${PATH}/get-list`, serves: "getList", isWrite: false },
+  {
+    method: "POST",
+    uri: `${PATH}/get-list`,
+    serves: "getList",
+    isWrite: false,
+  },
   { method: "GET", uri: `${PATH}/get-list`, serves: "getList", isWrite: false },
   { method: "POST", uri: `${PATH}/count`, serves: "count", isWrite: false },
   {
@@ -213,9 +218,7 @@ beforeEach(() => {
     },
   ]);
   getJestSpyOn(GlobalConfigService, "findOneBy").mockResolvedValue(null);
-  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(
-    undefined,
-  );
+  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getCurrentPlan = getJestSpyOn(ProjectService, "getCurrentPlan");
   onPlan(PlanType.Free);
 

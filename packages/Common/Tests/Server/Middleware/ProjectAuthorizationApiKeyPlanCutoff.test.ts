@@ -25,6 +25,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterAll,
@@ -126,10 +127,10 @@ let globalConfigFindOneBy: ReturnType<typeof getJestSpyOn>;
 let userFindOneBy: ReturnType<typeof getJestSpyOn>;
 let getCurrentPlan: ReturnType<typeof getJestSpyOn>;
 
-const onPlan: (plan: PlanType | null, isSubscriptionUnpaid?: boolean) => void = (
+const onPlan: (
   plan: PlanType | null,
   isSubscriptionUnpaid?: boolean,
-): void => {
+) => void = (plan: PlanType | null, isSubscriptionUnpaid?: boolean): void => {
   getCurrentPlan.mockResolvedValue({
     plan: plan,
     isSubscriptionUnpaid: Boolean(isSubscriptionUnpaid),
@@ -188,7 +189,7 @@ const authenticate: (
     body: {},
   } as unknown as OneUptimeRequest;
 
-  const next: jest.Mock = jest.fn();
+  const next: MockFunction = getJestMockFunction();
 
   await expect(
     ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(

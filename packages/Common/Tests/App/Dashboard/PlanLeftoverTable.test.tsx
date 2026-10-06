@@ -605,9 +605,9 @@ describe("which description a table gets", () => {
   test.each([[new ProjectSCIM().tableName], [new StatusPageSCIM().tableName]])(
     "%s: stopped, and provisioning with it",
     (tableName: string | null) => {
-      expect(
-        getPlanLeftoverDescription({ tableName, hasSwitch: false }),
-      ).toBe(PlanLeftoverCopy.descriptionScimStopped);
+      expect(getPlanLeftoverDescription({ tableName, hasSwitch: false })).toBe(
+        PlanLeftoverCopy.descriptionScimStopped,
+      );
     },
   );
 

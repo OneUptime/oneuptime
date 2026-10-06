@@ -104,10 +104,10 @@ afterAll(() => {
 
 let getCurrentPlan: ReturnType<typeof getJestSpyOn>;
 
-const onPlan: (plan: PlanType | null, isSubscriptionUnpaid?: boolean) => void = (
+const onPlan: (
   plan: PlanType | null,
   isSubscriptionUnpaid?: boolean,
-): void => {
+) => void = (plan: PlanType | null, isSubscriptionUnpaid?: boolean): void => {
   getCurrentPlan.mockResolvedValue({
     plan: plan,
     isSubscriptionUnpaid: Boolean(isSubscriptionUnpaid),

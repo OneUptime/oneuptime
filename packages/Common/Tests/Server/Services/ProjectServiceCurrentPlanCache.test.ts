@@ -156,12 +156,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const readPlan: () => Promise<PlanType | null> = async (): Promise<
-  PlanType | null
-> => {
-  const plan: CurrentPlan = await ProjectService.getCurrentPlan(PROJECT_ID);
-  return plan.plan;
-};
+const readPlan: () => Promise<PlanType | null> =
+  async (): Promise<PlanType | null> => {
+    const plan: CurrentPlan = await ProjectService.getCurrentPlan(PROJECT_ID);
+    return plan.plan;
+  };
 
 describe("a project's plan, cached on each server", () => {
   test("is read once and served from the cache within the minute", async () => {

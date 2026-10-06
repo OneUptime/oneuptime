@@ -57,7 +57,7 @@ describe("the credentials that stop below their plan", () => {
     [new TelemetryIngestionKey().tableName],
     ["apikey"],
     [""],
-  ])("%s is not", (tableName: string | undefined) => {
+  ])("%s is not", (tableName: string | null) => {
     expect(isPlanCutoffCredentialTable(tableName)).toBe(false);
   });
 

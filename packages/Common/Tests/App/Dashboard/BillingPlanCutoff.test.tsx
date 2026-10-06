@@ -86,7 +86,7 @@ jest.mock("../../../UI/Utils/Analytics", () => {
 
 jest.mock("../../../UI/Config", () => {
   const config: Record<string, unknown> = {
-    ...jest.requireActual("../../../UI/Config"),
+    ...jest.requireActual<Record<string, unknown>>("../../../UI/Config"),
   };
   Object.defineProperty(config, "BILLING_ENABLED", {
     get: () => {
@@ -258,9 +258,7 @@ beforeEach(() => {
   });
   getItemMock.mockReset();
 
-  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
-    PROJECT_ID,
-  );
+  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   getJestSpyOn(Navigation, "getCurrentURL").mockReturnValue(
     URL.fromString("https://example.com/dashboard/project/settings/billing"),
   );

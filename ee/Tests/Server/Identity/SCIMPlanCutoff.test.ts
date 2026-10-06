@@ -234,10 +234,10 @@ const statusPageConfig: () => StatusPageSCIM = (): StatusPageSCIM => {
 };
 
 // The connection whose id and token the request names, as the lookup finds it.
-const lookupMatches: (
+const lookupMatches: (findBy: unknown, id: string) => boolean = (
   findBy: unknown,
   id: string,
-) => boolean = (findBy: unknown, id: string): boolean => {
+): boolean => {
   const query: Record<string, unknown> = (
     findBy as { query: Record<string, unknown> }
   ).query;

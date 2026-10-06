@@ -34,7 +34,9 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     "../../../../Server/EnvironmentConfig",
   ) as Record<string, unknown>;
   const urlModule: { default: { fromString: (url: string) => unknown } } =
-    jest.requireActual("../../../../Types/API/URL");
+    jest.requireActual("../../../../Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    };
   const mocked: Record<string, unknown> = { ...actual };
   const mockGlobal: MockGlobal = globalThis as MockGlobal;
   mockGlobal.__planDowngradeNoticeDashboardUrl =
@@ -223,11 +225,7 @@ describe("what a move stops", () => {
     [PlanType.Free, PlanType.Free, []],
   ])(
     "%s to %s stops %j",
-    (
-      from: PlanType,
-      to: PlanType,
-      expected: Array<PlanCutoffCredential>,
-    ) => {
+    (from: PlanType, to: PlanType, expected: Array<PlanCutoffCredential>) => {
       expect(
         PlanDowngradeOwnerNotice.getCredentialsStoppedByMove({
           fromPlan: from,
@@ -483,7 +481,9 @@ describe("what the email holds", () => {
     await move(PlanType.Growth, PlanType.Free);
 
     expect(sentHtml()).not.toContain("<img");
-    expect(sentHtml()).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    expect(sentHtml()).toContain(
+      "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;",
+    );
   });
 
   test("names 'your project' when the project has no name", async () => {

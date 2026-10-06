@@ -1,4 +1,7 @@
-import { IDENTITY_REQUIRED_PLAN, isPlanAtLeast } from "../../Enterprise/EnterpriseEligibility";
+import {
+  IDENTITY_REQUIRED_PLAN,
+  isPlanAtLeast,
+} from "../../Enterprise/EnterpriseEligibility";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import {
@@ -70,7 +73,9 @@ export const getStoppedOnPlan: (data: {
   }
 
   return {
-    apiKeys: reaches(API_KEY_REQUIRED_PLAN, data.plan) ? 0 : data.counts.apiKeys,
+    apiKeys: reaches(API_KEY_REQUIRED_PLAN, data.plan)
+      ? 0
+      : data.counts.apiKeys,
     scimConnections: reaches(SCIM_REQUIRED_PLAN, data.plan)
       ? 0
       : data.counts.scimConnections,
@@ -100,7 +105,8 @@ export const getStoppedByMove: (data: {
     requiredPlan: PlanType,
   ): boolean => {
     return (
-      reaches(requiredPlan, data.fromPlan!) && !reaches(requiredPlan, data.toPlan)
+      reaches(requiredPlan, data.fromPlan!) &&
+      !reaches(requiredPlan, data.toPlan)
     );
   };
 

@@ -127,10 +127,10 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   // The plan the project is on, or null while it loads or is not one of ours.
   const currentPlanType: PlanType | null = currentPlanId
-    ? ((SubscriptionPlan.getSubscriptionPlanById(
+    ? (SubscriptionPlan.getSubscriptionPlanById(
         currentPlanId,
         getAllEnvVars(),
-      )?.getName() as PlanType | undefined) ?? null)
+      )?.getName() as PlanType | undefined) ?? null
     : null;
 
   /*

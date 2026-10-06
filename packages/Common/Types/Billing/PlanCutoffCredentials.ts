@@ -44,7 +44,9 @@ export const PLAN_CUTOFF_CREDENTIAL_TABLES: ReadonlyArray<string> = [
 export const isPlanCutoffCredentialTable: (
   tableName: string | undefined | null,
 ) => boolean = (tableName: string | undefined | null): boolean => {
-  return Boolean(tableName) && PLAN_CUTOFF_CREDENTIAL_TABLES.includes(tableName!);
+  return (
+    Boolean(tableName) && PLAN_CUTOFF_CREDENTIAL_TABLES.includes(tableName!)
+  );
 };
 
 /*
