@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "在您输入自己的名称之前，按其添加的标签或继承标签的来源命名。",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "在您输入自己的名称之前，按其添加的所有者或继承所有者的来源命名。",
   "Not sent yet: incident hidden from status pages": "尚未发送：事件在状态页面上隐藏",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "此事件的事后分析是在事件隐藏期间发布的，因此尚未发送给订阅者。开启此项后将发送给他们。"
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "此事件的事后分析是在事件隐藏期间发布的，因此尚未发送给订阅者。开启此项后将发送给他们。",
+  "A private episode is never shown on status pages.": "私有片段永远不会显示在状态页面上。",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "此片段为私有，因此已在您的状态页面上隐藏，其订阅者也不会收到相关通知。"
 }

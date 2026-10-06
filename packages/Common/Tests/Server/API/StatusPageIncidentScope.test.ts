@@ -1803,9 +1803,7 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
         expect(idsOf(payload["timelineIncidents"])).not.toContain(
           PRIVATE_UNSCOPED,
         );
-        expect(idsOf(payload["activeEpisodes"])).not.toContain(
-          PRIVATE_EPISODE,
-        );
+        expect(idsOf(payload["activeEpisodes"])).not.toContain(PRIVATE_EPISODE);
         expectNothingPrivate(payload);
       },
     );

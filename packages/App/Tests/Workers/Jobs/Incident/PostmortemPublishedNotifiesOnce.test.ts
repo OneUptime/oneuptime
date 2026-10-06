@@ -1059,22 +1059,37 @@ describe("a postmortem published while its incident is hidden from status pages"
     expect(sent()).toEqual(NOTHING_SENT);
   });
 
-  test("a private incident switched on through the API stays hidden, and its postmortem waits; made not private, it is sent once", async () => {
+  /*
+   * A private incident stays hidden however its switch is written
+   * (StatusPageVisibility): an API client that switches it on and leaves it
+   * private has the switch stored off, so making the incident not private
+   * later shows it to nobody either. Switching it on then shows it, and
+   * sends the postmortem once.
+   */
+  test("a private incident switched on through the API stays hidden, and its postmortem waits; made not private and switched on, it is sent once", async () => {
     incident.isPrivate = true;
 
     await saveEditPostmortemForm({ note: NOTE, publish: true });
     await runTheJob();
 
-    // An API client switches it on and leaves it private.
+    // An API client switches it on and leaves it private: stored off.
     await update({ isVisibleOnStatusPage: true } as unknown as JSONObject);
     await runTheJob();
 
     expect(sent()).toEqual(NOTHING_SENT);
+    expect(incident.isVisibleOnStatusPage).toBe(false);
     expect(
       incident.subscriberNotificationStatusMessageOnPostmortemPublished,
     ).toBe(IncidentPostmortemPublication.hiddenIncidentMessage);
 
+    // Made not private, it is still hidden: nobody is told.
     await update({ isPrivate: false } as unknown as JSONObject);
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+
+    // Switched on, it is shown, and the postmortem goes out once.
+    await update({ isVisibleOnStatusPage: true } as unknown as JSONObject);
     await runTheJob();
     await runTheJob();
 

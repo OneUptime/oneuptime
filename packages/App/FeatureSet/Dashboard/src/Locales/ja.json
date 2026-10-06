@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加するラベル、またはその継承元に合わせて名前が付きます。",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加する所有者、またはその継承元に合わせて名前が付きます。",
   "Not sent yet: incident hidden from status pages": "未送信: インシデントがステータスページで非表示",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "このインシデントのポストモーテムはインシデントが非表示の間に公開されたため、まだ購読者に送信されていません。これをオンにすると購読者に送信されます。"
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "このインシデントのポストモーテムはインシデントが非表示の間に公開されたため、まだ購読者に送信されていません。これをオンにすると購読者に送信されます。",
+  "A private episode is never shown on status pages.": "非公開のエピソードはステータスページに表示されません。",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "このエピソードは非公開のため、ステータスページで非表示になり、購読者にも通知されません。"
 }

@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dalle etichette che aggiunge, o da dove le eredita, finché non digiti un nome tuo.",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dai proprietari che aggiunge, o da dove li eredita, finché non digiti un nome tuo.",
   "Not sent yet: incident hidden from status pages": "Non ancora inviato: incidente nascosto dalle pagine di stato",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Il post mortem di questo incidente è stato pubblicato mentre l'incidente era nascosto, quindi non è ancora stato inviato agli iscritti. Attivando questa opzione, viene inviato loro."
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Il post mortem di questo incidente è stato pubblicato mentre l'incidente era nascosto, quindi non è ancora stato inviato agli iscritti. Attivando questa opzione, viene inviato loro.",
+  "A private episode is never shown on status pages.": "Un episodio privato non viene mai mostrato sulle pagine di stato.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Questo episodio è privato, quindi è nascosto dalle tue pagine di stato e i loro iscritti non ricevono notifiche su di esso."
 }

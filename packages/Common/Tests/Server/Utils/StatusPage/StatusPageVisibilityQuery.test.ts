@@ -26,8 +26,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 
 function sqlOf(operator: unknown, alias: string): string {
-  const findOperator: FindOperator<unknown> =
-    operator as FindOperator<unknown>;
+  const findOperator: FindOperator<unknown> = operator as FindOperator<unknown>;
 
   expect(findOperator).toBeInstanceOf(FindOperator);
   expect(findOperator.getSql).toBeDefined();
@@ -37,8 +36,7 @@ function sqlOf(operator: unknown, alias: string): string {
 
 // The SQL of each part of a clause that may be combined with And().
 function sqlOfParts(operator: unknown, alias: string): Array<string> {
-  const findOperator: FindOperator<unknown> =
-    operator as FindOperator<unknown>;
+  const findOperator: FindOperator<unknown> = operator as FindOperator<unknown>;
 
   if (findOperator.type === "and") {
     return (findOperator.value as unknown as Array<FindOperator<unknown>>).map(

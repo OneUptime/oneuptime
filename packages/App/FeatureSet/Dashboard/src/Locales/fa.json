@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس برچسب‌هایی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود.",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود.",
   "Not sent yet: incident hidden from status pages": "هنوز ارسال نشده: حادثه در صفحات وضعیت پنهان است",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "گزارش پس از حادثه این حادثه زمانی منتشر شد که حادثه پنهان بود، بنابراین هنوز برای مشترکان ارسال نشده است. روشن کردن این گزینه آن را برای آن‌ها ارسال می‌کند."
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "گزارش پس از حادثه این حادثه زمانی منتشر شد که حادثه پنهان بود، بنابراین هنوز برای مشترکان ارسال نشده است. روشن کردن این گزینه آن را برای آن‌ها ارسال می‌کند.",
+  "A private episode is never shown on status pages.": "اپیزود خصوصی هرگز در صفحات وضعیت نمایش داده نمی‌شود.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "این اپیزود خصوصی است، بنابراین در صفحات وضعیت شما پنهان است و مشترکان آن‌ها درباره‌اش اطلاع‌رسانی دریافت نمی‌کنند."
 }

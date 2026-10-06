@@ -51,9 +51,12 @@ describe("StatusPageVisibility.toStoredBoolean", () => {
     ['"ON"', "ON"],
     ['"1"', "1"],
     ["the number 1", 1],
-  ] as Array<[string, unknown]>)("%s is stored as true", (_label: string, value: unknown) => {
-    expect(StatusPageVisibility.toStoredBoolean(value)).toBe(true);
-  });
+  ] as Array<[string, unknown]>)(
+    "%s is stored as true",
+    (_label: string, value: unknown) => {
+      expect(StatusPageVisibility.toStoredBoolean(value)).toBe(true);
+    },
+  );
 
   test.each([
     ["false", false],
@@ -68,9 +71,12 @@ describe("StatusPageVisibility.toStoredBoolean", () => {
     ['"of"', "of"],
     ['"0"', "0"],
     ["the number 0", 0],
-  ] as Array<[string, unknown]>)("%s is stored as false", (_label: string, value: unknown) => {
-    expect(StatusPageVisibility.toStoredBoolean(value)).toBe(false);
-  });
+  ] as Array<[string, unknown]>)(
+    "%s is stored as false",
+    (_label: string, value: unknown) => {
+      expect(StatusPageVisibility.toStoredBoolean(value)).toBe(false);
+    },
+  );
 
   test.each([
     ["null", null],
@@ -103,18 +109,24 @@ describe("StatusPageVisibility.isPrivate", () => {
     ['"yes"', "yes"],
     ["the number 1", 1],
     ["a value the database would refuse", "maybe"],
-  ] as Array<[string, unknown]>)("%s is private", (_label: string, value: unknown) => {
-    expect(StatusPageVisibility.isPrivate({ isPrivate: value })).toBe(true);
-  });
+  ] as Array<[string, unknown]>)(
+    "%s is private",
+    (_label: string, value: unknown) => {
+      expect(StatusPageVisibility.isPrivate({ isPrivate: value })).toBe(true);
+    },
+  );
 
   test.each([
     ["false", false],
     ['"false"', "false"],
     ["null (never set)", null],
     ["not read", undefined],
-  ] as Array<[string, unknown]>)("%s is not", (_label: string, value: unknown) => {
-    expect(StatusPageVisibility.isPrivate({ isPrivate: value })).toBe(false);
-  });
+  ] as Array<[string, unknown]>)(
+    "%s is not",
+    (_label: string, value: unknown) => {
+      expect(StatusPageVisibility.isPrivate({ isPrivate: value })).toBe(false);
+    },
+  );
 
   test("nothing read is not private", () => {
     expect(StatusPageVisibility.isPrivate(null)).toBe(false);
@@ -147,7 +159,10 @@ describe("StatusPageVisibility.isShown", () => {
     ["switched off", { isVisibleOnStatusPage: false, isPrivate: false }],
     ["never set (null)", { isVisibleOnStatusPage: null }],
     ["not read", {}],
-    ["switched off and private", { isVisibleOnStatusPage: false, isPrivate: true }],
+    [
+      "switched off and private",
+      { isVisibleOnStatusPage: false, isPrivate: true },
+    ],
   ] as Array<[string, StatusPageVisibilitySwitches]>)(
     "a record %s is not",
     (_label: string, record: StatusPageVisibilitySwitches) => {
@@ -220,7 +235,10 @@ describe("StatusPageVisibility.normalizeWrite", () => {
 
       StatusPageVisibility.normalizeWrite(data);
 
-      expect(data).toEqual({ isVisibleOnStatusPage: visible, isPrivate: false });
+      expect(data).toEqual({
+        isVisibleOnStatusPage: visible,
+        isPrivate: false,
+      });
     }
   });
 
@@ -295,9 +313,18 @@ describe("StatusPageVisibility.needsStoredPrivacy", () => {
   });
 
   test.each([
-    ["Private written with it", { isVisibleOnStatusPage: true, isPrivate: false }],
-    ["Private written as true", { isVisibleOnStatusPage: true, isPrivate: true }],
-    ["Private written as null", { isVisibleOnStatusPage: true, isPrivate: null }],
+    [
+      "Private written with it",
+      { isVisibleOnStatusPage: true, isPrivate: false },
+    ],
+    [
+      "Private written as true",
+      { isVisibleOnStatusPage: true, isPrivate: true },
+    ],
+    [
+      "Private written as null",
+      { isVisibleOnStatusPage: true, isPrivate: null },
+    ],
     ["Visible on Status Page written off", { isVisibleOnStatusPage: false }],
     ["Visible on Status Page written as null", { isVisibleOnStatusPage: null }],
     ["neither switch", { title: "Renamed" }],
@@ -368,9 +395,9 @@ describe("the helpers that read the rule", () => {
       { isVisibleOnStatusPage: null },
       {},
     ] as Array<StatusPageVisibilitySwitches>) {
-      expect(IncidentPostmortemPublication.isIncidentShown(record as never)).toBe(
-        StatusPageVisibility.isShown(record),
-      );
+      expect(
+        IncidentPostmortemPublication.isIncidentShown(record as never),
+      ).toBe(StatusPageVisibility.isShown(record));
     }
   });
 

@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 레이블이나 레이블을 상속받는 곳에 따라 이름이 지정됩니다.",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 소유자나 소유자를 상속받는 곳에 따라 이름이 지정됩니다.",
   "Not sent yet: incident hidden from status pages": "아직 보내지 않음: 인시던트가 상태 페이지에서 숨겨짐",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "이 인시던트의 사후 분석은 인시던트가 숨겨져 있는 동안 게시되었으므로 아직 구독자에게 보내지 않았습니다. 이 항목을 켜면 구독자에게 보냅니다."
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "이 인시던트의 사후 분석은 인시던트가 숨겨져 있는 동안 게시되었으므로 아직 구독자에게 보내지 않았습니다. 이 항목을 켜면 구독자에게 보냅니다.",
+  "A private episode is never shown on status pages.": "비공개 에피소드는 상태 페이지에 표시되지 않습니다.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "이 에피소드는 비공개이므로 상태 페이지에서 숨겨지며 구독자에게도 알림이 가지 않습니다."
 }

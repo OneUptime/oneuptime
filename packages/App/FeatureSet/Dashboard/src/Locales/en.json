@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Named after the labels it adds, or where it inherits them from, until you type a name of your own.",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Named after the owners it adds, or where it inherits them from, until you type a name of your own.",
   "Not sent yet: incident hidden from status pages": "Not sent yet: incident hidden from status pages",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them."
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.",
+  "A private episode is never shown on status pages.": "A private episode is never shown on status pages.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it."
 }

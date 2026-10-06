@@ -40,7 +40,7 @@ The same rules decide everything that depends on which pages an incident reaches
 - the email, SMS, Slack, Microsoft Teams and webhook messages sent when the incident is created, changes state, gets a public note or gets a postmortem;
 - the incident counts in emailed status page reports, which count only the incidents the page shows.
 
-An incident episode reaches a page when at least one of its incidents does. Its notifications go to every page its incidents reach, and its page on a status page that none of them reach is not found.
+An incident episode reaches a page when at least one of its incidents does. Its notifications go to every page its incidents reach, and its page on a status page that none of them reach is not found. A private incident reaches no page, so it never brings its episode onto one, and a private episode is shown on no page at all.
 
 ## Setting up one page per audience
 

@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Navngitt etter etikettene den legger til, eller hvor den arver dem fra, til du skriver inn ditt eget navn.",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Navngitt etter eierne den legger til, eller hvor den arver dem fra, til du skriver inn ditt eget navn.",
   "Not sent yet: incident hidden from status pages": "Ikke sendt ennå: hendelse skjult på statussider",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Evalueringen av denne hendelsen ble publisert mens hendelsen var skjult, så den er ikke sendt til abonnentene ennå. Når du slår på dette, sendes den til dem."
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Evalueringen av denne hendelsen ble publisert mens hendelsen var skjult, så den er ikke sendt til abonnentene ennå. Når du slår på dette, sendes den til dem.",
+  "A private episode is never shown on status pages.": "En privat episode vises aldri på statussider.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Denne episoden er privat, så den er skjult på statussidene dine, og abonnentene deres varsles ikke om den."
 }

@@ -25819,5 +25819,7 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Namngiven efter etiketterna den lägger till, eller var den ärver dem från, tills du skriver ett eget namn.",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Namngiven efter ägarna den lägger till, eller var den ärver dem från, tills du skriver ett eget namn.",
   "Not sent yet: incident hidden from status pages": "Inte skickad än: incident dold på statussidor",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Postmortem för denna incident publicerades medan incidenten var dold, så den har inte skickats till prenumeranterna än. När du slår på detta skickas den till dem."
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Postmortem för denna incident publicerades medan incidenten var dold, så den har inte skickats till prenumeranterna än. När du slår på detta skickas den till dem.",
+  "A private episode is never shown on status pages.": "En privat episod visas aldrig på statussidor.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Den här episoden är privat, så den är dold på dina statussidor, och deras prenumeranter meddelas inte om den."
 }
