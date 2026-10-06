@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "このルールは、次の条件のいずれか 1 つを満たすと実行されます:",
   "This rule runs when this condition is met:": "このルールは、次の条件を満たすと実行されます:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "このポストモーテムが公開されたときに購読者に通知します。後から編集しても、再度通知されることはありません。"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "このポストモーテムが公開されたときに購読者に通知します。後から編集しても、再度通知されることはありません。",
+  "API keys still set up": "まだ設定されている API キー",
+  "Available on the {{planName}} plan": "{{planName}} プランで利用できます",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "すぐに動作しなくなります。再びオンにするには {{planName}} プランが必要です。",
+  "Nothing is left here.": "ここには何も残っていません。",
+  "Notification rules still set up": "まだ設定されている通知ルール",
+  "OIDC providers still set up": "まだ設定されている OIDC プロバイダー",
+  "On-call schedules still set up": "まだ設定されているオンコールスケジュール",
+  "SAML providers still set up": "まだ設定されている SAML プロバイダー",
+  "SCIM connections still set up": "まだ設定されている SCIM 接続",
+  "Summaries still set up": "まだ設定されているサマリー",
+  "This project's plan does not include this, so nothing new can be added here.": "このプロジェクトのプランには含まれていないため、ここに新しいものを追加することはできません。",
+  "Turn off": "オフにする",
+  "Turn this off?": "オフにしますか？",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "ご利用のプランにはもう含まれていませんが、引き続き動作しています。削除することができます。変更したり新しく追加したりするには {{planName}} プランが必要です。",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "ご利用のプランにはもう含まれていません。オンになっているものは引き続き動作しています。オフにするか削除することができます。再びオンにしたり新しく追加したりするには {{planName}} プランが必要です。"
 }

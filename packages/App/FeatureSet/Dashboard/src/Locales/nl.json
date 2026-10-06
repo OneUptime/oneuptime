@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "Deze regel wordt uitgevoerd wanneer aan een van deze voorwaarden is voldaan:",
   "This rule runs when this condition is met:": "Deze regel wordt uitgevoerd wanneer aan deze voorwaarde is voldaan:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Deze regel heeft nog een standaard toegewezene, ingesteld door een oudere versie van dit formulier. Open dit gedeelte om ze toe te voegen als eigenaren of om deze te verwijderen.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Stel abonnees op de hoogte wanneer deze postmortem wordt gepubliceerd. Latere bewerkingen stellen hen niet opnieuw op de hoogte."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Stel abonnees op de hoogte wanneer deze postmortem wordt gepubliceerd. Latere bewerkingen stellen hen niet opnieuw op de hoogte.",
+  "API keys still set up": "Nog ingestelde API-sleutels",
+  "Available on the {{planName}} plan": "Beschikbaar met het {{planName}}-abonnement",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Het werkt meteen niet meer. Om het weer aan te zetten hebt u het {{planName}}-abonnement nodig.",
+  "Nothing is left here.": "Hier is niets meer over.",
+  "Notification rules still set up": "Nog ingestelde meldingsregels",
+  "OIDC providers still set up": "Nog ingestelde OIDC-providers",
+  "On-call schedules still set up": "Nog ingestelde bereikbaarheidsschema's",
+  "SAML providers still set up": "Nog ingestelde SAML-providers",
+  "SCIM connections still set up": "Nog ingestelde SCIM-verbindingen",
+  "Summaries still set up": "Nog ingestelde samenvattingen",
+  "This project's plan does not include this, so nothing new can be added here.": "Het abonnement van dit project bevat dit niet, dus hier kan niets nieuws worden toegevoegd.",
+  "Turn off": "Uitzetten",
+  "Turn this off?": "Uitzetten?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Uw abonnement bevat deze niet meer, maar ze werken nog. U kunt ze verwijderen. Om ze te wijzigen of nieuwe toe te voegen hebt u het {{planName}}-abonnement nodig.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Uw abonnement bevat deze niet meer. Die welke aan staan, werken nog: u kunt ze uitzetten of verwijderen. Om ze weer aan te zetten of nieuwe toe te voegen hebt u het {{planName}}-abonnement nodig."
 }

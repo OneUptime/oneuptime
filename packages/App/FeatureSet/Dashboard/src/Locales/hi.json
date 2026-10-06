@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "यह नियम तब चलता है जब इनमें से कोई एक शर्त पूरी होती है:",
   "This rule runs when this condition is met:": "यह नियम तब चलता है जब यह शर्त पूरी होती है:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "इस नियम में अब भी इस फ़ॉर्म के पुराने संस्करण द्वारा सेट किया गया एक डिफ़ॉल्ट असाइनी है। उन्हें मालिक के रूप में जोड़ने या इसे हटाने के लिए यह अनुभाग खोलें।",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "जब यह पोस्टमॉर्टम प्रकाशित हो तो सब्सक्राइबर्स को सूचित करें। बाद में किए गए संपादन उन्हें दोबारा सूचित नहीं करते।"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "जब यह पोस्टमॉर्टम प्रकाशित हो तो सब्सक्राइबर्स को सूचित करें। बाद में किए गए संपादन उन्हें दोबारा सूचित नहीं करते।",
+  "API keys still set up": "अभी भी सेट अप की गई API कुंजियाँ",
+  "Available on the {{planName}} plan": "{{planName}} प्लान में उपलब्ध",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "यह तुरंत काम करना बंद कर देगा। इसे फिर से चालू करने के लिए {{planName}} प्लान चाहिए।",
+  "Nothing is left here.": "यहाँ अब कुछ नहीं बचा है।",
+  "Notification rules still set up": "अभी भी सेट अप किए गए सूचना नियम",
+  "OIDC providers still set up": "अभी भी सेट अप किए गए OIDC प्रदाता",
+  "On-call schedules still set up": "अभी भी सेट अप की गई ऑन-कॉल अनुसूचियाँ",
+  "SAML providers still set up": "अभी भी सेट अप किए गए SAML प्रदाता",
+  "SCIM connections still set up": "अभी भी सेट अप किए गए SCIM कनेक्शन",
+  "Summaries still set up": "अभी भी सेट अप किए गए सारांश",
+  "This project's plan does not include this, so nothing new can be added here.": "इस प्रोजेक्ट के प्लान में यह शामिल नहीं है, इसलिए यहाँ कुछ नया नहीं जोड़ा जा सकता।",
+  "Turn off": "बंद करें",
+  "Turn this off?": "इसे बंद करें?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "आपके प्लान में अब ये शामिल नहीं हैं, लेकिन ये अभी भी काम करते हैं। आप इन्हें हटा सकते हैं। इन्हें बदलने या नए जोड़ने के लिए {{planName}} प्लान चाहिए।",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "आपके प्लान में अब ये शामिल नहीं हैं। जो चालू हैं वे अभी भी काम करते हैं: आप उन्हें बंद कर सकते हैं या हटा सकते हैं। उन्हें फिर से चालू करने या नए जोड़ने के लिए {{planName}} प्लान चाहिए।"
 }

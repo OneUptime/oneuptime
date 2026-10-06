@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "Esta regla se ejecuta cuando se cumple cualquiera de estas condiciones:",
   "This rule runs when this condition is met:": "Esta regla se ejecuta cuando se cumple esta condición:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Esta regla todavía tiene un asignado predeterminado establecido por una versión anterior de este formulario. Abre esta sección para añadirlos como propietarios o quitarlo.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notificar a los suscriptores cuando se publique este análisis post mortem. Las ediciones posteriores no vuelven a notificarles."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notificar a los suscriptores cuando se publique este análisis post mortem. Las ediciones posteriores no vuelven a notificarles.",
+  "API keys still set up": "Claves de API aún configuradas",
+  "Available on the {{planName}} plan": "Disponible en el plan {{planName}}",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Deja de funcionar de inmediato. Para volver a activarlo necesitas el plan {{planName}}.",
+  "Nothing is left here.": "Aquí ya no queda nada.",
+  "Notification rules still set up": "Reglas de notificación aún configuradas",
+  "OIDC providers still set up": "Proveedores OIDC aún configurados",
+  "On-call schedules still set up": "Programaciones de guardia aún configuradas",
+  "SAML providers still set up": "Proveedores SAML aún configurados",
+  "SCIM connections still set up": "Conexiones SCIM aún configuradas",
+  "Summaries still set up": "Resúmenes aún configurados",
+  "This project's plan does not include this, so nothing new can be added here.": "El plan de este proyecto no incluye esto, así que aquí no se puede añadir nada nuevo.",
+  "Turn off": "Desactivar",
+  "Turn this off?": "¿Desactivarlo?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Tu plan ya no los incluye, pero siguen funcionando. Puedes eliminarlos. Para cambiarlos o añadir otros nuevos necesitas el plan {{planName}}.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Tu plan ya no los incluye. Los que están activados siguen funcionando: puedes desactivarlos o eliminarlos. Para volver a activarlos o añadir otros nuevos necesitas el plan {{planName}}."
 }

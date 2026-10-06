@@ -24,6 +24,10 @@ A schedule's rotation is made of layers, on its **Layers** page. Layers are read
 
 Each person keeps one colour everywhere, so you can follow them at a glance: on every layer, in the final schedule and its overrides, and on the **Schedule Timeline**.
 
+## Below the Growth plan
+
+On OneUptime Cloud, on-call schedules are on the **Growth** plan and above. A schedule a project still has keeps paging the people on it, through the escalation rules that name it, after a Growth trial ends or the plan goes down. So below **Growth**, **On-Call Duty** > **Schedules** shows the plan note with the schedules still set up under it, where you can delete them. Creating or changing a schedule needs **Growth**.
+
 ## Creating schedules with the API or Terraform
 
 On-call schedules are the `/api/on-call-duty-policy-schedule` resource; their layers and the people in them are the `/api/on-call-duty-schedule-layer` and `/api/on-call-duty-schedule-layer-user` resources.

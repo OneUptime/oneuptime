@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "Den här regeln körs när något av dessa villkor är uppfyllt:",
   "This rule runs when this condition is met:": "Den här regeln körs när det här villkoret är uppfyllt:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Den här regeln har fortfarande en standardansvarig som angavs av en äldre version av det här formuläret. Öppna det här avsnittet för att lägga till dem som ägare eller ta bort den.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Avisera prenumeranter när denna postmortem publiceras. Senare ändringar aviserar dem inte igen."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Avisera prenumeranter när denna postmortem publiceras. Senare ändringar aviserar dem inte igen.",
+  "API keys still set up": "API-nycklar som fortfarande är konfigurerade",
+  "Available on the {{planName}} plan": "Tillgängligt med {{planName}}-abonnemanget",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Den slutar fungera direkt. För att slå på den igen behöver du {{planName}}-abonnemanget.",
+  "Nothing is left here.": "Här finns inget kvar.",
+  "Notification rules still set up": "Aviseringsregler som fortfarande är konfigurerade",
+  "OIDC providers still set up": "OIDC-leverantörer som fortfarande är konfigurerade",
+  "On-call schedules still set up": "Jourscheman som fortfarande är konfigurerade",
+  "SAML providers still set up": "SAML-leverantörer som fortfarande är konfigurerade",
+  "SCIM connections still set up": "SCIM-anslutningar som fortfarande är konfigurerade",
+  "Summaries still set up": "Sammanfattningar som fortfarande är konfigurerade",
+  "This project's plan does not include this, so nothing new can be added here.": "Det här projektets abonnemang omfattar inte detta, så inget nytt kan läggas till här.",
+  "Turn off": "Stäng av",
+  "Turn this off?": "Stänga av den?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Ditt abonnemang omfattar dem inte längre, men de fungerar fortfarande. Du kan ta bort dem. För att ändra dem eller lägga till nya behöver du {{planName}}-abonnemanget.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Ditt abonnemang omfattar dem inte längre. De som är påslagna fungerar fortfarande: du kan stänga av dem eller ta bort dem. För att slå på dem igen eller lägga till nya behöver du {{planName}}-abonnemanget."
 }

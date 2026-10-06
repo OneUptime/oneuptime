@@ -310,6 +310,17 @@ Turning **Require SSO for Login** off saves as soon as you flip it and lets memb
 
 On OneUptime Cloud, requiring SSO needs the **Scale** plan, and turning it off works on every plan. Below Scale, **Project Settings** > **Security** > **SSO** shows the plan's upsell; a project a Scale trial left requiring SSO also finds **Require SSO for Login** there, under the upsell, so it can be turned off. Turning it on again needs **Scale**.
 
+## Providers left below the Scale plan
+
+A SAML or OIDC provider a project still has keeps signing people in after a Scale trial ends or the plan goes down. So below Scale, the **SSO** and **OIDC** pages list the project's providers under the upsell (**SAML providers still set up**, **OIDC providers still set up**):
+
+- **Turn off** stops a provider at once. OneUptime asks first.
+- **Delete** removes it.
+
+Adding a provider, changing one or turning it on again needs **Scale**. The people who can do each are the same as on Scale: turning a provider off needs permission to edit it, deleting it permission to delete it.
+
+A status page's **SSO** and **OIDC** pages list its own providers the same way. While the status page still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
+
 ## Notes on SSO and Roles
 
 OneUptime does not currently support mapping SAML roles from your identity provider. Role-based access must be configured separately within OneUptime's **Project Settings** > **Security** > **SSO** settings, where you can assign default roles for SSO users.

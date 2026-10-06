@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "滿足以下任一條件時，此規則會執行：",
   "This rule runs when this condition is met:": "滿足此條件時，此規則會執行：",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此規則仍有一個由此表單的舊版本設定的預設受指派者。開啟此區段，將其新增為擁有者或將其移除。",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "當此事後檢討發布時通知訂閱者。之後的編輯不會再次通知他們。"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "當此事後檢討發布時通知訂閱者。之後的編輯不會再次通知他們。",
+  "API keys still set up": "仍在設定中的 API 金鑰",
+  "Available on the {{planName}} plan": "{{planName}} 方案提供此功能",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "它會立即停止運作。再次開啟需要 {{planName}} 方案。",
+  "Nothing is left here.": "這裡已沒有任何內容。",
+  "Notification rules still set up": "仍在設定中的通知規則",
+  "OIDC providers still set up": "仍在設定中的 OIDC 提供者",
+  "On-call schedules still set up": "仍在設定中的待命排程",
+  "SAML providers still set up": "仍在設定中的 SAML 提供者",
+  "SCIM connections still set up": "仍在設定中的 SCIM 連線",
+  "Summaries still set up": "仍在設定中的摘要",
+  "This project's plan does not include this, so nothing new can be added here.": "此專案的方案不包含此功能，因此無法在此新增內容。",
+  "Turn off": "關閉",
+  "Turn this off?": "要關閉嗎？",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些，但它們仍在運作。您可以刪除它們。變更它們或新增項目需要 {{planName}} 方案。",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些。已開啟的仍在運作：您可以將其關閉或刪除。再次開啟或新增項目需要 {{planName}} 方案。"
 }

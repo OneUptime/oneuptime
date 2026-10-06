@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "满足以下任一条件时，此规则会运行：",
   "This rule runs when this condition is met:": "满足此条件时，此规则会运行：",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此规则仍有一个由此表单的旧版本设置的默认受理人。打开此部分，将其添加为所有者或将其移除。",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "当此事后分析发布时通知订阅者。之后的编辑不会再次通知他们。"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "当此事后分析发布时通知订阅者。之后的编辑不会再次通知他们。",
+  "API keys still set up": "仍在配置的 API 密钥",
+  "Available on the {{planName}} plan": "{{planName}} 套餐提供此功能",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "它会立即停止工作。再次开启需要 {{planName}} 套餐。",
+  "Nothing is left here.": "这里已没有任何内容。",
+  "Notification rules still set up": "仍在配置的通知规则",
+  "OIDC providers still set up": "仍在配置的 OIDC 提供方",
+  "On-call schedules still set up": "仍在配置的值班计划",
+  "SAML providers still set up": "仍在配置的 SAML 提供方",
+  "SCIM connections still set up": "仍在配置的 SCIM 连接",
+  "Summaries still set up": "仍在配置的摘要",
+  "This project's plan does not include this, so nothing new can be added here.": "此项目的套餐不包含此功能，因此无法在此添加新内容。",
+  "Turn off": "关闭",
+  "Turn this off?": "要关闭吗？",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "您的套餐已不再包含这些，但它们仍在工作。您可以删除它们。更改它们或添加新的需要 {{planName}} 套餐。",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的套餐已不再包含这些。已开启的仍在工作：您可以将其关闭或删除。再次开启或添加新的需要 {{planName}} 套餐。"
 }

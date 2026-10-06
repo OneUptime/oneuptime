@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "Это правило срабатывает, когда выполнено любое из этих условий:",
   "This rule runs when this condition is met:": "Это правило срабатывает, когда выполнено это условие:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "У этого правила всё ещё есть ответственный по умолчанию, заданный в прежней версии этой формы. Откройте этот раздел, чтобы добавить их владельцами или удалить его.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Уведомить подписчиков при публикации этого разбора инцидента. Последующие правки не уведомляют их повторно."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Уведомить подписчиков при публикации этого разбора инцидента. Последующие правки не уведомляют их повторно.",
+  "API keys still set up": "Оставшиеся ключи API",
+  "Available on the {{planName}} plan": "Доступно в тарифе {{planName}}",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Это сразу перестанет работать. Чтобы снова включить, нужен тариф {{planName}}.",
+  "Nothing is left here.": "Здесь больше ничего не осталось.",
+  "Notification rules still set up": "Оставшиеся правила уведомлений",
+  "OIDC providers still set up": "Оставшиеся поставщики OIDC",
+  "On-call schedules still set up": "Оставшиеся расписания дежурств",
+  "SAML providers still set up": "Оставшиеся поставщики SAML",
+  "SCIM connections still set up": "Оставшиеся подключения SCIM",
+  "Summaries still set up": "Оставшиеся сводки",
+  "This project's plan does not include this, so nothing new can be added here.": "Тариф этого проекта этого не включает, поэтому здесь нельзя добавить ничего нового.",
+  "Turn off": "Выключить",
+  "Turn this off?": "Выключить?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Ваш тариф больше их не включает, но они продолжают работать. Вы можете их удалить. Чтобы изменить их или добавить новые, нужен тариф {{planName}}.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Ваш тариф больше их не включает. Включённые продолжают работать: вы можете выключить или удалить их. Чтобы снова включить их или добавить новые, нужен тариф {{planName}}."
 }

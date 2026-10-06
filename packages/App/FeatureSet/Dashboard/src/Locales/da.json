@@ -25327,5 +25327,20 @@
   "This rule runs when any one of these conditions is met:": "Denne regel kører, når én af disse betingelser er opfyldt:",
   "This rule runs when this condition is met:": "Denne regel kører, når denne betingelse er opfyldt:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Denne regel har stadig en standardtildelt, angivet af en ældre version af denne formular. Åbn dette afsnit for at tilføje dem som ejere eller fjerne den.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Underret abonnenter, når denne postmortem offentliggøres. Senere ændringer underretter dem ikke igen."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Underret abonnenter, når denne postmortem offentliggøres. Senere ændringer underretter dem ikke igen.",
+  "API keys still set up": "API-nøgler, der stadig er sat op",
+  "Available on the {{planName}} plan": "Tilgængelig med {{planName}}-abonnementet",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Den holder op med at virke med det samme. For at slå den til igen skal du have {{planName}}-abonnementet.",
+  "Nothing is left here.": "Der er intet tilbage her.",
+  "Notification rules still set up": "Meddelelsesregler, der stadig er sat op",
+  "OIDC providers still set up": "OIDC-udbydere, der stadig er sat op",
+  "On-call schedules still set up": "Vagtplaner, der stadig er sat op",
+  "SAML providers still set up": "SAML-udbydere, der stadig er sat op",
+  "SCIM connections still set up": "SCIM-forbindelser, der stadig er sat op",
+  "Summaries still set up": "Opsummeringer, der stadig er sat op",
+  "This project's plan does not include this, so nothing new can be added here.": "Dette projekts abonnement omfatter ikke dette, så der kan ikke tilføjes noget nyt her.",
+  "Turn off": "Slå fra",
+  "Turn this off?": "Slå den fra?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Dit abonnement omfatter dem ikke længere, men de virker stadig. Du kan slette dem. For at ændre dem eller tilføje nye skal du have {{planName}}-abonnementet.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Dit abonnement omfatter dem ikke længere. Dem, der er slået til, virker stadig: du kan slå dem fra eller slette dem. For at slå dem til igen eller tilføje nye skal du have {{planName}}-abonnementet."
 }
