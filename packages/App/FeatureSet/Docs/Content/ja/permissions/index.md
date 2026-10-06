@@ -54,6 +54,8 @@ OneUptime のすべては**プロジェクト**の中にあります。そのプ
 
 `ProjectOwner` は最上位のアクセス権で、請求、プロジェクトの削除、そして管理者にできることすべてを含みます。`ProjectAdmin` は請求とプロジェクト削除を除くすべてをカバーします。
 
+プロジェクトの SMS、音声通話、WhatsApp、Telegram のオン・オフは、メッセージごとに費用がかかるため請求の扱いになります。これらのスイッチを **プロジェクト設定 > 通知 > 通知設定** で変更できるのは `ProjectOwner` と `ManageProjectBilling` 権限（**Manage Billing**）だけで、`ProjectAdmin` は変更できません。
+
 追加のチームはいくつでも作成できます。「フロントエンドオンコール」「サポート」「読み取り専用監査」など、それぞれに必要な権限を与えてください。
 
 場所: **設定 → チーム**。チームを開くと **Members** と **Permissions** にアクセスできます。**Block Permissions** は Permissions ページ下部の **More settings** にあります。

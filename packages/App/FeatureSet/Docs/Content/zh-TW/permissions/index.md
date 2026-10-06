@@ -54,6 +54,8 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 
 `ProjectOwner` 是最高存取層級：帳務、刪除專案，以及管理員能做的一切。`ProjectAdmin` 涵蓋除帳務與刪除專案以外的全部內容。
 
+為專案開啟或關閉簡訊、語音電話、WhatsApp 或 Telegram 屬於帳務事項，因為每則訊息都要花錢。只有 `ProjectOwner` 和 `ManageProjectBilling` 權限（**Manage Billing**）可以在 **專案設定 > 通知 > 通知設定** 中變更這些開關，`ProjectAdmin` 不行。
+
 你可以建立任意多個額外團隊——「前端待命」、「支援」、「唯讀稽核」——並給每個團隊它需要的權限。
 
 位置：**設定 → 團隊**。開啟團隊即可進入 **Members** 與 **Permissions**；**Block Permissions** 位於 Permissions 頁面底部的 **More settings** 中。

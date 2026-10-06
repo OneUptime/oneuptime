@@ -33,6 +33,8 @@ O resumo no topo da página **Regras de escalonamento** mostra toda a escada: qu
 
 Cada pessoa acionada por um nível é contatada conforme as próprias regras de plantão: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por gravidade que indica qual método de notificação é usado e depois de quanto tempo. Um administrador do projeto pode ver e alterar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**.
 
+SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta Twilio ou de um bot do Telegram configurado. Enquanto um canal estiver desligado, ninguém no projeto pode adicionar um método nele. Somente um proprietário do projeto ou alguém com a permissão **Manage Billing** pode ligar um canal, no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros ficam sabendo exatamente quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nesse canal, na lista de configuração e na mensagem que recebem quando algo precisa dele.
+
 ## Editar, reordenar e excluir regras
 
 - **Edit rule** abre a mesma caixa de diálogo de uma página, preenchida com a regra como ela está: seus destinatários, sua espera, e o nome e a descrição em **Mais campos**. Adicione ou remova destinatários e salve. Limpar o nome devolve à regra o nome do seu nível.

@@ -33,6 +33,8 @@ Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår h
 
 Hvordan hver person, et niveau tilkalder, bliver nået, bestemmer vedkommendes egne vagtregler: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der bruges og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**.
 
+SMS, telefonopkald, WhatsApp og Telegram er slået fra i et nyt projekt: på OneUptime Cloud betales hver besked af projektets saldo, og en selvhostet installation skal først have en Twilio-konto eller en Telegram-bot sat op. Indtil en kanal er slået til, kan ingen i projektet tilføje en metode på den. Kun en projektejer eller nogen med tilladelsen **Manage Billing** kan slå en kanal til, i kortet **Notifikationskanaler** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — en projektadministrator kan ikke. Alle andre får at vide præcis, hvem der kan, overalt hvor en kanal er slået fra: over deres egen liste over metoder på den, på deres opsætningstjekliste og i den besked, de får, når noget kræver den.
+
 ## Rediger, omordn og slet regler
 
 - **Edit rule** åbner den samme dialog på én side, udfyldt med reglen, som den er: dens modtagere, dens ventetid og dens navn og beskrivelse under **Flere felter**. Tilføj eller fjern modtagere, og gem. Tømmer du navnet, får reglen igen sit niveaus navn.
