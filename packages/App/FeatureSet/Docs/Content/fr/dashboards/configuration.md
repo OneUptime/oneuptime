@@ -56,7 +56,7 @@ Les tableaux de bord eux-mêmes n'expirent pas. Les données qu'ils affichent su
 
 ## Dupliquer un tableau de bord
 
-Pour copier un tableau de bord existant, ouvrez la liste des tableaux de bord et choisissez **Duplicate**. La copie comprend tous les widgets, variables et paramètres sauf le partage public — celui-ci commence toujours désactivé pour que vous puissiez décider de le réactiver ou non.
+Pour copier un tableau de bord, ouvrez-le et allez dans **Paramètres → Duplicate Dashboard**. Le nom de la copie est déjà rempli : le nom du tableau de bord, numéroté après les noms que le projet possède déjà (« Checkout API » est copié en « Checkout API 2 », et une copie de celui-ci en « Checkout API 3 »). Modifiez-le si vous voulez, cliquez sur **Duplicate Dashboard**, et la copie s'ouvre. Elle reprend les widgets, les variables, la description et les étiquettes du tableau de bord. L'image de marque et les domaines personnalisés restent avec l'original, et le partage public commence toujours désactivé pour que vous puissiez décider de l'activer ou non.
 
 C'est la bonne approche quand vous voulez dériver un modèle (comme « notre tableau de bord d'astreinte ») en une copie spécifique à un service.
 

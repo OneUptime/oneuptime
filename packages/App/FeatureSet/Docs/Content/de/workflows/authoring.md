@@ -97,7 +97,7 @@ Um einen Workflow zu pausieren, ohne ihn zu löschen, schalten Sie **Aktiviert**
 - Ziehen Sie Bausteine, um sie zu verschieben. Das Layout wird gespeichert.
 - Um eine Linie zu löschen, ziehen Sie eines ihrer Enden vom Punkt weg und lassen es auf leerer Arbeitsfläche los.
 - Um einen Baustein zu löschen, klicken Sie ihn an und nutzen **Löschen** unten in seinem Einstellungsdialog. Einen Baustein oder eine Linie auszuwählen und die Rücktaste zu drücken, entfernt sie ebenfalls.
-- Einen einzelnen Baustein zu duplizieren, geht nicht. **Duplicate Workflow** auf der Seite **Einstellungen** des Workflows kopiert das Ganze, und die Kopie landet deaktiviert.
+- Einen einzelnen Baustein zu duplizieren, geht nicht. **Duplicate Workflow** auf der Seite **Einstellungen** des Workflows kopiert das Ganze. Der Name der Kopie ist ausgefüllt, weitergezählt über die Workflows des Projekts hinaus („Nightly Sync“ wird als „Nightly Sync 2“ kopiert), und die Kopie öffnet sich, deaktiviert.
 - Stapeln Sie Bausteine von oben nach unten, damit sie sich in ihrer Laufrichtung lesen lassen – Eingänge liegen an der Oberkante, Ausgänge an der Unterkante, der Fluss geht also von selbst nach unten.
 
 ## Weiterführende Themen

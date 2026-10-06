@@ -56,7 +56,7 @@ Le dashboard in se non scadono. I dati che mostrano seguono le impostazioni di r
 
 ## Duplicare una dashboard
 
-Per copiare una dashboard esistente, apri l'elenco delle dashboard e seleziona **Duplicate**. La copia include ogni widget, variabile e impostazione tranne la condivisione pubblica — quella parte sempre disattivata cosi puoi decidere se riattivarla.
+Per copiare una dashboard, aprila e vai in **Impostazioni → Duplicate Dashboard**. Il nome della copia è già compilato: il nome della dashboard, numerato dopo i nomi che il progetto ha già ("Checkout API" viene copiata come "Checkout API 2", e una sua copia come "Checkout API 3"). Cambialo se vuoi, fai clic su **Duplicate Dashboard** e la copia si apre. Ha i widget, le variabili, la descrizione e le etichette della dashboard. Il branding e i domini personalizzati restano all'originale, e la condivisione pubblica parte sempre disattivata così puoi decidere se attivarla.
 
 E la mossa giusta quando vuoi forkare un template (come "la nostra dashboard on-call") in una copia specifica per un servizio.
 

@@ -97,7 +97,7 @@ Para pausar un flujo de trabajo sin eliminarlo, apaga **Habilitado**. No arranca
 - Arrastra los bloques para moverlos. La disposición se guarda.
 - Para eliminar una línea, arrastra cualquiera de sus extremos fuera del punto y suéltalo en una zona vacía del lienzo.
 - Para eliminar un bloque, haz clic en él y usa **Eliminar** al final de su diálogo de ajustes. Seleccionar un bloque o una línea y pulsar Retroceso también los quita.
-- No hay forma de duplicar un bloque suelto. **Duplicate Workflow**, en la página **Ajustes** del flujo de trabajo, copia el conjunto entero, y la copia nace deshabilitada.
+- No hay forma de duplicar un bloque suelto. **Duplicate Workflow**, en la página **Ajustes** del flujo de trabajo, copia el conjunto entero. El nombre de la copia ya viene puesto, numerado después de los flujos de trabajo del proyecto ("Nightly Sync" se copia como "Nightly Sync 2"), y la copia se abre, deshabilitada.
 - Apila los bloques de arriba abajo para que se lean en el mismo orden en que se ejecutan — las entradas están en el borde superior y las salidas en el inferior, así que el flujo baja de forma natural.
 
 ## Qué leer a continuación

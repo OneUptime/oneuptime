@@ -56,7 +56,7 @@ Dashboards selbst laufen nicht ab. Die angezeigten Daten richten sich nach den A
 
 ## Ein Dashboard duplizieren
 
-Um ein vorhandenes Dashboard zu kopieren, öffnen Sie die Dashboard-Liste und wählen Sie **Duplizieren**. Die Kopie enthält jedes Widget, jede Variable und jede Einstellung, mit Ausnahme der öffentlichen Freigabe – diese startet immer ausgeschaltet, damit Sie entscheiden können, ob Sie sie wieder einschalten möchten.
+Um ein Dashboard zu kopieren, öffnen Sie es und gehen Sie zu **Einstellungen → Duplicate Dashboard**. Der Name der Kopie ist bereits ausgefüllt: der Name des Dashboards, weitergezählt über die Namen hinaus, die das Projekt schon hat („Checkout API“ wird als „Checkout API 2“ kopiert, eine Kopie davon als „Checkout API 3“). Ändern Sie ihn bei Bedarf, klicken Sie auf **Duplicate Dashboard**, und die Kopie öffnet sich. Sie enthält die Widgets, Variablen, die Beschreibung und die Labels des Dashboards. Branding und eigene Domains bleiben beim Original, und die öffentliche Freigabe startet immer ausgeschaltet, damit Sie entscheiden können, ob Sie sie einschalten möchten.
 
 Das ist der richtige Schritt, wenn Sie eine Vorlage (zum Beispiel „unser Rufbereitschafts-Dashboard") in eine servicespezifische Kopie verzweigen möchten.
 
