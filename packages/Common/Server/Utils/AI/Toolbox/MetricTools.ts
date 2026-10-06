@@ -22,7 +22,7 @@ import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import { getMetricReadPermissions } from "./MetricReadPermissions";
+import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   ObservabilityTool,

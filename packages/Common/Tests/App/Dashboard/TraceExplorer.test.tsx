@@ -2197,6 +2197,52 @@ describe("related signals", () => {
     },
   );
 
+  test("metrics opened while the snapshot loaded fall back to logs once it shows they may not be read", async () => {
+    const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
+      jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
+    let releaseMetrics: () => void = () => {};
+    const metricsHeld: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        releaseMetrics = resolve;
+      },
+    );
+
+    postMock.mockImplementation(async (args: PostArgs) => {
+      if (args.url.toString().includes("/telemetry/metrics/for-trace")) {
+        await metricsHeld;
+        return new HTTPResponse(200, { items: [] }, {});
+      }
+      return new HTTPResponse(200, { sampleCount: 0 }, {});
+    });
+
+    try {
+      await renderTrace();
+
+      fireEvent.click(screen.getByTestId("trace-signal-tab-metrics"));
+      expect(screen.getByTestId("trace-metrics")).toBeInTheDocument();
+
+      // The snapshot arrives: this trace's reader may not read metrics.
+      permissions.mockReturnValue([Permission.ReadTelemetryServiceTraces]);
+      releaseMetrics();
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId("trace-signal-tab-metrics"),
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("trace-metrics")).not.toBeInTheDocument();
+      expect(screen.getByTestId("trace-signal-tab-logs")).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(logsViewerProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({ traceIds: [TRACE_ID] }),
+      );
+    } finally {
+      permissions.mockRestore();
+    }
+  });
+
   test("the profile tab only exists when the trace was profiled", async () => {
     postMock.mockImplementation(async (args: PostArgs) => {
       if (args.url.toString().includes("/telemetry/profiles/trace-presence")) {

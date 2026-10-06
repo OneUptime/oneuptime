@@ -31,7 +31,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
-import { getMetricReadPermissions } from "./MetricReadPermissions";
+import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
 
 function getApplicationId(args: JSONObject): ObjectID | undefined {
   if (args["rumApplicationId"] === undefined) {

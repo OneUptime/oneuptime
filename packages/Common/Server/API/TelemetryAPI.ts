@@ -58,7 +58,7 @@ import ExceptionAggregationService, {
   FacetValue as ExceptionFacetValue,
   FacetRequest as ExceptionFacetRequest,
 } from "../Services/ExceptionAggregationService";
-import Metric from "../../Models/AnalyticsModels/Metric";
+import { getMetricReadPermissions } from "../Utils/Telemetry/MetricReadPermissions";
 import MetricAggregationService, {
   FacetValue as MetricFacetValue,
   FacetRequest as MetricFacetRequest,
@@ -202,6 +202,23 @@ const router: ExpressRouter = Express.getRouter();
  * executes at module load, and spreading a const declared further down the
  * file would throw at startup (temporal dead zone).
  */
+type ReadAccessGuardFactory = (
+  permissions: Array<Permission>,
+) => Array<RequestHandler>;
+
+// An authenticated principal holding any of these permissions on the tenant.
+const createReadAccessGuard: ReadAccessGuardFactory = (
+  permissions: Array<Permission>,
+): Array<RequestHandler> => {
+  return [
+    UserMiddleware.getUserMiddleware,
+    UserMiddleware.requireUserAuthentication,
+    UserMiddleware.requirePermission({
+      permissions: permissions,
+    }),
+  ];
+};
+
 type TelemetryReadAccessGuardFactory = (
   signalReadPermission: Permission,
 ) => Array<RequestHandler>;
@@ -209,22 +226,16 @@ type TelemetryReadAccessGuardFactory = (
 const createTelemetryReadAccessGuard: TelemetryReadAccessGuardFactory = (
   signalReadPermission: Permission,
 ): Array<RequestHandler> => {
-  return [
-    UserMiddleware.getUserMiddleware,
-    UserMiddleware.requireUserAuthentication,
-    UserMiddleware.requirePermission({
-      permissions: [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ProjectMember,
-        Permission.Viewer,
-        Permission.TelemetryAdmin,
-        Permission.TelemetryMember,
-        Permission.TelemetryViewer,
-        signalReadPermission,
-      ],
-    }),
-  ];
+  return createReadAccessGuard([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+    signalReadPermission,
+  ]);
 };
 
 // Mirrors the read access control declared on the Log analytics model.
@@ -241,13 +252,9 @@ const requireTraceReadAccess: Array<RequestHandler> =
  * telemetry), so these routes let in exactly who the model-backed CRUD API
  * lets read metrics, and cannot drift from it.
  */
-const requireMetricReadAccess: Array<RequestHandler> = [
-  UserMiddleware.getUserMiddleware,
-  UserMiddleware.requireUserAuthentication,
-  UserMiddleware.requirePermission({
-    permissions: new Metric().getReadPermissions(),
-  }),
-];
+const requireMetricReadAccess: Array<RequestHandler> = createReadAccessGuard(
+  getMetricReadPermissions(),
+);
 
 /*
  * Mirrors the read access control declared on the ExceptionInstance

@@ -208,12 +208,32 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     };
   }, [traceId]);
 
+  /*
+   * Metrics are read with their own permission, not the trace one, so the
+   * Metrics tab is left out for somebody who may read this trace but not
+   * metrics, rather than offered and then refused. Shown while the
+   * permission snapshot is still loading: the server has the last word.
+   */
+  const canReadMetrics: boolean = shouldAttemptRead(
+    PermissionGate.check(new Metric(), ModelAction.Read),
+  );
+
   // If the gate closes while Profile is selected, fall back to the default tab.
   useEffect(() => {
     if (activeSignalTab === "profile" && profileSampleCount === 0) {
       setActiveSignalTab("logs");
     }
   }, [activeSignalTab, profileSampleCount]);
+
+  /*
+   * Likewise for Metrics: picked while the permission snapshot was still
+   * loading, by somebody it then shows may not read metrics.
+   */
+  useEffect(() => {
+    if (activeSignalTab === "metrics" && !canReadMetrics) {
+      setActiveSignalTab("logs");
+    }
+  }, [activeSignalTab, canReadMetrics]);
 
   // Metrics tab: reverse exemplar lookup, fetched on first open only.
   useEffect(() => {
@@ -344,16 +364,6 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     return targetUrl;
   };
 
-  /*
-   * Metrics are read with their own permission, not the trace one, so the
-   * Metrics tab is left out for somebody who may read this trace but not
-   * metrics, rather than offered and then refused. Shown while the
-   * permission snapshot is still loading: the server has the last word.
-   */
-  const canReadMetrics: boolean = shouldAttemptRead(
-    PermissionGate.check(new Metric(), ModelAction.Read),
-  );
-
   const tabs: Array<{
     id: CorrelatedSignalTab;
     label: string;
@@ -463,7 +473,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {activeSignalTab === "metrics" && (
+        {activeSignalTab === "metrics" && canReadMetrics && (
           <div data-testid="trace-metrics">
             {metricsLoading ? (
               <div className="flex h-32 items-center justify-center">
