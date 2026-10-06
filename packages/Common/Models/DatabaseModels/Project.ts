@@ -632,7 +632,7 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
-      Permission.ReadWorkflow,
+      Permission.ProjectUser,
     ],
     update: [],
   })

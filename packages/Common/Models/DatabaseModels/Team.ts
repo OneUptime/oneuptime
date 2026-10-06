@@ -403,8 +403,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -433,8 +432,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -463,8 +461,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })
@@ -493,8 +490,7 @@ export default class Team extends BaseModel {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.SettingsViewer,
-      Permission.EditProjectTeam,
-      Permission.EditProjectTeamPermissions,
+      Permission.ReadProjectTeam,
     ],
     update: [],
   })

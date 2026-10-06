@@ -16,9 +16,12 @@ export function canSelectAutoImportMonitorTemplate(
 }
 
 /*
- * Selecting an unreadable relation column fails the whole rule list request;
- * return no column for a granular rule-reader so the inventory-only page
- * remains usable. The optional permission set is a deterministic test seam.
+ * Selecting an unreadable relation column fails the whole rule list request,
+ * so the column is asked for only when the user may read it. A rule's
+ * template is read with the rule itself (the model's read list), so every
+ * rule reader sees which template a rule applies; the template's name rides
+ * along on the relation. The optional permission set is a deterministic test
+ * seam.
  */
 export function getReadableMonitorTemplateColumn(
   permissions?: Array<Permission>,
@@ -27,7 +30,7 @@ export function getReadableMonitorTemplateColumn(
     !PermissionGate.canReadColumn(
       new NetworkDeviceAutoImportRule(),
       "monitorTemplate",
-      permissions ? { permissions } : undefined,
+      { permissions },
     )
   ) {
     return null;

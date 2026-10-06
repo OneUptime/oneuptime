@@ -70,6 +70,10 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
+import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import NetworkDeviceOidTemplate from "../../../Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Team from "../../../Models/DatabaseModels/Team";
 import Log from "../../../Models/AnalyticsModels/Log";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -720,6 +724,131 @@ describe("PermissionGate", () => {
         PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey", {
           permissions: [Permission.ProjectOwner],
         }),
+      ).toBe(true);
+    });
+
+    test("an undefined snapshot in the options falls back to storage", () => {
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      expect(
+        PermissionGate.canReadColumn(new Monitor(), "serverMonitorSecretKey", {
+          permissions: undefined,
+        }),
+      ).toBe(true);
+    });
+  });
+
+  /*
+   * A picker for a relation column needs two reads: the column (the picked
+   * record is shown and saved through it), which is read with the record's
+   * own permission, and the list of records it offers, which is the other
+   * model's. A rule reader who may not list templates reads which template
+   * a rule uses but cannot be offered the picker: its list request would be
+   * refused and the field could never be filled.
+   */
+  describe("canPickRelation", () => {
+    function canPickRuleTemplate(): boolean {
+      return PermissionGate.canPickRelation(
+        new NetworkDeviceAutoImportRule(),
+        "monitorTemplate",
+        new MonitorTemplate(),
+      );
+    }
+
+    test("needs the column and the list of the related records", () => {
+      permissionsForTest = [
+        Permission.ReadNetworkDeviceAutoImportRule,
+        Permission.ReadMonitorTemplate,
+      ];
+
+      expect(canPickRuleTemplate()).toBe(true);
+    });
+
+    test("is refused to a reader of the column who may not list the related records", () => {
+      permissionsForTest = [Permission.ReadNetworkDeviceAutoImportRule];
+
+      expect(
+        PermissionGate.canReadColumn(
+          new NetworkDeviceAutoImportRule(),
+          "monitorTemplate",
+        ),
+      ).toBe(true);
+      expect(canPickRuleTemplate()).toBe(false);
+    });
+
+    test("is refused to a reader of the related records who may not read the column", () => {
+      permissionsForTest = [Permission.ReadMonitorTemplate];
+
+      expect(canPickRuleTemplate()).toBe(false);
+    });
+
+    test.each([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ])("is allowed to %s, which reads both", (permission: Permission) => {
+      permissionsForTest = [permission];
+
+      expect(canPickRuleTemplate()).toBe(true);
+    });
+
+    test("each picker asks for its own related model", () => {
+      permissionsForTest = [
+        Permission.ReadNetworkDeviceAutoImportRule,
+        Permission.ReadMonitorTemplate,
+      ];
+
+      expect(
+        PermissionGate.canPickRelation(
+          new NetworkDeviceAutoImportRule(),
+          "oidTemplate",
+          new NetworkDeviceOidTemplate(),
+        ),
+      ).toBe(false);
+
+      permissionsForTest = [
+        Permission.ReadNetworkAlertPolicy,
+        Permission.ReadMonitorTemplate,
+      ];
+
+      expect(
+        PermissionGate.canPickRelation(
+          new NetworkAlertPolicy(),
+          "monitorTemplate",
+          new MonitorTemplate(),
+        ),
+      ).toBe(true);
+    });
+
+    test("fails closed while the permission snapshot has not loaded", () => {
+      permissionsForTest = [];
+
+      expect(canPickRuleTemplate()).toBe(false);
+    });
+
+    test("allows a master admin", () => {
+      isMasterAdminForTest = true;
+      permissionsForTest = [];
+
+      expect(canPickRuleTemplate()).toBe(true);
+    });
+
+    test("honours an explicitly supplied permission snapshot", () => {
+      permissionsForTest = [];
+
+      expect(
+        PermissionGate.canPickRelation(
+          new NetworkDeviceAutoImportRule(),
+          "monitorTemplate",
+          new MonitorTemplate(),
+          {
+            permissions: [
+              Permission.ReadNetworkDeviceAutoImportRule,
+              Permission.MonitorViewer,
+            ],
+          },
+        ),
       ).toBe(true);
     });
   });

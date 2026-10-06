@@ -960,10 +960,18 @@ export default class UserMiddleware {
         );
       }
 
+      /*
+       * Only allow rows grant. A block row names a permission in order to
+       * deny it, so holding one never counts as holding the permission.
+       */
       const userPermissions: Array<Permission> =
-        userTenantPermission.permissions.map((p: UserPermission) => {
-          return p.permission;
-        });
+        userTenantPermission.permissions
+          .filter((p: UserPermission) => {
+            return !p.isBlockPermission;
+          })
+          .map((p: UserPermission) => {
+            return p.permission;
+          });
 
       if (
         !PermissionHelper.doesPermissionsIntersect(
