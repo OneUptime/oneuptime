@@ -833,13 +833,27 @@ describe("Network device rule pattern validation", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * Every new rule must add something (LabelAndOwnerRuleBaseService): these
+   * add one label - or, on an owner rule, one team - so the pattern is what
+   * is checked.
+   */
   function labelRuleCreate(
     data: Record<string, unknown>,
   ): CreateBy<NetworkDeviceLabelRule> {
     return {
-      data: data,
+      data: { labelsToAdd: [{ _id: LABEL_A_ID.toString() }], ...data },
       props: { tenantId: PROJECT_ID },
     } as unknown as CreateBy<NetworkDeviceLabelRule>;
+  }
+
+  function ownerRuleCreate(
+    data: Record<string, unknown>,
+  ): CreateBy<NetworkDeviceOwnerRule> {
+    return {
+      data: { ownerTeams: [{ _id: TEAM_ID.toString() }], ...data },
+      props: { tenantId: PROJECT_ID },
+    } as unknown as CreateBy<NetworkDeviceOwnerRule>;
   }
 
   it("accepts a wildcard name pattern", async () => {
@@ -912,17 +926,36 @@ describe("Network device rule pattern validation", () => {
 
   it("applies the same validation to owner rules", async () => {
     await expect(
-      (NetworkDeviceOwnerRuleService as any).onBeforeCreate({
-        data: { networkDeviceNamePattern: "switch-(01" },
-        props: { tenantId: PROJECT_ID },
-      } as unknown as CreateBy<NetworkDeviceOwnerRule>),
-    ).rejects.toThrow(BadDataException);
+      (NetworkDeviceOwnerRuleService as any).onBeforeCreate(
+        ownerRuleCreate({ networkDeviceNamePattern: "switch-(01" }),
+      ),
+    ).rejects.toThrow(/Network Device Name Pattern/);
 
     await expect(
-      (NetworkDeviceOwnerRuleService as any).onBeforeCreate({
-        data: { networkDeviceNamePattern: "*0664*" },
-        props: { tenantId: PROJECT_ID },
-      } as unknown as CreateBy<NetworkDeviceOwnerRule>),
+      (NetworkDeviceOwnerRuleService as any).onBeforeCreate(
+        ownerRuleCreate({ networkDeviceNamePattern: "*0664*" }),
+      ),
     ).resolves.toBeDefined();
+  });
+
+  it("still refuses a new rule that adds nothing, whatever its pattern", async () => {
+    await expect(
+      (NetworkDeviceLabelRuleService as any).onBeforeCreate(
+        labelRuleCreate({
+          labelsToAdd: [],
+          networkDeviceNamePattern: "*0664*",
+        }),
+      ),
+    ).rejects.toThrow(
+      "This label rule adds nothing. Choose at least one label in Labels to Add.",
+    );
+
+    await expect(
+      (NetworkDeviceOwnerRuleService as any).onBeforeCreate(
+        ownerRuleCreate({ ownerTeams: [], networkDeviceNamePattern: "*0664*" }),
+      ),
+    ).rejects.toThrow(
+      "This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams.",
+    );
   });
 });

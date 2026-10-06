@@ -1,4 +1,4 @@
-import ProjectReferencesService from "./ProjectReferencesService";
+import LabelAndOwnerRuleBaseService from "./LabelAndOwnerRuleBaseService";
 import Model from "../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -10,7 +10,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
  * No hard-delete retention: a rule is configuration, not an event log, so it
  * stays until somebody deletes it.
  */
-export class Service extends ProjectReferencesService<Model> {
+export class Service extends LabelAndOwnerRuleBaseService<Model> {
   public constructor() {
     super(Model);
   }
@@ -24,7 +24,10 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    // The project's own records only, before anything here reads one.
+    /*
+     * A rule that adds something, naming the project's own records only,
+     * before anything here reads one.
+     */
     await super.onBeforeCreate(createBy);
 
     SloRulePatternValidator.validate({

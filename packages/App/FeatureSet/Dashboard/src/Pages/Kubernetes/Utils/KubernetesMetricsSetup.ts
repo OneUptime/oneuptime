@@ -274,8 +274,9 @@ export function getAllKubernetesMetricsSetups(): Array<KubernetesMetricsSetup> {
 
 /*
  * The `helm upgrade` of the installed agent that collects these metrics, or
- * null when no agent value does. --reuse-values keeps the install's URL, key,
- * cluster name and everything else.
+ * null when no agent value does. --reset-then-reuse-values keeps the
+ * install's URL, key, cluster name and every other value it was given, and
+ * takes the rest from the chart.
  */
 export function getKubernetesMetricsSetupCommand(
   source: KubernetesMetricsSource,

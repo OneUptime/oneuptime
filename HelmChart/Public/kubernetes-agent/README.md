@@ -73,7 +73,7 @@ To add it to an existing install, refresh the chart index first and then upgrade
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
@@ -103,7 +103,7 @@ Pick how fixes run and, recommended, only the namespaces AI may change:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -116,7 +116,7 @@ Or cluster-wide:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -125,7 +125,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 To turn fixes off again, upgrade with `--set aiAgent.fixes=off`: the write RBAC is removed and the agent refuses every write.
 
-Every namespace you list must already exist. The chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector's workloads included — with `namespaces "api" not found`: create it first, or take it off the list. Take a namespace off the list before you delete it; if it is already gone, drop it from the list on the next upgrade. With `--reuse-values`, leaving the flag out keeps the list stored on the release. To go back to the cluster-wide binding, pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) — not `={}`, which Helm reads as one empty name and the chart's schema rejects. The scoped command above also turns node operations off; set `aiAgent.remediation.nodeOperations=true` to let AI cordon, drain or taint nodes (always with a human approving).
+Every namespace you list must already exist. The chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector's workloads included — with `namespaces "api" not found`: create it first, or take it off the list. Take a namespace off the list before you delete it; if it is already gone, drop it from the list on the next upgrade. Leaving the flag out of an upgrade keeps the list stored on the release. To go back to the cluster-wide binding, pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) — not `={}`, which Helm reads as one empty name and the chart's schema rejects. The scoped command above also turns node operations off; set `aiAgent.remediation.nodeOperations=true` to let AI cordon, drain or taint nodes (always with a human approving).
 
 How fixes run is set with `aiAgent.fixes`:
 
@@ -554,6 +554,7 @@ Useful knobs:
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself, browsers, ClickHouse — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
 | `ebpf.dropDatabaseServerSpans` | `true` | Drop the span OBI records inside a database server, which duplicates the caller's own span — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
 | `ebpf.dropUnlinkedDatabaseCalls` | `true` | Drop an app's database calls that belong to no trace (background work). A database only background work talks to is then not discovered from traces — see [What eBPF traces look like](#what-ebpf-traces-look-like). |
+| `ebpf.dropUnlinkedClientCalls` | `false` | Drop an app's other calls that belong to no trace — HTTP, gRPC and the like made by background work, and calls OBI could not place in their request's trace; never database, messaging or GenAI calls (MCP included). Off by default, and only `true` turns it on: a call that OBI linked a same-node request under is the root of that trace, which then loses its root, the service map then counts only calls made inside requests, and a service's overview only the spans left — see [What eBPF traces look like](#what-ebpf-traces-look-like). With `ebpf.contextPropagation` on, a request on any node (an SDK-instrumented service's too) can hang under such a call: expect more traces without a root. |
 | `ebpf.dropNodeInspectorMetrics` | `true` | Drop the `http.server.*` request metrics OBI v0.14 records for its own Node.js agent injection: routes `/json/list`, `/json/version` and `/*` (status 101) on port 9229 — see [What eBPF traces look like](#what-ebpf-traces-look-like). Metrics carry no client address, so an app's own `GET /json/list` or `/json/version` on port 9229, and its own WebSocket upgrades there that OBI names `/*`, lose their datapoints too. It matches OBI's default route naming: with another `ebpf.routes.unmatched`, or an `ebpf.routes.patterns` entry that matches those paths, some or all of them are kept. Span metrics (`ebpf.features.spanMetrics`) are not filtered. |
 | `ebpf.nodejs.enabled` | `true` | OBI's Node.js agent, which links a Node.js request's outgoing HTTP/SQL/Redis calls to it. It is injected through the Node inspector (SIGUSR1; loopback-only `127.0.0.1:9229`, open for about a second), so each Node.js app logs `Debugger listening on ws://127.0.0.1:9229/…` and `Debugger attached.` once when OBI finds it. OBI v0.14 also records the injection as requests to that app (`GET /json/list` and `GET /*`, from 127.0.0.1 to port 9229): OneUptime drops those traces on ingest (a self-hosted server once it runs this chart's version or newer), and the agent's collector drops their `http.server.*` request metrics (`ebpf.dropNodeInspectorMetrics`); OBI's span metrics still count them. Turn off if policy forbids that; Node.js spans then stay unlinked. Route templates do not depend on it: OBI reads them from the app's files either way. |
 | `ebpf.excludeOtelInstrumentedServices` | `true` | OBI's default: stop exporting eBPF telemetry for a process once it sees that process export OTLP itself, so an SDK-instrumented app is not traced twice. Set `false` if those SDKs report to a different project or backend and you want eBPF traces for them here too. |
@@ -587,6 +588,8 @@ eBPF sees network calls, not your code, so an eBPF trace is built from the reque
 Those last two produce one-span traces named after a bare command — `set`, `evalsha`, `SELECT` — and on a busy cluster they are most of what OBI sends. The agent's collector drops them: the database server's own span, linked or not, since it always duplicates the caller's span — on the same node OBI links it under the call and every database call shows up twice (`ebpf.dropDatabaseServerSpans`) — and an app's call outside any trace, including calls OBI could not place in their request's trace (`ebpf.dropUnlinkedDatabaseCalls`). Both are on by default. An app's database calls inside a request trace are kept, spans your apps push from their own SDKs are never touched, and OBI's database metrics still count every command.
 
 The second switch has a cost. OneUptime discovers databases, and draws them on the service map, from database client spans, so a database that only background work talks to (a worker's queue, a cron job's warehouse) is then no longer discovered from traces — an existing entry stops being seen and is eventually archived — and shows on the service map as a remote endpoint. Its metrics are unaffected. Set `ebpf.dropUnlinkedDatabaseCalls=false` to keep those spans, one-span traces included.
+
+Background work makes HTTP and gRPC calls too — a worker querying ClickHouse over its HTTP interface, a controller renewing its Kubernetes lease, a monitor checking a website — and each of those is also a one-span trace, named after the bare request (`POST /`, `PUT /apis/*/...`). `ebpf.dropUnlinkedClientCalls=true` drops them: OBI's client spans with no parent, except database calls (the switch above decides about those), messaging calls (OneUptime's queue discovery reads them) and GenAI calls, MCP ones included (OneUptime's LLM costs and token counts come from them). A call made inside a request that OBI could not place in that request's trace looks the same, and is dropped too. It is off by default because the collector judges each span on its own, and these calls are not always alone. When the service a call went to runs on the same node and OBI traces it, OBI links the request that service handled under the call, so the call is the root of a whole trace — a cron job's call into your API and everything the API did for it. With `ebpf.contextPropagation` on, that happens on any node, and also when the service runs its own OpenTelemetry SDK, which reads the `traceparent` OBI injected. Dropping the call leaves that trace without its root: it no longer shows among the root spans in the Traces list, and the service map loses that traced edge (OBI's service graph metrics still draw it, without latency). On the cluster this was measured on, with `ebpf.contextPropagation` off, between one call in twenty and one in ten was such a root, depending on the hour — mostly probes calling the OneUptime API — and all of these calls together were about 2% of what OBI sent; with propagation on, more calls are roots. The service map reads the calls themselves as well: a service or endpoint that only background work calls is then drawn from OBI's service graph metrics alone (where an address outside the cluster that OBI knows only by IP is just `outgoing`), and an edge also seen inside requests counts only those calls. A service's overview counts its spans too: a worker, runner or probe whose spans are mostly these calls shows far fewer requests (none if it does nothing else), and its error rate and p95 latency then cover only the spans left. Failed calls are dropped like the others. OBI's `http.client.*` and `rpc.client.*` metrics and its service graph counters still count every call.
 
 OBI also records its own Node.js agent injection (`ebpf.nodejs.enabled`). OBI v0.14 injects the agent through the app's inspector after it has started tracing the app, so its own requests — `GET /json/list` (after `GET /json/version` when the app was started with `--inspect`) and the WebSocket upgrade `GET /*`, from 127.0.0.1 to port 9229 — look like requests the app served: short traces on every Node.js app, once each time OBI or the app starts. OneUptime drops those traces on ingest. A self-hosted server does so once it runs this chart's version or newer; an older one shows them. The agent's collector drops their `http.server.*` request metrics (`ebpf.dropNodeInspectorMetrics`, on by default), which would otherwise list `/json/list`, `/json/version` and `/*` among the app's routes on port 9229. OBI's span metrics (`ebpf.features.spanMetrics`) are not filtered: they carry only the span name, not the port or the client, so each injection still counts one `GET /json/list` call (and a `GET /json/version` for an app started with `--inspect`) and adds the upgrade to the app's `GET /*` calls. Now and then the collector sends a request's `in queue` / `processing` sub-spans in a different export from the request itself, and those two spans are kept: they carry no attributes and are not a trace root, so the trace list does not show them.
 
@@ -642,8 +645,25 @@ See [`values.yaml`](./values.yaml) for the exhaustive list, including service me
 ```bash
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reuse-values
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values
 ```
+
+`--reset-then-reuse-values` (Helm 3.14+) keeps the values you set — what `helm get values` lists — and takes every other value from the new chart's `values.yaml`, so what the new chart added or changed there applies. On Helm 3.13 and earlier, upgrade with the values you set instead:
+
+```bash
+helm repo update
+helm get values oneuptime-agent -n oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+Add any `--set` you need to either command: it overrides what the release had.
+
+> ⚠️ **Don't upgrade with `--reuse-values`.** It renders the new chart with the previous release's values, and those include the defaults of the chart you upgrade *from*: Helm puts them in place of the new chart's `values.yaml` ([`reuseValues`](https://github.com/helm/helm/blob/v3.14.0/pkg/action/upgrade.go)). So nothing the new chart changed or added there applies, on this upgrade or any later `--reuse-values` one. A release installed from 14.0.10 and upgraded that way keeps OBI `v0.9.0` instead of this chart's `v0.14.0`, misses the newer eBPF exclusions (`*/chrome_crashpad_handler`), and leaves every newer setting unset.
+>
+> The chart says when this has happened. Its `values.yaml` carries the version of the chart it comes with (`chartDefaultsVersion`, stamped at release), and when that is not the chart's own version, the notes Helm prints after the install or upgrade end with a **WARNING** that names what is stale (the OBI image tag, when it is not this chart's) and the command that fixes it for that release. To check yourself, compare `helm get values <release> -n <namespace> --all | grep chartDefaultsVersion` (nothing, on a chart from before it) with the chart version `helm list -n <namespace>` shows.
+>
+> What it cannot see: a template gets the merged values, never which of them you set. A release on this chart's defaults never warns, so a value you pin on purpose is never reported; a release on an older chart's defaults has its OBI tag named even when you pinned it, and the fix keeps a pinned value as it is. A values file that copies a whole older `values.yaml` (or `helm get values --all`) pins that chart's defaults, `chartDefaultsVersion` among them, and warns on every upgrade: keep only the values you changed in it, and upgrade with `-f` and that file but without `--reuse-values` or `--reset-then-reuse-values`, which would keep the copy the release stored.
 
 > ⚠️ **Self-hosted OneUptime: upgrade the server first, or install the chart version that matches it.** The eBPF tracer this chart runs (OBI v0.14) names a called service in `service.peer.name` and reports a message broker's own Kafka/MQTT/NATS spans as producer/consumer spans; OneUptime servers older than this chart read neither, so the service map loses named peers and Queues count each broker as a producer and consumer of its topics. It also records its own Node.js agent injection as short `GET /json/list` and `GET /*` traces on every Node.js app, which only current servers drop.
 
@@ -657,29 +677,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > Data sent before the upgrade keeps its old name. This applies with `--reuse-values` too, whatever `ebpf.image.tag` the release keeps: every OBI release accepts `application_span_otel` (OBI before v0.11 names the series `traces_span_metrics_duration` and `traces_span_metrics_calls_total`). OneUptime's own pages and the service map do not read these metrics.
 >
 > Earlier versions of this README said the feature also sent request and response sizes. It never did: those come from a separate OBI feature, `application_span_sizes`, which is deprecated too and which this chart has never turned on.
-
-> ⚠️ **`--reuse-values` skips defaults for newly added settings.** When the chart adds a new top-level field (e.g. `profiling.*` in v0.4.x, `ebpf.features.*` in v0.4.x), Helm's `--reuse-values` keeps your old value file as-is and does **not** merge the new defaults — so the new feature stays unset and renders as disabled in the templates. A default that changed keeps its old value the same way: a release upgraded with `--reuse-values` keeps running OBI `v0.13.0` instead of this chart's `v0.14.0`.
->
-> To pick up new defaults:
->
-> - **Helm 3.14+**: use `--reset-then-reuse-values` instead of `--reuse-values`. This re-reads the chart's `values.yaml` for any keys you haven't overridden, while still keeping your `--set` values.
->
->   ```bash
->   helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->     --namespace oneuptime-kubernetes-agent --reset-then-reuse-values
->   ```
->
-> - **Helm 3.13 and earlier**: pass your original `--set` flags (or `-f values.yaml`) without `--reuse-values`. The new defaults apply automatically and your overrides override them.
->
->   ```bash
->   helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->     --namespace oneuptime-kubernetes-agent \
->     --set oneuptime.url=<URL> \
->     --set oneuptime.apiKey=<KEY> \
->     --set clusterName=<NAME>
->   ```
->
-> If you don't see the new feature's pods (e.g. `kubernetes-agent-profiling-*`) after upgrading, it's almost certainly this. Run `helm get values <release>` to see what Helm actually has — fields missing from the output mean Helm didn't merge defaults for them.
 
 ### Upgrading to the Kubernetes AI agent
 
@@ -744,7 +741,7 @@ Cluster-level telemetry about Windows nodes and their pods (node conditions, pod
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -773,7 +770,7 @@ These agents wrap libc `write()` and hold pointers into the caller's stdout buff
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=false
 ```
 
@@ -834,7 +831,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 kubectl rollout restart daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 ```
 
-Existing stuck connections do not recover on their own — they were already desynchronized — so restart the clients holding them. `false` is now the shipped default, but an install predating that change, or any upgrade carried forward with `--reuse-values`, is still on `true` — so verify with `helm get values` rather than assuming from your chart version.
+Existing stuck connections do not recover on their own — they were already desynchronized — so restart the clients holding them. `false` is now the shipped default, but an install predating that change, or any upgrade carried forward with `--reuse-values`, is still on `true` — so verify with `helm get values -a` rather than assuming from your chart version.
 
 If you need cross-service trace linking back, prefer instrumenting the services with an OpenTelemetry SDK (which propagates `traceparent` in userspace, with no kernel rewriting) over re-enabling this. If you do re-enable it, do so on a non-production cluster first and verify large transfers through your proxy before rolling it further.
 
@@ -884,6 +881,7 @@ Check what kind of span it is before anything else:
 
 - **`GET /json/list` or `GET /*` on port 9229, from 127.0.0.1, on a Node.js app** — OBI's own Node.js agent injection, not your app's traffic; see [What eBPF traces look like](#what-ebpf-traces-look-like). OneUptime drops these on ingest, so seeing them means the OneUptime server predates that: upgrade a self-hosted server to this chart's version or newer.
 - **A bare database command (`set`, `evalsha`, `SELECT`)** — a database server's own span or a call made outside any request. These cannot be linked; `ebpf.dropDatabaseServerSpans` and `ebpf.dropUnlinkedDatabaseCalls` (both on by default) drop them. Only an explicit `false` turns either off — a key missing from `helm get values` (a release upgraded with `--reuse-values`) counts as on. To see what is actually running: `kubectl get configmap -n oneuptime-kubernetes-agent <release>-kubernetes-agent-deployment -o yaml | grep -A4 'filter/ebpf-unlinked-db:'`.
+- **A bare HTTP or gRPC call (`POST /`, `PUT /apis/*/...`) from a worker or a controller** — a call made outside any request. `ebpf.dropUnlinkedClientCalls=true` drops them, at a cost: read [What eBPF traces look like](#what-ebpf-traces-look-like) first. It is off unless set to `true`, after an upgrade with `--reuse-values` too. To see whether it runs: `kubectl get configmap -n oneuptime-kubernetes-agent <release>-kubernetes-agent-deployment -o yaml | grep -A4 'filter/ebpf-unlinked-client:'`.
 - **A request (`GET /api/...`) with none of its downstream calls under it, from a Node.js service** — OBI's Node.js agent is not running in that process. Check that OBI identified the process as Node.js (`type=nodejs` on its `instrumenting process` line), then what OBI's Node.js injector (`component=nodejs.Injector`) logged:
 
     ```bash
@@ -891,7 +889,7 @@ Check what kind of span it is before anything else:
       | grep -E 'instrumenting process.*cmd=[^ ]*node|component=nodejs\.Injector|skipping agent injection'
     ```
 
-    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. OBI v0.14, the chart's default, fixes this. An older tag stays in place if you pinned one, or if you upgraded with `--reuse-values`, which keeps the previous chart's default (`v0.13.0`) even though `helm get values` does not list it. Check with `kubectl get daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument -o jsonpath='{.items[*].spec.template.spec.containers[0].image}'`, and move it to `v0.14.0` or later (`--set ebpf.image.tag=v0.14.0`, or upgrade with `--reset-then-reuse-values` on Helm 3.14+).
+    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. OBI v0.14, the chart's default, fixes this. An older tag stays in place if you pinned one, or if you upgraded with `--reuse-values`, which keeps the previous chart's default (`v0.9.0` before chart 14.0.12, `v0.13.0` in 14.0.12) even though `helm get values` does not list it; the chart's notes warn about the latter. Check with `kubectl get daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument -o jsonpath='{.items[*].spec.template.spec.containers[0].image}'`, and move it to `v0.14.0` or later (`--set ebpf.image.tag=v0.14.0`, or upgrade with `--reset-then-reuse-values` on Helm 3.14+).
     - `Script successfully injected` means the agent is in. OBI v0.13 logs a `loading NodeJS instrumentation pid=…` line before each attempt; v0.14 logs it at debug only (`--set ebpf.logLevel=debug`).
     - On OBI v0.13, `Node.js process has a custom SIGUSR1 handler, skipping agent injection` means the app uses SIGUSR1 itself, and OBI will not interfere.
     - On OBI v0.14, `skipping Node.js agent injection` comes with a `reason=`: `process has a custom SIGUSR1 handler` or `process source files reference SIGUSR1` (the app uses the signal itself, and OBI will not interfere), `SIGUSR1 is neither caught nor ignored, so it would terminate the process` or `SIGUSR1 handling is unknown`, `the Node.js version could not be read from the executable`, or `Node.js … does not provide AsyncLocalStorage` (older than 12.17, or a 13.x before 13.10).

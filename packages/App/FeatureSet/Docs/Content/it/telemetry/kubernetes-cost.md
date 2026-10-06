@@ -9,7 +9,7 @@ Abilitarla richiede un solo comando:
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -38,7 +38,7 @@ Punta invece il chart al tuo motore esistente — in quel caso non viene incluso
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true \
   --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
 ```
