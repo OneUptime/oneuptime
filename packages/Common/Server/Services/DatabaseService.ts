@@ -119,6 +119,10 @@ import FileOwnership, {
   FileReferenceOwner,
   normalizeFileId,
 } from "../Utils/File/FileOwnership";
+import RelatedFileAccess, {
+  RelatedFileReader,
+} from "../Utils/File/RelatedFileAccess";
+import PublishedImages from "../Utils/File/PublishedImages";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -561,6 +565,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     await FileOwnership.assertOwned(checks);
+  }
+
+  /*
+   * A row just created, as stored: the columns asked for, read as root since
+   * the row is the write's own - for a value the write left to its column
+   * default. Null when the row has no id, or is gone already.
+   */
+  private async readStoredColumns(
+    row: TBaseModel,
+    columns: Array<string>,
+  ): Promise<Record<string, unknown> | null> {
+    const rowId: string = (row?._id || row?.id || "").toString();
+
+    if (!rowId || columns.length === 0) {
+      return null;
+    }
+
+    const select: Dictionary<boolean> = { _id: true };
+
+    for (const column of columns) {
+      select[column] = true;
+    }
+
+    const stored: Array<TBaseModel> = await this._findBy({
+      query: { _id: rowId } as Query<TBaseModel>,
+      select: select as Select<TBaseModel>,
+      skip: 0,
+      limit: 1,
+      props: { isRoot: true, ignoreHooks: true },
+    });
+
+    return stored[0] ? (stored[0] as unknown as Record<string, unknown>) : null;
   }
 
   /*
@@ -2513,6 +2549,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       // The rows that make room for it, now that it exists.
       await this.applyListOrderCreatePlan(listOrderPlan);
 
+      /*
+       * The images a record shows to everyone are public from now on,
+       * before anything announces it. See PublishedImages.
+       */
+      await PublishedImages.afterCreate({
+        tableName: this.model.tableName,
+        row: createBy.data,
+        readStored: async (
+          columns: Array<string>,
+        ): Promise<Record<string, unknown> | null> => {
+          return await this.readStoredColumns(createBy.data, columns);
+        },
+      });
+
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(
           {
@@ -3813,6 +3863,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as any)[this.getModel().getTenantColumn() as string] = true;
       }
 
+      // What the rows show to everyone, to take it back. See PublishedImages.
+      for (const column of PublishedImages.getColumns(this.model.tableName)) {
+        (select as Dictionary<unknown>)[column] = true;
+      }
+
       /*
        * If audit logging on delete is enabled, fetch all scalar columns so we
        * can record a full snapshot of the record before it is deleted.
@@ -3869,6 +3924,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         numberOfDocsAffected =
           (await this.getRepository().delete(query as any)).affected || 0;
+
+        /*
+         * The images the deleted rows showed to everyone are private again,
+         * unless another record still shows them. See PublishedImages.
+         */
+        await PublishedImages.afterDelete({
+          tableName: this.model.tableName,
+          rowsDeleted: items,
+        });
       }
 
       // hit workflow.
@@ -4013,6 +4077,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       this.checkCallerBeforeHooks(findBy.props, DatabaseRequestType.Read);
 
+      // Who is asking, as they asked: whose files they may see.
+      const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(
+        findBy.props,
+      );
+
       if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
         findBy.sort = {
           createdAt: SortOrder.Descending,
@@ -4132,6 +4201,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       decryptedItems = this.sanitizeFindByItems(decryptedItems, onBeforeFind);
+
+      /*
+       * A record's files only for someone who may see them; anyone else
+       * gets the record without them. See RelatedFileAccess.
+       */
+      await RelatedFileAccess.keepReadableFiles({
+        model: this.model,
+        rows: decryptedItems,
+        select: onBeforeFind.select,
+        reader: fileReader,
+      });
 
       for (const item of decryptedItems) {
         for (const sortColumn of sortColumnsAddedToSelect) {
@@ -4529,6 +4609,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       /*
+       * What each row shows to everyone before the write - all of it, not
+       * only the columns written - to tell what it starts and stops
+       * showing. See PublishedImages.
+       */
+      if (PublishedImages.isWrittenBy(this.model.tableName, dataKeys)) {
+        for (const column of PublishedImages.getColumns(
+          this.model.tableName,
+        )) {
+          (selectColumns as Dictionary<unknown>)[column] = true;
+        }
+      }
+
+      /*
        * A drag-ordered list needs each row's place and list as they were
        * BEFORE this write, to move it from there afterwards.
        */
@@ -4796,6 +4889,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        *         )
        *     ).affected || 0;
        */
+
+      /*
+       * The images each row shows to everyone now are public, and those it
+       * stopped showing private, unless another record still shows them.
+       * Before onUpdateSuccess, so nothing a hook sends links to an image
+       * that is not public yet. See PublishedImages.
+       */
+      await PublishedImages.afterUpdate({
+        tableName: this.model.tableName,
+        rowsBefore: affectedItems,
+        written: data,
+      });
 
       /*
        * Before onUpdateSuccess, so a service hook that reads the list (an

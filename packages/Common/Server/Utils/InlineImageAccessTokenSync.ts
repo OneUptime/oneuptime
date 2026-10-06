@@ -2,6 +2,7 @@ import FileService from "../Services/FileService";
 import File from "../../Models/DatabaseModels/File";
 import ObjectID from "../../Types/ObjectID";
 import FileOwnership from "./File/FileOwnership";
+import PublishedImages, { extractImageAccessTokens } from "./File/PublishedImages";
 import logger from "./Logger";
 
 /*
@@ -11,9 +12,11 @@ import logger from "./Logger";
  *
  *   {FILE_URL}/file/image/access-token/{token}
  *
- * Whenever a markdown field is published or unpublished we need to
- * flip the `isPublic` flag on the underlying File rows so the token
- * route serves anonymous traffic only when the parent allows it.
+ * Whenever a record that shows its markdown to everyone starts or stops
+ * showing an image, the `isPublic` flag of the underlying File row follows,
+ * so the token route serves anonymous traffic only while a record shows the
+ * image to everyone (PublishedImages, which DatabaseService runs on every
+ * write of such a record).
  *
  * Only the images of the record's own project are flipped: a token is
  * copied along with the markdown it sits in, and a record of one project
@@ -22,26 +25,12 @@ import logger from "./Logger";
  * project is nobody's to flip. Images uploaded before files recorded their
  * project got the project of the markdown that shows them
  * (BackfillFileOwners1797900000000), unless markdown of two projects does.
+ *
+ * An image is made private only when no record of its project shows it to
+ * everyone any more (PublishedImages.isStillShown): the same image can be
+ * in a template and every incident made from it.
  */
-const ACCESS_TOKEN_REGEX: RegExp =
-  /\/file\/image\/access-token\/([a-fA-F0-9]+)/g;
-
-export const extractImageAccessTokens: (
-  markdown: string | null | undefined,
-) => Array<string> = (markdown: string | null | undefined): Array<string> => {
-  if (!markdown) {
-    return [];
-  }
-  const tokens: Set<string> = new Set<string>();
-  const matches: IterableIterator<RegExpMatchArray> =
-    markdown.matchAll(ACCESS_TOKEN_REGEX);
-  for (const match of matches) {
-    if (match[1]) {
-      tokens.add(match[1]);
-    }
-  }
-  return Array.from(tokens);
-};
+export { extractImageAccessTokens };
 
 // Whether a record of this project may make the image public, or private.
 export const mayChangeImageVisibility: (
@@ -52,6 +41,64 @@ export const mayChangeImageVisibility: (
   projectId: ObjectID | null | undefined,
 ): boolean => {
   return FileOwnership.isFileOfProject(file, projectId);
+};
+
+/*
+ * One image, by its token: public, or private unless a record of its
+ * project still shows it to everyone. Only an image of the record's own
+ * project, and only when it is not already so.
+ */
+export const setImageVisibility: (
+  token: string,
+  isPublic: boolean,
+  // The project of the record that shows, or stopped showing, the image.
+  projectId: ObjectID | null | undefined,
+) => Promise<void> = async (
+  token: string,
+  isPublic: boolean,
+  projectId: ObjectID | null | undefined,
+): Promise<void> => {
+  const file: File | null = await FileService.findOneBy({
+    query: {
+      imageAccessToken: token,
+    },
+    select: {
+      _id: true,
+      projectId: true,
+      isPublic: true,
+    },
+    props: {
+      isRoot: true,
+      ignoreHooks: true,
+    },
+  });
+
+  if (!file || !file._id || !mayChangeImageVisibility(file, projectId)) {
+    return;
+  }
+
+  // Strictly true, as FileViewerAccess reads it: anything else is private.
+  if (((file.isPublic as unknown) === true) === isPublic) {
+    return;
+  }
+
+  if (
+    !isPublic &&
+    (await PublishedImages.isStillShown({ projectId, token: token }))
+  ) {
+    return;
+  }
+
+  await FileService.updateOneById({
+    id: new ObjectID(file._id.toString()),
+    data: {
+      isPublic,
+    },
+    props: {
+      isRoot: true,
+      ignoreHooks: true,
+    },
+  });
 };
 
 export const setIsPublicForMarkdownImages: (
@@ -71,34 +118,7 @@ export const setIsPublicForMarkdownImages: (
 
   for (const token of tokens) {
     try {
-      const file: File | null = await FileService.findOneBy({
-        query: {
-          imageAccessToken: token,
-        },
-        select: {
-          _id: true,
-          projectId: true,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-
-      if (!file || !file._id || !mayChangeImageVisibility(file, projectId)) {
-        continue;
-      }
-
-      await FileService.updateOneById({
-        id: new ObjectID(file._id.toString()),
-        data: {
-          isPublic,
-        },
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
+      await setImageVisibility(token, isPublic, projectId);
     } catch (err) {
       logger.error(
         `Failed to update isPublic for file token ${token}: ${String(err)}`,
@@ -108,9 +128,10 @@ export const setIsPublicForMarkdownImages: (
 };
 
 /*
- * Best-effort variant used by the publish paths (public notes,
- * announcements). Failing to flip an inline image must never fail the
- * write the user actually asked for, so errors are logged and swallowed.
+ * Best-effort variant used where markdown is sent to everyone as it goes
+ * out (an incident's custom fields in subscriber notifications). Failing
+ * to flip an inline image must never fail what the user actually asked
+ * for, so errors are logged and swallowed.
  */
 export const syncIsPublicForMarkdownImages: (
   markdown: string | null | undefined,

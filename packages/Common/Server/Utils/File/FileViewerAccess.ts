@@ -16,14 +16,16 @@ import { UserTenantAccessPermission } from "../../../Types/Permission";
  * Who may read a stored file through the image routes, which answer by the
  * file alone - an inline image's access token, a public icon's id - rather
  * than through a record that holds it (the routes that serve a record's
- * files hold them to the record's owner instead: FileOwnership).
+ * files hold them to the record's owner instead: FileOwnership; a read of
+ * a record hands back its files by the rule below: RelatedFileAccess).
  *
- *   - A public file: anyone. A file becomes public only when a record that
- *     shows it to everyone is published - an image in a public note, an
- *     announcement or a published postmortem, a probe's or an AI agent's
- *     icon - and private again when that record stops showing it
- *     (InlineImageAccessTokenSync, FileService.makeRecordFilesPublic). Every
- *     upload starts private (FileService).
+ *   - A public file: anyone. A file is public only while a record shows it
+ *     to everyone - an image in a public note, an announcement, a published
+ *     postmortem, an incident's, an episode's or a maintenance event's
+ *     description on a status page, a status page's own text (PublishedImages)
+ *     - or while it is a probe's or an AI agent's icon
+ *     (FileService.makeRecordFilesPublic). Every upload starts private
+ *     (FileService).
  *   - A private file of a project: the people who can open that project,
  *     decided the way every request to the project is decided - a membership
  *     they have accepted, and the project's sign-in rules met (SSO, where
@@ -130,9 +132,10 @@ export default class FileViewerAccess {
 
   /**
    * The file the id-based image route serves: a public one (a probe's or an
-   * AI agent's icon), to anyone. Only a public file is read at all: an id is
-   * no secret, so a private file - an inline image, an attachment - is never
-   * served by it, however the request is signed in.
+   * AI agent's icon, an image a published record shows), to anyone. Only a
+   * public file is read at all: an id is no secret, so a private file - an
+   * inline image nothing published shows, an attachment - is never served
+   * by it, however the request is signed in.
    */
   public static async findPublicFile(id: ObjectID): Promise<File | undefined> {
     return await this.readFile({

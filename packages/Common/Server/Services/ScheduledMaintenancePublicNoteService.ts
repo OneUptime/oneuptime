@@ -18,7 +18,6 @@ import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/Publ
 import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
-import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import StateChangePublicNote from "../Utils/StatusPage/StateChangePublicNote";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -197,18 +196,6 @@ export class Service extends ProjectReferencesService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
-    /*
-     * A public note is always rendered on the status page, so any inline
-     * image the markdown editor uploaded as private must flip to public
-     * for anonymous status page viewers to be able to render it.
-     */
-    await syncIsPublicForMarkdownImages(
-      createdItem.note,
-      true,
-      `scheduled maintenance public note ${createdItem.id?.toString()}`,
-      createdItem.projectId,
-    );
-
     const scheduledMaintenanceId: ObjectID =
       createdItem.scheduledMaintenanceId!;
     const projectId: ObjectID = createdItem.projectId!;
@@ -280,13 +267,6 @@ ${(createdItem.note || "") + attachmentsMarkdown}
       for (const updatedItem of updatedItems) {
         const scheduledMaintenance: ScheduledMaintenance =
           updatedItem.scheduledMaintenance!;
-
-        await syncIsPublicForMarkdownImages(
-          updatedItem.note,
-          true,
-          `scheduled maintenance public note ${updatedItem.id?.toString()}`,
-          updatedItem.projectId,
-        );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
           updatedItem.id!,

@@ -25,6 +25,7 @@ import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseMo
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
+import RelatedFileAccess from "../../../../Utils/File/RelatedFileAccess";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,
@@ -187,6 +188,14 @@ export default class OnTriggerBaseModel<
         ("Model not found with id " + data["_id"].toString()) as string,
       );
     }
+
+    // The record's files only when they are the project's to see.
+    await RelatedFileAccess.keepReadableFiles({
+      model: this.service!.getModel(),
+      rows: [model],
+      select: select,
+      reader: RelatedFileAccess.getProjectReader(options.projectId),
+    });
 
     return {
       returnValues: {

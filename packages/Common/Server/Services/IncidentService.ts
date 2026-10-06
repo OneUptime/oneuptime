@@ -119,7 +119,6 @@ import IncidentFeedService from "./IncidentFeedService";
 import IncidentSlaService from "./IncidentSlaService";
 import IncidentReminderRuleService from "./IncidentReminderRuleService";
 import IncidentReminderRule from "../../Models/DatabaseModels/IncidentReminderRule";
-import { setIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingEngineService from "./IncidentGroupingEngineService";
 import IncidentLabelRuleEngineService from "./IncidentLabelRuleEngineService";
@@ -4568,48 +4567,13 @@ ${incident.remediationNotes || "No remediation notes provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
+        /*
+         * The postmortem's inline images are already public if it is shown
+         * on the status page, private if not: DatabaseService made them so
+         * as it wrote the update, before this hook (PublishedImages), so
+         * the notification queued below never links to a private image.
+         */
         if (isPostmortemWritten) {
-          /*
-           * Sync isPublic on inline post-mortem images. The markdown
-           * editor uploads them as private; they must flip to public
-           * exactly when the post-mortem is shown on the status page so
-           * that anonymous status-page viewers can render the
-           * screenshots without exposing private artefacts. Done whenever
-           * the note or the switch is written, changed or not: it only
-           * sets each image to what the stored postmortem implies. Before
-           * the notification is queued, so it never links to images that
-           * are still private.
-           */
-          try {
-            const incidentForSync: Model | null = await this.findOneById({
-              id: incidentId,
-              select: {
-                postmortemNote: true,
-                showPostmortemOnStatusPage: true,
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (incidentForSync) {
-              await setIsPublicForMarkdownImages(
-                incidentForSync.postmortemNote || "",
-                Boolean(incidentForSync.showPostmortemOnStatusPage),
-                incidentForSync.projectId,
-              );
-            }
-          } catch (syncError) {
-            logger.error(
-              `Failed to sync inline post-mortem image visibility: ${syncError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-
           await this.applyPostmortemUpdate({
             incidentId: incidentId,
             projectId: projectId,

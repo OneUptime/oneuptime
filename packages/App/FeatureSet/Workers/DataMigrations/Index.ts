@@ -126,6 +126,7 @@ import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInv
 import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 import NormalizeListOrder from "./NormalizeListOrder";
 import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
+import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -592,6 +593,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new RewriteMeasurementPointsInTheirUnit(),
+  /*
+   * A file is public exactly while a record shows it to everyone, or while
+   * it is a probe's or an AI agent's icon: images published records show
+   * become public, and public files nothing published shows become private
+   * (PublishedImages). Postgres-only, idempotent. No ordering requirement,
+   * so it sits before the last slot.
+   */
+  new SetFileVisibilityFromPublishedRecords(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

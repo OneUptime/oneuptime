@@ -824,9 +824,19 @@ describe("updates that are not the Edit Postmortem form", () => {
     },
   );
 
-  test("the note's images are made public before the notification is queued", async () => {
+  /*
+   * The note's images are made public by DatabaseService as it writes the
+   * update, before this hook runs (PublishedImages; the order is held by
+   * DatabaseServicePublishedImages.test.ts), so the notification this hook
+   * queues never links to a private image - and the hook itself leaves the
+   * images alone.
+   */
+  test("the hook that queues the notification leaves the note's images to the write before it", async () => {
     const imageSync: MockFunction = getJestMockFunction();
     imageSync.mockResolvedValue(undefined as never);
+    jest
+      .spyOn(InlineImageAccessTokenSync, "setImageVisibility")
+      .mockImplementation(imageSync as never);
     jest
       .spyOn(InlineImageAccessTokenSync, "setIsPublicForMarkdownImages")
       .mockImplementation(imageSync as never);
@@ -838,13 +848,8 @@ describe("updates that are not the Edit Postmortem form", () => {
       },
     });
 
-    expect(imageSync).toHaveBeenCalledTimes(1);
     expect(compareAndSet).toHaveBeenCalledTimes(1);
-    expect(imageSync.mock.invocationCallOrder[0]!).toBeLessThan(
-      compareAndSet.mock.invocationCallOrder[0]!,
-    );
-    // Public, because the postmortem is on the status page now.
-    expect(imageSync.mock.calls[0]![1]).toBe(true);
+    expect(imageSync).not.toHaveBeenCalled();
   });
 });
 

@@ -5,8 +5,10 @@ import {
   syncIsPublicForMarkdownImages,
 } from "../../../Server/Utils/InlineImageAccessTokenSync";
 import FileService from "../../../Server/Services/FileService";
+import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import ObjectID from "../../../Types/ObjectID";
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Services/FileService", () => {
   return {
@@ -83,8 +85,18 @@ describe("extractImageAccessTokens", () => {
 });
 
 describe("setIsPublicForMarkdownImages", () => {
+  // Whether another record of the project still shows the image.
+  let isStillShown: SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    isStillShown = jest
+      .spyOn(PublishedImages, "isStillShown")
+      .mockResolvedValue(false) as unknown as SpyInstance;
+  });
+
+  afterEach(() => {
+    isStillShown.mockRestore();
   });
 
   it("does nothing when the markdown has no inline images", async () => {
@@ -118,6 +130,7 @@ describe("setIsPublicForMarkdownImages", () => {
     (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
       _id: "11111111-1111-1111-1111-111111111111",
       projectId: PROJECT_ID,
+      isPublic: true,
     } as never);
 
     await setIsPublicForMarkdownImages(
@@ -131,6 +144,88 @@ describe("setIsPublicForMarkdownImages", () => {
     ).toMatchObject({
       data: { isPublic: false },
     });
+    expect(isStillShown).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      token: "aaa111",
+    });
+  });
+
+  /*
+   * An image is copied with the markdown it sits in - a template's image is
+   * in every incident made from it - so one record that stops showing it
+   * leaves it public while another of the project still shows it.
+   */
+  it("keeps an image public while another record of the project still shows it", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: PROJECT_ID,
+      isPublic: true,
+    } as never);
+    isStillShown.mockResolvedValue(true);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      false,
+      PROJECT_ID,
+    );
+
+    expect(isStillShown).toHaveBeenCalledTimes(1);
+    expect(FileService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing for an image that already is as it should be", async () => {
+    (FileService.findOneBy as unknown as jest.Mock)
+      .mockResolvedValueOnce({
+        _id: "11111111-1111-1111-1111-111111111111",
+        projectId: PROJECT_ID,
+        isPublic: true,
+      } as never)
+      .mockResolvedValueOnce({
+        _id: "11111111-1111-1111-1111-111111111111",
+        projectId: PROJECT_ID,
+        isPublic: false,
+      } as never);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      false,
+      PROJECT_ID,
+    );
+
+    expect(FileService.updateOneById).not.toHaveBeenCalled();
+    // A private image needs no look for who else shows it.
+    expect(isStillShown).not.toHaveBeenCalled();
+  });
+
+  /*
+   * isPublic is read strictly: only a real `true` is public, so an image
+   * stored with anything else is made public when a record shows it.
+   */
+  it("treats anything but a real true as private", async () => {
+    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
+      _id: "11111111-1111-1111-1111-111111111111",
+      projectId: PROJECT_ID,
+      isPublic: "true",
+    } as never);
+
+    await setIsPublicForMarkdownImages(
+      `![a](${urlFor("aaa111")})`,
+      true,
+      PROJECT_ID,
+    );
+
+    expect(
+      (FileService.updateOneById as unknown as jest.Mock).mock.calls.map(
+        (call: Array<any>) => {
+          return call[0]?.data;
+        },
+      ),
+    ).toEqual([{ isPublic: true }]);
   });
 
   it("skips tokens with no matching file", async () => {
@@ -184,7 +279,7 @@ describe("setIsPublicForMarkdownImages", () => {
       (FileService.findOneBy as unknown as jest.Mock).mock.calls[0]?.[0],
     ).toMatchObject({
       query: { imageAccessToken: "aaa111" },
-      select: { _id: true, projectId: true },
+      select: { _id: true, projectId: true, isPublic: true },
       props: { isRoot: true },
     });
     expect(FileService.updateOneById).toHaveBeenCalledTimes(1);
@@ -217,10 +312,17 @@ describe("setIsPublicForMarkdownImages", () => {
   });
 
   it("changes the visibility of an image of the note's own project, in both directions", async () => {
-    (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
-      _id: "11111111-1111-1111-1111-111111111111",
-      projectId: new ObjectID(PROJECT_ID.toString().toUpperCase()),
-    } as never);
+    (FileService.findOneBy as unknown as jest.Mock)
+      .mockResolvedValueOnce({
+        _id: "11111111-1111-1111-1111-111111111111",
+        projectId: new ObjectID(PROJECT_ID.toString().toUpperCase()),
+        isPublic: false,
+      } as never)
+      .mockResolvedValueOnce({
+        _id: "11111111-1111-1111-1111-111111111111",
+        projectId: new ObjectID(PROJECT_ID.toString().toUpperCase()),
+        isPublic: true,
+      } as never);
 
     await setIsPublicForMarkdownImages(
       `![a](${urlFor("aaa111")})`,
@@ -254,6 +356,7 @@ describe("setIsPublicForMarkdownImages", () => {
     (FileService.findOneBy as unknown as jest.Mock).mockResolvedValue({
       _id: "11111111-1111-1111-1111-111111111111",
       projectId: null,
+      isPublic: true,
     } as never);
 
     for (const isPublic of [true, false]) {
