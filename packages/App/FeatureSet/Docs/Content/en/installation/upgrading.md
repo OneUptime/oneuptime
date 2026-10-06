@@ -334,6 +334,20 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   will plan `30 -> 20` for the rules it manages once you upgrade the provider;
   set `escalate_after_seconds = 30` to keep 30. See
   [Incoming Call Policy](/docs/on-call/incoming-call-policy).
+- **Slack and Microsoft Teams summaries keep their time of day when the
+  clocks change.** A summary now has a time zone, and its schedule is read
+  on that clock. Until now it was read in UTC, so a summary set for 09:00 in
+  Berlin went out at 08:00 there once the clocks went back. The upgrade
+  gives each existing summary the time zone in its creator's profile, the
+  clock the dashboard showed them, or UTC when it has no creator with one
+  (an API key made it), which is what it was read in until now. No next
+  send moves during the upgrade; from its next send on, a summary that had
+  drifted an hour goes back to its first summary's time of day, and a
+  monthly summary on the 29th to 31st no longer slides to the 28th. The
+  API and Terraform (`timezone`) take an IANA time zone name; a summary
+  created without one takes its creator's profile time zone, or UTC when
+  an API key creates it, and a name that is not a time zone is refused.
+  See [Summaries](/docs/workspace-connections/slack#summaries).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
