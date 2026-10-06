@@ -3,7 +3,10 @@ import WorkspaceNotificationRuleAPI, {
 } from "../../../Server/API/WorkspaceNotificationRuleAPI";
 import ProjectService from "../../../Server/Services/ProjectService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
-import { ExpressResponse, OneUptimeRequest } from "../../../Server/Utils/Express";
+import {
+  ExpressResponse,
+  OneUptimeRequest,
+} from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -212,9 +215,11 @@ const requestFrom: (
               return userPermission(permission, false);
             },
           ),
-          ...(role.block || []).map((permission: Permission): UserPermission => {
-            return userPermission(permission, true);
-          }),
+          ...(role.block || []).map(
+            (permission: Permission): UserPermission => {
+              return userPermission(permission, true);
+            },
+          ),
         ],
       },
     },

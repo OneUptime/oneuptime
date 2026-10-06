@@ -96,6 +96,9 @@ export default class StateChangePublicNote {
    * refusal, which names the permissions that post one), and what to do.
    */
   public static getRefusalMessage(reason: string): string {
-    return StateChangeNote.getRefusalMessage(StateChangeNoteType.Public, reason);
+    return StateChangeNote.getRefusalMessage(
+      StateChangeNoteType.Public,
+      reason,
+    );
   }
 }

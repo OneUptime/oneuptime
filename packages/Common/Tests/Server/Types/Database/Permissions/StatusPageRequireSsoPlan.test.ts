@@ -223,9 +223,9 @@ describe("StatusPage.requireSsoForLogin carries the single sign-on plan", () => 
   });
 
   test("the same plan as the project's own Require SSO", () => {
-    expect(
-      new StatusPage().getColumnBillingAccessControl(COLUMN).update,
-    ).toBe(new Project().getColumnBillingAccessControl(COLUMN).update);
+    expect(new StatusPage().getColumnBillingAccessControl(COLUMN).update).toBe(
+      new Project().getColumnBillingAccessControl(COLUMN).update,
+    );
   });
 
   test("its default is off, in the model and in the database: the value every plan may write", () => {
@@ -250,51 +250,54 @@ describe("StatusPage.requireSsoForLogin carries the single sign-on plan", () => 
 });
 
 describe("on OneUptime Cloud (billing on), at the server's column check", () => {
-  describe.each(WRITES)("%s", (_label: string, requestType: DatabaseRequestType) => {
-    test.each(PLANS_BELOW_SCALE)(
-      "on %s, requiring SSO is refused with the plan's name",
-      (plan: PlanType) => {
-        expect(
-          checkWrite({ requestType, plan, data: { [COLUMN]: true } }),
-        ).toBe(SCALE_REFUSAL);
-      },
-    );
+  describe.each(WRITES)(
+    "%s",
+    (_label: string, requestType: DatabaseRequestType) => {
+      test.each(PLANS_BELOW_SCALE)(
+        "on %s, requiring SSO is refused with the plan's name",
+        (plan: PlanType) => {
+          expect(
+            checkWrite({ requestType, plan, data: { [COLUMN]: true } }),
+          ).toBe(SCALE_REFUSAL);
+        },
+      );
 
-    test.each(PLANS_FROM_SCALE)(
-      "on %s, requiring SSO is allowed",
-      (plan: PlanType) => {
-        expect(
-          checkWrite({ requestType, plan, data: { [COLUMN]: true } }),
-        ).toBe("allowed");
-      },
-    );
+      test.each(PLANS_FROM_SCALE)(
+        "on %s, requiring SSO is allowed",
+        (plan: PlanType) => {
+          expect(
+            checkWrite({ requestType, plan, data: { [COLUMN]: true } }),
+          ).toBe("allowed");
+        },
+      );
 
-    test.each(ALL_PLANS)(
-      "on %s, not requiring SSO - the default - is allowed",
-      (plan: PlanType) => {
-        expect(
-          checkWrite({ requestType, plan, data: { [COLUMN]: false } }),
-        ).toBe("allowed");
-      },
-    );
+      test.each(ALL_PLANS)(
+        "on %s, not requiring SSO - the default - is allowed",
+        (plan: PlanType) => {
+          expect(
+            checkWrite({ requestType, plan, data: { [COLUMN]: false } }),
+          ).toBe("allowed");
+        },
+      );
 
-    test.each([
-      ["the text \"false\"", "false"],
-      ["0", 0],
-      ["the text \"true\"", "true"],
-    ])(
-      "only exactly false is off: %s still needs Scale",
-      (_name: string, value: unknown) => {
-        expect(
-          checkWrite({
-            requestType,
-            plan: PlanType.Free,
-            data: { [COLUMN]: value },
-          }),
-        ).toBe(SCALE_REFUSAL);
-      },
-    );
-  });
+      test.each([
+        ['the text "false"', "false"],
+        ["0", 0],
+        ['the text "true"', "true"],
+      ])(
+        "only exactly false is off: %s still needs Scale",
+        (_name: string, value: unknown) => {
+          expect(
+            checkWrite({
+              requestType,
+              plan: PlanType.Free,
+              data: { [COLUMN]: value },
+            }),
+          ).toBe(SCALE_REFUSAL);
+        },
+      );
+    },
+  );
 
   test("a page left requiring SSO can be let back in with passwords on Free, alongside its other leftovers", () => {
     expect(
@@ -481,17 +484,20 @@ describe("on a self-hosted install (billing off)", () => {
     setTestBillingEnabled(false);
   });
 
-  describe.each(WRITES)("%s", (_label: string, requestType: DatabaseRequestType) => {
-    test.each(ALL_PLANS)(
-      "requiring SSO is allowed whatever plan the props carry (%s)",
-      (plan: PlanType) => {
-        expect(
-          checkWrite({ requestType, plan, data: { [COLUMN]: true } }),
-        ).toBe("allowed");
-        expect(
-          checkWrite({ requestType, plan, data: { [COLUMN]: false } }),
-        ).toBe("allowed");
-      },
-    );
-  });
+  describe.each(WRITES)(
+    "%s",
+    (_label: string, requestType: DatabaseRequestType) => {
+      test.each(ALL_PLANS)(
+        "requiring SSO is allowed whatever plan the props carry (%s)",
+        (plan: PlanType) => {
+          expect(
+            checkWrite({ requestType, plan, data: { [COLUMN]: true } }),
+          ).toBe("allowed");
+          expect(
+            checkWrite({ requestType, plan, data: { [COLUMN]: false } }),
+          ).toBe("allowed");
+        },
+      );
+    },
+  );
 });

@@ -128,7 +128,8 @@ const ALERT_CASE: TimelineCase = {
   event: "an alert",
   timelineService:
     AlertStateTimelineService as unknown as DatabaseService<BaseModel>,
-  noteService: AlertInternalNoteService as unknown as DatabaseService<BaseModel>,
+  noteService:
+    AlertInternalNoteService as unknown as DatabaseService<BaseModel>,
   noteModelType: AlertInternalNote,
   eventColumn: "alertId",
   noteRefusal:
@@ -361,12 +362,10 @@ const INCIDENT_EPISODE_CASE: TimelineCase = {
       "cascadeStateToMemberIncidents",
     ).mockResolvedValue(undefined);
     getJestSpyOn(IncidentEpisodeService, "findOneById").mockResolvedValue(null);
-    getJestSpyOn(IncidentEpisodeService, "getEpisodeNumber").mockResolvedValue(
-      {
-        number: 5,
-        numberWithPrefix: "IE-5",
-      },
-    );
+    getJestSpyOn(IncidentEpisodeService, "getEpisodeNumber").mockResolvedValue({
+      number: 5,
+      numberWithPrefix: "IE-5",
+    });
     getJestSpyOn(
       IncidentEpisodeService,
       "getEpisodeLinkInDashboard",
@@ -543,7 +542,10 @@ describe("StateChangeNote: the private note and its refusal", () => {
         miscDataProps: { privateNote: "   " },
         noteModelType: AlertInternalNote,
         props: memberProps({ allow: [Permission.CreateAlertStateTimeline] }),
-        fill: fill as unknown as (note: AlertInternalNote, text: string) => void,
+        fill: fill as unknown as (
+          note: AlertInternalNote,
+          text: string,
+        ) => void,
       }),
     ).toBeUndefined();
     expect(fill).not.toHaveBeenCalled();

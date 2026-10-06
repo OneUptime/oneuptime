@@ -20,6 +20,12 @@
 4. **Benachrichtigungen für Alerts und geplante Wartungen konfigurieren**
    - Ähnliche Regeln können für Alerts und Geplante Wartungen angewendet werden, indem Sie zu den jeweiligen Seiten navigieren und die gewünschten Regeln konfigurieren.
 
+## Eine Regel testen
+
+**Regel testen** in der Zeile einer Regel sendet eine Testnachricht dieser Regel an die Kanäle, die sie nennt, damit Sie sehen, dass sie ankommt. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen an und lädt die Personen der Regel ein.
+
+Wie **Test senden** neben einem Kanal unter **Projekteinstellungen** > **Workspace** > **Microsoft Teams** braucht das die Berechtigung, Benachrichtigungsregeln anzulegen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder **Create Workspace Notification Rule** in einer eigenen Rolle. Wer die Regeln nur sehen darf, etwa ein **Viewer**, erfährt, dass er keine Testbenachrichtigungen senden darf. In OneUptime Cloud braucht das Testen einer Regel den Tarif **Growth**, wie das Anlegen einer Regel.
+
 ## Netzwerkzugriff bei selbst gehosteten Bereitstellungen
 
 Informationen zu ausgehenden Verbindungen, eingehenden Rückrufen und privaten Bereitstellungen finden Sie im Abschnitt zum Netzwerkzugriff in der [Microsoft Teams-Integration](/docs/self-hosted/microsoft-teams-integration).
