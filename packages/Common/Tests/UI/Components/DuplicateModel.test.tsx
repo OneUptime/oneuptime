@@ -464,7 +464,9 @@ describe("DuplicateModel", () => {
       expect(nameInput()).toHaveValue("Nightly Sync 2");
 
       await act(async () => {
-        fireEvent.click(within(dialog()).getByTestId("modal-footer-close-button"));
+        fireEvent.click(
+          within(dialog()).getByTestId("modal-footer-close-button"),
+        );
       });
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
@@ -515,18 +517,20 @@ describe("DuplicateModel", () => {
         "11111111-1111-4111-8111-111111111111",
       );
 
-      mockGetItem.mockImplementation(async (args: unknown): Promise<Monitor> => {
-        const monitor: Monitor = new Monitor();
+      mockGetItem.mockImplementation(
+        async (args: unknown): Promise<Monitor> => {
+          const monitor: Monitor = new Monitor();
 
-        if ((args as GetItemArgs).select["name"]) {
-          monitor.name = "API Monitor";
-        } else {
-          monitor.id = MONITOR_ID;
-          monitor.description = "Checks the API";
-        }
+          if ((args as GetItemArgs).select["name"]) {
+            monitor.name = "API Monitor";
+          } else {
+            monitor.id = MONITOR_ID;
+            monitor.description = "Checks the API";
+          }
 
-        return monitor;
-      });
+          return monitor;
+        },
+      );
       mockGetList.mockImplementation(async (): Promise<unknown> => {
         const monitor: Monitor = new Monitor();
         monitor.name = "API Monitor";
@@ -563,7 +567,7 @@ describe("DuplicateModel", () => {
               },
               title: "Disable Monitor",
               description:
-                "Should the new monitor be disabled when its duplicated?",
+                "Should the new monitor be disabled when it is duplicated?",
               fieldType: FormFieldSchemaType.Toggle,
               defaultValue: true,
               required: false,
@@ -621,9 +625,9 @@ describe("DuplicateModel", () => {
       const sent: Workflow = sentModel<Workflow>();
       expect(sent.name).toBe("Nightly Sync 2");
       // The original read as fieldsToDuplicate asks.
-      expect(
-        (mockGetItem.mock.calls[1]![0] as GetItemArgs).select,
-      ).toEqual(WORKFLOW_FIELDS_TO_DUPLICATE);
+      expect((mockGetItem.mock.calls[1]![0] as GetItemArgs).select).toEqual(
+        WORKFLOW_FIELDS_TO_DUPLICATE,
+      );
       expect(sent.description).toBe("Runs at night");
 
       // The copy opens: its own page under the list's route.
@@ -848,7 +852,9 @@ describe("DuplicateModel", () => {
       await pressDuplicateInDialog();
 
       await act(async () => {
-        fireEvent.click(within(dialog()).getByTestId("modal-footer-close-button"));
+        fireEvent.click(
+          within(dialog()).getByTestId("modal-footer-close-button"),
+        );
       });
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
@@ -857,9 +863,9 @@ describe("DuplicateModel", () => {
       });
 
       expect(await screen.findByText("Duplicate Error")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("confirm-modal-description"),
-      ).toHaveTextContent("Workflow with the same name already exists.");
+      expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+        "Workflow with the same name already exists.",
+      );
       expect(mockNavigate).not.toHaveBeenCalled();
     });
 
@@ -877,7 +883,9 @@ describe("DuplicateModel", () => {
       await pressDuplicateInDialog();
 
       await act(async () => {
-        fireEvent.click(within(dialog()).getByTestId("modal-footer-close-button"));
+        fireEvent.click(
+          within(dialog()).getByTestId("modal-footer-close-button"),
+        );
       });
 
       const copy: Workflow = new Workflow();
@@ -909,9 +917,9 @@ describe("DuplicateModel", () => {
       await pressDuplicateInDialog();
 
       expect(await screen.findByText("Duplicate Error")).toBeInTheDocument();
-      expect(
-        screen.getByTestId("confirm-modal-description"),
-      ).toHaveTextContent("Failed to duplicate schedule layers: Server Error");
+      expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+        "Failed to duplicate schedule layers: Server Error",
+      );
 
       // The dialog that made the copy is gone: pressing it again would make another.
       expect(
@@ -990,7 +998,9 @@ describe("DuplicateModel", () => {
       await openDialog();
 
       await act(async () => {
-        fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+        fireEvent.click(
+          within(dialog()).getByRole("button", { name: "Cancel" }),
+        );
       });
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -1012,7 +1022,9 @@ describe("DuplicateModel", () => {
       );
 
       await act(async () => {
-        fireEvent.click(within(dialog()).getByTestId("modal-footer-close-button"));
+        fireEvent.click(
+          within(dialog()).getByTestId("modal-footer-close-button"),
+        );
       });
 
       await openDialog();

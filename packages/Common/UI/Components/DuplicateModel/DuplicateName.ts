@@ -8,10 +8,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { getDisplayNameColumn } from "../../Utils/ModelDisplayName";
 import { ModelField } from "../Forms/ModelForm";
-import {
-  getCopyName,
-  getCopyNameSearchText,
-} from "../Forms/Utils/UniqueName";
+import { getCopyName, getCopyNameSearchText } from "../Forms/Utils/UniqueName";
 
 /*
  * THE NAME A COPY STARTS WITH.
@@ -135,12 +132,15 @@ export const fetchDuplicateName: FetchDuplicateNameFunction = async <
 
   let existingNames: Array<string> = [];
 
+  // Every name that could clash with a numbered one contains this text.
+  const query: Query<TBaseModel> = {
+    [data.nameColumn]: new Search<string>(getCopyNameSearchText(name)),
+  } as unknown as Query<TBaseModel>;
+
   try {
     const result: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>({
       modelType: data.modelType,
-      query: {
-        [data.nameColumn]: new Search<string>(getCopyNameSearchText(name)),
-      } as Query<TBaseModel>,
+      query,
       select,
       limit: LIMIT_PER_PROJECT,
       skip: 0,

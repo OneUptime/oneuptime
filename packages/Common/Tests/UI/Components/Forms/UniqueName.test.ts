@@ -339,9 +339,7 @@ describe("what the lookup of a copy's taken names searches for", () => {
     expect(getCopyNameSearchText("API Monitor 2")).toBe("API Monitor");
     expect(getCopyNameSearchText("API Monitor")).toBe("API Monitor");
     expect(getCopyNameSearchText("  API Monitor  ")).toBe("API Monitor");
-    expect(getCopyNameSearchText("Windows Server 2019")).toBe(
-      "Windows Server",
-    );
+    expect(getCopyNameSearchText("Windows Server 2019")).toBe("Windows Server");
   });
 
   test("is contained in every name that decides the copy's name", () => {

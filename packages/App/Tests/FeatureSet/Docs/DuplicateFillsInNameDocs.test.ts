@@ -115,7 +115,7 @@ describe("the English guides", () => {
 
   it("say a workflow's copy is named, opens, and starts disabled", () => {
     expect(duplicateWorkflowBullet("en")).toBe(
-      '- There\'s no way to duplicate a single block. **Duplicate Workflow** on the workflow\'s **Settings** page copies the whole thing. The copy\'s name is filled in, numbered past the project\'s workflows ("Nightly Sync" is copied as "Nightly Sync 2"), and the copy opens, disabled.',
+      "- There's no way to duplicate a single block. **Duplicate Workflow** on the workflow's **Settings** page copies the whole thing. The copy's name is filled in, numbered past the project's workflows (\"Nightly Sync\" is copied as \"Nightly Sync 2\"), and the copy opens, disabled.",
     );
   });
 });

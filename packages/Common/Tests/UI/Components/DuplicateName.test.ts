@@ -5,13 +5,7 @@ import {
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
-import {
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -176,7 +170,10 @@ describe("the name a copy starts with", () => {
       return monitorNamed("API Monitor 2");
     });
     mockGetList.mockImplementation(async (): Promise<JSONObject> => {
-      return listOf([monitorNamed("API Monitor"), monitorNamed("API Monitor 2")]);
+      return listOf([
+        monitorNamed("API Monitor"),
+        monitorNamed("API Monitor 2"),
+      ]);
     });
 
     const name: string = await fetchDuplicateName<Monitor>({

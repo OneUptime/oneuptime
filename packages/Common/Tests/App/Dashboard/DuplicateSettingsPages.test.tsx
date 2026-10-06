@@ -210,7 +210,9 @@ const PAGES: Array<DuplicatePage> = [
 const SERVER_DECIDED_COLUMN: RegExp =
   /^(_id|id|createdAt|updatedAt|deletedAt|archivedAt|isArchived|version|slug)$|ByUser(Id)?$/;
 
-async function renderPage(page: DuplicatePage): Promise<Record<string, unknown>> {
+async function renderPage(
+  page: DuplicatePage,
+): Promise<Record<string, unknown>> {
   render(<page.Page {...PAGE_PROPS} />);
 
   // The monitor's page waits for the monitor's type before drawing its cards.
@@ -229,9 +231,7 @@ beforeEach(() => {
     monitor.monitorType = MonitorType.Manual;
     return monitor;
   });
-  getJestSpyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(
-    RECORD_ID,
-  );
+  getJestSpyOn(Navigation, "getLastParamAsObjectID").mockReturnValue(RECORD_ID);
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
 
@@ -240,71 +240,74 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(PAGES)("Duplicate on a $label's Settings page", (page: DuplicatePage) => {
-  test("copies this record", async () => {
-    const props: Record<string, unknown> = await renderPage(page);
+describe.each(PAGES)(
+  "Duplicate on a $label's Settings page",
+  (page: DuplicatePage) => {
+    test("copies this record", async () => {
+      const props: Record<string, unknown> = await renderPage(page);
 
-    expect(props["modelType"]).toBe(page.modelType);
-    expect(props["modelId"]).toBe(RECORD_ID);
-  });
+      expect(props["modelType"]).toBe(page.modelType);
+      expect(props["modelId"]).toBe(RECORD_ID);
+    });
 
-  test("asks for the copy's name with the model's name column, so it starts filled in", async () => {
-    const props: Record<string, unknown> = await renderPage(page);
-    const fieldsToChange: Array<ModelField<BaseModel>> = props[
-      "fieldsToChange"
-    ] as Array<ModelField<BaseModel>>;
+    test("asks for the copy's name with the model's name column, so it starts filled in", async () => {
+      const props: Record<string, unknown> = await renderPage(page);
+      const fieldsToChange: Array<ModelField<BaseModel>> = props[
+        "fieldsToChange"
+      ] as Array<ModelField<BaseModel>>;
 
-    expect(
-      getDuplicateNameColumn({
-        model: new page.modelType(),
-        fieldsToChange,
-      }),
-    ).toBe("name");
+      expect(
+        getDuplicateNameColumn({
+          model: new page.modelType(),
+          fieldsToChange,
+        }),
+      ).toBe("name");
 
-    // The name comes first: the field the dialog opens on.
-    expect(Object.keys(fieldsToChange[0]?.field || {})).toEqual(["name"]);
-    expect(fieldsToChange[0]?.required).toBe(true);
-  });
+      // The name comes first: the field the dialog opens on.
+      expect(Object.keys(fieldsToChange[0]?.field || {})).toEqual(["name"]);
+      expect(fieldsToChange[0]?.required).toBe(true);
+    });
 
-  test("opens the copy: the route it is handed, with the copy's id, is the copy's own page", async () => {
-    const props: Record<string, unknown> = await renderPage(page);
-    const listRoute: Route | undefined = props["navigateToOnSuccess"] as
-      | Route
-      | undefined;
+    test("opens the copy: the route it is handed, with the copy's id, is the copy's own page", async () => {
+      const props: Record<string, unknown> = await renderPage(page);
+      const listRoute: Route | undefined = props["navigateToOnSuccess"] as
+        | Route
+        | undefined;
 
-    expect(listRoute).toBeDefined();
+      expect(listRoute).toBeDefined();
 
-    // What DuplicateModel navigates to.
-    const opened: Route = new Route(listRoute!.toString()).addRoute(
-      `/${COPY_ID.toString()}`,
-    );
+      // What DuplicateModel navigates to.
+      const opened: Route = new Route(listRoute!.toString()).addRoute(
+        `/${COPY_ID.toString()}`,
+      );
 
-    expect(opened.toString()).toBe(
-      RouteUtil.populateRouteParams(RouteMap[page.viewPage] as Route, {
-        modelId: COPY_ID,
-      }).toString(),
-    );
-    expect(opened.toString()).toContain(PROJECT_ID.toString());
-  });
+      expect(opened.toString()).toBe(
+        RouteUtil.populateRouteParams(RouteMap[page.viewPage] as Route, {
+          modelId: COPY_ID,
+        }).toString(),
+      );
+      expect(opened.toString()).toContain(PROJECT_ID.toString());
+    });
 
-  test("never copies the name, the record's id or what the server decides", async () => {
-    const props: Record<string, unknown> = await renderPage(page);
-    const copied: Array<string> = Object.keys(
-      (props["fieldsToDuplicate"] as Record<string, unknown>) || {},
-    );
+    test("never copies the name, the record's id or what the server decides", async () => {
+      const props: Record<string, unknown> = await renderPage(page);
+      const copied: Array<string> = Object.keys(
+        (props["fieldsToDuplicate"] as Record<string, unknown>) || {},
+      );
 
-    expect(copied.length).toBeGreaterThan(0);
-    expect(copied).not.toContain("name");
+      expect(copied.length).toBeGreaterThan(0);
+      expect(copied).not.toContain("name");
 
-    for (const column of copied) {
-      expect(column).not.toMatch(SERVER_DECIDED_COLUMN);
-    }
+      for (const column of copied) {
+        expect(column).not.toMatch(SERVER_DECIDED_COLUMN);
+      }
 
-    for (const column of page.neverCopied) {
-      expect(copied).not.toContain(column);
-    }
-  });
-});
+      for (const column of page.neverCopied) {
+        expect(copied).not.toContain(column);
+      }
+    });
+  },
+);
 
 describe("the monitor's Duplicate", () => {
   test("still asks whether the copy starts with monitoring off, and it does unless told otherwise", async () => {

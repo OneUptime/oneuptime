@@ -4832,7 +4832,7 @@
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Décoché par défaut, car les abonnés de la page de statut n'ont pas été notifiés lors de la déclaration de cet incident.",
   "Unticked by default because status page subscribers were not notified when this episode was created.": "Décoché par défaut, car les abonnés de la page de statut n'ont pas été notifiés lors de la création de cet épisode.",
   "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Décoché par défaut, car les abonnés de la page de statut n'ont pas été notifiés lors de la création de cette maintenance planifiée.",
-  "Should the new monitor be disabled when its duplicated?": "Le nouveau moniteur doit-il être désactivé lors de sa duplication ?",
+  "Should the new monitor be disabled when it is duplicated?": "Le nouveau moniteur doit-il être désactivé lors de sa duplication ?",
   "Show Announcement At": "Afficher l'annonce à",
   "Show Announcement History (in days)": "Afficher l'historique des annonces (en jours)",
   "Show announcement on these status pages": "Afficher l'annonce sur ces pages de statut",

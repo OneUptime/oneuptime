@@ -69,9 +69,8 @@ describe("BasicFormModal error", () => {
 
     expect(input).toHaveValue("Nightly Sync 2");
     expect(
-      screen
-        .getByRole("alert")
-        .compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING,
+      screen.getByRole("alert").compareDocumentPosition(input) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
