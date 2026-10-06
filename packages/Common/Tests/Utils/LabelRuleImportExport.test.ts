@@ -769,8 +769,16 @@ describe("portable label rule files", () => {
   );
 
   test("uses explicit empty optional relations and boolean defaults", () => {
+    // A rule that only inherits: it names no label, and adds the hosts' ones.
     const output: JSONObject = parse(
-      [{ name: "Rule", isEnabled: true, description: null }],
+      [
+        {
+          name: "Rule",
+          isEnabled: true,
+          description: null,
+          inheritLabelsFromHosts: true,
+        },
+      ],
       IncidentLabelRule,
     ).items[0]!.json;
     expect(output).toMatchObject({
@@ -779,8 +787,115 @@ describe("portable label rule files", () => {
       monitors: [],
       incidentSeverities: [],
       inheritLabelsFromMonitors: false,
+      inheritLabelsFromHosts: true,
     });
     expect(output["description"]).toBeUndefined();
+  });
+
+  /*
+   * A new rule must add something, as the server insists on every create
+   * (LabelAndOwnerRuleBaseService). The import says so for each such rule of
+   * the file before it creates any, like every other invalid row.
+   */
+  describe("a rule that adds nothing", () => {
+    test("is refused before any rule is created, naming the row and what to fill", () => {
+      expect(() => {
+        parse([base, { ...base, name: "Empty", labelsToAdd: [] }]);
+      }).toThrow(
+        "Rule 2: This label rule adds nothing. Choose at least one label in Labels to Add.",
+      );
+    });
+
+    test("is refused when it leaves its labels out", () => {
+      for (const row of [
+        { name: "Left out", isEnabled: true },
+        { ...base, labelsToAdd: null },
+      ]) {
+        expect(() => {
+          parse([row as JSONObject]);
+        }).toThrow("Rule 1: This label rule adds nothing.");
+      }
+    });
+
+    test("an incident, alert or maintenance rule is told it may inherit instead", () => {
+      for (const modelType of [IncidentLabelRule, AlertLabelRule]) {
+        expect(() => {
+          parse(
+            [{ name: "Empty", isEnabled: true, labelsToAdd: [] }],
+            modelType,
+          );
+        }).toThrow(
+          "Rule 1: This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch.",
+        );
+      }
+    });
+
+    test("an Inherit Labels switch left off adds nothing", () => {
+      expect(() => {
+        parse(
+          [
+            {
+              name: "Off",
+              isEnabled: true,
+              labelsToAdd: [],
+              inheritLabelsFromMonitors: false,
+            },
+          ],
+          IncidentLabelRule,
+        );
+      }).toThrow("Rule 1: This label rule adds nothing.");
+    });
+
+    test("each Inherit Labels switch on its own is enough", () => {
+      for (const column of [
+        "inheritLabelsFromMonitors",
+        "inheritLabelsFromHosts",
+        "inheritLabelsFromKubernetesClusters",
+        "inheritLabelsFromDockerHosts",
+        "inheritLabelsFromPodmanHosts",
+        "inheritLabelsFromServices",
+      ]) {
+        expect(
+          parse(
+            [{ name: "Inherits", isEnabled: true, [column]: true }],
+            IncidentLabelRule,
+          ).items,
+        ).toHaveLength(1);
+      }
+    });
+
+    /*
+     * Copied to a rule type that cannot inherit, a rule that only inherited
+     * is refused for its switch (not supported there) before it is called
+     * empty.
+     */
+    test("an inheriting rule copied where nothing inherits is refused for the switch", () => {
+      expect(() => {
+        parse(
+          [{ name: "Inherits", isEnabled: true, inheritLabelsFromHosts: true }],
+          IncidentLabelRule,
+          MonitorLabelRule,
+        );
+      }).toThrow("is configured but is not supported");
+    });
+
+    test("lists every rule that adds nothing, not only the first", () => {
+      let message: string = "";
+
+      try {
+        parse([
+          { ...base, name: "First", labelsToAdd: [] },
+          base,
+          { ...base, name: "Third", labelsToAdd: [] },
+        ]);
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toContain("Rule 1: This label rule adds nothing.");
+      expect(message).toContain("Rule 3: This label rule adds nothing.");
+      expect(message).not.toContain("Rule 2:");
+    });
   });
 
   test.each(["null", "[]", "1", '"file"', "not json"])(

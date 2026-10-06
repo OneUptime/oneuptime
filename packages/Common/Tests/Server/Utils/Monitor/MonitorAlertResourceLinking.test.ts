@@ -47,6 +47,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * End-to-end cover for the reported bug, driven through the real alert
@@ -183,6 +184,11 @@ describe("Alerts link the resources their series identifies", () => {
   let resourceContext: SeriesResolvedResourceIds;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdAlerts = [];
     createdIncidents = [];
 

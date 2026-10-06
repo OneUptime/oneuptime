@@ -37,12 +37,21 @@ import {
   STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES,
 } from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 
+/*
+ * An incident or alert list's "Unresolved" or "Resolved" filter. Which states
+ * that means is the project's (Common/Utils/ResolvedState): its resolved
+ * state and any state placed after it are resolved. The policy names the
+ * filter; the route turns it into the project's state ids.
+ */
+export type PublicDashboardResolvedStateFilter = "unresolved" | "resolved";
+
 export interface PublicDashboardResourceListPolicyResult {
   resourceType: string;
   query: JSONObject;
   select: JSONObject;
   sort: JSONObject;
   limit: number;
+  resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
 }
 
 export interface BuildPublicDashboardResourceListPolicyData {
@@ -57,6 +66,7 @@ interface PolicyDraft {
   query: Record<string, unknown>;
   sort: JSONObject;
   limit: number;
+  resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
   attributeToColumn?: AttributeToColumnMap | undefined;
   interpolateAttributeMap?: boolean | undefined;
 }
@@ -278,6 +288,9 @@ export default class PublicDashboardResourceListPolicy {
       ),
       sort: draft.sort,
       limit: draft.limit,
+      ...(draft.resolvedStateFilter
+        ? { resolvedStateFilter: draft.resolvedStateFilter }
+        : {}),
     };
   }
 
@@ -886,11 +899,8 @@ export default class PublicDashboardResourceListPolicy {
         ["unresolved", "resolved", "acknowledged"],
       );
 
-    if (stateFilter === "unresolved") {
-      query["currentIncidentState"] = { isResolvedState: false };
-    } else if (stateFilter === "resolved") {
-      query["currentIncidentState"] = { isResolvedState: true };
-    } else if (stateFilter === "acknowledged") {
+    // Unresolved and Resolved are the project's to say (resolvedStateFilter).
+    if (stateFilter === "acknowledged") {
       query["currentIncidentState"] = { isAcknowledgedState: true };
     }
 
@@ -924,6 +934,8 @@ export default class PublicDashboardResourceListPolicy {
       query,
       sort: { createdAt: SortOrder.Descending },
       argumentsObject,
+      resolvedStateFilter:
+        PublicDashboardResourceListPolicy.toResolvedStateFilter(stateFilter),
     });
   }
 
@@ -938,11 +950,8 @@ export default class PublicDashboardResourceListPolicy {
         ["unresolved", "resolved", "acknowledged"],
       );
 
-    if (stateFilter === "unresolved") {
-      query["currentAlertState"] = { isResolvedState: false };
-    } else if (stateFilter === "resolved") {
-      query["currentAlertState"] = { isResolvedState: true };
-    } else if (stateFilter === "acknowledged") {
+    // Unresolved and Resolved are the project's to say (resolvedStateFilter).
+    if (stateFilter === "acknowledged") {
       query["currentAlertState"] = { isAcknowledgedState: true };
     }
 
@@ -972,6 +981,8 @@ export default class PublicDashboardResourceListPolicy {
     });
 
     return PublicDashboardResourceListPolicy.listDraft({
+      resolvedStateFilter:
+        PublicDashboardResourceListPolicy.toResolvedStateFilter(stateFilter),
       resourceType: "alert",
       query,
       sort: { createdAt: SortOrder.Descending },
@@ -1873,6 +1884,7 @@ export default class PublicDashboardResourceListPolicy {
     sort: JSONObject;
     argumentsObject: Record<string, unknown>;
     fallbackLimit?: number | undefined;
+    resolvedStateFilter?: PublicDashboardResolvedStateFilter | undefined;
   }): PolicyDraft {
     return {
       resourceType: data.resourceType,
@@ -1883,7 +1895,21 @@ export default class PublicDashboardResourceListPolicy {
         fallback: data.fallbackLimit || DEFAULT_LIST_LIMIT,
         ceiling: LIMIT_PER_PROJECT,
       }),
+      ...(data.resolvedStateFilter
+        ? { resolvedStateFilter: data.resolvedStateFilter }
+        : {}),
     };
+  }
+
+  // A list's stored state filter, as far as resolved or not goes.
+  private static toResolvedStateFilter(
+    stateFilter: string | undefined,
+  ): PublicDashboardResolvedStateFilter | undefined {
+    if (stateFilter === "unresolved" || stateFilter === "resolved") {
+      return stateFilter;
+    }
+
+    return undefined;
   }
 
   private static addCollectorStatusFilter(

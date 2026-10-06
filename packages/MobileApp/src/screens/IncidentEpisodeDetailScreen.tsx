@@ -25,6 +25,7 @@ import {
 import { rgbToHex } from "../utils/color";
 import { formatDateTime } from "../utils/date";
 import { toPlainText } from "../utils/text";
+import { getResolvedState, isResolvedStateId } from "../utils/resolvedState";
 import type { IncidentsStackParamList } from "../navigation/types";
 import type { IncidentState } from "../api/types";
 import { useQueryClient } from "@tanstack/react-query";
@@ -276,16 +277,16 @@ export default function IncidentEpisodeDetailScreen({
       return s.isAcknowledgedState;
     },
   );
-  const resolveState: IncidentState | undefined = states?.find(
-    (s: IncidentState) => {
-      return s.isResolvedState;
-    },
-  );
+  // Where Resolve moves it: the project's resolved state.
+  const resolveState: IncidentState | undefined = getResolvedState(states);
 
   const currentStateId: string | undefined = episode.currentIncidentState?._id;
-  const isResolved: boolean = Boolean(
-    resolveState && resolveState._id === currentStateId,
-  );
+  /*
+   * Resolved: in the project's resolved state or in a state placed after
+   * it ("Closed"), so there is nothing left to acknowledge or resolve
+   * (utils/resolvedState).
+   */
+  const isResolved: boolean = isResolvedStateId(states, currentStateId);
   const isAcknowledged: boolean = Boolean(
     acknowledgeState && acknowledgeState._id === currentStateId,
   );

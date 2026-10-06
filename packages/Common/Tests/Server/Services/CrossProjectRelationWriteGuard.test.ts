@@ -421,6 +421,25 @@ function expectNoResourceLookedUp(): void {
   }
 }
 
+/*
+ * The reads of a service that load a relation list of its records - what
+ * the guard reads back to see which ids a record already holds. (An update
+ * that writes a title has its own record read too, of the title alone, so
+ * its feed line follows a real change: no list is loaded by it.)
+ */
+function listReadsOf(service: { findBy: unknown }): Array<Array<unknown>> {
+  return (
+    service.findBy as unknown as { mock: { calls: Array<Array<unknown>> } }
+  ).mock.calls.filter((call: Array<unknown>): boolean => {
+    const select: Record<string, unknown> =
+      (call[0] as { select?: Record<string, unknown> }).select || {};
+
+    return Object.values(select).some((value: unknown): boolean => {
+      return typeof value === "object" && value !== null;
+    });
+  });
+}
+
 function nameOf(id: string): string {
   return `record ${id}`;
 }
@@ -1078,7 +1097,7 @@ describe("cross-project relation guard on write", () => {
         props: { tenantId: PROJECT_ID },
       });
 
-      expect(IncidentService.findBy).not.toHaveBeenCalled();
+      expect(listReadsOf(IncidentService)).toHaveLength(0);
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(StatusPageService.findBy).not.toHaveBeenCalled();
       expectNoResourceLookedUp();
@@ -1674,7 +1693,7 @@ describe("cross-project relation guard on write", () => {
         props: { tenantId: PROJECT_ID },
       });
 
-      expect(AlertService.findBy).not.toHaveBeenCalled();
+      expect(listReadsOf(AlertService)).toHaveLength(0);
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(LabelService.findBy).not.toHaveBeenCalled();
       expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();

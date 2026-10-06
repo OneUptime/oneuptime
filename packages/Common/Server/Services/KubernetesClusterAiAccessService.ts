@@ -191,12 +191,14 @@ export const CLUSTER_AI_AGENT_PAGE: string =
 /*
  * The one command that installs the Kubernetes AI agent (or turns it back
  * on), exactly as the dashboard, the docs and the chart's notes print it.
- * --reuse-values keeps everything else the release already has.
+ * --reset-then-reuse-values keeps every other value the release was given
+ * and takes the rest from the chart (--reuse-values would keep the old
+ * chart's defaults too).
  */
 export const AI_AGENT_INSTALL_COMMAND: string = [
   "helm repo update",
   "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
-  "  --namespace oneuptime-agent --reuse-values \\",
+  "  --namespace oneuptime-agent --reset-then-reuse-values \\",
   "  --set aiAgent.enabled=true",
 ].join("\n");
 
@@ -233,7 +235,7 @@ export type KubernetesAiAccessExecutorKind =
  * agent it names the value that grants writes and the two that bound them
  * (the namespaces the write role is bound in and the node switch); the
  * complete command is on the AI agent page (a bare --set line would miss
- * the chart index refresh and --reuse-values).
+ * the chart index refresh and --reset-then-reuse-values).
  */
 export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Upgrade the Kubernetes agent chart with --set aiAgent.fixes=ask-for-approval (or automatic, or bypass-approval), which grants the write access fixes need; the complete command is on ${CLUSTER_AI_AGENT_PAGE}. List the namespaces AI may fix in aiAgent.remediation.namespaces (without it the write role is cluster-wide), and add aiAgent.remediation.nodeOperations=false to keep fixes off nodes.`;
 

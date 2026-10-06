@@ -901,7 +901,7 @@ describe("What AI may do, in the reader's language", () => {
       ).toHaveTextContent(
         filledIn(
           code,
-          "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which Helm ignores with --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
+          "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
           {
             exampleNamespaces: AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
             clusterWideFlag: AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,

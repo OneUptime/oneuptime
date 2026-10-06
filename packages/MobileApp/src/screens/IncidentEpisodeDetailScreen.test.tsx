@@ -166,6 +166,17 @@ const resolvedState: IncidentState = makeIncidentState({
   order: 3,
 });
 
+/*
+ * A state the project placed after Resolved, without the resolved flag: by
+ * the one resolved rule (utils/resolvedState) a record in it is resolved.
+ */
+const closedState: IncidentState = makeIncidentState({
+  _id: "incident-state-closed",
+  name: "Closed",
+  isCreatedState: false,
+  order: 4,
+});
+
 const createdState: IncidentState = makeIncidentState();
 
 /*
@@ -625,6 +636,40 @@ describe("The state-change controls", () => {
     expect(
       screen.queryByRole("button", { name: "Resolve incident episode" }),
     ).toBeNull();
+  });
+
+  test("an episode in a state placed after Resolved offers neither control either", async () => {
+    /*
+     * "Closed" comes after Resolved and does not carry the resolved flag. The
+     * episode is resolved all the same: nothing to acknowledge, and no
+     * Resolve to move it back up the list.
+     */
+    mockStates.current = [
+      createdState,
+      acknowledgedState,
+      resolvedState,
+      closedState,
+    ];
+    mockEpisodeQuery.current = episodeStateWith({
+      data: makeIncidentEpisode({
+        currentIncidentState: {
+          _id: closedState._id,
+          name: closedState.name,
+          color: closedState.color,
+        },
+      }),
+    });
+
+    await renderScreen(createSeedableClient());
+
+    expect(screen.queryByText("Actions")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident episode" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Resolve incident episode" }),
+    ).toBeNull();
+    expect(screen.getByText("Response complete")).toBeTruthy();
   });
 
   test("acknowledging sends the acknowledged state for this episode", async () => {

@@ -108,6 +108,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       getIncidentNumber: jest.fn(),
       refreshIncidentMetrics: jest.fn(),
       markMonitorsActiveForMonitoring: jest.fn(),
+      // A resolve gives the monitors back, then the incident holds nothing.
+      recordHoldsMonitors: jest.fn(),
     },
   };
 });
@@ -632,6 +634,10 @@ beforeEach(() => {
   jest
     .spyOn(IncidentStateService, "findOneBy")
     .mockResolvedValue(resolvedState() as never);
+  // The project's states: whether the change resolves the incident.
+  jest
+    .spyOn(IncidentStateService, "getAllIncidentStates")
+    .mockResolvedValue([resolvedState()] as never);
   jest
     .spyOn(IncidentAlertService, "cascadeIncidentStateToLinkedAlerts")
     .mockResolvedValue(undefined as never);

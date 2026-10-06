@@ -51,6 +51,13 @@ import {
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
+import {
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
+
 jest.mock("../../../Server/Utils/Express", () => {
   return {
     getRouter: () => {
@@ -488,6 +495,8 @@ describe("DashboardAPI public resource-list", () => {
     setDashboardWidgets([]);
 
     jest.spyOn(DashboardService, "findOneById").mockResolvedValue(dashboard);
+    // Unresolved and Resolved are read off the project's states.
+    mockProjectStates();
 
     for (const service of ALL_SERVICES) {
       jest
@@ -904,9 +913,11 @@ describe("DashboardAPI public resource-list", () => {
       const findByArgs: JSONObject = getFindByArgs(IncidentService);
       const query: JSONObject = findByArgs["query"] as JSONObject;
 
-      expect(query["currentIncidentState"]).toEqual({
-        isResolvedState: false,
-      });
+      // Unresolved: the project's states above its resolved state.
+      expect(query["currentIncidentState"]).toBeUndefined();
+      expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+        openStateIds(INCIDENT_STATE_IDS),
+      );
       expect(query["incidentSeverityId"]).toBeInstanceOf(Includes);
       expect((query["incidentSeverityId"] as Includes).values).toEqual([
         severityId.toString(),

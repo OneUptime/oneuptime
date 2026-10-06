@@ -12,7 +12,8 @@ import path from "path";
  * presence on an update, the switch plus a trimmed note), so a save of an
  * unchanged postmortem re-sent it, and a postmortem switched on without a
  * note sent an empty one. They now all ask IncidentPostmortemPublication,
- * and this keeps them asking it.
+ * and this keeps them asking it - for a postmortem that waits for its hidden
+ * incident to be shown too.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../..");
@@ -47,8 +48,9 @@ describe("the postmortem's one publication rule", () => {
     expect(source).toContain(
       "if (!IncidentPostmortemPublication.isPublished(incident)) {",
     );
-    expect(source).toContain(
-      "await requeueIfPublishedSinceRead(incident.id!);",
+    // Looked at again after the skip it wrote, by the skip's own words.
+    expect(source.replace(/\s+/g, " ")).toContain(
+      "await requeueIfChangedSinceRead({ incidentId: incident.id!, skipMessage: skipMessage, });",
     );
     expect(source).not.toContain("IncidentPostmortemPublication.hasNote(");
   });
@@ -64,6 +66,78 @@ describe("the postmortem's one publication rule", () => {
     );
     expect(source).not.toMatch(
       /hasOwnProperty\.call\(\s*updatedIncidentData,\s*"postmortemNote"/,
+    );
+  });
+
+  /*
+   * A postmortem published while its incident is hidden waits for the
+   * incident: the job skips it in the rule's words - a private incident is
+   * hidden too - the update that shows the incident sends it (found in
+   * #4429: nothing did), and both recognise that skip by the one rule.
+   */
+  test("the send job's skip for a hidden incident is the rule's, and it looks again after it", () => {
+    const source: string = read(SEND_JOB);
+    const flat: string = source.replace(/\s+/g, " ");
+
+    expect(source).toContain(
+      "if (!IncidentPostmortemPublication.isIncidentShown(incident)) {",
+    );
+    expect(source).toContain(
+      "IncidentPostmortemPublication.hiddenIncidentMessage,",
+    );
+    expect(flat).toContain(
+      "await requeueIfChangedSinceRead({ incidentId: incident.id!, skipMessage: IncidentPostmortemPublication.hiddenIncidentMessage, });",
+    );
+    // Its own copy of the words, which said nothing would follow, is gone.
+    expect(source).not.toContain(
+      '"Incident is not visible on status page. Skipping notifications to subscribers."',
+    );
+    // One look again for both skips, not a copy per skip.
+    expect(source.match(/const requeueIf\w+SinceRead/g)).toEqual([
+      "const requeueIfChangedSinceRead",
+    ]);
+  });
+
+  test("the incident service reads the incident's switches in its one stored read, and queues by the rule once the update is written", () => {
+    const source: string = read(INCIDENT_SERVICE);
+
+    expect(source).toContain("IncidentPostmortemPublication.mayShowIncident(");
+    expect(source).toContain(
+      "PostmortemNotificationAction.QueueIfSkippedAsHidden",
+    );
+    expect(source).toContain(
+      "IncidentPostmortemPublication.isDueOnceShown(current)",
+    );
+    // The two places that decide whether to compare ask one rule.
+    expect(
+      source.match(/IncidentPostmortemPublication\.isComparedBy\(/g),
+    ).toHaveLength(2);
+    // Showing the incident is compared in the read every comparison shares.
+    expect(source).toMatch(
+      /private async recordStoredValuesBeforeUpdate\([\s\S]*?mayShowIncident\([\s\S]*?findIncidentsForUpdateHook\(/,
+    );
+  });
+
+  test("the dashboard says a postmortem waits for its incident by the rule", () => {
+    const postmortemPage: string = read(
+      "App/FeatureSet/Dashboard/src/Pages/Incidents/View/Postmortem.tsx",
+    );
+    const settingsPage: string = read(
+      "App/FeatureSet/Dashboard/src/Pages/Incidents/View/Settings.tsx",
+    );
+
+    expect(postmortemPage).toContain(
+      "IncidentPostmortemPublication.isWaitingForIncidentToShow(",
+    );
+    expect(postmortemPage).toContain(
+      "IncidentPostmortemPublication.hiddenIncidentLabel",
+    );
+    expect(postmortemPage).toContain("isWaiting={isWaitingForIncident}");
+    expect(settingsPage).toContain(
+      "IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(",
+    );
+    expect(settingsPage).toContain(
+      "IncidentPostmortemPublication.sendsOnShowDescription",
     );
   });
 });

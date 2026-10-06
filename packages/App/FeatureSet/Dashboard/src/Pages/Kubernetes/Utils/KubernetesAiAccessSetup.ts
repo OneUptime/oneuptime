@@ -9,6 +9,7 @@ import {
 import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
+  KUBERNETES_AGENT_KEEP_VALUES_FLAG,
 } from "./DocumentationMarkdown";
 import { formatNameList } from "../../../Components/AiAccess/AiAccessModes";
 import {
@@ -40,18 +41,21 @@ export { formatNameList };
 export const AI_AGENT_EXAMPLE_WRITE_NAMESPACES: string = "{web,api}";
 
 /*
- * The flag that puts aiAgent.remediation.namespaces back to cluster-wide
- * under `helm upgrade --reuse-values`, which every command here uses.
+ * The flag that puts aiAgent.remediation.namespaces back to cluster-wide on
+ * an upgrade that keeps the release's stored values, as every command here
+ * does (--reset-then-reuse-values, KUBERNETES_AGENT_KEEP_VALUES_FLAG).
  *
- * Not `--set aiAgent.remediation.namespaces=null`. With --reuse-values Helm
- * coalesces the new overrides into the release's stored values, and that
- * coalescing deletes a null override whose key the stored values already
- * hold — so a stored [web, api] survives and the write role stays bound in
- * web and api alone. An empty JSON list is an ordinary value: it replaces
- * a stored list and passes the chart's schema. `--set-json` needs Helm
- * 3.10+. (Reproduced with the real helm binary against a stored release
- * for the aiAccess.* values this replaces; helm-unittest renders from
- * values files and cannot model --reuse-values.)
+ * Not `--set aiAgent.remediation.namespaces=null`. Helm coalesces the new
+ * overrides into the release's stored values, and that coalescing deletes a
+ * null override whose key the stored values already hold. With
+ * --reuse-values the old chart's values then put a stored [web, api] back,
+ * and the write role stays bound in web and api alone; with either flag a
+ * missing key also lets a stored aiAccess.remediation.namespaces carry over
+ * (templates/_ai-agent.tpl). An empty JSON list is an ordinary value: it
+ * replaces a stored list and passes the chart's schema. `--set-json` needs
+ * Helm 3.10+. (The --reuse-values case was reproduced with the real helm
+ * binary against a stored release for the aiAccess.* values this replaces;
+ * helm-unittest renders from values files and cannot model an upgrade.)
  */
 export const AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG: string =
   "--set-json 'aiAgent.remediation.namespaces=[]'";
@@ -94,9 +98,9 @@ export interface AiAgentHelmCommands {
   install: string;
   /*
    * Sets what AI may do and nothing else: the agent's write scope stays as
-   * the release stores it (--reuse-values). What the "Change what AI may
-   * do" dialog shows when no write access has to be granted (fixes off, or
-   * an agent that may already write).
+   * the release stores it (--reset-then-reuse-values). What the "Change
+   * what AI may do" dialog shows when no write access has to be granted
+   * (fixes off, or an agent that may already write).
    */
   applySettings: string;
   /*
@@ -108,11 +112,11 @@ export interface AiAgentHelmCommands {
   enableRemediationScoped: string;
   /*
    * Write access bound cluster-wide. It resets aiAgent.remediation.
-   * namespaces with AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG: under
-   * --reuse-values a list stored by an earlier scoped upgrade is kept when
-   * the flag is left out, so without the reset this command would leave the
-   * role bound only where that list says. Node operations keep the release's
-   * setting (the chart's default is on).
+   * namespaces with AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG: a list stored by
+   * an earlier scoped upgrade is kept when the flag is left out, so without
+   * the reset this command would leave the role bound only where that list
+   * says. Node operations keep the release's setting (the chart's default is
+   * on).
    */
   enableRemediation: string;
 }
@@ -134,7 +138,7 @@ export function getAiAgentHelmCommands(
 ): AiAgentHelmCommands {
   const install: string = `helm repo update
 helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} --reuse-values \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} ${KUBERNETES_AGENT_KEEP_VALUES_FLAG} \\
   --set aiAgent.enabled=true`;
   const settingsFlags: string = getAiAgentSettingsFlags(settings);
 
@@ -170,13 +174,13 @@ export function getAiAgentLogsCommand(namespace?: string | undefined): string {
  * What the page says under the recommended (scoped) command. The chart
  * creates one RoleBinding in each listed namespace and never creates a
  * namespace, so a missing one fails the whole upgrade — the collector
- * included. Under --reuse-values a stored list is kept when the flag is
- * left out, so going back to cluster-wide takes
- * AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG, never `=null`.
+ * included. A stored list is kept when the flag is left out, so going back
+ * to cluster-wide takes AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG, never
+ * `=null`.
  */
 export function getAiAgentScopedCommandNote(): string {
   return translateTemplate(
-    "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which Helm ignores with --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
+    "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
     {
       exampleNamespaces: AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
       clusterWideFlag: AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,

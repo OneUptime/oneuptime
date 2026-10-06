@@ -43,7 +43,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-اسکریپت نشانی OneUptime، توکن دریافت تله‌متری، نام خوشه و جزئیات API ‏Proxmox شما را می‌پرسد، در `/opt/oneuptime-proxmox-agent` نصب می‌کند، و عامل را با Docker Compose آغاز می‌کند.
+اسکریپت نشانی OneUptime، توکن دریافت تله‌متری، نام خوشه و جزئیات API ‏Proxmox شما را می‌پرسد، در `/opt/oneuptime-proxmox-agent` نصب می‌کند، با دسترسی `0600` فایل `.env` می‌نویسد، و عامل را با Docker Compose آغاز می‌کند. اجرای دوباره اسکریپت به‌جای پرسیدن دوباره، همه‌چیز را از همان `.env` بازاستفاده می‌کند، و [ارتقای عامل](#ارتقای-عامل) هم همین است.
 
 ## جایگزین — Docker Compose
 
@@ -242,17 +242,21 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 عامل نسخه جمع‌کننده‌ای را که فایل‌هایش سنجاق کرده‌اند به‌عنوان **Agent Version** خود گزارش می‌کند. وقتی آن نسخه از نسخه‌ای که این انتشار OneUptime سنجاق کرده قدیمی‌تر باشد، نشانه هشداری کنارش در **Overview** خوشه پدیدار می‌شود. آن را برگزینید تا همین فرمان‌ها را ببینید. عاملی که پیش از گزارش نسخه در فایل‌هایش نصب شده، تا وقتی به این روش ارتقا نیابد نسخه‌ای نشان نمی‌دهد.
 
-ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. هر دو فایل را دوباره دانلود کنید (`.env` شما می‌ماند؛ هر تغییری را که در آن دو فایل داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید تا جمع‌کننده پیکربندی تازه‌اش را بخواند:
+ایمیج جمع‌کننده در `docker-compose.yml` سنجاق شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقدار `.env` موجود شما را بازاستفاده می‌کند (چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند (فایلی را که ویرایش کرده بودید به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد)، ایمیج‌ها را pull می‌کند و عامل را دوباره می‌سازد تا جمع‌کننده پیکربندی تازه‌اش را بخواند.
 
 ```bash
-cd /opt/oneuptime-proxmox-agent
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+bash install.sh
+```
+
+آن را با Docker Compose نصب کرده‌اید؟ در پوشه عامل هر دو فایل را دوباره دانلود کنید (هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را pull کنید و عامل را دوباره بسازید:
+
+```bash
 curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
 curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
-
-آن را با Docker Compose در پوشه‌ای از خودتان نصب کرده‌اید؟ همین فرمان‌ها را بدون `cd` در همان پوشه اجرا کنید.
 
 ## حذف نصب عامل
 

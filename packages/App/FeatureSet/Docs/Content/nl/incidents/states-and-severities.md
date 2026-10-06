@@ -2,7 +2,7 @@
 
 Elk incident draagt twee classificaties: een **status** die zegt waar het in je respons staat, en een **ernst** die zegt hoeveel pijn het doet. In het dashboard lijken ze op elkaar — allebei verschijnen ze als gekleurde pillen in de incidentenlijst, allebei zijn het projectgebonden lijsten die je kunt hernoemen en verkleuren. Ze doen totaal verschillend werk.
 
-Statussen sturen gedrag. Drie booleanvlaggen op de statusrijen bepalen welke incidenten als actief tellen, welke knoppen in de incidentkop verschijnen, wanneer de SLA-klok stopt en wanneer het incident van je statuspagina verdwijnt. Ernstniveaus sturen op zichzelf niets — het zijn labels die impact beschrijven en waar andere regels op kunnen matchen.
+Statussen sturen gedrag. Drie booleanvlaggen op de statusrijen bepalen, samen met de volgorde van de statussen, welke incidenten als actief tellen, welke knoppen in de incidentkop verschijnen, wanneer de SLA-klok stopt en wanneer het incident van je statuspagina verdwijnt. Ernstniveaus sturen op zichzelf niets — het zijn labels die impact beschrijven en waar andere regels op kunnen matchen.
 
 Beide lijsten worden aangemaakt wanneer je project ontstaat, en beide bewerk je onder **Incidenten → Instellingen**. Die sectie van het zijmenu Incidenten is standaard ingeklapt, dus vouw **Instellingen** uit voordat je gaat zoeken.
 
@@ -36,7 +36,7 @@ Let op de naam: de eerste status is **Identified**, ook al noemen verschillende 
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | De status die een incident krijgt wanneer niemand er een koos. Draagt geen enkele status in het project deze vlag, dan mislukt het aanmaken van een incident met de melding dat je vanuit de instellingen een aangemaakt-status moet toevoegen. |
 | `isAcknowledgedState` | Voedt de knop **Acknowledge** en de stat-tegel "<statusnaam> in" op het **Overzicht** van het incident. Bij een statuswijziging naar deze status wordt de SLA van het incident als beantwoord gemarkeerd. |
-| `isResolvedState`     | Voedt de knop **Oplossen** en de opgelost-stat-tegel, bepaalt de lijst **Actieve incidenten**, en is wat het incident uit het actieve deel van een statuspagina haalt. Markeert de SLA als opgelost. |
+| `isResolvedState`     | Markeert de opgeloste status van het project: die waarin **Oplossen** een incident zet en die de opgelost-stat-tegel toont. Een incident in deze status, of in een status erna, is opgelost — het verdwijnt uit **Actieve incidenten** en uit het actieve deel van een statuspagina, en de SLA wordt als opgelost gemarkeerd. |
 
 Per project hoort maar één status elke vlag te dragen — de opzoekacties halen één rij op. De drie gevlagde statussen kun je hernoemen, verkleuren en herschikken, maar de instellingenpagina weigert ze te verwijderen en toont een foutmelding die de aangemaakt-, bevestigd- en opgelost-status benoemt.
 
@@ -44,7 +44,7 @@ Omdat de UI statusnamen dynamisch uitleest, verandert hernoemen wat je overal zi
 
 ## Zelf statussen toevoegen
 
-Ga naar **Incidenten → Instellingen → Status incident**. De pagina is een geordende lijst, oplopend gesorteerd op `order`, en nieuwe statussen komen achteraan. Sleep een rij om de positie te wijzigen.
+Ga naar **Incidenten → Instellingen → Status incident**. De pagina is een geordende lijst, oplopend gesorteerd op `order`, en een nieuwe status komt direct boven de opgeloste status. Sleep een rij om de positie te wijzigen.
 
 **Velden op een status:**
 
@@ -54,7 +54,7 @@ Ga naar **Incidenten → Instellingen → Status incident**. De pagina is een ge
 
 De drie vlaggen kun je niet vanuit dit formulier zetten — die horen bij de voorgeconfigureerde rijen. Een status die je toevoegt is dus een ongevlagde status, en dat heeft twee gevolgen waar je op moet plannen:
 
-- **Hij telt als actief.** **Actieve incidenten** is gedefinieerd als "huidige status is niet de opgeloste status", dus alles wat je toevoegt behalve de opgeloste status houdt het incident in de actieve lijst en in de teller in het zijmenu.
+- **Boven de opgeloste status houdt hij het incident actief.** **Actieve incidenten** bevat de incidenten waarvan de huidige status boven de opgeloste status staat, dus een status die je daar toevoegt houdt het incident in de actieve lijst en in de teller in het zijmenu. Een status die je onder de opgeloste status sleept, telt overal als opgelost — in de actieve lijsten, op statuspagina's, bij herinneringen en in de SLA — en een incident van **Opgelost** daarheen verplaatsen is geen tweede keer oplossen.
 - **Zijn overgangsknop is generiek.** In plaats van **Acknowledge** of **Oplossen** heet de bevestigingsdialoog **Markeer incident als `<state name>`** met een verzendknop **Mark as `<state name>`**.
 
 Een gebruikelijke vorm is een triage- of mitigatiestap tussen de bevestigd- en de opgelost-status schuiven — sleep bijvoorbeeld een nieuwe status "Gemitigeerd" zodat die na **Bevestigd** en vóór **Opgelost** staat.
@@ -104,6 +104,15 @@ Er zijn vier manieren waarop een incident van status wisselt:
 
 Elk van deze schrijft een tijdlijnrij. Een statuswijziging doet ook een paar dingen waar je niet om hoeft te vragen: er komt een item in de incidentfeed, er wordt een Incident Commander toegewezen als het incident er nog geen heeft, en de SLA-klok wordt bijgewerkt. Een opgelost incident heropenen start een vers SLA-record vanaf het moment van heropenen.
 
+## Wat oplossen doet
+
+Een incident is opgelost wanneer het van een status boven je opgeloste status naar de opgeloste status gaat, of naar een status erna — via welke van de vier manieren hierboven ook. Elke keer oplossen:
+
+- **Geeft de monitoren terug die het incident vasthoudt.** Een incident dat open is gemeld, houdt zijn monitoren vast: het zette ze in zijn **Change Monitor Status to**-status, als het er een noemt, en pauzeerde, als het met de hand gemeld werd, hun bewaking. Een bewerking terwijl het open is — monitoren toevoegen of die status wijzigen — laat het ze ook vasthouden. Oplossen hervat hun bewaking en zet ze terug op operationeel, tenzij een ander open incident er nog op staat, en vanaf dan houdt het incident niets meer vast. Een incident dat al opgelost gemeld werd, geeft dus niets terug, en een tweede keer oplossen na heropenen evenmin: een status die de monitoren intussen kregen — van hun probes, van onderhoud of met de hand gezet — blijft staan.
+- **Markeert de SLA als opgelost** en schrijft, als de postmortem-concepten van OneUptime AI aan staan, een concept-postmortem.
+
+Van **Opgelost** doorgaan naar een status erna — **Gesloten** bijvoorbeeld — is geen tweede keer oplossen: niets hiervan draait opnieuw en er start geen nieuwe SLA. Een incident dat gemeld is voordat OneUptime dit bijhield, geeft zijn monitoren bij de volgende keer oplossen terug, zoals altijd.
+
 ## De statustijdlijn
 
 De pagina **Statustijdlijn** in het zijmenu van het incident is het auditspoor van elke status waarin het incident heeft gestaan. De kaart op die pagina heet **Statustijdlijn** en is nieuwste eerst gesorteerd.
@@ -125,11 +134,11 @@ Tijdlijnrijen kun je aanmaken en verwijderen, maar niet bewerken. De verkeerde r
 
 ## De lijst Actieve incidenten
 
-**Incidenten → Actieve incidenten** is de lijst waar je tijdens een dienst naar kijkt. De definitie is precies één voorwaarde: de huidige status van het incident is een status waar `isResolvedState` onwaar is. Verder telt niets mee — niet de ernst, niet de leeftijd, en niet of iemand het al heeft bevestigd.
+**Incidenten → Actieve incidenten** is de lijst waar je tijdens een dienst naar kijkt. De definitie is precies één voorwaarde: de huidige status van het incident staat boven je opgeloste status — de eerste status in de volgorde met de vlag `isResolvedState`. Verder telt niets mee — niet de ernst, niet de leeftijd, en niet of iemand het al heeft bevestigd.
 
 Het item in het zijmenu draagt een rode tellerbadge op basis van dezelfde query, dus badge en lijst zijn het altijd eens. Is er niets te zien, dan zegt de pagina dat.
 
-Het praktische gevolg: elke eigen status die je toevoegt houdt incidenten in deze lijst. Dat is meestal precies wat je wilt — "Gemitigeerd" is niet "klaar" — maar het betekent wel dat de badge pas leegloopt wanneer incidenten echt de opgeloste status bereiken.
+Het praktische gevolg: een eigen status die je boven de opgeloste status toevoegt, houdt incidenten in deze lijst — "Gemitigeerd" is niet "klaar" — en een die je erna plaatst haalt ze eruit, zoals de opgeloste status doet. Alerts en episodes volgen dezelfde regel met hun eigen statussen, en de tellers in het zijmenu, herinneringen, statuspagina's en de mobiele app lezen hem allemaal.
 
 ## Statuspagina-abonnees over een statuswijziging vertellen
 
@@ -156,7 +165,7 @@ Drie losse dingen bepalen of een incident überhaupt op de openbare pagina staat
 
 - **Incidenten weergeven** (`showIncidentsOnStatusPage`) op de statuspagina zelf.
 - **Zichtbaar op statuspagina** (`isVisibleOnStatusPage`) op het incident — een schakelaar op de pagina **Instellingen** van het incident. Hij staat standaard aan en zit niet in de meldwizard; een monitorcriterium kan hem zetten met **Incident weergeven op statuspagina**.
-- **De huidige status is niet de opgeloste status.** Dit is wat een incident uit het actieve deel haalt: de statuspagina-query haalt incidenten op waarvan de huidige status een niet-opgeloste status is. Je archiveert of sluit niets — je lost het op, en het verhuist naar de geschiedenis.
+- **De huidige status staat boven de opgeloste status.** Dit is wat een incident uit het actieve deel haalt: de statuspagina-query haalt incidenten op waarvan de huidige status boven je opgeloste status staat, dus de opgeloste status en elke status erna halen het incident eruit. Je archiveert of sluit niets — je lost het op, en het verhuist naar de geschiedenis.
 
 **Privé-incidenten verschijnen nooit.** **Privé-incident** aanzetten verbergt het incident voor elke statuspagina, ongeacht bovenstaande schakelaars, en beperkt het tot zijn eigenaren plus projectbeheerders en -eigenaren.
 

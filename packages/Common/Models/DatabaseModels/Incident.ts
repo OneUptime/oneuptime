@@ -2799,6 +2799,45 @@ export default class Incident extends BaseModel {
   })
   public isCreatedAutomatically?: boolean = undefined;
 
+  /*
+   * Whether the incident holds its monitors, recorded by OneUptime: true
+   * from when it is declared open, or from when an edit while it is open
+   * puts its monitors in its monitor status; false for one declared already
+   * resolved, which never held them, and from when a resolve gives them
+   * back. Resolving gives back only what it holds - so an incident declared
+   * resolved, reopened and resolved again gives back nothing it never had.
+   * Null for incidents from before it was recorded: their resolve gives the
+   * monitors back, as it always did, and records false.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Boolean,
+    title: "Holds Monitors",
+    description:
+      "Whether this incident is holding its monitors - keeping them in its monitor status, or their monitoring paused - so that resolving it gives them back: their monitoring resumes and their status returns to operational. True from when the incident is declared open, or from when an edit while it is open puts its monitors in its monitor status. False for an incident declared already resolved, which never held them, and once a resolve has given them back. Empty for incidents from before it was recorded, which give their monitors back when they are resolved. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public holdsMonitors?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

@@ -18,6 +18,8 @@ import GlobalCache from "../../../Infrastructure/GlobalCache";
 import DatabaseService from "../../../Services/DatabaseService";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
+import IncidentStateService from "../../../Services/IncidentStateService";
+import AlertStateService from "../../../Services/AlertStateService";
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -201,7 +203,13 @@ export default class MicrosoftTeamsReactionNoteSync {
       };
 
       const queries: Array<JSONObject> = [
-        { ...baseQuery, ...this.getOpenResourceQuery(resourceType) },
+        {
+          ...baseQuery,
+          ...(await this.getOpenResourceQuery({
+            resourceType: resourceType,
+            projectId: data.projectId,
+          })),
+        },
         {
           ...baseQuery,
           updatedAt: QueryHelper.greaterThanEqualTo(recentlyUpdatedSince),
@@ -285,16 +293,33 @@ export default class MicrosoftTeamsReactionNoteSync {
     );
   }
 
-  public static getOpenResourceQuery(
-    resourceType: WorkspaceNoteResourceType,
-  ): JSONObject {
-    switch (resourceType) {
+  /*
+   * The resources of a kind still open in the project. Incidents, alerts
+   * and their episodes are open above the project's resolved state - one in
+   * a state placed after Resolved is over (Common/Utils/ResolvedState). A
+   * scheduled maintenance event is open until it is completed.
+   */
+  public static async getOpenResourceQuery(data: {
+    resourceType: WorkspaceNoteResourceType;
+    projectId: ObjectID;
+  }): Promise<JSONObject> {
+    switch (data.resourceType) {
       case WorkspaceNoteResourceType.Incident:
       case WorkspaceNoteResourceType.IncidentEpisode:
-        return { currentIncidentState: { isResolvedState: false } };
+        return {
+          currentIncidentStateId: QueryHelper.any(
+            await IncidentStateService.getUnresolvedIncidentStateIds(
+              data.projectId,
+            ),
+          ),
+        };
       case WorkspaceNoteResourceType.Alert:
       case WorkspaceNoteResourceType.AlertEpisode:
-        return { currentAlertState: { isResolvedState: false } };
+        return {
+          currentAlertStateId: QueryHelper.any(
+            await AlertStateService.getUnresolvedAlertStateIds(data.projectId),
+          ),
+        };
       case WorkspaceNoteResourceType.ScheduledMaintenance:
         return { currentScheduledMaintenanceState: { isResolvedState: false } };
     }

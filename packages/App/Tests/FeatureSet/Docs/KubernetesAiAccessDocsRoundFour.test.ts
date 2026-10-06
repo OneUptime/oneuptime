@@ -79,6 +79,10 @@ const NODE_PATCH_NEEDS_HUMAN_PATTERN: RegExp =
   /\b(patch`? of a node|node patch)\b[^.;]{0,40}\b(always (needs?|waits? for|wait for) a (human|person)|without a (human|person)|are never auto-approved|still (waits for|asks) a (human|person))|\bso do a `?drain`?, a `?taint`? and a `?patch`? of a node\b/;
 // `kubectl expose --overrides`, which the policy refuses.
 const EXPOSE_OVERRIDES_PATTERN: RegExp = /`?expose --overrides`?/;
+// The --reuse-values flag itself, not --reset-then-reuse-values.
+const REUSE_VALUES_FLAG_PATTERN: RegExp = /(^|\s)--reuse-values(\s|$)/;
+// A values file passed with -f.
+const VALUES_FILE_FLAG_PATTERN: RegExp = /\s-f\s+\S+\.ya?ml(\s|$)/;
 
 /*
  * The sentence around a position: from the end of the previous sentence
@@ -206,7 +210,13 @@ describe("resetting aiAgent.remediation.namespaces under --reuse-values", () => 
     }
   });
 
-  it("pairs no copy-paste command's --reuse-values with a null namespace list", () => {
+  /*
+   * No copy-paste upgrade is a --reuse-values one at all: it keeps the old
+   * chart's defaults too, so a default a newer chart changed never applies.
+   * They keep the release's values with --reset-then-reuse-values, which
+   * also keeps a stored namespace list when the flag is left out.
+   */
+  it("pairs no copy-paste upgrade with --reuse-values or a null namespace list", () => {
     const commands: Array<{ label: string; command: string }> = [
       ...[
         AI_SRE_PAGE,
@@ -232,24 +242,36 @@ describe("resetting aiAgent.remediation.namespaces under --reuse-values", () => 
       ),
     ];
 
-    // Harness guard: the commands the upgrades are read from were found.
-    expect(
-      commands.filter((entry: { label: string; command: string }): boolean => {
-        return entry.command.includes("--reuse-values");
-      }).length,
-    ).toBeGreaterThan(6);
+    const upgrades: Array<{ label: string; command: string }> = commands.filter(
+      (entry: { label: string; command: string }): boolean => {
+        return entry.command.includes("helm upgrade");
+      },
+    );
 
-    for (const entry of commands) {
+    // Harness guard: the commands the upgrades are read from were found.
+    expect(upgrades.length).toBeGreaterThan(6);
+
+    for (const entry of upgrades) {
       expect({
         file: entry.label,
         command: entry.command,
-        reuseWithNull:
-          entry.command.includes("--reuse-values") &&
-          entry.command.includes(NULL_RESET_TEXT),
+        /*
+         * --reset-then-reuse-values, or the values in a file: on Helm before
+         * 3.14 the release's own, saved with `helm get values` (the docs'
+         * `-f values.yaml`), or a complete values file (`-f
+         * lean-values.yaml`).
+         */
+        keepsReleaseValues:
+          entry.command.includes("--reset-then-reuse-values") ||
+          VALUES_FILE_FLAG_PATTERN.test(entry.command),
+        reuseValues: REUSE_VALUES_FLAG_PATTERN.test(entry.command),
+        nullNamespaces: entry.command.includes(NULL_RESET_TEXT),
       }).toEqual({
         file: entry.label,
         command: entry.command,
-        reuseWithNull: false,
+        keepsReleaseValues: true,
+        reuseValues: false,
+        nullNamespaces: false,
       });
     }
   });

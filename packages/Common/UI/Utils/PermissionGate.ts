@@ -514,6 +514,27 @@ export default class PermissionGate {
     );
   }
 
+  /*
+   * Whether a form can offer a picker for a relation column: the user may
+   * read the column (the picked record is shown and saved through it) AND
+   * may list the records the picker offers, which takes reading that other
+   * model. A column is read with its own record's permission, so reading it
+   * does not mean the picker's list may be read: offered to somebody who may
+   * not list the related records, the picker's request is refused and the
+   * field can never be filled. Fails closed like canReadColumn.
+   */
+  public static canPickRelation(
+    model: ColumnPermissionCheckableModel,
+    columnName: string,
+    relatedModel: PermissionCheckableModel,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    return (
+      this.canReadColumn(model, columnName, options) &&
+      this.check(relatedModel, ModelAction.Read, options).isAllowed
+    );
+  }
+
   /* Test seam - the props lookup is memoized for the lifetime of the page. */
   public static clearPermissionPropsCache(): void {
     permissionPropsCache = null;

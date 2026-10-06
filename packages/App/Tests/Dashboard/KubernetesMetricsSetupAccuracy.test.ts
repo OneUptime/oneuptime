@@ -398,7 +398,7 @@ describe("the commands", () => {
       expect(lines[1]).toBe(
         `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\`,
       );
-      expect(lines[2]).toBe("  --reuse-values \\");
+      expect(lines[2]).toBe("  --reset-then-reuse-values \\");
       expect(lines.slice(3)).toEqual(
         setup.helmFlags.map((flag: string, index: number): string => {
           return `  ${flag}${index < setup.helmFlags.length - 1 ? " \\" : ""}`;

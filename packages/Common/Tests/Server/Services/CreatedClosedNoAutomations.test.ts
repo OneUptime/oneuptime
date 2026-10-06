@@ -206,11 +206,6 @@ interface Probes {
   monitoringPaused: Array<unknown>;
   // The state of the record's first timeline row.
   firstRows: Array<string>;
-  /*
-   * What an incident's first state was told about its monitors
-   * (neverHeldItsMonitors): one entry per first row.
-   */
-  firstRowNeverHeld: Array<unknown>;
   createdFeed: Array<unknown>;
   privacyRules: Array<unknown>;
   ownerRules: Array<unknown>;
@@ -237,7 +232,6 @@ function newProbes(): Probes {
     monitorStatus: [],
     monitoringPaused: [],
     firstRows: [],
-    firstRowNeverHeld: [],
     createdFeed: [],
     privacyRules: [],
     ownerRules: [],
@@ -404,13 +398,10 @@ const INCIDENT: Kind = {
     stub(IncidentService, "changeIncidentState", (args: Array<unknown>) => {
       const change: {
         incidentStateId: unknown;
-        neverHeldItsMonitors?: unknown;
       } = args[0] as {
         incidentStateId: unknown;
-        neverHeldItsMonitors?: unknown;
       };
       probes.firstRows.push(idOf(change.incidentStateId));
-      probes.firstRowNeverHeld.push(change.neverHeldItsMonitors);
     });
     stub(MonitorService, "changeMonitorStatus", (args: Array<unknown>) => {
       probes.monitorStatus.push(args);
@@ -941,6 +932,8 @@ interface Created {
   probes: Probes;
   carryForward: unknown;
   record: DatabaseBaseModel;
+  // What onBeforeCreate wrote, as the database would be asked to save it.
+  written: Record<string, unknown>;
 }
 
 /*
@@ -1012,7 +1005,12 @@ async function create(
 
   await settle();
 
-  return { probes, carryForward: onCreate.carryForward, record };
+  return {
+    probes,
+    carryForward: onCreate.carryForward,
+    record,
+    written: (onCreate.createBy as { data: Record<string, unknown> }).data,
+  };
 }
 
 // The feed items saying the record's on-call policies were not run.
@@ -1755,14 +1753,26 @@ describe.each(KINDS)(
     });
 
     if (kind === ALERT_EPISODE || kind === INCIDENT_EPISODE) {
-      test("an episode in it gets no resolvedAt, whatever the write sent: its first timeline row reads the flag alone and would write none", async () => {
+      test("an episode in it is resolved from the moment it exists, as its first timeline row says: resolvedAt is stamped now, whatever the write sent", async () => {
+        const sent: Date = new Date("2026-10-01T00:00:00.000Z");
         const { record } = await create(kind, CLOSED, [PRIMARY_POLICY_ID], {
-          values: { resolvedAt: new Date("2026-10-01T00:00:00.000Z") },
+          values: { resolvedAt: sent },
         });
 
-        expect(
-          (record as unknown as Record<string, unknown>)["resolvedAt"],
-        ).toBeUndefined();
+        const resolvedAt: unknown = (
+          record as unknown as Record<string, unknown>
+        )["resolvedAt"];
+
+        expect(resolvedAt).toBeInstanceOf(Date);
+        expect((resolvedAt as Date).getTime()).not.toBe(sent.getTime());
+      });
+    }
+
+    if (kind === INCIDENT) {
+      test("an incident in it holds no monitors, so no later resolve gives any back", async () => {
+        const { written } = await create(kind, CLOSED);
+
+        expect(written["holdsMonitors"]).toBe(false);
       });
     }
   },
@@ -1798,18 +1808,18 @@ describe.each([ALERT_EPISODE, INCIDENT_EPISODE])(
   },
 );
 
-describe("an incident's first state gives its monitors nothing back only when it was declared resolved", () => {
-  test("declared resolved: its first state is told the incident never held its monitors", async () => {
-    const { probes } = await create(INCIDENT, RESOLVED);
+describe("an incident records whether it holds its monitors (Incident.holdsMonitors) from where it starts", () => {
+  test("declared resolved: it holds nothing, so no resolve of it - after a reopen, say - gives anything back", async () => {
+    const { probes, written } = await create(INCIDENT, RESOLVED);
 
     expect(probes.firstRows).toEqual([RESOLVED]);
-    expect(probes.firstRowNeverHeld).toEqual([true]);
+    expect(written["holdsMonitors"]).toBe(false);
   });
 
-  test("created in a state of its own after resolved: the same, it never held them", async () => {
-    const { probes } = await create(INCIDENT, CLOSED);
+  test("created in a state of its own after resolved: the same, it holds nothing", async () => {
+    const { written } = await create(INCIDENT, CLOSED);
 
-    expect(probes.firstRowNeverHeld).toEqual([true]);
+    expect(written["holdsMonitors"]).toBe(false);
   });
 
   test.each([
@@ -1821,9 +1831,23 @@ describe("an incident's first state gives its monitors nothing back only when it
   ] as Array<[string, string | null]>)(
     "%s: it holds its monitors, so a resolve gives them back as always",
     async (_name: string, state: string | null) => {
-      const { probes } = await create(INCIDENT, state);
+      const { written } = await create(INCIDENT, state);
 
-      expect(probes.firstRowNeverHeld).toEqual([false]);
+      expect(written["holdsMonitors"]).toBe(true);
+    },
+  );
+
+  test.each([
+    ["declared resolved, sent true", RESOLVED, true, false],
+    ["declared open, sent false", CREATED, false, true],
+  ] as Array<[string, string, boolean, boolean]>)(
+    "it is OneUptime's to record, whatever the write sent: %s",
+    async (_name: string, state: string, sent: boolean, recorded: boolean) => {
+      const { written } = await create(INCIDENT, state, [PRIMARY_POLICY_ID], {
+        values: { holdsMonitors: sent },
+      });
+
+      expect(written["holdsMonitors"]).toBe(recorded);
     },
   );
 });

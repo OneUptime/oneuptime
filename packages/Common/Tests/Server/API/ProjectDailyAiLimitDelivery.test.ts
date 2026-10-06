@@ -99,7 +99,7 @@ describe("the post lane: Slack and Microsoft Teams say the limit sentence", () =
     ).getDailyLimitRefusal(PROJECT_ID);
 
     expect(refusal).toBe(
-      "This project has reached its daily AI token limit: 1,200 of 1,000 tokens used today. OneUptime AI starts again at midnight UTC. To raise or remove the limit, go to Project Settings → AI Features → More settings.",
+      "This project has reached its daily AI token limit: 1,200 of 1,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
     );
   });
 

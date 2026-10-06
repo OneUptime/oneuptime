@@ -1,4 +1,5 @@
 import ObjectID from "../Types/ObjectID";
+import ResolvedStateUtil, { ResolvedStateList } from "./ResolvedState";
 import {
   StateListDefinition,
   StateListRow,
@@ -39,23 +40,17 @@ import {
  * project's ordered state list (getStateListReachedBuiltIn), and what the
  * state settings pages show as "Counts as":
  *
- *   - Resolved: at or below the resolved state, or flagged resolved - as
- *     isIncidentResolved reads it for reminders, monitor edits and Slack,
- *     and status pages for what they still show as active. A record that
- *     starts there has no later resolve to give its monitors back or close
- *     its SLA, so it takes neither.
+ *   - Resolved: at or below the resolved state, or flagged resolved - the
+ *     one rule every part of OneUptime reads (Common/Utils/ResolvedState):
+ *     reminders, status pages, the Active lists, an incident's resolve and
+ *     an episode's resolvedAt. A record that starts there has no later
+ *     resolve to give its monitors back or close its SLA, so it takes
+ *     neither, and an episode that starts there is resolved from the moment
+ *     it exists.
  *   - Acknowledged: at or below the acknowledged state, or flagged
  *     acknowledged - as on-call escalation reads it to stop paging.
  *   - Open: the created state, and any state of the project's own above the
  *     acknowledged one: its record pages.
- *
- * A few readers look at the resolved flag alone: an episode's resolvedAt,
- * which its create stamps exactly as its first timeline row writes it
- * (StartingState.flaggedResolved), and the Active badges. For the project's
- * resolved state they agree. A state of the project's own placed after it,
- * without the flag (new states never go there: they go above it), starts
- * resolved here and stays unresolved by the flag there - as a record moved
- * into that state later does.
  */
 export enum StartingStage {
   // The created state, or a state before the acknowledged one.
@@ -69,11 +64,6 @@ export enum StartingStage {
 // Where a record starts, as one read of its project's states places it.
 export interface StartingState {
   stage: StartingStage;
-  /*
-   * Whether the state carries the resolved flag: what an episode's first
-   * timeline row reads to stamp its resolvedAt, so what its create stamps.
-   */
-  flaggedResolved: boolean;
 }
 
 /*
@@ -98,7 +88,6 @@ export interface GroupingOptions {
 }
 
 const ACKNOWLEDGED_STATE_FLAG: string = "isAcknowledgedState";
-const RESOLVED_STATE_FLAG: string = "isResolvedState";
 
 const STARTING_STAGES: Array<string> = Object.values(StartingStage);
 
@@ -137,7 +126,16 @@ export default class StartingStageUtil {
       return null;
     }
 
-    const flaggedResolved: boolean = row.flags.includes(RESOLVED_STATE_FLAG);
+    // Resolved by the one rule every reader shares (ResolvedState).
+    if (
+      ResolvedStateUtil.isResolved({
+        list: data.definition.type as ResolvedStateList,
+        states: data.states,
+        stateId: row.id,
+      })
+    ) {
+      return { stage: StartingStage.Resolved };
+    }
 
     const reached: string | null = getStateListReachedBuiltIn(
       data.definition,
@@ -145,24 +143,14 @@ export default class StartingStageUtil {
       row,
     );
 
-    if (flaggedResolved || reached === RESOLVED_STATE_FLAG) {
-      return {
-        stage: StartingStage.Resolved,
-        flaggedResolved: flaggedResolved,
-      };
-    }
-
     if (
       reached === ACKNOWLEDGED_STATE_FLAG ||
       row.flags.includes(ACKNOWLEDGED_STATE_FLAG)
     ) {
-      return {
-        stage: StartingStage.Acknowledged,
-        flaggedResolved: false,
-      };
+      return { stage: StartingStage.Acknowledged };
     }
 
-    return { stage: StartingStage.Open, flaggedResolved: false };
+    return { stage: StartingStage.Open };
   }
 
   // The stage alone (getStartingState): null for a state the list does not hold.

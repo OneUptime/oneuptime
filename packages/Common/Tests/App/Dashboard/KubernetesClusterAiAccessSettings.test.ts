@@ -194,17 +194,17 @@ const NULL_NAMESPACES_VALUE_REGEX: RegExp =
  */
 const EXACT_INSTALL_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true`;
 const EXACT_APPLY_SETTINGS_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true \\
   --set aiAgent.investigation=true \\
   --set aiAgent.fixes=ask-for-approval`;
 const EXACT_SCOPED_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true \\
   --set aiAgent.investigation=true \\
   --set aiAgent.fixes=ask-for-approval \\
@@ -212,7 +212,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
   --set aiAgent.remediation.nodeOperations=false`;
 const EXACT_CLUSTER_WIDE_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true \\
   --set aiAgent.investigation=true \\
   --set aiAgent.fixes=ask-for-approval \\
@@ -569,8 +569,8 @@ describe("the AI agent helm commands", () => {
 
   /*
    * Changing what AI may do keeps the write scope the release has: no
-   * namespace list and no node operations flag, so --reuse-values keeps
-   * them.
+   * namespace list and no node operations flag, so
+   * --reset-then-reuse-values keeps them.
    */
   test("the settings command sets the two values and nothing about the write scope", () => {
     const argv: Array<string> = getHelmUpgradeArgv(
@@ -607,7 +607,14 @@ describe("the AI agent helm commands", () => {
         `helm upgrade ${pairs[0]!.release} oneuptime/kubernetes-agent`,
       );
       expect(command).toContain(`--namespace ${pairs[0]!.namespace}`);
-      expect(command).toContain("--reuse-values");
+      /*
+       * The release's own values, the chart's defaults for the rest: never
+       * --reuse-values, which keeps the old chart's defaults too.
+       */
+      expect(getHelmUpgradeArgv(command)).toContain(
+        "--reset-then-reuse-values",
+      );
+      expect(getHelmUpgradeArgv(command)).not.toContain("--reuse-values");
     }
   });
 
@@ -650,13 +657,14 @@ describe("the AI agent helm commands", () => {
   /*
    * What helm receives: the shell hands `--set-json` one word whose value
    * is an empty JSON list — a value the schema accepts and that replaces a
-   * stored list under --reuse-values (a `=null` override would be dropped).
+   * stored list (a `=null` override is dropped under --reuse-values, and
+   * lets a stored aiAccess list carry over under either flag).
    */
   test("the cluster-wide command hands helm an empty JSON list for the namespaces", () => {
     const argv: Array<string> = getHelmUpgradeArgv(
       getAiAgentHelmCommands().enableRemediation,
     );
-    expect(argv).toContain("--reuse-values");
+    expect(argv).toContain("--reset-then-reuse-values");
 
     const setJson: Array<string> = getFlagValues(argv, "--set-json");
     expect(setJson).toEqual(["aiAgent.remediation.namespaces=[]"]);
@@ -672,7 +680,7 @@ describe("the AI agent helm commands", () => {
 
     // Negative control: the helper does read a null reset where one is.
     const withNull: Array<string> = getHelmUpgradeArgv(
-      "helm repo update\nhelm upgrade r c --reuse-values \\\n  --set aiAgent.remediation.namespaces=null",
+      "helm repo update\nhelm upgrade r c --reset-then-reuse-values \\\n  --set aiAgent.remediation.namespaces=null",
     );
     expect(
       getFlagValues(withNull, "--set").some((setting: string): boolean => {
@@ -681,11 +689,12 @@ describe("the AI agent helm commands", () => {
     ).toBe(true);
   });
 
-  test("no command pairs --reuse-values with a null namespace list", () => {
+  test("no command keeps the old chart's defaults or resets the namespace list with null", () => {
     for (const command of allCommands()) {
       const argv: Array<string> = getHelmUpgradeArgv(command);
       expect({
         command,
+        keepsReleaseValues: argv.includes("--reset-then-reuse-values"),
         reuseValues: argv.includes("--reuse-values"),
         nullNamespaces: getFlagValues(argv, "--set").some(
           (setting: string): boolean => {
@@ -695,7 +704,8 @@ describe("the AI agent helm commands", () => {
         nullText: command.includes("namespaces=null"),
       }).toEqual({
         command,
-        reuseValues: true,
+        keepsReleaseValues: true,
+        reuseValues: false,
         nullNamespaces: false,
         nullText: false,
       });

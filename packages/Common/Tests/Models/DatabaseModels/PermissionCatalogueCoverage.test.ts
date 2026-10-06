@@ -240,25 +240,11 @@ describe("Permission catalogue coverage across database models", () => {
  * The analytics tables are held to the same rule: a column's create list
  * asks for a granular permission its table accepts. An exception's span name
  * asked for the trace permissions, where every other exception column asks
- * for the exception permissions.
- *
- * A table whose columns ask for another family's permission on purpose, or
- * for a change of its own. This list must only ever shrink: an entry no
- * column holds any more fails below, and is removed with its reason.
+ * for the exception permissions; a metric data point's columns asked for
+ * the log permissions while its table asked for the trace ones. Each now
+ * asks for its own family's - and with them gone, no analytics column is
+ * excused from the rule.
  */
-const KNOWN_ANALYTICS_COLUMN_GATES: Array<{
-  tableName: string;
-  permission: Permission;
-  reason: string;
-}> = [
-  {
-    tableName: AnalyticsTableName.Metric,
-    permission: Permission.CreateTelemetryServiceLog,
-    reason:
-      "A metric data point's columns are created and read with the log permissions while the table's own lists name the trace permissions, and neither is the Telemetry Service Metrics family. Which family a metric belongs to decides what custom roles can read in metric charts, so it is a change of its own.",
-  },
-];
-
 const ANALYTICS_MODELS: Array<AnalyticsBaseModel> = (
   AnalyticsModels as Array<{ new (): AnalyticsBaseModel }>
 ).map((modelType: { new (): AnalyticsBaseModel }): AnalyticsBaseModel => {
@@ -278,15 +264,16 @@ function analyticsColumnCreateLists(
     });
 }
 
-function isKnownAnalyticsGate(
-  tableName: string,
-  permission: Permission,
-): boolean {
-  return KNOWN_ANALYTICS_COLUMN_GATES.some(
-    (entry: { tableName: string; permission: Permission }): boolean => {
-      return entry.tableName === tableName && entry.permission === permission;
+function findAnalyticsModel(tableName: string): AnalyticsBaseModel {
+  const model: AnalyticsBaseModel | undefined = ANALYTICS_MODELS.find(
+    (candidate: AnalyticsBaseModel): boolean => {
+      return candidate.tableName === tableName;
     },
   );
+
+  expect([tableName, Boolean(model)]).toEqual([tableName, true]);
+
+  return model!;
 }
 
 describe("Permission catalogue coverage across analytics models", () => {
@@ -329,11 +316,7 @@ describe("Permission catalogue coverage across analytics models", () => {
         for (const permission of list.permissions) {
           const value: string = permission.toString();
 
-          if (
-            rolePermissions.has(value) ||
-            tableCreate.has(value) ||
-            isKnownAnalyticsGate(model.tableName, permission)
-          ) {
+          if (rolePermissions.has(value) || tableCreate.has(value)) {
             continue;
           }
 
@@ -346,11 +329,9 @@ describe("Permission catalogue coverage across analytics models", () => {
   });
 
   test("an exception's span name is created and read with the exception permissions", () => {
-    const spanName: ColumnAccessControl | undefined = ANALYTICS_MODELS.find(
-      (model: AnalyticsBaseModel): boolean => {
-        return model.tableName === AnalyticsTableName.ExceptionInstance;
-      },
-    )!.getColumnAccessControlForAllColumns()["spanName"];
+    const spanName: ColumnAccessControl | undefined = findAnalyticsModel(
+      AnalyticsTableName.ExceptionInstance,
+    ).getColumnAccessControlForAllColumns()["spanName"];
 
     expect(spanName?.create).toContain(Permission.CreateTelemetryException);
     expect(spanName?.read).toContain(Permission.ReadTelemetryException);
@@ -359,25 +340,88 @@ describe("Permission catalogue coverage across analytics models", () => {
     );
     expect(spanName?.read).not.toContain(Permission.ReadTelemetryServiceTraces);
   });
+});
 
-  test("every known gate still matches a column, and says why", () => {
-    for (const entry of KNOWN_ANALYTICS_COLUMN_GATES) {
-      const model: AnalyticsBaseModel = ANALYTICS_MODELS.find(
-        (candidate: AnalyticsBaseModel): boolean => {
-          return candidate.tableName === entry.tableName;
-        },
-      )!;
+/*
+ * A metric data point is the Telemetry Service Metrics family's, like the
+ * metric catalogue (MetricType) beside it: its table and every column of it
+ * name the metric permissions, and no column names the log or trace ones it
+ * used to. Before, its columns were read with Read Telemetry Service Log
+ * while the table was read with Read Telemetry Service Traces, so a custom
+ * role holding Read Telemetry Service Metrics - the permission the picker
+ * offers for metrics - saw no metric chart.
+ */
+describe("a metric data point is the metric family's", () => {
+  const OTHER_FAMILIES: Array<Permission> = [
+    Permission.ReadTelemetryServiceLog,
+    Permission.CreateTelemetryServiceLog,
+    Permission.EditTelemetryServiceLog,
+    Permission.DeleteTelemetryServiceLog,
+    Permission.ReadTelemetryServiceTraces,
+    Permission.CreateTelemetryServiceTraces,
+    Permission.EditTelemetryServiceTraces,
+    Permission.DeleteTelemetryServiceTraces,
+  ];
 
-      expect(entry.reason.length).toBeGreaterThan(40);
+  test.each([
+    ["read", Permission.ReadTelemetryServiceMetrics],
+    ["create", Permission.CreateTelemetryServiceMetrics],
+    ["update", Permission.EditTelemetryServiceMetrics],
+    ["delete", Permission.DeleteTelemetryServiceMetrics],
+  ])(
+    "the table's %s list names %s",
+    (operation: string, permission: Permission) => {
+      const metric: AnalyticsBaseModel = findAnalyticsModel(
+        AnalyticsTableName.Metric,
+      );
+      const list: Array<Permission> =
+        operation === "read"
+          ? metric.getReadPermissions()
+          : operation === "create"
+            ? metric.getCreatePermissions()
+            : operation === "update"
+              ? metric.getUpdatePermissions()
+              : metric.getDeletePermissions();
+
+      expect(list).toContain(permission);
+
+      for (const other of OTHER_FAMILIES) {
+        expect([operation, other, list.includes(other)]).toEqual([
+          operation,
+          other,
+          false,
+        ]);
+      }
+    },
+  );
+
+  test("every column is read and created with the metric permissions alone", () => {
+    const columns: Dictionary<ColumnAccessControl> = findAnalyticsModel(
+      AnalyticsTableName.Metric,
+    ).getColumnAccessControlForAllColumns();
+
+    expect(Object.keys(columns).length).toBeGreaterThan(30);
+
+    for (const column of Object.keys(columns).sort()) {
+      const read: Array<Permission> = columns[column]?.read || [];
+      const create: Array<Permission> = columns[column]?.create || [];
+
       expect([
-        entry.tableName,
-        entry.permission,
-        analyticsColumnCreateLists(model).some(
-          (list: { permissions: Array<Permission> }): boolean => {
-            return list.permissions.includes(entry.permission);
-          },
-        ),
-      ]).toEqual([entry.tableName, entry.permission, true]);
+        column,
+        read.includes(Permission.ReadTelemetryServiceMetrics),
+      ]).toEqual([column, true]);
+      expect([
+        column,
+        create.includes(Permission.CreateTelemetryServiceMetrics),
+      ]).toEqual([column, true]);
+
+      for (const other of OTHER_FAMILIES) {
+        expect([column, other, [...read, ...create].includes(other)]).toEqual([
+          column,
+          other,
+          false,
+        ]);
+      }
     }
   });
 });
@@ -439,6 +483,401 @@ describe("the columns that asked for another record's permission", () => {
 
         expect([column, read.includes(permission)]).toEqual([column, true]);
         expect(read).not.toContain(Permission.ReadScheduledMaintenanceFeed);
+      }
+    },
+  );
+});
+
+/*
+ * Read lists, by the same family rule. The server checks a select twice: the
+ * record's read list (TablePermission, or the analytics ModelPermission),
+ * then each selected column's (SelectPermission). A permission a column
+ * names that its record's read list never accepts reads nothing on its own -
+ * the record's check refuses first - so it stands in for the record's own
+ * read permission, copied from another model's list. Whoever holds only the
+ * record's read permission is then refused the column, and since a select
+ * that names one unreadable column fails the whole request, a page that
+ * lists the records fails with it. These were:
+ *
+ *   - a workspace notification log's links to the alert, episodes,
+ *     scheduled maintenance event, status page and announcement it was
+ *     posted for (and the incident's ID) listed Read Push Log;
+ *   - a network device auto-import rule's Monitor Template and OID
+ *     Collection Template listed the templates' read permissions, and an
+ *     alert policy's Monitor Template the monitor templates';
+ *   - an on-call execution log's Last Executed Escalation Rule listed the
+ *     execution log timeline's;
+ *   - a team's Editable, Deleteable, Permissions Editable and Should Have
+ *     One Member flags listed Edit Team and Edit Team Permissions;
+ *   - a project's Workflow Runs In Last 30 Days listed Read Workflow;
+ *   - a metric data point's columns listed the log permissions while the
+ *     table listed the trace ones (above).
+ *
+ * Each now names its own record's read permission. Every model, database
+ * and analytics, is held to two rules: no column's read list names a
+ * granular permission its record's read list leaves out, and a column open
+ * below the admins is open to one of its record's own read permissions.
+ * Roles are left out of the first, as for create lists; a record nobody in
+ * a project may read (the server's own tables) is skipped, as no column
+ * list can open it.
+ *
+ * A column may be narrower than its record on purpose: a secret is read
+ * only by who may edit the record. Those are listed here with the reason.
+ * The list may only shrink: an entry no column holds any more fails below,
+ * and is removed with its reason.
+ */
+const KNOWN_CROSS_FAMILY_READS: Array<{
+  tableName: string;
+  columns: Array<string>;
+  permission: Permission;
+  reason: string;
+}> = [
+  {
+    tableName: "Monitor",
+    columns: [
+      "incomingEmailCustomLocalPart",
+      "incomingEmailSecretKey",
+      "incomingRequestSecretKey",
+      "serverMonitorSecretKey",
+    ],
+    permission: Permission.EditProjectMonitor,
+    reason:
+      "A monitor's incoming request and incoming email keys, its custom inbound address and its server agent key act as credentials for the monitor, so only who may edit the monitor reads them. Its readers see the monitor without them (MonitorSecretKeySelect leaves them out of the select).",
+  },
+  {
+    tableName: "Workflow",
+    columns: ["incomingEmailSecretKey", "webhookSecretKey"],
+    permission: Permission.EditWorkflow,
+    reason:
+      "A workflow's webhook and incoming email keys start the workflow, which running it by hand takes Edit Workflow for, so only who may edit the workflow reads them. Their read list is the same as their update list on purpose.",
+  },
+  {
+    tableName: AnalyticsTableName.RumSessionChunk,
+    columns: ["payload"],
+    permission: Permission.ReadRumSessionReplayPayload,
+    reason:
+      "A session replay chunk's payload is the recording itself. Watching a recording is its own permission, narrower than listing sessions, which is what the chunk table's own read list names.",
+  },
+];
+
+interface ReadListModel {
+  tableName: string;
+  readList: Array<Permission>;
+  columns: Dictionary<ColumnAccessControl>;
+}
+
+const READ_LIST_MODELS: Array<ReadListModel> = [
+  ...MODEL_TYPES.map((modelType: ModelType): ReadListModel => {
+    const model: BaseModel = new modelType();
+
+    return {
+      tableName: model.tableName || modelType.name,
+      readList: model.getReadPermissions() || [],
+      columns: model.getColumnAccessControlForAllColumns(),
+    };
+  }),
+  ...ANALYTICS_MODELS.map((model: AnalyticsBaseModel): ReadListModel => {
+    return {
+      tableName: model.tableName,
+      readList: model.getReadPermissions() || [],
+      columns: model.getColumnAccessControlForAllColumns(),
+    };
+  }),
+];
+
+const READ_PERMISSION_PROPS: Dictionary<PermissionProps> =
+  PermissionHelper.getAllPermissionPropsAsDictionary();
+
+// One permission for one kind of record, as opposed to a role.
+function isGranularPermission(permission: Permission): boolean {
+  const props: PermissionProps | undefined = READ_PERMISSION_PROPS[permission];
+
+  return Boolean(props?.isAssignableToTenant && !props.isRolePermission);
+}
+
+// A role below the admins: Project Member, Viewer, Monitor Viewer and the like.
+function isRoleBelowAdmins(permission: Permission): boolean {
+  const props: PermissionProps | undefined = READ_PERMISSION_PROPS[permission];
+
+  return Boolean(
+    props?.isAssignableToTenant &&
+      props.isRolePermission &&
+      (permission.endsWith("Member") || permission.endsWith("Viewer")),
+  );
+}
+
+function knownCrossFamilyRead(
+  tableName: string,
+  column: string,
+): { permission: Permission } | undefined {
+  return KNOWN_CROSS_FAMILY_READS.find(
+    (entry: { tableName: string; columns: Array<string> }): boolean => {
+      return entry.tableName === tableName && entry.columns.includes(column);
+    },
+  );
+}
+
+function findReadListModel(tableName: string): ReadListModel {
+  const model: ReadListModel | undefined = READ_LIST_MODELS.find(
+    (candidate: ReadListModel): boolean => {
+      return candidate.tableName === tableName;
+    },
+  );
+
+  expect([tableName, Boolean(model)]).toEqual([tableName, true]);
+
+  return model!;
+}
+
+function columnReadList(tableName: string, column: string): Array<Permission> {
+  const model: ReadListModel = findReadListModel(tableName);
+
+  expect([tableName, column, Boolean(model.columns[column])]).toEqual([
+    tableName,
+    column,
+    true,
+  ]);
+
+  return model.columns[column]?.read || [];
+}
+
+describe("read lists name their own record's permissions", () => {
+  test("the sweep sees every model, database and analytics, and their columns", () => {
+    expect(READ_LIST_MODELS.length).toBeGreaterThan(400);
+
+    expect(
+      Object.keys(findReadListModel("WorkspaceNotificationLog").columns),
+    ).toContain("alertId");
+    expect(
+      Object.keys(findReadListModel(AnalyticsTableName.Metric).columns),
+    ).toContain("value");
+  });
+
+  test("no column's read list names a granular permission its record's read list leaves out", () => {
+    const foreign: Array<string> = [];
+
+    for (const model of READ_LIST_MODELS) {
+      if (model.readList.length === 0) {
+        continue;
+      }
+
+      for (const column of Object.keys(model.columns).sort()) {
+        for (const permission of model.columns[column]?.read || []) {
+          if (
+            !isGranularPermission(permission) ||
+            model.readList.includes(permission) ||
+            knownCrossFamilyRead(model.tableName, column)?.permission ===
+              permission
+          ) {
+            continue;
+          }
+
+          foreign.push(`${model.tableName}.${column} reads with ${permission}`);
+        }
+      }
+    }
+
+    expect(foreign).toEqual([]);
+  });
+
+  /*
+   * The other half of the same slip. A column may be narrower than its
+   * record - a project's billing columns are for its owners - but a column
+   * opened to anyone below the admins, a member role or a granular
+   * permission, is opened to its record's own read permission too, or
+   * whoever may read the record is refused a column a member reads.
+   */
+  test("a column open below the admins is open to one of its record's own read permissions", () => {
+    const lockedOut: Array<string> = [];
+
+    for (const model of READ_LIST_MODELS) {
+      const recordReaders: Array<Permission> =
+        model.readList.filter(isGranularPermission);
+
+      if (recordReaders.length === 0) {
+        continue;
+      }
+
+      for (const column of Object.keys(model.columns).sort()) {
+        const read: Array<Permission> = model.columns[column]?.read || [];
+
+        const isOpenBelowAdmins: boolean = read.some(
+          (permission: Permission): boolean => {
+            return (
+              isGranularPermission(permission) || isRoleBelowAdmins(permission)
+            );
+          },
+        );
+
+        if (
+          !isOpenBelowAdmins ||
+          knownCrossFamilyRead(model.tableName, column) ||
+          read.some((permission: Permission): boolean => {
+            return recordReaders.includes(permission);
+          })
+        ) {
+          continue;
+        }
+
+        lockedOut.push(
+          `${model.tableName}.${column} (record: ${recordReaders.join(", ")})`,
+        );
+      }
+    }
+
+    expect(lockedOut).toEqual([]);
+  });
+
+  test("every known cross-family read still matches its columns, and says why", () => {
+    for (const entry of KNOWN_CROSS_FAMILY_READS) {
+      expect(entry.reason.length).toBeGreaterThan(40);
+
+      const model: ReadListModel = findReadListModel(entry.tableName);
+
+      // Still a permission the record's own read list leaves out.
+      expect([
+        entry.tableName,
+        entry.permission,
+        model.readList.includes(entry.permission),
+      ]).toEqual([entry.tableName, entry.permission, false]);
+
+      for (const column of entry.columns) {
+        expect([
+          `${entry.tableName}.${column}`,
+          columnReadList(entry.tableName, column).includes(entry.permission),
+        ]).toEqual([`${entry.tableName}.${column}`, true]);
+      }
+    }
+  });
+
+  /*
+   * Each of these named another record's read permission and now names its
+   * own record's - read by exactly who reads the record, and the server's
+   * own check agrees (ColumnReadPermissionMatrix).
+   */
+  const NOW_READ_WITH_THEIR_RECORD: Array<{
+    tableName: string;
+    columns: Array<string>;
+    ownPermission: Permission;
+    formerPermissions: Array<Permission>;
+  }> = [
+    {
+      tableName: "WorkspaceNotificationLog",
+      columns: [
+        "alert",
+        "alertId",
+        "alertEpisode",
+        "alertEpisodeId",
+        "incidentId",
+        "incidentEpisode",
+        "incidentEpisodeId",
+        "scheduledMaintenance",
+        "scheduledMaintenanceId",
+        "statusPage",
+        "statusPageId",
+        "statusPageAnnouncement",
+        "statusPageAnnouncementId",
+      ],
+      ownPermission: Permission.ReadWorkspaceNotificationLog,
+      formerPermissions: [Permission.ReadPushLog],
+    },
+    {
+      tableName: "NetworkDeviceAutoImportRule",
+      columns: ["monitorTemplate", "monitorTemplateId"],
+      ownPermission: Permission.ReadNetworkDeviceAutoImportRule,
+      formerPermissions: [
+        Permission.ReadMonitorTemplate,
+        Permission.MonitorAdmin,
+        Permission.MonitorMember,
+        Permission.MonitorViewer,
+      ],
+    },
+    {
+      tableName: "NetworkDeviceAutoImportRule",
+      columns: ["oidTemplate", "oidTemplateId"],
+      ownPermission: Permission.ReadNetworkDeviceAutoImportRule,
+      formerPermissions: [Permission.ReadNetworkDeviceOidTemplate],
+    },
+    {
+      tableName: "NetworkAlertPolicy",
+      columns: ["monitorTemplate", "monitorTemplateId"],
+      ownPermission: Permission.ReadNetworkAlertPolicy,
+      formerPermissions: [
+        Permission.ReadMonitorTemplate,
+        Permission.MonitorAdmin,
+        Permission.MonitorMember,
+        Permission.MonitorViewer,
+      ],
+    },
+    {
+      tableName: "OnCallDutyPolicyExecutionLog",
+      columns: ["lastExecutedEscalationRule", "lastExecutedEscalationRuleId"],
+      ownPermission: Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+      formerPermissions: [
+        Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      ],
+    },
+    {
+      tableName: "Team",
+      columns: [
+        "isPermissionsEditable",
+        "isTeamDeleteable",
+        "isTeamEditable",
+        "shouldHaveAtLeastOneMember",
+      ],
+      ownPermission: Permission.ReadProjectTeam,
+      formerPermissions: [
+        Permission.EditProjectTeam,
+        Permission.EditProjectTeamPermissions,
+      ],
+    },
+    {
+      tableName: "Project",
+      columns: ["workflowRunsInLast30Days"],
+      ownPermission: Permission.ReadProject,
+      formerPermissions: [Permission.ReadWorkflow],
+    },
+  ];
+
+  test.each(
+    NOW_READ_WITH_THEIR_RECORD.flatMap(
+      (entry: {
+        tableName: string;
+        columns: Array<string>;
+        ownPermission: Permission;
+        formerPermissions: Array<Permission>;
+      }): Array<[string, string, Permission, Array<Permission>]> => {
+        return entry.columns.map(
+          (column: string): [string, string, Permission, Array<Permission>] => {
+            return [
+              entry.tableName,
+              column,
+              entry.ownPermission,
+              entry.formerPermissions,
+            ];
+          },
+        );
+      },
+    ),
+  )(
+    "%s.%s is read with its record's own read list (%s)",
+    (
+      tableName: string,
+      column: string,
+      ownPermission: Permission,
+      formerPermissions: Array<Permission>,
+    ) => {
+      const recordList: Array<Permission> =
+        findReadListModel(tableName).readList;
+      const read: Array<Permission> = columnReadList(tableName, column);
+
+      expect(recordList).toContain(ownPermission);
+
+      // Exactly the record's own list, so it reads as the record does.
+      expect([...read].sort()).toEqual([...recordList].sort());
+
+      for (const former of formerPermissions) {
+        expect([former, read.includes(former)]).toEqual([former, false]);
       }
     },
   );

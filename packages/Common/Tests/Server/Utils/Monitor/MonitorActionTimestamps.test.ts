@@ -35,6 +35,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The real creators import the template sandbox, but these fixtures do not
@@ -254,6 +255,11 @@ describe.each(ENTITY_KINDS)(
     }
 
     beforeEach(() => {
+      /*
+       * The project's incident and alert states: open records are read by
+       * the states that are not resolved (Common/Utils/ResolvedState).
+       */
+      mockProjectStates();
       openEntities = [];
       createdEntities = [];
       currentDate = CHECK_AT;
@@ -534,6 +540,7 @@ describe.each(ENTITY_KINDS)(
       };
       if (kind === "alert") {
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           ...commonInput,
           autoResolveCriteriaInstanceIdAlertIdsDictionary: {
             [CRITERIA_ID]: [TEMPLATE_ID],
@@ -541,6 +548,7 @@ describe.each(ENTITY_KINDS)(
         });
       } else {
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           ...commonInput,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
             [CRITERIA_ID]: [TEMPLATE_ID],
