@@ -21,12 +21,14 @@ import {
 import { getKubernetesAgentChartUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../Pages/Podman/Utils/DocumentationMarkdown";
 import {
+  PROXMOX_AGENT_RECREATE_COMMAND,
   getProxmoxAgentDownloadCommand,
-  getProxmoxAgentRecreateCommand,
+  getProxmoxAgentUpgradeCommand,
 } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
+  CEPH_AGENT_RECREATE_COMMAND,
   getCephAgentDownloadCommand,
-  getCephAgentRecreateCommand,
+  getCephAgentUpgradeCommand,
 } from "../../Pages/Ceph/Utils/DocumentationMarkdown";
 import {
   VMWARE_AGENT_RECREATE_COMMAND,
@@ -254,74 +256,28 @@ function getDockerSwarmAgentGuide(): AgentUpgradeGuide {
   };
 }
 
-type CollectorFilesInstallMethod = "install-script" | "docker-compose";
-
-interface CollectorFilesCommands {
-  download: (method: CollectorFilesInstallMethod) => string;
-  recreate: (method: CollectorFilesInstallMethod) => string;
+interface InstallScriptAgentCommands {
+  // The install script with nothing in its environment: it reuses the .env.
+  upgrade: string;
+  // A Docker Compose install's two files, again.
+  download: string;
+  // Then the images pulled and the containers recreated.
+  recreate: string;
 }
 
 /*
- * The Proxmox and Ceph agents: the stock collector plus a config, pinned in
- * the docker-compose.yml beside it. However they were installed, they
- * upgrade the same way in the folder that holds them (the install script's
- * folder, or the reader's own): both files again, then the images pulled and
- * the containers recreated, because the collector reads its config only
- * when it starts. Their install scripts ask every question again, so running
- * one again is not offered.
+ * The Proxmox, Ceph and VMware agents: the stock collector plus a config,
+ * pinned in the docker-compose.yml beside it. Their install scripts reuse
+ * the .env they find (nothing is asked again), download both files and
+ * recreate the containers, so running one again is the upgrade (the
+ * Proxmox and Ceph scripts also keep a file the reader edited as
+ * <file>.bak.<timestamp>, and pull the images). A Docker Compose install
+ * takes both files itself, then pulls the images and recreates the
+ * containers, because the collector reads its config only when it starts.
  */
-function getCollectorFilesGuide(
-  commands: CollectorFilesCommands,
+function getInstallScriptAgentGuide(
+  commands: InstallScriptAgentCommands,
 ): AgentUpgradeGuide {
-  const getMethod: (
-    method: CollectorFilesInstallMethod,
-    label: string,
-    downloadDescription: string,
-  ) => AgentUpgradeMethod = (
-    method: CollectorFilesInstallMethod,
-    label: string,
-    downloadDescription: string,
-  ): AgentUpgradeMethod => {
-    return {
-      label: label,
-      steps: [
-        {
-          title: DOWNLOAD_LATEST_FILES,
-          description: downloadDescription,
-          code: commands.download(method),
-        },
-        {
-          title: PULL_AND_RECREATE,
-          description: COLLECTOR_READS_CONFIG_AT_START,
-          code: commands.recreate(method),
-        },
-      ],
-    };
-  };
-
-  return {
-    methods: [
-      getMethod(
-        "install-script",
-        translationKey("Install script"),
-        translationKey(
-          "Run this on the machine the agent runs on. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.",
-        ),
-      ),
-      getMethod(
-        "docker-compose",
-        translationKey("Docker Compose"),
-        COMPOSE_FOLDER_DOWNLOAD,
-      ),
-    ],
-  };
-}
-
-/*
- * The VMware agent's install script reuses the .env it finds, so running it
- * again is the upgrade; a Docker Compose install takes the files itself.
- */
-function getVMwareAgentGuide(): AgentUpgradeGuide {
   return {
     methods: [
       {
@@ -330,7 +286,7 @@ function getVMwareAgentGuide(): AgentUpgradeGuide {
           {
             title: translationKey("Run the install script again"),
             description: SCRIPT_REUSES_ENV,
-            code: getVMwareAgentUpgradeCommand(),
+            code: commands.upgrade,
           },
         ],
       },
@@ -340,12 +296,12 @@ function getVMwareAgentGuide(): AgentUpgradeGuide {
           {
             title: DOWNLOAD_LATEST_FILES,
             description: COMPOSE_FOLDER_DOWNLOAD,
-            code: getVMwareAgentDownloadCommand(),
+            code: commands.download,
           },
           {
             title: PULL_AND_RECREATE,
             description: COLLECTOR_READS_CONFIG_AT_START,
-            code: VMWARE_AGENT_RECREATE_COMMAND,
+            code: commands.recreate,
           },
         ],
       },
@@ -619,17 +575,23 @@ export function getAgentUpgradeGuide(
     case AgentKind.HostCollector:
       return getHostCollectorGuide(context);
     case AgentKind.ProxmoxAgent:
-      return getCollectorFilesGuide({
-        download: getProxmoxAgentDownloadCommand,
-        recreate: getProxmoxAgentRecreateCommand,
+      return getInstallScriptAgentGuide({
+        upgrade: getProxmoxAgentUpgradeCommand(),
+        download: getProxmoxAgentDownloadCommand(),
+        recreate: PROXMOX_AGENT_RECREATE_COMMAND,
       });
     case AgentKind.CephAgent:
-      return getCollectorFilesGuide({
-        download: getCephAgentDownloadCommand,
-        recreate: getCephAgentRecreateCommand,
+      return getInstallScriptAgentGuide({
+        upgrade: getCephAgentUpgradeCommand(),
+        download: getCephAgentDownloadCommand(),
+        recreate: CEPH_AGENT_RECREATE_COMMAND,
       });
     case AgentKind.VMwareAgent:
-      return getVMwareAgentGuide();
+      return getInstallScriptAgentGuide({
+        upgrade: getVMwareAgentUpgradeCommand(),
+        download: getVMwareAgentDownloadCommand(),
+        recreate: VMWARE_AGENT_RECREATE_COMMAND,
+      });
     case AgentKind.StorageArrayAgent:
       return getStorageArrayAgentGuide();
     default:

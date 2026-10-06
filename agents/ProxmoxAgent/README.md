@@ -43,7 +43,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Pr
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and Proxmox API details, installs to `/opt/oneuptime-proxmox-agent`, and starts the agent with Docker Compose.
+The script prompts for your OneUptime URL, telemetry ingestion key, cluster name, and Proxmox API details, installs to `/opt/oneuptime-proxmox-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, and re-running the script reuses everything in an existing `.env` instead of prompting again, which is how you [upgrade](#upgrading).
 
 ## Quick Start — Docker Compose
 
@@ -270,10 +270,18 @@ The unit assumes the agent lives in `/opt/oneuptime-proxmox-agent` (the install 
 
 ## Upgrading
 
-The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the cluster's page; select it to see these commands. Pulling alone does not move the agent forward: download both files again, then pull and recreate the agent so the collector reads its new config. Your `.env` is kept; re-apply any change you made to the two files.
+The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on the cluster's page; select it to see these commands. Pulling alone does not move the agent forward.
+
+Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again; an exported variable still overrides it), refreshes `docker-compose.yml` and `otel-collector-config.yaml`, pulls the images and recreates the agent so the collector reads its new config. A file you edited since `install.sh` installed it is kept next to the new one as `<file>.bak.<timestamp>`, and the script names it at the end.
 
 ```bash
-cd /opt/oneuptime-proxmox-agent
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/install.sh -o install.sh
+bash install.sh
+```
+
+Installed it with Docker Compose instead? Download both files again, then pull and recreate the agent (re-apply any change you made to the two files):
+
+```bash
 curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/docker-compose.yml
 curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/ProxmoxAgent/otel-collector-config.yaml
 docker compose pull
