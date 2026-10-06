@@ -613,29 +613,43 @@ ${createdItem.rootCause}`,
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;
 
-    if (isResolvedState) {
-      const incident: Incident | null = await IncidentService.findOneBy({
-        query: {
-          _id: createdItem.incidentId.toString(),
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          monitors: {
-            _id: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    /*
+     * Resolving gives an incident's monitors back: their monitoring resumes
+     * and their status returns to operational. Not for an incident's first
+     * state - one declared already resolved, which never set a status on its
+     * monitors or paused their monitoring (StartingStage), so there is
+     * nothing of its own to give back, and a status a monitor holds for
+     * another reason stays.
+     */
+    const givesMonitorsBack: boolean = Boolean(
+      onCreate.carryForward.statusTimelineBeforeThisStatus,
+    );
 
-      if (incident) {
-        await IncidentService.markMonitorsActiveForMonitoring(
-          incident.projectId!,
-          incident.monitors || [],
-          createdItem.startsAt || undefined,
-        );
+    if (isResolvedState) {
+      if (givesMonitorsBack) {
+        const incident: Incident | null = await IncidentService.findOneBy({
+          query: {
+            _id: createdItem.incidentId.toString(),
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            monitors: {
+              _id: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (incident) {
+          await IncidentService.markMonitorsActiveForMonitoring(
+            incident.projectId!,
+            incident.monitors || [],
+            createdItem.startsAt || undefined,
+          );
+        }
       }
 
       /*
