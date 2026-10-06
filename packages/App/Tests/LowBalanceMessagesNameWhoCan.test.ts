@@ -22,6 +22,8 @@ import ts from "typescript";
  * - no user-facing string tells its reader to recharge, or offers
  *   auto-recharge as the way out of used-up AI credits (it is not one);
  * - every refusal and every not-sent log uses the shared wording;
+ * - nothing about the balance, and no settings page, reaches a status page
+ *   visitor;
  * - every dashboard place that links to the balance pages, or recharges,
  *   asks whether the reader may add balance first.
  *
@@ -113,17 +115,16 @@ function stringsIn(file: string): Array<string> {
   return strings;
 }
 
+// Every feature set: the dashboards, the status page, workers, MCP, ...
 const SCANNED_ROOTS: Array<string> = [
   path.join(PACKAGES_ROOT, "Common", "Server"),
   path.join(PACKAGES_ROOT, "Common", "Utils"),
   path.join(PACKAGES_ROOT, "Common", "Types"),
   path.join(PACKAGES_ROOT, "Common", "UI"),
-  path.join(PACKAGES_ROOT, "App", "FeatureSet", "Notification"),
-  path.join(PACKAGES_ROOT, "App", "FeatureSet", "Workers"),
-  path.join(PACKAGES_ROOT, "App", "FeatureSet", "Dashboard", "src"),
-  path.join(PACKAGES_ROOT, "App", "FeatureSet", "StatusPage", "src"),
+  path.join(PACKAGES_ROOT, "App", "FeatureSet"),
   path.join(REPO_ROOT, "ee", "Server"),
   path.join(REPO_ROOT, "ee", "Dashboard"),
+  path.join(REPO_ROOT, "ee", "AdminDashboard"),
 ];
 
 /*
@@ -253,6 +254,69 @@ describe("a message not sent for want of balance", () => {
       ).toBe(1);
     },
   );
+});
+
+describe("a status page visitor is never sent to project settings", () => {
+  /*
+   * Visitors and subscribers are not members of the project: no word about
+   * its balance, and no settings page, may reach them. A subscriber's SMS
+   * that is not sent for want of balance is logged for the project (and, on
+   * subscriber sends that count what they delivered, counted as failed) -
+   * the visitor is told nothing about it.
+   */
+  test("the status page app names no balance and no project settings page", () => {
+    const files: Array<string> = sourceFilesUnder(
+      path.join(PACKAGES_ROOT, "App", "FeatureSet", "StatusPage", "src"),
+    );
+
+    expect(files.length).toBeGreaterThan(20);
+
+    const offenders: Array<string> = files.filter((file: string): boolean => {
+      return /ProjectBalance|Project Settings|Manage Billing|recharge/i.test(
+        fs.readFileSync(file, "utf8"),
+      );
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("the server's status page code never uses the balance wording", () => {
+    const files: Array<string> = sourceFilesUnder(
+      path.join(PACKAGES_ROOT, "Common", "Server"),
+    ).filter((file: string): boolean => {
+      return path.basename(file).includes("StatusPage");
+    });
+
+    expect(files.length).toBeGreaterThan(10);
+
+    const offenders: Array<string> = files.filter((file: string): boolean => {
+      return /Project\/ProjectBalance|ProjectBalanceOwnerNotice/.test(
+        fs.readFileSync(file, "utf8"),
+      );
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("the subscribe confirmation SMS, when not sent, is only logged", () => {
+    const source: string = read(
+      "Common/Server/Services/StatusPageSubscriberService.ts",
+    );
+    const at: number = source.indexOf(
+      "message: `You have been subscribed to ${statusPageName}.",
+    );
+
+    expect(at).toBeGreaterThan(-1);
+
+    const send: string = source.slice(
+      source.lastIndexOf("SmsService.sendSms(", at),
+      source.indexOf("});", at),
+    );
+
+    expect(send).not.toContain("failIfNotSent");
+    expect(send).toContain(".catch((err: Error) => {");
+    expect(send).toContain("logger.error(err,");
+  });
 });
 
 describe("the dashboard links to the balance pages, and recharges, only for people who may", () => {

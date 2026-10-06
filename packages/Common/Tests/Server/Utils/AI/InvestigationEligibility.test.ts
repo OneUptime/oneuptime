@@ -6,7 +6,9 @@ import AIAlertInvestigationRunner from "../../../../Server/Utils/AI/SRE/AlertInv
 import AIIncidentInvestigationRunner from "../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import AIService from "../../../../Server/Services/AIService";
+import AIService, {
+  AI_BALANCE_INSUFFICIENT_MESSAGE,
+} from "../../../../Server/Services/AIService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
@@ -54,8 +56,7 @@ const configurationCodes: Array<InvestigationNotStartedCode> = [
   "severity_below_threshold",
 ];
 
-const BALANCE_BLOCKER: string =
-  "This project is out of AI credits. Add credits under Project Settings → AI Credits, or turn on auto-recharge.";
+const BALANCE_BLOCKER: string = AI_BALANCE_INSUFFICIENT_MESSAGE;
 
 /*
  * AIService.getAiBalanceBlocker — the one AI balance predicate shared with
