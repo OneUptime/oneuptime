@@ -667,6 +667,25 @@ jobs:
           Tests/Server/Services/LlmLogDailyUsageIndexPostgres.test.ts
           --forceExit
 
+      # Runs schema migrations through SchemaMigrationRunner while another
+      # session holds their table open and an app connection reads it in a
+      # loop: unbounded, the ALTER queues ahead of the reads and they fail;
+      # bounded, the migration gives up, steps aside and is applied once the
+      # table is free, without a single read failing. Then builds an index and
+      # validates a foreign key through OnlineDdl while inserts carry on. Its
+      # tables live in a schema of their own; it needs no migrated table.
+      - name: Test schema migrations against a busy table on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEMA_MIGRATION_LOCK_TESTS: "true"
+          SCHEMA_MIGRATION_LOCK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEMA_MIGRATION_LOCK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEMA_MIGRATION_LOCK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/SchemaMigrationLockRetryPostgres.test.ts
+          --forceExit
+
       - name: Test the configurable rule criteria migration on migrated Postgres
         working-directory: packages/Common
         env:
