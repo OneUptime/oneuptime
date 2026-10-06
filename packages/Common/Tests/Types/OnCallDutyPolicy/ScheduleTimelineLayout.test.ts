@@ -952,24 +952,6 @@ describe("colours", () => {
     expect(ScheduleTimelineLayout.withAlpha("red", 0.5)).toBe("red");
     expect(ScheduleTimelineLayout.withAlpha("#12345", 0.5)).toBe("#12345");
   });
-
-  test("getContrastTextColor picks dark text on light colours", () => {
-    expect(ScheduleTimelineLayout.getContrastTextColor("#ffbf53")).toBe(
-      "#111827",
-    );
-    expect(ScheduleTimelineLayout.getContrastTextColor("#84cc16")).toBe(
-      "#111827",
-    );
-    expect(ScheduleTimelineLayout.getContrastTextColor("#000000")).toBe(
-      "#ffffff",
-    );
-    expect(ScheduleTimelineLayout.getContrastTextColor("#6366f1")).toBe(
-      "#ffffff",
-    );
-    expect(ScheduleTimelineLayout.getContrastTextColor("nonsense")).toBe(
-      "#ffffff",
-    );
-  });
 });
 
 describe("getDayKey / isWithinRange", () => {

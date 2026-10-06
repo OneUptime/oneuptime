@@ -1,5 +1,5 @@
 import AddLayerUserModal from "./AddLayerUserModal";
-import { getColorForUserId, getUserInitials } from "./LayerUserColors";
+import { getUserAvatarStyle, getUserInitials } from "./LayerUserColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -229,8 +229,8 @@ const LayerUser: FunctionComponent<ComponentProps> = (
         )}
 
         <span
-          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm ring-2 ring-white"
-          style={{ backgroundColor: getColorForUserId(userId) }}
+          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold shadow-sm ring-2 ring-white"
+          style={getUserAvatarStyle(userId)}
         >
           {getUserInitials(name, email)}
         </span>

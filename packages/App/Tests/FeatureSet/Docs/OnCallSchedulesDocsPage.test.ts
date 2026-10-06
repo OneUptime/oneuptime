@@ -68,6 +68,11 @@ const SCHEDULE_SIDE_MENU_FILE: string =
   "App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutySchedule/SideMenu.tsx";
 const LAYERS_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx";
+const PERSON_COLORS_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerUserColors.ts";
+const TIMELINE_MODEL_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineModel.ts";
+const TIMELINE_PAGE_TITLE: string = "Schedule Timeline";
 
 const QUESTION: string = "Who takes turns?";
 const TURN_LENGTH: string = "Each turn lasts";
@@ -307,6 +312,21 @@ describe("the On-Call Schedules docs page", () => {
       );
     });
 
+    it("says each person keeps one colour, as the layer cards and the timeline both draw it", () => {
+      const layers: string = pageSections[1]!.body;
+
+      expect(layers).toContain(
+        "Each person keeps one colour everywhere, so you can follow them at a glance",
+      );
+      expect(layers).toContain(`**${TIMELINE_PAGE_TITLE}**`);
+
+      // One colour rule, worked out from the person, that the timeline asks too.
+      expect(readRepoFile(PERSON_COLORS_FILE)).toContain("pickColorForName(");
+      expect(readRepoFile(TIMELINE_MODEL_FILE)).toContain(
+        "OnCallScheduleLayer/LayerUserColors",
+      );
+    });
+
     it("gives the API: the routes, the misc data keys the server reads and the rotation's shape", () => {
       const api: string = pageSections[2]!.body;
 
@@ -392,6 +412,14 @@ describe("the On-Call Schedules docs page", () => {
         expect({
           lang,
           found: layers.includes(`**${dashboard["Add Layer"]}**`),
+        }).toEqual({ lang, found: true });
+
+        // Each person's one colour, named with the timeline's page title.
+        expect({
+          lang,
+          found: layers.includes(
+            `**${readDocsLocale(lang).navLinks[TIMELINE_PAGE_TITLE]}**`,
+          ),
         }).toEqual({ lang, found: true });
 
         for (const fact of [

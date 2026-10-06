@@ -22,6 +22,8 @@ Ett schemas rotation består av lager, på sidan **Lager**. Lagren läses uppifr
 
 **Lägg till lager** lägger till ett lager som börjar som det första: jour från och med nu, varje person i en vecka, dygnet runt. Fäll ut ett lager för att lägga till personer och ändra när det börjar, hur ofta det lämnar över, när det lämnar över första gången och vilka timmar det har jour.
 
+Varje person har samma färg överallt, så att du kan följa dem med en blick: på varje lager, i det slutliga schemat och dess åsidosättningar, och på **Tidslinje för jourscheman**.
+
 ## Skapa scheman med API:et eller Terraform
 
 Jourscheman är resursen `/api/on-call-duty-policy-schedule`; deras lager och personerna i dem är resurserna `/api/on-call-duty-schedule-layer` och `/api/on-call-duty-schedule-layer-user`.
