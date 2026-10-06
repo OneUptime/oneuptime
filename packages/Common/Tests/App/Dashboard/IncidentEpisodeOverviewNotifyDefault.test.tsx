@@ -130,6 +130,7 @@ import IncidentEpisodeView from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Route from "../../../Types/API/Route";
@@ -293,7 +294,11 @@ const serve: ServeFunction = (row: EpisodeRow): void => {
       return Promise.resolve(listResult(buildTimeline()));
     }
 
-    if (request.modelType === Incident) {
+    // The first member's telemetry snapshot: the membership, then its incidents.
+    if (
+      request.modelType === IncidentEpisodeMember ||
+      request.modelType === Incident
+    ) {
       return Promise.resolve(listResult([]));
     }
 

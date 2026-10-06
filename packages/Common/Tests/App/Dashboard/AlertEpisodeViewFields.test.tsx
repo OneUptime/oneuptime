@@ -143,10 +143,12 @@ import AlertEpisodeView from "../../../../App/FeatureSet/Dashboard/src/Pages/Ale
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertEpisodeStateTimeline from "../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -369,6 +371,65 @@ const listCallsFor: CallsForModelFunction = (
 ): Array<Array<any>> => {
   return getListMock.mock.calls.filter((call: Array<any>): boolean => {
     return call[0]?.modelType === modelType;
+  });
+};
+
+const MEMBER_ID: string = "88888888-8888-4888-8888-888888888888";
+
+type ServeMemberFunction = (title: string) => void;
+
+/*
+ * One member, served the way the API serves it: the episode's membership row,
+ * then the alert it names. Every other read is empty.
+ */
+const serveMember: ServeMemberFunction = (title: string): void => {
+  const membership: AlertEpisodeMember = new AlertEpisodeMember();
+  membership.alertEpisodeId = new ObjectID(EPISODE_ID);
+  membership.alertId = new ObjectID(MEMBER_ID);
+
+  const member: Alert = new Alert();
+  member.id = new ObjectID(MEMBER_ID);
+  member.title = title;
+  member.createdAt = new Date("2026-01-01T00:05:00.000Z");
+
+  getListMock.mockImplementation((...args: Array<any>) => {
+    const modelType: unknown = args[0]?.modelType;
+
+    if (modelType === AlertEpisodeMember) {
+      return Promise.resolve({
+        data: [membership],
+        count: 1,
+        skip: 0,
+        limit: 1,
+      });
+    }
+
+    if (modelType === Alert) {
+      return Promise.resolve({ data: [member], count: 1, skip: 0, limit: 1 });
+    }
+
+    return Promise.resolve(emptyList());
+  });
+};
+
+type FailNextReadFunction = (modelType: unknown, message: string) => void;
+
+// The next read of this model fails; every other read answers as before.
+const failNextRead: FailNextReadFunction = (
+  modelType: unknown,
+  message: string,
+): void => {
+  const answer: ((...args: Array<any>) => any) | undefined =
+    getListMock.getMockImplementation();
+  let hasFailed: boolean = false;
+
+  getListMock.mockImplementation((...args: Array<any>) => {
+    if (!hasFailed && args[0]?.modelType === modelType) {
+      hasFailed = true;
+      return Promise.reject(new Error(message));
+    }
+
+    return answer ? answer(...args) : Promise.resolve(emptyList());
   });
 };
 
@@ -696,15 +757,35 @@ describe("Alert Episode overview: loading and layout", () => {
     expect(screen.queryByText("Episode Severity")).toBeNull();
     expect(changeStateProps.current).toBeNull();
 
-    // All four requests are in flight together rather than one after another.
-    expect(listCallsFor(Alert)).toHaveLength(1);
+    /*
+     * All four requests are in flight together rather than one after another.
+     * The first member's snapshot starts with the episode's membership; its
+     * alert read follows that one.
+     */
+    expect(listCallsFor(AlertEpisodeMember)).toHaveLength(1);
+    expect(listCallsFor(Alert)).toHaveLength(0);
     expect(listCallsFor(AlertEpisodeStateTimeline)).toHaveLength(1);
     expect(listCallsFor(AlertState)).toHaveLength(1);
     expect(getItemMock).toHaveBeenCalledTimes(1);
   });
 
-  test("still reads the first member's telemetry snapshot, earliest created", async () => {
+  test("reads the first member's telemetry snapshot by the membership, earliest created", async () => {
+    serveMember("First member");
+
     await renderPage({});
+
+    await waitFor((): void => {
+      expect(
+        listCallsFor(Alert).find((call: Array<any>): boolean => {
+          return call[0].limit === 1;
+        }),
+      ).toBeDefined();
+    });
+
+    const membershipCall: Array<any> = listCallsFor(AlertEpisodeMember)[0]!;
+
+    expect(membershipCall[0].query.alertEpisodeId.toString()).toBe(EPISODE_ID);
+    expect(membershipCall[0].select).toEqual({ alertId: true });
 
     const firstMemberCall: Array<any> = listCallsFor(Alert).find(
       (call: Array<any>): boolean => {
@@ -712,16 +793,50 @@ describe("Alert Episode overview: loading and layout", () => {
       },
     )!;
 
-    expect(firstMemberCall[0].query.alertEpisodeId.toString()).toBe(EPISODE_ID);
+    /*
+     * By id, from the membership: the alert's own alertEpisodeId names only the
+     * latest episode it is in.
+     */
+    expect(Object.keys(firstMemberCall[0].query)).toEqual(["_id"]);
+    expect(firstMemberCall[0].query._id).toBeInstanceOf(Includes);
+    expect(firstMemberCall[0].query._id.values).toEqual([MEMBER_ID]);
     expect(firstMemberCall[0].select).toEqual({
       _id: true,
       telemetryQuery: true,
       seriesLabels: true,
+      createdAt: true,
     });
     // Alerts have no declaredAt: the earliest created alert comes first.
     expect(firstMemberCall[0].sort).toEqual({
       createdAt: SortOrder.Ascending,
     });
+  });
+
+  test("a membership the reader may not read leaves out only the snapshot", async () => {
+    getListMock.mockImplementation((...args: Array<any>) => {
+      if (args[0]?.modelType === AlertEpisodeMember) {
+        return Promise.reject(new Error("No permission to read memberships"));
+      }
+
+      return Promise.resolve(emptyList());
+    });
+
+    // The page loads: the details card only renders on a loaded page.
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    expect(
+      screen.getByRole("group", { name: "Episode timing" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Couldn't refresh episode timings/)).toBeNull();
+    expect(listCallsFor(Alert)).toHaveLength(0);
+
+    // The member card, which cannot do without it, says why.
+    await waitFor((): void => {
+      expect(
+        screen.getByText("No permission to read memberships"),
+      ).toBeInTheDocument();
+    });
+    expectNoCrash();
   });
 
   test("renders the header, a four-cell stat bar and the member list", async () => {
@@ -745,14 +860,37 @@ describe("Alert Episode overview: loading and layout", () => {
       ).toBeInTheDocument();
     });
 
+    // The page's snapshot and the member card each read the membership.
+    expect(listCallsFor(AlertEpisodeMember)).toHaveLength(2);
+
+    for (const call of listCallsFor(AlertEpisodeMember)) {
+      expect(call[0].query.alertEpisodeId.toString()).toBe(EPISODE_ID);
+    }
+
+    // No members, so no alerts to read.
+    expect(listCallsFor(Alert)).toHaveLength(0);
+    expectNoCrash();
+  });
+
+  test("the member list shows the newest members by the membership", async () => {
+    serveMember("Grouped alert");
+
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    await screen.findByRole("link", { name: "Grouped alert" });
+
     const memberCall: Array<any> = listCallsFor(Alert).find(
       (call: Array<any>): boolean => {
         return call[0].limit === 8;
       },
     )!;
 
-    expect(memberCall[0].query.alertEpisodeId.toString()).toBe(EPISODE_ID);
+    expect(Object.keys(memberCall[0].query)).toEqual(["_id"]);
+    expect(memberCall[0].query._id.values).toEqual([MEMBER_ID]);
     expect(memberCall[0].sort).toEqual({ createdAt: SortOrder.Descending });
+    expect(screen.getByTestId("episode-members-count")).toHaveTextContent(
+      "1 alert",
+    );
     expectNoCrash();
   });
 
@@ -824,13 +962,11 @@ describe("Alert Episode overview: loading and layout", () => {
   });
 
   test("a state change refreshes the page in place instead of unmounting it", async () => {
+    serveMember("Member before the change");
+
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
-    await waitFor((): void => {
-      expect(
-        screen.getByText("No alerts in this episode yet"),
-      ).toBeInTheDocument();
-    });
+    await screen.findByRole("link", { name: "Member before the change" });
 
     const timelineCallsBefore: number = listCallsFor(
       AlertEpisodeStateTimeline,
@@ -880,7 +1016,7 @@ describe("Alert Episode overview: loading and layout", () => {
 
   test("a failed first load offers a retry that recovers", async () => {
     getItemMock.mockResolvedValue(buildEpisode({}) as never);
-    getListMock.mockRejectedValueOnce(new Error("Episode service down"));
+    failNextRead(AlertEpisodeStateTimeline, "Episode service down");
 
     render(<AlertEpisodeView {...pageProps} />);
 
@@ -900,7 +1036,7 @@ describe("Alert Episode overview: loading and layout", () => {
   test("a failed refresh keeps the page and says so inline", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
-    getListMock.mockRejectedValueOnce(new Error("Timeline unavailable"));
+    failNextRead(AlertEpisodeStateTimeline, "Timeline unavailable");
 
     await act(async () => {
       await changeStateProps.current!["onActionComplete"]();
