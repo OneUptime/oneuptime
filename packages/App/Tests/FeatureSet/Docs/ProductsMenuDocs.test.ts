@@ -5,7 +5,7 @@ import path from "path";
 /*
  * Getting Started tells a new user how to find their way around: the
  * products menu always opens on the essentials, which never fold, and folds
- * every other group to one line. The page names the essentials and the
+ * every other group into a row of the list below them. The page names the essentials and the
  * folded groups, so it has to name the ones the menu actually shows. These
  * read the names from the Dashboard's own English locale, the words on the
  * screen, and fail when the page and the menu drift apart.
@@ -107,6 +107,19 @@ describe("Getting Started explains the products menu", () => {
     // The search examples are real aliases in the catalog.
     expect(NAVIGATION_ITEMS).toContain('"k8s"');
     expect(NAVIGATION_ITEMS).toContain('"rum"');
+  });
+
+  test("it describes the folded groups as rows of a list that name what they hold", () => {
+    expect(SECTION).toContain("is folded into a row of the list below them");
+    expect(SECTION).toContain(
+      "Each row names the products the group holds and says how many.",
+    );
+    expect(SECTION).toContain("Click a row to open it");
+    expect(SECTION).toContain(
+      "every other group as one row that opens on a tap",
+    );
+    // The folded groups are no longer drawn as single lines of text.
+    expect(SECTION).not.toMatch(/folded to one line|Click a line/);
   });
 
   test("the menu does open on Essentials alone", () => {
