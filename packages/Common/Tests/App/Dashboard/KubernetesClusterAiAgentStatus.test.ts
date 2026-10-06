@@ -13,6 +13,7 @@ import {
   AI_AGENT_STATUS_POLL_INTERVAL_MS,
   AI_AGENT_UPGRADE_CHART_TEXT,
   ASK_PROJECT_ADMIN_TEXT,
+  AUTOMATIC_INVESTIGATION_CONFIRMATIONS,
   AiAgentAttention,
   AiAgentAttentionStep,
   AiAgentCardState,
@@ -1977,13 +1978,64 @@ describe("the automatic-investigation footer", () => {
         settings: { incidents: false, alerts: true },
         projectName: "Acme",
       }),
-    ).toContain("every new incident in Acme");
+    ).toBe(
+      "This applies to every new incident in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
     expect(
       getAutomaticInvestigationConfirmation({
         settings: { incidents: true, alerts: false },
         projectName: "Acme",
       }),
-    ).toContain("every new alert in Acme");
+    ).toBe(
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+  });
+
+  /*
+   * A sentence with the project's name already in it is no key a locale
+   * file can hold, so it stayed English in every language. Each case is one
+   * whole sentence with a {{project}} slot instead - never pieces glued
+   * together - which a locale words its own way.
+   */
+  test("each case is one whole sentence with a {{project}} slot", () => {
+    expect(AUTOMATIC_INVESTIGATION_CONFIRMATIONS).toEqual({
+      incidentsAndAlerts:
+        "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+      incidents:
+        "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+      alerts:
+        "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    });
+  });
+
+  test("a project whose name the page does not know reads as this project", () => {
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: false, alerts: false },
+      }),
+    ).toBe(
+      "This applies to every new incident and alert in this project, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: true, alerts: false },
+        projectName: "",
+      }),
+    ).toBe(
+      "This applies to every new alert in this project, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+  });
+
+  // The name is the user's: it goes in as written, never read as a slot.
+  test("the project's name goes into the sentence as written", () => {
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: false, alerts: true },
+        projectName: "Ops {{project}}",
+      }),
+    ).toBe(
+      "This applies to every new incident in Ops {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
   });
 });
 

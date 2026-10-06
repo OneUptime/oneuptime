@@ -1364,10 +1364,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const automaticInvestigation: KubernetesAiAutomaticInvestigationSettings | null =
     getAutomaticInvestigation(status);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-  const projectName: string =
-    props.currentProject?.name ||
-    ProjectUtil.getCurrentProject()?.name ||
-    "this project";
+  const projectName: string | undefined =
+    props.currentProject?.name || ProjectUtil.getCurrentProject()?.name;
   const lastCheckedAt: string = status.evaluatedAt
     ? OneUptimeDate.getDateAsFormattedString(
         OneUptimeDate.fromString(status.evaluatedAt),

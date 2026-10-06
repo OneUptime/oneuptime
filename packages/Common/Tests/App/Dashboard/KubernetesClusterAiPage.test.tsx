@@ -2761,7 +2761,9 @@ describe("automatic investigation footer", () => {
     const confirm: HTMLElement = await findDialogTitled(
       "Turn on automatic investigation?",
     );
-    expect(confirm).toHaveTextContent(
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
       "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
     );
     expect(
@@ -2800,7 +2802,11 @@ describe("automatic investigation footer", () => {
     const confirm: HTMLElement = await findDialogTitled(
       "Turn on automatic investigation?",
     );
-    expect(confirm).toHaveTextContent("every new alert in Acme");
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
     fireEvent.click(within(confirm).getByText("Turn on"));
 
     expect(await waitForOneUpdate()).toEqual({
