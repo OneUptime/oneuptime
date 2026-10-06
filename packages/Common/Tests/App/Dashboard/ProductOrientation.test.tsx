@@ -360,8 +360,13 @@ describe("Products menu sections", () => {
   test("no section is so long that it stops being scannable", () => {
     openProductsMenu();
 
+    /*
+     * Infrastructure lists one product per platform and is the longest
+     * section: 13 since Storage Arrays joined Ceph there. Past that, split
+     * it rather than raising this again.
+     */
     for (const section of readMenuSections()) {
-      expect(section.items.length).toBeLessThanOrEqual(12);
+      expect(section.items.length).toBeLessThanOrEqual(13);
     }
   });
 
@@ -402,6 +407,7 @@ describe("Products menu sections", () => {
       "Proxmox",
       "VMware",
       "Ceph",
+      "Storage Arrays",
       "Network",
       "IoT",
     ]);
@@ -425,7 +431,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 42 are still listed exactly once", () => {
+  test("regrouping lost no product: all 43 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -434,11 +440,12 @@ describe("Products menu sections", () => {
       },
     );
     /*
-     * 42: Code Repositories became a page of Tasks, and Forms (which
-     * replaced Incidents > Settings > Forms) became a product.
+     * 43: Code Repositories became a page of Tasks, Forms (which replaced
+     * Incidents > Settings > Forms) became a product, and Storage Arrays
+     * joined Infrastructure.
      */
-    expect(titles).toHaveLength(42);
-    expect(new Set(titles).size).toBe(42);
+    expect(titles).toHaveLength(43);
+    expect(new Set(titles).size).toBe(43);
     expect(titles).not.toContain("Code Repositories");
     expect(titles).toContain("Forms");
   });
@@ -484,7 +491,7 @@ describe("the Products menu opens on the essentials", () => {
 
     expect(infrastructure).toHaveAttribute("aria-expanded", "false");
     expect(infrastructure).toHaveAccessibleDescription(
-      "12 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Serverless, Cloud, Proxmox, VMware, Ceph, Network, IoT",
+      "13 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Serverless, Cloud, Proxmox, VMware, Ceph, Storage Arrays, Network, IoT",
     );
     expect(
       within(productsMenu()).getByRole("button", { name: "Code" }),

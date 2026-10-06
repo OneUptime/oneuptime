@@ -8,6 +8,7 @@ import { getIoTMetricByMetricName } from "../../Types/Monitor/IotMetricCatalog";
 import { getKubernetesMetricByMetricName } from "../../Types/Monitor/KubernetesMetricCatalog";
 import { getPodmanMetricByMetricName } from "../../Types/Monitor/PodmanMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../Types/Monitor/ProxmoxMetricCatalog";
+import { getStorageArrayMetric } from "../../Types/Monitor/StorageArrayMetricCatalog";
 import { getVMwareMetricByMetricName } from "../../Types/Monitor/VMwareMetricCatalog";
 
 /*
@@ -20,6 +21,7 @@ export type MetricCatalogPlatform =
   | "vmware"
   | "dockerSwarm"
   | "ceph"
+  | "storageArray"
   | "docker"
   | "podman"
   | "host"
@@ -67,6 +69,8 @@ export default class PlatformMetricUnitUtil {
         return "dockerSwarm";
       case MonitorType.Ceph:
         return "ceph";
+      case MonitorType.StorageArray:
+        return "storageArray";
       case MonitorType.Docker:
         return "docker";
       case MonitorType.Podman:
@@ -85,14 +89,22 @@ export default class PlatformMetricUnitUtil {
    * catalog spells it ("bytes", "cores", "ratio", "count", "%"), or
    * undefined when the catalog does not know the metric or gives it no
    * unit.
+   *
+   * `attributes` are the query's datapoint filters. Only the storage array
+   * catalog reads them: Pure puts several quantities on one metric name
+   * and tells them apart by a label (purefb_file_systems_space_bytes is
+   * bytes for `space = total_physical` but a 0–1 ratio for
+   * `space = available_ratio`), so the name alone can name the wrong unit.
    */
   public static getCatalogUnit(input: {
     platform: MetricCatalogPlatform;
     metricName: string;
+    attributes?: Dictionary<unknown> | undefined;
   }): string | undefined {
     const unit: string | undefined = PlatformMetricUnitUtil.lookupCatalogUnit(
       input.platform,
       input.metricName,
+      input.attributes,
     );
 
     return unit && unit.trim() ? unit.trim() : undefined;
@@ -113,12 +125,14 @@ export default class PlatformMetricUnitUtil {
     platform: MetricCatalogPlatform | null;
     metricName: string;
     declaredUnit?: string | null | undefined;
+    attributes?: Dictionary<unknown> | undefined;
   }): string | undefined {
     const catalogUnit: string | undefined = input.platform
       ? PlatformMetricUnitUtil.toConvertibleUnit(
           PlatformMetricUnitUtil.getCatalogUnit({
             platform: input.platform,
             metricName: input.metricName,
+            attributes: input.attributes,
           }),
         )
       : undefined;
@@ -137,11 +151,17 @@ export default class PlatformMetricUnitUtil {
    * per metric name, keyed lowercased like MetricMonitorResponse's
    * `nativeUnitsByMetricName`, holding getMetricUnit's answer. Metrics with
    * no known unit are left out rather than mapped to "".
+   *
+   * `attributesByMetricName` (keyed lowercased too) carries each metric's
+   * query filters for the catalogs that read them — see getCatalogUnit.
+   * The map is keyed by name, so when two queries filter one metric name
+   * differently the first query's filters decide its unit.
    */
   public static buildUnitsByMetricName(input: {
     platform: MetricCatalogPlatform | null;
     metricNames: Array<string>;
     declaredUnitsByMetricName: Map<string, string>;
+    attributesByMetricName?: Map<string, Dictionary<unknown>> | undefined;
   }): Dictionary<string> {
     const unitsByMetricName: Dictionary<string> = {};
 
@@ -156,6 +176,7 @@ export default class PlatformMetricUnitUtil {
         declaredUnit: input.declaredUnitsByMetricName.get(
           metricName.toLowerCase(),
         ),
+        attributes: input.attributesByMetricName?.get(metricName.toLowerCase()),
       });
 
       if (unit) {
@@ -188,6 +209,7 @@ export default class PlatformMetricUnitUtil {
   private static lookupCatalogUnit(
     platform: MetricCatalogPlatform,
     metricName: string,
+    attributes: Dictionary<unknown> | undefined,
   ): string | undefined {
     switch (platform) {
       case "kubernetes":
@@ -200,6 +222,8 @@ export default class PlatformMetricUnitUtil {
         return getDockerSwarmMetricByMetricName(metricName)?.unit;
       case "ceph":
         return getCephMetricByMetricName(metricName)?.unit;
+      case "storageArray":
+        return getStorageArrayMetric(metricName, attributes)?.unit;
       case "docker":
         return getDockerMetricByMetricName(metricName)?.unit;
       case "podman":

@@ -602,6 +602,7 @@ describe("the template page's Affected Resources card", () => {
       proxmoxClusters: undefined,
       vmwareVCenters: undefined,
       cephClusters: undefined,
+      storageArrays: undefined,
       dockerSwarmClusters: undefined,
       iotFleets: undefined,
       databaseServers: undefined,

@@ -225,6 +225,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
         databaseServerIds: [],
+        storageArrayIds: [],
       }) as unknown as SpyLike;
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

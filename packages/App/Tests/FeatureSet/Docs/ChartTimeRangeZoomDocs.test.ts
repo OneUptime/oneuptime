@@ -376,6 +376,13 @@ const PAGE_ZOOM_SURFACES: Array<ZoomSurface> = [
     ],
   },
   {
+    phrase: "storage arrays",
+    sources: [
+      `${DASHBOARD_SRC}/Pages/StorageArray/View/Index.tsx`,
+      `${DASHBOARD_SRC}/Pages/StorageArray/View/Insights.tsx`,
+    ],
+  },
+  {
     phrase: "databases",
     sources: [`${DASHBOARD_SRC}/Pages/Database/View/Overview.tsx`],
   },

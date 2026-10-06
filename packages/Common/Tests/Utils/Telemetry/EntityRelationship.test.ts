@@ -162,6 +162,16 @@ describe("inferRelationshipType", () => {
       inferRelationshipType(EntityType.Host, EntityType.CephCluster),
     ).toBeNull();
     /*
+     * Nor does a host beside a storage array: the Storage Array Agent's
+     * collector box is not part of the array it scrapes.
+     */
+    expect(
+      inferRelationshipType(EntityType.Host, EntityType.StorageArray),
+    ).toBeNull();
+    expect(
+      inferRelationshipType(EntityType.StorageArray, EntityType.Host),
+    ).toBeNull();
+    /*
      * Same for VMware: a collector running hostmetrics beside the vcenter
      * receiver mints a `host` entity from host.name, and that host is the
      * collector box, not an ESXi host — it is not a member of the vCenter,

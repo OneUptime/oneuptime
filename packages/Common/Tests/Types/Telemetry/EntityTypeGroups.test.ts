@@ -50,6 +50,7 @@ describe("MANUAL_ENTITY_TYPES", () => {
     expect(MANUAL_ENTITY_TYPES.has(EntityType.VMwareVirtualMachine)).toBe(
       false,
     );
+    expect(MANUAL_ENTITY_TYPES.has(EntityType.StorageArray)).toBe(false);
   });
 });
 
@@ -96,6 +97,14 @@ describe("INVENTORY_ENTITY_TYPES", () => {
       expect(INVENTORY_ENTITY_TYPES.has(entityType)).toBe(false);
       expect(isNonInventoryItemType(entityType)).toBe(false);
     }
+    /*
+     * Same for storage arrays: the array entity comes from the
+     * storage.array.name resource attribute the Storage Array Agent stamps,
+     * and the StorageArrayResource inventory is not mirrored into the
+     * registry, so the entity keeps its heartbeat and its TTL.
+     */
+    expect(INVENTORY_ENTITY_TYPES.has(EntityType.StorageArray)).toBe(false);
+    expect(isNonInventoryItemType(EntityType.StorageArray)).toBe(false);
   });
 });
 

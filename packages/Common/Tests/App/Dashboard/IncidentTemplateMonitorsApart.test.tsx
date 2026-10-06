@@ -235,6 +235,7 @@ function payload(
     proxmoxClusters: undefined,
     vmwareVCenters: undefined,
     cephClusters: undefined,
+    storageArrays: undefined,
     dockerSwarmClusters: undefined,
     iotFleets: undefined,
     databaseServers: undefined,

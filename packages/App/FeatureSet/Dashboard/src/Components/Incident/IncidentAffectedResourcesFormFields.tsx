@@ -1,5 +1,6 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -136,6 +137,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
               proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
               vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
               cephClusters={values.cephClusters as Array<CephCluster>}
+              storageArrays={values.storageArrays as Array<StorageArray>}
               dockerSwarmClusters={
                 values.dockerSwarmClusters as Array<DockerSwarmCluster>
               }
@@ -150,6 +152,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 "ProxmoxCluster",
                 "VMwareVCenter",
                 "CephCluster",
+                "StorageArray",
                 "DockerSwarmCluster",
                 "IoTFleet",
                 "DatabaseServer",
@@ -180,6 +183,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 proxmoxClusters: payload.proxmoxClusters,
                 vmwareVCenters: payload.vmwareVCenters,
                 cephClusters: payload.cephClusters,
+                storageArrays: payload.storageArrays,
                 dockerSwarmClusters: payload.dockerSwarmClusters,
                 iotFleets: payload.iotFleets,
                 databaseServers: payload.databaseServers,
@@ -241,6 +245,15 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
       },
       {
         field: { cephClusters: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { storageArrays: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

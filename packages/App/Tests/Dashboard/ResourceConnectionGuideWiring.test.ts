@@ -163,6 +163,14 @@ interface HeroPageCase {
   identifierColumn: string;
   builder: string;
   documentationPage: string;
+  /*
+   * Set for a page that routes every tab through one local helper (the
+   * storage array overview's getViewRoute(pageKey)) rather than spelling
+   * RouteMap[...] out at each link. The card must then hand the
+   * Documentation tab to that helper, and the helper must fill the page's
+   * route with this resource's id - the same route, reached one call away.
+   */
+  documentationRouteHelper?: string;
 }
 
 const HERO_PAGES: Array<[string, HeroPageCase]> = [
@@ -256,6 +264,17 @@ const HERO_PAGES: Array<[string, HeroPageCase]> = [
       documentationPage: "VMWARE_VCENTER_VIEW_DOCUMENTATION",
     },
   ],
+  [
+    "Storage array",
+    {
+      file: "Pages/StorageArray/View/Index.tsx",
+      resourceVariable: "storageArray",
+      identifierColumn: "name",
+      builder: "getStorageArrayConnectionGuide",
+      documentationPage: "STORAGE_ARRAY_VIEW_DOCUMENTATION",
+      documentationRouteHelper: "getViewRoute",
+    },
+  ],
 ];
 
 interface SharedOverviewPageCase {
@@ -305,6 +324,48 @@ const ROUTE_MAP_SOURCE: string = fs.readFileSync(
   "utf8",
 );
 
+interface RouteHelper {
+  parameter: string;
+  // The helper's body, whitespace collapsed and trailing commas dropped.
+  body: string;
+}
+
+type ReadRouteHelperFunction = (
+  source: ts.SourceFile,
+  name: string,
+) => RouteHelper | null;
+
+// A page's `const <name> = (pageKey: PageMap): Route => { ... }`.
+const readRouteHelper: ReadRouteHelperFunction = (
+  source: ts.SourceFile,
+  name: string,
+): RouteHelper | null => {
+  let found: RouteHelper | null = null;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.name.getText(source) === name &&
+      node.initializer &&
+      ts.isArrowFunction(node.initializer) &&
+      node.initializer.parameters.length === 1
+    ) {
+      found = {
+        parameter: node.initializer.parameters[0]!.name.getText(source),
+        body: node.initializer.body
+          .getText(source)
+          .replace(/\s+/g, " ")
+          .replace(/,(\s*[})])/g, "$1"),
+      };
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
+};
+
 type ExpectCardPropsFunction = (
   card: JsxElementLike,
   source: ts.SourceFile,
@@ -332,6 +393,23 @@ const expectCardProps: ExpectCardPropsFunction = (
 
   const route: string =
     getAttributeText(card, "documentationRoute", source) || "";
+  const helperName: string | undefined = (pageCase as HeroPageCase)
+    .documentationRouteHelper;
+
+  if (helperName) {
+    // The call may be wrapped: read it without whitespace or a trailing comma.
+    expect(route.replace(/\s+/g, "").replace(/,\)$/, ")")).toBe(
+      `${helperName}(PageMap.${pageCase.documentationPage})`,
+    );
+
+    const helper: RouteHelper | null = readRouteHelper(source, helperName);
+
+    expect(helper).not.toBeNull();
+    expect(helper!.body).toBe(
+      `{ return RouteUtil.populateRouteParams(RouteMap[${helper!.parameter}] as Route, { modelId: modelId }); }`,
+    );
+    return;
+  }
 
   expect(route).toContain(
     `RouteMap[PageMap.${pageCase.documentationPage}] as Route`,

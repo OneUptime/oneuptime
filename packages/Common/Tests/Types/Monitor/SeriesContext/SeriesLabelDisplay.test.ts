@@ -628,4 +628,61 @@ describe("SeriesLabelDisplay", () => {
       ).toBe("");
     });
   });
+
+  describe("storage array series", () => {
+    /*
+     * Pure Storage keeps object identity in datapoint labels, and the
+     * shipped storage array templates group by them — `summary` (open
+     * alerts), `component_name` (hardware, drives), `host`, `local_pod`
+     * (replica links) and `name` (FlashBlade hardware and file systems).
+     * Unregistered, those alerts read "Component Name: CT0.FAN0".
+     */
+    test.each([
+      ["name"],
+      ["host"],
+      ["component_name"],
+      ["local_pod"],
+      ["summary"],
+      ["storage.array.name"],
+      ["resource.storage.array.name"],
+      ["storage.system"],
+    ])("%s is a registered group-by key", (key: string) => {
+      expect(SeriesLabelDisplay.isKnownLabelKey(key)).toBe(true);
+    });
+
+    test("the friendly names read as a person would say them", () => {
+      expect(SeriesLabelDisplay.getFriendlyLabelName("component_name")).toBe(
+        "Component",
+      );
+      expect(SeriesLabelDisplay.getFriendlyLabelName("local_pod")).toBe("Pod");
+      expect(SeriesLabelDisplay.getFriendlyLabelName("summary")).toBe(
+        "Alert Summary",
+      );
+      expect(
+        SeriesLabelDisplay.getFriendlyLabelName("resource.storage.array.name"),
+      ).toBe("Storage Array");
+    });
+
+    test("the object that breached comes first, the array that scopes it after", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "resource.storage.array.name": "pure-prod-01",
+          component_name: "CT0.FAN0",
+        }),
+      ).toBe("Component: CT0.FAN0 | Storage Array: pure-prod-01");
+
+      expect(SeriesLabelDisplay.getLabelPriority("name")).toBeLessThan(
+        SeriesLabelDisplay.getLabelPriority("storage.array.name"),
+      );
+      expect(SeriesLabelDisplay.getLabelPriority("host")).toBeLessThan(
+        SeriesLabelDisplay.getLabelPriority("resource.storage.array.name"),
+      );
+    });
+
+    test("a grouped alert template's title names the alert", () => {
+      expect(
+        SeriesLabelDisplay.buildTitleSuffix({ summary: "Controller failed" }),
+      ).toBe(" - Alert Summary: Controller failed");
+    });
+  });
 });

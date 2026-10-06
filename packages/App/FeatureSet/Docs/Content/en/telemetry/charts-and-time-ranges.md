@@ -72,8 +72,8 @@ Zooming retimes the whole page on:
 
 - resource overviews and their insights pages: Kubernetes clusters, Docker,
   Podman and Docker Swarm hosts, hosts and their processes, services and
-  systemd units, VMware, Proxmox, Ceph, databases, cloud resources and
-  serverless functions;
+  systemd units, VMware, Proxmox, Ceph, storage arrays, databases, cloud
+  resources and serverless functions;
 - services and RUM applications;
 - network devices' metrics and traffic;
 - metric cards, including the Metrics tab of a resource and a monitor's metrics;

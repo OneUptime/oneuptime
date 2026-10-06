@@ -9,7 +9,7 @@ Open it from the **Ask AI** sparkles button in the header, with **Cmd/Ctrl + I**
 Ask AI answers only from tool results — it queries your project live rather than answering from memory. Its read tools cover:
 
 - **Telemetry**: log search and histograms, trace aggregations and span trees, metrics, exceptions, and anomaly checks against learned baselines.
-- **Infrastructure**: hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware vCenter, Ceph, serverless functions, cloud environments, IoT fleets and network devices. Ask about accessible inventory, reported connection state, metric trends, log severity counts and trace operation summaries. Infrastructure queries include telemetry associated with both a service and an infrastructure resource.
+- **Infrastructure**: hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware vCenter, Ceph, storage arrays, serverless functions, cloud environments, IoT fleets and network devices. Ask about accessible inventory, reported connection state, metric trends, log severity counts and trace operation summaries. Infrastructure queries include telemetry associated with both a service and an infrastructure resource.
 - **Incident response**: incidents and alerts (including state filters — "what is active right now?"), their full activity timelines (state changes, internal and public notes, feed), owners, and free-text search over past incidents to reuse prior resolutions.
 - **On-call**: who is on call right now, policies and escalation chains, and whether recent pages were delivered and acknowledged.
 - **The AI's own work**: the results of autonomous AI SRE investigations and AI Insights, so "what did the AI find?" is answered from the posted analysis instead of re-derived from scratch.

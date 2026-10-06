@@ -147,11 +147,12 @@ export const ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
 
 /*
  * OneUptime's other agents, which may share this engine: the Host AI agent,
- * the Ceph, Proxmox and VMware collectors and their AI agents (named by
- * their docker-compose.yml files), and the database agent's collector and
- * AI agent, which Compose names after the install directory
- * (<project>-oneuptime-database-agent-1), hence the globs. OneUptime AI
- * never changes them either.
+ * the Ceph, Proxmox, VMware and Storage Array collectors and their AI agents
+ * (named by their docker-compose.yml files), and the database agent's
+ * collector and AI agent, which Compose names after the install directory
+ * (<project>-oneuptime-database-agent-1), hence the globs - as it names the
+ * Storage Array agent's Pure exporter sidecars (<project>-pure-fa-exporter-1).
+ * OneUptime AI never changes them either.
  */
 export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/HostAIAgent
@@ -166,6 +167,14 @@ export const ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES: ReadonlyArray<string> = [
   // agents/VMwareAgent
   "oneuptime-vmware-agent",
   "oneuptime-vmware-ai-agent",
+  /*
+   * agents/StorageArrayAgent: the collector (a second array's agent, in a
+   * folder of its own, renames it), and Pure's exporters, one per install
+   */
+  "oneuptime-storage-array-agent",
+  "*oneuptime-storage-array-agent*",
+  "*pure-fa-exporter*",
+  "*pure-fb-exporter*",
   // agents/DatabaseAgent: Compose services, one install per database
   "*oneuptime-database-agent*",
   "*oneuptime-database-ai-agent*",

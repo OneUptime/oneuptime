@@ -54,6 +54,10 @@ import {
   getAllIoTAlertTemplates,
   IoTAlertTemplateArgs,
 } from "Common/Types/Monitor/IotAlertTemplates";
+import {
+  getAllStorageArrayAlertTemplates,
+  StorageArrayAlertTemplateArgs,
+} from "Common/Types/Monitor/StorageArrayAlertTemplates";
 
 /*
  * SAFETY AUDIT: returning `nativeUnitsByMetricName` from the platform
@@ -138,6 +142,7 @@ import {
   monitorKubernetes,
   monitorPodman,
   monitorProxmox,
+  monitorStorageArray,
   monitorVMware,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
@@ -165,6 +170,7 @@ type TemplateArgs = KubernetesAlertTemplateArgs &
   VMwareAlertTemplateArgs &
   DockerSwarmAlertTemplateArgs &
   CephAlertTemplateArgs &
+  StorageArrayAlertTemplateArgs &
   IoTAlertTemplateArgs;
 
 type MonitorFunction = (data: {
@@ -189,6 +195,7 @@ const templateArgs: TemplateArgs = {
   hostIdentifier: "host-1",
   vcenterIdentifier: "vcsa-prod",
   fleetIdentifier: "fleet-1",
+  arrayIdentifier: "pure-prod-01",
   onlineMonitorStatusId: ObjectID.generate(),
   offlineMonitorStatusId: ObjectID.generate(),
   defaultIncidentSeverityId: ObjectID.generate(),
@@ -236,6 +243,11 @@ const platformCases: Array<PlatformCase> = [
     monitorType: MonitorType.Ceph,
     monitor: monitorCeph,
     templates: getAllCephAlertTemplates(),
+  },
+  {
+    monitorType: MonitorType.StorageArray,
+    monitor: monitorStorageArray,
+    templates: getAllStorageArrayAlertTemplates(),
   },
   {
     monitorType: MonitorType.IoTDevice,

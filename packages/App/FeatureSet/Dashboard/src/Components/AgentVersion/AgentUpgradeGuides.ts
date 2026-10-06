@@ -33,6 +33,12 @@ import {
   getVMwareAgentDownloadCommand,
   getVMwareAgentUpgradeCommand,
 } from "../../Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  STORAGE_ARRAY_AGENT_INSTALL_DIR,
+  STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
+  getStorageArrayAgentDownloadCommand,
+  getStorageArrayAgentUpgradeCommand,
+} from "../../Pages/StorageArray/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../Runner/RunnerImage";
 import {
   doesInstallScriptStartResourceAiAgent,
@@ -133,6 +139,14 @@ const COLLECTOR_READS_CONFIG_AT_START: string = translationKey(
 
 const COMPOSE_FOLDER_DOWNLOAD: string = translationKey(
   "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config.yaml.",
+);
+
+const SCRIPT_REUSES_ENV: string = translationKey(
+  "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
+);
+
+const OUTSIDE_INSTALL_DIRECTORY: string = translationKey(
+  "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.",
 );
 
 // ---- per kind ------------------------------------------------------------------
@@ -315,9 +329,7 @@ function getVMwareAgentGuide(): AgentUpgradeGuide {
         steps: [
           {
             title: translationKey("Run the install script again"),
-            description: translationKey(
-              "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
-            ),
+            description: SCRIPT_REUSES_ENV,
             code: getVMwareAgentUpgradeCommand(),
           },
         ],
@@ -334,6 +346,50 @@ function getVMwareAgentGuide(): AgentUpgradeGuide {
             title: PULL_AND_RECREATE,
             description: COLLECTOR_READS_CONFIG_AT_START,
             code: VMWARE_AGENT_RECREATE_COMMAND,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/*
+ * The Storage Array agent's install script, like the VMware agent's, reuses
+ * the .env it finds (and keeps a file the reader edited as
+ * <file>.bak.<timestamp>), so running it again is the upgrade. One agent
+ * reads one array, so another array's agent lives in a folder of its own,
+ * which the script is pointed at with INSTALL_DIR. A Docker Compose install
+ * takes the compose file and all three collector configs itself.
+ */
+function getStorageArrayAgentGuide(): AgentUpgradeGuide {
+  return {
+    methods: [
+      {
+        label: translationKey("Install script"),
+        steps: [
+          {
+            title: translationKey("Run the install script again"),
+            description: SCRIPT_REUSES_ENV,
+            code: getStorageArrayAgentUpgradeCommand(),
+          },
+        ],
+        note: OUTSIDE_INSTALL_DIRECTORY,
+        noteValues: { directory: STORAGE_ARRAY_AGENT_INSTALL_DIR },
+      },
+      {
+        label: translationKey("Docker Compose"),
+        steps: [
+          {
+            title: DOWNLOAD_LATEST_FILES,
+            description: translationKey(
+              "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
+            ),
+            code: getStorageArrayAgentDownloadCommand(),
+          },
+          {
+            title: PULL_AND_RECREATE,
+            description: COLLECTOR_READS_CONFIG_AT_START,
+            code: STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
           },
         ],
       },
@@ -405,9 +461,7 @@ function getDatabaseAgentGuide(
           code: getDatabaseAgentUpgradeCommand(),
         },
       ],
-      note: translationKey(
-        "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.",
-      ),
+      note: OUTSIDE_INSTALL_DIRECTORY,
       noteValues: { directory: DATABASE_AGENT_INSTALL_DIRECTORY },
     },
   ];
@@ -576,6 +630,8 @@ export function getAgentUpgradeGuide(
       });
     case AgentKind.VMwareAgent:
       return getVMwareAgentGuide();
+    case AgentKind.StorageArrayAgent:
+      return getStorageArrayAgentGuide();
     default:
       return null;
   }

@@ -46,7 +46,7 @@ Monitorerna kommer först, för sig: statussidor ser en incident genom dess moni
 
 - **Monitorer** — en sökruta som bifogar de monitorer som incidenten påverkar (`monitors`). En statussida visar incidenten, och meddelar sina prenumeranter, när den listar en av dessa monitorer.
 - **Ändra övervakningsstatus till** — valfritt, och visas först när minst en monitor är vald. Sätter varje monitor i incidenten till en övervakningsstatus, så att det är en enda åtgärd att deklarera incidenten och markera dess monitorer som försämrade. En malls status visas så snart du väljer en monitor; utan vald monitor sparas ingen status.
-- **Andra påverkade resurser** — en andra sökruta för allt annat som incidenten påverkar: värdar, Kubernetes-kluster, Docker- och Podman-värdar, Proxmox-, Ceph- och Docker Swarm-kluster, vCenter, IoT-flottor, databaser och tjänster. Det är separata relationer på incidenten (`hosts`, `kubernetesClusters`, `services` med flera).
+- **Andra påverkade resurser** — en andra sökruta för allt annat som incidenten påverkar: värdar, Kubernetes-kluster, Docker- och Podman-värdar, Proxmox-, Ceph- och Docker Swarm-kluster, vCenter, lagringsmatriser, IoT-flottor, databaser och tjänster. Det är separata relationer på incidenten (`hosts`, `kubernetesClusters`, `services` med flera).
 
 Incidentens kort **Berörda resurser** frågar på samma sätt när du redigerar det senare.
 

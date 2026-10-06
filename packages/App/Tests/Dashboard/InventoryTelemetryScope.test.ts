@@ -132,6 +132,8 @@ describe("buildInventoryEntityKeyDisplays", () => {
       [EntityType.ServiceInstance, "Service Instance"],
       [EntityType.RumApplication, "Browser Application"],
       [EntityType.VMwareVirtualMachine, "VMware Virtual Machine"],
+      // "storage.array" on the wire.
+      [EntityType.StorageArray, "Storage Array"],
       [EntityType.DockerSwarmTask, "Swarm Task"],
       [EntityType.ExternalDatabase, "External Database"],
     ];

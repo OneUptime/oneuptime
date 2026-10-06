@@ -90,6 +90,8 @@ import CephClusterService from "./CephClusterService";
 import ProxmoxResourceService from "./ProxmoxResourceService";
 import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
+import StorageArrayService from "./StorageArrayService";
+import StorageArrayResourceService from "./StorageArrayResourceService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
 import ProxmoxClusterOwnerRuleService from "./ProxmoxClusterOwnerRuleService";
@@ -108,6 +110,10 @@ import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
 import CephClusterOwnerUserService from "./CephClusterOwnerUserService";
+import StorageArrayLabelRuleService from "./StorageArrayLabelRuleService";
+import StorageArrayOwnerRuleService from "./StorageArrayOwnerRuleService";
+import StorageArrayOwnerTeamService from "./StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService from "./StorageArrayOwnerUserService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
@@ -163,6 +169,7 @@ import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import DockerHostFeedService from "./DockerHostFeedService";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import CephClusterFeedService from "./CephClusterFeedService";
+import StorageArrayFeedService from "./StorageArrayFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
@@ -576,6 +583,8 @@ const services: Array<BaseService> = [
   ProxmoxResourceService,
   DockerSwarmResourceService,
   CephResourceService,
+  StorageArrayService,
+  StorageArrayResourceService,
   ProxmoxClusterLabelRuleService,
   DockerSwarmClusterLabelRuleService,
   ProxmoxClusterOwnerRuleService,
@@ -588,6 +597,10 @@ const services: Array<BaseService> = [
   CephClusterOwnerRuleService,
   CephClusterOwnerTeamService,
   CephClusterOwnerUserService,
+  StorageArrayLabelRuleService,
+  StorageArrayOwnerRuleService,
+  StorageArrayOwnerTeamService,
+  StorageArrayOwnerUserService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
@@ -632,6 +645,7 @@ const services: Array<BaseService> = [
   DockerHostFeedService,
   DockerSwarmClusterFeedService,
   CephClusterFeedService,
+  StorageArrayFeedService,
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,

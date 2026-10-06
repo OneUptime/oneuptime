@@ -5,7 +5,8 @@ import UserService from "../../Services/UserService";
 /*
  * Shared formatting for the infrastructure and catalog resource feeds
  * (Kubernetes clusters, Docker / Podman hosts, Docker Swarm / Proxmox / Ceph
- * clusters, VMware vCenters, servers, cloud resources and catalog services).
+ * clusters, VMware vCenters, storage arrays, servers, cloud resources and
+ * catalog services).
  *
  * These resources come into existence two very different ways - somebody adds
  * one by hand, or ingest registers one the first moment telemetry mentions it -

@@ -57,6 +57,8 @@ export enum AgentKind {
   CephAgent = "ceph-agent",
   // agents/VMwareAgent: a vCenter.
   VMwareAgent = "vmware-agent",
+  // agents/StorageArrayAgent: a storage array.
+  StorageArrayAgent = "storage-array-agent",
   // The OpenTelemetry SDK or gateway on the customer's devices: an IoT fleet.
   IoTExporter = "iot-exporter",
   // The OpenTelemetry SDK in the customer's function: a serverless function.
@@ -125,15 +127,18 @@ export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.0";
 export const DATABASE_AGENT_VERSION: string = "0.161.0";
 
 /*
- * The collector versions the Proxmox, Ceph and VMware agents report: the
- * oneuptime.agent.version each agents/<Agent>/otel-collector-config.yaml
- * stamps, kept equal to the collector image its docker-compose.yml pins (and
- * to the Dashboard's embedded copy of that config). AgentKind.test.ts fails
- * when an agent's files move on without its constant.
+ * The collector versions the Proxmox, Ceph, VMware and Storage Array agents
+ * report: the oneuptime.agent.version each
+ * agents/<Agent>/otel-collector-config.yaml stamps (each of the Storage
+ * Array agent's three configs does), kept equal to the collector image its
+ * docker-compose.yml pins (and to the Dashboard's embedded copy of that
+ * config). AgentKind.test.ts fails when an agent's files move on without
+ * its constant.
  */
 export const PROXMOX_AGENT_VERSION: string = "0.161.0";
 export const CEPH_AGENT_VERSION: string = "0.161.0";
 export const VMWARE_AGENT_VERSION: string = "0.161.0";
+export const STORAGE_ARRAY_AGENT_VERSION: string = "0.161.0";
 
 /*
  * The otelcol-contrib release the host guide installs (every install method:
@@ -186,10 +191,10 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     pinnedVersion: HOST_COLLECTOR_VERSION,
   },
   /*
-   * The Proxmox, Ceph and VMware agents run the collector their compose
-   * file pins, and their config stamps that pin. A Proxmox cluster that
-   * pushes its own metrics (Proxmox VE 9's metric server) runs no agent and
-   * reports no version.
+   * The Proxmox, Ceph, VMware and Storage Array agents run the collector
+   * their compose file pins, and their config stamps that pin. A Proxmox
+   * cluster that pushes its own metrics (Proxmox VE 9's metric server) runs
+   * no agent and reports no version.
    */
   [AgentKind.ProxmoxAgent]: {
     name: "OneUptime Proxmox Agent",
@@ -205,6 +210,11 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime VMware Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: VMWARE_AGENT_VERSION,
+  },
+  [AgentKind.StorageArrayAgent]: {
+    name: "OneUptime Storage Array Agent",
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: STORAGE_ARRAY_AGENT_VERSION,
   },
   /*
    * IoT, serverless and RUM versions come from the customer's own

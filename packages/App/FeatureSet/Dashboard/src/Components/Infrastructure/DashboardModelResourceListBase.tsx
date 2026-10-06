@@ -30,8 +30,8 @@ import DashboardModelQueryInterpolation, {
  * render modes). Product wrappers supply the model class, the query
  * (kind / cluster filters), the select and the sort:
  * DashboardKubernetesResourceListBase wraps it for KubernetesResource;
- * the Proxmox / Ceph / VMware widgets wrap it for ProxmoxResource /
- * CephResource / VMwareResource.
+ * the Proxmox / Ceph / VMware / Storage Array widgets wrap it for
+ * ProxmoxResource / CephResource / VMwareResource / StorageArrayResource.
  */
 export interface DashboardModelResourceListBaseProps<
   TBaseModel extends BaseModel,

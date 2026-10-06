@@ -211,6 +211,7 @@ describe("MonitorAlert drops criteria references the project cannot use", () => 
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
         databaseServerIds: [],
+        storageArrayIds: [],
       });
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

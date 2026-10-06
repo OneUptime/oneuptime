@@ -71,6 +71,13 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     routesFile: "CephRoutes.tsx",
   },
   {
+    product: "Storage Arrays",
+    pageMapKey: "STORAGE_ARRAY_VIEW_FEED",
+    urlPrefix: "storage-arrays",
+    pagesDirectory: "StorageArray",
+    routesFile: "StorageArrayRoutes.tsx",
+  },
+  {
     product: "Podman",
     pageMapKey: "PODMAN_HOST_VIEW_FEED",
     urlPrefix: "podman",
@@ -136,7 +143,7 @@ function read(...segments: Array<string>): string {
 
 describe("Resource feed pages", () => {
   test("every product that grew a feed is covered here", () => {
-    expect(FEED_PAGES.length).toBe(12);
+    expect(FEED_PAGES.length).toBe(13);
   });
 
   test.each(FEED_PAGES)(

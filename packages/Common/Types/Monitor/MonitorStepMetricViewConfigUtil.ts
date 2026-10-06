@@ -24,6 +24,7 @@ const METRIC_VIEW_CONFIG_KEYS: Array<keyof MonitorStepType> = [
   "proxmoxMonitor",
   "vmwareMonitor",
   "cephMonitor",
+  "storageArrayMonitor",
   "iotMonitor",
 ];
 

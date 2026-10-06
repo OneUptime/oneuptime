@@ -286,6 +286,7 @@ describe.each(ENTITY_KINDS)(
           dockerSwarmClusterIds: [],
           iotFleetIds: [],
           databaseServerIds: [],
+          storageArrayIds: [],
         });
 
       // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

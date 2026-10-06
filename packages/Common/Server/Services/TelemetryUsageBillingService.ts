@@ -32,6 +32,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
+import StorageArrayService from "./StorageArrayService";
 import DatabaseServerService from "./DatabaseServerService";
 import IoTFleetService from "./IoTFleetService";
 import Host from "../../Models/DatabaseModels/Host";
@@ -42,6 +43,7 @@ import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -516,7 +518,7 @@ export class Service extends DatabaseService<Model> {
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
    * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster,
-   * DatabaseServer). Used to scale billed
+   * StorageArray, DatabaseServer). Used to scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
    * to the project default.
@@ -654,6 +656,24 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           cephCluster.id.toString(),
           cephCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    const storageArrays: Array<StorageArray> = await StorageArrayService.findBy(
+      {
+        query: { projectId: projectId },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      },
+    );
+    for (const storageArray of storageArrays) {
+      if (storageArray.id && storageArray.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          storageArray.id.toString(),
+          storageArray.retainTelemetryDataForDays,
         );
       }
     }
