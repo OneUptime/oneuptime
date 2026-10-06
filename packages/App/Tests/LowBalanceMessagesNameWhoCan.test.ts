@@ -48,6 +48,9 @@ const SKIPPED_DIRECTORIES: Array<string> = [
   ".claude",
 ];
 
+const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
+const TEST_FILE: RegExp = /\.(test|spec)\.(ts|tsx)$/;
+
 function sourceFilesUnder(root: string): Array<string> {
   if (!fs.existsSync(root)) {
     return [];
@@ -66,8 +69,8 @@ function sourceFilesUnder(root: string): Array<string> {
     }
 
     if (
-      /\.(ts|tsx)$/.test(entry.name) &&
-      !/\.(test|spec)\.(ts|tsx)$/.test(entry.name) &&
+      SOURCE_FILE.test(entry.name) &&
+      !TEST_FILE.test(entry.name) &&
       !entry.name.endsWith(".d.ts")
     ) {
       files.push(full);
@@ -240,15 +243,17 @@ describe("a message not sent for want of balance", () => {
   ])(
     "%s: one low-balance branch, its log says who can add balance, its owners' email links to the page",
     (file: string, status: string) => {
-      const source: string = read(`App/FeatureSet/Notification/Services/${file}`);
+      const source: string = read(
+        `App/FeatureSet/Notification/Services/${file}`,
+      );
 
       expect(source.split(`.status = ${status};`).length - 1).toBe(1);
       expect(
         source.split("getProjectBalanceMessageNotSentReason(").length - 1,
       ).toBe(1);
-      expect(source.split("ProjectBalanceOwnerNotice.getHtml(").length - 1).toBe(
-        1,
-      );
+      expect(
+        source.split("ProjectBalanceOwnerNotice.getHtml(").length - 1,
+      ).toBe(1);
       expect(
         source.split("getProjectBalanceShortfallSentence(").length - 1,
       ).toBe(1);
@@ -271,10 +276,10 @@ describe("a status page visitor is never sent to project settings", () => {
 
     expect(files.length).toBeGreaterThan(20);
 
+    const balanceWords: RegExp =
+      /ProjectBalance|Project Settings|Manage Billing|recharge/i;
     const offenders: Array<string> = files.filter((file: string): boolean => {
-      return /ProjectBalance|Project Settings|Manage Billing|recharge/i.test(
-        fs.readFileSync(file, "utf8"),
-      );
+      return balanceWords.test(fs.readFileSync(file, "utf8"));
     });
 
     expect(offenders).toEqual([]);
@@ -289,10 +294,10 @@ describe("a status page visitor is never sent to project settings", () => {
 
     expect(files.length).toBeGreaterThan(10);
 
+    const balanceWording: RegExp =
+      /Project\/ProjectBalance|ProjectBalanceOwnerNotice/;
     const offenders: Array<string> = files.filter((file: string): boolean => {
-      return /Project\/ProjectBalance|ProjectBalanceOwnerNotice/.test(
-        fs.readFileSync(file, "utf8"),
-      );
+      return balanceWording.test(fs.readFileSync(file, "utf8"));
     });
 
     expect(offenders).toEqual([]);
@@ -381,7 +386,10 @@ describe("the dashboard links to the balance pages, and recharges, only for peop
       "Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
       "Pages/Kubernetes/View/AI/Agent.tsx",
     ]) {
-      const source: string = fs.readFileSync(path.join(DASHBOARD, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(DASHBOARD, file),
+        "utf8",
+      );
       const step: string = source.slice(
         source.indexOf('case "open_ai_credits":'),
       );

@@ -154,7 +154,10 @@ describe("the notice", () => {
   });
 
   test("tells the owners to act - they may - unlike the sentences everyone else reads", () => {
-    for (const balance of [ProjectBalanceType.SmsOrCall, ProjectBalanceType.AI]) {
+    for (const balance of [
+      ProjectBalanceType.SmsOrCall,
+      ProjectBalanceType.AI,
+    ]) {
       const html: string = ProjectBalanceOwnerNotice.getHtml({
         balance: balance,
         projectId: PROJECT_ID,

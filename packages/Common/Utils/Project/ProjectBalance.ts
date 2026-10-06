@@ -47,8 +47,10 @@ export { ProjectBalanceType };
  * Who may add to a balance: the recharge routes' permissions, and the update
  * permissions of every Auto Recharge column.
  */
-export const PROJECT_BALANCE_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> =
-  [Permission.ProjectOwner, Permission.ManageProjectBilling];
+export const PROJECT_BALANCE_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ManageProjectBilling,
+];
 
 /*
  * The people PROJECT_BALANCE_RECHARGE_PERMISSIONS let in, in words - the
@@ -185,14 +187,15 @@ export const getProjectBalanceTooLowMessage: (
 export const INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE: string = `Numbers for incoming calls are verified by SMS, and this project's balance is too low to send SMS. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall)}`;
 
 // An amount of money, as the balance pages show it: "0.05 USD".
-export const formatProjectBalanceAmount: (amountInUSDCents: number) => string =
-  (amountInUSDCents: number): string => {
-    const cents: number = Number.isFinite(amountInUSDCents)
-      ? amountInUSDCents
-      : 0;
+export const formatProjectBalanceAmount: (
+  amountInUSDCents: number,
+) => string = (amountInUSDCents: number): string => {
+  const cents: number = Number.isFinite(amountInUSDCents)
+    ? amountInUSDCents
+    : 0;
 
-    return `${(cents / 100).toFixed(2)} USD`;
-  };
+  return `${(cents / 100).toFixed(2)} USD`;
+};
 
 /*
  * Why one message was not sent, in plain facts: "This project's balance is

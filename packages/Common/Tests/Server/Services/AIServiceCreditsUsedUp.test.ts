@@ -66,8 +66,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 function setBillingEnabled(value: boolean): void {
-  (globalThis as MockBillingGlobal).__aiCreditsUsedUpTestBillingEnabled =
-    value;
+  (globalThis as MockBillingGlobal).__aiCreditsUsedUpTestBillingEnabled = value;
 }
 
 const PROJECT_ID: ObjectID = new ObjectID(

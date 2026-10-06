@@ -157,9 +157,11 @@ function ownerEmails(): Array<[ObjectID, string, string]> {
 }
 
 function firstLogged<T>(service: unknown): T {
-  return ((service as { create: jest.Mock }).create.mock.calls[0]![0] as {
-    data: T;
-  }).data;
+  return (
+    (service as { create: jest.Mock }).create.mock.calls[0]![0] as {
+      data: T;
+    }
+  ).data;
 }
 
 function expectOwnerEmailAboutBalance(body: string): void {

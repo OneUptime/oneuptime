@@ -189,7 +189,9 @@ describe("where each balance is", () => {
 
 describe("who can add balance, as a sentence", () => {
   test("names the people and the page, for the notification balance", () => {
-    expect(getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall)).toBe(
+    expect(
+      getProjectBalanceWhoCanAddSentence(ProjectBalanceType.SmsOrCall),
+    ).toBe(
       "A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
     );
   });
@@ -337,7 +339,11 @@ describe("the AI call refusal", () => {
 });
 
 describe("every sentence said to whoever asked", () => {
-  test.each(SENTENCES_FOR_EVERYONE.map((sentence: string) => [sentence]))(
+  test.each(
+    SENTENCES_FOR_EVERYONE.map((sentence: string) => {
+      return [sentence];
+    }),
+  )(
     "names who can and never tells the reader to recharge: %s",
     (sentence: string) => {
       expect(sentence).toContain(

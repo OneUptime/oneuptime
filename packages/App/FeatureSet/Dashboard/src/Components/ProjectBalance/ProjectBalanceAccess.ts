@@ -52,11 +52,12 @@ export const getProjectBalanceAccess: (
 ): ProjectBalanceAccess => {
   const project: Project = new Project();
 
-  const gates: Array<PermissionGateResult> = PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[
-    balance
-  ].map((column: string): PermissionGateResult => {
-    return PermissionGate.checkColumnUpdate(project, column);
-  });
+  const gates: Array<PermissionGateResult> =
+    PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[balance].map(
+      (column: string): PermissionGateResult => {
+        return PermissionGate.checkColumnUpdate(project, column);
+      },
+    );
 
   if (
     gates.every((gate: PermissionGateResult): boolean => {

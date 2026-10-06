@@ -67,7 +67,10 @@ function readParagraphs(lang: string, relative: string): Array<string> {
 // The words a language's dashboard shows: English where it has none.
 function readDashboardLocale(lang: string): Record<string, string> {
   const locale: Record<string, string> = JSON.parse(
-    fs.readFileSync(path.join(DASHBOARD_SRC, "Locales", `${lang}.json`), "utf8"),
+    fs.readFileSync(
+      path.join(DASHBOARD_SRC, "Locales", `${lang}.json`),
+      "utf8",
+    ),
   );
 
   return new Proxy(locale, {

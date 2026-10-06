@@ -86,49 +86,54 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(ALL_BALANCES)("who may add to the %s balance", (balance) => {
-  test.each([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["someone with Manage Billing", [Permission.ManageProjectBilling]],
-  ])("%s may", (_who: string, permissions: Array<Permission>) => {
-    grant([...BASE_PERMISSIONS, ...permissions]);
-
-    expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.Yes);
-    expect(canAddProjectBalance(balance)).toBe(true);
-    expect(isKnownNotToAddProjectBalance(balance)).toBe(false);
-  });
-
-  test.each([
-    ["a project admin", [Permission.ProjectAdmin]],
-    ["a member", [Permission.ProjectMember]],
-    ["a viewer", [Permission.Viewer]],
-    ["the Billing Admin role", [Permission.BillingAdmin]],
-    ["Edit Project", [Permission.EditProject]],
-  ])(
-    "%s may not, and is known not to",
-    (_who: string, permissions: Array<Permission>) => {
+describe.each(ALL_BALANCES)(
+  "who may add to the %s balance",
+  (balance: ProjectBalanceType) => {
+    test.each([
+      ["a project owner", [Permission.ProjectOwner]],
+      ["someone with Manage Billing", [Permission.ManageProjectBilling]],
+    ])("%s may", (_who: string, permissions: Array<Permission>) => {
       grant([...BASE_PERMISSIONS, ...permissions]);
 
-      expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.No);
+      expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.Yes);
+      expect(canAddProjectBalance(balance)).toBe(true);
+      expect(isKnownNotToAddProjectBalance(balance)).toBe(false);
+    });
+
+    test.each([
+      ["a project admin", [Permission.ProjectAdmin]],
+      ["a member", [Permission.ProjectMember]],
+      ["a viewer", [Permission.Viewer]],
+      ["the Billing Admin role", [Permission.BillingAdmin]],
+      ["Edit Project", [Permission.EditProject]],
+    ])(
+      "%s may not, and is known not to",
+      (_who: string, permissions: Array<Permission>) => {
+        grant([...BASE_PERMISSIONS, ...permissions]);
+
+        expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.No);
+        expect(canAddProjectBalance(balance)).toBe(false);
+        expect(isKnownNotToAddProjectBalance(balance)).toBe(true);
+      },
+    );
+
+    test("before the permission snapshot arrives, it is not known either way", () => {
+      grant([]);
+
+      expect(getProjectBalanceAccess(balance)).toBe(
+        ProjectBalanceAccess.Unknown,
+      );
       expect(canAddProjectBalance(balance)).toBe(false);
-      expect(isKnownNotToAddProjectBalance(balance)).toBe(true);
-    },
-  );
+      expect(isKnownNotToAddProjectBalance(balance)).toBe(false);
+    });
 
-  test("before the permission snapshot arrives, it is not known either way", () => {
-    grant([]);
+    test("a master admin may, even with an empty snapshot", () => {
+      grant([], true);
 
-    expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.Unknown);
-    expect(canAddProjectBalance(balance)).toBe(false);
-    expect(isKnownNotToAddProjectBalance(balance)).toBe(false);
-  });
-
-  test("a master admin may, even with an empty snapshot", () => {
-    grant([], true);
-
-    expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.Yes);
-  });
-});
+      expect(getProjectBalanceAccess(balance)).toBe(ProjectBalanceAccess.Yes);
+    });
+  },
+);
 
 describe("the Current Balance card's description", () => {
   test.each(ALL_BALANCES)(
@@ -250,7 +255,9 @@ describe("the pages the messages name", () => {
   test("are the dashboard's own routes", () => {
     expect(
       RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS]!.toString(),
-    ).toContain(`/${PROJECT_BALANCE_SETTINGS_PATH[ProjectBalanceType.SmsOrCall]}`);
+    ).toContain(
+      `/${PROJECT_BALANCE_SETTINGS_PATH[ProjectBalanceType.SmsOrCall]}`,
+    );
     expect(RouteMap[PageMap.SETTINGS_AI_CREDITS]!.toString()).toContain(
       `/${PROJECT_BALANCE_SETTINGS_PATH[ProjectBalanceType.AI]}`,
     );
