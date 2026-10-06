@@ -24,6 +24,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     navItems,
     moreMenuItems,
     moreMenuCategoriesAlwaysOpen,
+    moreMenuCategoryIcons,
     rightElement,
   }: DashboardNavigationItems = useDashboardNavigationItems();
 
@@ -51,6 +52,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
        * still finds every product.
        */
       moreMenuCategoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}
+      // Each folded category's row is drawn with its own icon.
+      moreMenuCategoryIcons={moreMenuCategoryIcons}
       moreMenuFooter={moreMenuFooter}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
       moreMenuNoResultsText={t("navbar.search.noResults")}

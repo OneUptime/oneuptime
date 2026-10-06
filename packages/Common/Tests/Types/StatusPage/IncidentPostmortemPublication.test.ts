@@ -593,6 +593,9 @@ describe("IncidentPostmortemPublication.isSwitchedOn", () => {
     ["true", true],
     ['the string "true" a hand-written API request may send', "true"],
     ['"TRUE" with spaces around it', " TRUE "],
+    ['"yes"', "yes"],
+    ['"on"', "on"],
+    ["1", 1],
   ] as Array<[string, unknown]>)(
     "%s switches it on, as Postgres stores it",
     (_label: string, value: unknown) => {
@@ -610,8 +613,10 @@ describe("IncidentPostmortemPublication.isSwitchedOn", () => {
     ["false", false],
     ['"false"', "false"],
     ["null", null],
-    ["1", 1],
-    ['"yes"', "yes"],
+    ["0", 0],
+    ['"no"', "no"],
+    ['"off"', "off"],
+    ["a value Postgres would refuse", "maybe"],
   ] as Array<[string, unknown]>)(
     "%s does not",
     (_label: string, value: unknown) => {
@@ -849,6 +854,36 @@ describe("IncidentPostmortemPublication.isShownByUpdate", () => {
         written: SHOW,
       }),
     ).toBe(false);
+  });
+
+  /*
+   * Private as the update leaves it, by the visibility rule itself
+   * (StatusPageVisibility.isPrivateAfterWrite): a value that is neither off
+   * nor unset hides the incident, as every status page read treats it.
+   */
+  test("a Private written as a value that is neither off nor unset leaves it hidden", () => {
+    for (const isPrivate of ["maybe", 2] as Array<unknown>) {
+      expect(
+        IncidentPostmortemPublication.isShownByUpdate({
+          stored: {
+            ...shown(),
+            isVisibleOnStatusPage: false,
+            isPrivate: false,
+          },
+          written: { isVisibleOnStatusPage: true, isPrivate: isPrivate },
+        }),
+      ).toBe(false);
+    }
+
+    // Written off in any form the database reads as off: shown.
+    for (const isPrivate of [false, "false", "no", 0] as Array<unknown>) {
+      expect(
+        IncidentPostmortemPublication.isShownByUpdate({
+          stored: { ...shown(), isVisibleOnStatusPage: false, isPrivate: true },
+          written: { isVisibleOnStatusPage: true, isPrivate: isPrivate },
+        }),
+      ).toBe(true);
+    }
   });
 
   test("a private incident switched on and made not private in one update is shown", () => {

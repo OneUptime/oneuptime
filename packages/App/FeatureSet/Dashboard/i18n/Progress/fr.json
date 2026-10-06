@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 25672,
-    "untranslated": 9596
+    "keys": 25852,
+    "untranslated": 9337
   },
   "sameAsEnglish": [
     " incidents",
@@ -336,6 +336,7 @@
     "Traces",
     "Transport",
     "Type",
+    "VMware vCenter",
     "Variable",
     "Variables",
     "Version",
@@ -345,7 +346,9 @@
     "Webhook",
     "Webhooks",
     "Zone",
+    "agent {{version}}",
     "cluster",
+    "kubectl set image deployment/web * -n web",
     "{{count}} minutes"
   ]
 }

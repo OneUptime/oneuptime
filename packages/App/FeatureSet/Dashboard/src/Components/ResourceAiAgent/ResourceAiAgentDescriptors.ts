@@ -60,7 +60,11 @@ export interface ResourceAiAgentDescriptor {
   agentCardDescription: string;
   // The investigation switch's label: "Investigate with docker".
   investigateTitle: string;
-  // What an investigation runs, in a few words: "ps, inspect, logs, …".
+  /*
+   * What an investigation runs, in a few words: "ps, inspect, logs, …".
+   * Command names stay as they are; a list in words (a Proxmox cluster's,
+   * a database server's) is a translation key, looked up where it is said.
+   */
   readExamples: string;
   // How the ready line and the commands card name what AI runs.
   readOnlyCommandsPhrase: string;
@@ -187,8 +191,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "The small container next to your Proxmox agent that calls the Proxmox VE API (pvesh) for OneUptime AI with its own API token.",
     ),
     investigateTitle: translationKey("Investigate with pvesh"),
-    readExamples:
+    readExamples: translationKey(
       "cluster status and resources, node and guest status, tasks and logs",
+    ),
     readOnlyCommandsPhrase: translationKey("read-only pvesh requests"),
     commandsCardTitle: translationKey("pvesh commands"),
     toolVersionLabel: "Proxmox VE",
@@ -272,8 +277,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "The small container next to your database agent that runs a fixed catalog of diagnostics for OneUptime AI with its own login. It never runs free SQL.",
     ),
     investigateTitle: translationKey("Investigate with db diagnostics"),
-    readExamples:
+    readExamples: translationKey(
       "sessions, locks, long-running queries, replication, sizes, settings",
+    ),
     readOnlyCommandsPhrase: translationKey("read-only db diagnostics"),
     commandsCardTitle: translationKey("db commands"),
     toolVersionLabel: null,

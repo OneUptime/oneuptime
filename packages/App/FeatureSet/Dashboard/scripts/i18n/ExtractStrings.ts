@@ -13,7 +13,9 @@ import ts from "typescript";
  *
  *   - "call":           the key passed to a translation function - t(),
  *                       tx(), translateString(), translateTemplate(),
- *                       translationKey(), any translate*() helper;
+ *                       translationKey(), any translate*() helper - or the
+ *                       text of a translatableTerm(), which is looked up
+ *                       when the sentence it goes into is translated;
  *   - "plural":         a PluralTemplate, { one: "...", other: "..." };
  *   - "prop":           a JSX attribute or object property whose name says
  *                       it is shown (title, description, placeholder, label,
@@ -240,9 +242,14 @@ const KEY_ARGUMENT_INDEX: Readonly<Record<string, number>> = {
   translateInterpolated: 1,
 };
 
-// t(), tx(), translate(), translateString(), translateTemplate(), ...
+/*
+ * t(), tx(), translate(), translateString(), translateTemplate(), ... and
+ * translatableTerm(): a term put into a sentence ("... so {{function}}
+ * reports to OneUptime.", name || translatableTerm("this function")) is
+ * looked up by its text, so a literal one is a key like any other.
+ */
 const TRANSLATION_FUNCTION: RegExp =
-  /^(t|tx|translate|translationKey|translate[A-Z][A-Za-z0-9]*)$/;
+  /^(t|tx|translate|translatableTerm|translationKey|translate[A-Z][A-Za-z0-9]*)$/;
 
 // setError("..."), setEmptyMessage("..."), setModalTitle("...").
 const MESSAGE_SETTER: RegExp =

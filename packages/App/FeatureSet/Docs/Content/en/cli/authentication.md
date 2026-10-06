@@ -92,6 +92,8 @@ Credentials are resolved in the following priority order:
 
 You can mix sources -- for example, use an environment variable for the API key and a saved context for the URL.
 
+On OneUptime Cloud, API keys work only while the project is on the **Growth** plan or above. Below it, every command answers `API error (402)` with a message that names the plan, until the project is upgraded; then the same key works again. See [API keys and SCIM below their plan](/docs/api-reference/api-reference#api-keys-and-scim-below-their-plan).
+
 ### Using CLI Flags
 
 ```bash
