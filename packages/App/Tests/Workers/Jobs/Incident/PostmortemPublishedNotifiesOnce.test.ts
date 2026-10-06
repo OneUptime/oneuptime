@@ -250,6 +250,12 @@ const PUBLISHED_AT: Date = new Date("2026-10-05T09:30:00.000Z");
 // The incident as the database holds it.
 let incident: Incident;
 
+/*
+ * What happens right after the job claims the notification - before it
+ * settles it - when a test races an update against it. Runs once.
+ */
+let afterClaim: (() => Promise<void>) | null = null;
+
 function mock(fn: unknown): jest.Mock {
   return fn as unknown as jest.Mock;
 }
@@ -348,6 +354,20 @@ async function update(
   data: JSONObject,
   props: DatabaseCommonInteractionProps = editor(),
 ): Promise<void> {
+  const writeAndFinish: () => Promise<void> = await beginUpdate(data, props);
+
+  await writeAndFinish();
+}
+
+/*
+ * The first half of an update: its onBeforeUpdate, which reads the
+ * incident. Returns the second half - the write, then onUpdateSuccess - for
+ * a test to run when it wants the write to land.
+ */
+async function beginUpdate(
+  data: JSONObject,
+  props: DatabaseCommonInteractionProps = editor(),
+): Promise<() => Promise<void>> {
   const hooks: UpdateHooks = IncidentService as unknown as UpdateHooks;
 
   const onUpdate: OnUpdate<Incident> = await hooks.onBeforeUpdate({
@@ -358,9 +378,25 @@ async function update(
     skip: 0,
   });
 
-  Object.assign(incident, onUpdate.updateBy.data);
+  return async (): Promise<void> => {
+    Object.assign(incident, onUpdate.updateBy.data);
 
-  await hooks.onUpdateSuccess(onUpdate, [INCIDENT_ID]);
+    await hooks.onUpdateSuccess(onUpdate, [INCIDENT_ID]);
+  };
+}
+
+// The Edit Postmortem form's save, as data.
+function editPostmortemFormSave(values: {
+  note: string | null;
+  publish: boolean;
+}): JSONObject {
+  return {
+    postmortemNote: values.note,
+    postmortemAttachments: [],
+    showPostmortemOnStatusPage: values.publish,
+    notifySubscribersOnPostmortemPublished: true,
+    postmortemPostedAt: values.publish ? PUBLISHED_AT : null,
+  } as unknown as JSONObject;
 }
 
 // Save Changes on the Edit Postmortem form: every field it has, every time.
@@ -493,6 +529,7 @@ function subscriber(): StatusPageSubscriber {
 beforeEach(() => {
   jest.clearAllMocks();
   incident = declaredIncident();
+  afterClaim = null;
 
   // The update hooks, without a database.
   jest
@@ -555,6 +592,17 @@ beforeEach(() => {
       }
 
       Object.assign(incident, write.data);
+
+      if (
+        write.data["subscriberNotificationStatusOnPostmortemPublished"] ===
+          StatusPageSubscriberNotificationStatus.InProgress &&
+        afterClaim
+      ) {
+        const race: () => Promise<void> = afterClaim;
+        afterClaim = null;
+        await race();
+      }
+
       return true;
     }) as never);
   // The job settling the notification.
@@ -721,6 +769,78 @@ describe("a postmortem published from the Edit Postmortem form", () => {
     await runTheJob();
 
     expect(sent()).toEqual(NOTHING_SENT);
+  });
+});
+
+/*
+ * A run of the job reads the incident, claims its notification, then
+ * decides from what it read. A publish that lands in between finds the
+ * notification on its way, so it queues nothing - and the run, having read
+ * the postmortem unpublished, skips it. Whichever way the two interleave,
+ * the publish is still announced, once: the job looks again after such a
+ * skip, and the update looks again once it is written.
+ */
+describe("a postmortem published while the job holds its notification", () => {
+  beforeEach(() => {
+    // Declared moments ago: the 'published' notification is still waiting.
+    incident.subscriberNotificationStatusOnPostmortemPublished =
+      StatusPageSubscriberNotificationStatus.Pending;
+  });
+
+  test("published right after the claim: the job queues it again, and the next run tells each subscriber once", async () => {
+    afterClaim = async (): Promise<void> => {
+      await update(editPostmortemFormSave({ note: NOTE, publish: true }));
+    };
+
+    await runTheJob();
+
+    // This run skipped what it read, then saw the publish and queued it.
+    expect(sent()).toEqual(NOTHING_SENT);
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("read while the job held it, written after the job skipped it: the update queues it, and the next run tells each subscriber once", async () => {
+    let writeAndFinish: (() => Promise<void>) | null = null;
+
+    afterClaim = async (): Promise<void> => {
+      writeAndFinish = await beginUpdate(
+        editPostmortemFormSave({ note: NOTE, publish: true }),
+      );
+    };
+
+    await runTheJob();
+
+    // The run skipped it and looked again before the write landed.
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Skipped,
+    );
+
+    await writeAndFinish!();
+
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Pending,
+    );
+
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("published before the job reads it: the run sends it, and nothing queues it twice", async () => {
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
   });
 });
 

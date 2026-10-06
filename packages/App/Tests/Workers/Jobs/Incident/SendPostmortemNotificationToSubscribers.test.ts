@@ -71,6 +71,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
       findAllBy: jest.fn(),
       // IncidentStatusPageScope reads each incident's status page scope.
       findBy: jest.fn(),
+      // The look again after a skip (requeueIfPublishedSinceRead).
+      findOneById: jest.fn(),
       updateOneById: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
       // The claim (SubscriberNotificationClaim).
@@ -626,6 +628,12 @@ beforeEach(() => {
     }) as never,
   );
   mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+  // Looked at again after a skip: still as the run read it.
+  mock(IncidentService.findOneById).mockImplementation(
+    async (): Promise<Incident> => {
+      return pendingIncidents[0]!;
+    },
+  );
   // This run wins every claim unless a test says otherwise.
   mock(IncidentService.compareAndSetColumnsByIdWithoutHooks).mockResolvedValue(
     true as never,
@@ -831,6 +839,93 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       ).toBe(testCase.message);
     },
   );
+
+  /*
+   * The run decides from the incident as it read it, before its claim. A
+   * postmortem published after that read - while the run held the
+   * notification, so the update found it on its way and queued nothing -
+   * would be skipped as not shown and never announced. So after a skip for
+   * a postmortem the status page does not show, the run looks again, and
+   * queues it again when the status page shows it now.
+   */
+  describe("a postmortem published while the run held its notification", () => {
+    const notShownCases: Array<SkipCase> = cases.slice(0, 3);
+
+    function published(): Incident {
+      const row: Incident = incident();
+      row.showPostmortemOnStatusPage = true;
+      row.postmortemNote = POSTMORTEM;
+      return row;
+    }
+
+    test.each(notShownCases)(
+      "$name, published since the run read it, is queued again for the next run",
+      async (testCase: SkipCase) => {
+        const row: Incident = incident();
+        testCase.change(row);
+        pendingIncidents = [row];
+        mock(IncidentService.findOneById).mockResolvedValue(
+          published() as never,
+        );
+
+        await runJob();
+
+        expect(sentMail()).toHaveLength(0);
+        // Claimed, skipped as read, then queued again - only from that skip.
+        expect(postmortemStatuses()).toEqual([
+          StatusPageSubscriberNotificationStatus.InProgress,
+          StatusPageSubscriberNotificationStatus.Skipped,
+          StatusPageSubscriberNotificationStatus.Pending,
+        ]);
+
+        const requeue: JSONObject = mock(
+          IncidentService.compareAndSetColumnsByIdWithoutHooks,
+        ).mock.calls[1]![0] as JSONObject;
+
+        expect(requeue["expectedData"]).toEqual({
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        });
+        expect(
+          (requeue["data"] as JSONObject)[
+            "subscriberNotificationStatusMessageOnPostmortemPublished"
+          ],
+        ).toBe("Postmortem published. Subscribers will be notified shortly.");
+      },
+    );
+
+    test.each(notShownCases)(
+      "$name, still not shown when the run looks again, stays skipped",
+      async (testCase: SkipCase) => {
+        const row: Incident = incident();
+        testCase.change(row);
+        pendingIncidents = [row];
+
+        await runJob();
+
+        expect(postmortemStatuses()).toEqual([
+          StatusPageSubscriberNotificationStatus.InProgress,
+          StatusPageSubscriberNotificationStatus.Skipped,
+        ]);
+        expect(IncidentService.findOneById).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test("the other skips do not look again: they do not hang on the publish", async () => {
+      const row: Incident = incident();
+      row.notifySubscribersOnPostmortemPublished = false;
+      pendingIncidents = [row];
+      mock(IncidentService.findOneById).mockResolvedValue(published() as never);
+
+      await runJob();
+
+      expect(IncidentService.findOneById).not.toHaveBeenCalled();
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+  });
 
   test.each(cases)(
     "$name is not skipped when it changed since the run read it",

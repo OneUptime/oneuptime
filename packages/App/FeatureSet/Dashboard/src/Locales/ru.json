@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Уведомлять владельцев при их добавлении этим правилом. Отключите, чтобы добавлять без уведомления.",
   "Notify Subscribers": "Уведомить подписчиков",
   "Notify subscribers of this state change.": "Уведомить подписчиков об этом изменении состояния.",
-  "Notify subscribers when this postmortem is published.": "Уведомить подписчиков при публикации этого разбора инцидента.",
   "Number": "Число",
   "Number Available": "Доступное количество",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Количество обработанных событий аудита. Отслеживает пропускную способность конвейера аудита.",

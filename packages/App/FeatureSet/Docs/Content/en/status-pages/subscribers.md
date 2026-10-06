@@ -156,7 +156,7 @@ Subscribers hear about an incident's postmortem once, when it is published: the 
 - **A postmortem switched on with no note shows nothing**, so nobody is told until its note is written.
 - **Notify Subscribers is read when the notification goes out.** A postmortem published with it off is not announced, and switching it on afterwards does not send the notification it was published without.
 
-The notification's status is on the incident's **Postmortem** page; one that failed offers **Retry** (see [Retry and Resend](#retry-and-resend)). Through the API, writing `showPostmortemOnStatusPage` as `true` over a written `postmortemNote` publishes it, and writing `subscriberNotificationStatusOnPostmortemPublished` as `Pending` sends it again. A notification that is already waiting or being sent is not queued a second time.
+The notification's status is on the incident's **Postmortem** page; one that failed offers **Retry** (see [Retry and Resend](#retry-and-resend)). Through the API, writing `showPostmortemOnStatusPage` as `true` over a written `postmortemNote` publishes it, even when the request writes the whole incident back, its notification status as it stands included. Writing `subscriberNotificationStatusOnPostmortemPublished` as `Pending` sends it again. A notification that is already waiting or being sent is not queued a second time, and a postmortem published while one was being prepared is still announced once. The automatic AI postmortem draft is never written into a postmortem that is switched on, so an unreviewed draft never reaches subscribers.
 
 #### Previewing the email before it is sent
 

@@ -1,6 +1,7 @@
 import IncidentPostmortemPublication, {
   IncidentPostmortemState,
   IncidentPostmortemStoredState,
+  PostmortemNotificationAction,
 } from "../../../Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { describe, expect, test } from "@jest/globals";
@@ -371,7 +372,7 @@ describe("IncidentPostmortemPublication.isPublishedByUpdate", () => {
   });
 });
 
-describe("IncidentPostmortemPublication.shouldQueueNotification", () => {
+describe("IncidentPostmortemPublication.getNotificationAction", () => {
   function storedWith(
     status: StatusPageSubscriberNotificationStatus | undefined,
     state: IncidentPostmortemState = hidden(),
@@ -403,11 +404,11 @@ describe("IncidentPostmortemPublication.shouldQueueNotification", () => {
     "publishing queues a notification %s",
     (_label: string, status: StatusPageSubscriberNotificationStatus) => {
       expect(
-        IncidentPostmortemPublication.shouldQueueNotification({
+        IncidentPostmortemPublication.getNotificationAction({
           stored: storedWith(status),
           written: PUBLISH,
         }),
-      ).toBe(true);
+      ).toBe(PostmortemNotificationAction.Queue);
     },
   );
 
@@ -415,80 +416,163 @@ describe("IncidentPostmortemPublication.shouldQueueNotification", () => {
     ["waiting for the job", StatusPageSubscriberNotificationStatus.Pending],
     ["being sent", StatusPageSubscriberNotificationStatus.InProgress],
   ])(
-    "publishing does not queue one %s: it is on its way, and would go twice",
+    "publishing does not queue one %s - it would go twice - but looks again once written, in case the run holding it skipped it",
     (_label: string, status: StatusPageSubscriberNotificationStatus) => {
       expect(IncidentPostmortemPublication.isOnItsWay(status)).toBe(true);
       expect(
-        IncidentPostmortemPublication.shouldQueueNotification({
+        IncidentPostmortemPublication.getNotificationAction({
           stored: storedWith(status),
           written: PUBLISH,
         }),
-      ).toBe(false);
+      ).toBe(PostmortemNotificationAction.QueueIfSkippedMeanwhile);
     },
   );
 
   test.each([
-    ["Pending, the API's way of sending it again", "Pending"],
-    ["Skipped", "Skipped"],
-    ["Success", "Success"],
+    [
+      "Pending, the API's way of sending it again",
+      StatusPageSubscriberNotificationStatus.Success,
+      "Pending",
+    ],
+    [
+      "Skipped over a notification that went out",
+      StatusPageSubscriberNotificationStatus.Success,
+      "Skipped",
+    ],
+    [
+      "Success over one that was skipped",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "Success",
+    ],
   ])(
     "an update that sets the status to %s itself is left to it",
-    (_label: string, status: string) => {
-      expect(
-        IncidentPostmortemPublication.shouldQueueNotification({
-          stored: storedWith(StatusPageSubscriberNotificationStatus.Skipped),
-          written: {
-            ...PUBLISH,
-            subscriberNotificationStatusOnPostmortemPublished: status,
-          },
-        }),
-      ).toBe(false);
+    (
+      _label: string,
+      stored: StatusPageSubscriberNotificationStatus,
+      written: string,
+    ) => {
+      const update: {
+        stored: IncidentPostmortemStoredState;
+        written: Record<string, unknown>;
+      } = {
+        stored: storedWith(stored),
+        written: {
+          ...PUBLISH,
+          subscriberNotificationStatusOnPostmortemPublished: written,
+        },
+      };
+
+      expect(IncidentPostmortemPublication.isStatusSetByUpdate(update)).toBe(
+        true,
+      );
+      expect(IncidentPostmortemPublication.getNotificationAction(update)).toBe(
+        PostmortemNotificationAction.None,
+      );
     },
   );
 
-  test("an update that does not publish it queues nothing", () => {
+  test.each([
+    StatusPageSubscriberNotificationStatus.Skipped,
+    StatusPageSubscriberNotificationStatus.Success,
+    StatusPageSubscriberNotificationStatus.Failed,
+  ])(
+    "the status written back as it is stored (%s) - a client writing the whole incident back - is no choice: the publish queues it",
+    (status: StatusPageSubscriberNotificationStatus) => {
+      const update: {
+        stored: IncidentPostmortemStoredState;
+        written: Record<string, unknown>;
+      } = {
+        stored: storedWith(status),
+        written: {
+          ...PUBLISH,
+          subscriberNotificationStatusOnPostmortemPublished: status,
+        },
+      };
+
+      expect(IncidentPostmortemPublication.isStatusSetByUpdate(update)).toBe(
+        false,
+      );
+      expect(IncidentPostmortemPublication.getNotificationAction(update)).toBe(
+        PostmortemNotificationAction.Queue,
+      );
+    },
+  );
+
+  test("an update that writes no status sets none", () => {
     expect(
-      IncidentPostmortemPublication.shouldQueueNotification({
-        stored: storedWith(
-          StatusPageSubscriberNotificationStatus.Success,
-          shown(),
-        ),
-        written: { postmortemNote: `${NOTE}\n\nFollow-ups.` },
+      IncidentPostmortemPublication.isStatusSetByUpdate({
+        stored: storedWith(StatusPageSubscriberNotificationStatus.Skipped),
+        written: PUBLISH,
       }),
     ).toBe(false);
+  });
+
+  test("for an incident the read did not see, any status written is the caller's", () => {
+    expect(
+      IncidentPostmortemPublication.isStatusSetByUpdate({
+        stored: undefined,
+        written: {
+          subscriberNotificationStatusOnPostmortemPublished: "Skipped",
+        },
+      }),
+    ).toBe(true);
+  });
+
+  test("an update that does not publish it does nothing to it", () => {
+    for (const written of [
+      { postmortemNote: `${NOTE}\n\nFollow-ups.` },
+      { postmortemNote: NOTE, showPostmortemOnStatusPage: true },
+      { showPostmortemOnStatusPage: false },
+    ]) {
+      expect(
+        IncidentPostmortemPublication.getNotificationAction({
+          stored: storedWith(
+            StatusPageSubscriberNotificationStatus.Success,
+            shown(),
+          ),
+          written: written,
+        }),
+      ).toBe(PostmortemNotificationAction.None);
+    }
   });
 
   test("Notify Subscribers plays no part: the job reads it when it would send", () => {
     for (const notify of [true, false]) {
       expect(
-        IncidentPostmortemPublication.shouldQueueNotification({
+        IncidentPostmortemPublication.getNotificationAction({
           stored: storedWith(StatusPageSubscriberNotificationStatus.Skipped),
           written: {
             ...PUBLISH,
             notifySubscribersOnPostmortemPublished: notify,
           },
         }),
-      ).toBe(true);
+      ).toBe(PostmortemNotificationAction.Queue);
     }
 
     expect(
-      IncidentPostmortemPublication.shouldQueueNotification({
+      IncidentPostmortemPublication.getNotificationAction({
         stored: storedWith(
           StatusPageSubscriberNotificationStatus.Skipped,
           shown(),
         ),
         written: { notifySubscribersOnPostmortemPublished: true },
       }),
-    ).toBe(false);
+    ).toBe(PostmortemNotificationAction.None);
   });
 
-  test("an incident not read before the write queues on what the update writes alone", () => {
+  test("an incident not read before the write is queued on what the update writes alone", () => {
     expect(
-      IncidentPostmortemPublication.shouldQueueNotification({
+      IncidentPostmortemPublication.getNotificationAction({
         stored: undefined,
         written: { showPostmortemOnStatusPage: true, postmortemNote: NOTE },
       }),
-    ).toBe(true);
+    ).toBe(PostmortemNotificationAction.Queue);
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: undefined,
+        written: { showPostmortemOnStatusPage: true },
+      }),
+    ).toBe(PostmortemNotificationAction.None);
   });
 
   test("Skipped, Success and Failed are settled, not on their way", () => {
@@ -504,6 +588,38 @@ describe("IncidentPostmortemPublication.shouldQueueNotification", () => {
   });
 });
 
+describe("IncidentPostmortemPublication.isSwitchedOn", () => {
+  test.each([
+    ["true", true],
+    ['the string "true" a hand-written API request may send', "true"],
+    ['"TRUE" with spaces around it', " TRUE "],
+  ] as Array<[string, unknown]>)(
+    "%s switches it on, as Postgres stores it",
+    (_label: string, value: unknown) => {
+      expect(IncidentPostmortemPublication.isSwitchedOn(value)).toBe(true);
+      expect(
+        IncidentPostmortemPublication.isPublishedByUpdate({
+          stored: hidden(),
+          written: { showPostmortemOnStatusPage: value },
+        }),
+      ).toBe(true);
+    },
+  );
+
+  test.each([
+    ["false", false],
+    ['"false"', "false"],
+    ["null", null],
+    ["1", 1],
+    ['"yes"', "yes"],
+  ] as Array<[string, unknown]>)(
+    "%s does not",
+    (_label: string, value: unknown) => {
+      expect(IncidentPostmortemPublication.isSwitchedOn(value)).toBe(false);
+    },
+  );
+});
+
 describe("IncidentPostmortemPublication's messages", () => {
   test("the queued message says the postmortem was published and subscribers will hear", () => {
     expect(IncidentPostmortemPublication.queuedMessage).toBe(
@@ -511,12 +627,16 @@ describe("IncidentPostmortemPublication's messages", () => {
     );
   });
 
-  test("the skip reads like the job's other skips", () => {
+  test("the skips read like the job's other skips", () => {
     expect(IncidentPostmortemPublication.noNoteMessage).toMatch(
       /Skipping notifications to subscribers\.$/,
     );
     expect(IncidentPostmortemPublication.noNoteMessage).toContain(
       "has no note",
+    );
+    // Kept word for word: it is what incidents already show.
+    expect(IncidentPostmortemPublication.notShownMessage).toBe(
+      "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
     );
   });
 });

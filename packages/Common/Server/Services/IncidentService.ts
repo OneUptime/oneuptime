@@ -68,6 +68,7 @@ import IncidentCreatedRenotify from "../../Types/StatusPage/IncidentCreatedRenot
 import IncidentCreatedResend from "../../Types/StatusPage/IncidentCreatedResend";
 import IncidentPostmortemPublication, {
   IncidentPostmortemStoredState,
+  PostmortemNotificationAction,
 } from "../../Types/StatusPage/IncidentPostmortemPublication";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
@@ -79,6 +80,7 @@ import StatusPageService from "./StatusPageService";
 import StatusPageReadAccess from "../Utils/StatusPage/StatusPageReadAccess";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import Select from "../Types/Database/Select";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import Host from "../../Models/DatabaseModels/Host";
@@ -260,6 +262,11 @@ const TEMPLATE_KEYS: Array<string> = [
   "createdIncidentTemplateId",
   "createdIncidentTemplate",
 ];
+
+// Where an incident's postmortem notification stands, as read.
+type PostmortemNotificationStatusRead = {
+  status: StatusPageSubscriberNotificationStatus | null;
+};
 
 type IncidentUpdatePayload = {
   postmortemNote?: string | null;
@@ -872,23 +879,25 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const select: Dictionary<boolean> = {
+    const select: Select<Model> = {
       _id: true,
+      ...(writtenSeverityId
+        ? {
+            incidentSeverityId: true,
+          }
+        : {}),
+      ...(isPostmortemWritten
+        ? {
+            postmortemNote: true,
+            showPostmortemOnStatusPage: true,
+            subscriberNotificationStatusOnPostmortemPublished: true,
+          }
+        : {}),
     };
-
-    if (writtenSeverityId) {
-      select["incidentSeverityId"] = true;
-    }
-
-    if (isPostmortemWritten) {
-      select["postmortemNote"] = true;
-      select["showPostmortemOnStatusPage"] = true;
-      select["subscriberNotificationStatusOnPostmortemPublished"] = true;
-    }
 
     const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
       updateBy: updateBy,
-      select: select as Select<Model>,
+      select: select,
     });
 
     for (const incident of incidents) {
@@ -4138,9 +4147,14 @@ ${incident.remediationNotes || "No remediation notes provided."}
    *   incident holds - every save of the Edit Postmortem form does - records
    *   nothing;
    * - an update that publishes the postmortem - the status page did not show
-   *   it, and does now - queues its subscriber notification. Saving it
-   *   again, editing it while it is published and taking it off the status
-   *   page queue nothing; publishing it again after that does.
+   *   it, and does now - queues its subscriber notification
+   *   (getNotificationAction). Saving it again, editing it while it is
+   *   published and taking it off the status page queue nothing; publishing
+   *   it again after that does.
+   *
+   * Called once the update is written, and after the note's inline images
+   * were made public, so the notification never links to images the status
+   * page cannot show yet.
    */
   private async applyPostmortemUpdate(data: {
     incidentId: ObjectID;
@@ -4183,30 +4197,106 @@ ${incident.remediationNotes || "No remediation notes provided."}
       });
     }
 
-    if (IncidentPostmortemPublication.shouldQueueNotification(comparison)) {
+    const action: PostmortemNotificationAction =
+      IncidentPostmortemPublication.getNotificationAction(comparison);
+
+    if (action === PostmortemNotificationAction.Queue) {
       await this.queuePostmortemNotification({
         incidentId: data.incidentId,
-        statusBeforeUpdate:
-          data.postmortemBeforeUpdate
-            ?.subscriberNotificationStatusOnPostmortemPublished,
+        postmortemBeforeUpdate: data.postmortemBeforeUpdate,
       });
     }
+
+    if (action === PostmortemNotificationAction.QueueIfSkippedMeanwhile) {
+      /*
+       * It was on its way when the update read it. The run holding it may
+       * have read the postmortem before this update published it, and so
+       * skip it as not shown: looked at again now that the update is
+       * written, a notification skipped in the meantime is queued again.
+       */
+      const current: PostmortemNotificationStatusRead | null =
+        await this.readPostmortemNotificationStatus(data.incidentId);
+
+      if (
+        current &&
+        current.status === StatusPageSubscriberNotificationStatus.Skipped
+      ) {
+        await this.setPostmortemNotificationPending({
+          incidentId: data.incidentId,
+          expectedStatus: current.status,
+        });
+      }
+    }
+  }
+
+  /*
+   * Queues the postmortem's subscriber notification from where it stood
+   * before the update. An incident the read before the write did not see
+   * has no such record, so where it stands now is read instead, and a
+   * notification on its way already is left to go.
+   */
+  private async queuePostmortemNotification(data: {
+    incidentId: ObjectID;
+    postmortemBeforeUpdate: IncidentPostmortemStoredState | undefined;
+  }): Promise<void> {
+    if (data.postmortemBeforeUpdate) {
+      await this.setPostmortemNotificationPending({
+        incidentId: data.incidentId,
+        expectedStatus:
+          data.postmortemBeforeUpdate
+            .subscriberNotificationStatusOnPostmortemPublished ?? null,
+      });
+      return;
+    }
+
+    const current: PostmortemNotificationStatusRead | null =
+      await this.readPostmortemNotificationStatus(data.incidentId);
+
+    if (!current || IncidentPostmortemPublication.isOnItsWay(current.status)) {
+      return;
+    }
+
+    await this.setPostmortemNotificationPending({
+      incidentId: data.incidentId,
+      expectedStatus: current.status,
+    });
+  }
+
+  // Where the postmortem's subscriber notification stands; null when the incident is gone.
+  private async readPostmortemNotificationStatus(
+    incidentId: ObjectID,
+  ): Promise<PostmortemNotificationStatusRead | null> {
+    const incident: Model | null = await this.findOneById({
+      id: incidentId,
+      select: {
+        subscriberNotificationStatusOnPostmortemPublished: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      return null;
+    }
+
+    return {
+      status:
+        incident.subscriberNotificationStatusOnPostmortemPublished ?? null,
+    };
   }
 
   /*
    * Puts the postmortem's subscriber notification back to Pending, with a
    * message saying why, for Incident:SendPostmortemNotificationToSubscribers
-   * to send it - only while it still stands where it stood before the
-   * update, so a notification someone else queued again, or a job claimed,
-   * in the meantime is left to them. A hook-free write of those two columns,
-   * like the job's own claim (SubscriberNotificationClaim).
+   * to send it - only while it still stands at `expectedStatus`, so a
+   * notification someone else queued again, or a job claimed, in the
+   * meantime is left to them. A hook-free write of those two columns, like
+   * the job's own claim (SubscriberNotificationClaim).
    */
-  private async queuePostmortemNotification(data: {
+  private async setPostmortemNotificationPending(data: {
     incidentId: ObjectID;
-    statusBeforeUpdate:
-      | StatusPageSubscriberNotificationStatus
-      | undefined
-      | null;
+    expectedStatus: StatusPageSubscriberNotificationStatus | null;
   }): Promise<void> {
     const isQueued: boolean = await this.compareAndSetColumnsByIdWithoutHooks({
       id: data.incidentId,
@@ -4216,12 +4306,10 @@ ${incident.remediationNotes || "No remediation notes provided."}
         subscriberNotificationStatusMessageOnPostmortemPublished:
           IncidentPostmortemPublication.queuedMessage,
       },
-      expectedData: data.statusBeforeUpdate
-        ? {
-            subscriberNotificationStatusOnPostmortemPublished:
-              data.statusBeforeUpdate,
-          }
-        : {},
+      // A null status is matched as null (IS NOT DISTINCT FROM).
+      expectedData: {
+        subscriberNotificationStatusOnPostmortemPublished: data.expectedStatus,
+      } as unknown as PartialEntity<Model>,
     });
 
     if (!isQueued) {
@@ -4318,6 +4406,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
       }
     }
 
+    // Whether the update writes the postmortem's note or its switch.
+    const isPostmortemWritten: boolean =
+      IncidentPostmortemPublication.isWrittenBy(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      );
+
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
         const incident: Model | null = await this.findOneById({
@@ -4348,11 +4442,48 @@ ${incident.remediationNotes || "No remediation notes provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        if (
-          IncidentPostmortemPublication.isWrittenBy(
-            updatedIncidentData as Record<string, unknown>,
-          )
-        ) {
+        if (isPostmortemWritten) {
+          /*
+           * Sync isPublic on inline post-mortem images. The markdown
+           * editor uploads them as private; they must flip to public
+           * exactly when the post-mortem is shown on the status page so
+           * that anonymous status-page viewers can render the
+           * screenshots without exposing private artefacts. Done whenever
+           * the note or the switch is written, changed or not: it only
+           * sets each image to what the stored postmortem implies. Before
+           * the notification is queued, so it never links to images that
+           * are still private.
+           */
+          try {
+            const incidentForSync: Model | null = await this.findOneById({
+              id: incidentId,
+              select: {
+                postmortemNote: true,
+                showPostmortemOnStatusPage: true,
+                projectId: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+            if (incidentForSync) {
+              await setIsPublicForMarkdownImages(
+                incidentForSync.postmortemNote || "",
+                Boolean(incidentForSync.showPostmortemOnStatusPage),
+                incidentForSync.projectId,
+              );
+            }
+          } catch (syncError) {
+            logger.error(
+              `Failed to sync inline post-mortem image visibility: ${syncError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
+
           await this.applyPostmortemUpdate({
             incidentId: incidentId,
             projectId: projectId,
@@ -4498,51 +4629,6 @@ ${incident.remediationNotes || "No remediation notes provided."}
           } catch (metricError) {
             logger.error(
               `Failed to emit postmortem completion time metric: ${metricError}`,
-              {
-                projectId: projectId?.toString(),
-                incidentId: incidentId?.toString(),
-              } as LogAttributes,
-            );
-          }
-        }
-
-        /*
-         * Sync isPublic on inline post-mortem images. The markdown
-         * editor uploads them as private; they must flip to public
-         * exactly when the post-mortem is shown on the status page so
-         * that anonymous status-page viewers can render the
-         * screenshots without exposing private artefacts. Done whenever
-         * the note or the switch is written, changed or not: it only sets
-         * each image to what the stored postmortem implies.
-         */
-        if (
-          IncidentPostmortemPublication.isWrittenBy(
-            updatedIncidentData as Record<string, unknown>,
-          )
-        ) {
-          try {
-            const incidentForSync: Model | null = await this.findOneById({
-              id: incidentId,
-              select: {
-                postmortemNote: true,
-                showPostmortemOnStatusPage: true,
-                projectId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (incidentForSync) {
-              await setIsPublicForMarkdownImages(
-                incidentForSync.postmortemNote || "",
-                Boolean(incidentForSync.showPostmortemOnStatusPage),
-                incidentForSync.projectId,
-              );
-            }
-          } catch (syncError) {
-            logger.error(
-              `Failed to sync inline post-mortem image visibility: ${syncError}`,
               {
                 projectId: projectId?.toString(),
                 incidentId: incidentId?.toString(),

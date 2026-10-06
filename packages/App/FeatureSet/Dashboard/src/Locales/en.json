@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Notify owners when they are added by this rule. Disable to add silently.",
   "Notify Subscribers": "Notify Subscribers",
   "Notify subscribers of this state change.": "Notify subscribers of this state change.",
-  "Notify subscribers when this postmortem is published.": "Notify subscribers when this postmortem is published.",
   "Number": "Number",
   "Number Available": "Number Available",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Number of audit events processed. Monitors audit pipeline throughput.",

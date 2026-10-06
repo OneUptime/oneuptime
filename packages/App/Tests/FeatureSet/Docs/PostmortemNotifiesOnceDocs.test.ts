@@ -147,6 +147,51 @@ describe("the subscriber docs on the postmortem", () => {
     ).toBe(false);
   });
 
+  test("say a whole-record write-back still publishes, and a publish that races a send is still announced once", () => {
+    expect(english).toContain(
+      "even when the request writes the whole incident back, its notification status as it stands included",
+    );
+    expect(english).toContain(
+      "a postmortem published while one was being prepared is still announced once",
+    );
+
+    // The status written back as stored is no choice of the caller's.
+    expect(
+      IncidentPostmortemPublication.isStatusSetByUpdate({
+        stored: {
+          showPostmortemOnStatusPage: false,
+          postmortemNote: "Note",
+          subscriberNotificationStatusOnPostmortemPublished: "Skipped" as never,
+        },
+        written: {
+          showPostmortemOnStatusPage: true,
+          subscriberNotificationStatusOnPostmortemPublished: "Skipped",
+        },
+      }),
+    ).toBe(false);
+  });
+
+  test("say the automatic AI draft never reaches subscribers, as the runner does", () => {
+    expect(english).toContain(
+      "The automatic AI postmortem draft is never written into a postmortem that is switched on",
+    );
+
+    const aiSre: string = readDoc("en", "ai/ai-sre.md").replace(/\s+/g, " ");
+
+    expect(aiSre).toContain(
+      "is not written into a postmortem already switched on with **Publish on Status Page**",
+    );
+
+    const runner: string = readSource(
+      "Common/Server/Utils/AI/SRE/IncidentPostmortemRunner.ts",
+    );
+
+    expect(runner).toContain("showPostmortemOnStatusPage: true,");
+    expect(runner).toContain(
+      "if (incident.showPostmortemOnStatusPage === true) {",
+    );
+  });
+
   test("name API columns that incident editors may write", () => {
     const columns: Record<string, { update?: Array<Permission> }> =
       new Incident().getColumnAccessControlForAllColumns() as Record<

@@ -52,6 +52,13 @@ export type IncidentPostmortemColumn =
   | "showPostmortemOnStatusPage"
   | "postmortemNote";
 
+// What an update does to the postmortem's notification (getNotificationAction).
+export enum PostmortemNotificationAction {
+  None = "None",
+  Queue = "Queue",
+  QueueIfSkippedMeanwhile = "QueueIfSkippedMeanwhile",
+}
+
 export default class IncidentPostmortemPublication {
   public static readonly columns: ReadonlyArray<IncidentPostmortemColumn> = [
     "showPostmortemOnStatusPage",
@@ -62,7 +69,11 @@ export default class IncidentPostmortemPublication {
   public static readonly queuedMessage: string =
     "Postmortem published. Subscribers will be notified shortly.";
 
-  // Why the job skips a postmortem the status page does not show.
+  // Why the job skips a postmortem the status page does not show: switched off...
+  public static readonly notShownMessage: string =
+    "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.";
+
+  // ...or switched on without a note.
   public static readonly noNoteMessage: string =
     "The postmortem has no note, so the status page does not show it. Skipping notifications to subscribers.";
 
@@ -102,6 +113,19 @@ export default class IncidentPostmortemPublication {
   }
 
   /*
+   * Whether a written Publish on Status Page value switches it on. The API
+   * passes a boolean through as it is sent, and Postgres stores the string
+   * "true" as true, so a hand-written request's "true" switches it on too:
+   * the status page would show it.
+   */
+  public static isSwitchedOn(value: unknown): boolean {
+    return (
+      value === true ||
+      (typeof value === "string" && value.trim().toLowerCase() === "true")
+    );
+  }
+
+  /*
    * Whether an update writes the note or the switch. A column left out - or
    * sent as undefined, which writes nothing - is not written; a note sent as
    * null is, and clears it.
@@ -134,7 +158,7 @@ export default class IncidentPostmortemPublication {
     return {
       showPostmortemOnStatusPage:
         writtenSwitch !== undefined
-          ? writtenSwitch === true
+          ? this.isSwitchedOn(writtenSwitch)
           : data.stored?.showPostmortemOnStatusPage === true,
       postmortemNote:
         writtenNote !== undefined
@@ -187,9 +211,8 @@ export default class IncidentPostmortemPublication {
 
   /*
    * Whether a notification is on its way already: Pending waits for the
-   * job, which reads the incident when it sends it, so it carries what the
-   * update wrote; InProgress is being sent. Queueing either again would
-   * send it twice.
+   * job, InProgress is being sent. Queueing either again would send it
+   * twice.
    */
   public static isOnItsWay(
     status: StatusPageSubscriberNotificationStatus | undefined | null,
@@ -201,32 +224,65 @@ export default class IncidentPostmortemPublication {
   }
 
   /*
-   * Whether an update queues the postmortem's subscriber notification:
-   *
-   * - it publishes the postmortem (isPublishedByUpdate);
-   * - it does not set the notification's status itself. Pending is the API's
-   *   way of sending it again, and whoever sets another status means it;
-   * - the notification is not on its way already (isOnItsWay).
-   *
-   * Notify Subscribers plays no part: the job reads it when it would send.
+   * Whether the update sets the notification's status itself: Pending is
+   * the API's way of sending it again, and whoever sets another status
+   * means it. The status written back as it is stored - a client writing
+   * the whole incident back - is no such choice. For an incident the read
+   * before the write did not see, any status written counts.
    */
-  public static shouldQueueNotification(data: {
+  public static isStatusSetByUpdate(data: {
     stored: IncidentPostmortemStoredState | undefined | null;
     written: Record<string, unknown>;
   }): boolean {
-    if (!this.isPublishedByUpdate(data)) {
+    const writtenStatus: unknown =
+      data.written["subscriberNotificationStatusOnPostmortemPublished"];
+
+    if (writtenStatus === undefined) {
       return false;
+    }
+
+    if (!data.stored) {
+      return true;
+    }
+
+    return (
+      writtenStatus !==
+      data.stored.subscriberNotificationStatusOnPostmortemPublished
+    );
+  }
+
+  /*
+   * What an update does to the postmortem's subscriber notification:
+   *
+   * - nothing, unless it publishes the postmortem (isPublishedByUpdate),
+   *   and nothing when it sets the status itself (isStatusSetByUpdate);
+   * - Queue: put it back to Pending, from where it stood before the update;
+   * - QueueIfSkippedMeanwhile: it was on its way (isOnItsWay) when the
+   *   update read it. A Pending one is read afresh by the job, so it carries
+   *   the publish. But a run may already hold it, having read the postmortem
+   *   before the update published it, and skip it from that read; so once
+   *   the update is written, it is queued again if it was skipped in the
+   *   meantime. (The job looks again after such a skip too, for a skip
+   *   settled after that.)
+   *
+   * Notify Subscribers plays no part: the job reads it when it would send.
+   */
+  public static getNotificationAction(data: {
+    stored: IncidentPostmortemStoredState | undefined | null;
+    written: Record<string, unknown>;
+  }): PostmortemNotificationAction {
+    if (!this.isPublishedByUpdate(data) || this.isStatusSetByUpdate(data)) {
+      return PostmortemNotificationAction.None;
     }
 
     if (
-      data.written["subscriberNotificationStatusOnPostmortemPublished"] !==
-      undefined
+      this.isOnItsWay(
+        data.stored?.subscriberNotificationStatusOnPostmortemPublished,
+      )
     ) {
-      return false;
+      return PostmortemNotificationAction.QueueIfSkippedMeanwhile;
     }
 
-    return !this.isOnItsWay(
-      data.stored?.subscriberNotificationStatusOnPostmortemPublished,
-    );
+    return PostmortemNotificationAction.Queue;
   }
 }

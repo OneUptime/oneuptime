@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "当此规则添加所有者时通知他们。禁用以静默添加。",
   "Notify Subscribers": "通知订阅者",
   "Notify subscribers of this state change.": "将此状态更改通知订阅者。",
-  "Notify subscribers when this postmortem is published.": "当此事后分析发布时通知订阅者。",
   "Number": "数字",
   "Number Available": "可用数量",
   "Number of audit events processed. Monitors audit pipeline throughput.": "已处理的审计事件数量。监控审计管道吞吐量。",

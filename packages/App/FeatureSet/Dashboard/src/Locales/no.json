@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Varsle eiere når de legges til av denne regelen. Deaktiver for å legge til uten varsel.",
   "Notify Subscribers": "Varsle abonnenter",
   "Notify subscribers of this state change.": "Varsle abonnenter om denne statusendringen.",
-  "Notify subscribers when this postmortem is published.": "Varsle abonnenter når denne evalueringen publiseres.",
   "Number": "Antall",
   "Number Available": "Antall tilgjengelig",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Antall behandlede revisjonshendelser. Overvåker gjennomstrømning i revisjonsrørledningen.",

@@ -389,6 +389,34 @@ describe("PUT an incident's postmortem", () => {
     expect(written()).toEqual({ showPostmortemOnStatusPage: true });
   });
 
+  test("a client that reads the incident, switches publishing on and writes it all back - its notification status included - still tells subscribers once", async () => {
+    stored.showPostmortemOnStatusPage = false;
+    stored.subscriberNotificationStatusOnPostmortemPublished =
+      StatusPageSubscriberNotificationStatus.Skipped;
+
+    await put({
+      title: "Checkout errors",
+      isVisibleOnStatusPage: true,
+      postmortemNote: NOTE,
+      showPostmortemOnStatusPage: true,
+      notifySubscribersOnPostmortemPublished: true,
+      postmortemPostedAt: PUBLISHED_AT,
+      // As read: an echo, not a choice.
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+    });
+
+    expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(postmortemNotificationsQueued()).toEqual([
+      expect.objectContaining({
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+        },
+      }),
+    ]);
+  });
+
   test("changing the note of a published postmortem records it once and tells nobody", async () => {
     await put({ postmortemNote: `${NOTE}\n\nFollow-up: add a canary stage.` });
 

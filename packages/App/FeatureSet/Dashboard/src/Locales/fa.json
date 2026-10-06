@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "وقتی مالکان با این قاعده افزوده می‌شوند به آن‌ها اطلاع بده. برای افزودن بی‌صدا غیرفعال کنید.",
   "Notify Subscribers": "اطلاع به مشترکان",
   "Notify subscribers of this state change.": "این تغییر وضعیت را به مشترکان اطلاع بده.",
-  "Notify subscribers when this postmortem is published.": "هنگام انتشار این گزارش پس از حادثه به مشترکان اطلاع بده.",
   "Number": "شماره",
   "Number Available": "شماره در دسترس",
   "Number of audit events processed. Monitors audit pipeline throughput.": "تعداد رویدادهای ممیزی پردازش‌شده. توان عبوری خط لوله ممیزی را پایش می‌کند.",

@@ -19,7 +19,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * IncidentService.generatePostmortemFromAI) and saves it to the incident for a
  * human to review and edit — turning a ~90-minute manual writeup into a review.
  *
- * It NEVER overwrites a postmortem that already exists (human work wins), is
+ * It NEVER overwrites a postmortem that already exists (human work wins),
+ * never drafts into one already switched on for the status page (the draft
+ * would go out unreviewed, and subscribers be told about it), is
  * gated by its own per-project opt-in (Project.enableAutomaticPostmortemDraft)
  * plus the same AI switch, LLM provider, AI balance and project daily AI
  * limits as investigations, and is fire-and-forget: failures are logged,
@@ -91,6 +93,7 @@ export default class AIIncidentPostmortemRunner {
           _id: true,
           incidentNumber: true,
           postmortemNote: true,
+          showPostmortemOnStatusPage: true,
         },
         props: { isRoot: true },
       });
@@ -104,6 +107,16 @@ export default class AIIncidentPostmortemRunner {
         incident.postmortemNote &&
         incident.postmortemNote.trim().length > 0
       ) {
+        return;
+      }
+
+      /*
+       * A draft is for a human to review. Saved into a postmortem already
+       * switched on for the status page, it would be the note the status
+       * page shows the moment it is written - published unreviewed, and
+       * announced to every subscriber (IncidentPostmortemPublication).
+       */
+      if (incident.showPostmortemOnStatusPage === true) {
         return;
       }
 

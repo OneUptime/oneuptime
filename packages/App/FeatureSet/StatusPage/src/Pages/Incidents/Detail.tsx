@@ -33,6 +33,7 @@ import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -216,10 +217,14 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     }
   }
 
+  /*
+   * The postmortem is on the status page while Publish on Status Page is on
+   * and its note says something: the same rule the server notifies
+   * subscribers by (IncidentPostmortemPublication).
+   */
   if (
-    incident.showPostmortemOnStatusPage &&
     incident.postmortemNote &&
-    incident.postmortemNote.trim() !== ""
+    IncidentPostmortemPublication.isPublished(incident)
   ) {
     const postmortemDate: Date =
       incident.postmortemPostedAt ||

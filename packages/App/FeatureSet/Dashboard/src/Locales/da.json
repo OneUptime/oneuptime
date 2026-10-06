@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Underret ejere, når de tilføjes af denne regel. Deaktiver for at tilføje uden notifikation.",
   "Notify Subscribers": "Underret abonnenter",
   "Notify subscribers of this state change.": "Underret abonnenter om denne tilstandsændring.",
-  "Notify subscribers when this postmortem is published.": "Underret abonnenter, når denne postmortem offentliggøres.",
   "Number": "Tal",
   "Number Available": "Antal tilgængelige",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Antal behandlede revisionshændelser. Overvåger gennemstrømning i revisions-pipelinen.",

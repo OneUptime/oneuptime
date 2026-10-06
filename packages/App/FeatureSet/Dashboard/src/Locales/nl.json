@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Stel eigenaren op de hoogte wanneer ze door deze regel worden toegevoegd. Schakel uit om ze stil toe te voegen.",
   "Notify Subscribers": "Abonnees op de hoogte stellen",
   "Notify subscribers of this state change.": "Stel abonnees op de hoogte van deze statuswijziging.",
-  "Notify subscribers when this postmortem is published.": "Stel abonnees op de hoogte wanneer deze postmortem wordt gepubliceerd.",
   "Number": "Nummer",
   "Number Available": "Aantal beschikbaar",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Aantal verwerkte auditgebeurtenissen. Bewaakt de doorvoer van de auditpijplijn.",

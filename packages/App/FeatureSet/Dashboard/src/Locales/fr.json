@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Notifier les propriétaires lorsqu'ils sont ajoutés par cette règle. Désactivez pour ajouter en silence.",
   "Notify Subscribers": "Notifier les abonnés",
   "Notify subscribers of this state change.": "Notifier les abonnés de ce changement d'état.",
-  "Notify subscribers when this postmortem is published.": "Notifier les abonnés lorsque ce post-mortem est publié.",
   "Number": "Nombre",
   "Number Available": "Nombre disponible",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Nombre d'événements d'audit traités. Surveille le débit du pipeline d'audit.",

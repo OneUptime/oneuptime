@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "이 규칙에 의해 소유자가 추가될 때 알립니다. 자동으로 알림 없이 추가하려면 비활성화하세요.",
   "Notify Subscribers": "구독자에게 알림",
   "Notify subscribers of this state change.": "이 상태 변경을 구독자에게 알립니다.",
-  "Notify subscribers when this postmortem is published.": "이 사후 분석이 게시되면 구독자에게 알립니다.",
   "Number": "숫자",
   "Number Available": "사용 가능 수",
   "Number of audit events processed. Monitors audit pipeline throughput.": "처리된 감사 이벤트 수. 감사 파이프라인 처리량을 모니터링합니다.",
