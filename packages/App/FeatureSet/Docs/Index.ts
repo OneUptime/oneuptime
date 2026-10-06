@@ -5,6 +5,7 @@ import DocsRender from "./Utils/Render";
 import {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
+  getDocsLanguageDirection,
   getLocalizedNav,
   isSupportedDocsLanguage,
   localizeDocsUrl,
@@ -26,6 +27,12 @@ import logger from "Common/Server/Utils/Logger";
 import "ejs";
 import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 
+interface DocsContent {
+  markdown: string;
+  // The copy's own language: English when the page is not translated yet.
+  lang: string;
+}
+
 /*
  * Read a markdown file for the given language, falling back to English when
  * the translated copy does not exist. Returns null when no copy can be found.
@@ -33,17 +40,23 @@ import { GoogleTagManagerEnabled } from "Common/Server/EnvironmentConfig";
 async function readContent(
   fullPath: string,
   lang: string,
-): Promise<string | null> {
-  const candidates: Array<string> = [
-    `${ContentPath}/${lang}/${fullPath}.md`,
-    `${ContentPath}/${DEFAULT_DOCS_LANGUAGE}/${fullPath}.md`,
+): Promise<DocsContent | null> {
+  const candidates: Array<{ path: string; lang: string }> = [
+    { path: `${ContentPath}/${lang}/${fullPath}.md`, lang: lang },
+    {
+      path: `${ContentPath}/${DEFAULT_DOCS_LANGUAGE}/${fullPath}.md`,
+      lang: DEFAULT_DOCS_LANGUAGE,
+    },
     // Legacy layout before translations existed (Content/<path>.md)
-    `${ContentPath}/${fullPath}.md`,
+    { path: `${ContentPath}/${fullPath}.md`, lang: DEFAULT_DOCS_LANGUAGE },
   ];
 
   for (const candidate of candidates) {
-    if (await LocalFile.doesFileExist(candidate)) {
-      return LocalFile.read(candidate);
+    if (await LocalFile.doesFileExist(candidate.path)) {
+      return {
+        markdown: await LocalFile.read(candidate.path),
+        lang: candidate.lang,
+      };
     }
   }
   return null;
@@ -354,7 +367,7 @@ const DocsFeatureSet: FeatureSet = {
           const fullPath: string =
             `${req.params["categorypath"]}/${req.params["pagepath"]}`.toLowerCase();
 
-          const content: string | null = await readContent(fullPath, lang);
+          const content: DocsContent | null = await readContent(fullPath, lang);
           if (content === null) {
             res.status(404);
             return res.send("");
@@ -362,7 +375,7 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(
             req,
             res,
-            DocsPlaceholders.render(content, lang),
+            DocsPlaceholders.render(content.markdown, lang),
           );
         } catch (err) {
           logger.error(err);
@@ -381,7 +394,7 @@ const DocsFeatureSet: FeatureSet = {
         try {
           const fullPath: string =
             `${req.params["categorypath"]}/${req.params["pagepath"]}`.toLowerCase();
-          const content: string | null = await readContent(
+          const content: DocsContent | null = await readContent(
             fullPath,
             DEFAULT_DOCS_LANGUAGE,
           );
@@ -392,7 +405,7 @@ const DocsFeatureSet: FeatureSet = {
           return Response.sendMarkdownResponse(
             req,
             res,
-            DocsPlaceholders.render(content, DEFAULT_DOCS_LANGUAGE),
+            DocsPlaceholders.render(content.markdown, DEFAULT_DOCS_LANGUAGE),
           );
         } catch (err) {
           logger.error(err);
@@ -425,17 +438,15 @@ const DocsFeatureSet: FeatureSet = {
           const fullPath: string =
             `${req.params["categorypath"]}/${req.params["pagepath"]}`.toLowerCase();
 
-          let contentInMarkdown: string | null = await readContent(
-            fullPath,
-            lang,
-          );
+          const content: DocsContent | null = await readContent(fullPath, lang);
 
-          if (contentInMarkdown === null) {
+          if (content === null) {
             res.status(404);
             return res.render(`${ViewsPath}/NotFound`, {
               nav: localizedNav,
               t: t,
               lang: lang,
+              dir: getDocsLanguageDirection(lang),
               supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
               enableGoogleTagManager: GoogleTagManagerEnabled,
               link: null,
@@ -447,7 +458,10 @@ const DocsFeatureSet: FeatureSet = {
            * Strip the first line (title) — it already shows up in the page
            * header chrome.
            */
-          contentInMarkdown = contentInMarkdown.split("\n").slice(1).join("\n");
+          let contentInMarkdown: string = content.markdown
+            .split("\n")
+            .slice(1)
+            .join("\n");
 
           contentInMarkdown = DocsPlaceholders.render(contentInMarkdown, lang);
 
@@ -477,6 +491,7 @@ const DocsFeatureSet: FeatureSet = {
               nav: localizedNav,
               t: t,
               lang: lang,
+              dir: getDocsLanguageDirection(lang),
               supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
               enableGoogleTagManager: GoogleTagManagerEnabled,
               link: null,
@@ -543,8 +558,16 @@ const DocsFeatureSet: FeatureSet = {
             nav: localizedNav,
             t: t,
             lang: lang,
+            dir: getDocsLanguageDirection(lang),
             supportedLanguages: SUPPORTED_DOCS_LANGUAGES,
             content: renderedContent,
+            /*
+             * An untranslated page shows the English copy: the article is
+             * marked as English, so it reads left to right inside a
+             * right-to-left page and screen readers switch voice for it.
+             */
+            contentLang: content.lang,
+            contentDir: getDocsLanguageDirection(content.lang),
             category: localizedCategory,
             link: localizedLink,
             githubPath: fullPath,

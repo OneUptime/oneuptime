@@ -1,4 +1,4 @@
-<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" dir="<%= typeof dir !== 'undefined' ? dir : 'ltr' %>" class="h-full antialiased">
 
 <head>
     <%- include('./Partials/Head.ejs', {
@@ -41,18 +41,26 @@
 
         <!-- Main content area: 3-column layout on xl -->
         <div class="relative z-0 mx-auto flex w-full max-w-8xl flex-auto justify-center sm:px-2 lg:px-8 xl:px-10">
-            <!-- Desktop sidebar (left) -->
+            <!-- Desktop sidebar (at the start: left, or right on a right-to-left page) -->
             <div class="docs-layout-sidebar max-lg:hidden lg:relative lg:block lg:flex-none">
-                <div class="docs-sidebar-tint absolute inset-y-0 right-0 w-[50vw]" aria-hidden="true"></div>
-                <div id="docs-sidebar-scroll" class="docs-scroll sticky top-14 -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-6">
+                <div class="docs-sidebar-tint absolute inset-y-0 end-0 w-[50vw]" aria-hidden="true"></div>
+                <div id="docs-sidebar-scroll" class="docs-scroll sticky top-14 -ms-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 ps-0.5 pe-6">
                     <%- include('./Partials/Nav.ejs', { nav: nav, category: category, link: link, t: t, lang: lang, navIdPrefix: 'sidebar' }) %>
                 </div>
             </div>
 
             <!-- Article content (center) -->
-            <div class="min-w-0 flex-auto px-5 py-8 sm:px-6 lg:py-12 lg:pl-10 lg:pr-0 xl:pl-14 xl:pr-8">
+            <div class="min-w-0 flex-auto px-5 py-8 sm:px-6 lg:py-12 lg:ps-10 lg:pe-0 xl:ps-14 xl:pe-8">
                 <div class="mx-auto w-full max-w-[46rem] xl:mx-0">
-                    <%- include('./Partials/Content.ejs', { category: category, link: link, content: content, t: t, lang: lang }) %>
+                    <%- include('./Partials/Content.ejs', {
+                        category: category,
+                        link: link,
+                        content: content,
+                        t: t,
+                        lang: lang,
+                        contentLang: typeof contentLang !== 'undefined' ? contentLang : null,
+                        contentDir: typeof contentDir !== 'undefined' ? contentDir : null
+                    }) %>
 
                     <%- include('./Partials/Pagination.ejs', {
                         prevLink: typeof prevLink !== 'undefined' ? prevLink : null,
@@ -64,9 +72,9 @@
                 </div>
             </div>
 
-            <!-- TOC sidebar (right) - visible on xl only -->
+            <!-- TOC sidebar (at the end) - visible on xl only -->
             <div id="toc-panel" class="max-xl:hidden xl:block xl:w-56 xl:flex-none 2xl:w-64">
-                <nav class="docs-toc docs-scroll py-12 pr-4" aria-labelledby="toc-heading">
+                <nav class="docs-toc docs-scroll py-12 pe-4" aria-labelledby="toc-heading">
                     <h2 id="toc-heading" class="docs-toc__title mb-3"><%- t('ui.onThisPage') %></h2>
                     <ul id="toc-list" role="list"></ul>
                     <a class="docs-toc__top" href="#docs-header">
