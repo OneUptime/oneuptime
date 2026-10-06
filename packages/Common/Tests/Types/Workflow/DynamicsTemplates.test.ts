@@ -33,6 +33,7 @@ import {
   getTemplateGraphSpec,
   getWorkflowTemplate,
   getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplates,
   getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
 import {
@@ -322,6 +323,18 @@ describe("the Dynamics 365 category", () => {
         return template.id;
       }),
     ).toEqual(ALL_IDS);
+  });
+
+  test("a template is in the Dynamics 365 category exactly when its id says dynamics-", () => {
+    for (const template of getWorkflowTemplates()) {
+      expect({
+        id: template.id,
+        inCategory: template.category === WorkflowTemplateCategory.Dynamics365,
+      }).toEqual({
+        id: template.id,
+        inCategory: template.id.startsWith("dynamics-"),
+      });
+    }
   });
 
   test("each is filed under the record it works on", () => {
