@@ -441,9 +441,9 @@ describe("a new summary's time zone", () => {
 
     // Nothing to add: the write's own name is stored.
     expect(write.timezone).toBeUndefined();
-    // 09:00 in Los Angeles: 16:00 UTC on Mon 12 Oct (PDT).
+    // It is 05:00 in Los Angeles: this Monday's 09:00 PDT is 16:00 UTC.
     expect(write.sendFirstReportAt?.toISOString()).toBe(
-      "2026-10-12T16:00:00.000Z",
+      "2026-10-05T16:00:00.000Z",
     );
   });
 });

@@ -4,6 +4,7 @@ import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import Timezone from "Common/Types/Timezone";
 import WorkspaceSummaryScheduleUtil, {
   WorkspaceSummaryScheduleWrite,
 } from "Common/Utils/Workspace/WorkspaceSummarySchedule";
@@ -121,8 +122,7 @@ function summary(data: {
   }
 
   if (data.timezone) {
-    (workspaceSummary as unknown as { timezone: string }).timezone =
-      data.timezone;
+    workspaceSummary.timezone = data.timezone as Timezone;
   }
 
   return workspaceSummary;
