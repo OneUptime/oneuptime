@@ -55,7 +55,8 @@ import { DataSourceOptions, MigrationInterface, QueryRunner } from "typeorm";
  * creates lives in a uniquely named schema that is dropped afterwards; it
  * needs no migrated tables.
  */
-const describePostgres: typeof describe =
+// describe.skip's type is the one both branches share.
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_SCHEMA_MIGRATION_LOCK_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -110,7 +111,13 @@ function migration(
 ): MigrationClass {
   return class implements MigrationInterface {
     public name: string = name;
-    public transaction: boolean | undefined = options.transaction;
+    // Optional on MigrationInterface, so it is set only when given.
+    public transaction?: boolean;
+    public constructor() {
+      if (options.transaction !== undefined) {
+        this.transaction = options.transaction;
+      }
+    }
     public async up(queryRunner: QueryRunner): Promise<void> {
       await up(queryRunner);
     }
