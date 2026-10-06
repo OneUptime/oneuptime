@@ -453,7 +453,10 @@ beforeEach(() => {
     .mockImplementation(
       async (
         _projectId: ObjectID,
-        subject?: { incidentId?: ObjectID; alertId?: ObjectID },
+        subject?: {
+          incidentId?: ObjectID | undefined;
+          alertId?: ObjectID | undefined;
+        },
       ) => {
         const lane: Lane = subject?.incidentId ? "Incident" : "Alert";
         return {
