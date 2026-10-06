@@ -29,8 +29,6 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
-  // Who was on call when: reading it is what the plan sells.
-  readStaysGated: true,
 })
 @TenantColumn("projectId")
 @EnableWorkflow({

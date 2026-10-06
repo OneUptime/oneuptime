@@ -67,6 +67,7 @@ export default class BasePermission {
         select,
         props,
         type,
+        updateData,
       );
 
       // add user scope if any

@@ -36,8 +36,6 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
-  // On-call logs: reading them is what the plan sells.
-  readStaysGated: true,
 })
 @EnableWorkflow({
   create: true,

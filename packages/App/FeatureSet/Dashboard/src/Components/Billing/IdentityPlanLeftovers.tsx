@@ -1,5 +1,6 @@
 import { PlanLeftoverTitle } from "./PlanLeftoverCopy";
 import PlanLeftoverTable from "./PlanLeftoverTable";
+import RequireSsoForLoginLeftover from "../Project/RequireSsoForLoginLeftover";
 import StatusPageRequireSsoLeftover from "../StatusPage/StatusPageRequireSsoLeftover";
 import {
   IDENTITY_REQUIRED_PLAN,
@@ -70,20 +71,29 @@ export const ProjectSamlProvidersLeftover: FunctionComponent =
     );
   };
 
-// Settings > OIDC: the project's OIDC providers.
+/*
+ * Settings > OIDC: "Require SSO for Login" while the project still requires
+ * it, as on Settings > SSO - turning the last provider off while it does
+ * would leave nobody a way in - then the project's OIDC providers.
+ */
 export const ProjectOidcProvidersLeftover: FunctionComponent =
   (): ReactElement => {
+    const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+
     return (
-      <PlanLeftoverTable<ProjectOIDC>
-        modelType={ProjectOIDC}
-        id="project-oidc-providers"
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
-        requiredPlan={SSO_REQUIRED_PLAN}
-        title={PlanLeftoverTitle.oidcProviders}
-        columns={nameColumns<ProjectOIDC>()}
-      />
+      <>
+        <RequireSsoForLoginLeftover projectId={projectId} />
+        <PlanLeftoverTable<ProjectOIDC>
+          modelType={ProjectOIDC}
+          id="project-oidc-providers"
+          query={{
+            projectId: projectId,
+          }}
+          requiredPlan={SSO_REQUIRED_PLAN}
+          title={PlanLeftoverTitle.oidcProviders}
+          columns={nameColumns<ProjectOIDC>()}
+        />
+      </>
     );
   };
 
@@ -130,21 +140,29 @@ export const StatusPageSamlProvidersLeftover: FunctionComponent =
     );
   };
 
-// Status page > OIDC: its OIDC providers.
+/*
+ * Status page > OIDC: "Require SSO for Login" while the status page still
+ * requires it, as on its SSO page, then its OIDC providers.
+ */
 export const StatusPageOidcProvidersLeftover: FunctionComponent =
   (): ReactElement => {
+    const statusPageId: ObjectID = getStatusPageId();
+
     return (
-      <PlanLeftoverTable<StatusPageOIDC>
-        modelType={StatusPageOIDC}
-        id="status-page-oidc-providers"
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          statusPageId: getStatusPageId().toString(),
-        }}
-        requiredPlan={SSO_REQUIRED_PLAN}
-        title={PlanLeftoverTitle.oidcProviders}
-        columns={nameColumns<StatusPageOIDC>()}
-      />
+      <>
+        <StatusPageRequireSsoLeftover statusPageId={statusPageId} />
+        <PlanLeftoverTable<StatusPageOIDC>
+          modelType={StatusPageOIDC}
+          id="status-page-oidc-providers"
+          query={{
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            statusPageId: statusPageId.toString(),
+          }}
+          requiredPlan={SSO_REQUIRED_PLAN}
+          title={PlanLeftoverTitle.oidcProviders}
+          columns={nameColumns<StatusPageOIDC>()}
+        />
+      </>
     );
   };
 

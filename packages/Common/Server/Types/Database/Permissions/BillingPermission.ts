@@ -8,6 +8,7 @@ import BaseModel, {
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
+  canDeletePlanGatedTableBelowPlan,
   canReadPlanGatedTableBelowPlan,
   isPlanGatedTableSwitchOff,
 } from "../../../../Types/Billing/PlanGatedTable";
@@ -24,12 +25,13 @@ export default class BillingPermissions {
    *
    * Each operation needs the plan the table names for it, refused with that
    * plan's name - except what a project may always do with the records it
-   * already has, whatever its plan (Types/Billing/PlanGatedTable): read
-   * them (unless reading them is what the plan sells), switch one off, and
-   * delete them. So configuration a trial left behind, or that a move to a
-   * lower plan left over, can always be seen, switched off and removed,
-   * while creating it, switching it back on and changing it still need the
-   * plan.
+   * already has, whatever its plan (Types/Billing/PlanGatedTable): delete
+   * them (unless deleting one gives more than the plan allows), switch one
+   * off, and read them where they are configuration that keeps working
+   * after a downgrade. So what a trial left behind, or a move to a lower
+   * plan left over, can always be removed - and seen and switched off where
+   * it would otherwise go on working unseen - while creating it, switching
+   * it back on and changing it still need the plan.
    *
    * `updateData` is what an update writes, before a service's hooks or
    * after them: the switch-off can only be recognised in it. Callers that
@@ -42,6 +44,38 @@ export default class BillingPermissions {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
     updateData?: unknown,
+  ): void {
+    BillingPermissions.check(modelType, props, type, {
+      allowLeftovers: true,
+      updateData: updateData,
+    });
+  }
+
+  /*
+   * The plan check without what a project may still do with its leftovers,
+   * for a route that uses a feature rather than manages its records. The
+   * Schedule Timeline works out who is on call over time from schedules a
+   * project below Growth may still read - to find and delete them - and
+   * that working-out is what the plan sells. Refused with the plan's name;
+   * nothing is asked where billing is off or the plan is not known, as in
+   * the check above.
+   */
+  @CaptureSpan()
+  public static checkFeatureIsOnPlan(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): void {
+    BillingPermissions.check(modelType, props, type, {
+      allowLeftovers: false,
+    });
+  }
+
+  private static check(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+    options: { allowLeftovers: boolean; updateData?: unknown },
   ): void {
     /// Check billing permissions.
 
@@ -76,7 +110,10 @@ export default class BillingPermissions {
         return;
       }
 
-      if (BillingPermissions.isAllowedBelowPlan(model, type, updateData)) {
+      if (
+        options.allowLeftovers &&
+        BillingPermissions.isAllowedBelowPlan(model, type, options.updateData)
+      ) {
         return;
       }
 
@@ -91,8 +128,9 @@ export default class BillingPermissions {
   /*
    * What a project below the table's plan for this operation may still do
    * with the records it has (see Types/Billing/PlanGatedTable): read them,
-   * unless the table says reading them is what the plan sells; delete them;
-   * and an update that only switches them off. Never a create.
+   * where the table is configuration that keeps working after a downgrade;
+   * delete them, unless deleting one gives more than the plan allows; and
+   * an update that only switches them off. Never a create.
    */
   public static isAllowedBelowPlan(
     model: BaseModel,
@@ -104,7 +142,7 @@ export default class BillingPermissions {
     }
 
     if (type === DatabaseRequestType.Delete) {
-      return true;
+      return canDeletePlanGatedTableBelowPlan(model);
     }
 
     if (type === DatabaseRequestType.Update) {

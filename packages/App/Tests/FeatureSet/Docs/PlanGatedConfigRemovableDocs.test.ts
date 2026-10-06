@@ -10,7 +10,8 @@ import path from "path";
  * that still authenticate, schedules that still page people - and every plan
  * can read it, switch it off and delete it (Common/Types/Billing/
  * PlanGatedTable); creating, changing and switching back on still need the
- * plan. The English guides say where that is done and what is left gated.
+ * plan, and so does reading anything else a plan sells. The English guides
+ * say where that is done and what is left gated.
  * Markdown is not compiled, so nothing else notices a guide that falls
  * behind.
  */
@@ -64,20 +65,25 @@ describe("the API reference", () => {
     );
   });
 
-  it("says what a project may still do with what it has: read, switch off with isEnabled alone, delete", () => {
-    expect(section).toContain("- you can list and read those records;");
+  it("says what a project may still do with what it has: delete, switch off with isEnabled alone, and read what keeps working", () => {
+    expect(section).toContain("- you can delete those records;");
     expect(section).toContain(
       '- you can switch one off, on a resource with an `isEnabled` field, by sending `"isEnabled": false` and nothing else;',
     );
-    expect(section).toContain("- you can delete them.");
+    expect(section).toContain(
+      "- you can list and read the ones that keep working after the plan goes down: single sign-on providers, SCIM connections, API keys and their permissions, on-call schedules, and Slack and Microsoft Teams notification rules and summaries.",
+    );
   });
 
-  it("says the permissions are unchanged, and which reads stay gated", () => {
+  it("says the permissions are unchanged, which reads keep the plan, and why an API key's permissions stay", () => {
     expect(section).toContain(
       "The usual permissions still decide who can do each, exactly as on the plan.",
     );
     expect(section).toContain(
-      "such as on-call logs and form submissions; reading those is part of what the plan sells, so it still needs the plan.",
+      "Reading the other resources a plan sells, such as templates, custom fields, monitor groups, on-call logs and form submissions, still needs the plan: reading them is using the feature.",
+    );
+    expect(section).toContain(
+      "An API key's permissions are not deleted one by one below **Growth**, because deleting a block permission would give the key more access; delete the key instead.",
     );
   });
 
@@ -111,9 +117,12 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("warns to let a status page's private users back in first", () => {
+  it("warns to let people back in first, on the SSO and OIDC pages alike", () => {
     expect(section).toContain(
-      "While the status page still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
+      "While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off, or nobody can sign in with SSO any more.",
+    );
+    expect(section).toContain(
+      "While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",
     );
   });
 });
@@ -189,6 +198,12 @@ describe("the Terraform troubleshooting guide", () => {
 
     expect(page).toContain(
       "below the plan, the ones the project already has can still be read (so `terraform plan` and `import` work), deleted (so removing them from the configuration, or `terraform destroy`, applies), and switched off where they have an `is_enabled` attribute. Creating them, changing them or switching them on again still answers 402.",
+    );
+    expect(page).toContain(
+      "Other resources your plan sells, such as templates, custom fields and monitor groups, still need the plan to be read, so a plan that refreshes them answers 402; they can still be deleted, for example with `terraform destroy -refresh=false`.",
+    );
+    expect(page).toContain(
+      "run `terraform state rm` on the permission resources, then destroy the key, and its permissions go with it.",
     );
   });
 });

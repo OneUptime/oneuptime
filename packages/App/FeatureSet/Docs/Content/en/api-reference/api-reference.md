@@ -22,11 +22,11 @@ On OneUptime Cloud, some resources are sold on a plan: single sign-on providers 
 
 What a project already has stays manageable whatever its plan, for example after a trial ends or the plan goes down:
 
-- you can list and read those records;
+- you can delete those records;
 - you can switch one off, on a resource with an `isEnabled` field, by sending `"isEnabled": false` and nothing else;
-- you can delete them.
+- you can list and read the ones that keep working after the plan goes down: single sign-on providers, SCIM connections, API keys and their permissions, on-call schedules, and Slack and Microsoft Teams notification rules and summaries.
 
-The usual permissions still decide who can do each, exactly as on the plan. A few resources hold what a feature produced as it ran, such as on-call logs and form submissions; reading those is part of what the plan sells, so it still needs the plan.
+The usual permissions still decide who can do each, exactly as on the plan. Reading the other resources a plan sells, such as templates, custom fields, monitor groups, on-call logs and form submissions, still needs the plan: reading them is using the feature. An API key's permissions are not deleted one by one below **Growth**, because deleting a block permission would give the key more access; delete the key instead.
 
 API keys keep working after a plan goes down. Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**.
 

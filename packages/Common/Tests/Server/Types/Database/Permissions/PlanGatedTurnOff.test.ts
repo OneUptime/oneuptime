@@ -733,7 +733,7 @@ describe("table-level plan gates name the plan the operation needs", () => {
     expect(checked).toBeGreaterThan(100);
   });
 
-  test("reads and deletes of the records a table holds name no plan, except the reads a plan sells", () => {
+  test("reads and deletes of the records a table holds follow the leftovers rule: reads of configuration that keeps working, deletes except where one gives more", () => {
     const props: DatabaseCommonInteractionProps = {
       userId: USER_ID,
       tenantId: PROJECT_ID,
@@ -767,7 +767,9 @@ describe("table-level plan gates name the plan the operation needs", () => {
         }
 
         const staysGated: boolean =
-          operation === DatabaseRequestType.Read && model.readStaysGated;
+          operation === DatabaseRequestType.Read
+            ? !model.readableBelowPlan
+            : Boolean(model.deleteStaysGated);
 
         expect([modelType.name, operation, message]).toEqual([
           modelType.name,

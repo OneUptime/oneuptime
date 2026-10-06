@@ -37,8 +37,6 @@ import IncidentEpisode from "./IncidentEpisode";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
-  // On-call logs: reading them is what the plan sells.
-  readStaysGated: true,
 })
 @EnableDocumentation()
 @CanAccessIfCanReadOn("onCallDutyPolicy")

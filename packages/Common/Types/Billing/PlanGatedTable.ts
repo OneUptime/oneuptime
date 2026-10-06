@@ -9,23 +9,26 @@ import TableColumnType from "../Database/TableColumnType";
  * single sign-on providers and SCIM connections (Scale), Slack and
  * Microsoft Teams notification rules and summaries, API keys and on-call
  * schedules (Growth), and more. A project that drops below the plan - a
- * trial ends, a downgrade - keeps what it set up, and much of it keeps
+ * trial ends, a downgrade - keeps what it set up, and some of it keeps
  * working: SSO providers sign people in, SCIM connections provision them,
  * rules post to channels, API keys authenticate, schedules page people. So
  * whatever its plan, a project can still, for the records it already has:
  *
- *   - read them;
+ *   - delete them, on every plan-gated table - except a table whose records
+ *     restrict something, where deleting one gives more than the plan
+ *     allows (an API key's block permissions: deleteStaysGated);
  *   - switch one off: an update that writes its switch - the isEnabled
  *     column - false, and nothing else;
- *   - delete them.
+ *   - read them, on the tables of configuration that keeps working after a
+ *     downgrade and has to be found to be stopped (readableBelowPlan).
+ *     Every other plan-gated table keeps its read plan: reading its records
+ *     is using the feature - a template applied, a group's status worked
+ *     out, a log read - and features read their configuration with the
+ *     caller's permissions, so a read allowed below the plan would be the
+ *     feature working below it.
  *
  * Creating a record, switching one back on and every other change still
  * need the plan, and are refused with the plan's name.
- *
- * Reading stays gated only where reading is what the plan sells: a table
- * whose records a feature produced as it ran - on-call logs, form
- * submissions - rather than configuration people made says so with
- * @TableBillingAccessControl({ readStaysGated: true }).
  *
  * Only the plan is relaxed. Who may read, switch off or delete is decided
  * exactly as on the plan: the table's and the columns' permissions, labels,
@@ -41,9 +44,10 @@ import TableColumnType from "../Database/TableColumnType";
 // The column that switches a record of a plan-gated table on and off.
 export const PLAN_GATED_TABLE_SWITCH_COLUMN: string = "isEnabled";
 
-// What this rule needs to know of a model: its columns and its read flag.
+// What this rule needs to know of a model: its columns and its flags.
 export interface PlanGatedTableModel {
-  readStaysGated?: boolean | undefined;
+  readableBelowPlan?: boolean | undefined;
+  deleteStaysGated?: boolean | undefined;
   getTableColumnMetadata: (columnName: string) => TableColumnMetadata;
 }
 
@@ -70,8 +74,12 @@ export const getPlanGatedTableSwitchColumn: (
  * column, and every column it writes is the table's switch, written false.
  * The comparison is exact - "false", 0 or null is not false - and one more
  * column, whatever it holds, makes it an ordinary update. Columns set to
- * undefined are not written and are ignored. Anything that is not a plain
- * object of columns is not a switch-off.
+ * undefined are not written and are ignored.
+ *
+ * Only a plain object of columns qualifies. Anything else - an array, a
+ * model, an object whose prototype carries more values - is not a
+ * switch-off: a value on the prototype is not among the object's own
+ * columns, yet a write that reads columns by name would still write it.
  */
 export const isPlanGatedTableSwitchOff: (
   model: PlanGatedTableModel,
@@ -83,7 +91,9 @@ export const isPlanGatedTableSwitchOff: (
     return false;
   }
 
-  if (Array.isArray(data)) {
+  const prototype: unknown = Object.getPrototypeOf(data);
+
+  if (prototype !== Object.prototype && prototype !== null) {
     return false;
   }
 
@@ -104,10 +114,22 @@ export const isPlanGatedTableSwitchOff: (
 
 /*
  * Whether a project below the table's read plan may still read the records
- * it has: yes, unless reading them is what the plan sells (readStaysGated).
+ * it has: only on the tables of configuration that keeps working after a
+ * downgrade (readableBelowPlan).
  */
 export const canReadPlanGatedTableBelowPlan: (
   model: PlanGatedTableModel,
 ) => boolean = (model: PlanGatedTableModel): boolean => {
-  return !model.readStaysGated;
+  return Boolean(model.readableBelowPlan);
+};
+
+/*
+ * Whether a project below the table's delete plan may still delete the
+ * records it has: yes, unless deleting one gives more than the plan allows
+ * (deleteStaysGated).
+ */
+export const canDeletePlanGatedTableBelowPlan: (
+  model: PlanGatedTableModel,
+) => boolean = (model: PlanGatedTableModel): boolean => {
+  return !model.deleteStaysGated;
 };

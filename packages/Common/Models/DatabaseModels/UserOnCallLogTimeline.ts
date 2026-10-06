@@ -49,8 +49,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
-  // On-call logs: reading them is what the plan sells.
-  readStaysGated: true,
 })
 @EnableDocumentation()
 @CanAccessIfCanReadOn("onCallDutyPolicy")

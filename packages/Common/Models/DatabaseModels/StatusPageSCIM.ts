@@ -33,6 +33,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Scale,
   update: PlanType.Scale,
   delete: PlanType.Scale,
+  // Provisions private users after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")

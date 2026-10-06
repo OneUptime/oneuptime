@@ -4393,13 +4393,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
+      // A model becomes the columns it writes before anything judges it.
+      updateBy.data = this.sanitizeUpdateData(updateBy.data);
+
       this.checkCallerBeforeHooks(
         updateBy.props,
         DatabaseRequestType.Update,
         updateBy.data,
       );
-
-      updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
       // Query operators are for queries, not for write payloads. See the helper.
       this.rejectQueryOperatorsInData(updateBy.data);
@@ -4993,8 +4994,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return await this.findWithAccessControlIds(updateById.id);
       },
       props: updateById.props,
-      // Below the table's update plan, a switch-off still passes.
-      updateData: updateById.data,
+      /*
+       * Below the table's update plan, a switch-off still passes: judged on
+       * the columns the update writes, as _updateBy judges it.
+       */
+      updateData: this.sanitizeUpdateData(updateById.data),
     });
 
     return await this.updateOneBy({

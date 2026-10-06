@@ -19,8 +19,12 @@ export default (accessControl: TableBillingAccessControl) => {
       ctr.prototype.deleteBillingPlan = accessControl.delete;
     }
 
-    if (accessControl.readStaysGated) {
-      ctr.prototype.readStaysGated = true;
+    if (accessControl.readableBelowPlan) {
+      ctr.prototype.readableBelowPlan = true;
+    }
+
+    if (accessControl.deleteStaysGated) {
+      ctr.prototype.deleteStaysGated = true;
     }
   };
 };

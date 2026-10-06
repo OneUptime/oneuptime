@@ -129,7 +129,7 @@ function placeholdersOf(text: string): Array<string> {
 }
 
 describe("the server's rule, which the dashboard asks", () => {
-  test("BillingPermission lets reads, deletes and switch-offs through below the plan, by the shared rule", () => {
+  test("BillingPermission lets deletes, switch-offs and reads of leftover configuration through below the plan, by the shared rule", () => {
     const billing: string = readSource(
       path.join(
         COMMON_ROOT,
@@ -142,11 +142,18 @@ describe("the server's rule, which the dashboard asks", () => {
     );
 
     expect(billing).toContain(
-      "if (BillingPermissions.isAllowedBelowPlan(model, type, updateData)) { return; }",
+      "if ( options.allowLeftovers && BillingPermissions.isAllowedBelowPlan(model, type, options.updateData) ) { return; }",
     );
     expect(billing).toContain("return canReadPlanGatedTableBelowPlan(model);");
     expect(billing).toContain(
+      "return canDeletePlanGatedTableBelowPlan(model);",
+    );
+    expect(billing).toContain(
       "return isPlanGatedTableSwitchOff(model, updateData);",
+    );
+    // A route that uses the feature asks the plan without the leftovers.
+    expect(billing).toContain(
+      "public static checkFeatureIsOnPlan( modelType: DatabaseBaseModelType, props: DatabaseCommonInteractionProps, type: DatabaseRequestType, ): void { BillingPermissions.check(modelType, props, type, { allowLeftovers: false, }); }",
     );
   });
 
@@ -228,17 +235,31 @@ describe("the Scale pages draw what is left under their upsell", () => {
         `<PlanLeftoverTable<${model}> modelType={${model}}`,
       );
       expect(body).toContain(`requiredPlan={${plan}}`);
-      expect(body).toContain("projectId: ProjectUtil.getCurrentProjectId()!");
+      expect(body).toContain("ProjectUtil.getCurrentProjectId()!");
     },
   );
 
-  test("a status page's SAML leftovers start with its Require SSO for Login switch", () => {
+  test("a status page's SAML and OIDC leftovers start with its Require SSO for Login switch", () => {
     const source: string = readDashboard(
       "Components/Billing/IdentityPlanLeftovers.tsx",
     );
 
     expect(source).toContain(
       "<StatusPageRequireSsoLeftover statusPageId={statusPageId} /> <PlanLeftoverTable<StatusPageSSO>",
+    );
+    expect(source).toContain(
+      "<StatusPageRequireSsoLeftover statusPageId={statusPageId} /> <PlanLeftoverTable<StatusPageOIDC>",
+    );
+  });
+
+  // Turning the last provider off while SSO is required leaves no way in.
+  test("the project's OIDC leftovers start with its Require SSO for Login switch, as Settings > SSO does", () => {
+    const source: string = readDashboard(
+      "Components/Billing/IdentityPlanLeftovers.tsx",
+    );
+
+    expect(source).toContain(
+      "<RequireSsoForLoginLeftover projectId={projectId} /> <PlanLeftoverTable<ProjectOIDC>",
     );
   });
 });

@@ -15,9 +15,10 @@ import React, {
 } from "react";
 
 /*
- * Status page > SSO below the Scale plan, on OneUptime Cloud: the page is
- * the plan's upsell, with the SAML providers the status page still has
- * under it (PlanLeftoverTable), to turn off or delete.
+ * Status page > SSO and > OIDC below the Scale plan, on OneUptime Cloud:
+ * each page is the plan's upsell, with the SAML or OIDC providers the
+ * status page still has under it (PlanLeftoverTable), to turn off or
+ * delete.
  *
  * A status page a Scale trial left requiring SSO still requires it: its
  * private users can sign in with SSO or OIDC only. Turning its providers

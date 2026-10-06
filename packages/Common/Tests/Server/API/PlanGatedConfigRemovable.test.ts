@@ -98,7 +98,8 @@ jest.mock("../../../Server/Utils/Response", () => {
  * Before this, below the plan none of it could even be read, let alone
  * switched off or removed. Now every plan reads what the project has,
  * switches it off and deletes it; creating, switching back on and changing
- * still need the plan, refused with its name.
+ * still need the plan, refused with its name - and so does deleting an API
+ * key's permissions one by one, and reading what a feature produced (logs).
  */
 
 const PLAN_ENVIRONMENT: Record<string, string> = {
@@ -586,6 +587,36 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
     expect(writes).toEqual([{ isEnabled: true }]);
   });
 
+  /*
+   * Express parses a body's "__proto__" key as an ordinary property. Copied
+   * by assignment it would become the payload's prototype, whose values -
+   * a provider's teams, its name - no check that lists the payload's own
+   * columns sees, yet the write reads them by name. The key is dropped
+   * when the body is read (JSONFunctions.deserialize), and a payload that
+   * still carries a prototype is no switch-off (PlanGatedTable).
+   */
+  test("a switch-off whose body hides columns under __proto__ writes the switch alone", async () => {
+    const data: JSONObject = JSON.parse(
+      '{"isEnabled": false, "__proto__": {"name": "Renamed", "teams": []}}',
+    ) as JSONObject;
+
+    expect(Object.keys(data)).toEqual(["isEnabled", "__proto__"]);
+
+    for (const provider of providers) {
+      writes = [];
+
+      expect([provider.name, await update(provider, data)]).toEqual([
+        provider.name,
+        "done",
+      ]);
+
+      expect([provider.name, writes]).toEqual([
+        provider.name,
+        [{ isEnabled: false }],
+      ]);
+    }
+  });
+
   test("who may do it is unchanged: switching off needs the provider's edit permission, deleting its delete permission", async () => {
     for (const provider of [SAML_PROVIDER, OIDC_PROVIDER]) {
       expect(
@@ -757,13 +788,43 @@ describe("API keys a Growth trial left behind, on Free", () => {
     stored = { name: "CI deploys" };
   });
 
-  test("a key, and what it may do, can be read and deleted - so a leaked key can be revoked on any plan", async () => {
+  test("a key, and what it may do, can be read, and the key deleted - so a leaked key can be revoked on any plan", async () => {
     expect(await read(API_KEY, { name: true, expiresAt: true })).toBe("done");
     expect(await read(API_KEY_PERMISSION, { permission: true })).toBe("done");
 
     expect(await remove(API_KEY)).toBe("done");
+    expect(deletes).toBe(1);
+  });
+
+  /*
+   * A block permission narrows the key, so deleting one gives the key
+   * more - a change the plan gates. Deleting the key takes its permissions
+   * with it.
+   */
+  test("its permissions are not deleted one by one below Growth: deleting a block would give the key more", async () => {
+    for (const isBlockPermission of [true, false]) {
+      stored = {
+        permission: Permission.DeleteProjectMonitor,
+        isBlockPermission,
+      };
+
+      expect([isBlockPermission, await remove(API_KEY_PERMISSION)]).toEqual([
+        isBlockPermission,
+        refusalFor(PlanType.Growth),
+      ]);
+    }
+
+    expect(deletes).toBe(0);
+
+    // On Growth, as before.
+    currentPlan = PlanType.Growth;
+    stored = {
+      permission: Permission.DeleteProjectMonitor,
+      isBlockPermission: false,
+    };
+
     expect(await remove(API_KEY_PERMISSION)).toBe("done");
-    expect(deletes).toBe(2);
+    expect(deletes).toBe(1);
   });
 
   test("but a key cannot be added, renamed or extended, and it gains nothing new", async () => {
@@ -802,7 +863,7 @@ describe("on-call schedules a Growth trial left behind, on Free", () => {
     );
   });
 
-  test("its on-call logs stay unreadable: reading them is what Growth sells", async () => {
+  test("its on-call logs stay unreadable: only configuration that keeps working is read below the plan", async () => {
     expect(await read(ON_CALL_LOG, { _id: true })).toBe(
       refusalFor(PlanType.Growth),
     );

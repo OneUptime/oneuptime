@@ -41,17 +41,24 @@ import {
  * schedules page people. So on OneUptime Cloud (billing on), for the
  * records a project already has, whatever its plan (Types/Billing/
  * PlanGatedTable):
- *   - reading them is allowed - except on the tables that say reading is
- *     what the plan sells (readStaysGated: on-call logs, form submissions);
- *   - deleting them is allowed;
+ *   - deleting them is allowed - except on a table whose records restrict
+ *     something, where deleting one gives more than the plan allows (an API
+ *     key's block permissions: deleteStaysGated);
  *   - an update that only switches them off (isEnabled false, nothing else)
  *     is allowed;
+ *   - reading them is allowed on the tables of configuration that keeps
+ *     working after a downgrade (readableBelowPlan: SSO providers, SCIM
+ *     connections, API keys, schedules, Slack and Microsoft Teams rules).
+ *     Every other table keeps its read plan: features read their
+ *     configuration with the caller's permissions, so a read allowed below
+ *     the plan would be the feature working below it;
  *   - creating, switching back on and every other update still need the
  *     plan, refused with its name.
  *
  * This sweeps EVERY plan-gated table, so a new one is covered the day it is
- * added, and pins the tables whose reads stay gated and the tables that can
- * be switched off, so adding to either list is a decision someone makes.
+ * added, and pins the tables readable below the plan, the tables whose
+ * deletes keep the plan and the tables that can be switched off, so adding
+ * to any of them is a decision someone makes.
  */
 jest.mock("../../../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../../../Enterprise/TestBillingFlag") =
@@ -90,22 +97,38 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("6d000000-0000-4000-8000-000000000002");
 
 /*
- * The tables whose records are what a feature produced as it ran, not
- * configuration people made: reading them is what the plan sells, so a
- * project below the read plan cannot read them. Adding a table here keeps
- * its reads gated below the plan; leaving a new table out lets every plan
- * read the records it has.
+ * The tables of configuration that keeps working after a project drops below
+ * the plan - signing people in, provisioning them, authenticating, paging,
+ * posting - and that someone has to find to stop: below the read plan, the
+ * records a project has stay readable. Each has a view under its page's
+ * upsell (Dashboard Components/Billing). A table added here is readable
+ * below its plan by every feature that reads it with the caller's
+ * permissions, so each one is a decision.
  */
-const READ_STAYS_GATED_TABLES: ReadonlyArray<string> = [
-  "AIAgentTaskPullRequest",
-  "FormSubmission",
-  "OnCallDutyPolicyExecutionLog",
-  "OnCallDutyPolicyExecutionLogTimeline",
-  "OnCallDutyPolicyTimeLog",
-  "StatusPagePrivateUserSession",
-  "UserOnCallLog",
-  "UserOnCallLogTimeline",
+const READABLE_BELOW_PLAN_TABLES: ReadonlyArray<string> = [
+  "ApiKey",
+  "APIKeyPermission",
+  "OnCallDutyPolicySchedule",
+  "ProjectOIDC",
+  "ProjectSCIM",
+  "ProjectSSO",
+  "StatusPageOIDC",
+  "StatusPageSCIM",
+  "StatusPageSSO",
+  "WorkspaceNotificationRule",
+  "WorkspaceNotificationSummary",
 ];
+
+/*
+ * The tables whose records restrict something, so deleting one gives more
+ * than the plan allows: below the delete plan they are not deleted. An API
+ * key's block permissions narrow the key; the key itself can still be
+ * deleted, and its permissions go with it.
+ */
+const DELETE_STAYS_GATED_TABLES: ReadonlyArray<string> = ["APIKeyPermission"];
+
+// A column that marks a record as a restriction (a block, a deny).
+const RESTRICTION_COLUMN: RegExp = /^is(Block|Deny|Excluded?)/;
 
 /*
  * The plan-gated tables whose updates need a plan above Free and that have
@@ -330,19 +353,19 @@ describe("the plan-gated tables", () => {
     );
   });
 
-  test("whose reads stay gated below the plan are exactly the activity tables, each with a read plan above Free", () => {
-    const readStaysGated: Array<string> = GATED_TABLES.filter(
+  test("readable below the plan are exactly the configuration that keeps working, each with a read plan above Free", () => {
+    const readable: Array<string> = GATED_TABLES.filter(
       (table: GatedTable): boolean => {
-        return Boolean(new table.modelType().readStaysGated);
+        return Boolean(new table.modelType().readableBelowPlan);
       },
     ).map((table: GatedTable): string => {
       return table.name;
     });
 
-    expect(readStaysGated).toEqual([...READ_STAYS_GATED_TABLES]);
+    expect(readable).toEqual([...READABLE_BELOW_PLAN_TABLES]);
 
     for (const table of GATED_TABLES) {
-      if (!READ_STAYS_GATED_TABLES.includes(table.name)) {
+      if (!READABLE_BELOW_PLAN_TABLES.includes(table.name)) {
         continue;
       }
 
@@ -352,6 +375,79 @@ describe("the plan-gated tables", () => {
         table.name,
         Boolean(readPlan && readPlan !== PlanType.Free),
       ]).toEqual([table.name, true]);
+    }
+  });
+
+  test("whose deletes keep the plan are exactly these, each with a delete plan above Free", () => {
+    const deleteStaysGated: Array<string> = GATED_TABLES.filter(
+      (table: GatedTable): boolean => {
+        return Boolean(new table.modelType().deleteStaysGated);
+      },
+    ).map((table: GatedTable): string => {
+      return table.name;
+    });
+
+    expect(deleteStaysGated).toEqual([...DELETE_STAYS_GATED_TABLES]);
+
+    for (const table of GATED_TABLES) {
+      if (!DELETE_STAYS_GATED_TABLES.includes(table.name)) {
+        continue;
+      }
+
+      const deletePlan: PlanType | null =
+        table.plans[DatabaseRequestType.Delete];
+
+      expect([
+        table.name,
+        Boolean(deletePlan && deletePlan !== PlanType.Free),
+      ]).toEqual([table.name, true]);
+    }
+  });
+
+  /*
+   * A record that restricts something - a block, a deny - widens access
+   * when it is deleted. A delete-gated table with such a column has to keep
+   * its delete plan, or a project below the plan could lift a restriction
+   * the plan put there.
+   */
+  test("with a restriction column (a block permission) keep their delete plan", () => {
+    const restricting: Array<string> = [];
+
+    for (const table of GATED_TABLES) {
+      const deletePlan: PlanType | null =
+        table.plans[DatabaseRequestType.Delete];
+
+      if (!deletePlan || deletePlan === PlanType.Free) {
+        continue;
+      }
+
+      const model: BaseModel = new table.modelType();
+
+      const hasRestriction: boolean = model
+        .getTableColumns()
+        .columns.some((column: string): boolean => {
+          const metadata: TableColumnMetadata =
+            model.getTableColumnMetadata(column);
+
+          return (
+            Boolean(metadata) &&
+            metadata.type === TableColumnType.Boolean &&
+            RESTRICTION_COLUMN.test(column)
+          );
+        });
+
+      if (hasRestriction) {
+        restricting.push(table.name);
+      }
+    }
+
+    expect(restricting).toEqual(["APIKeyPermission"]);
+
+    for (const name of restricting) {
+      expect([name, DELETE_STAYS_GATED_TABLES.includes(name)]).toEqual([
+        name,
+        true,
+      ]);
     }
   });
 
@@ -412,7 +508,12 @@ describe.each(GATED_TABLE_CASES)("%s", (_name: string, table: GatedTable) => {
   const switchColumn: string | null = getPlanGatedTableSwitchColumn(
     new table.modelType(),
   );
-  const readStaysGated: boolean = READ_STAYS_GATED_TABLES.includes(table.name);
+  const readableBelowPlan: boolean = READABLE_BELOW_PLAN_TABLES.includes(
+    table.name,
+  );
+  const deleteStaysGated: boolean = DELETE_STAYS_GATED_TABLES.includes(
+    table.name,
+  );
 
   test("below the create plan, creating is refused with the plan's name", () => {
     const createPlan: PlanType | null = table.plans[DatabaseRequestType.Create];
@@ -437,9 +538,9 @@ describe.each(GATED_TABLE_CASES)("%s", (_name: string, table: GatedTable) => {
   });
 
   test(
-    readStaysGated
-      ? "below the read plan, reading stays refused: it is what the plan sells"
-      : "below the read plan, the records it has can still be read",
+    readableBelowPlan
+      ? "below the read plan, the records it has can still be read"
+      : "below the read plan, reading stays refused with the plan's name",
     () => {
       const readPlan: PlanType | null = table.plans[DatabaseRequestType.Read];
 
@@ -449,18 +550,56 @@ describe.each(GATED_TABLE_CASES)("%s", (_name: string, table: GatedTable) => {
           check({ table, operation: DatabaseRequestType.Read, plan }),
         ]).toEqual([
           plan,
-          readStaysGated ? refusalFor(readPlan as PlanType) : "allowed",
+          readableBelowPlan ? "allowed" : refusalFor(readPlan as PlanType),
         ]);
       }
     },
   );
 
-  test("below the delete plan, the records it has can still be deleted", () => {
-    for (const plan of plansBelow(table.plans[DatabaseRequestType.Delete])) {
-      expect([
-        plan,
-        check({ table, operation: DatabaseRequestType.Delete, plan }),
-      ]).toEqual([plan, "allowed"]);
+  test(
+    deleteStaysGated
+      ? "below the delete plan, deleting stays refused: a deleted record would give more than the plan allows"
+      : "below the delete plan, the records it has can still be deleted",
+    () => {
+      const deletePlan: PlanType | null =
+        table.plans[DatabaseRequestType.Delete];
+
+      for (const plan of plansBelow(deletePlan)) {
+        expect([
+          plan,
+          check({ table, operation: DatabaseRequestType.Delete, plan }),
+        ]).toEqual([
+          plan,
+          deleteStaysGated ? refusalFor(deletePlan as PlanType) : "allowed",
+        ]);
+      }
+    },
+  );
+
+  // A route that uses the feature asks the plan without the leftovers rule.
+  test("the feature's own plan check refuses every operation below its plan", () => {
+    for (const operation of OPERATIONS) {
+      const required: PlanType | null = table.plans[operation];
+
+      for (const plan of plansBelow(required)) {
+        let answer: string = "allowed";
+
+        try {
+          BillingPermissions.checkFeatureIsOnPlan(
+            table.modelType,
+            propsOnPlan(plan),
+            operation,
+          );
+        } catch (err) {
+          answer = (err as Error).message;
+        }
+
+        expect([operation, plan, answer]).toEqual([
+          operation,
+          plan,
+          refusalFor(required as PlanType),
+        ]);
+      }
     }
   });
 

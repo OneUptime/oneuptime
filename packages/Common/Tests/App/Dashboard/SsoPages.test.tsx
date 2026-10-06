@@ -1102,16 +1102,16 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
       expect(licenseRequests()).toEqual([]);
 
       /*
-       * Every page counts the providers it still has (none here). The two
-       * SAML pages also ask whether SSO is still required - the project's,
-       * or the status page's - so it can be turned off (it is not here).
+       * Every page counts the providers it still has (none here), and asks
+       * whether SSO is still required - the project's on its settings pages,
+       * the status page's on a status page's - so it can be turned off
+       * before the last provider is (it is not required here).
        */
       expect(allRequests().sort()).toEqual(
         [
-          ...(pageCase.name === "Settings > SSO" ? [PROJECT_READ_URL] : []),
-          ...(pageCase.name === "Status page > SSO"
-            ? [STATUS_PAGE_READ_URL]
-            : []),
+          pageCase.name.startsWith("Settings")
+            ? PROJECT_READ_URL
+            : STATUS_PAGE_READ_URL,
           countUrl(pageCase.leftover.countPath),
         ].sort(),
       );
@@ -1539,6 +1539,38 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
     expect(allRequests()).toEqual([]);
   });
 
+  /*
+   * The project's OIDC providers sign the same people in: turning the last
+   * one off while the project requires SSO would leave nobody a way in, so
+   * Settings > OIDC draws the switch too.
+   */
+  test("Settings > OIDC draws it too, while the project requires SSO", async () => {
+    const settingsOidc: PageCase = PAGE_CASES.find(
+      (pageCase: PageCase): boolean => {
+        return pageCase.name === "Settings > OIDC";
+      },
+    ) as PageCase;
+
+    pinCloud(PlanType.Free);
+    projectRequiresSsoForTest = true;
+
+    renderPage(settingsOidc);
+
+    await settle();
+
+    expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+
+    const requireSso: HTMLElement = screen.getByTestId(REQUIRE_SSO_SWITCH_CARD);
+
+    expect(requireSso).toHaveAttribute("data-model", "Project");
+    expect(requireSso).toHaveAttribute("data-model-id", PROJECT_ID);
+    expect(requireSso).toHaveAttribute("data-locks-when-plan-needed", "true");
+    expect(requireSso).toHaveAttribute("data-initial-value", "true");
+    expect(allRequests().sort()).toEqual(
+      [PROJECT_READ_URL, countUrl("/project-oidc")].sort(),
+    );
+  });
+
   test("the status page SSO page never draws the project's switch", async () => {
     const statusPageSso: PageCase = PAGE_CASES.find(
       (pageCase: PageCase): boolean => {
@@ -1732,7 +1764,12 @@ describe("Status page > SSO below Scale: Require SSO for Login stays reachable w
     expectPlanUpsell(statusPageSso);
   });
 
-  test("the OIDC page never draws it", async () => {
+  /*
+   * Its OIDC providers sign the same viewers in: turning the last one off
+   * while the status page requires SSO would shut them out just the same,
+   * so its OIDC page draws the switch too.
+   */
+  test("its OIDC page draws it too, while the status page requires SSO", async () => {
     const statusPageOidc: PageCase = PAGE_CASES.find(
       (pageCase: PageCase): boolean => {
         return pageCase.name === "Status page > OIDC";
@@ -1746,8 +1783,38 @@ describe("Status page > SSO below Scale: Require SSO for Login stays reachable w
 
     await settle();
 
+    expect(screen.getAllByText("Upgrade to Scale")).toHaveLength(2);
+
+    const requireSso: HTMLElement = screen.getByTestId(
+      STATUS_PAGE_REQUIRE_SSO_SWITCH_CARD,
+    );
+
+    expect(requireSso).toHaveAttribute("data-model", "StatusPage");
+    expect(requireSso).toHaveAttribute("data-model-id", STATUS_PAGE_ID);
+    expect(requireSso).toHaveAttribute("data-initial-value", "true");
+    expect(
+      screen.queryByTestId(REQUIRE_SSO_SWITCH_CARD),
+    ).not.toBeInTheDocument();
+    expect(allRequests().sort()).toEqual(
+      [STATUS_PAGE_READ_URL, countUrl("/status-page-oidc")].sort(),
+    );
+  });
+
+  test("its OIDC page draws nothing for it when the status page does not require SSO", async () => {
+    const statusPageOidc: PageCase = PAGE_CASES.find(
+      (pageCase: PageCase): boolean => {
+        return pageCase.name === "Status page > OIDC";
+      },
+    ) as PageCase;
+
+    pinCloud(PlanType.Free);
+    statusPageRequiresSsoForTest = false;
+
+    renderPage(statusPageOidc);
+
+    await settle();
+
     expectPlanUpsell(statusPageOidc);
-    expect(allRequests()).toEqual([countUrl("/status-page-oidc")]);
   });
 });
 

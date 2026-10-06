@@ -7,16 +7,23 @@ export default interface TableBillingAccessControl {
   update: PlanType;
   delete: PlanType;
   /*
-   * Below its plans, a project can still read, switch off and delete the
-   * records of a plan-gated table it already has: they are configuration
-   * people made, and most of it keeps working after a downgrade (see
-   * Types/Billing/PlanGatedTable).
+   * Configuration that keeps working after a project drops below the
+   * table's plans, and that someone has to find to stop it: single sign-on
+   * providers, SCIM connections, API keys, on-call schedules, Slack and
+   * Microsoft Teams rules. The records a project already has stay readable
+   * below the read plan, so they can be seen, switched off and deleted
+   * (Types/Billing/PlanGatedTable).
    *
-   * Set this on a table whose records are not configuration but what a
-   * feature produced as it ran - on-call logs, form submissions, the pull
-   * requests an AI agent opened - where reading them is what the plan
-   * sells. Below the read plan they stay unreadable; they can still be
-   * deleted.
+   * Every other plan-gated table keeps its read plan: reading its records
+   * is using the feature - a template applied, a group's status worked
+   * out, a log read. Its records can still be deleted below the plan, and
+   * switched off where they have a switch.
    */
-  readStaysGated?: boolean | undefined;
+  readableBelowPlan?: boolean | undefined;
+  /*
+   * A table whose records restrict something, so deleting one gives more
+   * than the plan allows: an API key's block permissions. Below the delete
+   * plan its records are not deleted (the API key itself still can be).
+   */
+  deleteStaysGated?: boolean | undefined;
 }

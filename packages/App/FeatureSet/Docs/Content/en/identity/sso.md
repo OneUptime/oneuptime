@@ -319,7 +319,9 @@ A SAML or OIDC provider a project still has keeps signing people in after a Scal
 
 Adding a provider, changing one or turning it on again needs **Scale**. The people who can do each are the same as on Scale: turning a provider off needs permission to edit it, deleting it permission to delete it.
 
-A status page's **SSO** and **OIDC** pages list its own providers the same way. While the status page still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
+While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off, or nobody can sign in with SSO any more.
+
+A status page's **SSO** and **OIDC** pages list its own providers the same way. While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.
 
 ## Notes on SSO and Roles
 

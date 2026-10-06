@@ -31,8 +31,6 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
-  // What AI agents opened: reading it is what the plan sells.
-  readStaysGated: true,
 })
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/ai-agent-task-pull-request"))
