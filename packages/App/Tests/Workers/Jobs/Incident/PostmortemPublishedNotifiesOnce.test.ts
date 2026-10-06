@@ -267,10 +267,15 @@ type OnUpdateSuccess = (
   onUpdate: OnUpdate<Incident>,
   updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<Incident>>;
+type GetRowWriteOverrides = (data: {
+  row: Incident;
+  data: unknown;
+}) => Record<string, unknown>;
 
 interface UpdateHooks {
   onBeforeUpdate: OnBeforeUpdate;
   onUpdateSuccess: OnUpdateSuccess;
+  getRowWriteOverrides: GetRowWriteOverrides;
 }
 
 // Someone who may edit incidents.
@@ -386,7 +391,18 @@ async function beginUpdate(
   });
 
   return async (): Promise<void> => {
-    Object.assign(incident, onUpdate.updateBy.data);
+    /*
+     * The write, as DatabaseService makes it: the incident as it is right
+     * before its own write decides what that write overrides
+     * (getRowWriteOverrides) - a private incident keeps Visible on Status
+     * Page off.
+     */
+    const rowOverrides: Record<string, unknown> = hooks.getRowWriteOverrides({
+      row: incident,
+      data: onUpdate.updateBy.data,
+    });
+
+    Object.assign(incident, onUpdate.updateBy.data, rowOverrides);
 
     await hooks.onUpdateSuccess(onUpdate, [INCIDENT_ID]);
   };

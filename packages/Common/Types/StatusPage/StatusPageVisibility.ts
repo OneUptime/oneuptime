@@ -205,8 +205,9 @@ export default class StatusPageVisibility {
    * database stores (toStoredBoolean), and Visible on Status Page off when
    * the write makes the record private. Called before anything reads the
    * write, so what it reads is what is stored. A write that turns Visible on
-   * Status Page on for a record that is private already is kept hidden by
-   * the service, which reads the record for it (needsStoredPrivacy).
+   * Status Page on for a record that is private already is written with it
+   * off on that record, as the record is read for its own write
+   * (getColumnsReadForRecordWrite, getRecordOverrides).
    */
   public static normalizeWrite(
     data: Record<string, unknown> | undefined | null,
@@ -227,20 +228,35 @@ export default class StatusPageVisibility {
   }
 
   /*
+   * The columns of each record a write reads, right before writing that
+   * record, to write it by this rule (getRecordOverrides): Private, when the
+   * write turns Visible on Status Page on and leaves Private as stored
+   * (needsStoredPrivacy); none otherwise.
+   */
+  public static getColumnsReadForRecordWrite(
+    written: Record<string, unknown> | undefined | null,
+  ): Array<StatusPageVisibilityColumn> {
+    return this.needsStoredPrivacy(written) ? [PRIVATE_COLUMN] : [];
+  }
+
+  /*
    * What one record of a write is written with in place of the write's own
    * values, by this rule: a write that turns Visible on Status Page on and
-   * leaves Private as stored writes it off on a record that is private
-   * (`isRecordPrivate`, as read before the write; unknown leaves the write
-   * as it is). For one write to several records, some private: each record
-   * is written as the rule has it, in its own write.
+   * leaves Private as stored writes it off on a record that is private.
+   * `record` is the record as read right before its own write, with the
+   * columns getColumnsReadForRecordWrite names - the latest the write can
+   * know of it; one whose Private was not read is not private (isPrivate)
+   * and is written as the write has it. Each record is decided by itself
+   * alone, so one write to several records shows those that are not
+   * private and leaves each private one hidden.
    */
   public static getRecordOverrides(data: {
     written: Record<string, unknown> | undefined | null;
-    isRecordPrivate: boolean | undefined;
+    record: StatusPageVisibilitySwitches | undefined | null;
   }): Record<string, unknown> {
     if (
-      data.isRecordPrivate !== true ||
-      !this.needsStoredPrivacy(data.written)
+      !this.needsStoredPrivacy(data.written) ||
+      !this.isPrivate(data.record)
     ) {
       return {};
     }

@@ -1257,17 +1257,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The columns each row of an update is read with, right before its own
+   * write, for getRowWriteOverrides to decide that row by - besides the
+   * columns the update writes, which are always read. None by default.
+   * Skipped with ignoreHooks.
+   */
+  protected getColumnsForRowWriteOverrides(
+    _data: PartialEntity<TBaseModel>,
+  ): Array<string> {
+    return [];
+  }
+
+  /*
    * Columns one row of an update is written with in place of the update's
-   * own values, for a service whose rule decides a column row by row - from
-   * what onBeforeUpdate read of each row (carryForward) or the row as the
-   * update loaded it. They go into that row's own write, so its stored
-   * values, workflow trigger, realtime event and audit log entry all say
-   * what was written. None by default. Skipped with ignoreHooks.
+   * own values, for a service whose rule decides a column row by row. `row`
+   * is the row as read right before its own write, with the columns
+   * getColumnsForRowWriteOverrides names: the latest the update can know of
+   * it, and only that row - never a read made earlier, or one of other rows.
+   * They go into that row's own write, so its stored values, workflow
+   * trigger, realtime event and audit log entry all say what was written.
+   * None by default. Skipped with ignoreHooks.
    */
   protected getRowWriteOverrides(_data: {
     row: TBaseModel;
     data: PartialEntity<TBaseModel>;
-    carryForward: unknown;
   }): PartialEntity<TBaseModel> {
     return {} as PartialEntity<TBaseModel>;
   }
@@ -4733,6 +4746,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      // What the service decides each row's own write by. See the hook.
+      if (!updateBy.props.ignoreHooks) {
+        for (const column of this.getColumnsForRowWriteOverrides(data)) {
+          (selectColumns as Dictionary<unknown>)[column] = true;
+        }
+      }
+
       /*
        * A drag-ordered list needs each row's place and list as they were
        * BEFORE this write, to move it from there afterwards.
@@ -4827,8 +4847,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          */
         /*
          * What the service writes to this row in place of the update's own
-         * values (getRowWriteOverrides): in the row's write, and in what it
-         * is recorded as written.
+         * values (getRowWriteOverrides), decided on the row as just read:
+         * in the row's write, and in what it is recorded as written.
          */
         const rowOverrides: PartialEntity<TBaseModel> = updateBy.props
           .ignoreHooks
@@ -4836,7 +4856,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           : this.getRowWriteOverrides({
               row: item,
               data: data,
-              carryForward: carryForward,
             });
 
         const dataForItem: PartialEntity<TBaseModel> = {

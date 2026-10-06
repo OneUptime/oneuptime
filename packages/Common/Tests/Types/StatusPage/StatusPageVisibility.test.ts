@@ -382,36 +382,91 @@ describe("StatusPageVisibility.isPrivateAfterWrite", () => {
 });
 
 /*
- * The helpers that decided it for themselves before read the rule now, so
- * the status page, the subscriber jobs and the dashboard cannot drift apart.
+ * Each record a write writes is written as the rule has it, in its own
+ * write (DatabaseService.getRowWriteOverrides), decided on the record as it
+ * is read right before that write.
  */
-/*
- * One write to several records: each record is written as the rule has it,
- * in its own write (DatabaseService.getRowWriteOverrides).
- */
+describe("StatusPageVisibility.getColumnsReadForRecordWrite", () => {
+  test("a write that turns the switch on and leaves Private as it is reads each record's Private", () => {
+    for (const written of [
+      { isVisibleOnStatusPage: true },
+      { isVisibleOnStatusPage: "true" },
+      { isVisibleOnStatusPage: true, title: "Checkout errors" },
+    ] as Array<Record<string, unknown>>) {
+      expect(
+        StatusPageVisibility.getColumnsReadForRecordWrite(written),
+      ).toEqual(["isPrivate"]);
+    }
+  });
+
+  test("any other write reads nothing for it", () => {
+    for (const written of [
+      { isVisibleOnStatusPage: false },
+      { isVisibleOnStatusPage: true, isPrivate: false },
+      { isPrivate: true },
+      { title: "Checkout errors" },
+      null,
+      undefined,
+    ] as Array<Record<string, unknown> | null | undefined>) {
+      expect(
+        StatusPageVisibility.getColumnsReadForRecordWrite(written),
+      ).toEqual([]);
+    }
+  });
+});
+
 describe("StatusPageVisibility.getRecordOverrides", () => {
   test("a write that turns the switch on writes it off on a private record", () => {
     for (const written of [
       { isVisibleOnStatusPage: true },
       { isVisibleOnStatusPage: true, title: "Checkout errors" },
     ] as Array<Record<string, unknown>>) {
-      expect(
-        StatusPageVisibility.getRecordOverrides({
-          written: written,
-          isRecordPrivate: true,
-        }),
-      ).toEqual({ isVisibleOnStatusPage: false });
+      for (const isPrivate of [true, "true", "yes", 1] as Array<unknown>) {
+        expect(
+          StatusPageVisibility.getRecordOverrides({
+            written: written,
+            record: { isPrivate: isPrivate },
+          }),
+        ).toEqual({ isVisibleOnStatusPage: false });
+      }
     }
   });
 
-  test("a record that is not private, or whose privacy is unknown, is written as the write has it", () => {
-    for (const isRecordPrivate of [false, undefined]) {
+  test("a record that is not private is written as the write has it", () => {
+    for (const isPrivate of [false, "false", null] as Array<unknown>) {
       expect(
         StatusPageVisibility.getRecordOverrides({
           written: { isVisibleOnStatusPage: true },
-          isRecordPrivate: isRecordPrivate,
+          record: { isPrivate: isPrivate, isVisibleOnStatusPage: false },
         }),
       ).toEqual({});
+    }
+  });
+
+  test("a record whose Private was not read is written as the write has it", () => {
+    for (const record of [
+      {},
+      { isVisibleOnStatusPage: false },
+      null,
+      undefined,
+    ] as Array<StatusPageVisibilitySwitches | null | undefined>) {
+      expect(
+        StatusPageVisibility.getRecordOverrides({
+          written: { isVisibleOnStatusPage: true },
+          record: record,
+        }),
+      ).toEqual({});
+    }
+  });
+
+  test("only the record decides it: what it showed before the write does not", () => {
+    for (const isVisibleOnStatusPage of [true, false, null]) {
+      expect(
+        StatusPageVisibility.getRecordOverrides({
+          written: { isVisibleOnStatusPage: true },
+          record: { isPrivate: true, isVisibleOnStatusPage },
+        }),
+      ).toEqual({ isVisibleOnStatusPage: false });
     }
   });
 
@@ -428,13 +483,17 @@ describe("StatusPageVisibility.getRecordOverrides", () => {
       expect(
         StatusPageVisibility.getRecordOverrides({
           written: written,
-          isRecordPrivate: true,
+          record: { isPrivate: true },
         }),
       ).toEqual({});
     }
   });
 });
 
+/*
+ * The helpers that decided it for themselves before read the rule now, so
+ * the status page, the subscriber jobs and the dashboard cannot drift apart.
+ */
 describe("the helpers that read the rule", () => {
   test("IncidentPostmortemPublication.isIncidentShown is the rule", () => {
     for (const record of [

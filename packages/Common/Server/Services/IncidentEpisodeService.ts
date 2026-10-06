@@ -43,10 +43,8 @@ import IncidentEpisodeOwnerUser from "../../Models/DatabaseModels/IncidentEpisod
 import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import User from "../../Models/DatabaseModels/User";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import Dictionary from "../../Types/Dictionary";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
-import Query from "../Types/Database/Query";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
@@ -92,17 +90,6 @@ const GROUPING_RULE_KEYS: Array<string> = [
  */
 export const EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE: string =
   "The episode's first state is part of its created notification, so it is not sent to subscribers on its own.";
-
-/*
- * What onBeforeUpdate hands on to the write: whether each episode it writes
- * was private before the update, read only when the update turns Visible on
- * Status Page on and leaves Private as it is (keepPrivateEpisodesHidden), so
- * a private one is written with it off (getRowWriteOverrides). Keyed by the
- * episode's id.
- */
-interface EpisodeUpdateCarryForward {
-  isPrivateBeforeUpdate: Dictionary<boolean>;
-}
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -165,9 +152,6 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data as unknown as Record<string, unknown>,
     );
 
-    const isPrivateBeforeUpdate: Dictionary<boolean> =
-      await this.keepPrivateEpisodesHidden(updateBy);
-
     /*
      * Sending the episode's created notification again while it is being
      * sent would let a second run send it alongside, or be overwritten when
@@ -213,111 +197,36 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     });
 
-    const carryForward: EpisodeUpdateCarryForward = {
-      isPrivateBeforeUpdate: isPrivateBeforeUpdate,
-    };
-
-    return { updateBy, carryForward: carryForward };
+    return { updateBy, carryForward: null };
   }
 
   /*
    * A private episode is hidden from every status page (StatusPageVisibility),
    * so an update that turns Visible on Status Page on and leaves Private as
    * it is - the episode's Status Pages switch, the API, Terraform, a
-   * workflow - shows only the episodes that are not private. When every
-   * episode it writes is private, the update is written with the switch off.
-   * When only some are, the others are shown and each private one is written
-   * with it off, in its own write (getRowWriteOverrides), so what is stored,
-   * the workflow trigger and the audit log all say the same. Returns whether
-   * each episode read was private, by id.
+   * workflow - shows only the episodes that are not private.
    *
-   * Read as root, limited to the caller's project as the update will be:
-   * the answer only decides what this update writes.
+   * Each episode is decided by itself, on the row the update reads right
+   * before writing it (DatabaseService.getRowWriteOverrides): a private one
+   * is written with the switch off, in its own write, so what is stored, the
+   * workflow trigger and the audit log all say the same, and the others are
+   * shown. No earlier read, and no other episode, decides it.
    */
-  private async keepPrivateEpisodesHidden(
-    updateBy: UpdateBy<Model>,
-  ): Promise<Dictionary<boolean>> {
-    const isPrivateBeforeUpdate: Dictionary<boolean> = {};
-
-    if (
-      !StatusPageVisibility.needsStoredPrivacy(
-        updateBy.data as unknown as Record<string, unknown>,
-      )
-    ) {
-      return isPrivateBeforeUpdate;
-    }
-
-    const query: Query<Model> =
-      !updateBy.props.isRoot && updateBy.props.tenantId
-        ? {
-            ...updateBy.query,
-            projectId: updateBy.props.tenantId,
-          }
-        : updateBy.query;
-
-    const episodes: Array<Model> = await this.findBy({
-      query: query,
-      select: {
-        _id: true,
-        isPrivate: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    let privateEpisodeCount: number = 0;
-
-    for (const episode of episodes) {
-      if (!episode.id) {
-        continue;
-      }
-
-      const isPrivate: boolean = StatusPageVisibility.isPrivate(episode);
-
-      isPrivateBeforeUpdate[episode.id.toString()] = isPrivate;
-
-      if (isPrivate) {
-        privateEpisodeCount++;
-      }
-    }
-
-    if (privateEpisodeCount > 0 && privateEpisodeCount === episodes.length) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
-
-    return isPrivateBeforeUpdate;
+  protected override getColumnsForRowWriteOverrides(
+    data: PartialEntity<Model>,
+  ): Array<string> {
+    return StatusPageVisibility.getColumnsReadForRecordWrite(
+      data as unknown as Record<string, unknown>,
+    );
   }
 
-  /*
-   * Each episode of an update as the rule has it (keepPrivateEpisodesHidden):
-   * a private episode is written with Visible on Status Page off, in its own
-   * write, when the update turns it on for episodes that are not private.
-   * Its privacy is the one read before the update, else the one the update
-   * loaded with the row.
-   */
   protected override getRowWriteOverrides(data: {
     row: Model;
     data: PartialEntity<Model>;
-    carryForward: unknown;
   }): PartialEntity<Model> {
-    const episodeId: string | undefined = data.row.id?.toString();
-
-    const isPrivateBeforeUpdate: boolean | undefined = episodeId
-      ? (data.carryForward as EpisodeUpdateCarryForward | null | undefined)
-          ?.isPrivateBeforeUpdate?.[episodeId]
-      : undefined;
-
     return StatusPageVisibility.getRecordOverrides({
       written: data.data as unknown as Record<string, unknown>,
-      isRecordPrivate:
-        isPrivateBeforeUpdate !== undefined
-          ? isPrivateBeforeUpdate
-          : data.row.isPrivate !== undefined
-            ? StatusPageVisibility.isPrivate(data.row)
-            : undefined,
+      record: data.row,
     }) as PartialEntity<Model>;
   }
 
@@ -497,10 +406,16 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * A private episode is hidden from every status page
      * (StatusPageVisibility): created private, it is created with Visible on
-     * Status Page off, whatever the request or the grouping rule says for it.
+     * Status Page off, whatever the request or the grouping rule says for it,
+     * and nobody is told it was created - as an incident created private.
      * Last, after everything above that sets the switch.
      */
     StatusPageVisibility.normalizeWrite(createData);
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated =
+        false;
+    }
 
     const carryForward: StartingStageCarryForward = {
       startingStage: startingStage,

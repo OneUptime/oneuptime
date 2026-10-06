@@ -256,13 +256,6 @@ type UpdateCarryForward = Dictionary<{
    * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
    */
   valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
-  /*
-   * Whether the incident was private before the update, read only when the
-   * update turns Visible on Status Page on and leaves Private as it is
-   * (StatusPageVisibility.needsStoredPrivacy): a private incident stays
-   * hidden (keepPrivateIncidentsHidden, getRowWriteOverrides).
-   */
-  isPrivateBeforeUpdate?: boolean | undefined;
 }>;
 
 /*
@@ -815,12 +808,6 @@ export class Service extends ProjectReferencesService<Model> {
     await this.recordStoredValuesBeforeUpdate(updateBy, carryForward);
 
     /*
-     * Before the hooks below read Visible on Status Page: an update that
-     * turns it on leaves a private incident hidden.
-     */
-    this.keepPrivateIncidentsHidden(updateBy, carryForward);
-
-    /*
      * Notifying subscribers that the incident was created
      * (shouldStatusPageSubscribersBeNotifiedOnIncidentCreated) is decided
      * when it is declared. An update that writes it - only root and master
@@ -944,10 +931,7 @@ export class Service extends ProjectReferencesService<Model> {
    *   item records each one that really changed, and a labels change or the
    *   switch flipped matches the reminder rule again, which starts the
    *   reminder interval over (EventFieldChange). The Incident Details card
-   *   sends the title, the severity and the labels with every save;
-   * - whether the incident is private, when the update turns Visible on
-   *   Status Page on and leaves Private Incident as it is: a private incident
-   *   stays hidden from status pages (keepPrivateIncidentsHidden).
+   *   sends the title, the severity and the labels with every save.
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -982,17 +966,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
 
-    // Whether a private incident must be kept hidden (StatusPageVisibility).
-    const needsStoredPrivacy: boolean = StatusPageVisibility.needsStoredPrivacy(
-      updateBy.data as unknown as Record<string, unknown>,
-    );
-
-    if (
-      !writtenSeverityId &&
-      !isPostmortemCompared &&
-      !isFieldWritten &&
-      !needsStoredPrivacy
-    ) {
+    if (!writtenSeverityId && !isPostmortemCompared && !isFieldWritten) {
       return;
     }
 
@@ -1019,11 +993,6 @@ export class Service extends ProjectReferencesService<Model> {
             isVisibleOnStatusPage: true,
             isPrivate: true,
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
-          }
-        : {}),
-      ...(needsStoredPrivacy
-        ? {
-            isPrivate: true,
           }
         : {}),
       ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
@@ -1085,11 +1054,6 @@ export class Service extends ProjectReferencesService<Model> {
               }),
             }
           : {}),
-        ...(needsStoredPrivacy
-          ? {
-              isPrivateBeforeUpdate: StatusPageVisibility.isPrivate(incident),
-            }
-          : {}),
       };
     }
   }
@@ -1102,75 +1066,29 @@ export class Service extends ProjectReferencesService<Model> {
    * every save, has always done. It holds whoever writes: the API,
    * Terraform, a workflow.
    *
-   * When every incident the update writes is private, the update is
-   * written with Visible on Status Page off. When only some are - one write
-   * to many incidents, such as a workflow's - the others are shown and each
-   * private one is written with it off, in its own write
-   * (getRowWriteOverrides), so what is stored, the workflow trigger and the
-   * audit log all say the same. An incident the read did not see is decided
-   * by the privacy the update loaded with it, if any; every status page read
-   * and subscriber job leaves a private incident out whatever its switch
-   * says.
+   * Each incident is decided by itself, on the row the update reads right
+   * before writing it (DatabaseService.getRowWriteOverrides): a private one
+   * is written with Visible on Status Page off, in its own write, so what is
+   * stored, the workflow trigger and the audit log all say the same, and
+   * the others are shown. No earlier read, and no other incident, decides
+   * it. Every status page read and subscriber job leaves a private incident
+   * out whatever its switch says.
    */
-  private keepPrivateIncidentsHidden(
-    updateBy: UpdateBy<Model>,
-    carryForward: UpdateCarryForward,
-  ): void {
-    if (
-      !StatusPageVisibility.needsStoredPrivacy(
-        updateBy.data as unknown as Record<string, unknown>,
-      )
-    ) {
-      return;
-    }
-
-    const readIncidentIds: Array<string> = Object.keys(carryForward).filter(
-      (incidentId: string): boolean => {
-        return carryForward[incidentId]?.isPrivateBeforeUpdate !== undefined;
-      },
+  protected override getColumnsForRowWriteOverrides(
+    data: PartialEntity<Model>,
+  ): Array<string> {
+    return StatusPageVisibility.getColumnsReadForRecordWrite(
+      data as unknown as Record<string, unknown>,
     );
-
-    const privateIncidentIds: Array<string> = readIncidentIds.filter(
-      (incidentId: string): boolean => {
-        return carryForward[incidentId]?.isPrivateBeforeUpdate === true;
-      },
-    );
-
-    if (
-      privateIncidentIds.length > 0 &&
-      privateIncidentIds.length === readIncidentIds.length
-    ) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
   }
 
-  /*
-   * Each incident of an update as the rule has it (keepPrivateIncidentsHidden):
-   * a private incident is written with Visible on Status Page off, in its own
-   * write, when the update turns it on for incidents that are not private.
-   * Its privacy is the one stored read's (recordStoredValuesBeforeUpdate),
-   * else the one the update loaded with the row.
-   */
   protected override getRowWriteOverrides(data: {
     row: Model;
     data: PartialEntity<Model>;
-    carryForward: unknown;
   }): PartialEntity<Model> {
-    const incidentId: string | undefined = data.row.id?.toString();
-
-    const isPrivateBeforeUpdate: boolean | undefined = incidentId
-      ? (data.carryForward as UpdateCarryForward | undefined)?.[incidentId]
-          ?.isPrivateBeforeUpdate
-      : undefined;
-
     return StatusPageVisibility.getRecordOverrides({
       written: data.data as unknown as Record<string, unknown>,
-      isRecordPrivate:
-        isPrivateBeforeUpdate !== undefined
-          ? isPrivateBeforeUpdate
-          : data.row.isPrivate !== undefined
-            ? StatusPageVisibility.isPrivate(data.row)
-            : undefined,
+      record: data.row,
     }) as PartialEntity<Model>;
   }
 
