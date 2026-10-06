@@ -41,7 +41,7 @@
          <h2 id="<%= pageData.permissionGroups[g].group.toLowerCase().replace(/ /g, '-') -%>"
             class="scroll-mt-24 text-xl font-semibold text-ink mb-4 mt-12 <%= g > 0 ? 'pt-8 border-t border-line' : '' %>">
             <%= pageData.permissionGroups[g].group %>
-            <span class="ml-2 align-middle inline-flex items-center rounded-full bg-surface-soft px-2.5 py-0.5 text-xs font-medium text-ink-muted"><%= pageData.permissionGroups[g].permissions.length %></span>
+            <span class="ms-2 align-middle inline-flex items-center rounded-full bg-surface-soft px-2.5 py-0.5 text-xs font-medium text-ink-muted"><%= pageData.permissionGroups[g].permissions.length %></span>
          </h2>
 
          <div class="rounded-xl border border-line bg-surface overflow-hidden">
@@ -51,7 +51,7 @@
                      <dl class="m-0 flex flex-wrap items-center gap-x-3 gap-y-2">
                         <dd><code class="inline-code"><%= pageData.permissionGroups[g].permissions[i].permission -%></code></dd>
                         <dd class="font-mono text-xs text-ink-subtle"><%= pageData.permissionGroups[g].permissions[i].title -%></dd>
-                        <dd class="w-full flex-none text-sm text-ink-muted mt-1"><%= pageData.permissionGroups[g].permissions[i].description -%></dd>
+                        <dd class="w-full flex-none text-sm text-ink-muted mt-1"><bdi><%= pageData.permissionGroups[g].permissions[i].description -%></bdi></dd>
                      </dl>
                   </li>
                <% } %>
