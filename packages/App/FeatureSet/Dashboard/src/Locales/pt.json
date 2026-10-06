@@ -25911,5 +25911,7 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Suas {{count}} conexões SCIM pararam de funcionar neste plano, então seu provedor de identidade não adiciona nem remove mais pessoas. Elas voltam a funcionar no plano {{planName}}.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Sua conexão SCIM parou de funcionar neste plano, então seu provedor de identidade não adiciona nem remove mais pessoas. Ela volta a funcionar no plano {{planName}}.",
   "API keys stop working on this plan.": "As chaves de API deixam de funcionar neste plano.",
-  "SCIM connections stop working on this plan.": "As conexões SCIM deixam de funcionar neste plano."
+  "SCIM connections stop working on this plan.": "As conexões SCIM deixam de funcionar neste plano.",
+  "A private episode is never shown on status pages.": "Um episódio privado nunca aparece nas páginas de status.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Este episódio é privado, por isso está oculto nas suas páginas de status, e os assinantes delas não são notificados sobre ele."
 }

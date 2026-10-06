@@ -25911,5 +25911,7 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "इस प्लान में आपके {{count}} SCIM कनेक्शनों ने काम करना बंद कर दिया है, इसलिए आपका पहचान प्रदाता अब लोगों को न जोड़ता है न हटाता है। {{planName}} प्लान में ये फिर से काम करते हैं।",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "इस प्लान में आपके SCIM कनेक्शन ने काम करना बंद कर दिया है, इसलिए आपका पहचान प्रदाता अब लोगों को न जोड़ता है न हटाता है। {{planName}} प्लान में यह फिर से काम करता है।",
   "API keys stop working on this plan.": "इस प्लान पर API कुंजियाँ काम करना बंद कर देती हैं।",
-  "SCIM connections stop working on this plan.": "इस प्लान पर SCIM कनेक्शन काम करना बंद कर देते हैं।"
+  "SCIM connections stop working on this plan.": "इस प्लान पर SCIM कनेक्शन काम करना बंद कर देते हैं।",
+  "A private episode is never shown on status pages.": "निजी एपिसोड कभी भी स्थिति पृष्ठों पर नहीं दिखता।",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "यह एपिसोड निजी है, इसलिए यह आपके स्थिति पृष्ठों से छिपा है, और उनके सब्सक्राइबर को इसकी सूचना नहीं दी जाती।"
 }

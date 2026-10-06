@@ -30,6 +30,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
@@ -148,7 +149,9 @@ RunCron(
           title: true,
           description: true,
           projectId: true,
+          // Whether a status page shows it (StatusPageVisibility): visible, and not private.
           isVisibleOnStatusPage: true,
+          isPrivate: true,
           monitors: {
             _id: true,
           },
@@ -291,7 +294,7 @@ RunCron(
            * which puts the row back to Pending; the reason is what the
            * notification badge shows.
            */
-          if (!incident.isVisibleOnStatusPage) {
+          if (!StatusPageVisibility.isShown(incident)) {
             logger.debug(
               `Incident ${incident.id} is not visible on status page; marking subscriber notifications as Skipped.`,
             );

@@ -25911,5 +25911,7 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "{{count}} اتصال SCIM شما در این طرح از کار افتاده‌اند، بنابراین ارائه‌دهنده هویت شما دیگر افراد را اضافه یا حذف نمی‌کند. در طرح {{planName}} دوباره کار می‌کنند.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "اتصال SCIM شما در این طرح از کار افتاده است، بنابراین ارائه‌دهنده هویت شما دیگر افراد را اضافه یا حذف نمی‌کند. در طرح {{planName}} دوباره کار می‌کند.",
   "API keys stop working on this plan.": "در این طرح، کلیدهای API دیگر کار نمی‌کنند.",
-  "SCIM connections stop working on this plan.": "در این طرح، اتصال‌های SCIM دیگر کار نمی‌کنند."
+  "SCIM connections stop working on this plan.": "در این طرح، اتصال‌های SCIM دیگر کار نمی‌کنند.",
+  "A private episode is never shown on status pages.": "اپیزود خصوصی هرگز در صفحات وضعیت نمایش داده نمی‌شود.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "این اپیزود خصوصی است، بنابراین در صفحات وضعیت شما پنهان است و مشترکان آن‌ها درباره‌اش اطلاع‌رسانی دریافت نمی‌کنند."
 }

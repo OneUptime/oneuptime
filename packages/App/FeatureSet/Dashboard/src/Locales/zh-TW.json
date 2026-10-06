@@ -25911,5 +25911,7 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "在此方案中，您的 {{count}} 個 SCIM 連線已停止運作，因此您的身分提供者不再新增或移除人員。在 {{planName}} 方案中它們會恢復運作。",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "在此方案中，您的 SCIM 連線已停止運作，因此您的身分提供者不再新增或移除人員。在 {{planName}} 方案中它會恢復運作。",
   "API keys stop working on this plan.": "在此方案下，API 金鑰將停止運作。",
-  "SCIM connections stop working on this plan.": "在此方案下，SCIM 連線將停止運作。"
+  "SCIM connections stop working on this plan.": "在此方案下，SCIM 連線將停止運作。",
+  "A private episode is never shown on status pages.": "私人片段永遠不會顯示在狀態頁面上。",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "此片段為私人，因此已在您的狀態頁面上隱藏，其訂閱者也不會收到相關通知。"
 }

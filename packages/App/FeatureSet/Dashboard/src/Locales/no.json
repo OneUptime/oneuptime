@@ -25911,5 +25911,7 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "De {{count}} SCIM-tilkoblingene dine virker ikke lenger med dette abonnementet, så identitetsleverandøren din legger ikke lenger til eller fjerner personer. De virker igjen med {{planName}}-abonnementet.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "SCIM-tilkoblingen din virker ikke lenger med dette abonnementet, så identitetsleverandøren din legger ikke lenger til eller fjerner personer. Den virker igjen med {{planName}}-abonnementet.",
   "API keys stop working on this plan.": "API-nøkler slutter å virke på denne planen.",
-  "SCIM connections stop working on this plan.": "SCIM-tilkoblinger slutter å virke på denne planen."
+  "SCIM connections stop working on this plan.": "SCIM-tilkoblinger slutter å virke på denne planen.",
+  "A private episode is never shown on status pages.": "En privat episode vises aldri på statussider.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Denne episoden er privat, så den er skjult på statussidene dine, og abonnentene deres varsles ikke om den."
 }

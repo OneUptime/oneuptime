@@ -25911,5 +25911,7 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Подключений SCIM, которые перестали работать на этом тарифе: {{count}}. Ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} они снова заработают.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Ваше подключение SCIM перестало работать на этом тарифе, поэтому ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} оно снова заработает.",
   "API keys stop working on this plan.": "На этом тарифе API-ключи перестают работать.",
-  "SCIM connections stop working on this plan.": "На этом тарифе SCIM-подключения перестают работать."
+  "SCIM connections stop working on this plan.": "На этом тарифе SCIM-подключения перестают работать.",
+  "A private episode is never shown on status pages.": "Приватный эпизод никогда не показывается на страницах статуса.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Этот эпизод приватный, поэтому он скрыт на ваших страницах статуса, и их подписчики не получают о нём уведомлений."
 }
