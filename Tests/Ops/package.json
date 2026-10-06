@@ -12,5 +12,10 @@
   "devDependencies": {
     "jest": "^30.5.2",
     "js-yaml": "^4.1.0"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }
