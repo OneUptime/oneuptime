@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "Inherit owners from {{sources}} and {{count}} more",
   "Inherit owners from {{sources}} and {{count}} more_one": "Inherit owners from {{sources}} and {{count}} more",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Named after the labels it adds, or where it inherits them from, until you type a name of your own.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Named after the owners it adds, or where it inherits them from, until you type a name of your own."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Named after the owners it adds, or where it inherits them from, until you type a name of your own.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+  "Add AI credits to this project.": "Add AI credits to this project.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "Adding balance needs one of these permissions: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out."
 }

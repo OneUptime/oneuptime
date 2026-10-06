@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "Un proprietario del progetto o qualcuno con l'autorizzazione «Manage Billing» può aggiungere crediti IA.",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "Eredita proprietari da: {{sources}} e altri {{count}}",
   "Inherit owners from {{sources}} and {{count}} more_one": "Eredita proprietari da: {{sources}} e {{count}} altro",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dalle etichette che aggiunge, o da dove le eredita, finché non digiti un nome tuo.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dai proprietari che aggiunge, o da dove li eredita, finché non digiti un nome tuo."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dai proprietari che aggiunge, o da dove li eredita, finché non digiti un nome tuo.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "Le funzioni di IA vengono pagate con questo saldo, in USD. Un proprietario del progetto o qualcuno con l'autorizzazione «Manage Billing» può ricaricarlo, oppure attivare la ricarica automatica perché non si esaurisca mai.",
+  "Add AI credits to this project.": "Aggiungi crediti IA a questo progetto.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "Per aggiungere saldo ti serve una di queste autorizzazioni: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "SMS, chiamate e messaggi WhatsApp e Telegram vengono pagati con questo saldo, in USD. Un proprietario del progetto o qualcuno con l'autorizzazione «Manage Billing» può ricaricarlo, oppure attivare la ricarica automatica perché non si esaurisca mai."
 }

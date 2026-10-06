@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 AI 크레딧을 추가할 수 있습니다.",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "{{sources}} 외 {{count}}개에서 소유자 상속",
   "Inherit owners from {{sources}} and {{count}} more_one": "{{sources}} 외 {{count}}개에서 소유자 상속",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 레이블이나 레이블을 상속받는 곳에 따라 이름이 지정됩니다.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 소유자나 소유자를 상속받는 곳에 따라 이름이 지정됩니다."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 소유자나 소유자를 상속받는 곳에 따라 이름이 지정됩니다.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "AI 기능 요금은 이 잔액(USD)에서 결제됩니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전하거나, 잔액이 바닥나지 않도록 자동 충전을 켤 수 있습니다.",
+  "Add AI credits to this project.": "이 프로젝트에 AI 크레딧을 추가하세요.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "잔액을 추가하려면 다음 권한 중 하나가 필요합니다: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "SMS, 전화, WhatsApp, Telegram 메시지 요금은 이 잔액(USD)에서 결제됩니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전하거나, 잔액이 바닥나지 않도록 자동 충전을 켤 수 있습니다."
 }

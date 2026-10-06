@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "Ein Projekteigentümer oder jemand mit der Berechtigung „Manage Billing“ kann KI-Guthaben hinzufügen.",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "Eigentümer erben von: {{sources}} und {{count}} weitere",
   "Inherit owners from {{sources}} and {{count}} more_one": "Eigentümer erben von: {{sources}} und {{count}} weitere",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Nach den hinzugefügten Beschriftungen benannt oder danach, woher sie geerbt werden, bis Sie einen eigenen Namen eingeben.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Nach den hinzugefügten Eigentümern benannt oder danach, woher sie geerbt werden, bis Sie einen eigenen Namen eingeben."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Nach den hinzugefügten Eigentümern benannt oder danach, woher sie geerbt werden, bis Sie einen eigenen Namen eingeben.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "KI-Funktionen werden aus diesem Guthaben in USD bezahlt. Ein Projekteigentümer oder jemand mit der Berechtigung „Manage Billing“ kann es aufladen oder das automatische Aufladen aktivieren, damit es nie aufgebraucht ist.",
+  "Add AI credits to this project.": "Fügen Sie diesem Projekt KI-Guthaben hinzu.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "Zum Aufladen des Guthabens benötigen Sie eine dieser Berechtigungen: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "SMS, Anrufe, WhatsApp- und Telegram-Nachrichten werden aus diesem Guthaben in USD bezahlt. Ein Projekteigentümer oder jemand mit der Berechtigung „Manage Billing“ kann es aufladen oder das automatische Aufladen aktivieren, damit es nie aufgebraucht ist."
 }

@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "專案擁有者或擁有「Manage Billing」權限的使用者可以新增 AI 點數。",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "從 {{sources}} 及另外 {{count}} 個繼承擁有者",
   "Inherit owners from {{sources}} and {{count}} more_one": "從 {{sources}} 及另外 {{count}} 個繼承擁有者",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的標籤或繼承標籤的來源命名。",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的擁有者或繼承擁有者的來源命名。"
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的擁有者或繼承擁有者的來源命名。",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "AI 功能會從此餘額（美元）扣款。專案擁有者或擁有「Manage Billing」權限的使用者可以為其儲值，或開啟自動儲值，避免餘額用完。",
+  "Add AI credits to this project.": "為此專案新增 AI 點數。",
+  "Adding balance needs one of these permissions: {{permissions}}.": "新增餘額需要下列其中一項權限：{{permissions}}。",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "簡訊、電話、WhatsApp 和 Telegram 訊息會從此餘額（美元）扣款。專案擁有者或擁有「Manage Billing」權限的使用者可以為其儲值，或開啟自動儲值，避免餘額用完。"
 }

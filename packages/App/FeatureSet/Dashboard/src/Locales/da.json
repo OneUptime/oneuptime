@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "En projektejer eller nogen med tilladelsen »Manage Billing« kan tilføje AI-kreditter.",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "Nedarv ejere fra: {{sources}} og {{count}} til",
   "Inherit owners from {{sources}} and {{count}} more_one": "Nedarv ejere fra: {{sources}} og {{count}} til",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Navngivet efter de etiketter, den tilføjer, eller hvor den nedarver dem fra, indtil du skriver dit eget navn.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Navngivet efter de ejere, den tilføjer, eller hvor den nedarver dem fra, indtil du skriver dit eget navn."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Navngivet efter de ejere, den tilføjer, eller hvor den nedarver dem fra, indtil du skriver dit eget navn.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "AI-funktioner betales af denne saldo i USD. En projektejer eller nogen med tilladelsen »Manage Billing« kan genoplade den eller slå automatisk genopfyldning til, så den aldrig løber tør.",
+  "Add AI credits to this project.": "Tilføj AI-kreditter til dette projekt.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "For at tilføje saldo skal du have en af disse tilladelser: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "Sms'er, opkald og WhatsApp- og Telegram-beskeder betales af denne saldo i USD. En projektejer eller nogen med tilladelsen »Manage Billing« kan genoplade den eller slå automatisk genopfyldning til, så den aldrig løber tør."
 }

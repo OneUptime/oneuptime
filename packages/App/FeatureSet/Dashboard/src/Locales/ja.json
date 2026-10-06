@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "{{sources}} ほか {{count}} 件から所有者を継承",
   "Inherit owners from {{sources}} and {{count}} more_one": "{{sources}} ほか {{count}} 件から所有者を継承",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加するラベル、またはその継承元に合わせて名前が付きます。",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加する所有者、またはその継承元に合わせて名前が付きます。"
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加する所有者、またはその継承元に合わせて名前が付きます。",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "AI 機能の料金はこの残高（USD）から支払われます。チャージしたり、残高が尽きないように自動チャージをオンにしたりできるのは、プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーです。",
+  "Add AI credits to this project.": "このプロジェクトに AI クレジットを追加してください。",
+  "Adding balance needs one of these permissions: {{permissions}}.": "残高を追加するには、次のいずれかの権限が必要です: {{permissions}}。",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "SMS、電話、WhatsApp、Telegram の料金はこの残高（USD）から支払われます。チャージしたり、残高が尽きないように自動チャージをオンにしたりできるのは、プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーです。"
 }

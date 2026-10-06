@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "مالک پروژه یا کسی که مجوز «Manage Billing» دارد می‌تواند اعتبار هوش مصنوعی اضافه کند.",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "به ارث بردن مالکان از {{sources}} و {{count}} مورد دیگر",
   "Inherit owners from {{sources}} and {{count}} more_one": "به ارث بردن مالکان از {{sources}} و {{count}} مورد دیگر",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس برچسب‌هایی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "هزینه قابلیت‌های هوش مصنوعی از این موجودی و به دلار آمریکا پرداخت می‌شود. مالک پروژه یا کسی که مجوز «Manage Billing» دارد می‌تواند آن را شارژ کند، یا شارژ خودکار را روشن کند تا هیچ‌وقت تمام نشود.",
+  "Add AI credits to this project.": "به این پروژه اعتبار هوش مصنوعی اضافه کنید.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "برای افزودن موجودی به یکی از این مجوزها نیاز دارید: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "هزینه پیامک‌ها، تماس‌ها و پیام‌های WhatsApp و Telegram از این موجودی و به دلار آمریکا پرداخت می‌شود. مالک پروژه یا کسی که مجوز «Manage Billing» دارد می‌تواند آن را شارژ کند، یا شارژ خودکار را روشن کند تا هیچ‌وقت تمام نشود."
 }

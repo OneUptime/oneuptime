@@ -20896,7 +20896,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "A project owner or someone with Manage Billing can add AI credits.",
+  "A project owner or someone with Manage Billing can add AI credits.": "Een projecteigenaar of iemand met de machtiging ‘Manage Billing’ kan AI-tegoed toevoegen.",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",
@@ -25817,5 +25817,9 @@
   "Inherit owners from {{sources}} and {{count}} more": "Eigenaren overnemen van: {{sources}} en {{count}} andere",
   "Inherit owners from {{sources}} and {{count}} more_one": "Eigenaren overnemen van: {{sources}} en {{count}} andere",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de labels die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de eigenaren die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de eigenaren die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt.",
+  "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "AI-functies worden betaald uit dit saldo, in USD. Een projecteigenaar of iemand met de machtiging ‘Manage Billing’ kan het bijvullen, of automatisch bijvullen aanzetten zodat het nooit opraakt.",
+  "Add AI credits to this project.": "Voeg AI-tegoed toe aan dit project.",
+  "Adding balance needs one of these permissions: {{permissions}}.": "Om saldo toe te voegen hebt u een van deze rechten nodig: {{permissions}}.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.": "Sms'jes, oproepen en WhatsApp- en Telegram-berichten worden betaald uit dit saldo, in USD. Een projecteigenaar of iemand met de machtiging ‘Manage Billing’ kan het bijvullen, of automatisch bijvullen aanzetten zodat het nooit opraakt."
 }
