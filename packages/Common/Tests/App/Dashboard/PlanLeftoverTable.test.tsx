@@ -147,10 +147,14 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 import PlanLeftoverTable from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PlanLeftoverTable";
 import PlanLeftoverCopy, {
   PlanLeftoverTitle,
+  getPlanLeftoverDescription,
   getPlanLeftoverTableTestId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PlanLeftoverCopy";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
+import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
 import ProjectSSO from "../../../Models/DatabaseModels/ProjectSso";
+import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
+import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
 import FieldType from "../../../UI/Components/Types/FieldType";
@@ -249,6 +253,27 @@ async function renderApiKeys(): Promise<void> {
             title: "Expires",
             type: FieldType.Date,
           },
+        ]}
+      />,
+    );
+  });
+
+  await flush();
+}
+
+async function renderScimConnections(
+  modelType: typeof ProjectSCIM | typeof StatusPageSCIM,
+): Promise<void> {
+  await act(async () => {
+    render(
+      <PlanLeftoverTable<ProjectSCIM | StatusPageSCIM>
+        modelType={modelType as never}
+        id="scim-connections"
+        query={{ projectId: new ObjectID(PROJECT_ID) }}
+        requiredPlan={PlanType.Scale}
+        title={PlanLeftoverTitle.scimConnections}
+        columns={[
+          { field: { name: true }, title: "Name", type: FieldType.Text },
         ]}
       />,
     );
@@ -516,7 +541,13 @@ describe("records without a switch (API keys)", () => {
     ).toEqual(["Name", "Expires"]);
   });
 
-  test("say they still work, that they can be deleted, and what changing or adding takes", async () => {
+  /*
+   * Below Growth, a project's API keys stop working: every request made
+   * with one is refused until the project is back on the plan (Common/
+   * Types/Billing/PlanCutoffCredentials). The table says so - not that they
+   * still work.
+   */
+  test("say they stopped working, that upgrading turns them back on, and that they can still be deleted", async () => {
     await renderApiKeys();
 
     expect(
@@ -524,8 +555,88 @@ describe("records without a switch (API keys)", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the Growth plan.",
+        "These stopped working: your plan does not include them. Upgrading to the Growth plan turns them back on as they are. You can still delete them.",
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/they still work/)).not.toBeInTheDocument();
+  });
+});
+
+describe("SCIM connections, the project's and its status pages'", () => {
+  beforeEach(() => {
+    mockTable.rows = [{ _id: ON_ID, name: "Okta provisioning" }];
+  });
+
+  test.each([
+    ["the project's", ProjectSCIM],
+    ["a status page's", StatusPageSCIM],
+  ])(
+    "%s say they stopped, that the identity provider no longer adds or removes people, and that an upgrade turns them back on",
+    async (
+      _label: string,
+      modelType: typeof ProjectSCIM | typeof StatusPageSCIM,
+    ) => {
+      await renderScimConnections(modelType);
+
+      expect(
+        screen.getByRole("heading", { name: "SCIM connections still set up" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the Scale plan turns them back on as they are. You can still delete them.",
+        ),
+      ).toBeInTheDocument();
+      expect(lastTable().isDeleteable).toBe(true);
+      expect(lastTable().actionButtons).toEqual([]);
+    },
+  );
+});
+
+describe("which description a table gets", () => {
+  test("API keys: stopped", () => {
+    expect(
+      getPlanLeftoverDescription({
+        tableName: new ApiKey().tableName,
+        hasSwitch: false,
+      }),
+    ).toBe(PlanLeftoverCopy.descriptionStopped);
+  });
+
+  test.each([[new ProjectSCIM().tableName], [new StatusPageSCIM().tableName]])(
+    "%s: stopped, and provisioning with it",
+    (tableName: string | null) => {
+      expect(
+        getPlanLeftoverDescription({ tableName, hasSwitch: false }),
+      ).toBe(PlanLeftoverCopy.descriptionScimStopped);
+    },
+  );
+
+  /*
+   * Everything else a lower plan keeps still works after a downgrade - SSO
+   * providers sign people in, rules post, schedules page people - and its
+   * table says that, as before.
+   */
+  test("a table with a switch that keeps working: the ones that are on still work", () => {
+    expect(
+      getPlanLeftoverDescription({
+        tableName: new ProjectSSO().tableName,
+        hasSwitch: true,
+      }),
+    ).toBe(PlanLeftoverCopy.descriptionWithSwitch);
+  });
+
+  test("a table without a switch that keeps working: they still work", () => {
+    expect(
+      getPlanLeftoverDescription({
+        tableName: new WorkspaceNotificationRule().tableName,
+        hasSwitch: false,
+      }),
+    ).toBe(PlanLeftoverCopy.descriptionWithoutSwitch);
+  });
+
+  test("a table with no name: as before", () => {
+    expect(
+      getPlanLeftoverDescription({ tableName: undefined, hasSwitch: false }),
+    ).toBe(PlanLeftoverCopy.descriptionWithoutSwitch);
   });
 });
