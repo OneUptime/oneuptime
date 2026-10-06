@@ -140,21 +140,18 @@ export default class RelatedFileAccess {
    * for a person's own picture; a file that could not be found is not
    * seen.
    */
-  public static mayRead(data: {
+  public static async mayRead(data: {
     file: FileAccessFacts | undefined;
     owner: FileReferenceOwner | null;
     reader: RelatedFileReader;
-  }): boolean {
+  }): Promise<boolean> {
     const file: FileAccessFacts | undefined = data.file;
 
     if (!file) {
       return false;
     }
 
-    if (file.isPublic === true) {
-      return true;
-    }
-
+    // A person's own picture: the profile picture route serves it to anyone.
     if (
       data.owner?.kind === FileOwnerKind.User &&
       FileOwnership.isOwnedBy(file, data.owner)
@@ -162,20 +159,19 @@ export default class RelatedFileAccess {
       return true;
     }
 
-    const fileProjectId: string = normalizeFileId(file.projectId);
-
-    if (fileProjectId) {
-      return data.reader.projectIds.some(
-        (projectId: ObjectID | string): boolean => {
-          return normalizeFileId(projectId) === fileProjectId;
-        },
-      );
-    }
-
-    return Boolean(
-      data.reader.userId &&
-        FileOwnership.isFileOfUser(file, data.reader.userId),
-    );
+    return await FileOwnership.maySeeFile({
+      file: file,
+      userId: data.reader.userId,
+      mayOpenProject: (projectId: ObjectID): boolean => {
+        return data.reader.projectIds.some(
+          (readerProjectId: ObjectID | string): boolean => {
+            return (
+              normalizeFileId(readerProjectId) === normalizeFileId(projectId)
+            );
+          },
+        );
+      },
+    });
   }
 
   /**
@@ -234,8 +230,10 @@ export default class RelatedFileAccess {
         values,
       );
 
-      const mayRead: (file: unknown) => boolean = (file: unknown): boolean => {
-        return this.mayRead({
+      const mayRead: (file: unknown) => Promise<boolean> = async (
+        file: unknown,
+      ): Promise<boolean> => {
+        return await this.mayRead({
           file: files.get(readFileId(file)),
           owner: owner,
           reader: data.reader!,
@@ -250,11 +248,19 @@ export default class RelatedFileAccess {
         }
 
         if (Array.isArray(value)) {
-          values[column.relationColumn] = value.filter(mayRead);
+          const kept: Array<unknown> = [];
+
+          for (const file of value) {
+            if (await mayRead(file)) {
+              kept.push(file);
+            }
+          }
+
+          values[column.relationColumn] = kept;
           continue;
         }
 
-        if (!mayRead(value)) {
+        if (!(await mayRead(value))) {
           values[column.relationColumn] = undefined;
         }
       }

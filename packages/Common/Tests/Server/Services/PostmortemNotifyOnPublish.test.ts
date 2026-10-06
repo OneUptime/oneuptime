@@ -11,6 +11,7 @@ import IncidentStateTimelineService from "../../../Server/Services/IncidentState
 import MutableMetricService from "../../../Server/Services/MutableMetricService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
+import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import * as InlineImageAccessTokenSync from "../../../Server/Utils/InlineImageAccessTokenSync";
 import TelemetryUtil from "../../../Server/Utils/Telemetry/Telemetry";
 import URL from "../../../Types/API/URL";
@@ -835,7 +836,7 @@ describe("updates that are not the Edit Postmortem form", () => {
     const imageSync: MockFunction = getJestMockFunction();
     imageSync.mockResolvedValue(undefined as never);
     jest
-      .spyOn(InlineImageAccessTokenSync, "setImageVisibility")
+      .spyOn(PublishedImages, "setImagesVisibility")
       .mockImplementation(imageSync as never);
     jest
       .spyOn(InlineImageAccessTokenSync, "setIsPublicForMarkdownImages")

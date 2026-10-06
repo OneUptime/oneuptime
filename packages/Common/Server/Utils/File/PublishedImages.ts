@@ -1,6 +1,9 @@
+import QueryHelper from "../../Types/Database/QueryHelper";
+import File from "../../../Models/DatabaseModels/File";
+import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../Logger";
-import { normalizeFileId } from "./FileOwnership";
+import FileOwnership, { normalizeFileId } from "./FileOwnership";
 
 /*
  * The images a record shows to everyone, and for how long.
@@ -22,25 +25,32 @@ import { normalizeFileId } from "./FileOwnership";
  *   - a status page's overview description, and the descriptions of its
  *     groups and resources, always.
  *
+ * A status page that asks its visitors to sign in shows the same, to people
+ * who are not members of the project; the image routes can serve them only a
+ * public image, so its images are public by their unguessable address, as
+ * its announcements' and public notes' always were.
+ *
  * DatabaseService keeps this on every write of these records, whoever makes
  * it - the dashboard, the API, Terraform, a workflow, OneUptime itself: a
  * record created or edited to show an image makes it public (afterCreate,
  * afterUpdate), and a record that stops showing it - its switch turned off,
- * the image edited out, the record deleted - makes it private again
+ * the image edited out, the record deleted, or the record it belongs to
+ * deleted with it (CASCADES), or its project deleted - makes it private again
  * (afterUpdate, afterDelete), unless another record of the project still
- * shows it to everyone: an image is copied along with the markdown it sits
- * in, so a template's image can be in many incidents at once.
+ * shows it: an image is copied along with the markdown it sits in, so a
+ * template's image can be in many incidents at once.
  *
  * Only an image of the record's own project is ever made public or private
- * by it (InlineImageAccessTokenSync): a record of one project never opens
- * another project's image, nor closes one under the status page that shows
- * it. Making images public or private is best-effort: it never fails the
- * write it follows.
+ * by it: a record of one project never opens another project's image, nor
+ * closes one under the status page that shows it. Making images public or
+ * private is best-effort: it never fails the write it follows.
  *
  * A file is public for nothing else but a probe's or an AI agent's icon
- * (FileService.makeStoredIconsPublic). Files made public before this rule
- * existed were set to it once (SetFileVisibilityFromPublishedRecords, a data
- * migration that runs PUBLISH_SHOWN_IMAGES_SQL and HIDE_UNSHOWN_FILES_SQL).
+ * (FileService.makeStoredIconsPublic), and the images of what goes out to
+ * everyone without a page of its own (KEPT_MARKDOWN). Files made public
+ * before this rule existed were set to it once
+ * (SetFileVisibilityFromPublishedRecords, a data migration that runs
+ * PUBLISH_SHOWN_IMAGES_SQL and HIDE_UNSHOWN_FILES_SQL).
  */
 
 // The address of an inline image in markdown, and the token it carries.
@@ -153,34 +163,149 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
 ];
 
 /*
- * Markdown sent to everyone without being part of PUBLISHED_MARKDOWN: an
- * incident's custom fields, whose rich text values go out in subscriber
+ * Markdown that goes out to everyone without being kept in step here: an
+ * incident's custom fields, whose rich text values are sent in subscriber
  * notifications and whose images are made public as they are sent
- * (IncidentTemplateVariableBuilder). The data migration leaves their images
- * as they are.
+ * (IncidentTemplateVariableBuilder), and a form's description and success
+ * message, shown on its public page (a form takes no image uploads, but its
+ * markdown may name one). An image any of them shows is never made private
+ * here, by an edit elsewhere or by the data migration.
  */
-export const SENT_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
+export const KEPT_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
   {
     tableName: "Incident",
     markdownColumns: ["customFields"],
     shownWhen: [],
   },
+  {
+    tableName: "Form",
+    markdownColumns: ["description", "successMessage"],
+    shownWhen: [],
+  },
 ];
+
+/*
+ * Rows of a published table the database deletes along with a row of
+ * another table (a foreign key ON DELETE CASCADE): the notes of a deleted
+ * incident, the groups and resources of a deleted status page. DatabaseService
+ * never sees those rows go, so it reads them before it deletes their parent.
+ * A deleted project's files are all made private instead
+ * (PROJECT_FILES_PRIVATE_SQL). Held to the models' own relations by a test.
+ */
+export interface PublishedCascade {
+  // The table whose deleted rows take the published rows with them.
+  parentTable: string;
+  // The published table.
+  tableName: string;
+  // Its column naming the parent row.
+  foreignKey: string;
+}
+
+export const CASCADES: ReadonlyArray<PublishedCascade> = [
+  {
+    parentTable: "Incident",
+    tableName: "IncidentPublicNote",
+    foreignKey: "incidentId",
+  },
+  {
+    parentTable: "IncidentEpisode",
+    tableName: "IncidentEpisodePublicNote",
+    foreignKey: "incidentEpisodeId",
+  },
+  {
+    parentTable: "ScheduledMaintenance",
+    tableName: "ScheduledMaintenancePublicNote",
+    foreignKey: "scheduledMaintenanceId",
+  },
+  { parentTable: "File", tableName: "StatusPage", foreignKey: "logoFileId" },
+  {
+    parentTable: "File",
+    tableName: "StatusPage",
+    foreignKey: "faviconFileId",
+  },
+  {
+    parentTable: "File",
+    tableName: "StatusPage",
+    foreignKey: "coverImageFileId",
+  },
+  {
+    parentTable: "StatusPage",
+    tableName: "StatusPageGroup",
+    foreignKey: "statusPageId",
+  },
+  {
+    parentTable: "StatusPageGroup",
+    tableName: "StatusPageGroup",
+    foreignKey: "parentStatusPageGroupId",
+  },
+  {
+    parentTable: "StatusPage",
+    tableName: "StatusPageResource",
+    foreignKey: "statusPageId",
+  },
+  {
+    parentTable: "StatusPageGroup",
+    tableName: "StatusPageResource",
+    foreignKey: "statusPageGroupId",
+  },
+  {
+    parentTable: "Monitor",
+    tableName: "StatusPageResource",
+    foreignKey: "monitorId",
+  },
+  {
+    parentTable: "MonitorGroup",
+    tableName: "StatusPageResource",
+    foreignKey: "monitorGroupId",
+  },
+  {
+    parentTable: "StatusPageMonitorRule",
+    tableName: "StatusPageResource",
+    foreignKey: "statusPageMonitorRuleId",
+  },
+  // A page's or a group's monitor rules go with it, and their resources too.
+  {
+    parentTable: "StatusPage",
+    tableName: "StatusPageMonitorRule",
+    foreignKey: "statusPageId",
+  },
+  {
+    parentTable: "StatusPageGroup",
+    tableName: "StatusPageMonitorRule",
+    foreignKey: "statusPageGroupId",
+  },
+];
+
+// The table whose deleted rows take every file of theirs out of view.
+const PROJECT_TABLE_NAME: string = "Project";
 
 // A row as a read hands it over: its columns by name.
 type Row = Record<string, unknown>;
 
-// What setImageVisibility is: InlineImageAccessTokenSync's, one image at a time.
-type SetImageVisibility = (
-  token: string,
-  isPublic: boolean,
-  projectId: ObjectID | null | undefined,
-) => Promise<void>;
-
-// What the still-shown query runs on: FileService's repository.
-interface QueryRunnerLike {
-  query: (sql: string, parameters: Array<unknown>) => Promise<unknown>;
+// A published row a delete takes with it, as it was.
+export interface CascadedRow {
+  tableName: string;
+  row: Row;
 }
+
+// Runs one statement: a repository's manager, or a query runner.
+export type QueryFunction = (
+  sql: string,
+  parameters: Array<unknown>,
+) => Promise<unknown>;
+
+// What changes an image's visibility: FileService.
+interface FileWriter {
+  findBy: (data: unknown) => Promise<Array<File>>;
+  updateBy: (data: unknown) => Promise<number>;
+  getRepository: () => { manager: { query: QueryFunction } };
+}
+
+// The images to make public and private, per project.
+type ImageChanges = Map<
+  string,
+  { publish: Set<string>; unpublish: Set<string> }
+>;
 
 const quote: (name: string) => string = (name: string): string => {
   return `"${name}"`;
@@ -239,18 +364,25 @@ const getShownFileIdsSql: (
 };
 
 /*
- * Whether a record of a project still shows an image to everyone: $1 is the
- * project, $2 the image's address as a LIKE pattern.
+ * Which of some images a record of a project still shows to everyone, or
+ * sends out: $1 is the project, $2 the images' addresses as LIKE patterns,
+ * $3 their tokens. One statement for every image a write stopped showing.
  */
-export const STILL_SHOWN_SQL: string = `${PUBLISHED_MARKDOWN.map(
-  (source: PublishedMarkdown): string => {
-    return `SELECT 1 AS ${quote("shown")} FROM ${quote(source.tableName)} WHERE ${quote("projectId")} = $1 AND ${getShownWhereSql(source)} AND (${source.markdownColumns
-      .map((column: string): string => {
-        return `${quote(column)}::text LIKE $2`;
-      })
-      .join(" OR ")})`;
-  },
-).join(" UNION ALL ")} LIMIT 1`;
+export const STILL_SHOWN_SQL: string = `SELECT DISTINCT ${quote("shown")}.${quote("token")} AS ${quote("token")} FROM (${[
+  ...PUBLISHED_MARKDOWN,
+  ...KEPT_MARKDOWN,
+]
+  .map((source: PublishedMarkdown): string => {
+    const text: string = getTextSql(source);
+
+    return `SELECT (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("projectId")} = $1 AND ${getShownWhereSql(source)} AND ${text} LIKE ANY($2)`;
+  })
+  .join(
+    " UNION ALL ",
+  )}) AS ${quote("shown")} WHERE ${quote("shown")}.${quote("token")} = ANY($3)`;
+
+// A deleted project's files are nobody's to show any more: $1 is the projects.
+export const PROJECT_FILES_PRIVATE_SQL: string = `UPDATE ${quote("File")} SET ${quote("isPublic")} = false WHERE ${quote("isPublic")} = true AND ${quote("projectId")} = ANY($1::uuid[])`;
 
 /*
  * Once, for files from before this rule: every image a published record of
@@ -266,14 +398,33 @@ export const PUBLISH_SHOWN_IMAGES_SQL: string = `UPDATE ${quote("File")} AS ${qu
  * shows becomes private - a file uploaded through the API while uploads
  * still started public. Kept public: a probe's or an AI agent's icon, and
  * every image a published record of any project shows, by its token or by
- * its id (nothing a status page shows today breaks), or that an incident's
- * custom fields send out.
+ * its id (nothing a status page shows today breaks), or that markdown sent
+ * out to everyone shows (KEPT_MARKDOWN).
  */
 export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
-  [...PUBLISHED_MARKDOWN, ...SENT_MARKDOWN],
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
-  [...PUBLISHED_MARKDOWN, ...SENT_MARKDOWN],
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND NOT EXISTS (SELECT 1 FROM ${quote("Probe")} WHERE ${quote("Probe")}.${quote("iconFileId")} = ${quote("file")}.${quote("_id")}) AND NOT EXISTS (SELECT 1 FROM ${quote("AIAgent")} WHERE ${quote("AIAgent")}.${quote("iconFileId")} = ${quote("file")}.${quote("_id")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+
+// The published rows of a table a delete of its parent takes with it.
+export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
+  cascade: PublishedCascade,
+): string => {
+  const columns: Array<string> = [
+    "_id",
+    "projectId",
+    ...PublishedImages.getColumns(cascade.tableName),
+  ];
+
+  return `SELECT ${columns
+    .map((column: string): string => {
+      return quote(column);
+    })
+    .join(", ")} FROM ${quote(cascade.tableName)} WHERE ${quote(
+    cascade.foreignKey,
+  )} = ANY($1::uuid[]) AND ${quote("deletedAt")} IS NULL`;
+};
 
 export default class PublishedImages {
   // The kinds of published markdown a table has.
@@ -389,38 +540,31 @@ export default class PublishedImages {
         return;
       }
 
-      const unknownSwitch: boolean = withImages.some(
-        (source: PublishedMarkdown): boolean => {
-          return source.shownWhen.some((column: string): boolean => {
-            return row[column] === undefined;
-          });
-        },
+      // The switches it was created without, as the column defaults set them.
+      const unknownSwitches: Array<string> = Array.from(
+        new Set<string>(
+          withImages.flatMap((source: PublishedMarkdown): Array<string> => {
+            return source.shownWhen.filter((column: string): boolean => {
+              return row[column] === undefined;
+            });
+          }),
+        ),
       );
 
-      if (unknownSwitch) {
-        const switches: Array<string> = Array.from(
-          new Set<string>(
-            withImages.flatMap((source: PublishedMarkdown): Array<string> => {
-              return source.shownWhen;
-            }),
-          ),
-        );
-
-        const stored: Row = (await data.readStored(switches)) || {};
+      if (unknownSwitches.length > 0) {
+        const stored: Row = (await data.readStored(unknownSwitches)) || {};
 
         row = { ...row };
 
-        for (const column of switches) {
-          if (row[column] === undefined) {
-            row[column] = stored[column];
-          }
+        for (const column of unknownSwitches) {
+          row[column] = stored[column];
         }
       }
 
-      await this.setVisibility({
+      await this.setImagesVisibility({
         projectId: row["projectId"],
         publish: this.getShownTokens(data.tableName, row),
-        unpublish: new Set<string>(),
+        unpublish: [],
       });
     } catch (err) {
       logger.error(
@@ -433,7 +577,8 @@ export default class PublishedImages {
    * After records are updated, from each record as it was (read with every
    * column getColumns names) and what the update wrote: the images each
    * shows now become public, and those it no longer shows private, unless
-   * another record of its project still shows them.
+   * another record of its project still shows them. The images of all the
+   * rows are looked up together, a project at a time.
    */
   public static async afterUpdate(data: {
     tableName: string | null | undefined;
@@ -455,6 +600,8 @@ export default class PublishedImages {
         return;
       }
 
+      const changes: ImageChanges = new Map();
+
       for (const rowBefore of data.rowsBefore) {
         const before: Row = (rowBefore || {}) as Row;
         const after: Row = { ...before };
@@ -465,29 +612,22 @@ export default class PublishedImages {
           }
         }
 
-        const shownBefore: Set<string> = this.getShownTokens(
-          data.tableName,
-          before,
-        );
         const shownAfter: Set<string> = this.getShownTokens(
           data.tableName,
           after,
         );
 
-        const unpublish: Set<string> = new Set<string>();
-
-        for (const token of shownBefore) {
-          if (!shownAfter.has(token)) {
-            unpublish.add(token);
-          }
-        }
-
-        await this.setVisibility({
-          projectId: before["projectId"],
+        this.addChanges(changes, before["projectId"], {
           publish: shownAfter,
-          unpublish: unpublish,
+          unpublish: Array.from(
+            this.getShownTokens(data.tableName, before),
+          ).filter((token: string): boolean => {
+            return !shownAfter.has(token);
+          }),
         });
       }
+
+      await this.applyChanges(changes);
     } catch (err) {
       logger.error(
         `Failed to sync the images of an updated ${String(data.tableName)}: ${String(err)}`,
@@ -496,27 +636,120 @@ export default class PublishedImages {
   }
 
   /*
-   * After records are deleted, from each as it was: the images it showed
-   * become private, unless another record of its project still shows them.
+   * The published rows a delete of these rows takes with it (CASCADES),
+   * read before the delete, since the database removes them unseen - and
+   * the rows those take with them in turn (a group's sub-groups). Best-
+   * effort: the images of rows a failed read would have found are left as
+   * they are, and the delete goes ahead.
+   */
+  public static async readCascadedRows(data: {
+    tableName: string | null | undefined;
+    ids: Array<ObjectID | string>;
+    query: QueryFunction;
+  }): Promise<Array<CascadedRow>> {
+    const cascaded: Array<CascadedRow> = [];
+
+    try {
+      const seen: Set<string> = new Set<string>();
+      let pending: Array<{ tableName: string; ids: Array<string> }> = [
+        {
+          tableName: data.tableName || "",
+          ids: data.ids.map((id: ObjectID | string): string => {
+            return normalizeFileId(id);
+          }),
+        },
+      ];
+
+      while (pending.length > 0) {
+        const next: Array<{ tableName: string; ids: Array<string> }> = [];
+
+        for (const parent of pending) {
+          const parentIds: Array<string> = parent.ids.filter(
+            (id: string): boolean => {
+              return ObjectID.isValidUUID(id);
+            },
+          );
+
+          if (parentIds.length === 0) {
+            continue;
+          }
+
+          for (const cascade of CASCADES) {
+            if (cascade.parentTable !== parent.tableName) {
+              continue;
+            }
+
+            const rows: unknown = await data.query(
+              getCascadedRowsSql(cascade),
+              [parentIds],
+            );
+
+            const childIds: Array<string> = [];
+
+            for (const row of Array.isArray(rows) ? (rows as Array<Row>) : []) {
+              const rowId: string = normalizeFileId(row["_id"]);
+              const key: string = `${cascade.tableName}:${rowId}`;
+
+              if (!rowId || seen.has(key)) {
+                continue;
+              }
+
+              seen.add(key);
+              cascaded.push({ tableName: cascade.tableName, row: row });
+              childIds.push(rowId);
+            }
+
+            if (childIds.length > 0) {
+              next.push({ tableName: cascade.tableName, ids: childIds });
+            }
+          }
+        }
+
+        pending = next;
+      }
+    } catch (err) {
+      logger.error(
+        `Failed to read what a delete of ${String(data.tableName)} takes with it: ${String(err)}`,
+      );
+    }
+
+    return cascaded;
+  }
+
+  /*
+   * After records are deleted, from each as it was, and the published rows
+   * the delete took with it: the images they showed become private, unless
+   * another record of their project still shows them. A deleted project's
+   * files all become private.
    */
   public static async afterDelete(data: {
     tableName: string | null | undefined;
     rowsDeleted: Array<unknown>;
+    cascaded?: Array<CascadedRow> | undefined;
   }): Promise<void> {
     try {
-      if (this.getSources(data.tableName).length === 0) {
+      if (data.tableName === PROJECT_TABLE_NAME) {
+        await this.makeProjectFilesPrivate(data.rowsDeleted);
         return;
       }
 
-      for (const rowDeleted of data.rowsDeleted) {
-        const row: Row = (rowDeleted || {}) as Row;
+      const changes: ImageChanges = new Map();
 
-        await this.setVisibility({
-          projectId: row["projectId"],
-          publish: new Set<string>(),
-          unpublish: this.getShownTokens(data.tableName, row),
+      const deleted: Array<CascadedRow> = [
+        ...data.rowsDeleted.map((row: unknown): CascadedRow => {
+          return { tableName: data.tableName || "", row: (row || {}) as Row };
+        }),
+        ...(data.cascaded || []),
+      ];
+
+      for (const entry of deleted) {
+        this.addChanges(changes, entry.row["projectId"], {
+          publish: [],
+          unpublish: this.getShownTokens(entry.tableName, entry.row),
         });
       }
+
+      await this.applyChanges(changes);
     } catch (err) {
       logger.error(
         `Failed to make the images of a deleted ${String(data.tableName)} private: ${String(err)}`,
@@ -524,99 +757,275 @@ export default class PublishedImages {
     }
   }
 
-  /*
-   * Whether a record of the project still shows the image to everyone, as
-   * the database holds it now. A failed lookup answers yes: an image is
-   * never made private on a guess.
+  /**
+   * Makes images of a project public, or private: only images of that
+   * project, only those not so already, and private only when no record of
+   * the project still shows them to everyone or sends them out
+   * (findStillShown). Every image is looked up in one query. Best-effort:
+   * a failure is logged, never thrown.
    */
-  public static async isStillShown(data: {
-    projectId: ObjectID | string | null | undefined;
-    token: string;
-  }): Promise<boolean> {
+  public static async setImagesVisibility(data: {
+    projectId: ObjectID | string | null | undefined | unknown;
+    publish: Iterable<string>;
+    unpublish: Iterable<string>;
+  }): Promise<void> {
     const projectId: string = normalizeFileId(data.projectId);
 
     if (!projectId || !ObjectID.isValidUUID(projectId)) {
-      return true;
+      return;
     }
 
-    if (!TOKEN_REGEX.test(data.token)) {
-      return true;
+    const publish: Set<string> = new Set<string>(
+      Array.from(data.publish).filter((token: string): boolean => {
+        return TOKEN_REGEX.test(token);
+      }),
+    );
+    const unpublish: Set<string> = new Set<string>(
+      Array.from(data.unpublish).filter((token: string): boolean => {
+        return TOKEN_REGEX.test(token) && !publish.has(token);
+      }),
+    );
+
+    if (publish.size === 0 && unpublish.size === 0) {
+      return;
     }
 
     try {
-      const rows: unknown = await this.getQueryRunner().query(STILL_SHOWN_SQL, [
-        projectId,
-        `%/file/image/access-token/${data.token}%`,
-      ]);
+      const fileWriter: FileWriter = this.getFileWriter();
 
-      return Array.isArray(rows) && rows.length > 0;
-    } catch (err) {
-      logger.error(
-        `Could not tell whether an image is still shown, so it is kept as it is: ${String(err)}`,
+      const files: Array<File> = await fileWriter.findBy({
+        query: {
+          imageAccessToken: QueryHelper.any([...publish, ...unpublish]),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          isPublic: true,
+          imageAccessToken: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      // Strictly true, as FileViewerAccess reads it: anything else is private.
+      const isPublic: (file: File) => boolean = (file: File): boolean => {
+        return (file.isPublic as unknown) === true;
+      };
+
+      const own: Array<File> = files.filter((file: File): boolean => {
+        return (
+          Boolean(file._id) &&
+          FileOwnership.isFileOfProject(file, projectId) &&
+          Boolean(file.imageAccessToken)
+        );
+      });
+
+      const toPublic: Array<File> = own.filter((file: File): boolean => {
+        return publish.has(file.imageAccessToken!) && !isPublic(file);
+      });
+
+      const candidates: Array<File> = own.filter((file: File): boolean => {
+        return unpublish.has(file.imageAccessToken!) && isPublic(file);
+      });
+
+      const stillShown: Set<string> =
+        candidates.length > 0
+          ? await this.findStillShown({
+              projectId: projectId,
+              tokens: candidates.map((file: File): string => {
+                return file.imageAccessToken!;
+              }),
+            })
+          : new Set<string>();
+
+      const toPrivate: Array<File> = candidates.filter(
+        (file: File): boolean => {
+          return !stillShown.has(file.imageAccessToken!);
+        },
       );
 
-      return true;
+      await this.writeVisibility(fileWriter, toPublic, true);
+      await this.writeVisibility(fileWriter, toPrivate, false);
+    } catch (err) {
+      logger.error(
+        `Failed to change the visibility of images of project ${projectId}: ${String(err)}`,
+      );
     }
   }
 
-  private static async setVisibility(data: {
-    projectId: unknown;
-    publish: Set<string>;
-    unpublish: Set<string>;
-  }): Promise<void> {
-    if (data.publish.size === 0 && data.unpublish.size === 0) {
-      return;
+  /*
+   * Which of these images a record of the project still shows to everyone,
+   * or sends out, as the database holds it now. A failed lookup answers all
+   * of them: an image is never made private on a guess.
+   */
+  public static async findStillShown(data: {
+    projectId: ObjectID | string | null | undefined;
+    tokens: Array<string>;
+  }): Promise<Set<string>> {
+    const tokens: Array<string> = Array.from(new Set<string>(data.tokens));
+    const projectId: string = normalizeFileId(data.projectId);
+
+    if (
+      !projectId ||
+      !ObjectID.isValidUUID(projectId) ||
+      tokens.some((token: string): boolean => {
+        return !TOKEN_REGEX.test(token);
+      })
+    ) {
+      return new Set<string>(tokens);
     }
 
-    const projectId: string = normalizeFileId(data.projectId);
+    if (tokens.length === 0) {
+      return new Set<string>();
+    }
+
+    try {
+      const rows: unknown = await this.getFileWriter()
+        .getRepository()
+        .manager.query(STILL_SHOWN_SQL, [
+          projectId,
+          tokens.map((token: string): string => {
+            return `%/file/image/access-token/${token}%`;
+          }),
+          tokens,
+        ]);
+
+      const shown: Set<string> = new Set<string>();
+
+      for (const row of Array.isArray(rows) ? (rows as Array<Row>) : []) {
+        if (typeof row["token"] === "string") {
+          shown.add(row["token"]);
+        }
+      }
+
+      return shown;
+    } catch (err) {
+      logger.error(
+        `Could not tell whether images are still shown, so they are kept as they are: ${String(err)}`,
+      );
+
+      return new Set<string>(tokens);
+    }
+  }
+
+  private static addChanges(
+    changes: ImageChanges,
+    projectIdValue: unknown,
+    data: { publish: Iterable<string>; unpublish: Iterable<string> },
+  ): void {
+    const projectId: string = normalizeFileId(projectIdValue);
 
     if (!projectId || !ObjectID.isValidUUID(projectId)) {
       return;
     }
 
-    const setImageVisibility: SetImageVisibility = this.getSetImageVisibility();
+    if (!changes.has(projectId)) {
+      changes.set(projectId, {
+        publish: new Set<string>(),
+        unpublish: new Set<string>(),
+      });
+    }
 
-    const wanted: Array<[string, boolean]> = [
-      ...Array.from(data.publish).map((token: string): [string, boolean] => {
-        return [token, true];
-      }),
-      ...Array.from(data.unpublish)
-        .filter((token: string): boolean => {
-          return !data.publish.has(token);
-        })
-        .map((token: string): [string, boolean] => {
-          return [token, false];
-        }),
-    ];
+    const change: { publish: Set<string>; unpublish: Set<string> } =
+      changes.get(projectId)!;
 
-    // One image that cannot be set leaves the rest to be set all the same.
-    for (const [token, isPublic] of wanted) {
+    for (const token of data.publish) {
+      change.publish.add(token);
+    }
+
+    for (const token of data.unpublish) {
+      change.unpublish.add(token);
+    }
+  }
+
+  // A project at a time: one that cannot be set leaves the others to be set.
+  private static async applyChanges(changes: ImageChanges): Promise<void> {
+    for (const [projectId, change] of changes) {
+      if (change.publish.size === 0 && change.unpublish.size === 0) {
+        continue;
+      }
+
       try {
-        await setImageVisibility(token, isPublic, new ObjectID(projectId));
+        await this.setImagesVisibility({
+          projectId: projectId,
+          publish: change.publish,
+          unpublish: change.unpublish,
+        });
       } catch (err) {
         logger.error(
-          `Failed to make an image ${isPublic ? "public" : "private"}: ${String(err)}`,
+          `Failed to change the visibility of images of project ${projectId}: ${String(err)}`,
         );
       }
     }
   }
 
-  /*
-   * Required rather than imported: both sit behind FileService, which is a
-   * DatabaseService, and DatabaseService runs these hooks.
-   */
-  private static getSetImageVisibility(): SetImageVisibility {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-    return require("../InlineImageAccessTokenSync").setImageVisibility;
+  private static async writeVisibility(
+    fileWriter: FileWriter,
+    files: Array<File>,
+    isPublic: boolean,
+  ): Promise<void> {
+    if (files.length === 0) {
+      return;
+    }
+
+    try {
+      await fileWriter.updateBy({
+        query: {
+          _id: QueryHelper.any(
+            files.map((file: File): string => {
+              return file._id!.toString();
+            }),
+          ),
+        },
+        data: {
+          isPublic: isPublic,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to make ${files.length} image(s) ${isPublic ? "public" : "private"}: ${String(err)}`,
+      );
+    }
   }
 
-  private static getQueryRunner(): QueryRunnerLike {
-    const fileService: {
-      getRepository: () => { manager: QueryRunnerLike };
-    } =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../../Services/FileService").default;
+  private static async makeProjectFilesPrivate(
+    rowsDeleted: Array<unknown>,
+  ): Promise<void> {
+    const projectIds: Array<string> = rowsDeleted
+      .map((row: unknown): string => {
+        return normalizeFileId(((row || {}) as Row)["_id"]);
+      })
+      .filter((projectId: string): boolean => {
+        return ObjectID.isValidUUID(projectId);
+      });
 
-    return fileService.getRepository().manager;
+    if (projectIds.length === 0) {
+      return;
+    }
+
+    await this.getFileWriter()
+      .getRepository()
+      .manager.query(PROJECT_FILES_PRIVATE_SQL, [projectIds]);
+  }
+
+  /*
+   * Required rather than imported: FileService is a DatabaseService, and
+   * DatabaseService runs these hooks - imported at the top, FileService
+   * would be loaded before the class it extends (FileOwnership.readFileOwners
+   * does the same).
+   */
+  private static getFileWriter(): FileWriter {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../../Services/FileService").default;
   }
 }

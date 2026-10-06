@@ -4,7 +4,7 @@ import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import { ExpressRequest, ExpressResponse } from "../Express";
 import logger from "../Logger";
-import FileOwnership, { OwnedFile, normalizeFileId } from "./FileOwnership";
+import FileOwnership, { OwnedFile } from "./FileOwnership";
 import File from "../../../Models/DatabaseModels/File";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../../Types/Exception/TenantNotFoundException";
@@ -241,20 +241,17 @@ export default class FileViewerAccess {
       return true;
     }
 
-    const projectId: string = normalizeFileId(data.file.projectId);
-
-    if (!projectId) {
-      return FileOwnership.isFileOfUser(data.file, data.viewer.userId);
-    }
-
-    if (!ObjectID.isValidUUID(projectId)) {
-      return false;
-    }
-
-    return await this.canOpenProject({
-      req: data.req,
+    return await FileOwnership.maySeeFile({
+      // Asked of a private file: being public is decided before.
+      file: { ...data.file, isPublic: false },
       userId: data.viewer.userId,
-      projectId: new ObjectID(projectId),
+      mayOpenProject: async (projectId: ObjectID): Promise<boolean> => {
+        return await this.canOpenProject({
+          req: data.req,
+          userId: data.viewer.userId,
+          projectId: projectId,
+        });
+      },
     });
   }
 

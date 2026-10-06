@@ -1,15 +1,21 @@
 import PublishedImages, {
+  CASCADES,
+  CascadedRow,
   extractImageAccessTokens,
+  getCascadedRowsSql,
   HIDE_UNSHOWN_FILES_SQL,
+  KEPT_MARKDOWN,
+  PROJECT_FILES_PRIVATE_SQL,
   PUBLISHED_MARKDOWN,
   PUBLISH_SHOWN_IMAGES_SQL,
+  PublishedCascade,
   PublishedMarkdown,
-  SENT_MARKDOWN,
   STILL_SHOWN_SQL,
 } from "../../../../Server/Utils/File/PublishedImages";
 import * as InlineImageAccessTokenSync from "../../../../Server/Utils/InlineImageAccessTokenSync";
 import FileService from "../../../../Server/Services/FileService";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import File from "../../../../Models/DatabaseModels/File";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -25,6 +31,9 @@ import {
 import type { Mock } from "jest-mock";
 import fs from "fs";
 import path from "path";
+import { FindOperator, getMetadataArgsStorage } from "typeorm";
+import type { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
+import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -37,57 +46,74 @@ jest.mock("../../../../Server/Utils/Logger");
  * the record is shown on status pages, a postmortem once it is published
  * too, public notes, announcements and the status page's own texts always.
  * A record that stops showing an image (its switch turned off, the image
- * edited out, the record deleted) makes it private again, unless another
- * record of the project still shows it. Only images of the record's own
- * project, and best-effort: a write never fails over an image.
+ * edited out, the record deleted, or deleted along with the record it
+ * belongs to) makes it private again, unless another record of the project
+ * still shows it. Only images of the record's own project, and best-effort:
+ * a write never fails over an image.
  *
- * No database: the image visibility each case asks for is recorded, and
- * the still-shown query answers from a stub.
+ * No database: what each case asks to make public or private is recorded,
+ * and the file lookups and the still-shown query answer from stubs.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
+);
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "22222222-2222-4222-8222-222222222222",
 );
 
 const image: (token: string) => string = (token: string): string => {
   return `![shot](https://oneuptime.example/file/image/access-token/${token})`;
 };
 
-type SetImageVisibilityMock = Mock<
-  (
-    token: string,
-    isPublic: boolean,
-    projectId: ObjectID | null | undefined,
-  ) => Promise<void>
->;
-
-let setImageVisibility: SetImageVisibilityMock;
-
-// What each image was set to, in order: "aaa:public", "bbb:private".
-function visibilityAsked(): Array<string> {
-  return setImageVisibility.mock.calls.map(
-    (call: [string, boolean, ObjectID | null | undefined]): string => {
-      expect(String(call[2])).toBe(PROJECT_ID.toString());
-      return `${call[0]}:${call[1] ? "public" : "private"}`;
-    },
-  );
+interface VisibilityRequest {
+  projectId: unknown;
+  publish: Iterable<string>;
+  unpublish: Iterable<string>;
 }
 
-beforeEach(() => {
-  setImageVisibility = jest.fn(async (): Promise<void> => {
+type SetImagesVisibilityMock = Mock<(data: VisibilityRequest) => Promise<void>>;
+
+type QueryMock = Mock<
+  (sql: string, parameters: Array<unknown>) => Promise<unknown>
+>;
+
+let setImagesVisibility: SetImagesVisibilityMock;
+
+// Records what the hooks ask to make public and private, without a database.
+function recordVisibility(): void {
+  setImagesVisibility = jest.fn(async (): Promise<void> => {
     return;
   });
 
   jest
-    .spyOn(InlineImageAccessTokenSync, "setImageVisibility")
-    .mockImplementation(setImageVisibility as never);
-});
+    .spyOn(PublishedImages, "setImagesVisibility")
+    .mockImplementation(setImagesVisibility as never);
+}
+
+// What each image was asked to be, in order: "aaa:public", "bbb:private".
+function visibilityAsked(): Array<string> {
+  return setImagesVisibility.mock.calls.flatMap(
+    (call: [VisibilityRequest]): Array<string> => {
+      expect(String(call[0].projectId)).toBe(PROJECT_ID.toString());
+
+      return [
+        ...Array.from(call[0].publish).map((token: string): string => {
+          return `${token}:public`;
+        }),
+        ...Array.from(call[0].unpublish).map((token: string): string => {
+          return `${token}:private`;
+        }),
+      ];
+    },
+  );
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function modelOf(tableName: string): BaseModel {
+function modelTypeOf(tableName: string): { new (): BaseModel } {
   const modelType: { new (): BaseModel } | undefined = AllModelTypes.find(
     (candidate: { new (): BaseModel }): boolean => {
       return new candidate().tableName === tableName;
@@ -96,7 +122,11 @@ function modelOf(tableName: string): BaseModel {
 
   expect(modelType).toBeDefined();
 
-  return new modelType!();
+  return modelType!;
+}
+
+function modelOf(tableName: string): BaseModel {
+  return new (modelTypeOf(tableName))();
 }
 
 function columnType(model: BaseModel, column: string): TableColumnType {
@@ -108,9 +138,20 @@ function columnType(model: BaseModel, column: string): TableColumnType {
   return metadata!.type;
 }
 
+// The values a QueryHelper.any query names.
+function anyValues(operator: unknown): Array<string> {
+  const parameters: Record<string, unknown> =
+    ((operator as FindOperator<unknown>).objectLiteralParameters as Record<
+      string,
+      unknown
+    >) || {};
+
+  return (Object.values(parameters)[0] as Array<string>) || [];
+}
+
 describe("PUBLISHED_MARKDOWN: what records show to everyone, and when", () => {
   test.each(
-    [...PUBLISHED_MARKDOWN, ...SENT_MARKDOWN].map(
+    [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN].map(
       (source: PublishedMarkdown) => {
         return { ...source, columns: source.markdownColumns.join(", ") };
       },
@@ -155,6 +196,20 @@ describe("PUBLISHED_MARKDOWN: what records show to everyone, and when", () => {
       "StatusPageGroup.description when always",
       "StatusPageResource.displayDescription when always",
     ]);
+  });
+
+  test("keeps what goes out to everyone without a page of its own: custom fields, and a form's public texts", () => {
+    expect(
+      KEPT_MARKDOWN.map((source: PublishedMarkdown): string => {
+        return `${source.tableName}.${source.markdownColumns.join("+")}`;
+      }),
+    ).toEqual(["Incident.customFields", "Form.description+successMessage"]);
+
+    // Kept, never kept in step: a form's or a custom field's write sets nothing.
+    expect(PublishedImages.getColumns("Form")).toEqual([]);
+    expect(PublishedImages.getColumns("Incident")).not.toContain(
+      "customFields",
+    );
   });
 });
 
@@ -286,6 +341,126 @@ describe("GUARD: every Markdown column a status page could show is classified", 
   });
 });
 
+/*
+ * GUARD: CASCADES is every way the database deletes a published row along
+ * with a row of another table - read from the models' own relations, and
+ * followed up the chain (what deletes the parent deletes the row too). A
+ * relation added later with ON DELETE CASCADE fails here until it is named:
+ * the rows it takes with it would otherwise leave their images public.
+ */
+describe("GUARD: CASCADES names every delete that takes a published row with it", () => {
+  const describeCascade: (cascade: PublishedCascade) => string = (
+    cascade: PublishedCascade,
+  ): string => {
+    return `${cascade.parentTable} -> ${cascade.tableName}.${cascade.foreignKey}`;
+  };
+
+  // The parents whose deleted rows take a table's rows with them.
+  function cascadingParents(tableName: string): Array<PublishedCascade> {
+    const modelType: { new (): BaseModel } = modelTypeOf(tableName);
+
+    return getMetadataArgsStorage()
+      .relations.filter((relation: RelationMetadataArgs): boolean => {
+        return (
+          typeof relation.target === "function" &&
+          (relation.target === modelType ||
+            modelType.prototype instanceof relation.target) &&
+          (relation.relationType === "many-to-one" ||
+            relation.relationType === "one-to-one") &&
+          relation.options.onDelete === "CASCADE"
+        );
+      })
+      .map((relation: RelationMetadataArgs): PublishedCascade => {
+        const parentType: { new (): BaseModel } = (
+          relation.type as () => { new (): BaseModel }
+        )();
+        const joinColumn: JoinColumnMetadataArgs | undefined =
+          getMetadataArgsStorage().joinColumns.find(
+            (candidate: JoinColumnMetadataArgs): boolean => {
+              return (
+                candidate.target === relation.target &&
+                candidate.propertyName === relation.propertyName
+              );
+            },
+          );
+
+        expect(joinColumn?.name).toBeTruthy();
+
+        return {
+          parentTable: new parentType().tableName || "",
+          tableName: tableName,
+          foreignKey: joinColumn!.name!,
+        };
+      });
+  }
+
+  test("every ON DELETE CASCADE into a published table, and up the chain, is named; nothing else", () => {
+    const found: Array<PublishedCascade> = [];
+    const visited: Set<string> = new Set<string>();
+    let pending: Array<string> = PUBLISHED_MARKDOWN.map(
+      (source: PublishedMarkdown): string => {
+        return source.tableName;
+      },
+    );
+
+    while (pending.length > 0) {
+      const next: Array<string> = [];
+
+      for (const tableName of pending) {
+        if (visited.has(tableName)) {
+          continue;
+        }
+
+        visited.add(tableName);
+
+        for (const cascade of cascadingParents(tableName)) {
+          // A deleted project makes every file of its own private instead.
+          if (cascade.parentTable === "Project") {
+            continue;
+          }
+
+          found.push(cascade);
+          next.push(cascade.parentTable);
+        }
+      }
+
+      pending = next;
+    }
+
+    expect(found.map(describeCascade).sort()).toEqual(
+      CASCADES.map(describeCascade).sort(),
+    );
+  });
+
+  test("every published table's project deletes it with the project", () => {
+    for (const source of PUBLISHED_MARKDOWN) {
+      expect(cascadingParents(source.tableName).map(describeCascade)).toContain(
+        `Project -> ${source.tableName}.projectId`,
+      );
+    }
+  });
+
+  test("every table CASCADES reads has the columns the read asks for", () => {
+    for (const cascade of CASCADES) {
+      const model: BaseModel = modelOf(cascade.tableName);
+
+      for (const column of [
+        "_id",
+        "projectId",
+        "deletedAt",
+        cascade.foreignKey,
+        ...PublishedImages.getColumns(cascade.tableName),
+      ]) {
+        expect(
+          model.getTableColumns().columns.includes(column) ||
+            column === "_id" ||
+            column === "deletedAt",
+        ).toBe(true);
+      }
+    }
+  });
+});
+
 describe("PublishedImages.getColumns / isWrittenBy", () => {
   test("a table's markdown and switches, each once", () => {
     expect(PublishedImages.getColumns("Incident").sort()).toEqual(
@@ -402,6 +577,8 @@ describe("PublishedImages.getShownTokens: what a record shows to everyone", () =
 });
 
 describe("PublishedImages.afterCreate", () => {
+  beforeEach(recordVisibility);
+
   test("a new record shown to everyone makes its images public", async () => {
     const readStored: Mock<() => Promise<null>> = jest.fn(async () => {
       return null;
@@ -472,9 +649,8 @@ describe("PublishedImages.afterCreate", () => {
       readStored: readStored,
     });
 
-    // The postmortem's other switch is read; the one given is kept: hidden.
-    expect(readStored.mock.calls[0]![0].sort()).toEqual([
-      "isVisibleOnStatusPage",
+    // Only the switch it was created without is read; the one given is kept.
+    expect(readStored.mock.calls[0]![0]).toEqual([
       "showPostmortemOnStatusPage",
     ]);
     expect(visibilityAsked()).toEqual([]);
@@ -497,11 +673,11 @@ describe("PublishedImages.afterCreate", () => {
     });
 
     expect(readStored).not.toHaveBeenCalled();
-    expect(visibilityAsked()).toEqual([]);
+    expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 
   test("never fails the create it follows", async () => {
-    setImageVisibility.mockRejectedValue(new Error("db down"));
+    setImagesVisibility.mockRejectedValue(new Error("db down"));
 
     await expect(
       PublishedImages.afterCreate({
@@ -516,6 +692,8 @@ describe("PublishedImages.afterCreate", () => {
 });
 
 describe("PublishedImages.afterUpdate", () => {
+  beforeEach(recordVisibility);
+
   const SHOWN_INCIDENT: Record<string, unknown> = {
     projectId: PROJECT_ID,
     description: image("aaa111"),
@@ -581,7 +759,7 @@ describe("PublishedImages.afterUpdate", () => {
     expect(visibilityAsked()).toEqual(["aaa111:public", "bbb222:public"]);
   });
 
-  test("clearing the description makes its images private", async () => {
+  test("clearing the note makes its images private", async () => {
     await PublishedImages.afterUpdate({
       tableName: "IncidentPublicNote",
       rowsBefore: [{ projectId: PROJECT_ID, note: image("aaa111") }],
@@ -598,14 +776,10 @@ describe("PublishedImages.afterUpdate", () => {
       written: { title: "Renamed", rootCause: image("zzz999") },
     });
 
-    expect(visibilityAsked()).toEqual([]);
+    expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 
-  test("each row is answered for itself, in its own project", async () => {
-    const otherProject: ObjectID = new ObjectID(
-      "22222222-2222-4222-8222-222222222222",
-    );
-
+  test("the rows of a project are set together, once, and each project for itself", async () => {
     await PublishedImages.afterUpdate({
       tableName: "ScheduledMaintenance",
       rowsBefore: [
@@ -615,8 +789,13 @@ describe("PublishedImages.afterUpdate", () => {
           isVisibleOnStatusPage: false,
         },
         {
-          projectId: otherProject,
+          projectId: OTHER_PROJECT_ID,
           description: image("bbb222"),
+          isVisibleOnStatusPage: false,
+        },
+        {
+          projectId: PROJECT_ID,
+          description: image("ccc333"),
           isVisibleOnStatusPage: false,
         },
       ],
@@ -624,14 +803,14 @@ describe("PublishedImages.afterUpdate", () => {
     });
 
     expect(
-      setImageVisibility.mock.calls.map(
-        (call: [string, boolean, ObjectID | null | undefined]): string => {
-          return `${call[0]}:${String(call[2])}`;
+      setImagesVisibility.mock.calls.map(
+        (call: [VisibilityRequest]): string => {
+          return `${Array.from(call[0].publish).join("+")}:${String(call[0].projectId)}`;
         },
       ),
     ).toEqual([
-      `aaa111:${PROJECT_ID.toString()}`,
-      `bbb222:${otherProject.toString()}`,
+      `aaa111+ccc333:${PROJECT_ID.toString()}`,
+      `bbb222:${OTHER_PROJECT_ID.toString()}`,
     ]);
   });
 
@@ -642,23 +821,29 @@ describe("PublishedImages.afterUpdate", () => {
       written: { note: image("bbb222") },
     });
 
-    expect(setImageVisibility).not.toHaveBeenCalled();
+    expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 
-  test("one image that cannot be set leaves the others to be set", async () => {
-    setImageVisibility.mockRejectedValueOnce(new Error("db down"));
+  test("a project whose images cannot be set leaves the others' to be set", async () => {
+    setImagesVisibility.mockRejectedValueOnce(new Error("db down"));
 
     await PublishedImages.afterUpdate({
-      tableName: "Incident",
-      rowsBefore: [SHOWN_INCIDENT],
-      written: { isVisibleOnStatusPage: false },
+      tableName: "IncidentPublicNote",
+      rowsBefore: [
+        { projectId: OTHER_PROJECT_ID, note: image("aaa111") },
+        { projectId: PROJECT_ID, note: image("bbb222") },
+      ],
+      written: { note: "Images removed." },
     });
 
-    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+    expect(setImagesVisibility).toHaveBeenCalledTimes(2);
+    expect(String(setImagesVisibility.mock.calls[1]![0].projectId)).toBe(
+      PROJECT_ID.toString(),
+    );
   });
 
   test("never fails the update it follows", async () => {
-    setImageVisibility.mockRejectedValue(new Error("db down"));
+    setImagesVisibility.mockRejectedValue(new Error("db down"));
 
     await expect(
       PublishedImages.afterUpdate({
@@ -671,6 +856,8 @@ describe("PublishedImages.afterUpdate", () => {
 });
 
 describe("PublishedImages.afterDelete", () => {
+  beforeEach(recordVisibility);
+
   test("a deleted record's shown images become private", async () => {
     await PublishedImages.afterDelete({
       tableName: "IncidentEpisode",
@@ -691,21 +878,532 @@ describe("PublishedImages.afterDelete", () => {
     expect(visibilityAsked()).toEqual(["aaa111:private"]);
   });
 
+  test("so do the images of the rows the delete took with it", async () => {
+    await PublishedImages.afterDelete({
+      tableName: "Incident",
+      rowsDeleted: [
+        {
+          projectId: PROJECT_ID,
+          description: image("aaa111"),
+          isVisibleOnStatusPage: true,
+        },
+      ],
+      cascaded: [
+        {
+          tableName: "IncidentPublicNote",
+          row: { projectId: PROJECT_ID.toString(), note: image("bbb222") },
+        },
+        {
+          tableName: "IncidentPublicNote",
+          row: { projectId: PROJECT_ID.toString(), note: "No pictures." },
+        },
+      ],
+    });
+
+    // One request for the project, every image the delete took out of view.
+    expect(setImagesVisibility).toHaveBeenCalledTimes(1);
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
   test("a deleted record of a table that shows nothing changes nothing", async () => {
     await PublishedImages.afterDelete({
       tableName: "AlertInternalNote",
       rowsDeleted: [{ projectId: PROJECT_ID, note: image("aaa111") }],
     });
 
-    expect(setImageVisibility).not.toHaveBeenCalled();
+    expect(setImagesVisibility).not.toHaveBeenCalled();
+  });
+
+  test("a deleted project's files all become private, in one statement", async () => {
+    const query: QueryMock = jest.fn(async (): Promise<unknown> => {
+      return [[], 3];
+    });
+
+    jest.spyOn(FileService, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+
+    await PublishedImages.afterDelete({
+      tableName: "Project",
+      rowsDeleted: [
+        { _id: PROJECT_ID.toString() },
+        { _id: "not-an-id" },
+        { _id: OTHER_PROJECT_ID.toString().toUpperCase() },
+      ],
+    });
+
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![0]).toBe(PROJECT_FILES_PRIVATE_SQL);
+    expect(query.mock.calls[0]![1]).toEqual([
+      [PROJECT_ID.toString(), OTHER_PROJECT_ID.toString()],
+    ]);
+    expect(setImagesVisibility).not.toHaveBeenCalled();
+  });
+
+  test("never fails the delete it follows", async () => {
+    jest.spyOn(FileService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (): Promise<unknown> => {
+          throw new Error("db down");
+        },
+      },
+    } as never);
+    setImagesVisibility.mockRejectedValue(new Error("db down"));
+
+    await expect(
+      PublishedImages.afterDelete({
+        tableName: "Project",
+        rowsDeleted: [{ _id: PROJECT_ID.toString() }],
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      PublishedImages.afterDelete({
+        tableName: "IncidentPublicNote",
+        rowsDeleted: [{ projectId: PROJECT_ID, note: image("aaa111") }],
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 
-describe("PublishedImages.isStillShown", () => {
-  type QueryMock = Mock<
-    (sql: string, parameters: Array<unknown>) => Promise<unknown>
+describe("PublishedImages.readCascadedRows: what a delete takes with it", () => {
+  const STATUS_PAGE_ID: string = "aaaaaaaa-0000-4000-8000-000000000001";
+  const GROUP_ID: string = "bbbbbbbb-0000-4000-8000-000000000001";
+  const SUB_GROUP_ID: string = "bbbbbbbb-0000-4000-8000-000000000002";
+  const RESOURCE_ID: string = "cccccccc-0000-4000-8000-000000000001";
+  const GROUPED_RESOURCE_ID: string = "cccccccc-0000-4000-8000-000000000002";
+  // In the sub-group: found only by following the sub-group down.
+  const SUB_GROUP_RESOURCE_ID: string = "cccccccc-0000-4000-8000-000000000003";
+
+  function cascadeOf(tableName: string, foreignKey: string): PublishedCascade {
+    const cascade: PublishedCascade | undefined = CASCADES.find(
+      (candidate: PublishedCascade): boolean => {
+        return (
+          candidate.tableName === tableName &&
+          candidate.foreignKey === foreignKey
+        );
+      },
+    );
+
+    expect(cascade).toBeDefined();
+
+    return cascade!;
+  }
+
+  /*
+   * A status page with a group and its sub-group, a resource on the page, one
+   * in the group and one in the sub-group.
+   */
+  function statusPageTree(): QueryMock {
+    const answers: Map<
+      string,
+      Record<string, Array<Record<string, unknown>>>
+    > = new Map([
+      [
+        getCascadedRowsSql(cascadeOf("StatusPageGroup", "statusPageId")),
+        {
+          [STATUS_PAGE_ID]: [
+            { _id: GROUP_ID, projectId: PROJECT_ID.toString() },
+            { _id: SUB_GROUP_ID, projectId: PROJECT_ID.toString() },
+          ],
+        },
+      ],
+      [
+        getCascadedRowsSql(
+          cascadeOf("StatusPageGroup", "parentStatusPageGroupId"),
+        ),
+        {
+          [GROUP_ID]: [{ _id: SUB_GROUP_ID, projectId: PROJECT_ID.toString() }],
+        },
+      ],
+      [
+        getCascadedRowsSql(cascadeOf("StatusPageResource", "statusPageId")),
+        {
+          [STATUS_PAGE_ID]: [
+            { _id: RESOURCE_ID, projectId: PROJECT_ID.toString() },
+            { _id: GROUPED_RESOURCE_ID, projectId: PROJECT_ID.toString() },
+          ],
+        },
+      ],
+      [
+        getCascadedRowsSql(
+          cascadeOf("StatusPageResource", "statusPageGroupId"),
+        ),
+        {
+          [GROUP_ID]: [
+            { _id: GROUPED_RESOURCE_ID, projectId: PROJECT_ID.toString() },
+          ],
+          [SUB_GROUP_ID]: [
+            { _id: SUB_GROUP_RESOURCE_ID, projectId: PROJECT_ID.toString() },
+          ],
+        },
+      ],
+    ]);
+
+    return jest.fn(
+      async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+        const byParent: Record<
+          string,
+          Array<Record<string, unknown>>
+        > = answers.get(sql) || {};
+
+        return (parameters[0] as Array<string>).flatMap(
+          (parentId: string): Array<Record<string, unknown>> => {
+            return byParent[parentId] || [];
+          },
+        );
+      },
+    );
+  }
+
+  test("reads the rows a status page's delete takes with it, down the chain, each once", async () => {
+    const query: QueryMock = statusPageTree();
+
+    const cascaded: Array<CascadedRow> = await PublishedImages.readCascadedRows(
+      {
+        tableName: "StatusPage",
+        ids: [new ObjectID(STATUS_PAGE_ID)],
+        query: query,
+      },
+    );
+
+    expect(
+      cascaded
+        .map((entry: CascadedRow): string => {
+          return `${entry.tableName}:${String(entry.row["_id"])}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `StatusPageGroup:${GROUP_ID}`,
+        `StatusPageGroup:${SUB_GROUP_ID}`,
+        `StatusPageResource:${RESOURCE_ID}`,
+        `StatusPageResource:${GROUPED_RESOURCE_ID}`,
+        `StatusPageResource:${SUB_GROUP_RESOURCE_ID}`,
+      ].sort(),
+    );
+
+    // Every statement is the one CASCADES names, with the parents' ids.
+    for (const call of query.mock.calls) {
+      expect(
+        CASCADES.map((cascade: PublishedCascade): string => {
+          return getCascadedRowsSql(cascade);
+        }),
+      ).toContain(call[0]);
+      expect(Array.isArray(call[1][0])).toBe(true);
+    }
+  });
+
+  test("a group's delete reaches its sub-groups, and the resources in them", async () => {
+    const cascaded: Array<CascadedRow> = await PublishedImages.readCascadedRows(
+      {
+        tableName: "StatusPageGroup",
+        ids: [GROUP_ID],
+        query: statusPageTree(),
+      },
+    );
+
+    expect(
+      cascaded
+        .map((entry: CascadedRow): string => {
+          return `${entry.tableName}:${String(entry.row["_id"])}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `StatusPageGroup:${SUB_GROUP_ID}`,
+        `StatusPageResource:${GROUPED_RESOURCE_ID}`,
+        `StatusPageResource:${SUB_GROUP_RESOURCE_ID}`,
+      ].sort(),
+    );
+  });
+
+  test("reads each kept row's markdown and switches, to tell what it showed", () => {
+    expect(
+      getCascadedRowsSql(cascadeOf("IncidentPublicNote", "incidentId")),
+    ).toBe(
+      `SELECT "_id", "projectId", "note" FROM "IncidentPublicNote" WHERE "incidentId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
+    );
+    expect(getCascadedRowsSql(cascadeOf("StatusPage", "logoFileId"))).toBe(
+      `SELECT "_id", "projectId", "overviewPageDescription" FROM "StatusPage" WHERE "logoFileId" = ANY($1::uuid[]) AND "deletedAt" IS NULL`,
+    );
+  });
+
+  test("asks nothing of a table no published row hangs from, or of ids that are not ids", async () => {
+    const query: QueryMock = statusPageTree();
+
+    await expect(
+      PublishedImages.readCascadedRows({
+        tableName: "Label",
+        ids: [new ObjectID(STATUS_PAGE_ID)],
+        query: query,
+      }),
+    ).resolves.toEqual([]);
+    await expect(
+      PublishedImages.readCascadedRows({
+        tableName: "StatusPage",
+        ids: ["not-an-id"],
+        query: query,
+      }),
+    ).resolves.toEqual([]);
+    await expect(
+      PublishedImages.readCascadedRows({
+        tableName: undefined,
+        ids: [STATUS_PAGE_ID],
+        query: query,
+      }),
+    ).resolves.toEqual([]);
+
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  test("a failed read never fails the delete", async () => {
+    const query: QueryMock = jest.fn(async (): Promise<unknown> => {
+      throw new Error("db down");
+    });
+
+    await expect(
+      PublishedImages.readCascadedRows({
+        tableName: "Incident",
+        ids: [PROJECT_ID],
+        query: query,
+      }),
+    ).resolves.toEqual([]);
+  });
+});
+
+describe("PublishedImages.setImagesVisibility: one project's images, public or private", () => {
+  type FindByMock = Mock<(data: unknown) => Promise<Array<File>>>;
+  type UpdateByMock = Mock<(data: unknown) => Promise<number>>;
+  type FindStillShownMock = Mock<
+    (data: {
+      projectId: ObjectID | string | null | undefined;
+      tokens: Array<string>;
+    }) => Promise<Set<string>>
   >;
 
+  let findBy: FindByMock;
+  let updateBy: UpdateByMock;
+  let findStillShown: FindStillShownMock;
+
+  function file(data: {
+    id: string;
+    token: string;
+    projectId: ObjectID;
+    isPublic: boolean;
+  }): File {
+    const value: File = new File();
+    value._id = data.id;
+    value.imageAccessToken = data.token;
+    value.projectId = data.projectId;
+    value.isPublic = data.isPublic;
+    return value;
+  }
+
+  const OWN_PRIVATE: File = file({
+    id: "dddddddd-0000-4000-8000-000000000001",
+    token: "aaa111",
+    projectId: PROJECT_ID,
+    isPublic: false,
+  });
+  const OWN_PUBLIC: File = file({
+    id: "dddddddd-0000-4000-8000-000000000002",
+    token: "bbb222",
+    projectId: PROJECT_ID,
+    isPublic: true,
+  });
+  const OWN_PUBLIC_STILL_SHOWN: File = file({
+    id: "dddddddd-0000-4000-8000-000000000003",
+    token: "ccc333",
+    projectId: PROJECT_ID,
+    isPublic: true,
+  });
+  const OTHER_PRIVATE: File = file({
+    id: "dddddddd-0000-4000-8000-000000000004",
+    token: "eee555",
+    projectId: OTHER_PROJECT_ID,
+    isPublic: false,
+  });
+  const OTHER_PUBLIC: File = file({
+    id: "dddddddd-0000-4000-8000-000000000005",
+    token: "fff666",
+    projectId: OTHER_PROJECT_ID,
+    isPublic: true,
+  });
+
+  beforeEach(() => {
+    findBy = jest.fn(async (): Promise<Array<File>> => {
+      return [
+        OWN_PRIVATE,
+        OWN_PUBLIC,
+        OWN_PUBLIC_STILL_SHOWN,
+        OTHER_PRIVATE,
+        OTHER_PUBLIC,
+      ];
+    });
+    updateBy = jest.fn(async (): Promise<number> => {
+      return 1;
+    });
+    findStillShown = jest.fn(async (): Promise<Set<string>> => {
+      return new Set<string>(["ccc333"]);
+    });
+
+    jest.spyOn(FileService, "findBy").mockImplementation(findBy as never);
+    jest.spyOn(FileService, "updateBy").mockImplementation(updateBy as never);
+    jest
+      .spyOn(PublishedImages, "findStillShown")
+      .mockImplementation(findStillShown as never);
+  });
+
+  // Each write: "public: <ids>" or "private: <ids>".
+  function writes(): Array<string> {
+    return updateBy.mock.calls.map((call: [unknown]): string => {
+      const data: {
+        query: { _id: unknown };
+        data: { isPublic: boolean };
+        props: unknown;
+      } = call[0] as {
+        query: { _id: unknown };
+        data: { isPublic: boolean };
+        props: unknown;
+      };
+
+      expect(data.props).toEqual({ isRoot: true, ignoreHooks: true });
+
+      return `${data.data.isPublic ? "public" : "private"}: ${anyValues(
+        data.query._id,
+      ).join(",")}`;
+    });
+  }
+
+  test("looks every image up once, without the bytes, and writes each visibility once", async () => {
+    await PublishedImages.setImagesVisibility({
+      projectId: PROJECT_ID,
+      publish: ["aaa111", "eee555"],
+      unpublish: ["bbb222", "ccc333", "fff666"],
+    });
+
+    expect(findBy).toHaveBeenCalledTimes(1);
+
+    const lookup: {
+      query: { imageAccessToken: unknown };
+      select: Record<string, unknown>;
+      props: unknown;
+    } = findBy.mock.calls[0]![0] as {
+      query: { imageAccessToken: unknown };
+      select: Record<string, unknown>;
+      props: unknown;
+    };
+
+    expect(anyValues(lookup.query.imageAccessToken).sort()).toEqual(
+      ["aaa111", "bbb222", "ccc333", "eee555", "fff666"].sort(),
+    );
+    expect(lookup.select).not.toHaveProperty("file");
+    expect(lookup.props).toEqual({ isRoot: true, ignoreHooks: true });
+
+    expect(writes()).toEqual([
+      `public: ${OWN_PRIVATE._id}`,
+      `private: ${OWN_PUBLIC._id}`,
+    ]);
+  });
+
+  test("never touches another project's image", async () => {
+    await PublishedImages.setImagesVisibility({
+      projectId: PROJECT_ID,
+      publish: ["eee555"],
+      unpublish: ["fff666"],
+    });
+
+    expect(updateBy).not.toHaveBeenCalled();
+    expect(findStillShown).not.toHaveBeenCalled();
+  });
+
+  test("makes private only what no record of the project still shows, asked once for all", async () => {
+    await PublishedImages.setImagesVisibility({
+      projectId: PROJECT_ID,
+      publish: [],
+      unpublish: ["bbb222", "ccc333"],
+    });
+
+    expect(findStillShown).toHaveBeenCalledTimes(1);
+    expect(findStillShown.mock.calls[0]![0].tokens.sort()).toEqual([
+      "bbb222",
+      "ccc333",
+    ]);
+    expect(String(findStillShown.mock.calls[0]![0].projectId)).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(writes()).toEqual([`private: ${OWN_PUBLIC._id}`]);
+  });
+
+  test("leaves an image as it is when it already is so", async () => {
+    await PublishedImages.setImagesVisibility({
+      projectId: PROJECT_ID,
+      publish: ["bbb222"],
+      unpublish: ["aaa111"],
+    });
+
+    expect(updateBy).not.toHaveBeenCalled();
+    // A private image is not asked about: it stays private.
+    expect(findStillShown).not.toHaveBeenCalled();
+  });
+
+  test("an image both shown and hidden by the same write stays public", async () => {
+    await PublishedImages.setImagesVisibility({
+      projectId: PROJECT_ID,
+      publish: ["aaa111", "bbb222"],
+      unpublish: ["aaa111", "bbb222"],
+    });
+
+    expect(findStillShown).not.toHaveBeenCalled();
+    expect(writes()).toEqual([`public: ${OWN_PRIVATE._id}`]);
+  });
+
+  test("asks nothing for no project, an id that is not one, or no real tokens", async () => {
+    for (const projectId of [null, undefined, "not-an-id"]) {
+      await PublishedImages.setImagesVisibility({
+        projectId: projectId,
+        publish: ["aaa111"],
+        unpublish: ["bbb222"],
+      });
+    }
+
+    await PublishedImages.setImagesVisibility({
+      projectId: PROJECT_ID,
+      publish: ["a%b", ""],
+      unpublish: ["' OR 1=1 --"],
+    });
+
+    expect(findBy).not.toHaveBeenCalled();
+    expect(updateBy).not.toHaveBeenCalled();
+  });
+
+  test("never fails the write it follows; one failed write leaves the other to be made", async () => {
+    findBy.mockRejectedValueOnce(new Error("db down"));
+
+    await expect(
+      PublishedImages.setImagesVisibility({
+        projectId: PROJECT_ID,
+        publish: ["aaa111"],
+        unpublish: ["bbb222"],
+      }),
+    ).resolves.toBeUndefined();
+    expect(updateBy).not.toHaveBeenCalled();
+
+    updateBy.mockRejectedValueOnce(new Error("db down"));
+
+    await expect(
+      PublishedImages.setImagesVisibility({
+        projectId: PROJECT_ID,
+        publish: ["aaa111"],
+        unpublish: ["bbb222"],
+      }),
+    ).resolves.toBeUndefined();
+    expect(updateBy).toHaveBeenCalledTimes(2);
+    expect(writes()[1]).toBe(`private: ${OWN_PUBLIC._id}`);
+  });
+});
+
+describe("PublishedImages.findStillShown", () => {
   function stubQuery(answer: () => Promise<unknown>): QueryMock {
     const query: QueryMock = jest.fn(answer);
 
@@ -716,31 +1414,40 @@ describe("PublishedImages.isStillShown", () => {
     return query;
   }
 
-  test("asks the database once, for the project and the image's address", async () => {
+  test("asks the database once, for the project and every image's address", async () => {
     const query: QueryMock = stubQuery(async () => {
-      return [{ shown: 1 }];
+      return [{ token: "abc123" }];
     });
 
-    await expect(
-      PublishedImages.isStillShown({ projectId: PROJECT_ID, token: "abc123" }),
-    ).resolves.toBe(true);
+    const shown: Set<string> = await PublishedImages.findStillShown({
+      projectId: PROJECT_ID,
+      tokens: ["abc123", "def456", "abc123"],
+    });
 
+    expect(Array.from(shown)).toEqual(["abc123"]);
     expect(query).toHaveBeenCalledTimes(1);
     expect(query.mock.calls[0]![0]).toBe(STILL_SHOWN_SQL);
     expect(query.mock.calls[0]![1]).toEqual([
       PROJECT_ID.toString(),
-      "%/file/image/access-token/abc123%",
+      [
+        "%/file/image/access-token/abc123%",
+        "%/file/image/access-token/def456%",
+      ],
+      ["abc123", "def456"],
     ]);
   });
 
-  test("no published record of the project shows it: not shown", async () => {
+  test("no published record of the project shows them: none is still shown", async () => {
     stubQuery(async () => {
       return [];
     });
 
     await expect(
-      PublishedImages.isStillShown({ projectId: PROJECT_ID, token: "abc123" }),
-    ).resolves.toBe(false);
+      PublishedImages.findStillShown({
+        projectId: PROJECT_ID,
+        tokens: ["abc123"],
+      }),
+    ).resolves.toEqual(new Set<string>());
   });
 
   test("an image is never made private on a guess", async () => {
@@ -749,36 +1456,54 @@ describe("PublishedImages.isStillShown", () => {
     });
 
     await expect(
-      PublishedImages.isStillShown({ projectId: PROJECT_ID, token: "abc123" }),
-    ).resolves.toBe(true);
+      PublishedImages.findStillShown({
+        projectId: PROJECT_ID,
+        tokens: ["abc123", "def456"],
+      }),
+    ).resolves.toEqual(new Set<string>(["abc123", "def456"]));
 
     query.mockClear();
 
-    // A token that is not hex, or no project: nothing is asked, and it stays.
+    // A token that is not hex, or no project: nothing is asked, and all stay.
     await expect(
-      PublishedImages.isStillShown({ projectId: PROJECT_ID, token: "a%b" }),
-    ).resolves.toBe(true);
+      PublishedImages.findStillShown({
+        projectId: PROJECT_ID,
+        tokens: ["abc123", "a%b"],
+      }),
+    ).resolves.toEqual(new Set<string>(["abc123", "a%b"]));
     await expect(
-      PublishedImages.isStillShown({ projectId: null, token: "abc123" }),
-    ).resolves.toBe(true);
+      PublishedImages.findStillShown({ projectId: null, tokens: ["abc123"] }),
+    ).resolves.toEqual(new Set<string>(["abc123"]));
+    await expect(
+      PublishedImages.findStillShown({ projectId: PROJECT_ID, tokens: [] }),
+    ).resolves.toEqual(new Set<string>());
     expect(query).not.toHaveBeenCalled();
   });
 });
 
-describe("the SQL the still-shown check and the data migration run", () => {
-  test("STILL_SHOWN_SQL asks every published record of the project, with its switches", () => {
-    for (const source of PUBLISHED_MARKDOWN) {
+describe("the SQL the still-shown check, a project's delete and the data migration run", () => {
+  test("STILL_SHOWN_SQL asks every published or sent record of the project, with its switches", () => {
+    for (const source of [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN]) {
       expect(STILL_SHOWN_SQL).toContain(`FROM "${source.tableName}"`);
 
       for (const column of source.markdownColumns) {
-        expect(STILL_SHOWN_SQL).toContain(`"${column}"::text LIKE $2`);
+        expect(STILL_SHOWN_SQL).toContain(`"${column}"::text`);
       }
     }
 
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND ("postmortemNote"::text LIKE $2)`,
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND concat_ws(' ', "postmortemNote"::text) LIKE ANY($2)`,
     );
-    expect(STILL_SHOWN_SQL.endsWith(" LIMIT 1")).toBe(true);
+    expect(STILL_SHOWN_SQL).toMatch(/^SELECT DISTINCT "shown"\."token"/);
+    expect(STILL_SHOWN_SQL.endsWith(`WHERE "shown"."token" = ANY($3)`)).toBe(
+      true,
+    );
+  });
+
+  test("PROJECT_FILES_PRIVATE_SQL makes the deleted projects' public files private, and nothing else", () => {
+    expect(PROJECT_FILES_PRIVATE_SQL).toBe(
+      `UPDATE "File" SET "isPublic" = false WHERE "isPublic" = true AND "projectId" = ANY($1::uuid[])`,
+    );
   });
 
   test("PUBLISH_SHOWN_IMAGES_SQL makes public only private images of the showing record's own project", () => {
@@ -794,8 +1519,9 @@ describe("the SQL the still-shown check and the data migration run", () => {
       expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(`FROM "${source.tableName}"`);
     }
 
-    // What is merely sent out is not made public by the migration.
+    // What is merely sent out, or a form's text, is not made public by it.
     expect(PUBLISH_SHOWN_IMAGES_SQL).not.toContain(`"customFields"`);
+    expect(PUBLISH_SHOWN_IMAGES_SQL).not.toContain(`FROM "Form"`);
   });
 
   test("HIDE_UNSHOWN_FILES_SQL keeps icons, and every image published or sent, by token or by id", () => {
@@ -809,6 +1535,7 @@ describe("the SQL the still-shown check and the data migration run", () => {
       `NOT EXISTS (SELECT 1 FROM "AIAgent" WHERE "AIAgent"."iconFileId" = "file"."_id")`,
     );
     expect(HIDE_UNSHOWN_FILES_SQL).toContain(`"customFields"::text`);
+    expect(HIDE_UNSHOWN_FILES_SQL).toContain(`FROM "Form"`);
     expect(HIDE_UNSHOWN_FILES_SQL).toContain(
       `"shownId"."fileId" = "file"."_id"::text`,
     );

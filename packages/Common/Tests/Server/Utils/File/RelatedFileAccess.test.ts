@@ -346,9 +346,9 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     projectId: ObjectID;
   } = { kind: FileOwnerKind.Project, projectId: PROJECT_ID };
 
-  test("a member of the file's project", () => {
+  test("a member of the file's project", async () => {
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[OWN_FILE_ID],
         owner: projectOwner,
         reader: MEMBER,
@@ -356,10 +356,10 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     ).toBe(true);
   });
 
-  test("not someone who may not open the file's project", () => {
+  test("not someone who may not open the file's project", async () => {
     for (const reader of [OUTSIDER, ANONYMOUS]) {
       expect(
-        RelatedFileAccess.mayRead({
+        await RelatedFileAccess.mayRead({
           file: FILES[OWN_FILE_ID],
           owner: projectOwner,
           reader: reader,
@@ -373,9 +373,9 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
    * record saved before records were held to their own files - shows the
    * member nothing of it.
    */
-  test("not a file of another project, through a record of the reader's own", () => {
+  test("not a file of another project, through a record of the reader's own", async () => {
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[FOREIGN_FILE_ID],
         owner: projectOwner,
         reader: MEMBER,
@@ -383,10 +383,10 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     ).toBe(false);
   });
 
-  test("a public file, to anyone, signed in or not", () => {
+  test("a public file, to anyone, signed in or not", async () => {
     for (const reader of [MEMBER, OUTSIDER, ANONYMOUS]) {
       expect(
-        RelatedFileAccess.mayRead({
+        await RelatedFileAccess.mayRead({
           file: FILES[PUBLIC_FOREIGN_FILE_ID],
           owner: projectOwner,
           reader: reader,
@@ -395,10 +395,10 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     }
   });
 
-  test("only a real true is public", () => {
+  test("only a real true is public", async () => {
     for (const isPublic of ["true", 1, "t", null, undefined]) {
       expect(
-        RelatedFileAccess.mayRead({
+        await RelatedFileAccess.mayRead({
           file: {
             projectId: OTHER_PROJECT_ID,
             createdByUserId: null,
@@ -411,16 +411,16 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     }
   });
 
-  test("a file uploaded with no project, to the person who uploaded it only", () => {
+  test("a file uploaded with no project, to the person who uploaded it only", async () => {
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[MY_UPLOAD_ID],
         owner: projectOwner,
         reader: MEMBER,
       }),
     ).toBe(true);
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[SOMEONE_ELSES_UPLOAD_ID],
         owner: projectOwner,
         reader: MEMBER,
@@ -428,7 +428,7 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     ).toBe(false);
     // An API key is nobody: it uploaded nothing outside its project.
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[SOMEONE_ELSES_UPLOAD_ID],
         owner: projectOwner,
         reader: { projectIds: [PROJECT_ID], userId: null },
@@ -441,7 +441,7 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
    * picture route, when they uploaded it: their own record publishes it,
    * whatever project it was uploaded in.
    */
-  test("a person's own picture, read with the person", () => {
+  test("a person's own picture, read with the person", async () => {
     const pictureOfAnotherProject: FileAccessFacts = {
       projectId: OTHER_PROJECT_ID,
       createdByUserId: USER_ID,
@@ -449,7 +449,7 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     };
 
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: pictureOfAnotherProject,
         owner: { kind: FileOwnerKind.User, userId: USER_ID },
         reader: MEMBER,
@@ -457,7 +457,7 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     ).toBe(true);
     // A picture someone else uploaded is not the person's own.
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[FOREIGN_FILE_ID],
         owner: { kind: FileOwnerKind.User, userId: USER_ID },
         reader: MEMBER,
@@ -465,9 +465,9 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     ).toBe(false);
   });
 
-  test("not a file that could not be found", () => {
+  test("not a file that could not be found", async () => {
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: undefined,
         owner: projectOwner,
         reader: MEMBER,
@@ -475,9 +475,9 @@ describe("RelatedFileAccess.mayRead: who may see a file", () => {
     ).toBe(false);
   });
 
-  test("project ids compare in any case", () => {
+  test("project ids compare in any case", async () => {
     expect(
-      RelatedFileAccess.mayRead({
+      await RelatedFileAccess.mayRead({
         file: FILES[OWN_FILE_ID],
         owner: projectOwner,
         reader: {

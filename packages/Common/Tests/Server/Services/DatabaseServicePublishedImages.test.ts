@@ -3,7 +3,11 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import FileService from "../../../Server/Services/FileService";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
-import * as InlineImageAccessTokenSync from "../../../Server/Utils/InlineImageAccessTokenSync";
+import PublishedImages, {
+  CASCADES,
+  getCascadedRowsSql,
+  PublishedCascade,
+} from "../../../Server/Utils/File/PublishedImages";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
@@ -50,29 +54,39 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const RECORD_ID: string = "eeeeeeee-0000-4000-8000-000000000001";
+const NOTE_ID: string = "eeeeeeee-0000-4000-8000-000000000002";
 
 const image: (token: string) => string = (token: string): string => {
   return `![shot](https://oneuptime.example/file/image/access-token/${token})`;
 };
 
-type SetImageVisibilityMock = Mock<
-  (
-    token: string,
-    isPublic: boolean,
-    projectId: ObjectID | null | undefined,
-  ) => Promise<void>
->;
+interface VisibilityRequest {
+  projectId: unknown;
+  publish: Iterable<string>;
+  unpublish: Iterable<string>;
+}
 
-let setImageVisibility: SetImageVisibilityMock;
+type SetImagesVisibilityMock = Mock<(data: VisibilityRequest) => Promise<void>>;
 
-// The order things happened in: image changes and service hooks.
+let setImagesVisibility: SetImagesVisibilityMock;
+
+// The order things happened in: image changes, reads, deletes and hooks.
 let events: Array<string>;
 
+// What each image was asked to be, in order: "aaa:public", "bbb:private".
 function visibilityAsked(): Array<string> {
-  return setImageVisibility.mock.calls.map(
-    (call: [string, boolean, ObjectID | null | undefined]): string => {
-      expect(String(call[2])).toBe(PROJECT_ID.toString());
-      return `${call[0]}:${call[1] ? "public" : "private"}`;
+  return setImagesVisibility.mock.calls.flatMap(
+    (call: [VisibilityRequest]): Array<string> => {
+      expect(String(call[0].projectId)).toBe(PROJECT_ID.toString());
+
+      return [
+        ...Array.from(call[0].publish).map((token: string): string => {
+          return `${token}:public`;
+        }),
+        ...Array.from(call[0].unpublish).map((token: string): string => {
+          return `${token}:private`;
+        }),
+      ];
     },
   );
 }
@@ -85,6 +99,9 @@ interface FakeRepository {
     (criteria: unknown, data: unknown) => Promise<{ affected: number }>
   >;
   delete: Mock<(criteria: unknown) => Promise<{ affected: number }>>;
+  manager: {
+    query: Mock<(sql: string, parameters: Array<unknown>) => Promise<unknown>>;
+  };
 }
 
 // The select each find of the repository was made with.
@@ -101,6 +118,8 @@ function selectsAsked(repository: FakeRepository): Array<Array<string>> {
 function useRepository(
   service: DatabaseService<BaseModel>,
   rows: Array<BaseModel> = [],
+  // The rows each statement of the database reads, by its SQL.
+  answers: Map<string, Array<Record<string, unknown>>> = new Map(),
 ): FakeRepository {
   const repository: FakeRepository = {
     rows: rows,
@@ -120,8 +139,15 @@ function useRepository(
       return { affected: 1 };
     }),
     delete: jest.fn(async (): Promise<{ affected: number }> => {
+      events.push("delete");
       return { affected: rows.length };
     }),
+    manager: {
+      query: jest.fn(async (sql: string): Promise<unknown> => {
+        events.push("read cascaded rows");
+        return answers.get(sql) || [];
+      }),
+    },
   };
 
   getJestSpyOn(service, "getRepository").mockReturnValue(repository as never);
@@ -253,15 +279,21 @@ const INCIDENT_SHOWN_COLUMNS: Array<string> = [
 
 beforeEach(() => {
   events = [];
-  setImageVisibility = jest.fn(
-    async (token: string, isPublic: boolean): Promise<void> => {
-      events.push(`${token}:${isPublic ? "public" : "private"}`);
+  setImagesVisibility = jest.fn(
+    async (data: VisibilityRequest): Promise<void> => {
+      for (const token of data.publish) {
+        events.push(`${token}:public`);
+      }
+
+      for (const token of data.unpublish) {
+        events.push(`${token}:private`);
+      }
     },
   );
 
   jest
-    .spyOn(InlineImageAccessTokenSync, "setImageVisibility")
-    .mockImplementation(setImageVisibility as never);
+    .spyOn(PublishedImages, "setImagesVisibility")
+    .mockImplementation(setImagesVisibility as never);
   jest
     .spyOn(FileService, "getFileOwners")
     .mockResolvedValue(new Map<string, FileOwners>() as never);
@@ -409,7 +441,7 @@ describe("update", () => {
       props: rootProps(),
     });
 
-    expect(setImageVisibility).not.toHaveBeenCalled();
+    expect(setImagesVisibility).not.toHaveBeenCalled();
 
     for (const select of selectsAsked(repository)) {
       expect(select).not.toContain("description");
@@ -507,5 +539,81 @@ describe("delete", () => {
     });
 
     expect(visibilityAsked()).toEqual(["fff666:private"]);
+  });
+
+  /*
+   * The database deletes an incident's public notes with it, unseen by
+   * NoteWrites: DatabaseService reads them before the incident goes, so
+   * their images go out of view with the incident's own.
+   */
+  test("a deleted incident's public notes' images become private with its own, read before the delete", async () => {
+    const notesOfIncident: PublishedCascade = CASCADES.find(
+      (cascade: PublishedCascade): boolean => {
+        return (
+          cascade.parentTable === "Incident" &&
+          cascade.tableName === "IncidentPublicNote"
+        );
+      },
+    )!;
+
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(
+      service as never,
+      [
+        storedIncident({
+          description: image("aaa111"),
+          isVisibleOnStatusPage: true,
+        }),
+      ],
+      new Map([
+        [
+          getCascadedRowsSql(notesOfIncident),
+          [
+            {
+              _id: NOTE_ID,
+              projectId: PROJECT_ID.toString(),
+              note: `Fixed: ${image("abc777")}`,
+            },
+          ],
+        ],
+      ]),
+    );
+
+    await service.deleteOneById({
+      id: new ObjectID(RECORD_ID),
+      props: rootProps(),
+    });
+
+    // One request for the project: the incident's image and its note's.
+    expect(setImagesVisibility).toHaveBeenCalledTimes(1);
+    expect(visibilityAsked()).toEqual(["aaa111:private", "abc777:private"]);
+
+    // The notes were read with the incident's id, while they were there.
+    expect(repository.manager.query.mock.calls[0]![1]).toEqual([[RECORD_ID]]);
+    expect(events).toEqual([
+      "read cascaded rows",
+      "delete",
+      "aaa111:private",
+      "abc777:private",
+    ]);
+  });
+
+  test("a delete of a table no published row hangs from reads nothing more", async () => {
+    const service: NoteWrites = new NoteWrites();
+    const stored: IncidentPublicNote = new IncidentPublicNote();
+    stored._id = RECORD_ID;
+    stored.projectId = PROJECT_ID;
+    stored.note = "Investigating.";
+    const repository: FakeRepository = useRepository(service as never, [
+      stored,
+    ]);
+
+    await service.deleteOneById({
+      id: new ObjectID(RECORD_ID),
+      props: rootProps(),
+    });
+
+    expect(repository.manager.query).not.toHaveBeenCalled();
+    expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 });

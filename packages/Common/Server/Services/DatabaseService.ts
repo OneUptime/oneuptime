@@ -122,7 +122,7 @@ import FileOwnership, {
 import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
-import PublishedImages from "../Utils/File/PublishedImages";
+import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -3922,16 +3922,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           ),
         };
 
+        /*
+         * The rows showing images to everyone that the database deletes
+         * along with these (the notes of an incident, the groups of a status
+         * page), read while they are still there. See PublishedImages.
+         */
+        const cascaded: Array<CascadedRow> =
+          await PublishedImages.readCascadedRows({
+            tableName: this.model.tableName,
+            ids: items.map((i: TBaseModel) => {
+              return i.id!;
+            }),
+            query: async (
+              sql: string,
+              parameters: Array<unknown>,
+            ): Promise<unknown> => {
+              return await this.getRepository().manager.query(sql, parameters);
+            },
+          });
+
         numberOfDocsAffected =
           (await this.getRepository().delete(query as any)).affected || 0;
 
         /*
-         * The images the deleted rows showed to everyone are private again,
-         * unless another record still shows them. See PublishedImages.
+         * The images the deleted rows - and the rows deleted with them -
+         * showed to everyone are private again, unless another record still
+         * shows them. See PublishedImages.
          */
         await PublishedImages.afterDelete({
           tableName: this.model.tableName,
           rowsDeleted: items,
+          cascaded: cascaded,
         });
       }
 

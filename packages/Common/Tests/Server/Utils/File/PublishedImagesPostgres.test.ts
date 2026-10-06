@@ -1,9 +1,13 @@
 import {
+  CASCADES,
+  getCascadedRowsSql,
   HIDE_UNSHOWN_FILES_SQL,
+  KEPT_MARKDOWN,
+  PROJECT_FILES_PRIVATE_SQL,
+  PublishedCascade,
   PUBLISHED_MARKDOWN,
   PUBLISH_SHOWN_IMAGES_SQL,
   PublishedMarkdown,
-  SENT_MARKDOWN,
   STILL_SHOWN_SQL,
 } from "../../../../Server/Utils/File/PublishedImages";
 import ObjectID from "../../../../Types/ObjectID";
@@ -20,10 +24,12 @@ import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * The SQL of PublishedImages against a real Postgres, on real rows: the
- * still-shown check DatabaseService asks before it makes an image private,
- * and the two statements the SetFileVisibilityFromPublishedRecords data
- * migration runs once - images published records show become public, and
- * public files nothing published shows become private.
+ * still-shown check DatabaseService asks before it makes images private, the
+ * reads of the rows a delete takes with it, the statement a deleted
+ * project's files are made private by, and the two statements the
+ * SetFileVisibilityFromPublishedRecords data migration runs once - images
+ * published records show become public, and public files nothing published
+ * shows become private.
  *
  * Opt in with RUN_POSTGRES_PUBLISHED_IMAGES_TESTS=true and the normal
  * database credentials; PUBLISHED_IMAGES_TEST_DATABASE_HOST / _PORT point
@@ -68,10 +74,12 @@ function createTablesSql(): Array<string> {
 
   const tables: Map<string, Set<string>> = new Map();
 
-  for (const source of [...PUBLISHED_MARKDOWN, ...SENT_MARKDOWN]) {
-    if (!tables.has(source.tableName)) {
+  const columnsOf: (tableName: string) => Set<string> = (
+    tableName: string,
+  ): Set<string> => {
+    if (!tables.has(tableName)) {
       tables.set(
-        source.tableName,
+        tableName,
         new Set<string>([
           `"projectId" uuid`,
           `"deletedAt" TIMESTAMP WITH TIME ZONE`,
@@ -79,7 +87,11 @@ function createTablesSql(): Array<string> {
       );
     }
 
-    const columns: Set<string> = tables.get(source.tableName)!;
+    return tables.get(tableName)!;
+  };
+
+  for (const source of [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN]) {
+    const columns: Set<string> = columnsOf(source.tableName);
 
     for (const column of source.markdownColumns) {
       columns.add(
@@ -90,6 +102,11 @@ function createTablesSql(): Array<string> {
     for (const column of source.shownWhen) {
       columns.add(`"${column}" boolean`);
     }
+  }
+
+  // The column naming the parent row, on every table a delete cascades to.
+  for (const cascade of CASCADES) {
+    columnsOf(cascade.tableName).add(`"${cascade.foreignKey}" uuid`);
   }
 
   for (const [table, columns] of tables) {
@@ -158,7 +175,7 @@ describePostgres("PublishedImages against Postgres", () => {
   function sourceOf(tableName: string, column: string): PublishedMarkdown {
     const source: PublishedMarkdown | undefined = [
       ...PUBLISHED_MARKDOWN,
-      ...SENT_MARKDOWN,
+      ...KEPT_MARKDOWN,
     ].find((candidate: PublishedMarkdown): boolean => {
       return (
         candidate.tableName === tableName &&
@@ -182,24 +199,42 @@ describePostgres("PublishedImages against Postgres", () => {
     return rows[0]!.isPublic;
   }
 
-  async function affected(sql: string): Promise<number> {
-    const result: unknown = await runner.query(sql);
+  async function affected(
+    sql: string,
+    parameters?: Array<unknown>,
+  ): Promise<number> {
+    const result: unknown = await runner.query(sql, parameters);
 
     return Array.isArray(result) && typeof result[1] === "number"
       ? result[1]
       : -1;
   }
 
+  // Which of the images a record of the project still shows, as asked.
+  async function stillShownOf(
+    projectId: string,
+    imageTokens: Array<string>,
+  ): Promise<Array<string>> {
+    const rows: Array<{ token: string }> = await runner.query(STILL_SHOWN_SQL, [
+      projectId,
+      imageTokens.map((imageToken: string): string => {
+        return `%/file/image/access-token/${imageToken}%`;
+      }),
+      imageTokens,
+    ]);
+
+    return rows
+      .map((row: { token: string }): string => {
+        return row.token;
+      })
+      .sort();
+  }
+
   async function stillShown(
     projectId: string,
     imageToken: string,
   ): Promise<boolean> {
-    const rows: Array<unknown> = await runner.query(STILL_SHOWN_SQL, [
-      projectId,
-      `%/file/image/access-token/${imageToken}%`,
-    ]);
-
-    return rows.length > 0;
+    return (await stillShownOf(projectId, [imageToken])).length > 0;
   }
 
   beforeAll(async () => {
@@ -470,6 +505,23 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await isPublic(linkedById)).toBe(true);
     });
 
+    test("keeps an image a form's public page shows", async () => {
+      const onForm: string = token();
+      const fileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: onForm,
+      });
+
+      await insertRecord(sourceOf("Form", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(onForm),
+      });
+
+      expect(await affected(HIDE_UNSHOWN_FILES_SQL)).toBe(0);
+      expect(await isPublic(fileId)).toBe(true);
+    });
+
     test("keeps an image an incident's custom fields send out", async () => {
       const sent: string = token();
       const fileId: string = await insertFile({
@@ -590,6 +642,137 @@ describePostgres("PublishedImages against Postgres", () => {
       );
 
       expect(await stillShown(PROJECT_A, imageToken)).toBe(true);
+    });
+
+    test("answers every image asked in one statement: those still shown or sent out, each once", async () => {
+      const shownByNote: string = token();
+      const shownTwice: string = token();
+      const onFormPage: string = token();
+      const inCustomField: string = token();
+      const shownByNothing: string = token();
+      const onHiddenIncident: string = token();
+
+      await insertRecord(sourceOf("IncidentPublicNote", "note"), {
+        projectId: PROJECT_A,
+        note: `${byToken(shownByNote)} ${byToken(shownTwice)}`,
+      });
+      await insertRecord(sourceOf("StatusPageGroup", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(shownTwice),
+      });
+      await insertRecord(sourceOf("Form", "successMessage"), {
+        projectId: PROJECT_A,
+        successMessage: byToken(onFormPage),
+      });
+      await runner.query(
+        `INSERT INTO "Incident" ("projectId", "customFields", "description", "isVisibleOnStatusPage") VALUES ($1, $2, $3, false)`,
+        [
+          PROJECT_A,
+          JSON.stringify({ impact: { value: byToken(inCustomField) } }),
+          byToken(onHiddenIncident),
+        ],
+      );
+
+      expect(
+        await stillShownOf(PROJECT_A, [
+          shownByNote,
+          shownTwice,
+          onFormPage,
+          inCustomField,
+          shownByNothing,
+          onHiddenIncident,
+        ]),
+      ).toEqual([shownByNote, shownTwice, onFormPage, inCustomField].sort());
+
+      // Another project's records keep nothing of project A's.
+      expect(await stillShownOf(PROJECT_B, [shownByNote, onFormPage])).toEqual(
+        [],
+      );
+    });
+
+    test("never answers an image it was not asked about", async () => {
+      const asked: string = token();
+      const notAsked: string = token();
+
+      await insertRecord(sourceOf("IncidentPublicNote", "note"), {
+        projectId: PROJECT_A,
+        note: `${byToken(asked)} ${byToken(notAsked)}`,
+      });
+
+      expect(await stillShownOf(PROJECT_A, [asked])).toEqual([asked]);
+    });
+  });
+
+  describe("getCascadedRowsSql: the rows a delete takes with it", () => {
+    test.each(
+      CASCADES.map((cascade: PublishedCascade) => {
+        return { ...cascade };
+      }),
+    )(
+      "reads the $tableName rows of a deleted $parentTable ($foreignKey), with what they show",
+      async (cascade: PublishedCascade) => {
+        const parentId: string = id();
+        const otherParentId: string = id();
+        const childId: string = id();
+
+        const insertChild: (
+          rowId: string,
+          parent: string,
+          deletedAt: Date | null,
+        ) => Promise<void> = async (
+          rowId: string,
+          parent: string,
+          deletedAt: Date | null,
+        ): Promise<void> => {
+          await runner.query(
+            `INSERT INTO "${cascade.tableName}" ("_id", "projectId", "${cascade.foreignKey}", "deletedAt") VALUES ($1, $2, $3, $4)`,
+            [rowId, PROJECT_A, parent, deletedAt],
+          );
+        };
+
+        await insertChild(childId, parentId, null);
+        await insertChild(id(), otherParentId, null);
+        await insertChild(id(), parentId, new Date());
+
+        const rows: Array<Record<string, unknown>> = await runner.query(
+          getCascadedRowsSql(cascade),
+          [[parentId]],
+        );
+
+        expect(
+          rows.map((row: Record<string, unknown>): string => {
+            return String(row["_id"]);
+          }),
+        ).toEqual([childId]);
+        expect(rows[0]!["projectId"]).toBe(PROJECT_A);
+      },
+    );
+  });
+
+  describe("PROJECT_FILES_PRIVATE_SQL", () => {
+    test("makes the deleted projects' public files private, and nothing else", async () => {
+      const publicOfA: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+      });
+      const privateOfA: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: false,
+      });
+      const publicOfB: string = await insertFile({
+        projectId: PROJECT_B,
+        isPublic: true,
+      });
+      const publicOfNone: string = await insertFile({
+        projectId: null,
+        isPublic: true,
+      });
+
+      expect(await affected(PROJECT_FILES_PRIVATE_SQL, [[PROJECT_A]])).toBe(1);
+      expect(await isPublic(publicOfA)).toBe(false);
+      expect(await isPublic(privateOfA)).toBe(false);
+      expect(await isPublic(publicOfB)).toBe(true);
+      expect(await isPublic(publicOfNone)).toBe(true);
     });
   });
 });

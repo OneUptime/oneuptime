@@ -81,7 +81,7 @@ describe("Incident notes docs: an image is public only while the status pages sh
 
   it("says the image is private again once nothing shows it", () => {
     expect(page).toContain(
-      "When that stops — the incident is hidden, the image is edited out, the note is deleted — the image is private again, unless something else your status pages show still has it in it.",
+      "When that stops — the incident is hidden, the image is edited out, the note or the incident is deleted — the image is private again, unless something else your status pages show still has it in it.",
     );
   });
 
@@ -115,6 +115,12 @@ describe("Status page docs: the page's own text shows its images to every visito
     );
     expect(page).toContain(
       "**Group Description** (`description`) — optional markdown, shown under the heading. An image in it is shown to every visitor.",
+    );
+  });
+
+  it("says how a page that asks for a sign-in shows its images", () => {
+    expect(readPage("status-pages/index.md")).toContain(
+      "**Images.** An image in what the page shows — a public note, an announcement, a description — is opened by its own long, unguessable address, which works without signing in, so that the emails your subscribers get can show it too.",
     );
   });
 
