@@ -25817,5 +25817,7 @@
   "Inherit owners from {{sources}} and {{count}} more": "Eigenaren overnemen van: {{sources}} en {{count}} andere",
   "Inherit owners from {{sources}} and {{count}} more_one": "Eigenaren overnemen van: {{sources}} en {{count}} andere",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de labels die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de eigenaren die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de eigenaren die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt.",
+  "Not sent yet: incident hidden from status pages": "Nog niet verzonden: incident verborgen op statuspagina's",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "De postmortem van dit incident is gepubliceerd terwijl het incident verborgen was, dus abonnees hebben hem nog niet ontvangen. Als u dit inschakelt, wordt hij naar hen verzonden."
 }

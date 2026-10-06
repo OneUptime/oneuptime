@@ -25817,5 +25817,7 @@
   "Inherit owners from {{sources}} and {{count}} more": "{{sources}} और {{count}} अन्य से स्वामी इनहेरिट करें",
   "Inherit owners from {{sources}} and {{count}} more_one": "{{sources}} और {{count}} अन्य से स्वामी इनहेरिट करें",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले लेबल या उनके इनहेरिट होने के स्रोत के आधार पर रखा जाता है।",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले स्वामियों या उनके इनहेरिट होने के स्रोत के आधार पर रखा जाता है।"
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले स्वामियों या उनके इनहेरिट होने के स्रोत के आधार पर रखा जाता है।",
+  "Not sent yet: incident hidden from status pages": "अभी तक नहीं भेजा गया: घटना स्थिति पृष्ठों से छिपी हुई है",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "इस घटना का पोस्टमॉर्टम तब प्रकाशित हुआ था जब घटना छिपी हुई थी, इसलिए यह अभी तक सब्सक्राइबर्स को नहीं भेजा गया है। इसे चालू करने पर यह उन्हें भेज दिया जाता है।"
 }

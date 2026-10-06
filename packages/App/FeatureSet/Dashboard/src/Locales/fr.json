@@ -25817,5 +25817,7 @@
   "Inherit owners from {{sources}} and {{count}} more": "Hériter des propriétaires : {{sources}} et {{count}} autres",
   "Inherit owners from {{sources}} and {{count}} more_one": "Hériter des propriétaires : {{sources}} et {{count}} autre",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Nommée d'après les étiquettes qu'elle ajoute, ou d'après leur provenance si elle en hérite, jusqu'à ce que vous saisissiez votre propre nom.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Nommée d'après les propriétaires qu'elle ajoute, ou d'après leur provenance si elle en hérite, jusqu'à ce que vous saisissiez votre propre nom."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Nommée d'après les propriétaires qu'elle ajoute, ou d'après leur provenance si elle en hérite, jusqu'à ce que vous saisissiez votre propre nom.",
+  "Not sent yet: incident hidden from status pages": "Pas encore envoyé : incident masqué sur les pages de statut",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Le post-mortem de cet incident a été publié alors que l'incident était masqué : il n'a donc pas encore été envoyé aux abonnés. L'activer le leur envoie."
 }

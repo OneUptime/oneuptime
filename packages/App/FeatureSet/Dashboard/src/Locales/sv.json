@@ -25817,5 +25817,7 @@
   "Inherit owners from {{sources}} and {{count}} more": "Ärv ägare från: {{sources}} och {{count}} till",
   "Inherit owners from {{sources}} and {{count}} more_one": "Ärv ägare från: {{sources}} och {{count}} till",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Namngiven efter etiketterna den lägger till, eller var den ärver dem från, tills du skriver ett eget namn.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Namngiven efter ägarna den lägger till, eller var den ärver dem från, tills du skriver ett eget namn."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Namngiven efter ägarna den lägger till, eller var den ärver dem från, tills du skriver ett eget namn.",
+  "Not sent yet: incident hidden from status pages": "Inte skickad än: incident dold på statussidor",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Postmortem för denna incident publicerades medan incidenten var dold, så den har inte skickats till prenumeranterna än. När du slår på detta skickas den till dem."
 }

@@ -25817,5 +25817,7 @@
   "Inherit owners from {{sources}} and {{count}} more": "Наследование владельцев: {{sources}} и ещё {{count}}",
   "Inherit owners from {{sources}} and {{count}} more_one": "Наследование владельцев: {{sources}} и ещё {{count}}",
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Название дано по добавляемым меткам или по тому, откуда они наследуются, пока вы не введёте своё.",
-  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Название дано по добавляемым владельцам или по тому, откуда они наследуются, пока вы не введёте своё."
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Название дано по добавляемым владельцам или по тому, откуда они наследуются, пока вы не введёте своё.",
+  "Not sent yet: incident hidden from status pages": "Ещё не отправлено: инцидент скрыт со страниц состояния",
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Разбор этого инцидента был опубликован, пока инцидент был скрыт, поэтому подписчикам он ещё не отправлен. Если включить этот параметр, он будет им отправлен."
 }
