@@ -534,7 +534,7 @@ function getCollectedDataTopic(): SetupGuideTopic {
 function getAiAgentTopic(context: GuideContext): SetupGuideTopic {
   const setupIntro: string =
     context.method === "install-script"
-      ? "The install script offers to create them when `ceph` works with admin rights on the machine you run it on. Otherwise, on a Ceph admin node:"
+      ? "The install script offers to create them on a fresh install, when `ceph` works with admin rights on the machine you run it on. Otherwise, or to add them later, on a Ceph admin node:"
       : "On a Ceph admin node, in the agent's folder:";
 
   return {

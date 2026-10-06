@@ -543,6 +543,12 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
     expect(ai.includes("The install script offers to create them")).toBe(
       method === "install-script",
     );
+    // Only a fresh install offers it: a re-run, the upgrade, asks nothing.
+    expect(
+      ai.includes(
+        "offers to create them on a fresh install, when `ceph` works with admin rights",
+      ),
+    ).toBe(method === "install-script");
   });
 
   test("links to the Ceph agent and monitor documentation", () => {
