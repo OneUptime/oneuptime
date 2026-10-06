@@ -163,17 +163,22 @@ describe("the Slack and Microsoft Teams guides", () => {
 });
 
 describe("the on-call schedules guide", () => {
+  /*
+   * In the page's opening, before its first section: the page keeps its
+   * three sections in every language (OnCallSchedulesDocsPage.test.ts).
+   */
   it("says a schedule keeps paging, and where to delete it", () => {
-    const section: string = sectionOf(
-      readPage("en/on-call/schedules.md"),
-      "## Below the Growth plan",
-    );
+    const page: string = readPage("en/on-call/schedules.md");
+    const opening: string = page.slice(0, page.indexOf("\n## "));
 
-    expect(section).toContain(
+    expect(opening).toContain(
+      "On OneUptime Cloud, on-call schedules are on the **Growth** plan and above.",
+    );
+    expect(opening).toContain(
       "A schedule a project still has keeps paging the people on it, through the escalation rules that name it, after a Growth trial ends or the plan goes down.",
     );
-    expect(section).toContain(
-      "**On-Call Duty** > **Schedules** shows the plan note with the schedules still set up under it, where you can delete them. Creating or changing a schedule needs **Growth**.",
+    expect(opening).toContain(
+      "So below **Growth**, the **On-Call Schedules** page shows the plan note with the schedules still set up under it, where you can delete them. Creating or changing a schedule needs **Growth**.",
     );
   });
 });
