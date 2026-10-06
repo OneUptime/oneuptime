@@ -140,6 +140,14 @@ interface Kind {
   severityRelation: string;
   descriptionHeading: string;
   severityHeading: string;
+  /*
+   * Another write the kind compares with what the record held, and the
+   * columns the one read asks for it (an incident's postmortem).
+   */
+  otherComparedWrite: {
+    data: Dictionary<unknown>;
+    select: Dictionary<unknown>;
+  };
   // Installs the kind's stubs over the records stored at the time of a read.
   stub: (stored: () => Array<StoredRecord>) => Omit<Effects, "labelReads">;
 }
@@ -176,8 +184,8 @@ function label(id: string): Label {
 
 // The ids a QueryHelper.any() asks for: an IN over its Raw's parameters.
 function idsAskedFor(value: unknown): Array<string> {
-  const operator: { objectLiteralParameters?: Dictionary<unknown> } =
-    (value || {}) as { objectLiteralParameters?: Dictionary<unknown> };
+  const operator: { objectLiteralParameters?: Dictionary<unknown> } = (value ||
+    {}) as { objectLiteralParameters?: Dictionary<unknown> };
 
   return (
     Object.values(operator.objectLiteralParameters || {}) as Array<
@@ -304,15 +312,17 @@ function stubIncident(
     .spyOn(IncidentFeedService, "createIncidentFeedItem")
     .mockImplementation(feed as never);
 
-  jest.spyOn(IncidentSeverityService, "findOneBy").mockImplementation((async (
-    findOneBy: { query: { _id: unknown } },
-  ): Promise<IncidentSeverity> => {
-    const id: string = String(findOneBy.query._id).toLowerCase();
-    const severity: IncidentSeverity = new IncidentSeverity();
-    severity._id = id;
-    severity.name = SEVERITY_NAMES[id] || "Unknown";
-    return severity;
-  }) as never);
+  jest
+    .spyOn(IncidentSeverityService, "findOneBy")
+    .mockImplementation((async (findOneBy: {
+      query: { _id: unknown };
+    }): Promise<IncidentSeverity> => {
+      const id: string = String(findOneBy.query._id).toLowerCase();
+      const severity: IncidentSeverity = new IncidentSeverity();
+      severity._id = id;
+      severity.name = SEVERITY_NAMES[id] || "Unknown";
+      return severity;
+    }) as never);
   jest
     .spyOn(IncidentSlaService, "recalculateDeadlines")
     .mockResolvedValue(undefined as never);
@@ -387,15 +397,17 @@ function stubAlert(
     .spyOn(AlertFeedService, "createAlertFeedItem")
     .mockImplementation(feed as never);
 
-  jest.spyOn(AlertSeverityService, "findOneBy").mockImplementation((async (
-    findOneBy: { query: { _id: unknown } },
-  ): Promise<AlertSeverity> => {
-    const id: string = String(findOneBy.query._id).toLowerCase();
-    const severity: AlertSeverity = new AlertSeverity();
-    severity._id = id;
-    severity.name = SEVERITY_NAMES[id] || "Unknown";
-    return severity;
-  }) as never);
+  jest
+    .spyOn(AlertSeverityService, "findOneBy")
+    .mockImplementation((async (findOneBy: {
+      query: { _id: unknown };
+    }): Promise<AlertSeverity> => {
+      const id: string = String(findOneBy.query._id).toLowerCase();
+      const severity: AlertSeverity = new AlertSeverity();
+      severity._id = id;
+      severity.name = SEVERITY_NAMES[id] || "Unknown";
+      return severity;
+    }) as never);
 
   return { reads, feed, refreshReminders };
 }
@@ -408,6 +420,14 @@ const KINDS: Array<Kind> = [
     severityRelation: "incidentSeverity",
     descriptionHeading: "**Incident Description**",
     severityHeading: "**⚠️ Incident Severity**",
+    otherComparedWrite: {
+      data: { postmortemNote: "A bad config push." },
+      select: {
+        postmortemNote: true,
+        showPostmortemOnStatusPage: true,
+        subscriberNotificationStatusOnPostmortemPublished: true,
+      },
+    },
     stub: stubIncident,
   },
   {
@@ -417,6 +437,7 @@ const KINDS: Array<Kind> = [
     severityRelation: "alertSeverity",
     descriptionHeading: "**Alert Description**",
     severityHeading: "**⚠️ Alert Severity**",
+    otherComparedWrite: { data: {}, select: {} },
     stub: stubAlert,
   },
 ];
@@ -554,27 +575,42 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
 
   describe("an update that writes back what the record holds adds nothing", () => {
     test.each([
-      ["the Details card saved unchanged", (): Dictionary<unknown> => {
-        return detailsCardSave();
-      }],
-      ["the Description page saved unchanged", (): Dictionary<unknown> => {
-        return { description: STORED_DESCRIPTION };
-      }],
-      ["the Root Cause page saved unchanged", (): Dictionary<unknown> => {
-        return { rootCause: STORED_ROOT_CAUSE };
-      }],
-      ["the Remediation page saved unchanged", (): Dictionary<unknown> => {
-        return { remediationNotes: STORED_REMEDIATION };
-      }],
+      [
+        "the Details card saved unchanged",
+        (): Dictionary<unknown> => {
+          return detailsCardSave();
+        },
+      ],
+      [
+        "the Description page saved unchanged",
+        (): Dictionary<unknown> => {
+          return { description: STORED_DESCRIPTION };
+        },
+      ],
+      [
+        "the Root Cause page saved unchanged",
+        (): Dictionary<unknown> => {
+          return { rootCause: STORED_ROOT_CAUSE };
+        },
+      ],
+      [
+        "the Remediation page saved unchanged",
+        (): Dictionary<unknown> => {
+          return { remediationNotes: STORED_REMEDIATION };
+        },
+      ],
       [
         "the whole record written back, as an API client, a workflow or Terraform may",
         (): Dictionary<unknown> => {
           return wholeRecordWriteBack();
         },
       ],
-      ["the Send reminders switch written as it stands", (): Dictionary<unknown> => {
-        return { enableReminders: true };
-      }],
+      [
+        "the Send reminders switch written as it stands",
+        (): Dictionary<unknown> => {
+          return { enableReminders: true };
+        },
+      ],
     ] as Array<[string, () => Dictionary<unknown>]>)(
       "%s: no feed item, and the reminder interval runs on",
       async (_label: string, payload: () => Dictionary<unknown>) => {
@@ -583,6 +619,20 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
         expectNothing();
       },
     );
+
+    test("a workflow writing the record back as OneUptime (root) adds nothing either", async () => {
+      const onUpdate: OnUpdate<never> = await kind.hooks.onBeforeUpdate({
+        query: { _id: RECORD_ID } as never,
+        data: wholeRecordWriteBack() as never,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        limit: 1,
+        skip: 0,
+      });
+
+      await kind.hooks.onUpdateSuccess(onUpdate, [new ObjectID(RECORD_ID)]);
+
+      expectNothing();
+    });
 
     test("the labels sent in another order, repeated, in another case or as bare ids are the labels it has", async () => {
       for (const labels of [
@@ -628,7 +678,11 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
         }),
       ];
 
-      await runUpdate({ description: "", rootCause: "  ", remediationNotes: null });
+      await runUpdate({
+        description: "",
+        rootCause: "  ",
+        remediationNotes: null,
+      });
 
       expectNothing();
     });
@@ -883,6 +937,22 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
       });
     });
 
+    test("is the same one read the severity (and an incident's postmortem) are compared with", async () => {
+      await runBeforeUpdate({
+        title: "Payments down",
+        [kind.severityIdColumn]: new ObjectID(CRITICAL),
+        ...kind.otherComparedWrite.data,
+      });
+
+      expect(comparedReads()).toHaveLength(1);
+      expect(comparedReads()[0]!.select).toEqual({
+        _id: true,
+        title: true,
+        [kind.severityIdColumn]: true,
+        ...kind.otherComparedWrite.select,
+      });
+    });
+
     test("is made as root, within the update's query and the caller's project", async () => {
       await runBeforeUpdate({ description: "x" });
 
@@ -897,7 +967,9 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
     });
 
     test("is not made for an update that writes none of those columns", async () => {
-      await runBeforeUpdate({ [kind.severityIdColumn]: new ObjectID(CRITICAL) });
+      await runBeforeUpdate({
+        [kind.severityIdColumn]: new ObjectID(CRITICAL),
+      });
 
       expect(comparedReads()).toHaveLength(0);
     });
@@ -911,9 +983,9 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
       expect(effects.feed).toHaveBeenCalledTimes(1);
       expect(
         String(
-          (
-            effects.feed.mock.calls[0]![0] as Record<string, unknown>
-          )[`${kind.name}Id`],
+          (effects.feed.mock.calls[0]![0] as Record<string, unknown>)[
+            `${kind.name}Id`
+          ],
         ),
       ).toBe(SECOND_RECORD_ID);
     });
@@ -935,9 +1007,9 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
       expect(effects.feed).toHaveBeenCalledTimes(1);
       expect(
         String(
-          (
-            effects.feed.mock.calls[0]![0] as Record<string, unknown>
-          )[`${kind.name}Id`],
+          (effects.feed.mock.calls[0]![0] as Record<string, unknown>)[
+            `${kind.name}Id`
+          ],
         ),
       ).toBe(SECOND_RECORD_ID);
       expect(effects.refreshReminders).toHaveBeenCalledTimes(1);
@@ -969,7 +1041,8 @@ describe.each(KINDS)("$name updates", (kind: Kind) => {
 
     test("quotes a new title inertly, so it cannot become a link or an image", async () => {
       await runUpdate({
-        title: "![pixel](https://tracker.example/p.png) [Reset](https://evil.example)",
+        title:
+          "![pixel](https://tracker.example/p.png) [Reset](https://evil.example)",
       });
 
       const markdown: string = onlyFeedItem();

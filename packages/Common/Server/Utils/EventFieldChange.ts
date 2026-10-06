@@ -152,10 +152,11 @@ export default class EventFieldChange {
    * ids they name - so it reads as "held nothing", never as "not read".
    */
   public static getValuesBeforeUpdate(data: {
-    record: object;
+    // The record as the read returned it: a model, or a plain row.
+    record: unknown;
     fields: EventFieldSet;
   }): EventValuesBeforeUpdate {
-    const record: Record<string, unknown> = data.record as Record<
+    const record: Record<string, unknown> = (data.record || {}) as Record<
       string,
       unknown
     >;
@@ -350,7 +351,10 @@ export default class EventFieldChange {
     return `\n\n**${this.getHeading(data.column, data.recordName)}**: \n${shown}\n`;
   }
 
-  private static getHeading(column: EventTextColumn, recordName: string): string {
+  private static getHeading(
+    column: EventTextColumn,
+    recordName: string,
+  ): string {
     switch (column) {
       case "title":
         return "Title";
