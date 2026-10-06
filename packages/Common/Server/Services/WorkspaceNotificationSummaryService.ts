@@ -219,12 +219,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   /*
    * A summary rescheduled - how often, the first summary's date or the time
    * zone really changed - or switched back on gets its next send worked out
-   * again (the
-   * dashboard's edit form sends the schedule back unchanged on every save,
-   * and that changes nothing). It used to keep the next send it had: a new
-   * first summary date did nothing, a new interval waited for the old one's
-   * send, and a summary switched back on after a month sent at once for
-   * the month it was off.
+   * again, on its time zone's clock (the dashboard's edit form sends the
+   * schedule and the time zone back unchanged on every save, and that
+   * changes nothing). It used to keep the next send it had: a new first
+   * summary date did nothing, a new interval waited for the old one's send,
+   * and a summary switched back on after a month sent at once for the month
+   * it was off.
    *
    * An update of one summary - every update from the dashboard or the API
    * by id - carries its next send in the same write. One that matched
