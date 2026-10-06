@@ -18,6 +18,7 @@ import FileOwnership, {
 } from "../Utils/File/FileOwnership";
 import { FileAccessFacts } from "../Utils/File/RelatedFileAccess";
 import {
+  HIDE_HIDDEN_RECORD_IMAGES_SQL,
   HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   PUBLISH_SHOWN_IMAGES_SQL,
@@ -324,6 +325,20 @@ export class Service extends DatabaseService<File> {
   @CaptureSpan()
   public async hideImagesOfPrivateRecords(): Promise<number> {
     return await this.countUpdatedBy(HIDE_PRIVATE_RECORD_IMAGES_SQL);
+  }
+
+  /**
+   * Once, for images made public before public notes followed the record
+   * they are shown under: each image a private incident or episode holds,
+   * or a public note of an incident, episode or scheduled maintenance event
+   * a status page does not show, becomes private - unless a published
+   * record still shows it, or it is an icon (HIDE_HIDDEN_RECORD_IMAGES_SQL).
+   * Never makes a file public. Safe to run more than once, and at once.
+   * Returns how many files were made private.
+   */
+  @CaptureSpan()
+  public async hideImagesOfHiddenRecords(): Promise<number> {
+    return await this.countUpdatedBy(HIDE_HIDDEN_RECORD_IMAGES_SQL);
   }
 
   /**

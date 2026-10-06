@@ -78,6 +78,7 @@ import IncidentPostmortemPublication, {
   PostmortemNotificationAction,
 } from "../../Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
   StatusPageScopeChange,
@@ -1066,30 +1067,22 @@ export class Service extends ProjectReferencesService<Model> {
    * every save, has always done. It holds whoever writes: the API,
    * Terraform, a workflow.
    *
-   * Each incident is decided by itself, on the row the update reads right
-   * before writing it (DatabaseService.getRowWriteOverrides): a private one
-   * is written with Visible on Status Page off, in its own write, so what is
-   * stored, the workflow trigger and the audit log all say the same, and
-   * the others are shown. No earlier read, and no other incident, decides
-   * it. Every status page read and subscriber job leaves a private incident
-   * out whatever its switch says.
+   * Each incident is decided by itself, by the database, in its own row's
+   * write (DatabaseService.getRowWriteSql): Visible on Status Page is stored
+   * on only while the incident is not private as it is then, so no privacy
+   * write landing at the same moment - a privacy rule, another editor -
+   * leaves both on. What the write stored is what the workflow trigger, the
+   * realtime event, the audit log and the incident's images are decided by.
+   * No earlier read, and no other incident, decides it. Every status page
+   * read and subscriber job leaves a private incident out whatever its
+   * switch says.
    */
-  protected override getColumnsForRowWriteOverrides(
+  protected override getRowWriteSql(
     data: PartialEntity<Model>,
-  ): Array<string> {
-    return StatusPageVisibility.getColumnsReadForRecordWrite(
+  ): Dictionary<string> {
+    return StatusPageVisibilityQuery.getRowWriteSql(
       data as unknown as Record<string, unknown>,
     );
-  }
-
-  protected override getRowWriteOverrides(data: {
-    row: Model;
-    data: PartialEntity<Model>;
-  }): PartialEntity<Model> {
-    return StatusPageVisibility.getRecordOverrides({
-      written: data.data as unknown as Record<string, unknown>,
-      record: data.row,
-    }) as PartialEntity<Model>;
   }
 
   /*

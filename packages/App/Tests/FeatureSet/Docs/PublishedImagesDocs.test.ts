@@ -40,9 +40,12 @@ const NAMED_AS: Record<string, string> = {
   "Incident.description":
     "the incident's description while the incident is **Visible on Status Page**",
   "Incident.postmortemNote": "its postmortem once that is published there too",
-  "IncidentPublicNote.note": "a public note",
-  "IncidentEpisodePublicNote.note": "a public note",
-  "ScheduledMaintenancePublicNote.note": "a public note",
+  "IncidentPublicNote.note":
+    "a public note while its incident, episode or scheduled maintenance event is shown on status pages",
+  "IncidentEpisodePublicNote.note":
+    "a public note while its incident, episode or scheduled maintenance event is shown on status pages",
+  "ScheduledMaintenancePublicNote.note":
+    "a public note while its incident, episode or scheduled maintenance event is shown on status pages",
   "IncidentEpisode.description":
     "an episode's or a scheduled maintenance event's description while it is shown on status pages",
   "ScheduledMaintenance.description":
@@ -86,8 +89,21 @@ describe("Incident notes docs: an image is public only while the status pages sh
 
   it("says the image is private again once nothing shows it", () => {
     expect(page).toContain(
-      "When that stops — the incident is hidden, the image is edited out, the note or the incident is deleted — the image is private again, unless something else your status pages show still has it in it.",
+      "When that stops — the incident is hidden or made private, the image is edited out, the note or the incident is deleted — the image is private again, unless something else your status pages show still has it in it.",
     );
+  });
+
+  it("says a public note's images are shown only while its incident is", () => {
+    expect(page).toContain(
+      "A public note is shown with its incident, never without it: while the incident is hidden from status pages or private, its notes' images are shown only to the members of the project too.",
+    );
+
+    // As the rule has it: every public note is shown under its record.
+    for (const source of PUBLISHED_MARKDOWN) {
+      if (source.tableName.endsWith("PublicNote")) {
+        expect(source.shownUnder).toBeDefined();
+      }
+    }
   });
 
   it("says a read lists only the attachments the reader may open", () => {

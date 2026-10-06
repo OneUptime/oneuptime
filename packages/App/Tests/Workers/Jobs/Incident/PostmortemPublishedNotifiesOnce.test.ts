@@ -192,6 +192,7 @@ import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFie
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import IncidentMeasurementValueService from "Common/Server/Services/IncidentMeasurementValueService";
 import IncidentService from "Common/Server/Services/IncidentService";
+import { VISIBLE_UNLESS_PRIVATE_SQL } from "Common/Server/Utils/StatusPage/StatusPageVisibilityQuery";
 import IncidentStateTimelineService from "Common/Server/Services/IncidentStateTimelineService";
 import MailService from "Common/Server/Services/MailService";
 import SmsService from "Common/Server/Services/SmsService";
@@ -267,15 +268,25 @@ type OnUpdateSuccess = (
   onUpdate: OnUpdate<Incident>,
   updatedItemIds: Array<ObjectID>,
 ) => Promise<OnUpdate<Incident>>;
-type GetRowWriteOverrides = (data: {
-  row: Incident;
-  data: unknown;
-}) => Record<string, unknown>;
+type GetRowWriteSql = (data: unknown) => Record<string, string>;
 
 interface UpdateHooks {
   onBeforeUpdate: OnBeforeUpdate;
   onUpdateSuccess: OnUpdateSuccess;
-  getRowWriteOverrides: GetRowWriteOverrides;
+  getRowWriteSql: GetRowWriteSql;
+}
+
+/*
+ * What Postgres stores for a column IncidentService writes in SQL
+ * (getRowWriteSql): Visible on Status Page only while the incident is not
+ * private, as the incident is when the write reaches it.
+ */
+function storedBySql(sql: string, row: Incident): unknown {
+  if (sql === VISIBLE_UNLESS_PRIVATE_SQL) {
+    return row.isPrivate !== true;
+  }
+
+  throw new Error(`No stand-in for the row write SQL ${sql}`);
 }
 
 // Someone who may edit incidents.
@@ -392,17 +403,19 @@ async function beginUpdate(
 
   return async (): Promise<void> => {
     /*
-     * The write, as DatabaseService makes it: the incident as it is right
-     * before its own write decides what that write overrides
-     * (getRowWriteOverrides) - a private incident keeps Visible on Status
-     * Page off.
+     * The write, as DatabaseService makes it: a column the service writes in
+     * SQL (getRowWriteSql) is worked out on the incident as the write finds
+     * it - a private incident keeps Visible on Status Page off.
      */
-    const rowOverrides: Record<string, unknown> = hooks.getRowWriteOverrides({
-      row: incident,
-      data: onUpdate.updateBy.data,
-    });
+    const stored: Record<string, unknown> = {};
 
-    Object.assign(incident, onUpdate.updateBy.data, rowOverrides);
+    for (const [column, sql] of Object.entries(
+      hooks.getRowWriteSql(onUpdate.updateBy.data),
+    )) {
+      stored[column] = storedBySql(sql, incident);
+    }
+
+    Object.assign(incident, onUpdate.updateBy.data, stored);
 
     await hooks.onUpdateSuccess(onUpdate, [INCIDENT_ID]);
   };
