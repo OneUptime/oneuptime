@@ -847,9 +847,10 @@ ebpf:
     # OBI is pre-1.0: read its release notes before moving this, and check
     # the feature names in kubernetes-agent.ebpfMetricsFeatures still exist —
     # OBI refuses to start on one it does not know. Move
-    # kubernetes-agent.defaultEbpfImageTag (templates/_helpers.tpl) with it:
-    # the notes name a release still on an older chart's tag by comparing
-    # with it (tests/stale-defaults-source_test.yaml fails when they differ).
+    # kubernetes-agent.defaultEbpfImageTag (templates/_stale-defaults.tpl)
+    # with it: the notes name a release still on an older chart's tag by
+    # comparing with it (tests/stale-defaults-source_test.yaml fails when
+    # they differ).
     tag: "v0.14.0"
     pullPolicy: IfNotPresent
   # OBI's memory scales with the number of processes it instruments and the
