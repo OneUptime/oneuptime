@@ -500,7 +500,13 @@ test.describe("Monitor secret access", () => {
       labels: [{ _id: "5d7f3c0a-4c55-4d3e-9a3e-2d4a7d1c9e99" }],
     });
     expect(missingLabel.status()).toBe(400);
-    expect(await missingLabel.text()).toContain("do not exist");
+    /*
+     * A label that does not exist is answered exactly like one from another
+     * project (ProjectReferencesService), so the answer never tells which.
+     */
+    expect(await missingLabel.text()).toContain(
+      "references records that are not in this project",
+    );
 
     const rows: Array<JSONish> = await listItems({
       page: ctx.page,
