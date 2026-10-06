@@ -126,13 +126,12 @@ export class Service extends ProjectReferencesService<Model> {
      * An episode carries the same project-scoped state and severity an alert
      * does, on FKs that are equally ON DELETE NO ACTION, so an id from another
      * project here leaves that project undeletable in exactly the same way.
-     * onBeforeCreate overwrites currentAlertStateId with this project's
-     * created state, which leaves the severity as the only create-reachable
-     * column — but an update can write either. Each by both of its names:
-     * every name that holds an id is checked, and two that disagree are
-     * refused - against the project of every episode the update changes,
-     * the request's or, for an update with none on it, each episode's own
-     * (where an id the episodes already hold is left alone).
+     * onBeforeCreate checks both on a create, and an update can write either.
+     * Each by both of its names: every name that holds an id is checked, and
+     * two that disagree are refused - against the project of every episode
+     * the update changes, the request's or, for an update with none on it,
+     * each episode's own (where an id the episodes already hold is left
+     * alone).
      */
     await ProjectScopedReferenceValidator.validateUpdateReferences({
       service: this,
@@ -181,48 +180,82 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    // Get the created state for episodes
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alertState || !alertState.id) {
-      throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
-      );
-    }
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     /*
-     * Every episode starts in the project's created state, whatever state the
-     * write named under either name: stamp leaves no other name of it to be
-     * stored instead.
+     * The state the episode starts in, when the write picks one: the Create
+     * Alert Episode form's Initial State sends the relation, the API,
+     * Terraform and workflows the ID column. Either name, and the two must
+     * agree. With none picked, the episode starts in the project's created
+     * state, where every episode a grouping rule opens starts.
      */
-    RelationIdUtil.stamp(
-      createBy.data as unknown as Record<string, unknown>,
+    const pickedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
       ALERT_STATE_KEYS,
-      alertState.id,
+      "Alert State",
     );
 
+    /*
+     * The state picked, if any, and the severity: a state or a severity of
+     * another project is refused, with the same words as one that does not
+     * exist, before a number is used.
+     */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "alert episode",
-      references: getWrittenRelationReferences({
-        payload: createBy.data,
-        idColumn: "alertSeverityId",
-        relation: "alertSeverity",
-        modelName: "Alert Severity",
-        service: AlertSeverityService,
-      }),
+      references: [
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "currentAlertStateId",
+          relation: "currentAlertState",
+          modelName: "Alert State",
+          service: AlertStateService,
+        }),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "alertSeverityId",
+          relation: "alertSeverity",
+          modelName: "Alert Severity",
+          service: AlertSeverityService,
+        }),
+      ],
     });
+
+    /*
+     * The state it starts in, under the ID column alone: stamp leaves no
+     * other name of it to be stored instead, so the state checked above is
+     * the state stored - and the state onCreateSuccess writes the episode's
+     * first timeline row in. The created state is looked up only when the
+     * write picked none.
+     */
+    RelationIdUtil.stamp(
+      createData,
+      ALERT_STATE_KEYS,
+      pickedAlertStateId ||
+        (await AlertStateService.getCreatedAlertStateId(projectId)),
+    );
+
+    /*
+     * resolvedAt follows the state the episode starts in. One recorded as
+     * already resolved is resolved from the moment it exists: grouping,
+     * auto-resolve and the unresolved episode lists read resolvedAt, which
+     * the first timeline row would otherwise set only once onCreateSuccess
+     * reaches it, after the workspace channels - and sets again then, to the
+     * moment that row records. Any other episode has none yet, whatever the
+     * write sent: the first timeline row would clear it anyway.
+     */
+    if (
+      pickedAlertStateId &&
+      (await AlertStateService.isResolvedAlertState({
+        projectId: projectId,
+        alertStateId: pickedAlertStateId,
+      }))
+    ) {
+      createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createData["resolvedAt"];
+    }
 
     // Auto-generate episode number
     const episodeCounterResult: {
