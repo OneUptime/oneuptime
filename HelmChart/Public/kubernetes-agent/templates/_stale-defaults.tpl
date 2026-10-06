@@ -30,8 +30,9 @@ What it cannot tell:
   - A values file that copies an older chart's values.yaml (or `helm get
     values --all`) pins that chart's chartDefaultsVersion with the rest of its
     defaults, and warns on every upgrade until the file keeps only what was
-    changed. A copy from a chart before the key does not pin it, and is not
-    caught.
+    changed and an upgrade takes it with -f and no reuse flag (both keep the
+    copy the release stored; the notes say so). A copy from a chart before
+    the key does not pin it, and is not caught.
   - A chart rendered from a source checkout carries Chart.yaml's version
     (not a release's) on both sides, so an upgrade between two checkouts is
     never stale.

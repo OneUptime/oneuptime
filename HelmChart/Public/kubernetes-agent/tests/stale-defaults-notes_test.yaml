@@ -16,8 +16,11 @@
 #       missing on a chart from before it) is warned, with the OBI tag named
 #       when it is not this chart's default (and eBPF is on), and gets the
 #       exact upgrade that fixes it for this release, Helm 3.14+ and older;
-#   (c) a values file that copies an older chart's defaults is called out,
-#       since the fix keeps what that file pins.
+#   (c) a values file that copies an older chart's defaults is named as the
+#       other cause, with its own fix: the upgrades for (b) keep the copy the
+#       release stored, so they cannot clear it.
+# Every upgrade it prints refreshes the chart index first: the fix pins
+# --version to this chart, which an index from before it does not list.
 #
 # This suite renders as published chart 14.0.15: the pipeline stamps the
 # packaged values.yaml with the version it packages the chart as, so each
@@ -46,7 +49,7 @@ tests:
       - notMatchRegexRaw:
           pattern: "did not get this chart's defaults"
       - matchRegexRaw:
-          pattern: "\nTo upgrade to a newer chart, keeping the values you set \\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values\nHelm before 3\\.14:\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring -f values\\.yaml\nNot --reuse-values: it keeps this chart's defaults too, so a newer chart's\ndefaults \\(its eBPF image among them\\) would never apply\\.\n$"
+          pattern: "\nTo upgrade to a newer chart, keeping the values you set \\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values\nHelm before 3\\.14:\n  helm repo update\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring -f values\\.yaml\nNot --reuse-values: it keeps this chart's defaults too, so a newer chart's\ndefaults \\(its eBPF image among them\\) would never apply\\.\n$"
       # Every command in the notes (an indented line) keeps the values set and
       # takes the chart's defaults: none of them is a --reuse-values upgrade.
       - notMatchRegexRaw:
@@ -73,15 +76,15 @@ tests:
       - values/reuse-values-14.0.10.yaml
     asserts:
       - matchRegexRaw:
-          pattern: "\n\nWARNING: this release did not get this chart's defaults\\.\nIt renders with an older chart's defaults \\(its values have no\nchartDefaultsVersion\\), not with those of this chart, 14\\.0\\.15\\.\nThat is what `helm upgrade --reuse-values` does: it keeps the previous\nrelease's values, the old chart's defaults included, so a default this chart\nadded or changed never applies\\.\n"
+          pattern: "\n\nWARNING: this release did not get this chart's defaults\\.\nIt renders with an older chart's defaults \\(its values have no\nchartDefaultsVersion\\), not with those of this chart, 14\\.0\\.15\\.\n`helm upgrade --reuse-values` does that: it keeps the previous release's\nvalues, the old chart's defaults included\\. So does a values file copied from\nan older chart's values\\.yaml \\(or from `helm get values --all`\\)\\. Either way, a\ndefault this chart added or changed never applies\\.\n"
       - matchRegexRaw:
           pattern: "\nStale here:\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
       - matchRegexRaw:
-          pattern: "\nApply this chart's defaults and keep the values you set \\(Helm 3\\.14\\+\\):\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
+          pattern: "\nAfter --reuse-values, apply this chart's defaults and keep the values you set\n\\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
       - matchRegexRaw:
-          pattern: "\nHelm before 3\\.14:\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 -f values\\.yaml\n"
+          pattern: "\nHelm before 3\\.14:\n  helm repo update\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 -f values\\.yaml\n"
       - matchRegexRaw:
-          pattern: "\nValues you set yourself stay as they are\\. A values file you pass should hold\nonly the values you changed: a copy of an older chart's values\\.yaml \\(or of\n`helm get values --all`\\) pins its defaults, chartDefaultsVersion included\\.\n$"
+          pattern: "\nAfter a copied values file, keep only the values you changed in it\n\\(chartDefaultsVersion is not one of them\\) and upgrade with -f and that file,\nwithout --reuse-values or --reset-then-reuse-values: they, and the commands\nabove, would keep the copy this release stored\\.\n$"
       # The warning replaces the general advice; it is the last thing printed.
       - notMatchRegexRaw:
           pattern: "To upgrade to a newer chart"
@@ -115,7 +118,7 @@ tests:
       - matchRegexRaw:
           pattern: "  - ebpf\\.image\\.tag is \"v0\\.13\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
       - matchRegexRaw:
-          pattern: "\nValues you set yourself stay as they are\\."
+          pattern: "\nAfter --reuse-values, apply this chart's defaults and keep the values you set\n"
 
   - it: names no OBI tag when eBPF is off, but still warns
     release:
@@ -134,7 +137,13 @@ tests:
       - matchRegexRaw:
           pattern: "--version 14\\.0\\.15 --reset-then-reuse-values\n"
 
-  - it: warns a fresh install whose values file copies an older chart's values.yaml
+  # A fresh install (`helm show values` of 14.0.13 saved and passed with -f):
+  # no --reuse-values anywhere, so the notes name the copied file as a cause,
+  # and say how to clear it. The two upgrades they print would not: both keep
+  # the copy the release stored (Helm's reuseValues merges current.Config into
+  # the new values for --reset-then-reuse-values; `helm get values` prints it),
+  # while -f with no reuse flag takes only the file given.
+  - it: warns a fresh install whose values file copies an older chart's values.yaml, and says how to clear it
     set:
       chartDefaultsVersion: "14.0.13"
       ebpf.image.tag: v0.13.0
@@ -142,7 +151,9 @@ tests:
       - matchRegexRaw:
           pattern: "\nWARNING: this release did not get this chart's defaults\\.\nIt renders with the defaults of chart 14\\.0\\.13"
       - matchRegexRaw:
-          pattern: "a copy of an older chart's values\\.yaml \\(or of\n`helm get values --all`\\) pins its defaults, chartDefaultsVersion included\\."
+          pattern: "included\\. So does a values file copied from\nan older chart's values\\.yaml \\(or from `helm get values --all`\\)\\."
+      - matchRegexRaw:
+          pattern: "\nAfter a copied values file, keep only the values you changed in it\n\\(chartDefaultsVersion is not one of them\\) and upgrade with -f and that file,\nwithout --reuse-values or --reset-then-reuse-values"
 
   - it: prints the fix for the release's own name and namespace
     release:

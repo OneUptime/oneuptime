@@ -209,27 +209,33 @@ with those of this chart, {{ .Chart.Version }}.
 It renders with an older chart's defaults (its values have no
 chartDefaultsVersion), not with those of this chart, {{ .Chart.Version }}.
 {{- end }}
-That is what `helm upgrade --reuse-values` does: it keeps the previous
-release's values, the old chart's defaults included, so a default this chart
-added or changed never applies.
+`helm upgrade --reuse-values` does that: it keeps the previous release's
+values, the old chart's defaults included. So does a values file copied from
+an older chart's values.yaml (or from `helm get values --all`). Either way, a
+default this chart added or changed never applies.
 {{- if $defaults.ebpfImageTagStale }}
 Stale here:
   - ebpf.image.tag is {{ $defaults.ebpfImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultEbpfImageTag" . | quote }}
     (OBI, the eBPF instrumentation). Kept if you set it yourself.
 {{- end }}
-Apply this chart's defaults and keep the values you set (Helm 3.14+):
+After --reuse-values, apply this chart's defaults and keep the values you set
+(Helm 3.14+):
+  helm repo update
   {{ $helmUpgrade }} --version {{ .Chart.Version }} --reset-then-reuse-values
 Helm before 3.14:
+  helm repo update
   {{ $helmGetValues }} && {{ $helmUpgrade }} --version {{ .Chart.Version }} -f values.yaml
-Values you set yourself stay as they are. A values file you pass should hold
-only the values you changed: a copy of an older chart's values.yaml (or of
-`helm get values --all`) pins its defaults, chartDefaultsVersion included.
+After a copied values file, keep only the values you changed in it
+(chartDefaultsVersion is not one of them) and upgrade with -f and that file,
+without --reuse-values or --reset-then-reuse-values: they, and the commands
+above, would keep the copy this release stored.
 {{- else }}
 
 To upgrade to a newer chart, keeping the values you set (Helm 3.14+):
   helm repo update
   {{ $helmUpgrade }} --reset-then-reuse-values
 Helm before 3.14:
+  helm repo update
   {{ $helmGetValues }} && {{ $helmUpgrade }} -f values.yaml
 Not --reuse-values: it keeps this chart's defaults too, so a newer chart's
 defaults (its eBPF image among them) would never apply.
