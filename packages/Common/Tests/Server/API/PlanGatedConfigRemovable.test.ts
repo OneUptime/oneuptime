@@ -1,4 +1,5 @@
 import BaseAPI from "../../../Server/API/BaseAPI";
+import WorkspaceNotificationSummaryAPI from "../../../Server/API/WorkspaceNotificationSummaryAPI";
 import ApiKeyPermissionService from "../../../Server/Services/ApiKeyPermissionService";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
 import AuditLogService from "../../../Server/Services/AuditLogService";
@@ -617,6 +618,29 @@ describe("single sign-on a Scale trial left behind, on Free and on Growth", () =
     }
   });
 
+  // On any plan: what hides under __proto__ is never written.
+  test("on Scale too, columns hidden under __proto__ are dropped, not written past the column checks", async () => {
+    currentPlan = PlanType.Scale;
+
+    const data: JSONObject = JSON.parse(
+      '{"name": "Renamed", "__proto__": {"teams": [], "isEnabled": false}}',
+    ) as JSONObject;
+
+    for (const provider of providers) {
+      writes = [];
+
+      expect([provider.name, await update(provider, data)]).toEqual([
+        provider.name,
+        "done",
+      ]);
+
+      expect([provider.name, writes]).toEqual([
+        provider.name,
+        [{ name: "Renamed" }],
+      ]);
+    }
+  });
+
   test("who may do it is unchanged: switching off needs the provider's edit permission, deleting its delete permission", async () => {
     for (const provider of [SAML_PROVIDER, OIDC_PROVIDER]) {
       expect(
@@ -780,6 +804,58 @@ describe("Slack and Microsoft Teams rules and summaries a Growth trial left behi
 
     expect(await update(SUMMARY, { isEnabled: false })).toBe("done");
     expect(onBeforeUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Sending a summary is what Growth sells. Its "send a test" route used to
+   * lean on the summary's read for the plan; the read is allowed below the
+   * plan now, so the route asks the plan itself.
+   */
+  test("a summary's test send still needs Growth, though the summary can be read", async () => {
+    new WorkspaceNotificationSummaryAPI();
+
+    const route: (typeof mockRouter.routes)[number] | undefined =
+      mockRouter.routes.find(
+        (candidate: (typeof mockRouter.routes)[number]): boolean => {
+          return (
+            candidate.method === "POST" &&
+            candidate.uri.endsWith("/test/:workspaceNotificationSummaryId")
+          );
+        },
+      );
+
+    expect(route).toBeDefined();
+
+    const testSummary: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      SUMMARY.service as never,
+      "testSummary",
+    ).mockResolvedValue(undefined as never);
+
+    const send: () => Promise<unknown> = async (): Promise<unknown> => {
+      const req: OneUptimeRequest = request({});
+      (req as unknown as { params: Record<string, string> }).params = {
+        workspaceNotificationSummaryId: RECORD_ID.toString(),
+      };
+
+      let failure: unknown = undefined;
+
+      await route!.handlerFunction(req, response(), (err?: unknown): void => {
+        failure = err;
+      });
+
+      return failure;
+    };
+
+    const refused: unknown = await send();
+
+    expect(refused).toBeInstanceOf(PaymentRequiredException);
+    expect((refused as Error).message).toBe(refusalFor(PlanType.Growth));
+    expect(testSummary).not.toHaveBeenCalled();
+
+    currentPlan = PlanType.Growth;
+
+    expect(await send()).toBeUndefined();
+    expect(testSummary).toHaveBeenCalledTimes(1);
   });
 });
 
