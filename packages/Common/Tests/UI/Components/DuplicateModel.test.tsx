@@ -208,7 +208,15 @@ function serveWorkflow(data: {
   mockCreate.mockImplementation(async (args: unknown): Promise<unknown> => {
     const copy: Workflow = new Workflow();
     copy.id = COPY_ID;
-    copy.name = ((args as CreateArgs).model as Workflow).name;
+
+    const sentName: string | undefined = (
+      (args as CreateArgs).model as Workflow
+    ).name;
+
+    if (sentName) {
+      copy.name = sentName;
+    }
+
     return { data: copy };
   });
 }
@@ -230,7 +238,9 @@ function renderWorkflowDuplicate(
           ? overrides.navigateToOnSuccess
           : LIST_ROUTE
       }
-      onDuplicateSuccess={overrides.onDuplicateSuccess}
+      {...(overrides.onDuplicateSuccess
+        ? { onDuplicateSuccess: overrides.onDuplicateSuccess }
+        : {})}
     />,
   );
 }
