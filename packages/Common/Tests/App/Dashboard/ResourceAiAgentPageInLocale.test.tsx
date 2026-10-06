@@ -22,6 +22,10 @@ import {
   getResourceAiAgentDescriptor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import { RESOURCE_REMEDIATION_MODE_SUMMARIES } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAccessSettingsUtil";
+import {
+  ADD_AI_CREDITS_STEP,
+  WHO_CAN_ADD_AI_CREDITS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -380,11 +384,6 @@ describe("a resource's AI agent page in the reader's language", () => {
           "Add an AI provider for this project, or use OneUptime AI credits.",
           "Open LLM Providers",
         ],
-        [
-          "ai_balance_insufficient",
-          "Add AI credits to this project, or turn on auto-recharge.",
-          "Open AI Credits",
-        ],
       ] as Array<[string, string, string]>) {
         const row: HTMLElement = screen.getByTestId(`ai-agent-gap-${gapCode}`);
 
@@ -393,6 +392,24 @@ describe("a resource's AI agent page in the reader's language", () => {
           within(row).getByText(wordingIn(code, link)).closest("a"),
         ).not.toBeNull();
       }
+
+      /*
+       * Only an owner or someone with Manage Billing may add AI credits
+       * (#4470). An admin reads who can, in their language, with no link.
+       */
+      const creditsRow: HTMLElement = screen.getByTestId(
+        "ai-agent-gap-ai_balance_insufficient",
+      );
+
+      expect(creditsRow).toHaveTextContent(
+        wordingIn(code, ADD_AI_CREDITS_STEP),
+      );
+      expect(creditsRow).toHaveTextContent(
+        wordingIn(code, WHO_CAN_ADD_AI_CREDITS),
+      );
+      expect(
+        within(creditsRow).queryByText(wordingIn(code, "Open AI Credits")),
+      ).toBeNull();
     },
   );
 

@@ -9,10 +9,11 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { permissionRow, tenantPermissionsFor } from "./PermissionRows";
 import { describe, expect, it } from "@jest/globals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 import BillingInvoice from "../../../Models/DatabaseModels/BillingInvoice";
 import Project from "../../../Models/DatabaseModels/Project";
 
@@ -72,14 +73,6 @@ describe("BillingInvoiceAPI", () => {
     project.paymentProviderCustomerId = projectCustomerId;
     project.paymentProviderSubscriptionId = "sub_123";
 
-    jest
-      .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-      .mockResolvedValue([
-        {
-          permission: Permission.EditInvoices,
-        } as UserPermission,
-      ]);
-
     ProjectService.findOneById = jest.fn().mockResolvedValue(project);
     BillingInvoiceService.findOneBy = jest
       .fn()
@@ -95,6 +88,9 @@ describe("BillingInvoiceAPI", () => {
 
     mockRequest = {
       tenantId: projectId,
+      userTenantAccessPermission: tenantPermissionsFor(projectId, [
+        Permission.EditInvoices,
+      ]),
       body: {
         data: {
           paymentProviderInvoiceId: invoiceId,
@@ -115,6 +111,57 @@ describe("BillingInvoiceAPI", () => {
   });
 
   describe("POST /billing-invoices/pay", () => {
+    type PayFunction = () => Promise<void>;
+
+    const pay: PayFunction = async (): Promise<void> => {
+      await mockRouter
+        .match("post", "/billing-invoices/pay")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+    };
+
+    it("refuses a member whose only Edit Invoices row is a block", async () => {
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectMember,
+        permissionRow(Permission.EditInvoices, { isBlock: true }),
+      ]);
+
+      await pay();
+
+      expect((nextFunction as jest.Mock).mock.calls[0]?.[0]).toBeInstanceOf(
+        BadDataException,
+      );
+      expect(BillingService.payInvoice).not.toHaveBeenCalled();
+    });
+
+    it("refuses a member another team's block with no labels takes Edit Invoices from", async () => {
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.EditInvoices,
+        permissionRow(Permission.EditInvoices, { isBlock: true }),
+      ]);
+
+      await pay();
+
+      expect((nextFunction as jest.Mock).mock.calls[0]?.[0]).toBeInstanceOf(
+        BadDataException,
+      );
+      expect(BillingService.payInvoice).not.toHaveBeenCalled();
+    });
+
+    it("lets a member pay when their block has labels: the route touches no labelled record", async () => {
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.EditInvoices,
+        permissionRow(Permission.EditInvoices, {
+          isBlock: true,
+          labelled: true,
+        }),
+      ]);
+
+      await pay();
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(BillingService.payInvoice).toHaveBeenCalled();
+    });
+
     it("should reject a customer id that does not belong to the project", async () => {
       mockRequest.body["data"] = {
         paymentProviderInvoiceId: invoiceId,

@@ -38,31 +38,46 @@ import ProjectReferencesService from "./ProjectReferencesService";
 export default class LabelAndOwnerRuleBaseService<
   TBaseModel extends BaseModel,
 > extends ProjectReferencesService<TBaseModel> {
-  private readonly ruleAction: RuleActionColumns;
+  private readonly ruleModelType: { new (): TBaseModel };
+  private ruleAction: RuleActionColumns | undefined = undefined;
 
   public constructor(modelType: { new (): TBaseModel }) {
     super(modelType);
+    this.ruleModelType = modelType;
+  }
 
-    const ruleAction: RuleActionColumns | null = getRuleActionColumns(
-      this.getModel(),
-    );
-
-    // A label or owner rule model only: anything else adds nothing to check.
-    if (!ruleAction) {
-      throw new Error(
-        `${modelType.name} is not a label or owner rule: it has no labels or owners to add.`,
+  /*
+   * What this rule adds, read from the model on first use, not when the
+   * service is built: services are built at import, and suites that stub
+   * DatabaseService or the model would otherwise fail to load every one.
+   */
+  public getRuleAction(): RuleActionColumns {
+    if (!this.ruleAction) {
+      const ruleAction: RuleActionColumns | null = getRuleActionColumns(
+        new this.ruleModelType(),
       );
+
+      // A label or owner rule model only: anything else adds nothing to check.
+      if (!ruleAction) {
+        throw new Error(
+          `${this.ruleModelType.name} is not a label or owner rule: it has no labels or owners to add.`,
+        );
+      }
+
+      this.ruleAction = ruleAction;
     }
 
-    this.ruleAction = ruleAction;
+    return this.ruleAction;
   }
 
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TBaseModel>,
   ): Promise<OnCreate<TBaseModel>> {
-    if (!doesNewRuleAddSomething(createBy.data, this.ruleAction)) {
-      throw new BadDataException(getRuleAddsNothingMessage(this.ruleAction));
+    const ruleAction: RuleActionColumns = this.getRuleAction();
+
+    if (!doesNewRuleAddSomething(createBy.data, ruleAction)) {
+      throw new BadDataException(getRuleAddsNothingMessage(ruleAction));
     }
 
     return await super.onBeforeCreate(createBy);

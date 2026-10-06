@@ -360,20 +360,37 @@ describe("reading the signed-in user's permissions", () => {
     ).toEqual([Permission.Viewer]);
   });
 
-  test("a row that does not say what it is counts as a block, never as an allow", () => {
-    const unknownKind: UserPermission = row({
+  test("a row is a block only when it says so, as the server reads it", () => {
+    const unflagged: UserPermission = row({
       permission: Permission.ProjectOwner,
     });
-    delete unknownKind.isBlockPermission;
+    delete unflagged.isBlockPermission;
 
     const rows: PermissionRows = toPermissionRows({
-      projectPermissions: tenant([unknownKind]),
+      projectPermissions: tenant([unflagged]),
       globalPermissions: null,
     });
 
-    expect(rows.allow).toEqual([]);
+    expect(rows.block).toEqual([]);
+    expect(rows.allow).toEqual([unflagged]);
     expect(
       canGrantPermission({ permission: Permission.ProjectMember, rows: rows }),
+    ).toBe(true);
+
+    const blocked: PermissionRows = toPermissionRows({
+      projectPermissions: tenant([
+        row({ permission: Permission.ProjectOwner }),
+        row({ permission: Permission.ProjectOwner, isBlockPermission: true }),
+      ]),
+      globalPermissions: null,
+    });
+
+    expect(blocked.block).toHaveLength(1);
+    expect(
+      canGrantPermission({
+        permission: Permission.ProjectMember,
+        rows: blocked,
+      }),
     ).toBe(false);
   });
 

@@ -85,12 +85,13 @@ export interface ResourceAiAgentDescriptor {
   // What fixes may change, and the changes that always ask a person.
   writeExamples: string;
   alwaysHumanExamples: string | null;
-  riskierExamples: string;
   /*
-   * The same riskier changes without "riskier changes such as", for the
-   * Automatic card's "Riskier ones, such as {{riskier}}, …": a key of its
-   * own, so the card reads them in the reader's language too.
+   * A few riskier changes, as a phrase of their own ("riskier changes such
+   * as stopping, killing or updating a container") and as the changes
+   * alone, for a sentence that says "such as" itself. Each is a key, so a
+   * locale words both.
    */
+  riskierExamples: string;
   riskierChanges: string;
   // The table and preference keys of the commands table.
   commandsTableId: string;

@@ -389,6 +389,7 @@ function publicNote(overrides?: {
 
 function episode(overrides?: {
   isVisibleOnStatusPage?: boolean;
+  isPrivate?: boolean;
   withoutTitle?: boolean;
   withoutSeverity?: boolean;
 }): IncidentEpisode {
@@ -400,6 +401,9 @@ function episode(overrides?: {
   row.description = "Several network incidents are being investigated.";
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  if (overrides?.isPrivate !== undefined) {
+    row.isPrivate = overrides.isPrivate;
+  }
   row.episodeNumber = 3;
   row.episodeNumberWithPrefix = "EP-3";
 
@@ -1113,6 +1117,26 @@ describe("IncidentEpisodePublicNote:SendUpdateNotificationToSubscribers", () => 
         "Notifications skipped as episode is not visible on status page.",
     });
   });
+
+  // A private episode is hidden from every status page (StatusPageVisibility).
+  test.each(TRIGGERS)(
+    "the $name skips a note on a private episode, even with its Status Pages switch on",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedEpisode = episode({ isPrivate: true });
+
+      await runJob(trigger.job);
+
+      nothingSent();
+
+      const lastWrite: JSONObject = statusWrites()[statusWrites().length - 1]!;
+
+      expect(Object.values(lastWrite)).toEqual([
+        StatusPageSubscriberNotificationStatus.Skipped,
+        "Notifications skipped as episode is not visible on status page.",
+      ]);
+    },
+  );
 
   test("skips the update when the episode has been deleted", async () => {
     updatedNotes = [publicNote()];

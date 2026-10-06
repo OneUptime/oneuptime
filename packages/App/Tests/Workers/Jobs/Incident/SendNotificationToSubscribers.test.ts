@@ -1169,6 +1169,84 @@ describe("Incident:SendNotificationToSubscribers, for an incident hidden from st
     expect(sentMail()).toHaveLength(0);
   });
 
+  /*
+   * A private incident is hidden from every status page, whatever its
+   * Visible on Status Page switch says (StatusPageVisibility): its
+   * 'created' notification is skipped the same way, and tells nobody.
+   */
+  test("a private incident is skipped the same way, even with Visible on Status Page on", async () => {
+    for (const isPrivate of [true, "true"] as Array<unknown>) {
+      jest.clearAllMocks();
+      mock(IncidentService.updateOneById).mockResolvedValue(1 as never);
+      mock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mockResolvedValue(true as never);
+
+      const row: Incident = incident();
+      (row as unknown as JSONObject)["isPrivate"] = isPrivate as boolean;
+      pendingIncidents = [row];
+
+      await runJob();
+
+      expect(statusWritesFor(INCIDENT_ID)).toEqual([
+        {
+          subscriberNotificationStatusOnIncidentCreated:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            IncidentCreatedRenotify.hiddenFromStatusPagesMessage,
+        },
+      ]);
+      expect(sentMail()).toHaveLength(0);
+      expect(sentSms()).toHaveLength(0);
+      expect(sentSlack()).toHaveLength(0);
+      expect(sentTeams()).toHaveLength(0);
+      expect(sentWebhooks()).toHaveLength(0);
+      expect(StatusPageResourceService.findByMonitors).not.toHaveBeenCalled();
+      expect(IncidentFeedService.createIncidentFeedItem).not.toHaveBeenCalled();
+    }
+  });
+
+  test("a private incident is skipped while a public one in the same run is announced", async () => {
+    const privateIncident: Incident = incident();
+    privateIncident.isPrivate = true;
+    const publicIncident: Incident = incident();
+    publicIncident._id = SECOND_INCIDENT_ID.toString();
+    publicIncident.isPrivate = false;
+    pendingIncidents = [privateIncident, publicIncident];
+
+    await runJob();
+
+    expect(statusesWritten(INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Skipped,
+    ]);
+    expect(statusesWritten(SECOND_INCIDENT_ID)).toEqual([
+      StatusPageSubscriberNotificationStatus.InProgress,
+      StatusPageSubscriberNotificationStatus.Success,
+    ]);
+    expect(sentMail()).toHaveLength(1);
+  });
+
+  test("reads whether each incident is private, with its Visible on Status Page switch", async () => {
+    await runJob();
+
+    const notifyQuery: JSONObject = mock(IncidentService.findAllBy)
+      .mock.calls.map((call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      })
+      .find((args: JSONObject): boolean => {
+        return (
+          (args["query"] as JSONObject)[
+            "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+          ] === true
+        );
+      })!;
+
+    expect(notifyQuery["select"]).toEqual(
+      expect.objectContaining({ isVisibleOnStatusPage: true, isPrivate: true }),
+    );
+  });
+
   test("a hidden incident without monitors is skipped for having no monitors", async () => {
     const row: Incident = hiddenIncident();
     row.monitors = [];

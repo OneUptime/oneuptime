@@ -74,6 +74,26 @@ export const STATUS_PAGE_VISIBILITY_KIND_COPY: Record<
   },
 };
 
+/*
+ * A private episode is never shown on a status page, whatever its switch
+ * says (Common/Types/StatusPage/StatusPageVisibility), and the server keeps
+ * the switch off while it is private. So while the episode is private the
+ * switch says so, and is locked off.
+ */
+export const PRIVATE_EPISODE_VISIBILITY_COPY: {
+  // Under the switch while the episode is private.
+  description: string;
+  // Why the switch is locked: its tooltip.
+  lockedReason: string;
+} = {
+  description: translationKey(
+    "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.",
+  ),
+  lockedReason: translationKey(
+    "A private episode is never shown on status pages.",
+  ),
+};
+
 export const getStatusPageVisibilitySwitchDescription: (data: {
   kind: StatusPageVisibilityKind;
   isOn: boolean;

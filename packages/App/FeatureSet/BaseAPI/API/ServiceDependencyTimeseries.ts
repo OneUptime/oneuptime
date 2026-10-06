@@ -3,11 +3,8 @@ import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedExceptio
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "Common/Types/Permission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
+import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Express, {
@@ -100,22 +97,16 @@ export default class ServiceDependencyTimeseriesAPI {
            * This endpoint reads span-derived data, so holding read on the
            * Service model alone is not enough — gate on the Span analytics
            * model's own read ACL (TelemetryViewer, ReadTelemetryServiceTraces,
-           * ...), mirroring what the standard analytics API would enforce.
+           * ...), mirroring what the standard analytics API would enforce:
+           * read by the rule every permission check follows
+           * (CallerPermission), the operational-resource wildcard included.
            */
           if (!props.isRoot && !props.isMasterAdmin) {
-            const userPermissions: Array<Permission> = (
-              props.userTenantAccessPermission?.[props.tenantId.toString()]
-                ?.permissions || []
-            ).map((userPermission: UserPermission) => {
-              return userPermission.permission;
-            });
-            const spanReadPermissions: Array<Permission> =
-              new Span().accessControl?.read || [];
             if (
-              !PermissionHelper.doesPermissionsIntersect(
-                userPermissions,
-                spanReadPermissions,
-              )
+              !CallerPermission.holdsModelPermission(props, {
+                model: new Span(),
+                operation: "read",
+              })
             ) {
               throw new NotAuthorizedException(
                 "You do not have permission to read traces for this project.",

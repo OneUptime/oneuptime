@@ -12,10 +12,13 @@ import JSONWebToken from "./JsonWebToken";
 import Permission, {
   UserGlobalAccessPermission,
   UserTenantAccessPermission,
+  instanceOfUserTenantAccessPermission,
 } from "../../Types/Permission";
 import { getModelTypeByName } from "../../Models/DatabaseModels/Index";
 import { getModelTypeByName as getAnalyticsModelTypeByname } from "../../Models/AnalyticsModels/Index";
-import ModelPermission from "../../Types/BaseDatabase/ModelPermission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../Types/HeldPermissions";
 import ModelEventType from "../../Types/Realtime/ModelEventType";
 import ListenToModelEventJSON from "../../Types/Realtime/ListenToModelEventJSON";
 import EventName from "../../Types/Realtime/EventName";
@@ -460,13 +463,21 @@ export default abstract class Realtime {
     this.socketServer!.to(modelRoomId).emit(modelRoomId, jsonObject);
   }
 
+  /*
+   * Whether the user may listen to a model's events: whether they may read
+   * the model, by the table half of the rule its CRUD read follows
+   * (HeldPermissionsUtil.holdsModelPermission) - an allow row for its read
+   * list or, for an operational resource, the Read All Operational Resources
+   * wildcard, and no block with no labels on that list. An event carries
+   * only the id of the record that changed; the record itself is read
+   * through the CRUD path, which weighs labels, owned scope and labelled
+   * blocks, so the room asks what a route guard asks.
+   */
   @CaptureSpan()
   public static hasPermissionsByModelName(
     userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
     modelName: string,
   ): boolean {
-    let modelPermissions: Array<Permission> = [];
-
     let modelType:
       | { new (): BaseModel }
       | { new (): AnalyticsBaseModel }
@@ -481,12 +492,21 @@ export default abstract class Realtime {
       }
     }
 
-    modelPermissions = new modelType().getReadPermissions();
+    const model: BaseModel | AnalyticsBaseModel = new modelType();
 
-    return ModelPermission.hasPermissions(
+    const held: HeldPermissions = instanceOfUserTenantAccessPermission(
       userProjectPermissions,
-      modelPermissions,
-    );
+    )
+      ? HeldPermissionsUtil.fromRows({
+          rows: userProjectPermissions.permissions,
+        })
+      : HeldPermissionsUtil.fromPermissions(userProjectPermissions);
+
+    return HeldPermissionsUtil.holdsModelPermission(held, {
+      isOperationalResource: model.isOperationalResource,
+      operation: "read",
+      modelPermissions: model.getReadPermissions(),
+    });
   }
 
   @CaptureSpan()

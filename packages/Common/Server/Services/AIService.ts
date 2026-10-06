@@ -33,6 +33,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyUsage,
 } from "../../Types/AI/ProjectAiDailyLimits";
 import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
+import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -1079,7 +1080,7 @@ export class Service extends BaseService {
      * provider, and only when it actually has a per-token cost. A free global
      * provider (costPerMillionTokensInUSDCents = 0, the default) consumes no
      * balance, so it must not require or block on one either — otherwise a $0
-     * provider would still fail with "Insufficient AI balance".
+     * provider would still be refused as out of AI credits.
      */
     const shouldBill: boolean =
       IsBillingEnabled &&
@@ -1090,10 +1091,14 @@ export class Service extends BaseService {
      * Check balance if billing enabled and using global provider. The row was
      * already read for the kill switch above and is non-null past that gate,
      * so this reuses it rather than issuing a second read of the same row.
+     *
+     * Said to whoever asked - most of whom cannot add credits - so the
+     * refusal names who can, and where (Utils/Project/ProjectBalance), and
+     * the AI Logs row says the same.
      */
     if (shouldBill && (project!.aiCurrentBalanceInUSDCents || 0) <= 0) {
       logEntry.status = LlmLogStatus.InsufficientBalance;
-      logEntry.statusMessage = "Insufficient AI balance";
+      logEntry.statusMessage = PROJECT_AI_CREDITS_USED_UP_MESSAGE;
       logEntry.requestCompletedAt = new Date();
       logEntry.durationMs = new Date().getTime() - startTime.getTime();
 
@@ -1102,9 +1107,7 @@ export class Service extends BaseService {
         props: { isRoot: true },
       });
 
-      throw new BadDataException(
-        "Insufficient AI balance. Please recharge your AI balance in Project Settings > AI Credits.",
-      );
+      throw new BadDataException(PROJECT_AI_CREDITS_USED_UP_MESSAGE);
     }
 
     /*

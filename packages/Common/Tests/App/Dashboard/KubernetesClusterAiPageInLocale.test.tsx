@@ -672,11 +672,6 @@ describe("the AI agent page in the reader's language", () => {
           "Add an AI provider for this project, or use OneUptime AI credits.",
           "Open LLM Providers",
         ],
-        [
-          "ai_balance_insufficient",
-          "Add AI credits to this project, or turn on auto-recharge.",
-          "Open AI Credits",
-        ],
       ] as Array<[string, string, string]>) {
         const row: HTMLElement = screen.getByTestId(`ai-agent-gap-${gapCode}`);
 
@@ -685,6 +680,29 @@ describe("the AI agent page in the reader's language", () => {
           within(row).getByText(wordingIn(code, link)).closest("a"),
         ).not.toBeNull();
       }
+
+      /*
+       * AI credits are not a project admin's to add: the step, and who can
+       * add them, in the reader's language - no link.
+       */
+      const credits: HTMLElement = screen.getByTestId(
+        "ai-agent-gap-ai_balance_insufficient",
+      );
+
+      expect(credits).toHaveTextContent(
+        wordingIn(code, "Add AI credits to this project."),
+      );
+      expect(
+        within(credits).getByTestId("ai-agent-gap-who-can-add-ai-credits"),
+      ).toHaveTextContent(
+        wordingIn(
+          code,
+          "A project owner or someone with Manage Billing can add AI credits.",
+        ),
+      );
+      expect(
+        within(credits).queryByText(wordingIn(code, "Open AI Credits")),
+      ).not.toBeInTheDocument();
     },
   );
 
