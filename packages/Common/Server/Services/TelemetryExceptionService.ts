@@ -37,7 +37,8 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../Utils/Telemetry/TelemetryReadScope";
-import { FindOperator, Raw, SelectQueryBuilder } from "typeorm";
+import { Raw, SelectQueryBuilder } from "typeorm";
+import ReadPermission from "../Types/Database/Permissions/ReadPermission";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import CountBy from "../Types/Database/CountBy";
@@ -325,23 +326,15 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A caller's filter on the column the scope is added to, once serialized:
-   * nothing, one value or a database operator. Any other shape cannot be
-   * kept next to the scope, so the read is refused rather than the caller's
-   * filter dropped.
+   * A caller's filter on the column the scope is added to, once serialized,
+   * as the read block keeps one (ReadPermission.getSupportedFilter): a shape
+   * that cannot be kept next to the scope is refused, not dropped.
    */
   private getSupportedFilter(serialized: unknown, column: string): unknown {
-    if (
-      serialized !== undefined &&
-      typeof serialized !== "string" &&
-      !(serialized instanceof FindOperator)
-    ) {
-      throw new BadDataException(
-        `Unsupported filter on ${column}: use one id, a list of ids, or a query operator.`,
-      );
-    }
-
-    return serialized;
+    return ReadPermission.getSupportedFilter(
+      serialized,
+      `Unsupported filter on ${column}: use one id, a list of ids, or a query operator.`,
+    );
   }
 
   /*

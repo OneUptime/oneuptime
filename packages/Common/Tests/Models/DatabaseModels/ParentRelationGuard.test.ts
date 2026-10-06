@@ -2,6 +2,9 @@ import AllModelTypes from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import ReadPermission, {
+  PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS,
+} from "../../../Server/Types/Database/Permissions/ReadPermission";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -47,5 +50,63 @@ describe("canAccessIfCanReadOn", () => {
       });
 
     expect(broken).toEqual([]);
+  });
+});
+
+/*
+ * A RECORD WITH NO LABELS OF ITS OWN IS READ THROUGH THE RECORDS IT NAMES.
+ *
+ * A block with labels on reading such a record leaves it out when a record
+ * it names by key carries one of the labels (ReadPermission
+ * .getLabelledReferences): a relation's record, the owner key's resource, a
+ * plain id column's record by the model its name ends with. A key column
+ * whose record cannot be told refuses the read instead, so the models that
+ * have one are pinned here: a new one is a decision, not an accident.
+ */
+describe("records with no labels of their own", () => {
+  const labelLess: Array<{ new (): BaseModel }> = AllModelTypes.filter(
+    (modelType: { new (): BaseModel }): boolean => {
+      return !new modelType().getAccessControlColumn();
+    },
+  );
+
+  test("name records the rule can tell, but for the resource ids several kinds share", () => {
+    const refused: Record<string, Array<string>> = {};
+
+    for (const modelType of labelLess) {
+      const unresolved: Array<string> =
+        ReadPermission.getLabelledReferences(modelType).unresolvedColumns;
+
+      if (unresolved.length > 0) {
+        refused[new modelType().tableName || modelType.name] = [
+          ...unresolved,
+        ].sort();
+      }
+    }
+
+    expect(refused).toEqual({
+      AutoRemediationSuggestion: ["resourceId"],
+      InventoryItem: ["resourceId"],
+      RecommendationDismissal: ["resourceId"],
+      ResourceAiAgent: ["resourceId"],
+      RunnerJob: ["assignedAgentId", "resourceId"],
+    });
+  });
+
+  test("the plain columns known to name records without labels are real columns", () => {
+    for (const entry of PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS) {
+      const [tableName, column] = entry.split(".") as [string, string];
+      const modelType: { new (): BaseModel } | undefined = AllModelTypes.find(
+        (candidate: { new (): BaseModel }): boolean => {
+          return new candidate().tableName === tableName;
+        },
+      );
+
+      expect([entry, Boolean(modelType)]).toEqual([entry, true]);
+      expect([
+        entry,
+        new modelType!().getTableColumnMetadata(column)?.type,
+      ]).toEqual([entry, TableColumnType.ObjectID]);
+    }
   });
 });

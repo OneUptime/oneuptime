@@ -63,6 +63,23 @@ export interface TelemetryServiceFilter {
   excludedServiceIds?: Array<ObjectID> | undefined;
 }
 
+/*
+ * A scope's ids as lower-case sets, built once per scope object: a reader
+ * that checks many resources against one scope (a facet's list) does not
+ * rebuild them for each. Rebuilt if the scope's lists are replaced.
+ */
+interface ScopeIdSets {
+  readableIds: ReadonlyArray<string> | null;
+  blockedIds: ReadonlyArray<string>;
+  readable: Set<string> | null;
+  blocked: Set<string>;
+}
+
+const scopeIdSets: WeakMap<TelemetryReadScope, ScopeIdSets> = new WeakMap<
+  TelemetryReadScope,
+  ScopeIdSets
+>();
+
 export default class TelemetryReadScopeUtil {
   /*
    * A resource id no row carries, for "reads nothing": an empty IN list
@@ -124,18 +141,13 @@ export default class TelemetryReadScopeUtil {
     resourceId: ObjectID | string,
   ): boolean {
     const id: string = TelemetryReadScopeUtil.normalizeId(resourceId);
+    const sets: ScopeIdSets = TelemetryReadScopeUtil.getIdSets(scope);
 
-    if (TelemetryReadScopeUtil.getBlockedIdSet(scope).has(id)) {
+    if (sets.blocked.has(id)) {
       return false;
     }
 
-    if (scope.readableIds === null) {
-      return true;
-    }
-
-    return scope.readableIds.some((readableId: string): boolean => {
-      return TelemetryReadScopeUtil.normalizeId(readableId) === id;
-    });
+    return sets.readable === null || sets.readable.has(id);
   }
 
   // The ids of `ids` the caller may read, lower case, each once, in their order.
@@ -143,15 +155,9 @@ export default class TelemetryReadScopeUtil {
     scope: TelemetryReadScope,
     ids: ReadonlyArray<ObjectID | string>,
   ): Array<string> {
-    const blocked: Set<string> = TelemetryReadScopeUtil.getBlockedIdSet(scope);
-    const readable: Set<string> | null =
-      scope.readableIds === null
-        ? null
-        : new Set<string>(
-            scope.readableIds.map((id: string): string => {
-              return TelemetryReadScopeUtil.normalizeId(id);
-            }),
-          );
+    const sets: ScopeIdSets = TelemetryReadScopeUtil.getIdSets(scope);
+    const blocked: Set<string> = sets.blocked;
+    const readable: Set<string> | null = sets.readable;
     const kept: Set<string> = new Set<string>();
 
     for (const id of ids) {
@@ -169,11 +175,42 @@ export default class TelemetryReadScopeUtil {
   }
 
   private static getBlockedIdSet(scope: TelemetryReadScope): Set<string> {
-    return new Set<string>(
-      scope.blockedIds.map((id: string): string => {
-        return TelemetryReadScopeUtil.normalizeId(id);
-      }),
-    );
+    return TelemetryReadScopeUtil.getIdSets(scope).blocked;
+  }
+
+  // The scope's ids as lower-case sets (see ScopeIdSets).
+  private static getIdSets(scope: TelemetryReadScope): ScopeIdSets {
+    const cached: ScopeIdSets | undefined = scopeIdSets.get(scope);
+
+    if (
+      cached &&
+      cached.readableIds === scope.readableIds &&
+      cached.blockedIds === scope.blockedIds
+    ) {
+      return cached;
+    }
+
+    const sets: ScopeIdSets = {
+      readableIds: scope.readableIds,
+      blockedIds: scope.blockedIds,
+      readable:
+        scope.readableIds === null
+          ? null
+          : new Set<string>(
+              scope.readableIds.map((id: string): string => {
+                return TelemetryReadScopeUtil.normalizeId(id);
+              }),
+            ),
+      blocked: new Set<string>(
+        scope.blockedIds.map((id: string): string => {
+          return TelemetryReadScopeUtil.normalizeId(id);
+        }),
+      ),
+    };
+
+    scopeIdSets.set(scope, sets);
+
+    return sets;
   }
 
   /*

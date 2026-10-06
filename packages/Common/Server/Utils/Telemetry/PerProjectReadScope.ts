@@ -24,7 +24,49 @@ import { FindOperator, Raw } from "typeorm";
  * catalogue, exception groups), so a read cannot step around the scope by
  * leaving the project out of the request.
  */
+/*
+ * The caller's props in each of their projects, one object per request and
+ * project: the scope of a project is worked out once a request
+ * (ModelPermission caches it by props), however many reads ask.
+ */
+const projectPropsCache: WeakMap<
+  DatabaseCommonInteractionProps,
+  Map<string, DatabaseCommonInteractionProps>
+> = new WeakMap<
+  DatabaseCommonInteractionProps,
+  Map<string, DatabaseCommonInteractionProps>
+>();
+
 export default class PerProjectReadScope {
+  // The caller's props in one of their projects (see projectPropsCache).
+  public static getProjectProps(
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): DatabaseCommonInteractionProps {
+    let byProject: Map<string, DatabaseCommonInteractionProps> | undefined =
+      projectPropsCache.get(props);
+
+    if (!byProject) {
+      byProject = new Map<string, DatabaseCommonInteractionProps>();
+      projectPropsCache.set(props, byProject);
+    }
+
+    const key: string = projectId.toString();
+    let projectProps: DatabaseCommonInteractionProps | undefined =
+      byProject.get(key);
+
+    if (!projectProps) {
+      projectProps = {
+        ...props,
+        tenantId: projectId,
+        isMultiTenantRequest: false,
+      };
+      byProject.set(key, projectProps);
+    }
+
+    return projectProps;
+  }
+
   // A read that names no single project.
   public static isAcrossProjects(
     props: DatabaseCommonInteractionProps,
@@ -71,11 +113,9 @@ export default class PerProjectReadScope {
           return {
             projectId: projectId.toString(),
             isRefused: false,
-            clause: await data.getClauseInProject({
-              ...data.props,
-              tenantId: projectId,
-              isMultiTenantRequest: false,
-            }),
+            clause: await data.getClauseInProject(
+              PerProjectReadScope.getProjectProps(data.props, projectId),
+            ),
           };
         } catch (err) {
           if (err instanceof NotAuthorizedException) {

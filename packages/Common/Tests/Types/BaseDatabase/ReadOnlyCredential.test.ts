@@ -772,6 +772,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
       "getReadScopeForPermissions",
       "isResourceReadableForPermissions",
       "readsEveryResourceForPermissions",
+      "findOwnersOfResource",
       "getTelemetryResourceTypes",
       "checkIfUserIsLoggedIn",
     ],

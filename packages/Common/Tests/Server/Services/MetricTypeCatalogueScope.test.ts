@@ -147,16 +147,19 @@ describe("the catalogue condition", () => {
     expect(parametersOf(clause)).toEqual([]);
   });
 
-  test("a block with labels takes away the metric types only blocked services report", () => {
-    const clause: unknown = MetricTypeService.getCatalogueScopeClause({
-      readableIds: null,
-      blockedIds: [serviceC],
-    });
-
-    const sql: string = sqlOf(clause);
-    expect(sql).toContain("NOT EXISTS");
-    expect(sql).toContain('"MetricTypeService"."serviceId" NOT IN (:...');
-    expect(parametersOf(clause)).toEqual([serviceC]);
+  /*
+   * A grant over the whole project reads every metric type, blocks with
+   * labels or not: the catalogue cannot tell which hosts, clusters or
+   * devices report a metric type, and the blocked services' metric values
+   * are left out by the metric reads themselves.
+   */
+  test("a caller reading every service, blocks with labels or not, gets no condition", () => {
+    expect(
+      MetricTypeService.getCatalogueScopeClause({
+        readableIds: null,
+        blockedIds: [serviceC],
+      }),
+    ).toBeNull();
   });
 
   test("without the services relation the condition is refused, never dropped", () => {

@@ -823,6 +823,47 @@ describe("Looking resources up", () => {
  * every readable resource up (a session replay's application, on every page
  * of a playback).
  */
+describe("Owners of one resource", () => {
+  test("are read from the registry's owner tables for that resource", async () => {
+    const otherUser: ObjectID = ObjectID.generate();
+
+    lookups("RumApplication").user.mockImplementation((async (request: {
+      query: Record<string, unknown>;
+      select: Record<string, boolean>;
+    }) => {
+      expect(String(request.query[fkColumnOf("RumApplication")])).toBe(
+        RUM_APPLICATION_ID.toString(),
+      );
+      expect(request.select).toEqual({ userId: true });
+      return [{ userId: USER_ID }, { userId: otherUser }];
+    }) as never);
+    lookups("RumApplication").team.mockImplementation((async () => {
+      return [{ teamId: TEAM_ID }];
+    }) as never);
+
+    expect(
+      await AnalyticsModelPermission.findOwnersOfResource({
+        resourceType: "RumApplication",
+        resourceId: RUM_APPLICATION_ID,
+        tenantId: PROJECT_ID,
+      }),
+    ).toEqual({
+      userIds: [USER_ID.toString(), otherUser.toString()],
+      teamIds: [TEAM_ID.toString()],
+    });
+  });
+
+  test("a kind of resource the registry does not know has no owners", async () => {
+    expect(
+      await AnalyticsModelPermission.findOwnersOfResource({
+        resourceType: "NotAResource",
+        resourceId: RUM_APPLICATION_ID,
+      }),
+    ).toEqual({ userIds: [], teamIds: [] });
+    expect(lookupCallCount()).toBe(0);
+  });
+});
+
 describe("Deciding for one resource", () => {
   const RESOURCE_ID: string = ObjectID.generate().toString();
 

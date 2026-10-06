@@ -224,13 +224,20 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The condition on a metric type's id: no service reports it, or one the
-   * scope reaches does. Null when the scope reaches every service.
+   * The condition on a metric type's id for a caller limited to some
+   * services: no service reports it, or one the scope reaches does. Null
+   * for a scope that is not limited to a list of services - a grant over
+   * the whole project reads every metric type, blocks with labels or not,
+   * as the catalogue cannot tell which hosts, clusters or devices report a
+   * metric type (getCatalogueScopeClauseInProject).
    */
   public getCatalogueScopeClause(
     scope: TelemetryReadScope,
   ): FindWhereProperty<any> | null {
-    if (TelemetryReadScopeUtil.isProjectWide(scope)) {
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
+
+    if (readableIds === null) {
       return null;
     }
 
@@ -260,33 +267,19 @@ export class Service extends ProjectReferencesService<Model> {
       return `NOT EXISTS (SELECT 1 FROM "${joinTable}" WHERE "${joinTable}"."${metricTypeColumn}" = ${alias})`;
     };
 
-    const readableIds: Array<string> | null =
-      TelemetryReadScopeUtil.getReadableIds(scope);
-
-    if (readableIds !== null) {
-      if (readableIds.length === 0) {
-        return Raw((alias: string): string => {
-          return `(${unreported(alias)})`;
-        });
-      }
-
-      const readableRid: string = "mtReadable_" + Text.generateRandomText(10);
-
-      return Raw(
-        (alias: string): string => {
-          return `(${unreported(alias)} OR EXISTS (SELECT 1 FROM "${joinTable}" WHERE "${joinTable}"."${metricTypeColumn}" = ${alias} AND "${joinTable}"."${serviceColumn}" IN (:...${readableRid})))`;
-        },
-        { [readableRid]: readableIds },
-      );
+    if (readableIds.length === 0) {
+      return Raw((alias: string): string => {
+        return `(${unreported(alias)})`;
+      });
     }
 
-    const blockedRid: string = "mtBlocked_" + Text.generateRandomText(10);
+    const readableRid: string = "mtReadable_" + Text.generateRandomText(10);
 
     return Raw(
       (alias: string): string => {
-        return `(${unreported(alias)} OR EXISTS (SELECT 1 FROM "${joinTable}" WHERE "${joinTable}"."${metricTypeColumn}" = ${alias} AND "${joinTable}"."${serviceColumn}" NOT IN (:...${blockedRid})))`;
+        return `(${unreported(alias)} OR EXISTS (SELECT 1 FROM "${joinTable}" WHERE "${joinTable}"."${metricTypeColumn}" = ${alias} AND "${joinTable}"."${serviceColumn}" IN (:...${readableRid})))`;
       },
-      { [blockedRid]: TelemetryReadScopeUtil.getBlockedIds(scope) },
+      { [readableRid]: readableIds },
     );
   }
 

@@ -877,16 +877,40 @@ export default class ModelPermission {
 
     const grants: ReadGrants = ModelPermission.getReadGrants(data);
 
-    const blockedIds: Array<string> =
+    // Resources the read is narrowed to, when no grant reaches the whole project.
+    const isNarrowed: boolean =
+      grants.grantingRows.length > 0 && !grants.isProjectWide;
+
+    const noResources: Promise<Set<string>> = Promise.resolve(
+      new Set<string>(),
+    );
+
+    // The three lookups do not depend on each other: they run together.
+    const [blockedSet, ownedSet, labelledSet]: [
+      Set<string>,
+      Set<string>,
+      Set<string>,
+    ] = await Promise.all([
       grants.blockedLabelIds.length > 0
-        ? Array.from(
-            await this.resolveLabeledParentIds(
-              grants.blockedLabelIds,
-              props,
-              data.resourceTypes,
-            ),
+        ? this.resolveLabeledParentIds(
+            grants.blockedLabelIds,
+            props,
+            data.resourceTypes,
           )
-        : [];
+        : noResources,
+      isNarrowed && grants.hasOwnedGrant
+        ? this.resolveOwnedParentIds(props, data.resourceTypes)
+        : noResources,
+      isNarrowed && grants.grantedLabelIds.length > 0
+        ? this.resolveLabeledParentIds(
+            grants.grantedLabelIds,
+            props,
+            data.resourceTypes,
+          )
+        : noResources,
+    ]);
+
+    const blockedIds: Array<string> = Array.from(blockedSet);
 
     if (grants.grantingRows.length === 0) {
       // Nothing grants the read: the caller reads no resource at all.
@@ -900,10 +924,7 @@ export default class ModelPermission {
     const readableIds: Set<string> = new Set<string>();
 
     if (grants.hasOwnedGrant) {
-      for (const id of await this.resolveOwnedParentIds(
-        props,
-        data.resourceTypes,
-      )) {
+      for (const id of ownedSet) {
         readableIds.add(id);
       }
 
@@ -920,19 +941,13 @@ export default class ModelPermission {
       }
     }
 
-    if (grants.grantedLabelIds.length > 0) {
-      for (const id of await this.resolveLabeledParentIds(
-        grants.grantedLabelIds,
-        props,
-        data.resourceTypes,
-      )) {
-        readableIds.add(id);
-      }
+    for (const id of labelledSet) {
+      readableIds.add(id);
     }
 
     return {
       readableIds: Array.from(readableIds).filter((id: string): boolean => {
-        return !blockedIds.includes(id);
+        return !blockedSet.has(id);
       }),
       blockedIds: blockedIds,
     };
@@ -1249,25 +1264,25 @@ export default class ModelPermission {
     resourceTypes?: ReadonlyArray<string> | undefined,
   ): Promise<Set<string>> {
     const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
-    const result: Set<string> = new Set<string>();
 
-    for (const [resourceType, entry] of this.getTelemetryOwnerTypes(
-      resourceTypes,
-    )) {
-      const ids: Array<string> = await lookUpOnce(
-        cache.ownedIds,
-        resourceType,
-        (): Promise<Array<string>> => {
-          return this.findOwnedIdsOfType(entry, props);
+    // Every kind of resource is looked up at the same time.
+    const idsByType: Array<Array<string>> = await Promise.all(
+      this.getTelemetryOwnerTypes(resourceTypes).map(
+        ([resourceType, entry]: [string, OwnerTablePair]): Promise<
+          Array<string>
+        > => {
+          return lookUpOnce(
+            cache.ownedIds,
+            resourceType,
+            (): Promise<Array<string>> => {
+              return this.findOwnedIdsOfType(entry, props);
+            },
+          );
         },
-      );
+      ),
+    );
 
-      for (const id of ids) {
-        result.add(id);
-      }
-    }
-
-    return result;
+    return new Set<string>(idsByType.flat());
   }
 
   // The resources of one type the user, or one of their teams, owns.
@@ -1275,35 +1290,75 @@ export default class ModelPermission {
     entry: OwnerTablePair,
     props: DatabaseCommonInteractionProps,
   ): Promise<Array<string>> {
-    const ids: Array<string> = [];
     const tenantFilter: Record<string, ObjectID> = props.tenantId
       ? { projectId: props.tenantId }
       : {};
 
-    if (props.userId) {
-      ids.push(
-        ...(await this.findAllIds({
+    const [userOwned, teamOwned]: [Array<string>, Array<string>] =
+      await Promise.all([
+        props.userId
+          ? this.findAllIds({
+              service: entry.ownerUserService,
+              query: { userId: props.userId, ...tenantFilter },
+              column: entry.fkColumn,
+            })
+          : Promise.resolve([]),
+        props.userTeamIds && props.userTeamIds.length > 0
+          ? this.findAllIds({
+              service: entry.ownerTeamService,
+              query: {
+                teamId: QueryHelper.any(props.userTeamIds),
+                ...tenantFilter,
+              },
+              column: entry.fkColumn,
+            })
+          : Promise.resolve([]),
+      ]);
+
+    return [...userOwned, ...teamOwned];
+  }
+
+  /*
+   * The users and teams that own one telemetry-owning resource (a RUM
+   * application ...), through the owner table registry - the same owner
+   * tables, project filter and paging as resolveOwnedParentIds - for a
+   * decision about that one resource (isResourceReadableForPermissions).
+   */
+  public static async findOwnersOfResource(data: {
+    resourceType: string;
+    resourceId: ObjectID;
+    tenantId?: ObjectID | undefined;
+  }): Promise<{ userIds: Array<string>; teamIds: Array<string> }> {
+    const entry: OwnerTablePair | undefined = this.getTelemetryOwnerTypes([
+      data.resourceType,
+    ]).map(([, pair]: [string, OwnerTablePair]): OwnerTablePair => {
+      return pair;
+    })[0];
+
+    if (!entry) {
+      return { userIds: [], teamIds: [] };
+    }
+
+    const query: Record<string, ObjectID> = {
+      [entry.fkColumn]: data.resourceId,
+      ...(data.tenantId ? { projectId: data.tenantId } : {}),
+    };
+
+    const [userIds, teamIds]: [Array<string>, Array<string>] =
+      await Promise.all([
+        this.findAllIds({
           service: entry.ownerUserService,
-          query: { userId: props.userId, ...tenantFilter },
-          column: entry.fkColumn,
-        })),
-      );
-    }
-
-    if (props.userTeamIds && props.userTeamIds.length > 0) {
-      ids.push(
-        ...(await this.findAllIds({
+          query: query,
+          column: "userId",
+        }),
+        this.findAllIds({
           service: entry.ownerTeamService,
-          query: {
-            teamId: QueryHelper.any(props.userTeamIds),
-            ...tenantFilter,
-          },
-          column: entry.fkColumn,
-        })),
-      );
-    }
+          query: query,
+          column: "teamId",
+        }),
+      ]);
 
-    return ids;
+    return { userIds, teamIds };
   }
 
   /*
@@ -1341,27 +1396,35 @@ export default class ModelPermission {
       ? { projectId: props.tenantId }
       : {};
 
-    for (const [resourceType, entry] of this.getTelemetryOwnerTypes(
-      resourceTypes,
-    )) {
-      if (!entry.modelService) {
-        continue;
-      }
+    // Every kind of resource is looked up at the same time.
+    const idsByType: Array<Array<string>> = await Promise.all(
+      this.getTelemetryOwnerTypes(resourceTypes)
+        .filter(([, entry]: [string, OwnerTablePair]): boolean => {
+          return Boolean(entry.modelService);
+        })
+        .map(
+          ([resourceType, entry]: [string, OwnerTablePair]): Promise<
+            Array<string>
+          > => {
+            const modelService: OwnerTablePair["modelService"] =
+              entry.modelService;
 
-      const modelService: OwnerTablePair["modelService"] = entry.modelService;
+            return lookUpOnce(
+              cache.labeledIds,
+              `${resourceType}|${labelsKey}`,
+              (): Promise<Array<string>> => {
+                return this.findAllIds({
+                  service: modelService,
+                  query: { labels: labelIds, ...tenantFilter },
+                  column: "_id",
+                });
+              },
+            );
+          },
+        ),
+    );
 
-      const ids: Array<string> = await lookUpOnce(
-        cache.labeledIds,
-        `${resourceType}|${labelsKey}`,
-        (): Promise<Array<string>> => {
-          return this.findAllIds({
-            service: modelService,
-            query: { labels: labelIds, ...tenantFilter },
-            column: "_id",
-          });
-        },
-      );
-
+    for (const ids of idsByType) {
       for (const id of ids) {
         result.add(id);
       }

@@ -144,6 +144,21 @@ export default class TelemetryReadAccess {
   }
 
   /*
+   * The users and teams that own one telemetry-owning resource, through the
+   * owner table registry the scope reads (ModelPermission
+   * .findOwnersOfResource): what an Owned grant is weighed against in
+   * isResourceReadableForPermissions.
+   */
+  @CaptureSpan()
+  public static async getResourceOwners(data: {
+    resourceType: string;
+    resourceId: ObjectID;
+    tenantId?: ObjectID | undefined;
+  }): Promise<{ userIds: Array<string>; teamIds: Array<string> }> {
+    return await ModelPermission.findOwnersOfResource(data);
+  }
+
+  /*
    * Whether the caller reads every resource under a list of permissions (a
    * grant over the whole project, no block with labels), without looking
    * anything up. Refuses as getScopeForPermissions does.

@@ -274,6 +274,34 @@ describe("a read across the caller's projects", () => {
     expect(parameters).toContainEqual([projectId.toString()]);
   });
 
+  test("works each project's scope out with one props object a request, so it is looked up once", async () => {
+    withScope(TelemetryReadScopeUtil.getUnrestrictedScope());
+
+    await scoped({}, acrossProjects);
+    await scoped({}, acrossProjects);
+
+    const propsFor: (project: ObjectID) => Array<unknown> = (
+      project: ObjectID,
+    ): Array<unknown> => {
+      return scopeSpy.mock.calls
+        .map((call: Array<unknown>): unknown => {
+          return (call[0] as { props: unknown }).props;
+        })
+        .filter((props: unknown): boolean => {
+          return (
+            (props as DatabaseCommonInteractionProps).tenantId?.toString() ===
+            project.toString()
+          );
+        });
+    };
+
+    for (const eachProject of [projectId, otherProjectId]) {
+      const asked: Array<unknown> = propsFor(eachProject);
+      expect(asked).toHaveLength(2);
+      expect(asked[0]).toBe(asked[1]);
+    }
+  });
+
   test("is left alone when every project is read in full", async () => {
     withScope(TelemetryReadScopeUtil.getUnrestrictedScope());
 

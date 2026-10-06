@@ -96,7 +96,52 @@ describe("Users, Teams & Permissions: whose telemetry a permission reads", () =>
     expect(stepSix).toContain(
       "When a record has no labels of its own, such as an incident note or a status page announcement, a block with labels on reading it leaves it out if a record it belongs to carries one of those labels.",
     );
+    expect(stepSix).toContain(
+      "If such a record names a resource without saying which kind it is, as an inventory item does, the block refuses reading it, as a block with no labels does.",
+    );
   });
+
+  /*
+   * Every language ends step 6 with the refusal for a record that names a
+   * resource without saying which kind - its example, the inventory item,
+   * in that language's words.
+   */
+  const INVENTORY_ITEM: Record<string, string> = {
+    en: "inventory item",
+    da: "lagerelement",
+    de: "Inventareintrag",
+    es: "elemento del inventario",
+    fa: "مورد موجودی",
+    fr: "élément d'inventaire",
+    hi: "इन्वेंटरी आइटम",
+    it: "elemento dell'inventario",
+    ja: "インベントリ項目",
+    ko: "인벤토리 항목",
+    nl: "inventarisitem",
+    no: "inventarelement",
+    pt: "item de inventário",
+    ru: "элемент инвентаря",
+    sv: "inventariepost",
+    "zh-CN": "库存项",
+    "zh-TW": "庫存項目",
+  };
+
+  test.each(LANGUAGES)(
+    "%s ends step 6 with the refusal for a record it cannot tell",
+    (language: string) => {
+      const stepSix: string =
+        readPage(language, "permissions/index.md")
+          .split("\n")
+          .find((line: string): boolean => {
+            return line.startsWith("6. ");
+          }) || "";
+
+      expect([language, stepSix.includes(INVENTORY_ITEM[language]!)]).toEqual([
+        language,
+        true,
+      ]);
+    },
+  );
 
   test.each(LANGUAGES)(
     "%s has the section in the same place, with as many points as English",

@@ -9,6 +9,9 @@ import StatusPageAnnouncement from "../../../../../Models/DatabaseModels/StatusP
 import RumSessionPin from "../../../../../Models/DatabaseModels/RumSessionPin";
 import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
 import OnCallDutyPolicyTimeLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyTimeLog";
+import AIRun from "../../../../../Models/DatabaseModels/AIRun";
+import InventoryItem from "../../../../../Models/DatabaseModels/InventoryItem";
+import Project from "../../../../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../../Types/BaseDatabase/IncludesAnyOfGroups";
@@ -715,16 +718,85 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
     expect(sql).toContain("entityId IS NULL OR entityId NOT IN");
   });
 
-  it("follows an owner key that is not a relation (an on-call time log's policy)", async () => {
+  it("follows an owner key and a plain id column alike (an on-call time log's policy and schedule)", async () => {
     const result: any = await ReadPermission.checkReadBlockPermission(
       OnCallDutyPolicyTimeLog,
       { projectId } as any,
       propsWithBlock(Permission.ReadOnCallDutyPolicyTimeLog),
     );
 
-    const sql: string = rawSql(result.query.onCallDutyPolicyId, "policyId");
-    expect(sql).toContain("policyId IS NULL OR policyId NOT IN");
-    expect(sql).toContain('FROM "OnCallDutyPolicyLabel"');
+    const policySql: string = rawSql(
+      result.query.onCallDutyPolicyId,
+      "policyId",
+    );
+    expect(policySql).toContain("policyId IS NULL OR policyId NOT IN");
+    expect(policySql).toContain('FROM "OnCallDutyPolicyLabel"');
+
+    const scheduleSql: string = rawSql(
+      result.query.onCallDutyPolicyScheduleId,
+      "scheduleId",
+    );
+    expect(scheduleSql).toContain("scheduleId IS NULL OR scheduleId NOT IN");
+    expect(scheduleSql).toContain('FROM "OnCallDutyPolicyScheduleLabel"');
+
+    // The escalation rule and the team carry no labels: nothing to add there.
+    expect(result.query.onCallDutyPolicyEscalationRuleId).toBeUndefined();
+    expect(result.query.teamId).toBeUndefined();
+  });
+
+  /*
+   * An AI run names the records it was about in plain id columns, with no
+   * relation over them. Each is read by the model its name ends with.
+   */
+  it("follows plain id columns to the records they name (an AI run's monitor, agent, incident, alert)", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      AIRun,
+      { projectId } as any,
+      propsWithBlock(Permission.ProjectMember),
+    );
+
+    for (const [column, joinTable] of [
+      ["monitorId", "MonitorLabel"],
+      ["aiAgentId", "AIAgentLabel"],
+      ["triggeredByIncidentId", "IncidentLabel"],
+      ["triggeredByAlertId", "AlertLabel"],
+    ] as Array<[string, string]>) {
+      const sql: string = rawSql(result.query[column], "key");
+      expect([column, sql.includes(`FROM "${joinTable}"`)]).toEqual([
+        column,
+        true,
+      ]);
+      expect(sql).toContain("key IS NULL OR key NOT IN");
+    }
+
+    // Records that carry no labels add nothing: the exception, the creator.
+    expect(result.query.triggeredByTelemetryExceptionId).toBeUndefined();
+    expect(result.query.createdByUserId).toBeUndefined();
+  });
+
+  /*
+   * A resource id several kinds of resource share cannot be told apart, so
+   * a block with labels cannot leave out only the rows naming a blocked
+   * resource: it refuses the read, as a block with no labels does.
+   */
+  it("refuses a model whose key column names a record it cannot tell", async () => {
+    await expect(
+      ReadPermission.checkReadBlockPermission(
+        InventoryItem,
+        { projectId } as any,
+        propsWithBlock(Permission.ProjectMember),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  it("leaves a model whose keys name no labelled record as it is (the project)", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      Project,
+      { _id: projectId.toString() } as any,
+      propsWithBlock(Permission.ProjectMember),
+    );
+
+    expect(result.query).toEqual({ _id: projectId.toString() });
   });
 
   it("keeps the caller's own filter on the owner key next to the block", async () => {

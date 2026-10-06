@@ -453,3 +453,42 @@ describe("TelemetryReadScope compares resource ids without case", () => {
     ).toEqual([serviceC]);
   });
 });
+
+/*
+ * A scope's ids are read as sets built once per scope: checking many
+ * resources against one scope (a facet's list) costs one look-up each.
+ * A scope whose lists are replaced is read afresh.
+ */
+describe("TelemetryReadScope: checking many resources", () => {
+  test("gives the same answers on every check of one scope", () => {
+    const limited: TelemetryReadScope = scope(
+      [serviceA, serviceB.toUpperCase()],
+      [serviceB],
+    );
+
+    for (let check: number = 0; check < 3; check++) {
+      expect(TelemetryReadScopeUtil.isReadable(limited, serviceA)).toBe(true);
+      expect(TelemetryReadScopeUtil.isReadable(limited, serviceB)).toBe(false);
+      expect(TelemetryReadScopeUtil.isReadable(limited, serviceC)).toBe(false);
+    }
+
+    expect(
+      TelemetryReadScopeUtil.filterReadableIds(limited, [
+        serviceC,
+        serviceA,
+        serviceB,
+      ]),
+    ).toEqual([serviceA]);
+  });
+
+  test("reads a scope afresh when its lists are replaced", () => {
+    const changing: TelemetryReadScope = scope([serviceA]);
+    expect(TelemetryReadScopeUtil.isReadable(changing, serviceB)).toBe(false);
+
+    changing.readableIds = [serviceA, serviceB];
+    expect(TelemetryReadScopeUtil.isReadable(changing, serviceB)).toBe(true);
+
+    changing.blockedIds = [serviceB];
+    expect(TelemetryReadScopeUtil.isReadable(changing, serviceB)).toBe(false);
+  });
+});

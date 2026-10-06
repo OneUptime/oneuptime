@@ -120,12 +120,7 @@ import ResourceEntityFilter, {
 import { ResourceEntityFacetSelections } from "../../Types/Telemetry/ResourceEntityFacet";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
-import RumApplicationOwnerUserService from "../Services/RumApplicationOwnerUserService";
-import RumApplicationOwnerTeamService from "../Services/RumApplicationOwnerTeamService";
-import RumApplicationOwnerUser from "../../Models/DatabaseModels/RumApplicationOwnerUser";
-import RumApplicationOwnerTeam from "../../Models/DatabaseModels/RumApplicationOwnerTeam";
 import Label from "../../Models/DatabaseModels/Label";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
 import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
@@ -3235,10 +3230,13 @@ router.get(
        * resources the caller may read here; any other profile is "not
        * found", like one that does not exist.
        */
-      const profileScope: TelemetryReadScope =
-        await TelemetryReadAccess.getScope(Profile, databaseProps);
-      const sampleScope: TelemetryReadScope =
-        await TelemetryReadAccess.getScope(ProfileSample, databaseProps);
+      const [profileScope, sampleScope]: [
+        TelemetryReadScope,
+        TelemetryReadScope,
+      ] = await Promise.all([
+        TelemetryReadAccess.getScope(Profile, databaseProps),
+        TelemetryReadAccess.getScope(ProfileSample, databaseProps),
+      ]);
 
       // Fetch profile metadata
       const profiles: Array<Profile> = await ProfileService.findBy({
@@ -4213,49 +4211,15 @@ const getRumApplicationOwners: GetRumApplicationOwnersFunction = (
     return cached;
   }
 
+  /*
+   * Through the owner table registry, as an Owned grant's scope reads every
+   * application's owners (TelemetryReadAccess.getResourceOwners).
+   */
   const pending: Promise<RumApplicationOwners> =
-    (async (): Promise<RumApplicationOwners> => {
-      const rumApplicationId: ObjectID = new ObjectID(
-        application.id!.toString(),
-      );
-
-      const [ownerUsers, ownerTeams]: [
-        Array<RumApplicationOwnerUser>,
-        Array<RumApplicationOwnerTeam>,
-      ] = await Promise.all([
-        RumApplicationOwnerUserService.findBy({
-          query: { rumApplicationId: rumApplicationId },
-          select: { userId: true },
-          props: { isRoot: true },
-          skip: 0,
-          limit: LIMIT_MAX,
-        }),
-        RumApplicationOwnerTeamService.findBy({
-          query: { rumApplicationId: rumApplicationId },
-          select: { teamId: true },
-          props: { isRoot: true },
-          skip: 0,
-          limit: LIMIT_MAX,
-        }),
-      ]);
-
-      return {
-        userIds: ownerUsers
-          .map((owner: RumApplicationOwnerUser): string => {
-            return owner.userId ? owner.userId.toString() : "";
-          })
-          .filter((id: string): boolean => {
-            return id.length > 0;
-          }),
-        teamIds: ownerTeams
-          .map((owner: RumApplicationOwnerTeam): string => {
-            return owner.teamId ? owner.teamId.toString() : "";
-          })
-          .filter((id: string): boolean => {
-            return id.length > 0;
-          }),
-      };
-    })();
+    TelemetryReadAccess.getResourceOwners({
+      resourceType: "RumApplication",
+      resourceId: new ObjectID(application.id!.toString()),
+    });
 
   rumApplicationOwners.set(application, pending);
   pending.catch((): void => {
