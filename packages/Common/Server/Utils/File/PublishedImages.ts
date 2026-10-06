@@ -367,7 +367,8 @@ export default class PublishedImages {
 
       let row: Row = (data.row || {}) as Row;
 
-      const writesAnImage: boolean = sources.some(
+      // The kinds of markdown the new record carries an image in.
+      const withImages: Array<PublishedMarkdown> = sources.filter(
         (source: PublishedMarkdown): boolean => {
           return source.markdownColumns.some((column: string): boolean => {
             const value: unknown = row[column];
@@ -380,11 +381,11 @@ export default class PublishedImages {
         },
       );
 
-      if (!writesAnImage) {
+      if (withImages.length === 0) {
         return;
       }
 
-      const unknownSwitch: boolean = sources.some(
+      const unknownSwitch: boolean = withImages.some(
         (source: PublishedMarkdown): boolean => {
           return source.shownWhen.some((column: string): boolean => {
             return row[column] === undefined;
@@ -393,10 +394,23 @@ export default class PublishedImages {
       );
 
       if (unknownSwitch) {
-        row = {
-          ...row,
-          ...((await data.readStored(this.getColumns(data.tableName))) || {}),
-        };
+        const switches: Array<string> = Array.from(
+          new Set<string>(
+            withImages.flatMap((source: PublishedMarkdown): Array<string> => {
+              return source.shownWhen;
+            }),
+          ),
+        );
+
+        const stored: Row = (await data.readStored(switches)) || {};
+
+        row = { ...row };
+
+        for (const column of switches) {
+          if (row[column] === undefined) {
+            row[column] = stored[column];
+          }
+        }
       }
 
       await this.setVisibility({
