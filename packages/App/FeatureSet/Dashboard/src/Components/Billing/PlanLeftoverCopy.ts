@@ -1,3 +1,7 @@
+import {
+  isPlanCutoffCredentialTable,
+  PlanCutoffCredential,
+} from "Common/Types/Billing/PlanCutoffCredentials";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -6,12 +10,14 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * A project that drops below a feature's plan - a trial ends, a downgrade -
  * keeps what it set up, and much of it keeps working: SSO providers sign
- * people in, SCIM connections provision them, Slack and Microsoft Teams
- * rules post, summaries go out, API keys authenticate, schedules page
- * people. Below the plan, the page that sells the feature shows what the
- * project still has (PlanLeftoverTable), with the moves the server allows
- * on every plan: Turn off, for records that have a switch, and Delete.
- * Adding, changing and switching back on need the plan.
+ * people in, Slack and Microsoft Teams rules post, summaries go out,
+ * schedules page people. API keys and SCIM connections are kept too, but
+ * stop working until the project is back on the plan (Common/Types/Billing/
+ * PlanCutoffCredentials), and their tables say so. Below the plan, the page
+ * that sells the feature shows what the project still has
+ * (PlanLeftoverTable), with the moves the server allows on every plan: Turn
+ * off, for records that have a switch, and Delete. Adding, changing and
+ * switching back on need the plan.
  *
  * Kept free of React so the components and the tests read these exact
  * strings. Every sentence is wrapped in translationKey() so npm run
@@ -22,6 +28,12 @@ export const PlanLeftoverCopy: {
   // A table's description, for records with a switch and without one.
   descriptionWithSwitch: string;
   descriptionWithoutSwitch: string;
+  // For API keys, and for SCIM connections, which stop below their plan.
+  descriptionStopped: string;
+  descriptionScimStopped: string;
+  // An API key's own page, below the plan.
+  apiKeyStoppedTitle: string;
+  apiKeyStoppedDescription: string;
   enabledColumn: string;
   turnOffButton: string;
   confirmTurnOffTitle: string;
@@ -37,6 +49,16 @@ export const PlanLeftoverCopy: {
   ),
   descriptionWithoutSwitch: translationKey(
     "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.",
+  ),
+  descriptionStopped: translationKey(
+    "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.",
+  ),
+  descriptionScimStopped: translationKey(
+    "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.",
+  ),
+  apiKeyStoppedTitle: translationKey("This API key stopped working"),
+  apiKeyStoppedDescription: translationKey(
+    "Your plan does not include API keys, so every request made with this key is refused. Upgrading to the {{planName}} plan turns it back on as it is. You can still delete it.",
   ),
   enabledColumn: translationKey("Enabled"),
   turnOffButton: translationKey("Turn off"),
@@ -71,9 +93,33 @@ export const PlanLeftoverTitle: {
   summaries: translationKey("Summaries still set up"),
 };
 
+/*
+ * A table's description: for API keys and SCIM connections, that they
+ * stopped and an upgrade turns them back on; for the rest, that what is on
+ * still works, as it does.
+ */
+export const getPlanLeftoverDescription: (data: {
+  tableName: string | null | undefined;
+  hasSwitch: boolean;
+}) => string = (data: {
+  tableName: string | null | undefined;
+  hasSwitch: boolean;
+}): string => {
+  if (isPlanCutoffCredentialTable(data.tableName)) {
+    return data.tableName === PlanCutoffCredential.ApiKey
+      ? PlanLeftoverCopy.descriptionStopped
+      : PlanLeftoverCopy.descriptionScimStopped;
+  }
+
+  return data.hasSwitch
+    ? PlanLeftoverCopy.descriptionWithSwitch
+    : PlanLeftoverCopy.descriptionWithoutSwitch;
+};
+
 // Test ids.
 export const PLAN_LEFTOVER_TABLE_TEST_ID_PREFIX: string = "plan-leftover";
 export const PLAN_LEFTOVER_NOTE_TEST_ID: string = "plan-leftover-note";
+export const API_KEY_STOPPED_NOTE_TEST_ID: string = "api-key-stopped-note";
 
 export const getPlanLeftoverTableTestId: (id: string) => string = (
   id: string,

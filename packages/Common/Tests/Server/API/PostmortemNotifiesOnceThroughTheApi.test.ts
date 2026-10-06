@@ -605,14 +605,55 @@ describe("PUT an incident's Visible on Status Page", () => {
       ]);
     });
 
-    test("switched on earlier, then made not private, sends the postmortem once", async () => {
+    /*
+     * A private incident stays hidden however its switch is written
+     * (StatusPageVisibility): the switch is stored off, so making the
+     * incident not private later shows it to nobody either. Turning the
+     * switch on then shows it, and sends the postmortem once.
+     */
+    test("switched on while private, it stays hidden; made not private later, it is still hidden until switched on", async () => {
       await put({ isVisibleOnStatusPage: true });
 
       expect(postmortemNotificationsQueued()).toEqual([]);
+      expect(written()).toEqual({ isVisibleOnStatusPage: false });
+      expect(stored.isVisibleOnStatusPage).toBe(false);
 
       await put({ isPrivate: false });
 
-      expect(postmortemNotificationsQueued()).toHaveLength(1);
+      expect(postmortemNotificationsQueued()).toEqual([]);
+      expect(compareAndSet).not.toHaveBeenCalled();
+
+      await put({ isVisibleOnStatusPage: true });
+
+      expect(postmortemNotificationsQueued()).toEqual([
+        expect.objectContaining({
+          data: {
+            subscriberNotificationStatusOnPostmortemPublished:
+              StatusPageSubscriberNotificationStatus.Pending,
+            subscriberNotificationStatusMessageOnPostmortemPublished:
+              IncidentPostmortemPublication.shownQueuedMessage,
+          },
+        }),
+      ]);
+    });
+
+    test('switched on as a hand-written "true" while private, it stays hidden', async () => {
+      await put({ isVisibleOnStatusPage: "true" });
+
+      expect(written()).toEqual({ isVisibleOnStatusPage: false });
+      expect(postmortemNotificationsQueued()).toEqual([]);
+    });
+
+    test("switched on and made private in one write, it is stored hidden", async () => {
+      stored.isPrivate = false;
+
+      await put({ isVisibleOnStatusPage: true, isPrivate: true });
+
+      expect(written()).toEqual({
+        isVisibleOnStatusPage: false,
+        isPrivate: true,
+      });
+      expect(postmortemNotificationsQueued()).toEqual([]);
     });
 
     test("made not private while switched off sends nothing: it is still hidden", async () => {

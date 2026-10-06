@@ -4,6 +4,7 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
 import { FileAccessFacts } from "../../../Server/Utils/File/RelatedFileAccess";
 import {
+  HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   PUBLISH_SHOWN_IMAGES_SQL,
 } from "../../../Server/Utils/File/PublishedImages";
@@ -661,5 +662,49 @@ describe("FileService.setVisibilityFromPublishedRecords: files from before the r
     await expect(
       FileService.setVisibilityFromPublishedRecords(),
     ).resolves.toEqual({ madePublic: 0, madePrivate: 0 });
+  });
+});
+
+/*
+ * Once, for the images a private incident or episode made public while its
+ * Visible on Status Page switch was still on (HideImagesOfPrivateIncidents):
+ * one statement, which only ever makes files private.
+ */
+describe("FileService.hideImagesOfPrivateRecords: images of private records, once", () => {
+  test("runs the one statement and says how many files it made private", async () => {
+    const query: Mock<(sql: string) => Promise<unknown>> = jest.fn(
+      async (): Promise<unknown> => {
+        // An UPDATE answers [rows, affected].
+        return [[], 4];
+      },
+    );
+
+    jest.spyOn(FileService, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+
+    await expect(FileService.hideImagesOfPrivateRecords()).resolves.toBe(4);
+
+    expect(
+      query.mock.calls.map((call: [string]): string => {
+        return call[0];
+      }),
+    ).toEqual([HIDE_PRIVATE_RECORD_IMAGES_SQL]);
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(`SET "isPublic" = false`);
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toContain(
+      `SET "isPublic" = true`,
+    );
+  });
+
+  test("an answer without a count reads as nothing moved", async () => {
+    jest.spyOn(FileService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (): Promise<unknown> => {
+          return [];
+        },
+      },
+    } as never);
+
+    await expect(FileService.hideImagesOfPrivateRecords()).resolves.toBe(0);
   });
 });

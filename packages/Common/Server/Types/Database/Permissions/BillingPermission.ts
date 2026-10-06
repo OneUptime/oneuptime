@@ -91,22 +91,13 @@ export default class BillingPermissions {
         );
       }
 
-      const requiredPlan: PlanType | null = BillingPermissions.getRequiredPlan(
+      const requiredPlan: PlanType | null = BillingPermissions.getMissingPlan(
         model,
         type,
+        props.currentPlan,
       );
 
       if (!requiredPlan) {
-        return;
-      }
-
-      if (
-        SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-          requiredPlan,
-          props.currentPlan,
-          getAllEnvVars(),
-        )
-      ) {
         return;
       }
 
@@ -150,6 +141,40 @@ export default class BillingPermissions {
     }
 
     return false;
+  }
+
+  /*
+   * The plan the table names for this operation when `currentPlan` does not
+   * reach it, or null when it does (or the table names none): the one
+   * comparison every plan check makes. Used on its own where something
+   * other than a record's access is held to a table's plan - an API key or
+   * a SCIM connection, when it authenticates (PlanCutoffCredentialAccess).
+   */
+  public static getMissingPlan(
+    model: BaseModel,
+    type: DatabaseRequestType,
+    currentPlan: PlanType,
+  ): PlanType | null {
+    const requiredPlan: PlanType | null = BillingPermissions.getRequiredPlan(
+      model,
+      type,
+    );
+
+    if (!requiredPlan) {
+      return null;
+    }
+
+    if (
+      SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        requiredPlan,
+        currentPlan,
+        getAllEnvVars(),
+      )
+    ) {
+      return null;
+    }
+
+    return requiredPlan;
   }
 
   // The plan the table names for this operation, or null when none.

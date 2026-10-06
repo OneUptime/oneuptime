@@ -435,6 +435,7 @@ function publicNote(overrides?: {
 
 function incident(overrides?: {
   isVisibleOnStatusPage?: boolean;
+  isPrivate?: boolean;
   withoutMonitors?: boolean;
   withoutCurrentState?: boolean;
   withoutTitle?: boolean;
@@ -447,6 +448,9 @@ function incident(overrides?: {
   row.description = "Payments fail in Europe.";
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  if (overrides?.isPrivate !== undefined) {
+    row.isPrivate = overrides.isPrivate;
+  }
   row.incidentNumber = 7;
   row.incidentNumberWithPrefix = "INC-7";
 
@@ -1233,6 +1237,43 @@ describe("IncidentPublicNote:SendUpdateNotificationToSubscribers", () => {
         "Notifications skipped as incident is not visible on status page.",
     });
   });
+
+  /*
+   * A private incident is hidden from every status page, whatever its
+   * Visible on Status Page switch says (StatusPageVisibility): neither a new
+   * note nor an edited one is sent.
+   */
+  test.each(TRIGGERS)(
+    "the $name skips a note on a private incident, even with Visible on Status Page on",
+    async (trigger: TriggerCase) => {
+      queueNote(trigger.job);
+      storedIncident = incident({ isPrivate: true });
+
+      await runJob(trigger.job);
+
+      nothingSent();
+
+      const lastWrite: JSONObject = statusWrites()[statusWrites().length - 1]!;
+
+      expect(Object.values(lastWrite)).toEqual([
+        StatusPageSubscriberNotificationStatus.Skipped,
+        "Notifications skipped as incident is not visible on status page.",
+      ]);
+      // The incident is read with its privacy.
+      expect(
+        (
+          mock(IncidentService.findOneById).mock.calls[0]![0] as {
+            select: JSONObject;
+          }
+        ).select,
+      ).toEqual(
+        expect.objectContaining({
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+        }),
+      );
+    },
+  );
 
   test("skips the update when the incident has been deleted", async () => {
     updatedNotes = [publicNote()];
