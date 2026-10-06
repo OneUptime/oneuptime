@@ -25725,5 +25725,20 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Det gælder for alle nye advarsler i {{project}}, ikke kun for denne klynge. Grænserne finder du under Hændelser → AI → Indstillinger.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Det gælder for alle nye hændelser og advarsler i {{project}}, ikke kun for denne klynge. Grænserne finder du under Hændelser → AI → Indstillinger.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Det gælder for alle nye hændelser i {{project}}, ikke kun for denne klynge. Grænserne finder du under Hændelser → AI → Indstillinger.",
-  "this project": "dette projekt"
+  "this project": "dette projekt",
+  "API keys still set up": "API-nøgler, der stadig er sat op",
+  "Available on the {{planName}} plan": "Tilgængelig med {{planName}}-abonnementet",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Den holder op med at virke med det samme. For at slå den til igen skal du have {{planName}}-abonnementet.",
+  "Nothing is left here.": "Der er intet tilbage her.",
+  "Notification rules still set up": "Meddelelsesregler, der stadig er sat op",
+  "OIDC providers still set up": "OIDC-udbydere, der stadig er sat op",
+  "On-call schedules still set up": "Vagtplaner, der stadig er sat op",
+  "SAML providers still set up": "SAML-udbydere, der stadig er sat op",
+  "SCIM connections still set up": "SCIM-forbindelser, der stadig er sat op",
+  "Summaries still set up": "Opsummeringer, der stadig er sat op",
+  "This project's plan does not include this, so nothing new can be added here.": "Dette projekts abonnement omfatter ikke dette, så der kan ikke tilføjes noget nyt her.",
+  "Turn off": "Slå fra",
+  "Turn this off?": "Slå den fra?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Dit abonnement omfatter dem ikke længere, men de virker stadig. Du kan slette dem. For at ændre dem eller tilføje nye skal du have {{planName}}-abonnementet.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Dit abonnement omfatter dem ikke længere. Dem, der er slået til, virker stadig: du kan slå dem fra eller slette dem. For at slå dem til igen eller tilføje nye skal du have {{planName}}-abonnementet."
 }

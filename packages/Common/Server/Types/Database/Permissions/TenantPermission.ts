@@ -37,6 +37,11 @@ const AUTO_GRANTED_TENANT_PERMISSIONS: ReadonlyArray<Permission> = [
 ];
 
 export default class TenantPermission {
+  /*
+   * `updateData` is what an update writes, handed on to each project's own
+   * permission check in a multi-tenant request: below a table's update plan
+   * only an update that switches records off passes (BillingPermission).
+   */
   @CaptureSpan()
   public static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -44,6 +49,7 @@ export default class TenantPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
@@ -177,6 +183,7 @@ export default class TenantPermission {
                 userTenantAccessPermission: props.userTenantAccessPermission,
               },
               type,
+              updateData,
             );
 
           queries.push({

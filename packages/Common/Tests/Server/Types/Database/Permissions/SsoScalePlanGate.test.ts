@@ -48,8 +48,11 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
  * license. For the project and status page SAML/OIDC providers (ProjectSSO,
  * ProjectOIDC, StatusPageSSO, StatusPageOIDC):
  *
- *   - below Scale (Free, Growth): creating, reading, updating and deleting
- *     them is refused with a 402 that names the plan;
+ *   - below Scale (Free, Growth): creating them, switching them back on and
+ *     changing them is refused with a 402 that names the plan, while the
+ *     providers a project already has can still be read, switched off and
+ *     deleted (Types/Billing/PlanGatedTable): a provider a Scale trial left
+ *     on keeps signing people in until someone stops it;
  *   - on Scale and above (Scale, Enterprise): allowed;
  *   - whatever the edition and the license say, since on the Cloud the plan
  *     is the only gate (EditionPermission never refuses with billing on).
@@ -189,10 +192,12 @@ const checkPlan: (input: {
   modelType: ModelType;
   operation: DatabaseRequestType;
   plan: PlanType;
+  updateData?: unknown;
 }) => "allowed" | string = (input: {
   modelType: ModelType;
   operation: DatabaseRequestType;
   plan: PlanType;
+  updateData?: unknown;
 }): "allowed" | string => {
   try {
     if (input.operation === DatabaseRequestType.Update) {
@@ -200,6 +205,7 @@ const checkPlan: (input: {
         input.modelType,
         ownerOnPlan(input.plan),
         input.operation,
+        input.updateData,
       );
     } else {
       TablePermission.checkTableLevelPermissions(
@@ -286,13 +292,38 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
       });
 
       test.each(SSO_PROVIDER_MODELS)(
-        "%s is refused below Scale with a 402 that names the plan",
+        "%s: creating and changing are refused below Scale with a 402 that names the plan",
         (_name: string, modelType: ModelType) => {
           for (const plan of PLANS_BELOW_SCALE) {
-            for (const operation of ALL_OPERATIONS) {
+            for (const [operation, updateData] of [
+              [DatabaseRequestType.Create, undefined],
+              [DatabaseRequestType.Update, undefined],
+              [DatabaseRequestType.Update, { isEnabled: true }],
+              [DatabaseRequestType.Update, { name: "Renamed" }],
+              [DatabaseRequestType.Update, { isEnabled: false, name: "x" }],
+            ] as Array<[DatabaseRequestType, unknown]>) {
               expect(
-                `${plan} ${operation}: ${checkPlan({ modelType, operation, plan })}`,
-              ).toBe(`${plan} ${operation}: ${SCALE_REFUSAL}`);
+                `${plan} ${operation} ${JSON.stringify(updateData)}: ${checkPlan({ modelType, operation, plan, updateData })}`,
+              ).toBe(
+                `${plan} ${operation} ${JSON.stringify(updateData)}: ${SCALE_REFUSAL}`,
+              );
+            }
+          }
+        },
+      );
+
+      test.each(SSO_PROVIDER_MODELS)(
+        "%s: a provider the project has can be read, switched off and deleted below Scale",
+        (_name: string, modelType: ModelType) => {
+          for (const plan of PLANS_BELOW_SCALE) {
+            for (const [operation, updateData] of [
+              [DatabaseRequestType.Read, undefined],
+              [DatabaseRequestType.Delete, undefined],
+              [DatabaseRequestType.Update, { isEnabled: false }],
+            ] as Array<[DatabaseRequestType, unknown]>) {
+              expect(
+                `${plan} ${operation}: ${checkPlan({ modelType, operation, plan, updateData })}`,
+              ).toBe(`${plan} ${operation}: allowed`);
             }
           }
         },

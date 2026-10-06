@@ -23,6 +23,10 @@
 5. **Connect Your Own Account**
    - Each person links their own Slack account under **User Settings** > **Workspace** > **Slack**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Slack.
 
+## Notification rules below the Growth plan
+
+On OneUptime Cloud, notification rules and summaries are on the **Growth** plan and above. A project below it keeps the rules and summaries it already has, and they keep posting to Slack. So each product's **Slack** page (Incidents, Alerts, Scheduled Maintenance, On-Call Duty, Monitors) shows the plan note with them under it (**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.
+
 ## Network access for self-hosted deployments
 
 For outbound access, inbound callbacks, and private deployments, see the network access section in the [Slack Integration](/docs/self-hosted/slack-integration).

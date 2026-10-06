@@ -25725,5 +25725,20 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Cela s'applique à chaque nouvelle alerte dans {{project}}, pas seulement à ce cluster. Les limites se trouvent dans Incidents → IA → Paramètres.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Cela s'applique à chaque nouvel incident et à chaque nouvelle alerte dans {{project}}, pas seulement à ce cluster. Les limites se trouvent dans Incidents → IA → Paramètres.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Cela s'applique à chaque nouvel incident dans {{project}}, pas seulement à ce cluster. Les limites se trouvent dans Incidents → IA → Paramètres.",
-  "this project": "ce projet"
+  "this project": "ce projet",
+  "API keys still set up": "Clés API encore configurées",
+  "Available on the {{planName}} plan": "Disponible avec le forfait {{planName}}",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Il cesse de fonctionner immédiatement. Pour le réactiver, il faut le forfait {{planName}}.",
+  "Nothing is left here.": "Il ne reste plus rien ici.",
+  "Notification rules still set up": "Règles de notification encore configurées",
+  "OIDC providers still set up": "Fournisseurs OIDC encore configurés",
+  "On-call schedules still set up": "Plannings d'astreinte encore configurés",
+  "SAML providers still set up": "Fournisseurs SAML encore configurés",
+  "SCIM connections still set up": "Connexions SCIM encore configurées",
+  "Summaries still set up": "Résumés encore configurés",
+  "This project's plan does not include this, so nothing new can be added here.": "Le forfait de ce projet n'inclut pas cette fonctionnalité, donc rien de nouveau ne peut être ajouté ici.",
+  "Turn off": "Désactiver",
+  "Turn this off?": "Désactiver ?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Votre forfait ne les inclut plus, mais ils fonctionnent toujours. Vous pouvez les supprimer. Pour les modifier ou en ajouter de nouveaux, il faut le forfait {{planName}}.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Votre forfait ne les inclut plus. Ceux qui sont activés fonctionnent toujours : vous pouvez les désactiver ou les supprimer. Pour les réactiver ou en ajouter de nouveaux, il faut le forfait {{planName}}."
 }

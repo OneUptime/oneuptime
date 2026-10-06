@@ -4,6 +4,7 @@ import RequireSsoForLoginLeftover from "../../Components/Project/RequireSsoForLo
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
+import { ProjectSamlProvidersLeftover } from "../../Components/Billing/IdentityPlanLeftovers";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
 import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
@@ -277,7 +278,9 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
  * Scale plan, so there a project below Scale sees the plan upsell instead -
  * with "Require SSO for Login" under it while a Scale trial (or a move down
  * from Scale) left the project requiring SSO, so it can always be turned
- * off (RequireSsoForLoginLeftover).
+ * off (RequireSsoForLoginLeftover), and the SAML providers the project
+ * still has, which keep signing people in until they are turned off or
+ * deleted (ProjectSamlProvidersLeftover).
  */
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -319,9 +322,12 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
         ],
       }}
       belowPlan={
-        <RequireSsoForLoginLeftover
-          projectId={ProjectUtil.getCurrentProjectId()!}
-        />
+        <>
+          <RequireSsoForLoginLeftover
+            projectId={ProjectUtil.getCurrentProjectId()!}
+          />
+          <ProjectSamlProvidersLeftover />
+        </>
       }
     >
       <SSOSettings {...props} />

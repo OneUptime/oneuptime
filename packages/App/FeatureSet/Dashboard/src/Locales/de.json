@@ -25725,5 +25725,20 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dies gilt für jede neue Warnung in {{project}}, nicht nur für diesen Cluster. Die Limits finden Sie unter Vorfälle → KI → Einstellungen.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dies gilt für jeden neuen Vorfall und jede neue Warnung in {{project}}, nicht nur für diesen Cluster. Die Limits finden Sie unter Vorfälle → KI → Einstellungen.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dies gilt für jeden neuen Vorfall in {{project}}, nicht nur für diesen Cluster. Die Limits finden Sie unter Vorfälle → KI → Einstellungen.",
-  "this project": "dieses Projekt"
+  "this project": "dieses Projekt",
+  "API keys still set up": "Noch eingerichtete API-Schlüssel",
+  "Available on the {{planName}} plan": "Verfügbar im {{planName}}-Tarif",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Es funktioniert sofort nicht mehr. Um es wieder einzuschalten, brauchen Sie den {{planName}}-Tarif.",
+  "Nothing is left here.": "Hier ist nichts mehr übrig.",
+  "Notification rules still set up": "Noch eingerichtete Benachrichtigungsregeln",
+  "OIDC providers still set up": "Noch eingerichtete OIDC-Anbieter",
+  "On-call schedules still set up": "Noch eingerichtete Bereitschaftspläne",
+  "SAML providers still set up": "Noch eingerichtete SAML-Anbieter",
+  "SCIM connections still set up": "Noch eingerichtete SCIM-Verbindungen",
+  "Summaries still set up": "Noch eingerichtete Zusammenfassungen",
+  "This project's plan does not include this, so nothing new can be added here.": "Der Tarif dieses Projekts enthält dies nicht, daher kann hier nichts Neues hinzugefügt werden.",
+  "Turn off": "Ausschalten",
+  "Turn this off?": "Ausschalten?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Ihr Tarif enthält diese nicht mehr, aber sie funktionieren weiterhin. Sie können sie löschen. Um sie zu ändern oder neue hinzuzufügen, brauchen Sie den {{planName}}-Tarif.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Ihr Tarif enthält diese nicht mehr. Die eingeschalteten funktionieren weiterhin: Sie können sie ausschalten oder löschen. Um sie wieder einzuschalten oder neue hinzuzufügen, brauchen Sie den {{planName}}-Tarif."
 }

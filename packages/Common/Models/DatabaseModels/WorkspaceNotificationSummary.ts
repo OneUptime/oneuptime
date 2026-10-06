@@ -68,6 +68,8 @@ import FilterCondition from "../../Types/Filter/FilterCondition";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Posts after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @CrudApiEndpoint(new Route("/workspace-notification-summary"))
 @Entity({

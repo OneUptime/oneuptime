@@ -25725,5 +25725,20 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Isso se aplica a todo alerta novo em {{project}}, não apenas a este cluster. Os limites ficam em Incidentes → IA → Configurações.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Isso se aplica a todo incidente novo e a todo alerta novo em {{project}}, não apenas a este cluster. Os limites ficam em Incidentes → IA → Configurações.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Isso se aplica a todo incidente novo em {{project}}, não apenas a este cluster. Os limites ficam em Incidentes → IA → Configurações.",
-  "this project": "este projeto"
+  "this project": "este projeto",
+  "API keys still set up": "Chaves de API ainda configuradas",
+  "Available on the {{planName}} plan": "Disponível no plano {{planName}}",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Deixa de funcionar imediatamente. Para ativá-lo novamente é preciso o plano {{planName}}.",
+  "Nothing is left here.": "Não resta mais nada aqui.",
+  "Notification rules still set up": "Regras de notificação ainda configuradas",
+  "OIDC providers still set up": "Provedores OIDC ainda configurados",
+  "On-call schedules still set up": "Agendamentos de plantão ainda configurados",
+  "SAML providers still set up": "Provedores SAML ainda configurados",
+  "SCIM connections still set up": "Conexões SCIM ainda configuradas",
+  "Summaries still set up": "Resumos ainda configurados",
+  "This project's plan does not include this, so nothing new can be added here.": "O plano deste projeto não inclui isto, por isso nada novo pode ser adicionado aqui.",
+  "Turn off": "Desativar",
+  "Turn this off?": "Desativar?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Seu plano não os inclui mais, mas eles continuam funcionando. Você pode excluí-los. Para alterá-los ou adicionar novos é preciso o plano {{planName}}.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Seu plano não os inclui mais. Os que estão ativados continuam funcionando: você pode desativá-los ou excluí-los. Para ativá-los novamente ou adicionar novos é preciso o plano {{planName}}."
 }
