@@ -25740,5 +25740,6 @@
   "Turn off": "關閉",
   "Turn this off?": "要關閉嗎？",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些，但它們仍在運作。您可以刪除它們。變更它們或新增項目需要 {{planName}} 方案。",
-  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些。已開啟的仍在運作：您可以將其關閉或刪除。再次開啟或新增項目需要 {{planName}} 方案。"
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些。已開啟的仍在運作：您可以將其關閉或刪除。再次開啟或新增項目需要 {{planName}} 方案。",
+  "Sending a test needs permission to create notification rules.": "傳送測試需要建立通知規則的權限。"
 }

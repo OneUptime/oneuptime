@@ -25740,5 +25740,6 @@
   "Turn off": "Desactivar",
   "Turn this off?": "¿Desactivarlo?",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Tu plan ya no los incluye, pero siguen funcionando. Puedes eliminarlos. Para cambiarlos o añadir otros nuevos necesitas el plan {{planName}}.",
-  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Tu plan ya no los incluye. Los que están activados siguen funcionando: puedes desactivarlos o eliminarlos. Para volver a activarlos o añadir otros nuevos necesitas el plan {{planName}}."
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Tu plan ya no los incluye. Los que están activados siguen funcionando: puedes desactivarlos o eliminarlos. Para volver a activarlos o añadir otros nuevos necesitas el plan {{planName}}.",
+  "Sending a test needs permission to create notification rules.": "Para enviar una prueba necesitas permiso para crear reglas de notificación."
 }

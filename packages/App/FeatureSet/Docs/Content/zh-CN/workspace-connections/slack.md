@@ -24,7 +24,7 @@
 
 规则所在行的 **测试规则** 会把这条规则的一条测试消息发到它指定的频道，让你看到消息送达。如果规则会为每个事件创建频道，测试也会创建一个，并邀请规则中的人员加入。
 
-和 **项目设置** > **Workspace** > **Slack** 中频道旁边的 **发送测试** 一样，它需要创建通知规则的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自定义角色中的 **Create Workspace Notification Rule**。只能查看规则的人（例如 **Viewer**）会被告知没有发送测试通知的权限。在 OneUptime Cloud 上，测试规则和添加规则一样需要 **Growth** 套餐。
+和 **项目设置** > **Workspace** > **Slack** 中频道旁边的 **发送测试** 一样，它需要创建通知规则的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自定义角色中的 **Create Workspace Notification Rule** 和 **Read Workspace Notification Rule**。对于只能查看规则的人（例如 **Viewer**），**测试规则** 是锁定的，它的提示会说明需要什么；API 会以 "You do not have permission to send test notifications in this project." 拒绝其测试。在 OneUptime Cloud 上，测试规则和添加规则一样需要 **Growth** 套餐。
 
 ## 自托管部署的网络访问
 

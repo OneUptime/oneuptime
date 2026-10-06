@@ -24,7 +24,7 @@
 
 **Regola di test** sulla riga di una regola pubblica un messaggio di prova di quella regola nei canali che indica, così puoi vederlo arrivare. Se la regola crea un canale per ogni evento, anche la prova ne crea uno e vi invita le persone della regola.
 
-Come **Invia prova** accanto a un canale in **Impostazioni del progetto** > **Workspace** > **Slack**, serve il permesso di creare regole di notifica: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create Workspace Notification Rule** in un ruolo personalizzato. Chi può soltanto vedere le regole, come un **Viewer**, viene avvisato che non ha il permesso di inviare notifiche di prova. Su OneUptime Cloud, provare una regola richiede il piano **Growth**, come aggiungerne una.
+Come **Invia prova** accanto a un canale in **Impostazioni del progetto** > **Workspace** > **Slack**, serve il permesso di creare regole di notifica: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create Workspace Notification Rule** e **Read Workspace Notification Rule** in un ruolo personalizzato. Per chi può soltanto vedere le regole, come un **Viewer**, **Regola di test** è bloccato e il suo suggerimento dice cosa serve; l'API rifiuta la sua prova con "You do not have permission to send test notifications in this project." Su OneUptime Cloud, provare una regola richiede il piano **Growth**, come aggiungerne una.
 
 ## Accesso alla rete per le installazioni self-hosted
 

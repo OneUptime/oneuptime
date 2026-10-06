@@ -25740,5 +25740,6 @@
   "Turn off": "끄기",
   "Turn this off?": "끄시겠습니까?",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "현재 요금제에는 더 이상 포함되어 있지 않지만 계속 작동합니다. 삭제할 수 있습니다. 변경하거나 새로 추가하려면 {{planName}} 요금제가 필요합니다.",
-  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "현재 요금제에는 더 이상 포함되어 있지 않습니다. 켜져 있는 항목은 계속 작동합니다. 끄거나 삭제할 수 있습니다. 다시 켜거나 새로 추가하려면 {{planName}} 요금제가 필요합니다."
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "현재 요금제에는 더 이상 포함되어 있지 않습니다. 켜져 있는 항목은 계속 작동합니다. 끄거나 삭제할 수 있습니다. 다시 켜거나 새로 추가하려면 {{planName}} 요금제가 필요합니다.",
+  "Sending a test needs permission to create notification rules.": "테스트를 보내려면 알림 규칙을 만들 권한이 필요합니다."
 }

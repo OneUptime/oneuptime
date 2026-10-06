@@ -39,7 +39,7 @@
 
 **Test Rule** در ردیف هر قانون، پیامی آزمایشی برای همان قانون در کانال‌هایی که نام برده می‌فرستد تا رسیدنش را ببینید. اگر قانون برای هر رویداد کانالی می‌سازد، آزمون هم یکی می‌سازد و افراد قانون را به آن دعوت می‌کند.
 
-مثل **Send Test** کنار هر کانال در **Project Settings** > **Workspace** > **Microsoft Teams**، این کار به مجوز ساختن قانون‌های اعلان نیاز دارد: **Project Owner**، **Project Admin**، **Project Member**، **Settings Admin**، **Settings Member** یا **Create Workspace Notification Rule** در یک نقش سفارشی. کسی که فقط می‌تواند قانون‌ها را ببیند، مثلاً یک **Viewer**، پیام می‌گیرد که اجازه فرستادن اعلان آزمایشی ندارد. در OneUptime Cloud، آزمودن یک قانون مثل افزودنش به طرح **Growth** نیاز دارد.
+مثل **Send Test** کنار هر کانال در **Project Settings** > **Workspace** > **Microsoft Teams**، این کار به مجوز ساختن قانون‌های اعلان نیاز دارد: **Project Owner**، **Project Admin**، **Project Member**، **Settings Admin**، **Settings Member** یا **Create Workspace Notification Rule** و **Read Workspace Notification Rule** در یک نقش سفارشی. برای کسی که فقط می‌تواند قانون‌ها را ببیند، مثلاً یک **Viewer**، دکمه **Test Rule** قفل است و راهنمای آن می‌گوید چه لازم است؛ API آزمون او را با «You do not have permission to send test notifications in this project.» رد می‌کند. در OneUptime Cloud، آزمودن یک قانون مثل افزودنش به طرح **Growth** نیاز دارد.
 
 ## دسترسی شبکه برای استقرارهای خودمیزبان
 

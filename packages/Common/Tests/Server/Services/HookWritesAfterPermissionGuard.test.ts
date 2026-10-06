@@ -103,7 +103,6 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "WorkspaceUserAuthTokenService.ts#onBeforeDelete": CASCADE_REASON,
   "BillingPaymentMethodService.ts#onBeforeDelete":
     "Detaches the card being deleted at the payment provider, which refuses to detach a project's last card. DatabaseService has already narrowed the delete to the cards the caller may delete.",
-  "AlertStateTimelineService.ts#onBeforeCreate": NOTE_REASON,
   "ScheduledMaintenanceStateTimelineService.ts#onBeforeCreate": NOTE_REASON,
   "DatabaseServerService.ts#onBeforeCreate":
     "A read: hasKubernetesClusters runs a SELECT through the repository's manager.",

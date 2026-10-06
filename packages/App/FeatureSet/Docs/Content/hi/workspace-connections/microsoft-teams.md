@@ -22,9 +22,9 @@
 
 ## किसी नियम को परखना
 
-किसी नियम की पंक्ति पर **Test Rule** उस नियम का एक test संदेश उन channels में भेजता है जिनका वह नाम लेता है, ताकि आप उसे पहुँचते देख सकें। अगर नियम हर event के लिए एक channel बनाता है, तो test भी एक channel बनाता है और नियम के लोगों को उसमें बुलाता है।
+किसी नियम की पंक्ति पर **परीक्षण नियम** उस नियम का एक test संदेश उन channels में भेजता है जिनका वह नाम लेता है, ताकि आप उसे पहुँचते देख सकें। अगर नियम हर event के लिए एक channel बनाता है, तो test भी एक channel बनाता है और नियम के लोगों को उसमें बुलाता है।
 
-**Project Settings** > **Workspace** > **Microsoft Teams** में किसी channel के पास **Send Test** की तरह, इसके लिए notification नियम बनाने की अनुमति चाहिए: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, या किसी custom role में **Create Workspace Notification Rule**। जो केवल नियम देख सकता है, जैसे कोई **Viewer**, उसे बताया जाता है कि उसे test notification भेजने की अनुमति नहीं है। OneUptime Cloud पर किसी नियम को परखने के लिए, नियम जोड़ने की तरह, **Growth** plan चाहिए।
+**Project Settings** > **Workspace** > **Microsoft Teams** में किसी channel के पास **परीक्षण भेजें** की तरह, इसके लिए notification नियम बनाने की अनुमति चाहिए: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, या किसी custom role में **Create Workspace Notification Rule** और **Read Workspace Notification Rule**। जो केवल नियम देख सकता है, जैसे कोई **Viewer**, उसके लिए **परीक्षण नियम** बंद रहता है और उसका tooltip बताता है कि क्या चाहिए; API उसका test "You do not have permission to send test notifications in this project." कहकर अस्वीकार करता है। OneUptime Cloud पर किसी नियम को परखने के लिए, नियम जोड़ने की तरह, **Growth** plan चाहिए।
 
 ## सेल्फ़-होस्टेड डिप्लॉयमेंट के लिए नेटवर्क एक्सेस
 

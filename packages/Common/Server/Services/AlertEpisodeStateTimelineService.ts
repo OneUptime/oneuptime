@@ -52,6 +52,26 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
 
+      /*
+       * The private note that comes with the change, if any (a blank one is
+       * none). It is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the episode's feed and a change that fails leaves no note behind.
+       * Whether they may post it is asked now, before the change takes its
+       * lock or reads the timeline, with the check the note's own create
+       * runs: a change whose note they may not post is refused whole, with
+       * one plain message, rather than saved and then answered with an
+       * error (StateChangeNote).
+       */
+      const privateNotesToPost: Array<AlertEpisodeInternalNote> =
+        StateChangeNote.preparePrivateNotes({
+          noteModelType: AlertEpisodeInternalNote,
+          stateChange: createBy.data,
+          eventColumn: "alertEpisodeId",
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          props: createBy.props,
+        });
+
       try {
         mutex = await Semaphore.lock({
           key: createBy.data.alertEpisodeId.toString(),
@@ -63,35 +83,6 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
           alertEpisodeId: createBy.data.alertEpisodeId?.toString(),
         } as LogAttributes);
       }
-
-      /*
-       * The private note that comes with the change, if any (a blank one is
-       * none). It is posted once the change is saved (onCreateSuccess), as
-       * the person changing the state, so that it comes after the change in
-       * the episode's feed. Whether they may post it is asked now, before
-       * anything is read or written, with the check the note's own create
-       * runs: a change whose note they may not post is refused whole, with
-       * one plain message, rather than saved and then answered with an
-       * error (StateChangeNote).
-       */
-      const privateNoteToPost: AlertEpisodeInternalNote | undefined =
-        StateChangeNote.preparePrivateNote({
-          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
-          noteModelType: AlertEpisodeInternalNote,
-          props: createBy.props,
-          fill: (note: AlertEpisodeInternalNote, text: string): void => {
-            note.alertEpisodeId = createBy.data.alertEpisodeId!;
-            note.note = text;
-            note.createdAt = createBy.data.startsAt!;
-
-            const noteProjectId: ObjectID | undefined =
-              createBy.data.projectId || createBy.props.tenantId;
-
-            if (noteProjectId) {
-              note.projectId = noteProjectId;
-            }
-          },
-        });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
@@ -217,7 +208,7 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNoteToPost: privateNoteToPost,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
@@ -465,21 +456,16 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
     });
 
     /*
-     * The private note that came with the change, which onBeforeCreate built
+     * The private notes that came with the change, which onBeforeCreate built
      * and made sure may be posted: posted now, after the change, at the time
      * the change was saved with, as the person who changed the state.
      */
-    if (onCreate.carryForward.privateNoteToPost) {
-      const episodeInternalNote: AlertEpisodeInternalNote =
-        onCreate.carryForward.privateNoteToPost;
-      episodeInternalNote.createdAt = createdItem.startsAt!;
-      episodeInternalNote.projectId = createdItem.projectId!;
-
-      await AlertEpisodeInternalNoteService.create({
-        data: episodeInternalNote,
-        props: onCreate.createBy.props,
-      });
-    }
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: AlertEpisodeInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     return createdItem;
   }

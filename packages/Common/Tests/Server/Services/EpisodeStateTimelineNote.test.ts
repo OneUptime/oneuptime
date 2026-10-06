@@ -138,8 +138,12 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
       },
     );
 
-    const note: IncidentEpisodeInternalNote =
-      onCreate.carryForward.privateNoteToPost;
+    const notes: Array<IncidentEpisodeInternalNote> =
+      onCreate.carryForward.privateNotesToPost;
+
+    expect(notes).toHaveLength(1);
+
+    const note: IncidentEpisodeInternalNote = notes[0]!;
 
     expect(note).toBeInstanceOf(IncidentEpisodeInternalNote);
     expect(note.note).toBe(NOTE_ON_INCIDENT_EPISODE);
@@ -158,7 +162,7 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
       },
     );
 
-    expect(onCreate.carryForward.privateNoteToPost).toBeUndefined();
+    expect(onCreate.carryForward.privateNotesToPost).toEqual([]);
   });
 
   test("onCreateSuccess posts the carried note on the episode", async () => {
@@ -178,7 +182,7 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
         carryForward: {
           statusTimelineBeforeThisStatus: null,
           statusTimelineAfterThisStatus: null,
-          privateNoteToPost: noteToPost,
+          privateNotesToPost: [noteToPost],
           mutex: null,
         },
       },
@@ -207,7 +211,7 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
         carryForward: {
           statusTimelineBeforeThisStatus: null,
           statusTimelineAfterThisStatus: null,
-          privateNoteToPost: undefined,
+          privateNotesToPost: [],
           mutex: null,
         },
       },
@@ -265,8 +269,12 @@ describe("AlertEpisodeStateTimelineService note handling", () => {
       props: { isRoot: true },
     });
 
-    const note: AlertEpisodeInternalNote =
-      onCreate.carryForward.privateNoteToPost;
+    const notes: Array<AlertEpisodeInternalNote> =
+      onCreate.carryForward.privateNotesToPost;
+
+    expect(notes).toHaveLength(1);
+
+    const note: AlertEpisodeInternalNote = notes[0]!;
 
     expect(note).toBeInstanceOf(AlertEpisodeInternalNote);
     expect(note.note).toBe(NOTE_ON_ALERT_EPISODE);
@@ -283,7 +291,7 @@ describe("AlertEpisodeStateTimelineService note handling", () => {
       props: { isRoot: true },
     });
 
-    expect(onCreate.carryForward.privateNoteToPost).toBeUndefined();
+    expect(onCreate.carryForward.privateNotesToPost).toEqual([]);
   });
 
   test("onCreateSuccess posts the carried note on the episode", async () => {
@@ -302,7 +310,7 @@ describe("AlertEpisodeStateTimelineService note handling", () => {
         carryForward: {
           statusTimelineBeforeThisStatus: null,
           statusTimelineAfterThisStatus: null,
-          privateNoteToPost: noteToPost,
+          privateNotesToPost: [noteToPost],
           mutex: null,
         },
       },

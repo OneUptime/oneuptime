@@ -24,7 +24,7 @@
 
 **Testregel** på en regels rad skickar ett testmeddelande för regeln till de kanaler den nämner, så att du ser att det kommer fram. Skapar regeln en kanal för varje händelse skapar testet också en och bjuder in regelns personer.
 
-Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Workspace** > **Slack** krävs behörighet att skapa aviseringsregler: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create Workspace Notification Rule** i en egen roll. Den som bara kan se reglerna, till exempel en **Viewer**, får veta att den inte har behörighet att skicka testaviseringar. På OneUptime Cloud kräver det planen **Growth** att testa en regel, precis som att lägga till en.
+Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Workspace** > **Slack** krävs behörighet att skapa aviseringsregler: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en egen roll. För den som bara kan se reglerna, till exempel en **Viewer**, är **Testregel** låst, och verktygstipset säger vad som krävs; API:t avvisar testet med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det planen **Growth** att testa en regel, precis som att lägga till en.
 
 ## Nätverksåtkomst för egenhostade installationer
 

@@ -24,7 +24,7 @@
 
 **Regel testen** in der Zeile einer Regel sendet eine Testnachricht dieser Regel an die Kanäle, die sie nennt, damit Sie sehen, dass sie ankommt. Legt die Regel für jedes Ereignis einen Kanal an, legt auch der Test einen an und lädt die Personen der Regel ein.
 
-Wie **Test senden** neben einem Kanal unter **Projekteinstellungen** > **Workspace** > **Slack** braucht das die Berechtigung, Benachrichtigungsregeln anzulegen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder **Create Workspace Notification Rule** in einer eigenen Rolle. Wer die Regeln nur sehen darf, etwa ein **Viewer**, erfährt, dass er keine Testbenachrichtigungen senden darf. In OneUptime Cloud braucht das Testen einer Regel den Tarif **Growth**, wie das Anlegen einer Regel.
+Wie **Test senden** neben einem Kanal unter **Projekteinstellungen** > **Workspace** > **Slack** braucht das die Berechtigung, Benachrichtigungsregeln anzulegen: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** oder **Create Workspace Notification Rule** und **Read Workspace Notification Rule** in einer eigenen Rolle. Wer die Regeln nur sehen darf, etwa ein **Viewer**, findet **Regel testen** gesperrt, und der Tooltip sagt, was es braucht; die API lehnt den Test mit „You do not have permission to send test notifications in this project.“ ab. In OneUptime Cloud braucht das Testen einer Regel den Tarif **Growth**, wie das Anlegen einer Regel.
 
 ## Netzwerkzugriff bei selbst gehosteten Bereitstellungen
 

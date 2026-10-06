@@ -117,12 +117,22 @@ describe("Test Rule, in the Slack and Microsoft Teams guides", () => {
         expect(section).toContain(`**${title}**`);
       }
 
-      // The refusal the guide paraphrases is the server's own.
-      expect(TEST_NOTIFICATION_PERMISSION_MESSAGE).toBe(
-        "You do not have permission to send test notifications in this project.",
+      // The rule is read as the caller, so a custom role needs its read too.
+      expect(section).toContain(
+        "or **Create Workspace Notification Rule** and **Read Workspace Notification Rule** in a custom role.",
+      );
+      expect(
+        new WorkspaceNotificationRule()
+          .getReadPermissions()
+          .map(permissionTitle),
+      ).toContain("Read Workspace Notification Rule");
+
+      // Locked for those who may not; the API's refusal is the server's own.
+      expect(section).toContain(
+        "For someone who can only see the rules, such as a **Viewer**, **Test Rule** is locked, and its tooltip says what it takes",
       );
       expect(section).toContain(
-        "is told they do not have permission to send test notifications",
+        `the API refuses their test with "${TEST_NOTIFICATION_PERMISSION_MESSAGE}"`,
       );
       expect(section).toContain(
         "On OneUptime Cloud, testing a rule needs the **Growth** plan, like adding one.",
@@ -139,6 +149,14 @@ describe("Test Rule, in the Slack and Microsoft Teams guides", () => {
         expect([
           language,
           guide.includes("**Create Workspace Notification Rule**"),
+        ]).toEqual([language, true]);
+        expect([
+          language,
+          guide.includes("**Read Workspace Notification Rule**"),
+        ]).toEqual([language, true]);
+        expect([
+          language,
+          guide.includes(TEST_NOTIFICATION_PERMISSION_MESSAGE),
         ]).toEqual([language, true]);
         expect([language, guide.includes("**Growth**")]).toEqual([
           language,

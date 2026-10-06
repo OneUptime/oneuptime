@@ -1,7 +1,10 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
+import ObjectID from "../../Types/ObjectID";
+import CreateBy from "../Types/Database/CreateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 
 /*
@@ -15,7 +18,8 @@ import ModelPermission from "../Types/Database/Permissions/Index";
  *  - Incidents and scheduled maintenance post a public note (`publicNote`),
  *    which reaches the status page (StatusPage/StateChangePublicNote).
  *  - Alerts, alert episodes and incident episodes post a private note
- *    (`privateNote`), which stays with the team.
+ *    (`privateNote`; an alert also takes the older `internalNote`), which
+ *    stays with the team.
  *
  * The note is posted as the person changing the state, and posting a note is
  * a permission of its own (Create Alert Internal Note, Create Incident Status
@@ -23,13 +27,17 @@ import ModelPermission from "../Types/Database/Permissions/Index";
  * change is saved used to fail after the fact: the change was saved, and the
  * person who sent it was answered with an error, as if nothing had happened.
  *
- * So every state timeline asks first, before anything of the change is read
- * or written, with the very check the note's own create runs
+ * So every state timeline asks first, before the change takes its lock or
+ * reads the timeline, with the very check the note's own create runs
  * (ModelPermission.checkCreatePermissions, with the same note and the same
  * props), and a change whose note its sender may not post is refused whole,
  * with one plain message: the state was not changed, why, and that leaving
  * the note out lets the change through. OneUptime's own changes (root) are
  * not asked, as the note's create does not ask them.
+ *
+ * The private note is then posted once the change is saved, so it comes
+ * after the change in the feed, and a change that fails leaves no note
+ * behind: preparePrivateNotes builds and checks it, postPrivateNotes posts it.
  */
 
 export enum StateChangeNoteType {
@@ -37,11 +45,32 @@ export enum StateChangeNoteType {
   Private = "private",
 }
 
+// The note's own columns every private note model has.
+const NOTE_TEXT_COLUMN: string = "note";
+const NOTE_TIME_COLUMN: string = "createdAt";
+const NOTE_PROJECT_COLUMN: string = "projectId";
+
+// The state change's columns the note takes its time and project from.
+const STATE_CHANGE_TIME_COLUMN: string = "startsAt";
+const STATE_CHANGE_PROJECT_COLUMN: string = "projectId";
+
 const ENDS_A_SENTENCE: RegExp = /[.!?]$/;
+
+// What creates a note: the note model's service.
+export interface PrivateNoteService<TNote extends BaseModel> {
+  create: (createBy: CreateBy<TNote>) => Promise<TNote>;
+}
 
 export default class StateChangeNote {
   // The misc data prop a private note travels under (Dashboard Utils/BulkStateChange).
   public static readonly privateNoteKey: string = "privateNote";
+
+  /*
+   * The prop an alert's private note travelled under before `privateNote`.
+   * Nothing in OneUptime sends it any more; an API client still may, and the
+   * alert timeline treats it the same way.
+   */
+  public static readonly legacyAlertInternalNoteKey: string = "internalNote";
 
   /*
    * The private note posted with a state change, as it was written, or
@@ -52,12 +81,13 @@ export default class StateChangeNote {
    */
   public static getPrivateNote(
     miscDataProps: JSONObject | undefined | null,
+    noteKey: string = StateChangeNote.privateNoteKey,
   ): string | undefined {
     if (!miscDataProps || typeof miscDataProps !== "object") {
       return undefined;
     }
 
-    const note: unknown = miscDataProps[this.privateNoteKey];
+    const note: unknown = miscDataProps[noteKey];
 
     if (typeof note !== "string" || note.trim().length === 0) {
       return undefined;
@@ -67,38 +97,97 @@ export default class StateChangeNote {
   }
 
   /*
-   * The private note a state change posts, built and checked in the state
-   * timeline's onBeforeCreate: undefined when the change carries none, else
-   * the note - filled in by `fill` with its event, text, time and project -
-   * once its sender is known to be allowed to post it. A sender who may not
-   * is refused here, and with them the whole change. The state timeline
-   * posts the note it is given once the change is saved.
+   * The private notes a state change posts, built and checked in the state
+   * timeline's onBeforeCreate, one for each of `noteKeys` the change carries
+   * a note under (`privateNote` unless said), in that order. Each is a note
+   * on the event the change moves - `eventColumn` names it, on the change
+   * and on the note alike - at the time the change starts, in its project,
+   * and is checked as its sender: someone who may not post it is refused
+   * here, and with them the whole change. The state timeline posts the notes
+   * once the change is saved (postPrivateNotes).
    */
-  public static preparePrivateNote<TNote extends BaseModel>(data: {
-    miscDataProps: JSONObject | undefined | null;
+  public static preparePrivateNotes<TNote extends BaseModel>(data: {
     noteModelType: { new (): TNote };
+    stateChange: BaseModel;
+    eventColumn: string;
+    miscDataProps: JSONObject | undefined | null;
     props: DatabaseCommonInteractionProps;
-    fill: (note: TNote, text: string) => void;
-  }): TNote | undefined {
-    const text: string | undefined = StateChangeNote.getPrivateNote(
-      data.miscDataProps,
-    );
+    noteKeys?: Array<string> | undefined;
+  }): Array<TNote> {
+    const notes: Array<TNote> = [];
 
-    if (!text) {
-      return undefined;
+    for (const noteKey of data.noteKeys || [StateChangeNote.privateNoteKey]) {
+      const text: string | undefined = StateChangeNote.getPrivateNote(
+        data.miscDataProps,
+        noteKey,
+      );
+
+      if (!text) {
+        continue;
+      }
+
+      const note: TNote = new data.noteModelType();
+
+      StateChangeNote.setNoteColumn(
+        note,
+        data.eventColumn,
+        data.stateChange.getColumnValue(data.eventColumn),
+      );
+      StateChangeNote.setNoteColumn(note, NOTE_TEXT_COLUMN, text);
+      StateChangeNote.setNoteColumn(
+        note,
+        NOTE_TIME_COLUMN,
+        data.stateChange.getColumnValue(STATE_CHANGE_TIME_COLUMN),
+      );
+      StateChangeNote.setNoteColumn(
+        note,
+        NOTE_PROJECT_COLUMN,
+        data.stateChange.getColumnValue(STATE_CHANGE_PROJECT_COLUMN) ||
+          data.props.tenantId ||
+          null,
+      );
+
+      StateChangeNote.assertCallerMayPost({
+        noteType: StateChangeNoteType.Private,
+        noteModelType: data.noteModelType,
+        note: note,
+        props: data.props,
+      });
+
+      notes.push(note);
     }
 
-    const note: TNote = new data.noteModelType();
-    data.fill(note, text);
+    return notes;
+  }
 
-    StateChangeNote.assertCallerMayPost({
-      noteType: StateChangeNoteType.Private,
-      noteModelType: data.noteModelType,
-      note: note,
-      props: data.props,
-    });
+  /*
+   * Posts the notes preparePrivateNotes built, once the change is saved: at
+   * the time and in the project the change was saved with, as the person who
+   * changed the state.
+   */
+  public static async postPrivateNotes<TNote extends BaseModel>(data: {
+    notes: Array<TNote> | undefined;
+    noteService: PrivateNoteService<TNote>;
+    savedStateChange: BaseModel;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    for (const note of data.notes || []) {
+      StateChangeNote.setNoteColumn(
+        note,
+        NOTE_TIME_COLUMN,
+        data.savedStateChange.getColumnValue(STATE_CHANGE_TIME_COLUMN),
+      );
+      StateChangeNote.setNoteColumn(
+        note,
+        NOTE_PROJECT_COLUMN,
+        data.savedStateChange.getColumnValue(STATE_CHANGE_PROJECT_COLUMN),
+      );
 
-    return note;
+      await data.noteService.create({
+        data: note,
+        props: data.props,
+      });
+    }
   }
 
   /*
@@ -144,5 +233,28 @@ export default class StateChangeNote {
       : `${trimmedReason}.`;
 
     return `The state was not changed: it comes with a ${noteType} note, which you may not post. ${reasonSentence} To change the state, leave the ${noteType} note out.`;
+  }
+
+  /*
+   * Writes one column of a note, or nothing when there is nothing to write.
+   * A column the note model does not have is a mistake in the caller, never
+   * something to skip quietly.
+   */
+  private static setNoteColumn(
+    note: BaseModel,
+    column: string,
+    value: unknown,
+  ): void {
+    if (!note.isTableColumn(column)) {
+      throw new BadDataException(
+        `${note.singularName || "The note"} has no ${column} column to post a state change's note with.`,
+      );
+    }
+
+    if (value === null || value === undefined) {
+      return;
+    }
+
+    note.setColumnValue(column, value as JSONValue | ObjectID | Date);
   }
 }

@@ -24,7 +24,7 @@
 
 규칙 행의 **테스트 규칙**은 그 규칙의 테스트 메시지를 규칙이 지정한 채널에 게시하여 도착하는 것을 확인할 수 있게 합니다. 이벤트마다 채널을 만드는 규칙이라면 테스트도 채널을 하나 만들고 규칙의 사람들을 초대합니다.
 
-**프로젝트 설정** > **Workspace** > **Microsoft Teams**에서 채널 옆의 **테스트 보내기**와 마찬가지로, 알림 규칙을 만들 권한이 필요합니다: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, 또는 사용자 지정 역할의 **Create Workspace Notification Rule**. 규칙을 보기만 할 수 있는 사람(예: **Viewer**)에게는 테스트 알림을 보낼 권한이 없다고 안내합니다. OneUptime Cloud에서는 규칙을 추가할 때와 마찬가지로 규칙을 테스트하려면 **Growth** 요금제가 필요합니다.
+**프로젝트 설정** > **Workspace** > **Microsoft Teams**에서 채널 옆의 **테스트 보내기**와 마찬가지로, 알림 규칙을 만들 권한이 필요합니다: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, 또는 사용자 지정 역할의 **Create Workspace Notification Rule** 및 **Read Workspace Notification Rule**. 규칙을 보기만 할 수 있는 사람(예: **Viewer**)에게는 **테스트 규칙**이 잠겨 있고 툴팁이 무엇이 필요한지 알려 줍니다. API는 그 사람의 테스트를 "You do not have permission to send test notifications in this project."로 거부합니다. OneUptime Cloud에서는 규칙을 추가할 때와 마찬가지로 규칙을 테스트하려면 **Growth** 요금제가 필요합니다.
 
 ## 자체 호스팅 배포의 네트워크 액세스
 

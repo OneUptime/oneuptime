@@ -464,11 +464,12 @@ function withNote(note: unknown): JSONObject {
   return note === undefined ? {} : ({ privateNote: note } as JSONObject);
 }
 
+let lock: ReturnType<typeof getJestSpyOn>;
 let release: ReturnType<typeof getJestSpyOn>;
 
 beforeEach(() => {
   stubProjectDirectory({});
-  getJestSpyOn(Semaphore, "lock").mockResolvedValue({
+  lock = getJestSpyOn(Semaphore, "lock").mockResolvedValue({
     key: "state-change",
   });
   release = getJestSpyOn(Semaphore, "release").mockResolvedValue(undefined);
@@ -534,36 +535,158 @@ describe("StateChangeNote: the private note and its refusal", () => {
     },
   );
 
-  test("a note is only built - and checked - when there is one", () => {
-    const fill: ReturnType<typeof jest.fn> = jest.fn();
-
+  test("a note travels under privateNote unless another key is named", () => {
     expect(
-      StateChangeNote.preparePrivateNote({
-        miscDataProps: { privateNote: "   " },
-        noteModelType: AlertInternalNote,
-        props: memberProps({ allow: [Permission.CreateAlertStateTimeline] }),
-        fill: fill as unknown as (
-          note: AlertInternalNote,
-          text: string,
-        ) => void,
-      }),
-    ).toBeUndefined();
-    expect(fill).not.toHaveBeenCalled();
+      StateChangeNote.getPrivateNote({ internalNote: NOTE }, "internalNote"),
+    ).toBe(NOTE);
+    expect(StateChangeNote.getPrivateNote({ internalNote: NOTE })).toBe(
+      undefined,
+    );
+    expect(StateChangeNote.privateNoteKey).toBe("privateNote");
+    expect(StateChangeNote.legacyAlertInternalNoteKey).toBe("internalNote");
   });
 
-  test("a failure that is not about permission is passed on as it is", () => {
-    const failure: BadDataException = new BadDataException("Broken note");
+  function alertStateChange(): AlertStateTimeline {
+    return ALERT_CASE.buildStateChange() as AlertStateTimeline;
+  }
 
-    expect(() => {
-      StateChangeNote.preparePrivateNote({
-        miscDataProps: { privateNote: NOTE },
+  test("a note is only built - and checked - when there is one: a blank one is none, whoever sends it", () => {
+    expect(
+      StateChangeNote.preparePrivateNotes({
         noteModelType: AlertInternalNote,
+        stateChange: alertStateChange(),
+        eventColumn: "alertId",
+        miscDataProps: { privateNote: "   " },
+        props: memberProps({ allow: [Permission.CreateAlertStateTimeline] }),
+      }),
+    ).toEqual([]);
+  });
+
+  test("the note is the event's, at the time the change starts, in its project", () => {
+    const notes: Array<AlertInternalNote> = StateChangeNote.preparePrivateNotes(
+      {
+        noteModelType: AlertInternalNote,
+        stateChange: alertStateChange(),
+        eventColumn: "alertId",
+        miscDataProps: { privateNote: NOTE },
         props: memberProps({ allow: [Permission.AlertMember] }),
-        fill: (): void => {
-          throw failure;
-        },
+      },
+    );
+
+    expect(notes).toHaveLength(1);
+    expect(notes[0]!.note).toBe(NOTE);
+    expect(notes[0]!.alertId?.toString()).toBe(EVENT_ID.toString());
+    expect(notes[0]!.createdAt).toEqual(STARTS_AT);
+    expect(notes[0]!.projectId?.toString()).toBe(PROJECT_ID.toString());
+  });
+
+  test("a change that names no project takes the caller's", () => {
+    const change: AlertStateTimeline = alertStateChange();
+    delete (change as unknown as Record<string, unknown>)["projectId"];
+
+    const notes: Array<AlertInternalNote> = StateChangeNote.preparePrivateNotes(
+      {
+        noteModelType: AlertInternalNote,
+        stateChange: change,
+        eventColumn: "alertId",
+        miscDataProps: { privateNote: NOTE },
+        props: memberProps({ allow: [Permission.AlertMember] }),
+      },
+    );
+
+    expect(notes[0]!.projectId?.toString()).toBe(PROJECT_ID.toString());
+  });
+
+  test("one note per key the change carries one under, in the order the keys are named", () => {
+    const notes: Array<AlertInternalNote> = StateChangeNote.preparePrivateNotes(
+      {
+        noteModelType: AlertInternalNote,
+        stateChange: alertStateChange(),
+        eventColumn: "alertId",
+        miscDataProps: { internalNote: "first", privateNote: "second" },
+        props: memberProps({ allow: [Permission.AlertMember] }),
+        noteKeys: ["internalNote", "privateNote"],
+      },
+    );
+
+    expect(
+      notes.map((note: AlertInternalNote): string | undefined => {
+        return note.note;
+      }),
+    ).toEqual(["first", "second"]);
+  });
+
+  test("a column the note does not have is a mistake, said as such - not reworded as a refusal", () => {
+    expect(() => {
+      StateChangeNote.preparePrivateNotes({
+        noteModelType: AlertInternalNote,
+        stateChange: alertStateChange(),
+        eventColumn: "alertEpisodeId",
+        miscDataProps: { privateNote: NOTE },
+        props: memberProps({ allow: [Permission.AlertMember] }),
       });
-    }).toThrow(failure);
+    }).toThrow(BadDataException);
+  });
+
+  test("postPrivateNotes posts each note at the saved change's time and project, as the caller", async () => {
+    const created: Array<{
+      data: AlertInternalNote;
+      props: DatabaseCommonInteractionProps;
+    }> = [];
+
+    const notes: Array<AlertInternalNote> = StateChangeNote.preparePrivateNotes(
+      {
+        noteModelType: AlertInternalNote,
+        stateChange: alertStateChange(),
+        eventColumn: "alertId",
+        miscDataProps: { privateNote: NOTE },
+        props: { isRoot: true },
+      },
+    );
+
+    const saved: AlertStateTimeline = alertStateChange();
+    saved.startsAt = new Date("2026-10-06T09:00:05.000Z");
+
+    const props: DatabaseCommonInteractionProps = memberProps({
+      allow: [Permission.AlertMember],
+    });
+
+    await StateChangeNote.postPrivateNotes({
+      notes: notes,
+      noteService: {
+        create: async (createBy: {
+          data: AlertInternalNote;
+          props: DatabaseCommonInteractionProps;
+        }): Promise<AlertInternalNote> => {
+          created.push(createBy);
+          return createBy.data;
+        },
+      },
+      savedStateChange: saved,
+      props: props,
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data.createdAt).toEqual(saved.startsAt);
+    expect(created[0]!.data.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(created[0]!.props).toBe(props);
+  });
+
+  test("postPrivateNotes with no notes posts nothing", async () => {
+    const create: ReturnType<typeof jest.fn> = jest.fn();
+
+    await StateChangeNote.postPrivateNotes({
+      notes: undefined,
+      noteService: {
+        create: create as unknown as (createBy: {
+          data: AlertInternalNote;
+        }) => Promise<AlertInternalNote>,
+      },
+      savedStateChange: alertStateChange(),
+      props: { isRoot: true },
+    });
+
+    expect(create).not.toHaveBeenCalled();
   });
 });
 
@@ -602,9 +725,13 @@ describe.each(TIMELINE_CASES)(
           note: NOTE,
         });
 
-        const note: BaseModel = result.carryForward[
-          "privateNoteToPost"
-        ] as BaseModel;
+        const notes: Array<BaseModel> = result.carryForward[
+          "privateNotesToPost"
+        ] as Array<BaseModel>;
+
+        expect(notes).toHaveLength(1);
+
+        const note: BaseModel = notes[0]!;
 
         expect(note).toBeInstanceOf(timelineCase.noteModelType);
 
@@ -625,7 +752,7 @@ describe.each(TIMELINE_CASES)(
     );
 
     test.each(timelineCase.rolesThatMayNot)(
-      "$role: the whole change is refused, plainly, before anything is read",
+      "$role: the whole change is refused, plainly, before the event is locked or read",
       async (roleCase: RoleCase) => {
         const error: unknown = await rejectionOf(
           changeState({ props: memberProps(roleCase), note: NOTE }),
@@ -635,10 +762,20 @@ describe.each(TIMELINE_CASES)(
         expect((error as Error).message).toMatch(PRIVATE_REFUSAL);
         // The event's timeline was never read: the refusal came first.
         expect(findTimelines).not.toHaveBeenCalled();
-        // The event's lock is let go.
-        expect(release).toHaveBeenCalledTimes(1);
+        // Nor was the event locked: nothing waits on a change that is refused.
+        expect(lock).not.toHaveBeenCalled();
+        expect(release).not.toHaveBeenCalled();
       },
     );
+
+    test("a role that may post takes the event's lock as before", async () => {
+      await changeState({
+        props: memberProps(timelineCase.rolesThatMayPost[0]!),
+        note: NOTE,
+      });
+
+      expect(lock).toHaveBeenCalledTimes(1);
+    });
 
     test("a role without the note permission is told which permissions post one", async () => {
       const withoutNotePermission: RoleCase = timelineCase.rolesThatMayNot[0]!;
@@ -672,7 +809,7 @@ describe.each(TIMELINE_CASES)(
         props: memberProps(timelineCase.rolesThatMayNot[0]!),
       });
 
-      expect(result.carryForward["privateNoteToPost"]).toBeUndefined();
+      expect(result.carryForward["privateNotesToPost"]).toEqual([]);
       expect(findTimelines).toHaveBeenCalled();
     });
 
@@ -688,7 +825,7 @@ describe.each(TIMELINE_CASES)(
           note: note,
         });
 
-        expect(result.carryForward["privateNoteToPost"]).toBeUndefined();
+        expect(result.carryForward["privateNotesToPost"]).toEqual([]);
       },
     );
 
@@ -698,9 +835,12 @@ describe.each(TIMELINE_CASES)(
         note: NOTE,
       });
 
-      expect(result.carryForward["privateNoteToPost"]).toBeInstanceOf(
-        timelineCase.noteModelType,
-      );
+      const notes: Array<BaseModel> = result.carryForward[
+        "privateNotesToPost"
+      ] as Array<BaseModel>;
+
+      expect(notes).toHaveLength(1);
+      expect(notes[0]).toBeInstanceOf(timelineCase.noteModelType);
     });
   },
 );
@@ -798,3 +938,172 @@ describe.each(TIMELINE_CASES)(
     });
   },
 );
+
+/*
+ * An alert's private note travelled under `internalNote` before
+ * `privateNote`, and an API client may still send it. It is the same note,
+ * held to the same rule: checked before the change, posted after it - never
+ * created ahead of a change that might still fail.
+ */
+describe("an alert state change with a note under the older internalNote key", () => {
+  const MAY_NOT_POST: RoleCase = ALERT_CASE.rolesThatMayNot[0]!;
+  const MAY_POST: RoleCase = ALERT_CASE.rolesThatMayPost[0]!;
+
+  describe("in onBeforeCreate", () => {
+    let findTimelines: ReturnType<typeof getJestSpyOn>;
+
+    beforeEach(() => {
+      findTimelines = getJestSpyOn(
+        AlertStateTimelineService,
+        "findOneBy",
+      ).mockResolvedValue(null);
+    });
+
+    async function changeState(
+      props: DatabaseCommonInteractionProps,
+      miscDataProps: JSONObject,
+    ): Promise<OnBeforeCreateResult> {
+      return (await hookOf(
+        AlertStateTimelineService,
+        "onBeforeCreate",
+      )({
+        data: ALERT_CASE.buildStateChange(),
+        miscDataProps: miscDataProps,
+        props: props,
+      })) as OnBeforeCreateResult;
+    }
+
+    test("a role that may not post private notes is refused whole, with the private note's message, before the alert is locked or read", async () => {
+      const error: unknown = await rejectionOf(
+        changeState(memberProps(MAY_NOT_POST), { internalNote: NOTE }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        StateChangeNote.getRefusalMessage(
+          StateChangeNoteType.Private,
+          ALERT_CASE.noteRefusal,
+        ),
+      );
+      expect(findTimelines).not.toHaveBeenCalled();
+      expect(lock).not.toHaveBeenCalled();
+    });
+
+    test("a role that may: the note is carried to be posted after the change, not created before it", async () => {
+      const createNote: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+        AlertInternalNoteService,
+        "create",
+      );
+
+      const result: OnBeforeCreateResult = await changeState(
+        memberProps(MAY_POST),
+        { internalNote: NOTE },
+      );
+
+      expect(createNote).not.toHaveBeenCalled();
+
+      const notes: Array<AlertInternalNote> = result.carryForward[
+        "privateNotesToPost"
+      ] as Array<AlertInternalNote>;
+
+      expect(
+        notes.map((note: AlertInternalNote): string | undefined => {
+          return note.note;
+        }),
+      ).toEqual([NOTE]);
+    });
+
+    test("a note under each key: both are carried, the older key's first", async () => {
+      const result: OnBeforeCreateResult = await changeState(
+        memberProps(MAY_POST),
+        { internalNote: "Older key.", privateNote: NOTE },
+      );
+
+      const notes: Array<AlertInternalNote> = result.carryForward[
+        "privateNotesToPost"
+      ] as Array<AlertInternalNote>;
+
+      expect(
+        notes.map((note: AlertInternalNote): string | undefined => {
+          return note.note;
+        }),
+      ).toEqual(["Older key.", NOTE]);
+    });
+
+    test("a blank note under the older key is no note", async () => {
+      const result: OnBeforeCreateResult = await changeState(
+        memberProps(MAY_NOT_POST),
+        { internalNote: "  " },
+      );
+
+      expect(result.carryForward["privateNotesToPost"]).toEqual([]);
+    });
+  });
+
+  describe("what it saves", () => {
+    let timelines: InMemoryTable;
+    let notes: InMemoryTable;
+
+    beforeEach(() => {
+      timelines = useInMemoryTable(ALERT_CASE.timelineService, [
+        ALERT_CASE.previousState,
+      ]);
+      notes = useInMemoryTable(ALERT_CASE.noteService, []);
+
+      getJestSpyOn(
+        ALERT_CASE.noteService as never,
+        "getAttachmentsMarkdown",
+      ).mockResolvedValue("" as never);
+
+      ALERT_CASE.stubSideEffects();
+    });
+
+    async function changeState(
+      props: DatabaseCommonInteractionProps,
+      miscDataProps: JSONObject,
+    ): Promise<unknown> {
+      return ALERT_CASE.timelineService.create({
+        data: ALERT_CASE.buildStateChange(),
+        miscDataProps: miscDataProps,
+        props: props,
+      });
+    }
+
+    test("a role that may not post: nothing is saved", async () => {
+      const error: unknown = await rejectionOf(
+        changeState(memberProps(MAY_NOT_POST), { internalNote: NOTE }),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(timelines.inserts).toEqual([]);
+      expect(notes.inserts).toEqual([]);
+    });
+
+    test("a role that may: the change is saved, then the note, at the change's time, by the person who changed the state", async () => {
+      await changeState(memberProps(MAY_POST), { internalNote: NOTE });
+
+      expect(timelines.inserts).toHaveLength(1);
+      expect(notes.inserts).toHaveLength(1);
+      expect(notes.inserts[0]!["note"]).toBe(NOTE);
+      expect(String(notes.inserts[0]!["alertId"])).toBe(EVENT_ID.toString());
+      expect(notes.inserts[0]!["createdAt"]).toEqual(STARTS_AT);
+      expect(String(notes.inserts[0]!["createdByUserId"])).toBe(
+        USER_ID.toString(),
+      );
+    });
+
+    test("a change that fails after its checks leaves no note behind", async () => {
+      // The timeline insert itself fails, after every check has passed.
+      timelines.repository.save.mockRejectedValueOnce(
+        new Error("The database went away."),
+      );
+
+      const error: unknown = await rejectionOf(
+        changeState(memberProps(MAY_POST), { internalNote: NOTE }),
+      );
+
+      expect((error as Error).message).toBe("The database went away.");
+      expect(notes.inserts).toEqual([]);
+    });
+  });
+});
