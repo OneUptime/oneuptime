@@ -43,6 +43,35 @@ export default class Queue {
     }>
   > = {};
 
+  /*
+   * Optional per-queue veto on the reconnect re-add below. The registry is
+   * per process, so a pod that registered a repeatable keeps it after another
+   * pod (or a delete) removed it; a queue whose schedules are owned by
+   * persisted state can say "no longer wanted" here instead of resurrecting it.
+   */
+  private static reconnectGuards: Dictionary<
+    (jobName: string, cronPattern?: string) => Promise<boolean>
+  > = {};
+
+  public static setReconnectGuard(
+    queueName: QueueName,
+    isStillWanted: (jobName: string, cronPattern?: string) => Promise<boolean>,
+  ): void {
+    this.reconnectGuards[queueName] = isStillWanted;
+  }
+
+  // A removed repeatable must also leave the reconnect registry.
+  private static forgetRepeatable(queueName: QueueName, jobName: string): void {
+    const jobs: Dictionary<{ jobName: string }> | undefined =
+      this.repeatableJobs[queueName];
+
+    for (const jobId in jobs) {
+      if (jobs[jobId]?.jobName === jobName) {
+        delete jobs[jobId];
+      }
+    }
+  }
+
   // BullMQ rejects custom IDs containing colons, so normalize them early.
   private static sanitizeJobId(jobId: string): string {
     return jobId.replace(/:/g, "-");
@@ -69,6 +98,23 @@ export default class Queue {
             | undefined = jobs[jobId];
           if (job) {
             try {
+              const guard:
+                | ((jobName: string, cronPattern?: string) => Promise<boolean>)
+                | undefined = Queue.reconnectGuards[queueName];
+
+              /*
+               * The guard sees the registered cron too: a stale pod must not
+               * replay cron A for a workflow since changed to cron B.
+               */
+              const registeredPattern: string | undefined = (
+                job.options.repeat as { pattern?: string } | undefined
+              )?.pattern;
+
+              if (guard && !(await guard(job.jobName, registeredPattern))) {
+                delete jobs[jobId];
+                continue;
+              }
+
               logger.debug(
                 `Re-adding repeatable job ${job.jobName} to queue ${queueName}`,
               );
@@ -301,6 +347,8 @@ export default class Queue {
     }
 
     const queue: BullQueue = this.getQueue(queueName);
+
+    this.forgetRepeatable(queueName, jobName);
 
     const repeatableJobs: RepeatableJob[] = await queue.getRepeatableJobs();
 

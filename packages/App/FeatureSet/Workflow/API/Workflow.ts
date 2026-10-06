@@ -1,3 +1,4 @@
+import QueueWorkflow from "../Services/QueueWorkflow";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
@@ -46,8 +47,17 @@ export default class WorkflowAPI {
       );
     }
 
+    const workflowId: ObjectID = new ObjectID(req.params["workflowId"]);
+
+    /*
+     * Runs for every save and for a delete: whatever the workflow's trigger is
+     * now, a schedule it no longer qualifies for is taken off the queue. The
+     * trigger's own update() below only ever sees the CURRENT trigger.
+     */
+    await QueueWorkflow.reconcileSchedule(workflowId);
+
     const workflow: Workflow | null = await WorkflowService.findOneById({
-      id: new ObjectID(req.params["workflowId"]),
+      id: workflowId,
       select: {
         _id: true,
         triggerId: true,
