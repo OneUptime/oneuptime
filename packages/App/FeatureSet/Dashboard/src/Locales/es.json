@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Este episodio es privado, así que está oculto en tus páginas de estado y sus suscriptores no reciben notificaciones sobre él.",
   "cluster status and resources, node and guest status, tasks and logs": "estado y recursos del clúster, estado de nodos e invitados, tareas y registros",
   "{{shown}} of {{count}} processes": "{{shown}} de {{count}} procesos",
-  "{{shown}} of {{count}} processes_one": "{{shown}} de {{count}} proceso"
+  "{{shown}} of {{count}} processes_one": "{{shown}} de {{count}} proceso",
+  "Sending a test needs permission to create SMTP configs.": "Para enviar una prueba necesitas permiso para crear configuraciones SMTP.",
+  "Sending a test needs permission to create Twilio configs.": "Para enviar una prueba necesitas permiso para crear configuraciones de Twilio.",
+  "Sending a test needs permission to create summaries.": "Para enviar una prueba necesitas permiso para crear resúmenes.",
+  "Sending a test needs the {{planName}} plan.": "Para enviar una prueba necesitas el plan {{planName}}.",
+  "Sending a test report needs permission to edit this status page.": "Para enviar un informe de prueba necesitas permiso para editar esta página de estado."
 }

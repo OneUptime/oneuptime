@@ -27,6 +27,11 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
+import {
+  getTestSendLock,
+  TestSendLock,
+  TestSendTargets,
+} from "../TestSend/TestSendLock";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import React, {
   FunctionComponent,
@@ -56,6 +61,11 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
 
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
+  // Locked, saying why, for someone who may not send a test (TestSendLock).
+  const testEmailLock: TestSendLock = getTestSendLock(
+    TestSendTargets.SmtpConfig,
+  );
+
   useEffect(() => {
     setError("");
   }, [showSMTPTestModal]);
@@ -71,6 +81,8 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             title: "Send Test Email",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Play,
+            disabled: testEmailLock.isLocked,
+            tooltip: testEmailLock.tooltip,
             /*
              * The row's own button, so a config is one click from being
              * tried the moment it is saved: Edit and Delete wait in the menu.

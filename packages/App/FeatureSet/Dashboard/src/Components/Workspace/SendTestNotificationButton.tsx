@@ -20,6 +20,11 @@ import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  getTestSendLock,
+  TestSendLock,
+  TestSendTargets,
+} from "../TestSend/TestSendLock";
 
 export interface ComponentProps {
   // API route under APP_API_URL, e.g. "/slack/channels/test".
@@ -50,6 +55,13 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
 
   /*
+   * Posting into a channel or chat is what a notification rule does, so the
+   * test asks what adding a rule asks (TestSendLock): locked, saying why,
+   * for someone the dashboard knows may not send it.
+   */
+  const lock: TestSendLock = getTestSendLock(TestSendTargets.NotificationRule);
+
+  /*
    * The button is disabled while a send is in flight, but `disabled` only
    * lands on the next render. Two clicks inside the same frame would both see
    * status "idle" and post the test twice, so the in-flight flag lives in a
@@ -58,7 +70,7 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
   const isSendingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   const sendTestNotification: PromiseVoidFunction = async (): Promise<void> => {
-    if (isSendingRef.current) {
+    if (isSendingRef.current || lock.isLocked) {
       return;
     }
 
@@ -186,7 +198,8 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
         buttonStyle={ButtonStyleType.NORMAL}
         buttonSize={ButtonSize.Small}
         isLoading={status === "sending"}
-        disabled={status === "sending"}
+        disabled={status === "sending" || lock.isLocked}
+        tooltip={lock.isLocked ? lock.tooltip : undefined}
         ariaLabel={`Send test notification to ${props.destinationName}`}
         dataTestId="send-test-notification-button"
         className="!w-auto whitespace-nowrap !text-sm md:!ml-0"

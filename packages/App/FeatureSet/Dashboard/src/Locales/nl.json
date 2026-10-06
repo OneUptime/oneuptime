@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Deze episode is privé, dus verborgen op je statuspagina's, en hun abonnees krijgen er geen meldingen over.",
   "cluster status and resources, node and guest status, tasks and logs": "clusterstatus en -resources, status van nodes en gasten, taken en logboeken",
   "{{shown}} of {{count}} processes": "{{shown}} van {{count}} processen",
-  "{{shown}} of {{count}} processes_one": "{{shown}} van {{count}} proces"
+  "{{shown}} of {{count}} processes_one": "{{shown}} van {{count}} proces",
+  "Sending a test needs permission to create SMTP configs.": "Voor het versturen van een test heb je toestemming nodig om SMTP-configuraties aan te maken.",
+  "Sending a test needs permission to create Twilio configs.": "Voor het versturen van een test heb je toestemming nodig om Twilio-configuraties aan te maken.",
+  "Sending a test needs permission to create summaries.": "Voor het versturen van een test heb je toestemming nodig om samenvattingen aan te maken.",
+  "Sending a test needs the {{planName}} plan.": "Voor het versturen van een test heb je het {{planName}}-abonnement nodig.",
+  "Sending a test report needs permission to edit this status page.": "Voor het versturen van een testrapport heb je toestemming nodig om deze statuspagina te bewerken."
 }

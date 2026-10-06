@@ -26,6 +26,8 @@
 
 Som **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Workspace** > **Slack** krever det tillatelse til å opprette varslingsregler: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For den som bare kan se reglene, for eksempel en **Viewer**, er **Testregel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det planen **Growth** å teste en regel, som å legge til en.
 
+På OneUptime Cloud krever også **Send test** ved siden av en kanal planen **Growth**, for å poste i en kanal er det regler og sammendrag gjør. **Send test nå** på et sammendrag krever tillatelse til å opprette sammendrag (**Create Workspace Notification Summary** og **Read Workspace Notification Summary** i en egendefinert rolle) og, på OneUptime Cloud, planen **Growth**; for alle andre er den låst, og verktøytipset sier hva som kreves. En MCP-klient som er koblet til med skrivebeskyttet tilgang, kan ikke sende noen test.
+
 ## Sammendrag
 
 Fanen **Summary** under **Hendelser** > **Workspace** > **Slack** (og under **Varsler**) sender jevnlig en oversikt til kanalene du angir: hvor mange hendelser eller varsler det var, hvor raskt de ble bekreftet og løst, og en liste med lenker. Et nytt sammendrag sendes hver uke og dekker de siste 7 dagene. La **Send første rapport kl.** stå tomt, så sendes det første kl. 09:00 ved begynnelsen av neste uke, dag eller måned; skjemaet viser når.

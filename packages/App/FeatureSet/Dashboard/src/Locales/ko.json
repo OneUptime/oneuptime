@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "이 에피소드는 비공개이므로 상태 페이지에서 숨겨지며 구독자에게도 알림이 가지 않습니다.",
   "cluster status and resources, node and guest status, tasks and logs": "클러스터 상태와 리소스, 노드와 게스트 상태, 작업과 로그",
   "{{shown}} of {{count}} processes": "{{count}}개 중 {{shown}}개 프로세스",
-  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process"
+  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process",
+  "Sending a test needs permission to create SMTP configs.": "테스트를 보내려면 SMTP 구성을 만들 권한이 필요합니다.",
+  "Sending a test needs permission to create Twilio configs.": "테스트를 보내려면 Twilio 구성을 만들 권한이 필요합니다.",
+  "Sending a test needs permission to create summaries.": "테스트를 보내려면 요약을 만들 권한이 필요합니다.",
+  "Sending a test needs the {{planName}} plan.": "테스트를 보내려면 {{planName}} 요금제가 필요합니다.",
+  "Sending a test report needs permission to edit this status page.": "테스트 보고서를 보내려면 이 상태 페이지를 편집할 권한이 필요합니다."
 }

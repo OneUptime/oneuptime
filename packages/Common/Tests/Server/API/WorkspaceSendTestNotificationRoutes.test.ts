@@ -991,7 +991,14 @@ describe("Send Test notification routes (Slack channels, Microsoft Teams channel
         };
 
         expect(gateArgs.modelType).toBe(WorkspaceNotificationRule);
-        expect(gateArgs.props).toBe(props);
+        // The caller's own props, read for their one project.
+        expect(gateArgs.props.tenantId).toBe(props.tenantId);
+        expect(gateArgs.props.userId).toBe(props.userId);
+        expect(gateArgs.props.userTenantAccessPermission).toBe(
+          props.userTenantAccessPermission,
+        );
+        expect(gateArgs.props.isMultiTenantRequest).toBe(false);
+        expect(gateArgs.props.isRoot).toBeFalsy();
         expect(gateArgs.errorMessage).toBe(PERMISSION_DENIED_MESSAGE);
 
         expect(sendTestSpy).toHaveBeenCalledTimes(1);

@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "यह एपिसोड निजी है, इसलिए यह आपके स्थिति पृष्ठों से छिपा है, और उनके सब्सक्राइबर को इसकी सूचना नहीं दी जाती।",
   "cluster status and resources, node and guest status, tasks and logs": "क्लस्टर की स्थिति और संसाधन, नोड और गेस्ट की स्थिति, टास्क और लॉग",
   "{{shown}} of {{count}} processes": "{{count}} में से {{shown}} प्रक्रियाएं",
-  "{{shown}} of {{count}} processes_one": "{{count}} में से {{shown}} प्रक्रिया"
+  "{{shown}} of {{count}} processes_one": "{{count}} में से {{shown}} प्रक्रिया",
+  "Sending a test needs permission to create SMTP configs.": "परीक्षण भेजने के लिए SMTP कॉन्फ़िगरेशन बनाने की अनुमति चाहिए।",
+  "Sending a test needs permission to create Twilio configs.": "परीक्षण भेजने के लिए Twilio कॉन्फ़िगरेशन बनाने की अनुमति चाहिए।",
+  "Sending a test needs permission to create summaries.": "परीक्षण भेजने के लिए सारांश बनाने की अनुमति चाहिए।",
+  "Sending a test needs the {{planName}} plan.": "परीक्षण भेजने के लिए {{planName}} प्लान चाहिए।",
+  "Sending a test report needs permission to edit this status page.": "टेस्ट रिपोर्ट भेजने के लिए इस स्थिति पृष्ठ को संपादित करने की अनुमति चाहिए।"
 }

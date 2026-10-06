@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "このエピソードは非公開のため、ステータスページで非表示になり、購読者にも通知されません。",
   "cluster status and resources, node and guest status, tasks and logs": "クラスターの状態とリソース、ノードとゲストの状態、タスクとログ",
   "{{shown}} of {{count}} processes": "{{count}} 個中 {{shown}} 個のプロセス",
-  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process"
+  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process",
+  "Sending a test needs permission to create SMTP configs.": "テストを送信するには、SMTP 設定を作成する権限が必要です。",
+  "Sending a test needs permission to create Twilio configs.": "テストを送信するには、Twilio 設定を作成する権限が必要です。",
+  "Sending a test needs permission to create summaries.": "テストを送信するには、サマリーを作成する権限が必要です。",
+  "Sending a test needs the {{planName}} plan.": "テストを送信するには、{{planName}} プランが必要です。",
+  "Sending a test report needs permission to edit this status page.": "テストレポートを送信するには、このステータスページを編集する権限が必要です。"
 }

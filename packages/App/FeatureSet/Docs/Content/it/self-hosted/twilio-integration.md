@@ -93,7 +93,7 @@ Per lo sviluppo, la [guida Twilio ai test dei webhook](https://www.twilio.com/do
 ## 4. Verificare separatamente consegna e callback
 
 1. Dall'esterno della rete aziendale e della VPN, verifichi che il nome host dei callback risolva al gateway pubblico e presenti un certificato TLS valido. Un GET del browser non verifica questi callback POST.
-2. Utilizzi **Invia SMS di prova** e **Invia chiamata di prova** nella configurazione Twilio del progetto. Confermi la ricezione sul telefono destinatario.
+2. Utilizzi **Invia SMS di prova** e **Invia chiamata di prova** nella configurazione Twilio del progetto. Confermi la ricezione sul telefono destinatario. Entrambi richiedono il permesso di aggiungere configurazioni Twilio: **Project Owner**, **Project Admin**, oppure **Create Call and SMS** e **Read Call and SMS** in un ruolo personalizzato.
 3. Configuri il contatto verificato dell'utente per SMS/chiamate e le regole di notifica, quindi attivi un avviso di reperibilità controllato. Prema 1 e verifichi la conferma in OneUptime. Se utilizza criteri per le chiamate in ingresso, chiami il numero configurato e verifichi l'instradamento e il registro delle chiamate.
 4. Verifichi lo stato di consegna dell'SMS in OneUptime e nei registri dei messaggi Twilio. Un invio accettato non dimostra la consegna; [Twilio comunica le modifiche di stato successive tramite callback](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

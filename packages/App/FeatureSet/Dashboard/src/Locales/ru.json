@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "Этот эпизод приватный, поэтому он скрыт на ваших страницах статуса, и их подписчики не получают о нём уведомлений.",
   "cluster status and resources, node and guest status, tasks and logs": "состояние и ресурсы кластера, состояние узлов и гостевых систем, задачи и логи",
   "{{shown}} of {{count}} processes": "{{shown}} из {{count}} процессов",
-  "{{shown}} of {{count}} processes_one": "{{shown}} из {{count}} процесса"
+  "{{shown}} of {{count}} processes_one": "{{shown}} из {{count}} процесса",
+  "Sending a test needs permission to create SMTP configs.": "Чтобы отправить тест, нужно право создавать конфигурации SMTP.",
+  "Sending a test needs permission to create Twilio configs.": "Чтобы отправить тест, нужно право создавать конфигурации Twilio.",
+  "Sending a test needs permission to create summaries.": "Чтобы отправить тест, нужно право создавать сводки.",
+  "Sending a test needs the {{planName}} plan.": "Чтобы отправить тест, нужен тариф {{planName}}.",
+  "Sending a test report needs permission to edit this status page.": "Чтобы отправить тестовый отчёт, нужно право редактировать эту страницу статуса."
 }

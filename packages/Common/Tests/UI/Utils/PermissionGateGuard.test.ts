@@ -346,7 +346,7 @@ describe("PermissionGateGuard: the frontends", () => {
       "packages/Common/UI/Components/ModelTable/BaseModelTable.tsx",
     );
     expect(files).toContain(
-      "packages/App/FeatureSet/Dashboard/src/Components/Workspace/TestRuleLock.ts",
+      "packages/App/FeatureSet/Dashboard/src/Components/TestSend/TestSendLock.ts",
     );
     expect(files.length).toBeGreaterThan(1000);
   });

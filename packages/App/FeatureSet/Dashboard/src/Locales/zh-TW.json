@@ -25924,5 +25924,10 @@
   "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "此片段為私人，因此已在您的狀態頁面上隱藏，其訂閱者也不會收到相關通知。",
   "cluster status and resources, node and guest status, tasks and logs": "叢集狀態與資源、節點與客體狀態、任務與日誌",
   "{{shown}} of {{count}} processes": "{{shown}} / {{count}} 個處理程序",
-  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process"
+  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process",
+  "Sending a test needs permission to create SMTP configs.": "傳送測試需要建立 SMTP 設定的權限。",
+  "Sending a test needs permission to create Twilio configs.": "傳送測試需要建立 Twilio 設定的權限。",
+  "Sending a test needs permission to create summaries.": "傳送測試需要建立摘要的權限。",
+  "Sending a test needs the {{planName}} plan.": "傳送測試需要 {{planName}} 方案。",
+  "Sending a test report needs permission to edit this status page.": "寄送測試報告需要編輯此狀態頁面的權限。"
 }
