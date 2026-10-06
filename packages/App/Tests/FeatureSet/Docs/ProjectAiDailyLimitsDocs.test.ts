@@ -9,7 +9,7 @@ import {
   ProjectAiDailyLimitsCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
-import {
+import ProjectAiDailyLimits, {
   MIN_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
   MIN_PROJECT_AI_DAILY_TOKEN_LIMIT,
   ProjectAiDailyLimit,
@@ -18,6 +18,10 @@ import LlmLogStatus from "Common/Types/LlmLogStatus";
 import Permission from "Common/Types/Permission";
 import { createTranslator } from "Common/UI/Utils/TranslateTemplate";
 import { getProjectDailyLimitMessage } from "Common/Server/Services/AIService";
+import ProjectAiDailyLimitOwnerNotice from "Common/Server/Utils/AI/ProjectAiDailyLimitOwnerNotice";
+import { LIMIT_CATCH_UP_WINDOW_HOURS } from "Common/Server/Utils/AI/SRE/InvestigationLimitCatchUp";
+import ObjectID from "Common/Types/ObjectID";
+import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import { describe, expect, it } from "@jest/globals";
 import path from "path";
 
@@ -179,6 +183,77 @@ describe("the AI SRE page documents the project's own daily limits", () => {
     expect(costControls).toContain(
       "only the project's own daily limits (below) apply to it.",
     );
+  });
+});
+
+/*
+ * What happens once a limit is reached - the owners' email and the catch-up
+ * of the incidents and alerts it skipped - held to the code that does it.
+ */
+describe("the AI SRE page says what happens when a limit is reached", () => {
+  const CATCH_UP_JOB: string = path.join(
+    PACKAGES_ROOT,
+    "App/FeatureSet/Workers/Jobs/AIChat/InvestigateAfterDailyLimitReset.ts",
+  );
+
+  it("quotes the who-can sentence every refusal ends with", () => {
+    const sentence: string = ProjectAiDailyLimits.getWhoCanChangeSentence();
+    const refusal: string = getProjectDailyLimitMessage({
+      reachedLimit: ProjectAiDailyLimit.Tokens,
+      tokenLimit: 10,
+      spendLimitInUSD: null,
+      usage: { usedTokensToday: 10, spentTodayInUSDCents: 0 },
+    });
+
+    expect(refusal.endsWith(sentence)).toBe(true);
+    expect(section()).toContain(`"${sentence}"`);
+  });
+
+  it("says the owners are emailed once a day for each limit, with a link to the limits", () => {
+    const text: string = section();
+    const email: string = ProjectAiDailyLimitOwnerNotice.getHtml({
+      projectId: ObjectID.generate(),
+      status: {
+        reachedLimit: ProjectAiDailyLimit.Tokens,
+        tokenLimit: 10,
+        spendLimitInUSD: null,
+        usage: { usedTokensToday: 10, spentTodayInUSDCents: 0 },
+        resetsAt: new Date("2026-10-08T00:00:00.000Z"),
+      },
+    });
+
+    expect(text).toContain("#### When a limit is reached");
+    expect(text).toContain("**The project's owners are emailed.**");
+    expect(text).toContain("once a day for each limit");
+    expect(email).toContain("once a day for each limit");
+    expect(text).toContain("a link to **Project Settings → AI Features**");
+  });
+
+  it("says skipped incidents and alerts are investigated after the reset, while open and less than a day old, every five minutes", () => {
+    const text: string = section();
+
+    expect(text).toContain(
+      "**Skipped incidents and alerts are investigated after the reset.**",
+    );
+    expect(text).toContain(
+      "after midnight UTC, or as soon as an owner raises or removes the limit",
+    );
+    expect(LIMIT_CATCH_UP_WINDOW_HOURS).toBe(24);
+    expect(text).toContain("still open and less than a day old");
+    expect(text).toContain("every five minutes");
+    expect(read(CATCH_UP_JOB)).toContain("schedule: EVERY_FIVE_MINUTE");
+    expect(EVERY_FIVE_MINUTE).toBe("*/5 * * * *");
+    expect(text).toContain(
+      "A record that was resolved meanwhile, or that someone asked OneUptime AI to investigate in the meantime, is not investigated again.",
+    );
+    // InvestigationLimitCatchUp: lane-wide pauses keep records waiting.
+    expect(text).toContain(
+      "while Enable AI or automatic investigation is off, there is no LLM provider or AI credit, or the incident or alert daily token limit is reached, it keeps waiting",
+    );
+  });
+
+  it("no longer says skipped records are never retried after the reset", () => {
+    expect(section()).not.toContain("not automatically retried");
   });
 });
 
