@@ -225,4 +225,26 @@ export default class StatusPageVisibility {
       data[VISIBLE_ON_STATUS_PAGE_COLUMN] = false;
     }
   }
+
+  /*
+   * What one record of a write is written with in place of the write's own
+   * values, by this rule: a write that turns Visible on Status Page on and
+   * leaves Private as stored writes it off on a record that is private
+   * (`isRecordPrivate`, as read before the write; unknown leaves the write
+   * as it is). For one write to several records, some private: each record
+   * is written as the rule has it, in its own write.
+   */
+  public static getRecordOverrides(data: {
+    written: Record<string, unknown> | undefined | null;
+    isRecordPrivate: boolean | undefined;
+  }): Record<string, unknown> {
+    if (
+      data.isRecordPrivate !== true ||
+      !this.needsStoredPrivacy(data.written)
+    ) {
+      return {};
+    }
+
+    return { [VISIBLE_ON_STATUS_PAGE_COLUMN]: false };
+  }
 }

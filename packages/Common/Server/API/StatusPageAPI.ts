@@ -4607,7 +4607,11 @@ export default class StatusPageAPI extends BaseAPI<
         isAcknowledgedState: true,
         isResolvedState: true,
       },
-      incidentCount: true,
+      /*
+       * Not the episode's incidentCount: it counts every incident in the
+       * episode, private ones included, and a status page shows none of
+       * those (StatusPageVisibility).
+       */
     };
 
     if (statusPage.showEpisodeLabelsOnStatusPage) {
@@ -5621,7 +5625,7 @@ export default class StatusPageAPI extends BaseAPI<
             isAcknowledgedState: true,
             isResolvedState: true,
           },
-          incidentCount: true,
+          // Not incidentCount: it counts private incidents too (see getEpisodes).
         };
 
         if (statusPage.showEpisodeLabelsOnStatusPage) {

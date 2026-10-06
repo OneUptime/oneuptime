@@ -205,16 +205,14 @@ export default class IncidentPostmortemPublication {
   }
 
   /*
-   * Whether a written Publish on Status Page value switches it on. The API
-   * passes a boolean through as it is sent, and Postgres stores the string
-   * "true" as true, so a hand-written request's "true" switches it on too:
-   * the status page would show it.
+   * Whether a written switch value switches it on, as the database stores it
+   * (StatusPageVisibility.toStoredBoolean). The API passes a value through as
+   * it is sent, and Postgres stores "true", "yes", "on" or 1 as true, so a
+   * hand-written request's switches it on too: the status page would show
+   * it.
    */
   public static isSwitchedOn(value: unknown): boolean {
-    return (
-      value === true ||
-      (typeof value === "string" && value.trim().toLowerCase() === "true")
-    );
+    return StatusPageVisibility.toStoredBoolean(value) === true;
   }
 
   /*
@@ -360,7 +358,7 @@ export default class IncidentPostmortemPublication {
   /*
    * Whether an update may show the incident, and so has the incident's
    * visibility read before the write: it switches Visible on Status Page on
-   * (true, or a hand-written "true"; isSwitchedOn), or writes Private
+   * (as the database stores the value written; isSwitchedOn), or writes Private
    * Incident as off. An update that writes Visible on Status Page as off
    * leaves the incident hidden, whatever else it writes - the incident's
    * Settings form sends both switches with every save, so saving a hidden

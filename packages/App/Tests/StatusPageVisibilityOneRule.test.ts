@@ -364,6 +364,26 @@ describe("A status page shows an incident or an episode by one rule: visible, an
     },
   );
 
+  /*
+   * An episode's incidentCount counts every incident in it, private ones
+   * included: a status page never selects it.
+   */
+  test("no status page read selects an episode's incident count", () => {
+    const source: ts.SourceFile = parse(STATUS_PAGE_FILES[0]!);
+    const selected: Array<number> = [];
+
+    visitAll(source, (node: ts.Node): void => {
+      if (
+        ts.isObjectLiteralExpression(node) &&
+        propertyNamed(node, "incidentCount")
+      ) {
+        selected.push(lineOf(node));
+      }
+    });
+
+    expect(selected).toEqual([]);
+  });
+
   test("the scan sees the reads it is about (it would catch one)", () => {
     const scan: ReadScan = scanStatusPageReads(STATUS_PAGE_FILES[0]!);
 

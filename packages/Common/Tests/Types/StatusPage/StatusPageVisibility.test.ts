@@ -385,6 +385,56 @@ describe("StatusPageVisibility.isPrivateAfterWrite", () => {
  * The helpers that decided it for themselves before read the rule now, so
  * the status page, the subscriber jobs and the dashboard cannot drift apart.
  */
+/*
+ * One write to several records: each record is written as the rule has it,
+ * in its own write (DatabaseService.getRowWriteOverrides).
+ */
+describe("StatusPageVisibility.getRecordOverrides", () => {
+  test("a write that turns the switch on writes it off on a private record", () => {
+    for (const written of [
+      { isVisibleOnStatusPage: true },
+      { isVisibleOnStatusPage: true, title: "Checkout errors" },
+    ] as Array<Record<string, unknown>>) {
+      expect(
+        StatusPageVisibility.getRecordOverrides({
+          written: written,
+          isRecordPrivate: true,
+        }),
+      ).toEqual({ isVisibleOnStatusPage: false });
+    }
+  });
+
+  test("a record that is not private, or whose privacy is unknown, is written as the write has it", () => {
+    for (const isRecordPrivate of [false, undefined]) {
+      expect(
+        StatusPageVisibility.getRecordOverrides({
+          written: { isVisibleOnStatusPage: true },
+          isRecordPrivate: isRecordPrivate,
+        }),
+      ).toEqual({});
+    }
+  });
+
+  test("a write that does not turn the switch on, or writes Private too, needs nothing per record", () => {
+    for (const written of [
+      { isVisibleOnStatusPage: false },
+      { title: "Checkout errors" },
+      // Private written with it: the write itself decides (normalizeWrite).
+      { isVisibleOnStatusPage: true, isPrivate: false },
+      { isVisibleOnStatusPage: false, isPrivate: true },
+      null,
+      undefined,
+    ] as Array<Record<string, unknown> | null | undefined>) {
+      expect(
+        StatusPageVisibility.getRecordOverrides({
+          written: written,
+          isRecordPrivate: true,
+        }),
+      ).toEqual({});
+    }
+  });
+});
+
 describe("the helpers that read the rule", () => {
   test("IncidentPostmortemPublication.isIncidentShown is the rule", () => {
     for (const record of [

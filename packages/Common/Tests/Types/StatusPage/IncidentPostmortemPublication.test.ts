@@ -593,6 +593,9 @@ describe("IncidentPostmortemPublication.isSwitchedOn", () => {
     ["true", true],
     ['the string "true" a hand-written API request may send', "true"],
     ['"TRUE" with spaces around it', " TRUE "],
+    ['"yes"', "yes"],
+    ['"on"', "on"],
+    ["1", 1],
   ] as Array<[string, unknown]>)(
     "%s switches it on, as Postgres stores it",
     (_label: string, value: unknown) => {
@@ -610,8 +613,10 @@ describe("IncidentPostmortemPublication.isSwitchedOn", () => {
     ["false", false],
     ['"false"', "false"],
     ["null", null],
-    ["1", 1],
-    ['"yes"', "yes"],
+    ["0", 0],
+    ['"no"', "no"],
+    ['"off"', "off"],
+    ["a value Postgres would refuse", "maybe"],
   ] as Array<[string, unknown]>)(
     "%s does not",
     (_label: string, value: unknown) => {

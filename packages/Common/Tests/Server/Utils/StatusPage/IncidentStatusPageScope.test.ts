@@ -366,6 +366,36 @@ describe("IncidentStatusPageScope.resolvePagesForIncidents", () => {
     }
   });
 
+  /*
+   * Only for a summary that reports privacy on its own and sends nothing
+   * (IncidentSubscriberAudienceBuilder): the pages the scope reaches.
+   */
+  test("with includePrivateIncidents, a private incident's scope is read as it is, without the privacy clause", async () => {
+    useTenSitePages();
+    storedScopes = [
+      {
+        id: INCIDENT_B,
+        isScopedToStatusPages: true,
+        statusPageIds: [sitePageId(3)],
+        isPrivate: true,
+      },
+    ];
+
+    const resolved: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [incidentOn(INCIDENT_B, [SHARED_MONITOR])],
+        includePrivateIncidents: true,
+      });
+
+    expect(reachedPageNames(resolved)).toEqual(["Site 03"]);
+
+    for (const call of incidentFindBy.mock.calls) {
+      expect(
+        (call[0] as { query: JSONObject }).query["isPrivate"],
+      ).toBeUndefined();
+    }
+  });
+
   test("an episode reaches the pages of its members that are not private, and none through a private one", async () => {
     useTenSitePages();
     storedScopes = [

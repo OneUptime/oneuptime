@@ -255,9 +255,15 @@ export default class IncidentSubscriberAudienceBuilder {
       },
     });
 
+    /*
+     * As if the incident were not private: privacy is reported on its own
+     * (isHiddenFromStatusPages), and the pages below say what the scope does,
+     * not that a private incident reaches none of them.
+     */
     const resolved: ResolvedIncidentStatusPages =
       await IncidentStatusPageScope.resolvePagesForIncidents({
         incidents: [incident],
+        includePrivateIncidents: true,
       });
 
     return {

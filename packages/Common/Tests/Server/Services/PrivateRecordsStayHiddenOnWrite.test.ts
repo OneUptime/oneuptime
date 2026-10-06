@@ -40,9 +40,10 @@ import {
  *   - a write that makes a record private switches Visible on Status Page
  *     off with it (as the incident's Settings form has always done);
  *   - a write that turns Visible on Status Page on and leaves Private as it
- *     is leaves a private record hidden: written off when every record it
- *     writes is private, switched back off right after the write when only
- *     some are;
+ *     is leaves a private record hidden: the write is made with it off when
+ *     every record it writes is private, and each private record is written
+ *     with it off, in its own write, when only some are
+ *     (getRowWriteOverrides);
  *   - both switches are stored as the database stores them, so a
  *     hand-written "true" counts;
  *   - creating a private incident creates it hidden, and tells nobody it
@@ -71,10 +72,11 @@ type OnBeforeUpdate<T extends BaseModel> = (
 type OnBeforeCreate<T extends BaseModel> = (
   createBy: CreateBy<T>,
 ) => Promise<OnCreate<T>>;
-type OnUpdateSuccess<T extends BaseModel> = (
-  onUpdate: OnUpdate<T>,
-  updatedItemIds: Array<ObjectID>,
-) => Promise<OnUpdate<T>>;
+type GetRowWriteOverrides<T extends BaseModel> = (data: {
+  row: T;
+  data: unknown;
+  carryForward: unknown;
+}) => unknown;
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -276,7 +278,31 @@ describe("IncidentService.onBeforeUpdate keeps a private incident hidden", () =>
       ];
     });
 
-    test("shows the public ones, and marks only the private ones to switch back off after the write", async () => {
+    function rowOverrides(
+      onUpdate: OnUpdate<Incident>,
+      row: Incident,
+    ): Record<string, unknown> {
+      return (
+        IncidentService as unknown as {
+          getRowWriteOverrides: GetRowWriteOverrides<Incident>;
+        }
+      ).getRowWriteOverrides({
+        row: row,
+        data: onUpdate.updateBy.data,
+        carryForward: onUpdate.carryForward,
+      }) as Record<string, unknown>;
+    }
+
+    function rowOf(id: string, isPrivate?: boolean): Incident {
+      const row: Incident = new Incident();
+      row._id = id;
+      if (isPrivate !== undefined) {
+        row.isPrivate = isPrivate;
+      }
+      return row;
+    }
+
+    test("the update shows the public ones, and records each one's privacy from the one stored read", async () => {
       const onUpdate: OnUpdate<Incident> = await beforeUpdate(
         { isVisibleOnStatusPage: true },
         { query: { projectId: PROJECT_ID } },
@@ -284,74 +310,42 @@ describe("IncidentService.onBeforeUpdate keeps a private incident hidden", () =>
 
       expect(writtenBy(onUpdate)["isVisibleOnStatusPage"]).toBe(true);
 
-      const carryForward: Record<
-        string,
-        { keepHiddenAfterUpdate?: boolean; isPrivateBeforeUpdate?: boolean }
-      > = onUpdate.carryForward as never;
+      const carryForward: Record<string, { isPrivateBeforeUpdate?: boolean }> =
+        onUpdate.carryForward as never;
 
-      expect(carryForward[PRIVATE_ID]?.keepHiddenAfterUpdate).toBe(true);
-      expect(carryForward[PUBLIC_ID]?.keepHiddenAfterUpdate).toBeUndefined();
+      expect(carryForward[PRIVATE_ID]?.isPrivateBeforeUpdate).toBe(true);
+      expect(carryForward[PUBLIC_ID]?.isPrivateBeforeUpdate).toBe(false);
     });
 
-    test("the success hook switches each private one back off - guarded by its privacy, without hooks - and leaves the public one", async () => {
+    test("each private one is written with Visible on Status Page off, in its own write; the public one as the update has it", async () => {
       const onUpdate: OnUpdate<Incident> = await beforeUpdate(
         { isVisibleOnStatusPage: true },
         { query: { projectId: PROJECT_ID } },
       );
 
-      const compareAndSet: MockFunction = getJestMockFunction();
-      compareAndSet.mockResolvedValue(true as never);
-      jest
-        .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
-        .mockImplementation(compareAndSet as never);
-
-      await (
-        IncidentService as unknown as {
-          hidePrivateIncidentsShownByUpdate: (data: {
-            carryForward: unknown;
-            updatedItemIds: Array<ObjectID>;
-          }) => Promise<void>;
-        }
-      ).hidePrivateIncidentsShownByUpdate({
-        carryForward: onUpdate.carryForward,
-        updatedItemIds: [new ObjectID(PRIVATE_ID), new ObjectID(PUBLIC_ID)],
+      expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID))).toEqual({
+        isVisibleOnStatusPage: false,
       });
-
-      expect(compareAndSet).toHaveBeenCalledTimes(1);
-      expect(compareAndSet.mock.calls[0]![0]).toEqual({
-        id: new ObjectID(PRIVATE_ID),
-        data: { isVisibleOnStatusPage: false },
-        expectedData: { isPrivate: true },
-      });
+      expect(rowOverrides(onUpdate, rowOf(PUBLIC_ID))).toEqual({});
     });
 
-    test("a private incident the write did not reach is not written to", async () => {
+    test("an incident the stored read did not see is decided by the privacy the update loaded with it", async () => {
       const onUpdate: OnUpdate<Incident> = await beforeUpdate(
         { isVisibleOnStatusPage: true },
         { query: { projectId: PROJECT_ID } },
       );
 
-      const compareAndSet: MockFunction = getJestMockFunction();
-      jest
-        .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
-        .mockImplementation(compareAndSet as never);
+      const unseenId: string = "0193c0de-1111-4aaa-8bbb-0000000000a9";
 
-      await (
-        IncidentService as unknown as {
-          hidePrivateIncidentsShownByUpdate: (data: {
-            carryForward: unknown;
-            updatedItemIds: Array<ObjectID>;
-          }) => Promise<void>;
-        }
-      ).hidePrivateIncidentsShownByUpdate({
-        carryForward: onUpdate.carryForward,
-        updatedItemIds: [new ObjectID(PUBLIC_ID)],
+      expect(rowOverrides(onUpdate, rowOf(unseenId, true))).toEqual({
+        isVisibleOnStatusPage: false,
       });
-
-      expect(compareAndSet).not.toHaveBeenCalled();
+      expect(rowOverrides(onUpdate, rowOf(unseenId, false))).toEqual({});
+      // Privacy not loaded either: left to the read rule.
+      expect(rowOverrides(onUpdate, rowOf(unseenId))).toEqual({});
     });
 
-    test("when every incident it writes is private, it is written hidden, with nothing to switch back", async () => {
+    test("when every incident it writes is private, the update itself is written hidden, and no row needs more", async () => {
       stored = [
         storedIncident(PRIVATE_ID, true),
         storedIncident("0193c0de-1111-4aaa-8bbb-0000000000a3", true),
@@ -363,14 +357,20 @@ describe("IncidentService.onBeforeUpdate keeps a private incident hidden", () =>
       );
 
       expect(writtenBy(onUpdate)["isVisibleOnStatusPage"]).toBe(false);
+      expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID))).toEqual({});
+    });
 
-      for (const carry of Object.values(
-        onUpdate.carryForward as Record<
-          string,
-          { keepHiddenAfterUpdate?: boolean }
-        >,
-      )) {
-        expect(carry.keepHiddenAfterUpdate).toBeUndefined();
+    test("an update that does not turn Visible on Status Page on writes every row as it is", async () => {
+      for (const data of [
+        { isVisibleOnStatusPage: false },
+        { isVisibleOnStatusPage: true, isPrivate: false },
+        { title: "Checkout errors" },
+      ] as Array<Record<string, unknown>>) {
+        const onUpdate: OnUpdate<Incident> = await beforeUpdate(data, {
+          query: { projectId: PROJECT_ID },
+        });
+
+        expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID, true))).toEqual({});
       }
     });
   });
@@ -548,7 +548,9 @@ describe("IncidentEpisodeService.onBeforeUpdate keeps a private episode hidden",
     });
 
     expect(writtenBy(onUpdate)["isVisibleOnStatusPage"]).toBe(false);
-    expect(onUpdate.carryForward).toEqual({ privateEpisodeIdsToHide: [] });
+    expect(onUpdate.carryForward).toEqual({
+      isPrivateBeforeUpdate: { [PRIVATE_ID]: true },
+    });
   });
 
   test("reads the episode's privacy as root, within the caller's project", async () => {
@@ -613,7 +615,31 @@ describe("IncidentEpisodeService.onBeforeUpdate keeps a private episode hidden",
     expect(findBy).not.toHaveBeenCalled();
   });
 
-  test("one write to private and public episodes shows the public ones and switches the private ones back off after it", async () => {
+  function rowOverrides(
+    onUpdate: OnUpdate<IncidentEpisode>,
+    row: IncidentEpisode,
+  ): Record<string, unknown> {
+    return (
+      IncidentEpisodeService as unknown as {
+        getRowWriteOverrides: GetRowWriteOverrides<IncidentEpisode>;
+      }
+    ).getRowWriteOverrides({
+      row: row,
+      data: onUpdate.updateBy.data,
+      carryForward: onUpdate.carryForward,
+    }) as Record<string, unknown>;
+  }
+
+  function rowOf(id: string, isPrivate?: boolean): IncidentEpisode {
+    const row: IncidentEpisode = new IncidentEpisode();
+    row._id = id;
+    if (isPrivate !== undefined) {
+      row.isPrivate = isPrivate;
+    }
+    return row;
+  }
+
+  test("one write to private and public episodes shows the public ones, and writes each private one with the switch off, in its own write", async () => {
     stored = [storedEpisode(PRIVATE_ID, true), storedEpisode(PUBLIC_ID, false)];
 
     const onUpdate: OnUpdate<IncidentEpisode> = await beforeUpdate(
@@ -623,56 +649,44 @@ describe("IncidentEpisodeService.onBeforeUpdate keeps a private episode hidden",
 
     expect(writtenBy(onUpdate)["isVisibleOnStatusPage"]).toBe(true);
     expect(onUpdate.carryForward).toEqual({
-      privateEpisodeIdsToHide: [new ObjectID(PRIVATE_ID)],
+      isPrivateBeforeUpdate: { [PRIVATE_ID]: true, [PUBLIC_ID]: false },
     });
 
-    const compareAndSet: MockFunction = getJestMockFunction();
-    compareAndSet.mockResolvedValue(true as never);
-    jest
-      .spyOn(IncidentEpisodeService, "compareAndSetColumnsByIdWithoutHooks")
-      .mockImplementation(compareAndSet as never);
-
-    await (
-      IncidentEpisodeService as unknown as {
-        onUpdateSuccess: OnUpdateSuccess<IncidentEpisode>;
-      }
-    ).onUpdateSuccess(onUpdate, [
-      new ObjectID(PRIVATE_ID),
-      new ObjectID(PUBLIC_ID),
-    ]);
-
-    expect(compareAndSet).toHaveBeenCalledTimes(1);
-    expect(compareAndSet.mock.calls[0]![0]).toEqual({
-      id: new ObjectID(PRIVATE_ID),
-      data: { isVisibleOnStatusPage: false },
-      expectedData: { isPrivate: true },
+    expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID))).toEqual({
+      isVisibleOnStatusPage: false,
     });
+    expect(rowOverrides(onUpdate, rowOf(PUBLIC_ID))).toEqual({});
   });
 
-  test("the success hook writes nothing for an episode the write did not reach, or when none is marked", async () => {
-    const compareAndSet: MockFunction = getJestMockFunction();
-    jest
-      .spyOn(IncidentEpisodeService, "compareAndSetColumnsByIdWithoutHooks")
-      .mockImplementation(compareAndSet as never);
+  test("an episode the read did not see is decided by the privacy the update loaded with it", async () => {
+    stored = [storedEpisode(PUBLIC_ID, false)];
 
-    const success: OnUpdateSuccess<IncidentEpisode> = (
-      IncidentEpisodeService as unknown as {
-        onUpdateSuccess: OnUpdateSuccess<IncidentEpisode>;
-      }
-    ).onUpdateSuccess.bind(IncidentEpisodeService);
-
-    await success(
-      {
-        updateBy: {} as never,
-        carryForward: { privateEpisodeIdsToHide: [new ObjectID(PRIVATE_ID)] },
-      },
-      [new ObjectID(PUBLIC_ID)],
+    const onUpdate: OnUpdate<IncidentEpisode> = await beforeUpdate(
+      { isVisibleOnStatusPage: true },
+      { projectId: PROJECT_ID },
     );
-    await success({ updateBy: {} as never, carryForward: null }, [
-      new ObjectID(PRIVATE_ID),
-    ]);
 
-    expect(compareAndSet).not.toHaveBeenCalled();
+    const unseenId: string = "0193c0de-1111-4aaa-8bbb-0000000000a9";
+
+    expect(rowOverrides(onUpdate, rowOf(unseenId, true))).toEqual({
+      isVisibleOnStatusPage: false,
+    });
+    expect(rowOverrides(onUpdate, rowOf(unseenId, false))).toEqual({});
+    expect(rowOverrides(onUpdate, rowOf(unseenId))).toEqual({});
+  });
+
+  test("an update that does not turn the switch on, or that writes Private too, writes every episode as it is", async () => {
+    for (const data of [
+      { isVisibleOnStatusPage: false },
+      { isVisibleOnStatusPage: true, isPrivate: false },
+      { title: "Checkout errors" },
+    ] as Array<Record<string, unknown>>) {
+      const onUpdate: OnUpdate<IncidentEpisode> = await beforeUpdate(data, {
+        projectId: PROJECT_ID,
+      });
+
+      expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID, true))).toEqual({});
+    }
   });
 });
 

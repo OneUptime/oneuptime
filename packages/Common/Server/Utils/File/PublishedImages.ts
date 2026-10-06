@@ -492,7 +492,8 @@ const getHiddenTokensSql: (
  * them: an incident or an episode stored private with Visible on Status Page
  * still on showed its description, postmortem and custom fields as published
  * then, so their images were made public. Each such image of the record's
- * own project becomes private - unless a published record of any project
+ * own project, or of no project (a file from before File.projectId was
+ * stamped), becomes private - unless a published record of any project
  * still shows it, by its token or by its id, or it is an icon, exactly as
  * HIDE_UNSHOWN_FILES_SQL keeps them. Nothing else moves.
  */
@@ -502,7 +503,7 @@ export const HIDE_PRIVATE_RECORD_IMAGES_SQL: string = `WITH ${quote("hiddenToken
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${quote("hiddenToken")}.${quote("projectId")} = ${quote("file")}.${quote("projectId")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND (${quote("file")}.${quote("projectId")} IS NULL OR ${quote("hiddenToken")}.${quote("projectId")} = ${quote("file")}.${quote("projectId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 // The published rows of a table a delete of its parent takes with it.
 export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
@@ -651,15 +652,19 @@ export default class PublishedImages {
         return;
       }
 
-      // The switches it was created without, as the column defaults set them.
+      /*
+       * The switches that show it which it was created without, as the
+       * column defaults set them. A switch that hides it (hiddenWhen) left
+       * out is off, read or not: those columns default to off (pinned by
+       * PublishedImages' tests), so a create that leaves one out stores it
+       * off.
+       */
       const unknownSwitches: Array<string> = Array.from(
         new Set<string>(
           withImages.flatMap((source: PublishedMarkdown): Array<string> => {
-            return [...source.shownWhen, ...(source.hiddenWhen || [])].filter(
-              (column: string): boolean => {
-                return row[column] === undefined;
-              },
-            );
+            return source.shownWhen.filter((column: string): boolean => {
+              return row[column] === undefined;
+            });
           }),
         ),
       );

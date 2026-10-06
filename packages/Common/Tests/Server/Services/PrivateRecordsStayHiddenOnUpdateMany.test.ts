@@ -1,6 +1,7 @@
 // Every write here is made on purpose; @CaptureSpan logs each refusal's stack.
 jest.mock("../../../Server/Utils/Logger");
 
+import AuditLogService from "../../../Server/Services/AuditLogService";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
@@ -29,12 +30,15 @@ import { FindOperator } from "typeorm";
  * One write to many incidents or episodes - a workflow's Update Many, which
  * writes as root within its project - that turns Visible on Status Page on
  * shows the ones that are not private and leaves every private one hidden
- * (StatusPageVisibility), whatever the others are.
+ * (StatusPageVisibility), whatever the others are. Each private record is
+ * written with the switch off in its own write (getRowWriteOverrides), so
+ * nothing is stored that is then put back, and its workflow trigger and
+ * audit log entry say what was stored: never that it was shown.
  *
  * The service runs as written, DatabaseService's update loop and both
  * services' hooks included; only the database is a stand-in: the rows every
- * read finds, the repository each row is written through, and the
- * conditional hook-free write.
+ * read finds, the repository each row is written through, the conditional
+ * hook-free write, and what the workflows and the audit log are handed.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -56,6 +60,10 @@ type StoredRow = Record<string, unknown>;
 
 interface FakeTable {
   rows: Map<string, StoredRow>;
+  // The rows each on-update workflow was triggered for, with what it was told.
+  workflowTriggers: Array<{ id: string; updatedFields: unknown }>;
+  // The rows the audit log recorded an update of, with what was written.
+  auditedUpdates: Array<{ id: string; updatedFields: unknown }>;
   // Each row's columns as one repository write set them, by row id.
   repositoryWrites: Array<{ id: string; data: StoredRow }>;
   // Each conditional hook-free write: its row, what it set, what it expected.
@@ -104,6 +112,8 @@ function fakeTable(
     ),
     repositoryWrites: [],
     conditionalWrites: [],
+    workflowTriggers: [],
+    auditedUpdates: [],
   };
 
   const stubbable: StubbableService = service as unknown as StubbableService;
@@ -159,12 +169,30 @@ function fakeTable(
     save: repositoryUpdate,
   } as never);
 
-  jest
-    .spyOn(stubbable, "onTriggerWorkflow")
-    .mockResolvedValue(undefined as never);
+  jest.spyOn(stubbable, "onTriggerWorkflow").mockImplementation((async (
+    id: ObjectID,
+    _tenantId: ObjectID,
+    _trigger: string,
+    data: { updatedFields?: unknown },
+  ): Promise<void> => {
+    table.workflowTriggers.push({
+      id: id.toString(),
+      updatedFields: data?.updatedFields,
+    });
+  }) as never);
   jest
     .spyOn(stubbable, "onTriggerRealtime")
     .mockResolvedValue(undefined as never);
+
+  jest.spyOn(AuditLogService, "recordUpdate").mockImplementation((async (data: {
+    itemId: ObjectID;
+    updatedFields: unknown;
+  }): Promise<void> => {
+    table.auditedUpdates.push({
+      id: data.itemId.toString(),
+      updatedFields: data.updatedFields,
+    });
+  }) as never);
 
   jest
     .spyOn(service, "compareAndSetColumnsByIdWithoutHooks")
@@ -279,7 +307,7 @@ function episodeRow(id: string, isPrivate: boolean): StoredRow {
 }
 
 describe("Update Many on incidents turns Visible on Status Page on", () => {
-  test("the public incident is shown; the private one ends up hidden, switched back off only while it is still private", async () => {
+  test("the public incident is shown; the private one is written hidden, in its own write", async () => {
     const table: FakeTable = fakeTable(
       IncidentService as unknown as DatabaseService<BaseModel>,
       Incident as unknown as { new (): BaseModel },
@@ -296,15 +324,73 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
       [PUBLIC_ID]: true,
     });
 
-    // One switch-back, for the private one, guarded by its privacy.
-    expect(table.conditionalWrites).toEqual([
-      {
-        id: PRIVATE_ID,
-        data: { isVisibleOnStatusPage: false },
-        expectedData: { isPrivate: true },
-        written: true,
-      },
+    // Each row's own write says what it stores; nothing is put back after.
+    expect(
+      table.repositoryWrites.map((write: { id: string; data: StoredRow }) => {
+        return [write.id, write.data["isVisibleOnStatusPage"]];
+      }),
+    ).toEqual([
+      [PRIVATE_ID, false],
+      [PUBLIC_ID, true],
     ]);
+    expect(table.conditionalWrites).toEqual([]);
+  });
+
+  test("each incident's workflow trigger and audit log entry say what was stored: shown for the public one, hidden for the private one", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [incidentRow(PRIVATE_ID, true), incidentRow(PUBLIC_ID, false)],
+    );
+
+    await updateManyIncidents({ isVisibleOnStatusPage: true });
+
+    for (const recorded of [table.workflowTriggers, table.auditedUpdates]) {
+      const byId: Record<string, unknown> = {};
+
+      for (const entry of recorded) {
+        byId[entry.id] = (entry.updatedFields as Record<string, unknown>)[
+          "isVisibleOnStatusPage"
+        ];
+      }
+
+      expect(byId[PUBLIC_ID]).toBe(true);
+      // Never told it was shown: at most, that it stays hidden.
+      expect(byId[PRIVATE_ID] === undefined || byId[PRIVATE_ID] === false).toBe(
+        true,
+      );
+    }
+  });
+
+  test("an update that also changes something else tells the private incident's workflows it stays hidden", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [incidentRow(PRIVATE_ID, true), incidentRow(PUBLIC_ID, false)],
+    );
+
+    await updateManyIncidents({
+      isVisibleOnStatusPage: true,
+      title: "Checkout errors in Europe",
+    });
+
+    const privateTrigger: { id: string; updatedFields: unknown } | undefined =
+      table.workflowTriggers.find(
+        (trigger: { id: string; updatedFields: unknown }): boolean => {
+          return trigger.id === PRIVATE_ID;
+        },
+      );
+
+    expect(privateTrigger?.updatedFields).toEqual(
+      expect.objectContaining({
+        isVisibleOnStatusPage: false,
+        title: "Checkout errors in Europe",
+      }),
+    );
+    expect(table.rows.get(PRIVATE_ID)!["title"]).toBe(
+      "Checkout errors in Europe",
+    );
+    expect(visibilityOf(table)[PRIVATE_ID]).toBe(false);
   });
 
   test("when every incident it writes is private, each is written hidden and nothing is switched back", async () => {
@@ -361,7 +447,7 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
 });
 
 describe("Update Many on episodes turns their Status Pages switch on", () => {
-  test("the public episode is shown; the private one ends up hidden", async () => {
+  test("the public episode is shown; the private one is written hidden, in its own write", async () => {
     const table: FakeTable = fakeTable(
       IncidentEpisodeService as unknown as DatabaseService<BaseModel>,
       IncidentEpisode as unknown as { new (): BaseModel },
@@ -377,14 +463,15 @@ describe("Update Many on episodes turns their Status Pages switch on", () => {
       [PRIVATE_ID]: false,
       [PUBLIC_ID]: true,
     });
-    expect(table.conditionalWrites).toEqual([
-      {
-        id: PRIVATE_ID,
-        data: { isVisibleOnStatusPage: false },
-        expectedData: { isPrivate: true },
-        written: true,
-      },
-    ]);
+    expect(table.conditionalWrites).toEqual([]);
+    // The private episode's workflows are never told it was shown.
+    for (const trigger of table.workflowTriggers) {
+      expect(
+        (trigger.updatedFields as Record<string, unknown>)[
+          "isVisibleOnStatusPage"
+        ],
+      ).toBe(trigger.id === PUBLIC_ID);
+    }
   });
 
   test("when every episode it writes is private, each is written hidden", async () => {

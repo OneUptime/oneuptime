@@ -168,10 +168,16 @@ export default class IncidentStatusPageScope {
    * reach. An incident that is no longer found reaches nothing, and neither
    * does a private one: a private member of an episode does not take the
    * episode to the pages its monitors are on.
+   *
+   * includePrivateIncidents resolves a private incident as if it were not
+   * private: only for a summary that reports privacy on its own and sends
+   * nothing (IncidentSubscriberAudienceBuilder), so what it says of the
+   * pages is about the scope, not the privacy.
    */
   public static async resolvePagesForIncidents(data: {
     incidents: Array<Incident>;
     resourceSelect?: Select<StatusPageResource> | undefined;
+    includePrivateIncidents?: boolean | undefined;
   }): Promise<ResolvedIncidentStatusPages> {
     const incidentIds: Array<string> = [];
 
@@ -190,7 +196,9 @@ export default class IncidentStatusPageScope {
     }
 
     const scopes: Dictionary<Array<string> | null> =
-      await this.getIncidentScopes(incidentIds);
+      await this.getIncidentScopes(incidentIds, {
+        includePrivateIncidents: data.includePrivateIncidents === true,
+      });
 
     const reaches: Array<IncidentStatusPageReach> = [];
 
@@ -857,11 +865,12 @@ export default class IncidentStatusPageScope {
   /*
    * Each incident's scope as stored: the lower-cased ids of the pages it is
    * limited to, or null when unscoped. Incidents not found are left out, and
-   * so are private ones (StatusPageVisibilityQuery): a private incident is
-   * scoped to nothing, so it reaches no page.
+   * so are private ones (StatusPageVisibilityQuery) unless asked for: a
+   * private incident is scoped to nothing, so it reaches no page.
    */
   private static async getIncidentScopes(
     incidentIds: Array<string>,
+    options: { includePrivateIncidents: boolean },
   ): Promise<Dictionary<Array<string> | null>> {
     const scopes: Dictionary<Array<string> | null> = {};
 
@@ -869,10 +878,14 @@ export default class IncidentStatusPageScope {
       return scopes;
     }
 
+    const query: Query<Incident> = {
+      _id: QueryHelper.any(incidentIds),
+    };
+
     const incidents: Array<Incident> = await IncidentService.findBy({
-      query: StatusPageVisibilityQuery.notPrivateIncidents({
-        _id: QueryHelper.any(incidentIds),
-      }),
+      query: options.includePrivateIncidents
+        ? query
+        : StatusPageVisibilityQuery.notPrivateIncidents(query),
       select: {
         _id: true,
         isScopedToStatusPages: true,

@@ -948,6 +948,24 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await isPublic(linkedByIdFileId)).toBe(true);
     });
 
+    test("makes private an image of no project a private record holds: a file from before files had a project", async () => {
+      const unowned: string = token();
+      const unownedFileId: string = await insertFile({
+        projectId: null,
+        isPublic: true,
+        imageAccessToken: unowned,
+      });
+
+      await insertRecord(sourceOf("Incident", "postmortemNote"), {
+        projectId: PROJECT_A,
+        postmortemNote: byToken(unowned),
+        isPrivate: true,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(1);
+      expect(await isPublic(unownedFileId)).toBe(false);
+    });
+
     test("keeps a probe's or an AI agent's icon public", async () => {
       const iconToken: string = token();
       const iconFileId: string = await insertFile({

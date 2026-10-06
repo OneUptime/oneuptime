@@ -44,6 +44,7 @@ import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisod
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import User from "../../Models/DatabaseModels/User";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import Dictionary from "../../Types/Dictionary";
 import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
 import Query from "../Types/Database/Query";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -93,12 +94,14 @@ export const EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE: string =
   "The episode's first state is part of its created notification, so it is not sent to subscribers on its own.";
 
 /*
- * What onBeforeUpdate hands to onUpdateSuccess: the private episodes an
- * update showed alongside others, whose Visible on Status Page is switched
- * back off once it is written (keepPrivateEpisodesHidden).
+ * What onBeforeUpdate hands on to the write: whether each episode it writes
+ * was private before the update, read only when the update turns Visible on
+ * Status Page on and leaves Private as it is (keepPrivateEpisodesHidden), so
+ * a private one is written with it off (getRowWriteOverrides). Keyed by the
+ * episode's id.
  */
 interface EpisodeUpdateCarryForward {
-  privateEpisodeIdsToHide: Array<ObjectID>;
+  isPrivateBeforeUpdate: Dictionary<boolean>;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -162,7 +165,7 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data as unknown as Record<string, unknown>,
     );
 
-    const privateEpisodeIdsToHide: Array<ObjectID> =
+    const isPrivateBeforeUpdate: Dictionary<boolean> =
       await this.keepPrivateEpisodesHidden(updateBy);
 
     /*
@@ -211,7 +214,7 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     const carryForward: EpisodeUpdateCarryForward = {
-      privateEpisodeIdsToHide: privateEpisodeIdsToHide,
+      isPrivateBeforeUpdate: isPrivateBeforeUpdate,
     };
 
     return { updateBy, carryForward: carryForward };
@@ -222,25 +225,26 @@ export class Service extends ProjectReferencesService<Model> {
    * so an update that turns Visible on Status Page on and leaves Private as
    * it is - the episode's Status Pages switch, the API, Terraform, a
    * workflow - shows only the episodes that are not private. When every
-   * episode it writes is private, it is written with the switch off. When
-   * only some are, the others are shown, and the private ones are switched
-   * back off as soon as the update is written (onUpdateSuccess, without
-   * hooks, so nobody is told anything); every status page read and
-   * subscriber job leaves them out meanwhile, by the same rule. Returns the
-   * episodes to switch back off.
+   * episode it writes is private, the update is written with the switch off.
+   * When only some are, the others are shown and each private one is written
+   * with it off, in its own write (getRowWriteOverrides), so what is stored,
+   * the workflow trigger and the audit log all say the same. Returns whether
+   * each episode read was private, by id.
    *
    * Read as root, limited to the caller's project as the update will be:
    * the answer only decides what this update writes.
    */
   private async keepPrivateEpisodesHidden(
     updateBy: UpdateBy<Model>,
-  ): Promise<Array<ObjectID>> {
+  ): Promise<Dictionary<boolean>> {
+    const isPrivateBeforeUpdate: Dictionary<boolean> = {};
+
     if (
       !StatusPageVisibility.needsStoredPrivacy(
         updateBy.data as unknown as Record<string, unknown>,
       )
     ) {
-      return [];
+      return isPrivateBeforeUpdate;
     }
 
     const query: Query<Model> =
@@ -264,64 +268,57 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    const privateEpisodeIds: Array<ObjectID> = episodes
-      .filter((episode: Model): boolean => {
-        return Boolean(episode.id) && StatusPageVisibility.isPrivate(episode);
-      })
-      .map((episode: Model): ObjectID => {
-        return episode.id!;
-      });
+    let privateEpisodeCount: number = 0;
 
-    if (privateEpisodeIds.length === 0) {
-      return [];
-    }
-
-    if (privateEpisodeIds.length === episodes.length) {
-      updateBy.data.isVisibleOnStatusPage = false;
-      return [];
-    }
-
-    return privateEpisodeIds;
-  }
-
-  /*
-   * Switches Visible on Status Page back off on the private episodes an
-   * update showed alongside others (keepPrivateEpisodesHidden), each only
-   * while it is still private. A write of that column alone, without hooks:
-   * it sends nothing, and changes no image - none of a private episode's is
-   * public.
-   */
-  @CaptureSpan()
-  protected override async onUpdateSuccess(
-    onUpdate: OnUpdate<Model>,
-    updatedItemIds: Array<ObjectID>,
-  ): Promise<OnUpdate<Model>> {
-    const carryForward: EpisodeUpdateCarryForward | null | undefined =
-      onUpdate.carryForward as EpisodeUpdateCarryForward | null | undefined;
-
-    const updatedIds: Array<string> = updatedItemIds.map(
-      (id: ObjectID): string => {
-        return id.toString();
-      },
-    );
-
-    for (const episodeId of carryForward?.privateEpisodeIdsToHide || []) {
-      if (!updatedIds.includes(episodeId.toString())) {
+    for (const episode of episodes) {
+      if (!episode.id) {
         continue;
       }
 
-      await this.compareAndSetColumnsByIdWithoutHooks({
-        id: episodeId,
-        data: {
-          isVisibleOnStatusPage: false,
-        } as PartialEntity<Model>,
-        expectedData: {
-          isPrivate: true,
-        } as PartialEntity<Model>,
-      });
+      const isPrivate: boolean = StatusPageVisibility.isPrivate(episode);
+
+      isPrivateBeforeUpdate[episode.id.toString()] = isPrivate;
+
+      if (isPrivate) {
+        privateEpisodeCount++;
+      }
     }
 
-    return onUpdate;
+    if (privateEpisodeCount > 0 && privateEpisodeCount === episodes.length) {
+      updateBy.data.isVisibleOnStatusPage = false;
+    }
+
+    return isPrivateBeforeUpdate;
+  }
+
+  /*
+   * Each episode of an update as the rule has it (keepPrivateEpisodesHidden):
+   * a private episode is written with Visible on Status Page off, in its own
+   * write, when the update turns it on for episodes that are not private.
+   * Its privacy is the one read before the update, else the one the update
+   * loaded with the row.
+   */
+  protected override getRowWriteOverrides(data: {
+    row: Model;
+    data: PartialEntity<Model>;
+    carryForward: unknown;
+  }): PartialEntity<Model> {
+    const episodeId: string | undefined = data.row.id?.toString();
+
+    const isPrivateBeforeUpdate: boolean | undefined = episodeId
+      ? (data.carryForward as EpisodeUpdateCarryForward | null | undefined)
+          ?.isPrivateBeforeUpdate?.[episodeId]
+      : undefined;
+
+    return StatusPageVisibility.getRecordOverrides({
+      written: data.data as unknown as Record<string, unknown>,
+      isRecordPrivate:
+        isPrivateBeforeUpdate !== undefined
+          ? isPrivateBeforeUpdate
+          : data.row.isPrivate !== undefined
+            ? StatusPageVisibility.isPrivate(data.row)
+            : undefined,
+    }) as PartialEntity<Model>;
   }
 
   @CaptureSpan()

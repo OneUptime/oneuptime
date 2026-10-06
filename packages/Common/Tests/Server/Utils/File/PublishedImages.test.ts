@@ -33,6 +33,7 @@ import type { Mock, SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import { FindOperator, getMetadataArgsStorage } from "typeorm";
+import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
@@ -185,6 +186,35 @@ describe("PUBLISHED_MARKDOWN: what records show to everyone, and when", () => {
    * (StatusPageVisibility): its markdown is hidden by Private, whatever its
    * Visible on Status Page switch says.
    */
+  /*
+   * A create that leaves a hiding switch out stores it off, so afterCreate
+   * reads nothing for it: each one must default to off.
+   */
+  test.each(
+    [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN].flatMap(
+      (source: PublishedMarkdown) => {
+        return (source.hiddenWhen || []).map((column: string) => {
+          return { tableName: source.tableName, column: column };
+        });
+      },
+    ),
+  )(
+    "$tableName.$column, a switch that hides markdown, defaults to off",
+    ({ tableName, column }: { tableName: string; column: string }) => {
+      const model: BaseModel = modelOf(tableName);
+
+      const declared: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
+        .columns.filter((args: ColumnMetadataArgs): boolean => {
+          return (
+            args.target === model.constructor && args.propertyName === column
+          );
+        })
+        .pop();
+
+      expect(declared?.options.default).toBe(false);
+    },
+  );
+
   test("an incident's and an episode's markdown is hidden while it is private", () => {
     expect(
       [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN]
@@ -739,11 +769,11 @@ describe("PublishedImages.afterCreate", () => {
     }
   });
 
-  test("a Private left to its column's default is read as stored", async () => {
+  test("a Private left out is off, as its column's default stores it: nothing is read for it", async () => {
     const readStored: Mock<
       (columns: Array<string>) => Promise<Record<string, unknown> | null>
     > = jest.fn(async (): Promise<Record<string, unknown> | null> => {
-      return { isPrivate: true };
+      return null;
     });
 
     await PublishedImages.afterCreate({
@@ -756,9 +786,8 @@ describe("PublishedImages.afterCreate", () => {
       readStored: readStored,
     });
 
-    expect(readStored.mock.calls[0]![0]).toEqual(["isPrivate"]);
-    // Stored private: nothing is made public.
-    expect(visibilityAsked()).toEqual([]);
+    expect(readStored).not.toHaveBeenCalled();
+    expect(visibilityAsked()).toEqual(["aaa111:public"]);
   });
 
   test("a new record not shown on status pages leaves its images private", async () => {
@@ -791,11 +820,8 @@ describe("PublishedImages.afterCreate", () => {
     });
 
     expect(visibilityAsked()).toEqual(["aaa111:public"]);
-    // Only the switches the image's markdown is shown and hidden by.
-    expect(readStored.mock.calls[0]![0]).toEqual([
-      "isVisibleOnStatusPage",
-      "isPrivate",
-    ]);
+    // Only the switch the image's markdown is shown by.
+    expect(readStored.mock.calls[0]![0]).toEqual(["isVisibleOnStatusPage"]);
   });
 
   test("a switch given on the create is not read again", async () => {
@@ -815,10 +841,9 @@ describe("PublishedImages.afterCreate", () => {
       readStored: readStored,
     });
 
-    // Only the switches it was created without are read; the one given is kept.
+    // Only the switch it was created without is read; the one given is kept.
     expect(readStored.mock.calls[0]![0]).toEqual([
       "showPostmortemOnStatusPage",
-      "isPrivate",
     ]);
     expect(visibilityAsked()).toEqual([]);
   });
@@ -1928,9 +1953,9 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
     expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
       `UPDATE "File" AS "file" SET "isPublic" = false WHERE "file"."isPublic" = true`,
     );
-    // Only images a private record holds, of that record's own project.
+    // Only images a private record holds, of that record's own project or of none.
     expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
-      `EXISTS (SELECT 1 FROM "hiddenToken" WHERE "hiddenToken"."token" = "file"."imageAccessToken" AND "hiddenToken"."projectId" = "file"."projectId")`,
+      `EXISTS (SELECT 1 FROM "hiddenToken" WHERE "hiddenToken"."token" = "file"."imageAccessToken" AND ("file"."projectId" IS NULL OR "hiddenToken"."projectId" = "file"."projectId"))`,
     );
     for (const [table, column] of [
       ["Incident", "description"],
