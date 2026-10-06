@@ -3,6 +3,8 @@ import {
   SUPPORTED_DOCS_LANGUAGES,
   SUPPORTED_DOCS_LANGUAGE_CODES,
   DocsLanguage,
+  DocsLanguageDirection,
+  getDocsLanguageDirection,
   isSupportedDocsLanguage,
 } from "Common/Types/Docs/DocsLanguage";
 
@@ -177,7 +179,8 @@ export {
   DEFAULT_DOCS_LANGUAGE,
   SUPPORTED_DOCS_LANGUAGES,
   SUPPORTED_DOCS_LANGUAGE_CODES,
+  getDocsLanguageDirection,
   isSupportedDocsLanguage,
 };
 
-export type { DocsLanguage };
+export type { DocsLanguage, DocsLanguageDirection };

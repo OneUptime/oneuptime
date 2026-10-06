@@ -6,7 +6,7 @@
     <a href="<%- prev.link.url %>" class="docs-pager__link" rel="prev">
         <span class="docs-pager__kicker"><%- t('ui.previous') %></span>
         <span class="docs-pager__title">
-            <svg class="docs-pager__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="docs-pager__icon docs-rtl-mirror" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
             </svg>
             <span class="truncate"><%- prev.link.title %></span>
@@ -17,11 +17,11 @@
     <% } %>
 
     <% if(next) { %>
-    <a href="<%- next.link.url %>" class="docs-pager__link sm:items-end sm:text-right" rel="next">
+    <a href="<%- next.link.url %>" class="docs-pager__link sm:items-end sm:text-end" rel="next">
         <span class="docs-pager__kicker"><%- t('ui.next') %></span>
         <span class="docs-pager__title">
             <span class="truncate"><%- next.link.title %></span>
-            <svg class="docs-pager__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg class="docs-pager__icon docs-rtl-mirror" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
             </svg>
         </span>

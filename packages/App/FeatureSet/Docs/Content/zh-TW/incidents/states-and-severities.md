@@ -146,6 +146,8 @@
 
 **還有一件事會改變結果。** 如果你在狀態變更對話框裡打了 **公開備註**，這列時間軸會被標記為已通知，而不是排入佇列。真正送到訂閱者手上的是那則備註，所以他們收到一則訊息而不是兩則。這則訊息會在每個管道寫明新的狀態，就像狀態變更訊息那樣：例如郵件主旨中的 `[Resolved Incident] <title>`，以及 Slack 和 Microsoft Teams 裡的 `**Status:** Resolved`。發布這則備註需要建立公開備註的權限：沒有此權限時，對話框不會提供備註，而附帶備註送出的狀態變更會被拒絕，狀態維持不變。純狀態變更訊息背後的事件類型是 `Subscriber Incident State Changed`。
 
+警示、警示片段與事件片段則在狀態變更時提供私人備註（**新增私人備註**），規則相同：發布它需要備註本身的權限（自訂角色中的 **Create Alert Internal Note**、**Create Alert Episode Internal Note** 或 **Create Incident Episode Internal Note**；內建的警示、事件與專案角色都有這些權限），沒有該權限的人帶私人備註送出的狀態變更會被整個拒絕，狀態保持不變。
+
 誰會收到這些訊息、範本怎麼挑選，請見 [訂閱者與公告](/docs/status-pages/subscribers)。
 
 ## 讓事件不出現在狀態頁面上

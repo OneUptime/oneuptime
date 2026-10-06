@@ -75,8 +75,10 @@ import {
   KubernetesAiAgentSummary,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { fillTemplate } from "../../../UI/Utils/TranslateTemplate";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
@@ -908,8 +910,11 @@ describe("the Kubernetes AI agent card", () => {
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
       "The AI agent has not checked in for over 5 minutes. Check its pod:",
     );
+    // The key, with the server's alive window in its {{minutes}}.
     expect(screen.getByTestId("ai-agent-sentence")).toHaveTextContent(
-      AI_AGENT_SILENT_TEXT,
+      fillTemplate(AI_AGENT_SILENT_TEXT, {
+        minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+      }),
     );
     expect(codeIn(screen.getByTestId("ai-agent-logs-command"))).toBe(
       "kubectl logs -n monitoring -l component=ai-agent --tail=100",
@@ -2761,7 +2766,9 @@ describe("automatic investigation footer", () => {
     const confirm: HTMLElement = await findDialogTitled(
       "Turn on automatic investigation?",
     );
-    expect(confirm).toHaveTextContent(
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
       "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
     );
     expect(
@@ -2800,7 +2807,11 @@ describe("automatic investigation footer", () => {
     const confirm: HTMLElement = await findDialogTitled(
       "Turn on automatic investigation?",
     );
-    expect(confirm).toHaveTextContent("every new alert in Acme");
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
     fireEvent.click(within(confirm).getByText("Turn on"));
 
     expect(await waitForOneUpdate()).toEqual({

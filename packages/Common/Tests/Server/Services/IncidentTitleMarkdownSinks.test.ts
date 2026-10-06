@@ -251,6 +251,10 @@ describe("episode feed items", () => {
     jest
       .spyOn(IncidentEpisodeService, "updateLastIncidentAddedAt")
       .mockResolvedValue(undefined as never);
+    // Removed from its only episode.
+    jest
+      .spyOn(IncidentEpisodeMemberService, "findOneBy")
+      .mockResolvedValue(null);
   }
 
   function member(): IncidentEpisodeMember {

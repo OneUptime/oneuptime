@@ -66,6 +66,7 @@ import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 
 interface ProbeAgreementResult {
   hasAgreement: boolean;
@@ -302,6 +303,19 @@ export default class MonitorResourceUtil {
     };
 
     try {
+      /*
+       * The monitor above was loaded BEFORE this evaluation held the lock,
+       * and whichever evaluation held it until now may have just changed
+       * the monitor's status. Deciding against the pre-lock status skips the
+       * very transition that answers it: the heartbeat cron flips a monitor
+       * Offline, the heartbeat that was already waiting on the lock then
+       * matches "Online", the status timeline sees "already Online" and
+       * writes nothing - and the monitor stays Offline until the next
+       * evaluation. Re-read the one column every status decision below
+       * keys on, now that nothing else can change it.
+       */
+      await MonitorResourceUtil.refreshCurrentMonitorStatus(monitor);
+
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
@@ -398,13 +412,20 @@ export default class MonitorResourceUtil {
              * decorators, so those hooks were inert anyway — a single
              * UPDATE by the id we already hold is equivalent and 3x cheaper.
              * See the Monitor heartbeat writes below for the same pattern.
+             *
+             * The copy written is a storable one: a single NUL in the
+             * response body or headers made Postgres refuse the whole jsonb
+             * value, failing this job before the result was evaluated, on
+             * every retry. dataToProcess itself stays as the probe sent it,
+             * for the criteria below. The other steps' entries were read back
+             * from this column, so they are storable already.
              */
             const updatedLastMonitoringLog: MonitorStepProbeResponse = {
               ...(monitorProbe.lastMonitoringLog || {}),
               [(
                 dataToProcess as ProbeMonitorResponse
               ).monitorStepId.toString()]: {
-                ...JSON.parse(JSON.stringify(dataToProcess)),
+                ...toStorableJson(dataToProcess as ProbeMonitorResponse),
                 monitoredAt: OneUptimeDate.getCurrentDate(),
               },
             };
@@ -482,7 +503,8 @@ export default class MonitorResourceUtil {
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
-                serverMonitorResponse,
+                // A storable copy; the live response is still being evaluated.
+                serverMonitorResponse: toStorableJson(serverMonitorResponse),
               },
             });
 
@@ -514,9 +536,7 @@ export default class MonitorResourceUtil {
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
-              incomingMonitorRequest: JSON.parse(
-                JSON.stringify(incomingMonitorRequest),
-              ) as IncomingMonitorRequest,
+              incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
             } as any,
           });
 
@@ -1339,9 +1359,9 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          monitorStatusTimeline.statusChangeLog = JSON.parse(
-            JSON.stringify(dataToProcess),
-          );
+          monitorStatusTimeline.statusChangeLog = toStorableJson(
+            dataToProcess,
+          ) as unknown as JSONObject;
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 
@@ -1455,6 +1475,33 @@ export default class MonitorResourceUtil {
       return response;
     } finally {
       await releaseMutex();
+    }
+  }
+
+  /*
+   * A primary-key read of a single column; kept separate from the monitor
+   * load above so that load can stay outside the lock (see the comment on
+   * the lock for why validation must come first).
+   */
+  public static async refreshCurrentMonitorStatus(
+    monitor: Monitor,
+  ): Promise<void> {
+    if (!monitor.id) {
+      return;
+    }
+
+    const latest: Monitor | null = await MonitorService.findOneById({
+      id: monitor.id,
+      select: {
+        currentMonitorStatusId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (latest?.currentMonitorStatusId) {
+      monitor.currentMonitorStatusId = latest.currentMonitorStatusId;
     }
   }
 

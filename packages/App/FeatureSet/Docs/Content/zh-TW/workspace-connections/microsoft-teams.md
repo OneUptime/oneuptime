@@ -20,6 +20,12 @@
 4. **設定警示與排程維護通知**
    - 類似的規則也可套用至警示與排程維護，方法是前往其各自的頁面並設定所需的規則。
 
+## 測試規則
+
+規則所在列的 **測試規則** 會把這條規則的一則測試訊息發到它指定的頻道，讓你看到訊息送達。如果規則會為每個事件建立頻道，測試也會建立一個，並邀請規則中的人員加入。
+
+和 **專案設定** > **Workspace** > **Microsoft Teams** 中頻道旁邊的 **傳送測試** 一樣，它需要建立通知規則的權限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自訂角色中的 **Create Workspace Notification Rule** 與 **Read Workspace Notification Rule**。對於只能檢視規則的人（例如 **Viewer**），**測試規則** 是鎖定的，它的提示會說明需要什麼；API 會以 "You do not have permission to send test notifications in this project." 拒絕其測試。在 OneUptime Cloud 上，測試規則和新增規則一樣需要 **Growth** 方案。
+
 ## 自架部署的網路存取
 
 有關輸出連線、輸入回呼和私有部署的說明，請參閱[Microsoft Teams 整合](/docs/self-hosted/microsoft-teams-integration)中的網路存取章節。

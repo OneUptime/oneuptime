@@ -1173,6 +1173,14 @@ video {
   bottom: 0;
 }
 
+.start-0 {
+  inset-inline-start: 0;
+}
+
+.end-0 {
+  inset-inline-end: 0;
+}
+
 .-bottom-40 {
   bottom: -10rem;
 }
@@ -1320,6 +1328,10 @@ video {
 
 .-ml-0\.5 {
   margin-left: -0.125rem;
+}
+
+.-ms-0\.5 {
+  margin-inline-start: -0.125rem;
 }
 
 .-mr-72 {
@@ -2059,6 +2071,22 @@ video {
   padding-bottom: 2rem;
 }
 
+.ps-0\.5 {
+  padding-inline-start: 0.125rem;
+}
+
+.pe-1 {
+  padding-inline-end: 0.25rem;
+}
+
+.pe-4 {
+  padding-inline-end: 1rem;
+}
+
+.pe-6 {
+  padding-inline-end: 1.5rem;
+}
+
 .pb-12 {
   padding-bottom: 3rem;
 }
@@ -2129,6 +2157,10 @@ video {
 
 .text-right {
   text-align: right;
+}
+
+.text-start {
+  text-align: start;
 }
 
 .font-display {
@@ -2832,6 +2864,10 @@ video {
     padding-bottom: 5rem;
   }
 
+  .sm\:text-end {
+    text-align: end;
+  }
+
   .sm\:text-sm {
     font-size: 0.875rem;
     line-height: 1.5rem;
@@ -3062,6 +3098,14 @@ video {
     padding-bottom: 15vh;
   }
 
+  .lg\:ps-10 {
+    padding-inline-start: 2.5rem;
+  }
+
+  .lg\:pe-0 {
+    padding-inline-end: 0;
+  }
+
   .lg\:pl-8 {
     padding-left: 2rem;
   }
@@ -3145,6 +3189,14 @@ video {
   .xl\:py-16 {
     padding-top: 4rem;
     padding-bottom: 4rem;
+  }
+
+  .xl\:ps-14 {
+    padding-inline-start: 3.5rem;
+  }
+
+  .xl\:pe-8 {
+    padding-inline-end: 2rem;
   }
 
   .xl\:pl-10 {
@@ -3659,7 +3711,7 @@ body.docs-body {
 .docs-skip-link {
   position: fixed;
   top: 0.75rem;
-  left: 0.75rem;
+  inset-inline-start: 0.75rem;
   z-index: 300;
   padding: 0.5rem 0.9rem;
   border-radius: 0.5rem;
@@ -3764,6 +3816,7 @@ html.dark .docs-logo--light {
   border-color: var(--docs-border);
 }
 
+/* A shortcut reads the same way round on every page: ⌘K, never K⌘. */
 .docs-kbd {
   border: 1px solid var(--docs-border-strong);
   background-color: var(--docs-bg-raised);
@@ -3771,6 +3824,8 @@ html.dark .docs-logo--light {
   border-radius: 0.3rem;
   font-family: inherit;
   line-height: 1;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .docs-select {
@@ -3805,13 +3860,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
 
 .docs-sidebar-tint {
   background: var(--docs-bg-subtle);
-  border-right: 1px solid var(--docs-border-soft);
+  border-inline-end: 1px solid var(--docs-border-soft);
 }
 
 .docs-drawer {
   background-color: var(--docs-bg);
   box-shadow: var(--docs-shadow-lg);
-  border-right: 1px solid var(--docs-border);
+  border-inline-end: 1px solid var(--docs-border);
 }
 .docs-drawer__title {
   color: var(--docs-text);
@@ -3829,7 +3884,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-progress {
   position: fixed;
   top: 0;
-  left: 0;
+  inset-inline-start: 0;
   height: 2px;
   width: 0;
   background: linear-gradient(
@@ -3868,7 +3923,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.3;
-  text-align: left;
+  text-align: start;
   color: var(--docs-text-muted);
   transition:
     background-color 0.12s ease,
@@ -3916,8 +3971,8 @@ html.dark .docs-theme-toggle .docs-icon-light {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.22s ease;
-  margin-left: 1.0625rem;
-  border-left: 1px solid var(--docs-border);
+  margin-inline-start: 1.0625rem;
+  border-inline-start: 1px solid var(--docs-border);
 }
 .docs-nav__links > div {
   overflow: hidden;
@@ -3929,10 +3984,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
 
 .docs-nav__link {
   display: block;
-  padding: 0.3125rem 0.5rem 0.3125rem 0.75rem;
-  margin-left: -1px;
-  border-left: 2px solid transparent;
-  border-radius: 0 0.375rem 0.375rem 0;
+  padding-block: 0.3125rem;
+  padding-inline: 0.75rem 0.5rem;
+  margin-inline-start: -1px;
+  border-inline-start: 2px solid transparent;
+  border-radius: 0;
+  border-start-end-radius: 0.375rem;
+  border-end-end-radius: 0.375rem;
   font-size: 0.8125rem;
   line-height: 1.45;
   color: var(--docs-text-muted);
@@ -3944,12 +4002,12 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-nav__link:hover {
   color: var(--docs-text);
   background-color: var(--docs-bg-hover);
-  border-left-color: var(--docs-border-strong);
+  border-inline-start-color: var(--docs-border-strong);
 }
 .docs-nav__link.is-active {
   color: var(--docs-accent-text);
   font-weight: 600;
-  border-left-color: var(--docs-accent);
+  border-inline-start-color: var(--docs-accent);
   background-color: var(--docs-accent-soft);
 }
 
@@ -3974,8 +4032,9 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-toc__link {
   display: block;
-  padding: 0.25rem 0 0.25rem 0.875rem;
-  border-left: 2px solid var(--docs-border);
+  padding-block: 0.25rem;
+  padding-inline: 0.875rem 0;
+  border-inline-start: 2px solid var(--docs-border);
   font-size: 0.8125rem;
   line-height: 1.5;
   color: var(--docs-text-muted);
@@ -3985,18 +4044,18 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-toc__link:hover {
   color: var(--docs-text);
-  border-left-color: var(--docs-border-strong);
+  border-inline-start-color: var(--docs-border-strong);
 }
 .docs-toc__link.is-active {
   color: var(--docs-accent-text);
-  border-left-color: var(--docs-accent);
+  border-inline-start-color: var(--docs-accent);
   font-weight: 500;
 }
 .docs-toc__link[data-level="3"] {
-  padding-left: 1.625rem;
+  padding-inline-start: 1.625rem;
 }
 .docs-toc__link[data-level="4"] {
-  padding-left: 2.375rem;
+  padding-inline-start: 2.375rem;
   font-size: 0.78125rem;
 }
 
@@ -4163,10 +4222,16 @@ html.dark .docs-theme-toggle .docs-icon-light {
    Article body typography
    -------------------------------------------------------------------------- */
 
+/*
+ * A long token in prose - an env var name outside backticks - wraps instead
+ * of widening the page. A phone opens a too-wide right-to-left page at its
+ * far end, with the start of every line cut off.
+ */
 .docs-content {
   font-size: 1rem;
   line-height: 1.75;
   color: var(--docs-text-body);
+  overflow-wrap: break-word;
 }
 
 .docs-content > *:first-child {
@@ -4235,7 +4300,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 
 .docs-anchor {
-  margin-left: 0.4rem;
+  margin-inline-start: 0.4rem;
   color: var(--docs-text-faint);
   font-weight: 400;
   text-decoration: none;
@@ -4268,7 +4333,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
   display: inline-block;
   width: 0.75em;
   height: 0.75em;
-  margin-left: 0.2em;
+  margin-inline-start: 0.2em;
   vertical-align: baseline;
   opacity: 0.65;
 }
@@ -4276,7 +4341,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-content ul,
 .docs-content ol {
   margin: 1.15rem 0;
-  padding-left: 1.5rem;
+  padding-inline-start: 1.5rem;
 }
 .docs-content ul {
   list-style: none;
@@ -4286,7 +4351,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 }
 .docs-content li {
   margin: 0.4rem 0;
-  padding-left: 0.125rem;
+  padding-inline-start: 0.125rem;
 }
 .docs-content ol > li::marker {
   color: var(--docs-text-faint);
@@ -4299,7 +4364,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
 .docs-content ul > li::before {
   content: "";
   position: absolute;
-  left: -1rem;
+  inset-inline-start: -1rem;
   top: 0.72em;
   width: 5px;
   height: 5px;
@@ -4336,8 +4401,9 @@ html.dark .docs-theme-toggle .docs-icon-light {
 
 .docs-quote {
   margin: 1.5rem 0;
-  padding: 0.25rem 0 0.25rem 1.125rem;
-  border-left: 3px solid var(--docs-accent-border);
+  padding-block: 0.25rem;
+  padding-inline: 1.125rem 0;
+  border-inline-start: 3px solid var(--docs-accent-border);
   color: var(--docs-text-muted);
 }
 .docs-quote p {
@@ -4355,13 +4421,13 @@ html.dark .docs-theme-toggle .docs-icon-light {
   padding: 0.875rem 1.125rem 1rem;
   border-radius: 0.625rem;
   border: 1px solid color-mix(in srgb, var(--callout-accent) 30%, transparent);
-  border-left: 3px solid var(--callout-accent);
+  border-inline-start: 3px solid var(--callout-accent);
   background: var(--callout-bg);
 }
 @supports not (background: color-mix(in srgb, red 50%, blue)) {
   .docs-callout {
     border: 1px solid var(--docs-border);
-    border-left: 3px solid var(--callout-accent);
+    border-inline-start: 3px solid var(--callout-accent);
   }
 }
 .docs-callout--tip {
@@ -4424,9 +4490,14 @@ html.dark .docs-theme-toggle .docs-icon-light {
   min-width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
-  text-align: left;
+  text-align: start;
 }
+/*
+ * Said again on the header cells: browsers centre a th whose row has the
+ * initial text-align, and `start` is the initial value.
+ */
 .docs-table th {
+  text-align: start;
   padding: 0.625rem 1rem;
   background: var(--docs-bg-subtle);
   color: var(--docs-text);
@@ -4453,6 +4524,18 @@ html.dark .docs-theme-toggle .docs-icon-light {
 /* --------------------------------------------------------------------------
    Code
    -------------------------------------------------------------------------- */
+
+/*
+ * Code reads left to right in every language. In a right-to-left paragraph a
+ * command, a YAML key or an env var name would otherwise be reordered by the
+ * prose around it (`--flag` drawn `flag--`), and a long line would scroll
+ * from its end. Isolating it keeps it from reordering the prose in turn.
+ */
+.docs-code pre,
+.docs-code-inline {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
 
 .docs-code-inline {
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
@@ -4486,7 +4569,8 @@ html.dark .docs-theme-toggle .docs-icon-light {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  padding-block: 0.4rem;
+  padding-inline: 0.9rem 0.5rem;
   min-height: 2.125rem;
   background: var(--docs-code-bar-bg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
@@ -4568,6 +4652,11 @@ html.dark .docs-theme-toggle .docs-icon-light {
   background: rgba(255, 255, 255, 0.28);
 }
 
+/*
+ * Left to right on every page: Mermaid lays diagrams out that way and their
+ * labels are English, so a right-to-left page would scroll a wide one from
+ * its far end and draw "Rule 1:" as ":Rule 1".
+ */
 .docs-diagram {
   margin: 1.75rem 0;
   padding: 1.25rem;
@@ -4576,6 +4665,7 @@ html.dark .docs-theme-toggle .docs-icon-light {
   border: 1px solid var(--docs-border);
   border-radius: 0.75rem;
   background: var(--docs-bg-raised);
+  direction: ltr;
 }
 /*
  * Not a flex container: Mermaid's SVG sizes itself from its viewBox, and as a
@@ -4769,6 +4859,42 @@ html.dark .docs-btn--primary {
 .docs-code .hljs-comment,
 .docs-code .hljs-quote {
   font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   Right to left
+   --------------------------------------------------------------------------
+   Persian pages are served with dir="rtl" on <html>. Spacing, borders and
+   alignment above are written with logical properties, so they follow the
+   reading direction by themselves; this is what those cannot express. Code
+   and diagrams stay left to right on every page - see "Code".
+   -------------------------------------------------------------------------- */
+
+/* Arrows and chevrons that point along the reading direction turn with it. */
+[dir="rtl"] .docs-rtl-mirror {
+  transform: scaleX(-1);
+}
+
+/*
+ * A closed group's chevron points into the page, so leftwards here. Open, it
+ * still points down: the rotate(90deg) rule above is more specific.
+ */
+[dir="rtl"] .docs-nav__chevron {
+  transform: rotate(180deg);
+}
+
+/* The drawer is pinned to the right, so it slides out that way. */
+[dir="rtl"] .docs-drawer.-translate-x-full {
+  transform: translateX(100%);
+}
+
+/* The bar grows from the right: its brighter end leads, as it does above. */
+[dir="rtl"] .docs-progress {
+  background-image: linear-gradient(
+    270deg,
+    var(--docs-accent),
+    color-mix(in srgb, var(--docs-accent) 55%, #ffffff)
+  );
 }
 
 /* --------------------------------------------------------------------------

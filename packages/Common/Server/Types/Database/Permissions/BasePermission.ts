@@ -25,6 +25,11 @@ export interface CheckPermissionBaseInterface<TBaseModel extends BaseModel> {
 }
 
 export default class BasePermission {
+  /*
+   * `updateData` is what an update writes, handed on to the table-level
+   * plan check: below a table's update plan only an update that switches
+   * records off passes, and only the data shows that (BillingPermission).
+   */
   @CaptureSpan()
   public static async checkPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -32,6 +37,7 @@ export default class BasePermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
     /*
      * Permission checks add predicates and QueryUtil serializes values in
@@ -61,6 +67,7 @@ export default class BasePermission {
         select,
         props,
         type,
+        updateData,
       );
 
       // add user scope if any
@@ -79,7 +86,12 @@ export default class BasePermission {
        */
       if (!Array.isArray(query)) {
         // check model level permissions.
-        TablePermission.checkTableLevelPermissions(modelType, props, type);
+        TablePermission.checkTableLevelPermissions(
+          modelType,
+          props,
+          type,
+          updateData,
+        );
 
         // check query permissions.
         QueryPermission.checkQueryPermission(modelType, query, props);

@@ -1,4 +1,7 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import i18next from "i18next";
+import path from "path";
 import {
   AI_AGENT_GONE_TEXT,
   AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT,
@@ -11,8 +14,9 @@ import {
   AI_AGENT_SIGNED_OFF_TEXT,
   AI_AGENT_SILENT_TEXT,
   AI_AGENT_STATUS_POLL_INTERVAL_MS,
-  AI_AGENT_UPGRADE_CHART_TEXT,
   ASK_PROJECT_ADMIN_TEXT,
+  AUTOMATIC_INVESTIGATION_CONFIRMATIONS,
+  AUTOMATIC_INVESTIGATION_LINE,
   AiAgentAttention,
   AiAgentAttentionStep,
   AiAgentCardState,
@@ -60,8 +64,10 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KUBECTL_ALLOW_WRITES_ENV,
+  KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { fillTemplate } from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * The pure reading of the server's access status behind the cluster's AI
@@ -79,6 +85,10 @@ const LEGACY_RUNNER_ID: string = "55555555-0000-4000-8000-000000000005";
 const ADVANCED_RUNNER_ID: string = "55555555-0000-4000-8000-000000000006";
 
 const NOW: Date = new Date();
+
+// AI_AGENT_SILENT_TEXT with the server's alive window in it.
+const SILENT_SENTENCE: string =
+  "The AI agent has not checked in for over 5 minutes. Check its pod:";
 
 function minutesAgo(minutes: number): string {
   return new Date(NOW.getTime() - minutes * 60 * 1000).toISOString();
@@ -451,8 +461,20 @@ describe("the pill and the sentence", () => {
     expect(AI_AGENT_LEGACY_RUNNER_TEXT).toBe(
       "Works today. Upgrade the Kubernetes agent chart to switch to the new AI agent — your settings carry over.",
     );
-    expect(AI_AGENT_LEGACY_RUNNER_TEXT).toBe(
-      `Works today. ${AI_AGENT_UPGRADE_CHART_TEXT}`,
+  });
+
+  /*
+   * Each of the previous Runner's sentences is one key with both of its
+   * sentences in it, so a locale words them together. They end with the
+   * same way forward, word for word.
+   */
+  test("online or offline, the previous Runner's way forward is the same", () => {
+    const upgrade: string =
+      "Upgrade the Kubernetes agent chart to switch to the new AI agent — your settings carry over.";
+
+    expect(AI_AGENT_LEGACY_RUNNER_TEXT).toBe(`Works today. ${upgrade}`);
+    expect(AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT).toBe(
+      `The previous in-cluster Runner is offline. ${upgrade}`,
     );
   });
 
@@ -482,6 +504,38 @@ describe("the pill and the sentence", () => {
     ).toBe('Reached through Runner "ops-runner".');
     expect(getAiAgentStateSentence(advancedStatus({}, false))).toBe(
       'Reached through Runner "ops-runner" with credential "prod token". The Runner is offline.',
+    );
+    expect(
+      getAiAgentStateSentence(
+        advancedStatus({ credentialName: undefined }, false),
+      ),
+    ).toBe('Reached through Runner "ops-runner". The Runner is offline.');
+  });
+
+  test("a Runner without a name reads as (unnamed), in the sentence and the pill", () => {
+    const unnamed: KubernetesClusterAiAccessStatus = advancedStatus({
+      runner: { ...advancedStatus().runner!, name: "" },
+    });
+
+    expect(getAiAgentStateSentence(unnamed)).toBe(
+      'Reached through Runner "(unnamed)" with credential "prod token".',
+    );
+    expect(getAiAgentStatusPill(unnamed).text).toBe(
+      "Connected through Runner (unnamed) (advanced)",
+    );
+  });
+
+  // Names are the user's: they go in as written, never read as slots.
+  test("a Runner's and a credential's names go into the sentence as written", () => {
+    expect(
+      getAiAgentStateSentence(
+        advancedStatus({
+          runner: { ...advancedStatus().runner!, name: "ops {{runner}}" },
+          credentialName: "token {{credential}}",
+        }),
+      ),
+    ).toBe(
+      'Reached through Runner "ops {{runner}}" with credential "token {{credential}}".',
     );
   });
 
@@ -602,7 +656,7 @@ describe("why the agent is offline", () => {
 
   test("each reason has its own sentence, and every one hands over to the logs command", () => {
     const sentences: Record<AiAgentOfflineReason, string> = {
-      silent: AI_AGENT_SILENT_TEXT,
+      silent: SILENT_SENTENCE,
       signed_off: AI_AGENT_SIGNED_OFF_TEXT,
       gone: AI_AGENT_GONE_TEXT,
     };
@@ -688,11 +742,24 @@ describe("why the agent is offline", () => {
       payload as KubernetesClusterAiAccessStatus;
     expect(getAiAgentCardState(older)).toBe("offline");
     expect(getAiAgentOfflineReason(older, NOW_DATE)).toBe("silent");
-    expect(getAiAgentStateSentence(older, NOW_DATE)).toBe(AI_AGENT_SILENT_TEXT);
+    expect(getAiAgentStateSentence(older, NOW_DATE)).toBe(SILENT_SENTENCE);
   });
 
+  /*
+   * The window is a value in the sentence, not part of its key: a locale
+   * words the sentence once and puts the number where its grammar wants
+   * it.
+   */
   test("the silent sentence quotes the server's alive window", () => {
     expect(AI_AGENT_SILENT_TEXT).toBe(
+      "The AI agent has not checked in for over {{minutes}} minutes. Check its pod:",
+    );
+    expect(
+      fillTemplate(AI_AGENT_SILENT_TEXT, {
+        minutes: KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
+      }),
+    ).toBe(SILENT_SENTENCE);
+    expect(SILENT_SENTENCE).toBe(
       "The AI agent has not checked in for over 5 minutes. Check its pod:",
     );
   });
@@ -708,7 +775,7 @@ describe("why the agent is offline", () => {
     ]) {
       const sentence: string = getAiAgentStateSentence(status, NOW_DATE);
       for (const offline of [
-        AI_AGENT_SILENT_TEXT,
+        SILENT_SENTENCE,
         AI_AGENT_SIGNED_OFF_TEXT,
         AI_AGENT_GONE_TEXT,
       ]) {
@@ -1906,6 +1973,27 @@ describe("the automatic-investigation footer", () => {
     );
   });
 
+  /*
+   * The line was built with "On" and "Off" glued in, so no locale file
+   * could hold it. It is one sentence with a slot for each opt-in, and the
+   * two states are translated along with it.
+   */
+  test("the line is one whole sentence with a slot for each opt-in", () => {
+    expect(AUTOMATIC_INVESTIGATION_LINE).toBe(
+      "Automatic investigation for new incidents in this project: {{incidents}} · alerts: {{alerts}}",
+    );
+    expect(
+      getAutomaticInvestigationLine({ incidents: true, alerts: true }),
+    ).toBe(
+      "Automatic investigation for new incidents in this project: On · alerts: On",
+    );
+    expect(
+      getAutomaticInvestigationLine({ incidents: false, alerts: false }),
+    ).toBe(
+      "Automatic investigation for new incidents in this project: Off · alerts: Off",
+    );
+  });
+
   test("a malformed or missing field is not shown", () => {
     expect(
       getAutomaticInvestigation(
@@ -1977,13 +2065,64 @@ describe("the automatic-investigation footer", () => {
         settings: { incidents: false, alerts: true },
         projectName: "Acme",
       }),
-    ).toContain("every new incident in Acme");
+    ).toBe(
+      "This applies to every new incident in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
     expect(
       getAutomaticInvestigationConfirmation({
         settings: { incidents: true, alerts: false },
         projectName: "Acme",
       }),
-    ).toContain("every new alert in Acme");
+    ).toBe(
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+  });
+
+  /*
+   * A sentence with the project's name already in it is no key a locale
+   * file can hold, so it stayed English in every language. Each case is one
+   * whole sentence with a {{project}} slot instead - never pieces glued
+   * together - which a locale words its own way.
+   */
+  test("each case is one whole sentence with a {{project}} slot", () => {
+    expect(AUTOMATIC_INVESTIGATION_CONFIRMATIONS).toEqual({
+      incidentsAndAlerts:
+        "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+      incidents:
+        "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+      alerts:
+        "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    });
+  });
+
+  test("a project whose name the page does not know reads as this project", () => {
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: false, alerts: false },
+      }),
+    ).toBe(
+      "This applies to every new incident and alert in this project, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: true, alerts: false },
+        projectName: "",
+      }),
+    ).toBe(
+      "This applies to every new alert in this project, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+  });
+
+  // The name is the user's: it goes in as written, never read as a slot.
+  test("the project's name goes into the sentence as written", () => {
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: false, alerts: true },
+        projectName: "Ops {{project}}",
+      }),
+    ).toBe(
+      "This applies to every new incident in Ops {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
   });
 });
 
@@ -2032,5 +2171,223 @@ describe("the Overview's AI agent card", () => {
       text: "Not installed",
       tone: "neutral",
     });
+  });
+});
+
+/*
+ * Everything this module puts on the AI agent page and the Overview's card
+ * is looked up in the Dashboard's locale files (src/Locales/README.md): a
+ * constant is a key, and a function answers with whole keyed sentences,
+ * their values in {{placeholders}}. Most of it used to be plain strings and
+ * template literals with the values glued in, which read English in every
+ * language.
+ *
+ * A pseudo-locale wraps every en.json entry in ‹ ›, so a sentence that was
+ * looked up comes back wrapped, and so does a word translated along with
+ * it. These run last: they set up the global i18next instance the functions
+ * read, which each jest file has to itself.
+ */
+describe("in the reader's language", () => {
+  const ENGLISH: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+
+  const LOOKED_UP: RegExp = /^‹[^]*›$/;
+
+  const fixesOn: Partial<KubernetesClusterAiAccessStatus> = {
+    remediationMode: KubernetesAiRemediationMode.RequireApproval,
+  };
+
+  // Every state, and each branch a step's wording depends on.
+  const STATUSES: Array<KubernetesClusterAiAccessStatus> = [
+    agentStatus(),
+    agentStatus(fixesOn),
+    agentStatus({ ...fixesOn, aiSettingsSource: "agent_configuration" }),
+    agentStatus({}, silentAgent()),
+    agentStatus({}, signedOffAgent()),
+    agentStatus({}, goneAgent()),
+    notInstalledStatus(),
+    legacyStatus(fixesOn),
+    legacyStatus({}, false),
+    advancedStatus(fixesOn),
+    advancedStatus({}, false),
+    advancedStatus({ credentialName: undefined }),
+    advancedStatus({ credentialName: undefined }, false),
+    advancedStatus({ runner: { ...advancedStatus().runner!, name: "" } }),
+    advancedStatus({
+      ...fixesOn,
+      runner: {
+        ...advancedStatus().runner!,
+        posture: { inCluster: true, allowWrites: false },
+      },
+    }),
+  ];
+
+  beforeAll(async () => {
+    const pseudo: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(ENGLISH)) {
+      if (typeof value === "string") {
+        pseudo[key] = `‹${value}›`;
+      }
+    }
+
+    await i18next.init({
+      lng: "xx",
+      fallbackLng: "en",
+      resources: { xx: { translation: pseudo } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test("the page's constants are keys in en.json", () => {
+    for (const key of [
+      AI_AGENT_PAGE_TITLE,
+      AI_AGENT_PAGE_SUBTITLE,
+      AI_AGENT_READY_TEXT,
+      AI_AGENT_NOT_INSTALLED_TEXT,
+      AI_AGENT_OTHER_RELEASE_TEXT,
+      AI_AGENT_LEGACY_RUNNER_TEXT,
+      AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT,
+      AI_AGENT_SIGNED_OFF_TEXT,
+      AI_AGENT_GONE_TEXT,
+      AI_AGENT_SILENT_TEXT,
+      ASK_PROJECT_ADMIN_TEXT,
+      KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
+      AUTOMATIC_INVESTIGATION_LINE,
+      ...Object.values(AUTOMATIC_INVESTIGATION_CONFIRMATIONS),
+    ]) {
+      expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
+    }
+  });
+
+  test("every state's sentence is looked up whole", () => {
+    for (const status of STATUSES) {
+      expect({
+        state: getAiAgentCardState(status),
+        sentence: getAiAgentStateSentence(status, NOW),
+      }).toEqual({
+        state: getAiAgentCardState(status),
+        sentence: expect.stringMatching(LOOKED_UP),
+      });
+    }
+
+    // The window goes in as a value; the unnamed Runner is translated too.
+    expect(getAiAgentStateSentence(agentStatus({}, silentAgent()), NOW)).toBe(
+      "‹The AI agent has not checked in for over 5 minutes. Check its pod:›",
+    );
+    expect(
+      getAiAgentStateSentence(
+        advancedStatus({ runner: { ...advancedStatus().runner!, name: "" } }),
+        NOW,
+      ),
+    ).toBe(
+      '‹Reached through Runner "‹(unnamed)›" with credential "prod token".›',
+    );
+  });
+
+  test("the pill says a key the Pill looks up, or a sentence already looked up", () => {
+    for (const status of STATUSES) {
+      const text: string = getAiAgentStatusPill(status).text;
+
+      expect(LOOKED_UP.test(text) || ENGLISH[text] === text).toBe(true);
+    }
+  });
+
+  test("the meta line, except kubectl's own version", () => {
+    for (const status of STATUSES) {
+      for (const part of getAiAgentMetaParts(status)) {
+        if (part.startsWith("kubectl v")) {
+          continue;
+        }
+
+        expect(part).toMatch(LOOKED_UP);
+      }
+    }
+
+    expect(
+      getAiAgentMetaParts(
+        agentStatus(
+          {},
+          makeAgent({
+            posture: {
+              ...makeAgent().posture!,
+              allowWrites: true,
+              writeNamespaces: ["web", "api"],
+              allowNodeOperations: true,
+            },
+          }),
+        ),
+      ).slice(1),
+    ).toEqual([
+      "kubectl v1.31.2",
+      "‹Can change: web, api›",
+      "‹node operations on›",
+    ]);
+  });
+
+  test("the headline and every step: the page's words looked up, or the server's untouched", () => {
+    for (const status of STATUSES) {
+      for (const code of ALL_GAP_CODES) {
+        const text: string = getAiAgentAttentionStepText(
+          serverGap(code),
+          status,
+          NOW,
+        );
+
+        expect({ code, text }).toEqual({
+          code,
+          text: LOOKED_UP.test(text) ? text : `next step for ${code}`,
+        });
+      }
+
+      const attention: AiAgentAttention | null = getAiAgentAttention(
+        { ...status, gaps: ALL_GAP_CODES.map(serverGap) },
+        NOW,
+      );
+
+      expect(attention?.title).toMatch(LOOKED_UP);
+    }
+
+    // The agent's name is translated along with the step.
+    expect(
+      getAiAgentAttentionStepText(
+        serverGap("ai_agent_not_connected"),
+        notInstalledStatus(),
+        NOW,
+      ),
+    ).toBe("‹Install the ‹Kubernetes AI agent› with the command above.›");
+  });
+
+  test("the warning, the opt-in line and the confirmation", () => {
+    expect(
+      getRefusedRegistrationWarning(
+        makeAgent({ lastRefusedRegistrationAt: minutesAgo(10) }),
+        NOW,
+      ),
+    ).toMatch(LOOKED_UP);
+    expect(
+      getAutomaticInvestigationLine({ incidents: true, alerts: false }),
+    ).toBe(
+      "‹Automatic investigation for new incidents in this project: ‹On› · alerts: ‹Off››",
+    );
+    expect(
+      getAutomaticInvestigationConfirmation({
+        settings: { incidents: false, alerts: false },
+        projectName: "Acme",
+      }),
+    ).toMatch(LOOKED_UP);
   });
 });

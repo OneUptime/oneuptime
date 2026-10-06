@@ -2056,6 +2056,19 @@ export default class StatusPage extends BaseModel {
     unique: false,
     default: false,
   })
+  /*
+   * Requiring SSO is single sign-on, which OneUptime Cloud sells on the
+   * Scale plan (StatusPageSso, StatusPageOidc, Project.requireSsoForLogin).
+   * Turning it on - on a create too - needs Scale; turning it off is its
+   * default and works on every plan (Types/Billing/PlanGatedColumnDefault).
+   * A page a Scale trial left requiring SSO keeps requiring it until it is
+   * turned off: sign-in reads the column, never the plan.
+   */
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
   public requireSsoForLogin?: boolean = undefined;
 
   @ColumnAccessControl({

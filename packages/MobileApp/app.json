@@ -2,7 +2,7 @@
   "expo": {
     "name": "OneUptime On-Call",
     "slug": "oneuptime-on-call",
-    "version": "1.0.0",
+    "version": "1.5.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "oneuptime",
@@ -10,6 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oneuptime.oncall",
+      "buildNumber": "6",
       "icon": "./assets/icon.png",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
@@ -23,7 +24,7 @@
         "backgroundColor": "#000000"
       },
       "package": "com.oneuptime.oncall",
-      "versionCode": 2,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.USE_BIOMETRIC",

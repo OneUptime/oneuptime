@@ -16,6 +16,20 @@ Every resource in the OneUptime dashboard has a **Developer** section in its sid
 
 The examples are written for the resource. On the **Incidents** list, for example, the list request shows its answer with your first incident, the filters find incidents that are not resolved, of one severity, about one monitor or from the last seven days, using your own states, severities and monitors, and the create request declares an incident with one of your severities, with a line on what each field is for. An incident's own page reads it with its real answer, moves it to another of your severities, and has its common tasks: acknowledge and resolve it (with your project's own states), and add internal or public notes. Every API page ends with the resource's endpoints.
 
+### Features your plan does not include
+
+On OneUptime Cloud, some resources are sold on a plan: single sign-on providers and SCIM connections on **Scale**; API keys, on-call schedules, and Slack and Microsoft Teams notification rules and summaries on **Growth**, among others. Creating one, changing one or switching one on needs that plan. Below it, the request is refused with `402 Payment Required`, and the message names the plan.
+
+What a project already has stays manageable whatever its plan, for example after a trial ends or the plan goes down:
+
+- you can delete those records;
+- you can switch one off, on a resource with an `isEnabled` field, by sending `"isEnabled": false` and nothing else;
+- you can list and read the ones that keep working after the plan goes down: single sign-on providers, SCIM connections, API keys and their permissions, on-call schedules, and Slack and Microsoft Teams notification rules and summaries.
+
+The usual permissions still decide who can do each, exactly as on the plan. Reading the other resources a plan sells, such as templates, custom fields, monitor groups, on-call logs and form submissions, still needs the plan: reading them is using the feature. An API key's permissions are not deleted one by one below **Growth**, because deleting a block permission would give the key more access; delete the key instead.
+
+API keys keep working after a plan goes down. Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**.
+
 ### Finding a resource's ID
 
 Requests that read, change or delete one resource name it by its ID, a UUID. On the resource's own page, its details card ends with a small **ID** line that shows the start of the ID: click the ID, or the copy button beside it, to copy the whole ID. Lists that offer it have **Show ID** in a row's **⋯** menu, and the ID is also the last part of the page's address. Your project's ID is the first thing on the **Project Details** card of **Project Settings → Project**.
@@ -47,6 +61,10 @@ The API reference marks these fields read-only. A value a request sends for one 
 ### The state a new record starts in
 
 An incident, an alert, an incident episode and an alert episode can be created in any of your project's states, as the **Initial State** field of their create forms does: send `currentIncidentStateId` (incidents and incident episodes) or `currentAlertStateId` (alerts and alert episodes), or the relation. The record starts in that state and its state timeline begins with it. Leave it out and it starts in your project's created state, the one flagged `isCreatedState` — or, for an incident declared from a template that has an initial state, in the template's. A state of another project is refused like any other record. Terraform's `current_incident_state_id` and `current_alert_state_id` work the same way. A record created at or past your acknowledged state pages no one, and one created resolved is also not grouped, remediated or investigated by AI and gets no Slack or Microsoft Teams channel — see [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+
+### The episode an incident or alert is in
+
+An incident's `incidentEpisodeId` and an alert's `alertEpisodeId` — and their relations `incidentEpisode` and `alertEpisode` — name the latest episode it was added to and is still a member of, or nothing. They are read-only: OneUptime sets them from the episode's members. To put an incident in an episode, create an Incident Episode Member (`POST /api/incident-episode-member` with `incidentEpisodeId` and `incidentId`); to take it out, delete that member, and the incident then names the latest episode it is still in, or none. Alerts work the same way through Alert Episode Members (`/api/alert-episode-member`, with `alertEpisodeId` and `alertId`). Grouping rules add incidents and alerts to episodes the same way. A create or update of an incident or alert that sends its episode is refused, whoever sends it — the API, Terraform, the MCP tools or a workflow. In Terraform, `incident_episode_id` and `alert_episode_id` can be read but not set; the `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member` resources manage membership.
 
 ### API Reference
 
