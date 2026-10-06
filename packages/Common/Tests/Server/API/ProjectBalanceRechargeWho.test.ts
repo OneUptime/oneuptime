@@ -8,8 +8,8 @@ import {
   OneUptimeRequest,
   OneUptimeResponse,
 } from "../../../Server/Utils/Express";
-import "../../../Server/API/NotificationAPI";
-import "../../../Server/API/AIBillingAPI";
+import { NOTIFICATION_RECHARGE_PERMISSIONS } from "../../../Server/API/NotificationAPI";
+import { AI_RECHARGE_PERMISSIONS } from "../../../Server/API/AIBillingAPI";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -175,6 +175,18 @@ describe("the people the messages name", () => {
   test("can each be granted to a team", () => {
     for (const permission of PROJECT_BALANCE_RECHARGE_PERMISSIONS) {
       expect(GRANTABLE).toContain(permission);
+    }
+  });
+
+  // The lists the two routes check, as they declare them.
+  test("are the lists the recharge routes check", () => {
+    for (const routeList of [
+      NOTIFICATION_RECHARGE_PERMISSIONS,
+      AI_RECHARGE_PERMISSIONS,
+    ]) {
+      expect([...routeList].sort()).toEqual(
+        [...PROJECT_BALANCE_RECHARGE_PERMISSIONS].sort(),
+      );
     }
   });
 });
