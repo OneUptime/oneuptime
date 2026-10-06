@@ -35,14 +35,13 @@ import {
 let isMasterAdminForTest: boolean = true;
 
 /*
- * Two different reads of the viewer's permissions, kept apart on purpose.
- * The create gate (PermissionGate.check) reads getAllPermissions; which
- * COLUMNS a viewer may read comes from getProjectPermissions. Holding the
- * second fixed at "can read monitors" keeps the table itself on screen, so
- * most tests below are about the create gate alone.
+ * What the viewer holds. The table reads it through PermissionGate, for the
+ * create gate and for the columns alike: getAllPermissions lists what is
+ * held, and the rows (getProjectPermissions) would only say what a team
+ * blocks - none here. A master admin, the default below, reads every column
+ * and may create, so a test about someone else sets both.
  */
 let permissionsForTest: Array<unknown> = [];
-let columnReadPermissions: Array<unknown> = ["ProjectOwner"];
 
 jest.mock("../../../../UI/Utils/Permission", () => {
   return {
@@ -51,12 +50,8 @@ jest.mock("../../../../UI/Utils/Permission", () => {
       getAllPermissions: (): Array<unknown> => {
         return permissionsForTest;
       },
-      getProjectPermissions: (): { permissions: Array<unknown> } => {
-        return {
-          permissions: columnReadPermissions.map((permission: unknown) => {
-            return { permission: permission };
-          }),
-        };
+      getProjectPermissions: (): null => {
+        return null;
       },
       getGlobalPermissions: (): null => {
         return null;
@@ -324,7 +319,6 @@ const titleOf: (block: HTMLElement) => string = (
 beforeEach(() => {
   isMasterAdminForTest = true;
   permissionsForTest = [];
-  columnReadPermissions = ["ProjectOwner"];
   showCreateEditModalCalls = 0;
   fetchedQueries = [];
   PermissionGate.clearPermissionPropsCache();
@@ -695,9 +689,16 @@ describe("the create button follows the header's permission gate", () => {
 
     renderTable();
 
-    await expectNoCtaAfterSettling();
+    await waitFor(() => {
+      expect(screen.getByTestId("card")).toBeInTheDocument();
+    });
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(screen.queryByTestId(CTA_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId("card-button")).toBeNull();
     expect(screen.queryByTestId("table-empty-state-note")).toBeNull();
-    expect(screen.queryByTestId("refresh-button")).toBeNull();
   });
 });
 
@@ -963,8 +964,8 @@ describe("where the create button stays out", () => {
 describe("a viewer who may read none of the columns", () => {
   test("is told so, and which permissions would let them in", async () => {
     isMasterAdminForTest = false;
-    permissionsForTest = [Permission.Viewer];
-    columnReadPermissions = [];
+    // Holds something, so the snapshot has landed - but nothing on monitors.
+    permissionsForTest = [Permission.ReadProjectIncident];
 
     renderTable();
 

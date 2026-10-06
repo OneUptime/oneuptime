@@ -231,8 +231,20 @@ export default class PermissionGate {
     options?: PermissionGateOptions | undefined,
   ): boolean {
     return (
-      User.isMasterAdmin() ||
-      this.getHeldPermissions(options).allowed.length > 0
+      User.isMasterAdmin() || this.isLoaded(this.getHeldPermissions(options))
+    );
+  }
+
+  /*
+   * Whether `held` is a snapshot at all: anything in it, a block included -
+   * a member whose every row is a block has a snapshot, and it refuses. An
+   * empty one has not landed yet.
+   */
+  private static isLoaded(held: HeldPermissions): boolean {
+    return (
+      held.allowed.length > 0 ||
+      held.blocked.length > 0 ||
+      held.blockedForSomeLabels.length > 0
     );
   }
 
@@ -295,7 +307,7 @@ export default class PermissionGate {
      * switched. Telling somebody they need a permission they actually hold is
      * worse than briefly not offering the button, so this case stays hidden.
      */
-    if (held.allowed.length === 0) {
+    if (!this.isLoaded(held)) {
       return { isAllowed: false };
     }
 
@@ -381,7 +393,7 @@ export default class PermissionGate {
 
     const held: HeldPermissions = this.getHeldPermissions(options);
 
-    if (columnPermissions.length === 0 || held.allowed.length === 0) {
+    if (columnPermissions.length === 0 || !this.isLoaded(held)) {
       return recordGate;
     }
 
