@@ -97,7 +97,7 @@ Para pausar um workflow sem excluí-lo, desligue **Habilitado**. Nenhuma execuç
 - Arraste os blocos para movê-los. O layout é salvo.
 - Para excluir uma linha, arraste uma das pontas para fora do ponto e solte em uma área vazia do canvas.
 - Para excluir um bloco, clique nele e use **Excluir** no rodapé da janela de configurações. Selecionar um bloco ou uma linha e apertar Backspace também remove.
-- Não dá para duplicar um bloco isolado. **Duplicate Workflow**, na página **Configurações** do workflow, copia tudo, e a cópia nasce desabilitada.
+- Não dá para duplicar um bloco isolado. **Duplicate Workflow**, na página **Configurações** do workflow, copia tudo. O nome da cópia já vem preenchido, numerado depois dos workflows do projeto ("Nightly Sync" é copiado como "Nightly Sync 2"), e a cópia se abre, desabilitada.
 - Empilhe os blocos de cima para baixo, para que sejam lidos na direção em que rodam — as entradas ficam na borda de cima e as saídas na de baixo, então o fluxo desce naturalmente.
 
 ## Onde ler em seguida

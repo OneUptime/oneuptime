@@ -97,7 +97,7 @@ Vil du sætte et workflow på pause uden at slette det, slår du **Aktiveret** f
 - Træk i blokkene for at flytte dem. Layoutet gemmes.
 - En linje sletter du ved at trække en af dens ender af prikken og slippe den på tomt lærred.
 - En blok sletter du ved at klikke på den og bruge **Slet** nederst i dens indstillingsdialog. Du kan også markere en blok eller en linje og trykke Backspace.
-- Der er ingen måde at duplikere en enkelt blok på. **Duplicate Workflow** på workflowets side **Indstillinger** kopierer det hele, og kopien lander deaktiveret.
+- Der er ingen måde at duplikere en enkelt blok på. **Duplicate Workflow** på workflowets side **Indstillinger** kopierer det hele. Kopiens navn er udfyldt, nummereret forbi projektets workflows ("Nightly Sync" kopieres som "Nightly Sync 2"), og kopien åbnes, deaktiveret.
 - Stabl blokkene fra top til bund, så de læses i den retning, de kører — input sidder på den øverste kant, output på den nederste, så flowet naturligt går nedad.
 
 ## Hvor du kan læse videre

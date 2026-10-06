@@ -56,7 +56,7 @@ Dashbord i seg selv utløper ikke. Dataene de viser følger prosjektets oppbevar
 
 ## Duplisere et dashbord
 
-For å kopiere et eksisterende dashbord, åpne dashbord-listen og velg **Dupliser**. Kopien inkluderer hver widget, variabel og innstilling unntatt offentlig deling — det starter alltid av slik at du kan bestemme om du skal slå det på igjen.
+For å kopiere et dashbord, åpne det og gå til **Innstillinger → Duplicate Dashboard**. Navnet på kopien er fylt ut for deg: dashbordets navn, nummerert forbi navnene prosjektet allerede har ("Checkout API" kopieres som "Checkout API 2", og en kopi av den som "Checkout API 3"). Endre det om du vil, klikk **Duplicate Dashboard**, og kopien åpnes. Den har dashbordets widgeter, variabler, beskrivelse og etiketter. Merkevarebygging og egendefinerte domener blir værende hos originalen, og offentlig deling starter alltid av slik at du kan bestemme om du skal slå det på.
 
 Dette er det riktige trekket når du vil forgrene en mal (som "vakthavende-dashbordet vårt") til en tjeneste-spesifikk kopi.
 

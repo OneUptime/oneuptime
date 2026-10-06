@@ -56,7 +56,7 @@ Los paneles en sí no caducan. Los datos que muestran siguen la configuración d
 
 ## Duplicar un panel
 
-Para copiar un panel existente, abre la lista de paneles y elige **Duplicar**. La copia incluye cada widget, variable y configuración excepto el uso compartido público — eso siempre comienza apagado para que puedas decidir si volver a activarlo.
+Para copiar un panel, ábrelo y ve a **Ajustes → Duplicate Dashboard**. El nombre de la copia ya viene puesto: el nombre del panel, numerado después de los nombres que el proyecto ya tiene ("Checkout API" se copia como "Checkout API 2", y una copia de esa como "Checkout API 3"). Cámbialo si quieres, haz clic en **Duplicate Dashboard** y la copia se abre. Tiene los widgets, las variables, la descripción y las etiquetas del panel. La marca y los dominios personalizados se quedan con el original, y el uso compartido público siempre comienza apagado para que puedas decidir si activarlo.
 
 Esta es la jugada correcta cuando quieres bifurcar una plantilla (como "nuestro panel de guardia") en una copia específica para un servicio.
 
