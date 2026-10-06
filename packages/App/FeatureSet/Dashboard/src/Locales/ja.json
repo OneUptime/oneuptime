@@ -25896,5 +25896,20 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}。{{second}}。{{third}}。また、{{fourth}}",
   "{{mode}} (current)": "{{mode}}（現在）",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "{{exampleNamespaces}} を、AI が修正してよい Namespace に置き換えてください。各 Namespace はすでに存在している必要があります。チャートは Namespace を作成しないため、存在しない Namespace が 1 つでもあるとアップグレード全体が失敗します。それ以外の場所での修正は拒否されます。後でクラスター全体を許可するには、{{clusterWideFlag}} を使用してください（=null は使わないでください。--reuse-values を指定すると、=null では保存済みの Namespace のリストがリセットされません）。nodeOperations=false にすると、修正はノードに及びません。cordon、uncordon、drain、taint を許可するには true に設定してください（drain、taint、ノードの patch は引き続き人の確認を待ちます）。",
-  "A team you are on blocks {{permissions}}.": "所属しているチームが{{permissions}}をブロックしています。"
+  "A team you are on blocks {{permissions}}.": "所属しているチームが{{permissions}}をブロックしています。",
+  "Not working on this plan": "このプランでは動作しません",
+  "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "これらは動作を停止しました。ご利用のプランに含まれていないため、ID プロバイダーはここでユーザーの追加や削除を行わなくなりました。{{planName}} プランにアップグレードすると、そのままの状態で再び有効になります。引き続き削除することもできます。",
+  "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "これらは動作を停止しました。ご利用のプランに含まれていません。{{planName}} プランにアップグレードすると、そのままの状態で再び有効になります。引き続き削除することもできます。",
+  "This API key stopped working": "この API キーは動作を停止しました",
+  "Your plan does not include API keys, so every request made with this key is refused. Upgrading to the {{planName}} plan turns it back on as it is. You can still delete it.": "ご利用のプランには API キーが含まれていないため、このキーを使ったリクエストはすべて拒否されます。{{planName}} プランにアップグレードすると、そのままの状態で再び有効になります。引き続き削除することもできます。",
+  "Your {{count}} API keys stop working on this plan.": "このプランでは {{count}} 個の API キーが動作しなくなります。",
+  "Your {{count}} API keys stop working on this plan._one": "このプランでは API キーが動作しなくなります。",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan.": "このプランでは {{count}} 個の API キーが動作を停止しました。{{planName}} プランで再び動作します。",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan._one": "このプランでは API キーが動作を停止しました。{{planName}} プランで再び動作します。",
+  "Your {{count}} SCIM connections stop working on this plan.": "このプランでは {{count}} 件の SCIM 接続が動作しなくなります。",
+  "Your {{count}} SCIM connections stop working on this plan._one": "このプランでは SCIM 接続が動作しなくなります。",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "このプランでは {{count}} 件の SCIM 接続が動作を停止したため、ID プロバイダーはユーザーの追加や削除を行わなくなりました。{{planName}} プランで再び動作します。",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "このプランでは SCIM 接続が動作を停止したため、ID プロバイダーはユーザーの追加や削除を行わなくなりました。{{planName}} プランで再び動作します。",
+  "API keys stop working on this plan.": "このプランでは API キーが機能しなくなります。",
+  "SCIM connections stop working on this plan.": "このプランでは SCIM 接続が機能しなくなります。"
 }

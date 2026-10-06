@@ -25896,5 +25896,20 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}; {{second}}; {{third}}; and {{fourth}}",
   "{{mode}} (current)": "{{mode}} (current)",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
-  "A team you are on blocks {{permissions}}.": "A team you are on blocks {{permissions}}."
+  "A team you are on blocks {{permissions}}.": "A team you are on blocks {{permissions}}.",
+  "Not working on this plan": "Not working on this plan",
+  "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.",
+  "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.",
+  "This API key stopped working": "This API key stopped working",
+  "Your plan does not include API keys, so every request made with this key is refused. Upgrading to the {{planName}} plan turns it back on as it is. You can still delete it.": "Your plan does not include API keys, so every request made with this key is refused. Upgrading to the {{planName}} plan turns it back on as it is. You can still delete it.",
+  "Your {{count}} API keys stop working on this plan.": "Your {{count}} API keys stop working on this plan.",
+  "Your {{count}} API keys stop working on this plan._one": "Your API key stops working on this plan.",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan.": "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan.",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan._one": "Your API key stopped working on this plan. It works again on the {{planName}} plan.",
+  "Your {{count}} SCIM connections stop working on this plan.": "Your {{count}} SCIM connections stop working on this plan.",
+  "Your {{count}} SCIM connections stop working on this plan._one": "Your SCIM connection stops working on this plan.",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Your SCIM connection stopped working on this plan, so your identity provider no longer adds or removes people. It works again on the {{planName}} plan.",
+  "API keys stop working on this plan.": "API keys stop working on this plan.",
+  "SCIM connections stop working on this plan.": "SCIM connections stop working on this plan."
 }

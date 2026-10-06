@@ -15,8 +15,11 @@ import UserType from "../../Types/UserType";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import User from "../../Models/DatabaseModels/User";
 import APIKeyAccessPermission from "../Utils/APIKey/AccessPermission";
+import PlanCutoffCredentialAccess from "../Utils/Billing/PlanCutoffCredentialAccess";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
+import { PlanCutoffCredential } from "../../Types/Billing/PlanCutoffCredentials";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 
 export default class ProjectMiddleware {
   /*
@@ -201,6 +204,27 @@ export default class ProjectMiddleware {
         await ApiKeyService.findApiKey(apiKey);
 
       if (apiKeyRow) {
+        /*
+         * A project's API keys work only while it is on the plan that sells
+         * them (Types/Billing/PlanCutoffCredentials). Below it - after a
+         * downgrade - the key is refused here, with a 402 that names the
+         * plan, before anything is read with it: this is the one door every
+         * API-key request goes through, so every route behind it, and
+         * everything built on the API (Terraform, the CLI, the MCP server's
+         * API-key mode), is covered at once. The key itself is untouched
+         * and works again as soon as the project is back on the plan.
+         * Billing off: no plans, nothing to refuse.
+         */
+        const planRefusal: PaymentRequiredException | null =
+          await PlanCutoffCredentialAccess.getRefusal({
+            projectId: apiKeyRow.projectId,
+            credential: PlanCutoffCredential.ApiKey,
+          });
+
+        if (planRefusal) {
+          throw planRefusal;
+        }
+
         tenantId = apiKeyRow.projectId;
 
         (req as OneUptimeRequest).tenantId = tenantId;
