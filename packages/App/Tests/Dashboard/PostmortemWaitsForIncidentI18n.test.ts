@@ -80,8 +80,13 @@ describe("the words for a postmortem that waits for its incident, in the dashboa
     );
 
     expect(source).toMatch(
-      /statusText=\{ ?IncidentPostmortemPublication\.isWaitingForIncidentToShow\( ?item,? ?\) \? IncidentPostmortemPublication\.hiddenIncidentLabel : undefined ?\}/,
+      /const isWaitingForIncident: boolean = IncidentPostmortemPublication\.isWaitingForIncidentToShow\( ?item,? ?\);/,
     );
+    expect(source).toMatch(
+      /statusText=\{ ?isWaitingForIncident \? IncidentPostmortemPublication\.hiddenIncidentLabel : undefined ?\}/,
+    );
+    // Drawn as waiting - a clock - rather than as a skip for good.
+    expect(source).toContain("isWaiting={isWaitingForIncident}");
   });
 
   test("the Settings tab's switch takes its description from the shared constant, by the rule", () => {
@@ -92,8 +97,9 @@ describe("the words for a postmortem that waits for its incident, in the dashboa
       "Settings.tsx",
     );
 
+    // Not for a private incident: switching it on alone sends nothing.
     expect(source).toMatch(
-      /IncidentPostmortemPublication\.isWaitingForIncidentToShow\( ?loadedIncident,? ?\)/,
+      /IncidentPostmortemPublication\.isSentBySwitchingVisibilityOn\( ?loadedIncident,? ?\)/,
     );
     expect(source).toContain(
       "description: IncidentPostmortemPublication.sendsOnShowDescription,",

@@ -215,11 +215,14 @@ interface IncidentShape {
   // The pages it is limited to, and the record of the ones told.
   statusPageIds?: Array<string> | undefined;
   notified?: Array<string> | null | undefined;
-  // Its postmortem: none, unless said.
+  /*
+   * Its postmortem: none, unless said. Its note is not here: the card does
+   * not load it (it may be long), and the server checks it when the
+   * incident is shown.
+   */
   postmortem?:
     | {
         published: boolean;
-        note: string;
         notify: boolean;
         status: StatusPageSubscriberNotificationStatus;
         message: string;
@@ -258,7 +261,6 @@ function buildIncident(shape: IncidentShape = {}): Incident {
 
   if (shape.postmortem) {
     incident.showPostmortemOnStatusPage = shape.postmortem.published;
-    incident.postmortemNote = shape.postmortem.note;
     incident.notifySubscribersOnPostmortemPublished = shape.postmortem.notify;
     incident.subscriberNotificationStatusOnPostmortemPublished =
       shape.postmortem.status;
@@ -275,7 +277,6 @@ function waitingPostmortem(
 ): NonNullable<IncidentShape["postmortem"]> {
   return {
     published: true,
-    note: "## What happened",
     notify: true,
     status: StatusPageSubscriberNotificationStatus.Skipped,
     message: IncidentPostmortemPublication.hiddenIncidentMessage,
@@ -544,18 +545,21 @@ describe("incident Settings tab: the switch says it sends a postmortem that wait
     )!;
   }
 
-  test("reads the postmortem with the settings card's own item", async () => {
+  test("reads the postmortem with the settings card's own item - but not its note, which may be long", async () => {
     await renderSettings();
 
-    expect(settingsCard().modelDetailProps.selectMoreFields).toEqual(
+    const select: Record<string, unknown> | undefined =
+      settingsCard().modelDetailProps.selectMoreFields;
+
+    expect(select).toEqual(
       expect.objectContaining({
         showPostmortemOnStatusPage: true,
-        postmortemNote: true,
         notifySubscribersOnPostmortemPublished: true,
         subscriberNotificationStatusOnPostmortemPublished: true,
         subscriberNotificationStatusMessageOnPostmortemPublished: true,
       }),
     );
+    expect(select).not.toHaveProperty("postmortemNote");
   });
 
   test("says nothing before the incident has loaded", async () => {
@@ -569,19 +573,6 @@ describe("incident Settings tab: the switch says it sends a postmortem that wait
     await loadIncident({ postmortem: waitingPostmortem() });
 
     expect(visibilityField().title).toBe("Visible on Status Page");
-    expect(visibilityField().description).toBe(
-      IncidentPostmortemPublication.sendsOnShowDescription,
-    );
-  });
-
-  test("says so for a postmortem an earlier release skipped for the same reason", async () => {
-    await renderSettings();
-    await loadIncident({
-      postmortem: waitingPostmortem({
-        message: IncidentPostmortemPublication.earlierHiddenIncidentMessage,
-      }),
-    });
-
     expect(visibilityField().description).toBe(
       IncidentPostmortemPublication.sendsOnShowDescription,
     );
@@ -603,10 +594,6 @@ describe("incident Settings tab: the switch says it sends a postmortem that wait
     [
       "the postmortem is not published",
       { postmortem: waitingPostmortem({ published: false }) },
-    ],
-    [
-      "the postmortem has no note",
-      { postmortem: waitingPostmortem({ note: "  " }) },
     ],
     [
       "Notify Subscribers is off",
@@ -642,6 +629,40 @@ describe("incident Settings tab: the switch says it sends a postmortem that wait
     [
       "the incident is visible already",
       { isVisibleOnStatusPage: true, postmortem: waitingPostmortem() },
+    ],
+    /*
+     * A private incident stays hidden however the switch is set: turning it
+     * on alone sends nothing (IncidentPostmortemPublication
+     * .isSentBySwitchingVisibilityOn). Its own switch says private incidents
+     * are hidden from every status page.
+     */
+    [
+      "the incident is private",
+      { isPrivate: true, postmortem: waitingPostmortem() },
+    ],
+    [
+      "the incident is private and switched on",
+      {
+        isPrivate: true,
+        isVisibleOnStatusPage: true,
+        postmortem: waitingPostmortem(),
+      },
+    ],
+    /*
+     * The words an earlier release skipped it with. The upgrade
+     * (MarkPostmortemsWaitingForHiddenIncidents) gave every one whose
+     * incident was still hidden the words of a postmortem that waits; one
+     * that holds the earlier words was on an incident shown since without
+     * anyone being told, and showing it again sends nothing.
+     */
+    [
+      "the postmortem was skipped by an earlier release, on an incident shown since",
+      {
+        postmortem: waitingPostmortem({
+          message:
+            "Incident is not visible on status page. Skipping notifications to subscribers.",
+        }),
+      },
     ],
   ] as Array<[string, IncidentShape]>)(
     "says nothing when %s",

@@ -198,6 +198,8 @@ interface StoredPostmortem {
   notificationMessage?: string;
   // The incident's Visible on Status Page: visible, unless said.
   isIncidentVisible?: boolean;
+  // Whether the incident is private: not, unless said.
+  isIncidentPrivate?: boolean;
 }
 
 const UNPUBLISHED: StoredPostmortem = {
@@ -238,6 +240,7 @@ function storedIncident(): Incident {
   }
 
   incident.isVisibleOnStatusPage = stored.isIncidentVisible ?? true;
+  incident.isPrivate = stored.isIncidentPrivate ?? false;
   incident.postmortemAttachments = stored.attachments.map(
     (attachment: { id: string; name: string }): File => {
       const file: File = new File();
@@ -807,12 +810,8 @@ describe("the Postmortem card", () => {
       ).toBeVisible();
     });
 
-    test("the words an earlier release skipped it with read the same", async () => {
-      stored = {
-        ...WAITING,
-        notificationMessage:
-          IncidentPostmortemPublication.earlierHiddenIncidentMessage,
-      };
+    test("a private incident is hidden whatever its switch says: switched on, its postmortem still reads as not sent yet", async () => {
+      stored = { ...WAITING, isIncidentVisible: true, isIncidentPrivate: true };
 
       await renderPage();
 
@@ -823,9 +822,34 @@ describe("the Postmortem card", () => {
           WAIT,
         ),
       ).toBeVisible();
+      expect(screen.queryByText("Notifications skipped.")).toBeNull();
     });
 
-    test("once the incident is visible - an earlier release showed it without sending it - it reads as skipped", async () => {
+    /*
+     * The words an earlier release skipped it with. The upgrade
+     * (MarkPostmortemsWaitingForHiddenIncidents) gave every one whose
+     * incident was still hidden the words of a postmortem that waits; the
+     * ones it left were on incidents shown since without anyone being told,
+     * and they stay skipped.
+     */
+    test("the words an earlier release skipped it with read as skipped", async () => {
+      stored = {
+        ...WAITING,
+        notificationMessage:
+          "Incident is not visible on status page. Skipping notifications to subscribers.",
+      };
+
+      await renderPage();
+
+      expect(
+        await screen.findByText("Notifications skipped.", {}, WAIT),
+      ).toBeVisible();
+      expect(
+        screen.queryByText(IncidentPostmortemPublication.hiddenIncidentLabel),
+      ).toBeNull();
+    });
+
+    test("once the incident is visible - and not private - it reads as skipped: making it visible is what would have sent it", async () => {
       stored = { ...WAITING, isIncidentVisible: true };
 
       await renderPage();
@@ -867,7 +891,7 @@ describe("the Postmortem card", () => {
       expect(await screen.findByText("Sending Soon", {}, WAIT)).toBeVisible();
     });
 
-    test("the card reads the incident's visibility along with the notification", async () => {
+    test("the card reads the incident's visibility and whether it is private along with the notification", async () => {
       stored = WAITING;
 
       await renderPage();
@@ -877,6 +901,7 @@ describe("the Postmortem card", () => {
       ).select;
 
       expect(select["isVisibleOnStatusPage"]).toBe(true);
+      expect(select["isPrivate"]).toBe(true);
       expect(
         select["subscriberNotificationStatusMessageOnPostmortemPublished"],
       ).toBe(true);

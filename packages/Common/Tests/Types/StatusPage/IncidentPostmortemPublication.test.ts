@@ -647,10 +647,6 @@ describe("IncidentPostmortemPublication's messages", () => {
     expect(IncidentPostmortemPublication.hiddenIncidentMessage).not.toContain(
       "Skipping",
     );
-    // What incidents skipped before this release still hold, word for word.
-    expect(IncidentPostmortemPublication.earlierHiddenIncidentMessage).toBe(
-      "Incident is not visible on status page. Skipping notifications to subscribers.",
-    );
   });
 
   test("showing the incident queues it with its own reason", () => {
@@ -675,57 +671,132 @@ describe("IncidentPostmortemPublication's messages", () => {
 /*
  * A POSTMORTEM PUBLISHED WHILE ITS INCIDENT IS HIDDEN IS SENT WHEN THE
  * INCIDENT IS SHOWN. The status page shows a postmortem only on an incident
- * it shows, so the send job skips one whose incident is hidden; the update
- * that shows the incident is when the status page first shows it (#4429
- * found it was never sent at all).
+ * it shows - Visible on Status Page on, and not private - so the send job
+ * skips one whose incident is hidden; the update that shows the incident is
+ * when the status page first shows it (#4429 found it was never sent at all).
  */
-describe("IncidentPostmortemPublication.isIncidentShownBy", () => {
+describe("IncidentPostmortemPublication.isIncidentShown", () => {
+  test("an incident switched on and not private is shown", () => {
+    expect(
+      IncidentPostmortemPublication.isIncidentShown({
+        isVisibleOnStatusPage: true,
+        isPrivate: false,
+      }),
+    ).toBe(true);
+    expect(
+      IncidentPostmortemPublication.isIncidentShown({
+        isVisibleOnStatusPage: true,
+      }),
+    ).toBe(true);
+  });
+
   test.each([
-    ["true", true],
-    ['the string "true" a hand-written API request may send', "true"],
-    ['"TRUE" with spaces around it', " TRUE "],
-  ] as Array<[string, unknown]>)(
-    "Visible on Status Page written as %s shows the incident",
-    (_label: string, value: unknown) => {
-      expect(
-        IncidentPostmortemPublication.isIncidentShownBy({
-          isVisibleOnStatusPage: value,
-        }),
-      ).toBe(true);
+    ["switched off", { isVisibleOnStatusPage: false }],
+    ["never set, as the job and the status page read it", {}],
+    ["null", { isVisibleOnStatusPage: null }],
+    [
+      "private, whatever its switch says",
+      { isVisibleOnStatusPage: true, isPrivate: true },
+    ],
+    [
+      'private, as a hand-written "true"',
+      { isVisibleOnStatusPage: true, isPrivate: "true" },
+    ],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "an incident %s is not",
+    (_label: string, incident: Record<string, unknown>) => {
+      expect(IncidentPostmortemPublication.isIncidentShown(incident)).toBe(
+        false,
+      );
+    },
+  );
+
+  test("nothing read is not", () => {
+    expect(IncidentPostmortemPublication.isIncidentShown(null)).toBe(false);
+    expect(IncidentPostmortemPublication.isIncidentShown(undefined)).toBe(
+      false,
+    );
+  });
+});
+
+describe("IncidentPostmortemPublication.mayShowIncident", () => {
+  test.each([
+    ["Visible on Status Page written as true", { isVisibleOnStatusPage: true }],
+    [
+      'Visible on Status Page written as a hand-written "true"',
+      { isVisibleOnStatusPage: " TRUE " },
+    ],
+    ["Private Incident written as false", { isPrivate: false }],
+    ["Private Incident written as null", { isPrivate: null }],
+    [
+      "the Settings form's save, showing it",
+      { isVisibleOnStatusPage: true, isPrivate: false },
+    ],
+    [
+      "the Settings form's save, hiding it",
+      { isVisibleOnStatusPage: false, isPrivate: false },
+    ],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "%s may show the incident",
+    (_label: string, written: Record<string, unknown>) => {
+      expect(IncidentPostmortemPublication.mayShowIncident(written)).toBe(true);
     },
   );
 
   test.each([
-    ["false", false],
-    ['"false"', "false"],
-    ["null", null],
-    ["left out", undefined],
-    ["1", 1],
-  ] as Array<[string, unknown]>)(
-    "Visible on Status Page written as %s does not",
-    (_label: string, value: unknown) => {
-      expect(
-        IncidentPostmortemPublication.isIncidentShownBy(
-          value === undefined ? {} : { isVisibleOnStatusPage: value },
-        ),
-      ).toBe(false);
+    [
+      "Visible on Status Page written as false",
+      { isVisibleOnStatusPage: false },
+    ],
+    ["Private Incident written as true", { isPrivate: true }],
+    [
+      "both switches written to hide it",
+      { isVisibleOnStatusPage: false, isPrivate: true },
+    ],
+    ["neither switch written", { title: "Renamed" }],
+    [
+      "the postmortem's own columns",
+      { showPostmortemOnStatusPage: true, postmortemNote: NOTE },
+    ],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "%s does not",
+    (_label: string, written: Record<string, unknown>) => {
+      expect(IncidentPostmortemPublication.mayShowIncident(written)).toBe(
+        false,
+      );
     },
   );
 
   test("no update data shows nothing", () => {
-    expect(IncidentPostmortemPublication.isIncidentShownBy(undefined)).toBe(
+    expect(IncidentPostmortemPublication.mayShowIncident(undefined)).toBe(
       false,
     );
-    expect(IncidentPostmortemPublication.isIncidentShownBy(null)).toBe(false);
+    expect(IncidentPostmortemPublication.mayShowIncident(null)).toBe(false);
+  });
+});
+
+describe("IncidentPostmortemPublication.isComparedBy", () => {
+  test("an update that writes the postmortem, or may show the incident, has it compared", () => {
+    for (const written of [
+      { postmortemNote: NOTE },
+      { showPostmortemOnStatusPage: true },
+      { isVisibleOnStatusPage: true },
+      { isPrivate: false },
+    ]) {
+      expect(IncidentPostmortemPublication.isComparedBy(written)).toBe(true);
+    }
   });
 
-  test("the postmortem's own columns do not show the incident", () => {
-    expect(
-      IncidentPostmortemPublication.isIncidentShownBy({
-        showPostmortemOnStatusPage: true,
-        postmortemNote: NOTE,
-      }),
-    ).toBe(false);
+  test("any other update does not", () => {
+    for (const written of [
+      { title: "Renamed" },
+      { isVisibleOnStatusPage: false },
+      { notifySubscribersOnPostmortemPublished: true },
+      {},
+    ]) {
+      expect(IncidentPostmortemPublication.isComparedBy(written)).toBe(false);
+    }
+    expect(IncidentPostmortemPublication.isComparedBy(undefined)).toBe(false);
   });
 });
 
@@ -733,15 +804,18 @@ describe("IncidentPostmortemPublication.isShownByUpdate", () => {
   const SHOW: Record<string, unknown> = { isVisibleOnStatusPage: true };
 
   test.each([
-    ["switched off", false],
-    ["never set, which the status page reads as hidden", null],
-    ["not read", undefined],
-  ] as Array<[string, boolean | null | undefined]>)(
-    "an incident %s before the update is shown by it",
-    (_label: string, visible: boolean | null | undefined) => {
+    ["switched off", { isVisibleOnStatusPage: false }],
+    [
+      "never set, which the status page reads as hidden",
+      { isVisibleOnStatusPage: null },
+    ],
+    ["not read", {}],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "an incident %s before the update is shown by switching it on",
+    (_label: string, stored: Record<string, unknown>) => {
       expect(
         IncidentPostmortemPublication.isShownByUpdate({
-          stored: { ...shown(), isVisibleOnStatusPage: visible },
+          stored: { ...shown(), ...stored },
           written: SHOW,
         }),
       ).toBe(true);
@@ -751,15 +825,52 @@ describe("IncidentPostmortemPublication.isShownByUpdate", () => {
   test("writing it back on an incident already shown is no change", () => {
     expect(
       IncidentPostmortemPublication.isShownByUpdate({
-        stored: { ...shown(), isVisibleOnStatusPage: true },
+        stored: { ...shown(), isVisibleOnStatusPage: true, isPrivate: false },
+        written: { isVisibleOnStatusPage: true, isPrivate: false },
+      }),
+    ).toBe(false);
+  });
+
+  test("a private incident switched on stays hidden: it is not shown", () => {
+    expect(
+      IncidentPostmortemPublication.isShownByUpdate({
+        stored: { ...shown(), isVisibleOnStatusPage: false, isPrivate: true },
         written: SHOW,
       }),
     ).toBe(false);
   });
 
-  test("hiding the incident, or leaving its switch alone, shows nothing", () => {
+  test("a private incident switched on and made not private in one update is shown", () => {
+    expect(
+      IncidentPostmortemPublication.isShownByUpdate({
+        stored: { ...shown(), isVisibleOnStatusPage: false, isPrivate: true },
+        written: { isVisibleOnStatusPage: true, isPrivate: false },
+      }),
+    ).toBe(true);
+  });
+
+  test("an incident switched on while private is shown when it is made not private", () => {
+    expect(
+      IncidentPostmortemPublication.isShownByUpdate({
+        stored: { ...shown(), isVisibleOnStatusPage: true, isPrivate: true },
+        written: { isPrivate: false },
+      }),
+    ).toBe(true);
+  });
+
+  test("made private in the same update, it is not shown", () => {
+    expect(
+      IncidentPostmortemPublication.isShownByUpdate({
+        stored: { ...shown(), isVisibleOnStatusPage: false },
+        written: { isVisibleOnStatusPage: true, isPrivate: "true" },
+      }),
+    ).toBe(false);
+  });
+
+  test("hiding the incident, or leaving its switches alone, shows nothing", () => {
     for (const written of [
       { isVisibleOnStatusPage: false },
+      { isPrivate: false },
       { postmortemNote: NOTE },
       {},
     ]) {
@@ -783,27 +894,20 @@ describe("IncidentPostmortemPublication.isShownByUpdate", () => {
 });
 
 describe("IncidentPostmortemPublication.isHiddenIncidentSkip", () => {
-  test.each([
-    ["in this release's words", "hiddenIncidentMessage"],
-    ["in the words an earlier release used", "earlierHiddenIncidentMessage"],
-  ] as Array<
-    [string, "hiddenIncidentMessage" | "earlierHiddenIncidentMessage"]
-  >)(
-    "a skip because the incident was hidden, %s, is one",
-    (
-      _label: string,
-      message: "hiddenIncidentMessage" | "earlierHiddenIncidentMessage",
-    ) => {
-      expect(
-        IncidentPostmortemPublication.isHiddenIncidentSkip({
-          status: StatusPageSubscriberNotificationStatus.Skipped,
-          message: IncidentPostmortemPublication[message],
-        }),
-      ).toBe(true);
-    },
-  );
+  test("a skip because the incident was hidden is one", () => {
+    expect(
+      IncidentPostmortemPublication.isHiddenIncidentSkip({
+        status: StatusPageSubscriberNotificationStatus.Skipped,
+        message: IncidentPostmortemPublication.hiddenIncidentMessage,
+      }),
+    ).toBe(true);
+  });
 
   test.each([
+    [
+      "in the words an earlier release used: its incident may have been shown since, its postmortem on the status page for a while",
+      "Incident is not visible on status page. Skipping notifications to subscribers.",
+    ],
     ["switched off", IncidentPostmortemPublication.notShownMessage],
     ["with no note", IncidentPostmortemPublication.noNoteMessage],
     [
@@ -816,7 +920,7 @@ describe("IncidentPostmortemPublication.isHiddenIncidentSkip", () => {
     ],
     ["with no message", null],
   ] as Array<[string, string | null]>)(
-    "a skip for a postmortem %s is not",
+    "a skip %s is not",
     (_label: string, message: string | null) => {
       expect(
         IncidentPostmortemPublication.isHiddenIncidentSkip({
@@ -859,12 +963,13 @@ describe("IncidentPostmortemPublication.isHiddenIncidentSkip", () => {
 describe("IncidentPostmortemPublication.getNotificationAction, for an update that shows the incident", () => {
   const SHOW: Record<string, unknown> = { isVisibleOnStatusPage: true };
 
+  // As the read before the write sees an update that shows the incident.
   function hiddenIncident(
     overrides: Partial<IncidentPostmortemStoredState> = {},
   ): IncidentPostmortemStoredState {
     return {
-      ...shown(),
       isVisibleOnStatusPage: false,
+      isPrivate: false,
       subscriberNotificationStatusOnPostmortemPublished:
         StatusPageSubscriberNotificationStatus.Skipped,
       subscriberNotificationStatusMessageOnPostmortemPublished:
@@ -873,22 +978,10 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
     };
   }
 
-  test("a published postmortem skipped because the incident was hidden is queued once it is shown", () => {
+  test("a notification skipped because the incident was hidden is looked at again once the incident is shown", () => {
     expect(
       IncidentPostmortemPublication.getNotificationAction({
         stored: hiddenIncident(),
-        written: SHOW,
-      }),
-    ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
-  });
-
-  test("so is one an earlier release skipped for the same reason", () => {
-    expect(
-      IncidentPostmortemPublication.getNotificationAction({
-        stored: hiddenIncident({
-          subscriberNotificationStatusMessageOnPostmortemPublished:
-            IncidentPostmortemPublication.earlierHiddenIncidentMessage,
-        }),
         written: SHOW,
       }),
     ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
@@ -898,7 +991,7 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
     ["waiting for the job", StatusPageSubscriberNotificationStatus.Pending],
     ["being sent", StatusPageSubscriberNotificationStatus.InProgress],
   ])(
-    "one %s when the update read it is looked at once the update is written: the run holding it may skip it as hidden",
+    "so is one %s when the update read it: the run holding it may skip it as hidden",
     (_label: string, status: StatusPageSubscriberNotificationStatus) => {
       expect(
         IncidentPostmortemPublication.getNotificationAction({
@@ -912,6 +1005,15 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
       ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
     },
   );
+
+  test("so is the notification of an incident the read before the write did not see: where it stands then decides", () => {
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: undefined,
+        written: SHOW,
+      }),
+    ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
+  });
 
   test.each([
     ["was sent already", StatusPageSubscriberNotificationStatus.Success, null],
@@ -935,6 +1037,11 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
       StatusPageSubscriberNotificationStatus.Skipped,
       IncidentPostmortemPublication.notShownMessage,
     ],
+    [
+      "was skipped in an earlier release's words, which a migration left only on incidents shown since",
+      StatusPageSubscriberNotificationStatus.Skipped,
+      "Incident is not visible on status page. Skipping notifications to subscribers.",
+    ],
   ] as Array<[string, StatusPageSubscriberNotificationStatus, string | null]>)(
     "a notification that %s stays as it is",
     (
@@ -954,30 +1061,19 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
     },
   );
 
-  test("a postmortem that is not published sends nothing when the incident is shown", () => {
-    for (const postmortem of [hidden(), shown(null), shown("   ")]) {
-      expect(
-        IncidentPostmortemPublication.getNotificationAction({
-          stored: hiddenIncident(postmortem),
-          written: SHOW,
-        }),
-      ).toBe(PostmortemNotificationAction.None);
-    }
-  });
-
-  test("taken off the status page in the same update, it sends nothing", () => {
+  test("an incident already shown sends nothing when its switch is written back on", () => {
     expect(
       IncidentPostmortemPublication.getNotificationAction({
-        stored: hiddenIncident(),
-        written: { ...SHOW, showPostmortemOnStatusPage: false },
+        stored: hiddenIncident({ isVisibleOnStatusPage: true }),
+        written: SHOW,
       }),
     ).toBe(PostmortemNotificationAction.None);
   });
 
-  test("an incident already shown sends nothing when its switch is written back on - an earlier release's skip included", () => {
+  test("a private incident switched on stays hidden, and sends nothing", () => {
     expect(
       IncidentPostmortemPublication.getNotificationAction({
-        stored: hiddenIncident({ isVisibleOnStatusPage: true }),
+        stored: hiddenIncident({ isPrivate: true }),
         written: SHOW,
       }),
     ).toBe(PostmortemNotificationAction.None);
@@ -996,7 +1092,7 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
     ).toBe(PostmortemNotificationAction.None);
   });
 
-  test("the status written back as stored - the whole incident written back - is no choice: showing it still queues it", () => {
+  test("the status written back as stored - the whole incident written back - is no choice: showing it still looks again", () => {
     expect(
       IncidentPostmortemPublication.getNotificationAction({
         stored: hiddenIncident(),
@@ -1018,15 +1114,6 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
     ).toBe(PostmortemNotificationAction.Queue);
   });
 
-  test("an incident the read did not see is shown, with only what the update writes for its postmortem", () => {
-    expect(
-      IncidentPostmortemPublication.getNotificationAction({
-        stored: undefined,
-        written: SHOW,
-      }),
-    ).toBe(PostmortemNotificationAction.None);
-  });
-
   test("Notify Subscribers plays no part: the job reads it when it would send", () => {
     for (const notify of [true, false]) {
       expect(
@@ -1042,13 +1129,70 @@ describe("IncidentPostmortemPublication.getNotificationAction, for an update tha
   });
 });
 
-describe("IncidentPostmortemPublication.isWaitingForIncidentToShow", () => {
+describe("IncidentPostmortemPublication.isDueOnceShown", () => {
+  // Read again once the update that showed the incident is written.
+  function readAgain(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      ...shown(),
+      isVisibleOnStatusPage: true,
+      isPrivate: false,
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        IncidentPostmortemPublication.hiddenIncidentMessage,
+      ...overrides,
+    };
+  }
+
+  test("a postmortem waiting for its incident, with both on the status page now, is due", () => {
+    expect(IncidentPostmortemPublication.isDueOnceShown(readAgain())).toBe(
+      true,
+    );
+  });
+
+  test.each([
+    ["hidden again in the meantime", { isVisibleOnStatusPage: false }],
+    ["private", { isPrivate: true }],
+    ["taken off the status page", { showPostmortemOnStatusPage: false }],
+    ["emptied", { postmortemNote: "  " }],
+    [
+      "queued already",
+      {
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Pending,
+      },
+    ],
+    [
+      "skipped for another reason",
+      {
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          IncidentPostmortemPublication.notShownMessage,
+      },
+    ],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "one %s is not",
+    (_label: string, overrides: Record<string, unknown>) => {
+      expect(
+        IncidentPostmortemPublication.isDueOnceShown(readAgain(overrides)),
+      ).toBe(false);
+    },
+  );
+
+  test("an incident gone is not", () => {
+    expect(IncidentPostmortemPublication.isDueOnceShown(null)).toBe(false);
+  });
+});
+
+describe("IncidentPostmortemPublication.isWaitingForIncidentToShow and isSentBySwitchingVisibilityOn", () => {
   function waiting(
     overrides: Record<string, unknown> = {},
   ): Record<string, unknown> {
     return {
       ...shown(),
       isVisibleOnStatusPage: false,
+      isPrivate: false,
       notifySubscribersOnPostmortemPublished: true,
       subscriberNotificationStatusOnPostmortemPublished:
         StatusPageSubscriberNotificationStatus.Skipped,
@@ -1058,18 +1202,38 @@ describe("IncidentPostmortemPublication.isWaitingForIncidentToShow", () => {
     };
   }
 
-  test("a hidden incident whose published postmortem was skipped because it was hidden waits for it", () => {
+  test("a hidden incident whose published postmortem was skipped because it was hidden waits for it, and switching it on sends it", () => {
     expect(
       IncidentPostmortemPublication.isWaitingForIncidentToShow(waiting()),
     ).toBe(true);
     expect(
+      IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(waiting()),
+    ).toBe(true);
+  });
+
+  test("a note left unread is not known to be empty: the switch decides", () => {
+    const unread: Record<string, unknown> = waiting();
+    delete unread["postmortemNote"];
+
+    expect(
+      IncidentPostmortemPublication.isWaitingForIncidentToShow(unread),
+    ).toBe(true);
+    expect(
+      IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(unread),
+    ).toBe(true);
+  });
+
+  test("a private incident waits too, but switching it on alone does not send it: it stays hidden", () => {
+    expect(
       IncidentPostmortemPublication.isWaitingForIncidentToShow(
-        waiting({
-          subscriberNotificationStatusMessageOnPostmortemPublished:
-            IncidentPostmortemPublication.earlierHiddenIncidentMessage,
-        }),
+        waiting({ isPrivate: true }),
       ),
     ).toBe(true);
+    expect(
+      IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(
+        waiting({ isPrivate: true }),
+      ),
+    ).toBe(false);
   });
 
   test.each([
@@ -1082,7 +1246,7 @@ describe("IncidentPostmortemPublication.isWaitingForIncidentToShow", () => {
       { notifySubscribersOnPostmortemPublished: false },
     ],
     ["not published", { showPostmortemOnStatusPage: false }],
-    ["without a note", { postmortemNote: "" }],
+    ["with an empty note", { postmortemNote: "" }],
     [
       "already queued",
       {
@@ -1097,11 +1261,23 @@ describe("IncidentPostmortemPublication.isWaitingForIncidentToShow", () => {
           IncidentPostmortemPublication.notShownMessage,
       },
     ],
+    [
+      "skipped in an earlier release's words",
+      {
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          "Incident is not visible on status page. Skipping notifications to subscribers.",
+      },
+    ],
   ] as Array<[string, Record<string, unknown>]>)(
     "an incident %s does not",
     (_label: string, overrides: Record<string, unknown>) => {
       expect(
         IncidentPostmortemPublication.isWaitingForIncidentToShow(
+          waiting(overrides),
+        ),
+      ).toBe(false);
+      expect(
+        IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(
           waiting(overrides),
         ),
       ).toBe(false);
@@ -1113,7 +1289,7 @@ describe("IncidentPostmortemPublication.isWaitingForIncidentToShow", () => {
       false,
     );
     expect(
-      IncidentPostmortemPublication.isWaitingForIncidentToShow(undefined),
+      IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(undefined),
     ).toBe(false);
   });
 });

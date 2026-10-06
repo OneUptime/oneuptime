@@ -1017,8 +1017,32 @@ describe("a postmortem published while its incident is hidden from status pages"
     ).toBe(false);
   });
 
-  test("a postmortem an earlier release skipped for its hidden incident is announced when the incident is made visible", async () => {
-    // Published while hidden, and skipped, before this release.
+  test("a postmortem an earlier release skipped for its incident, still hidden, is announced when the incident is made visible", async () => {
+    /*
+     * Published while hidden, and skipped, before this release; the
+     * migration (MarkPostmortemsWaitingForHiddenIncidents) gave it the words
+     * of a postmortem that waits for its incident.
+     */
+    incident.showPostmortemOnStatusPage = true;
+    incident.subscriberNotificationStatusOnPostmortemPublished =
+      StatusPageSubscriberNotificationStatus.Skipped;
+    incident.subscriberNotificationStatusMessageOnPostmortemPublished =
+      IncidentPostmortemPublication.hiddenIncidentMessage;
+
+    await makeVisible();
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("a postmortem an earlier release left unsent on an incident shown since is never sent - not even when the incident is hidden and shown again", async () => {
+    /*
+     * Skipped while hidden, then shown before this release without anyone
+     * being told: its postmortem has been on the status page for a while,
+     * and the migration left its earlier words as they were.
+     */
+    incident.isVisibleOnStatusPage = true;
     incident.showPostmortemOnStatusPage = true;
     incident.subscriberNotificationStatusOnPostmortemPublished =
       StatusPageSubscriberNotificationStatus.Skipped;
@@ -1027,9 +1051,60 @@ describe("a postmortem published while its incident is hidden from status pages"
 
     await makeVisible();
     await runTheJob();
+    await update({ isVisibleOnStatusPage: false } as unknown as JSONObject);
+    await runTheJob();
+    await makeVisible();
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+  });
+
+  test("a private incident switched on through the API stays hidden, and its postmortem waits; made not private, it is sent once", async () => {
+    incident.isPrivate = true;
+
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+
+    // An API client switches it on and leaves it private.
+    await update({ isVisibleOnStatusPage: true } as unknown as JSONObject);
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+    expect(
+      incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+    ).toBe(IncidentPostmortemPublication.hiddenIncidentMessage);
+
+    await update({ isPrivate: false } as unknown as JSONObject);
+    await runTheJob();
     await runTheJob();
 
     expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("a private incident made visible and not private in one save of its Settings sends it once", async () => {
+    incident.isPrivate = true;
+
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+
+    await makeVisible();
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("a private incident whose postmortem is published while it is switched on is not sent: it is hidden", async () => {
+    incident.isVisibleOnStatusPage = true;
+    incident.isPrivate = true;
+
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Skipped,
+    );
   });
 
   test("saving the incident's Settings again once it is visible tells nobody again", async () => {

@@ -827,6 +827,15 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       message:
         "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
     },
+    // A private incident is hidden from every status page, whatever its switch says.
+    {
+      name: "a private incident",
+      change: (row: Incident): void => {
+        row.isPrivate = true;
+      },
+      message:
+        "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
+    },
   ];
 
   test.each(cases)(
@@ -895,9 +904,12 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
           IncidentService.compareAndSetColumnsByIdWithoutHooks,
         ).mock.calls[1]![0] as JSONObject;
 
+        // Only while it is still the skip this run wrote.
         expect(requeue["expectedData"]).toEqual({
           subscriberNotificationStatusOnPostmortemPublished:
             StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            testCase.message,
         });
         expect(
           (requeue["data"] as JSONObject)[
@@ -1003,9 +1015,37 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
         ).select,
       ).toEqual({
         isVisibleOnStatusPage: true,
+        isPrivate: true,
         showPostmortemOnStatusPage: true,
         postmortemNote: true,
       });
+    });
+
+    test("shown since, but private, it stays skipped: a private incident is hidden", async () => {
+      pendingIncidents = [hiddenRow()];
+      const now: Incident = incident();
+      now.isPrivate = true;
+      mock(IncidentService.findOneById).mockResolvedValue(now as never);
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("reads whether the incident is private along with its visibility", async () => {
+      await runJob();
+
+      const select: JSONObject = (
+        mock(IncidentService.findAllBy).mock.calls[0]![0] as {
+          select: JSONObject;
+        }
+      ).select;
+
+      expect(select["isVisibleOnStatusPage"]).toBe(true);
+      expect(select["isPrivate"]).toBe(true);
     });
 
     test("still hidden when the run looks again, it stays skipped, waiting for the incident", async () => {

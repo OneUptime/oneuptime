@@ -205,6 +205,8 @@ describe("the subscriber docs on the postmortem", () => {
       "showPostmortemOnStatusPage",
       "postmortemNote",
       "subscriberNotificationStatusOnPostmortemPublished",
+      "isVisibleOnStatusPage",
+      "isPrivate",
     ]) {
       expect(english).toContain(`\`${column}\``);
       expect(columns[column]?.update).toEqual(
@@ -256,7 +258,7 @@ describe("the subscriber docs on the postmortem", () => {
       "Hiding the incident and showing it again sends nothing more",
     );
     expect(english).toContain(
-      "writing `isVisibleOnStatusPage` as `true` for a hidden incident sends a postmortem that waits for it",
+      "making a hidden incident visible — writing `isVisibleOnStatusPage` as `true`, and `isPrivate` as `false` for a private one — sends a postmortem that waits for it",
     );
 
     // As the server decides: showing the incident queues the waiting postmortem...
@@ -276,6 +278,14 @@ describe("the subscriber docs on the postmortem", () => {
       }),
     ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
 
+    // ...once it is written, and it is due then...
+    expect(
+      IncidentPostmortemPublication.isDueOnceShown({
+        ...waiting,
+        isVisibleOnStatusPage: true,
+      } as never),
+    ).toBe(true);
+
     // ...but not one that was sent, nor one that is not published.
     expect(
       IncidentPostmortemPublication.getNotificationAction({
@@ -287,8 +297,78 @@ describe("the subscriber docs on the postmortem", () => {
       }),
     ).toBe(PostmortemNotificationAction.None);
     expect(
+      IncidentPostmortemPublication.isDueOnceShown({
+        ...waiting,
+        isVisibleOnStatusPage: true,
+        showPostmortemOnStatusPage: false,
+      } as never),
+    ).toBe(false);
+  });
+
+  test("say a private incident is hidden too, and that showing it takes Private Incident off", () => {
+    expect(english).toContain(
+      "**Visible on Status Page** on, and the incident not private",
+    );
+    expect(english).toContain(
+      "(for a private incident, together with turning **Private Incident** off)",
+    );
+
+    const waitingPrivate: Record<string, unknown> = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: "## What happened",
+      isVisibleOnStatusPage: false,
+      isPrivate: true,
+      subscriberNotificationStatusOnPostmortemPublished: "Skipped",
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        IncidentPostmortemPublication.hiddenIncidentMessage,
+    };
+
+    // As the server decides: switched on and left private, it is still hidden...
+    expect(
       IncidentPostmortemPublication.getNotificationAction({
-        stored: { ...waiting, showPostmortemOnStatusPage: false } as never,
+        stored: waitingPrivate as never,
+        written: { isVisibleOnStatusPage: true },
+      }),
+    ).toBe(PostmortemNotificationAction.None);
+
+    // ...and made not private with it, it is shown.
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: waitingPrivate as never,
+        written: { isVisibleOnStatusPage: true, isPrivate: false },
+      }),
+    ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
+
+    // The Settings switch says so only when switching it on alone sends it.
+    expect(
+      IncidentPostmortemPublication.isSentBySwitchingVisibilityOn({
+        ...waitingPrivate,
+        notifySubscribersOnPostmortemPublished: true,
+      } as never),
+    ).toBe(false);
+  });
+
+  /*
+   * A postmortem an earlier release skipped for its hidden incident.
+   * MarkPostmortemsWaitingForHiddenIncidents gave the ones whose incident
+   * was still hidden the words of one that waits; the others keep the
+   * earlier words, which nothing recognises.
+   */
+  test("say what happens to a postmortem an earlier release skipped for its hidden incident", () => {
+    expect(english).toContain(
+      "A postmortem an earlier release skipped this way is sent the same way if its incident was still hidden when you upgraded; one whose incident was made visible since stays unsent",
+    );
+
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: {
+          showPostmortemOnStatusPage: true,
+          postmortemNote: "## What happened",
+          isVisibleOnStatusPage: false,
+          subscriberNotificationStatusOnPostmortemPublished: "Skipped",
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            "Incident is not visible on status page. Skipping notifications to subscribers.",
+        } as never,
         written: { isVisibleOnStatusPage: true },
       }),
     ).toBe(PostmortemNotificationAction.None);
@@ -301,6 +381,8 @@ describe("the subscriber docs on the postmortem", () => {
 
     expect(english).toContain("**Visible on Status Page**");
     expect(settingsPage).toContain('"Visible on Status Page"');
+    expect(english).toContain("**Private Incident**");
+    expect(settingsPage).toContain('"Private Incident"');
     // The label is the rule's, drawn by the Postmortem page.
     expect(
       readSource(
@@ -328,6 +410,7 @@ describe("the subscriber docs on the postmortem", () => {
       "**Postmortem Note updated**",
       "**Retry**",
       "**Visible on Status Page**",
+      "**Private Incident**",
       `**${IncidentPostmortemPublication.hiddenIncidentLabel}**`,
     ]) {
       expect(persian).toContain(label);

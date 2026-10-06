@@ -183,6 +183,7 @@ const IncidentPostmortem: FunctionComponent<
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
             // Whether a skipped notification still waits for the incident to show.
             isVisibleOnStatusPage: true,
+            isPrivate: true,
           },
           /*
            * The write-up and its files first, then the status page: whether
@@ -269,6 +270,16 @@ const IncidentPostmortem: FunctionComponent<
                 );
               },
               getElement: (item: Incident): ReactElement => {
+                /*
+                 * Published while the incident is hidden: not sent yet,
+                 * rather than not to be sent - it goes out when the incident
+                 * is made visible on status pages.
+                 */
+                const isWaitingForIncident: boolean =
+                  IncidentPostmortemPublication.isWaitingForIncidentToShow(
+                    item,
+                  );
+
                 return (
                   <SubscriberNotificationStatus
                     status={
@@ -277,18 +288,12 @@ const IncidentPostmortem: FunctionComponent<
                     subscriberNotificationStatusMessage={
                       item.subscriberNotificationStatusMessageOnPostmortemPublished
                     }
-                    /*
-                     * Published while the incident is hidden: not sent yet,
-                     * rather than not to be sent - it goes out when the
-                     * incident is made visible on status pages.
-                     */
                     statusText={
-                      IncidentPostmortemPublication.isWaitingForIncidentToShow(
-                        item,
-                      )
+                      isWaitingForIncident
                         ? IncidentPostmortemPublication.hiddenIncidentLabel
                         : undefined
                     }
+                    isWaiting={isWaitingForIncident}
                     onResendNotification={handleResendPostmortemNotification}
                   />
                 );

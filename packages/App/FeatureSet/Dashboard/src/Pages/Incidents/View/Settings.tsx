@@ -88,10 +88,10 @@ const IncidentDelete: FunctionComponent<
    * A postmortem published while the incident was hidden waits for it to be
    * shown: turning 'Visible on Status Page' on sends it to subscribers
    * (IncidentPostmortemPublication.isShownByUpdate), and the switch says so
-   * while that is the case.
+   * while that is the case - not for a private incident, which stays hidden.
    */
   const isPostmortemWaitingForIncident: boolean =
-    IncidentPostmortemPublication.isWaitingForIncidentToShow(loadedIncident);
+    IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(loadedIncident);
 
   /*
    * Resolved by the one rule (Common/Utils/ResolvedState): the project's
@@ -394,9 +394,12 @@ const IncidentDelete: FunctionComponent<
               _id: true,
             },
             statusPagesNotifiedOnCreation: true,
-            // Whether showing it sends a postmortem that waits for it.
+            /*
+             * Whether showing it sends a postmortem that waits for it. The
+             * note itself is not loaded for this: the server checks it when
+             * the incident is shown.
+             */
             showPostmortemOnStatusPage: true,
-            postmortemNote: true,
             notifySubscribersOnPostmortemPublished: true,
             subscriberNotificationStatusOnPostmortemPublished: true,
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
