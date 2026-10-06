@@ -133,8 +133,14 @@ describePostgres("private status page authorization against Postgres", () => {
       'UPDATE "StatusPagePrivateUserSession" SET "isRevoked" = true',
     ],
     [
+      /*
+       * A second in the past, as the login-code case below does. Postgres
+       * NOW() keeps microseconds and the access check compares against the
+       * app's millisecond clock, so an expiry of exactly NOW() can still read
+       * as later than "now" when the next check lands in the same millisecond.
+       */
       "expired refresh token",
-      'UPDATE "StatusPagePrivateUserSession" SET "refreshTokenExpiresAt" = NOW()',
+      'UPDATE "StatusPagePrivateUserSession" SET "refreshTokenExpiresAt" = NOW() - INTERVAL \'1 second\'',
     ],
     [
       "soft-deleted session",
