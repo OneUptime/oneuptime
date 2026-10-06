@@ -34,6 +34,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Clipboard from "../../../UI/Utils/Clipboard";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 import Permission from "../../../Types/Permission";
 import { resetPreferencesForTesting } from "../../../UI/Components/AttributesJSON/AttributesJSONPreferences";
 
@@ -2154,21 +2155,57 @@ describe("related signals", () => {
    * who may read this trace but not metrics gets no Metrics tab, rather than
    * a tab whose request the server refuses.
    */
-  test("the metrics tab is left out for a reader of traces who may not read metrics", async () => {
+  test.each([
+    [[Permission.ReadTelemetryServiceTraces]],
+    /*
+     * The operational-resources wildcard is not on the list the metrics
+     * route asks for, so it does not open the tab either.
+     */
+    [
+      [
+        Permission.ReadTelemetryServiceTraces,
+        Permission.ReadAllOperationalResources,
+      ],
+    ],
+  ])(
+    "the metrics tab is left out for %j, which reads the trace but not metrics",
+    async (granted: Array<Permission>) => {
+      const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
+        jest
+          .spyOn(PermissionUtil, "getAllPermissions")
+          .mockReturnValue(granted);
+
+      try {
+        await renderTrace();
+
+        expect(
+          screen.queryByTestId("trace-signal-tab-metrics"),
+        ).not.toBeInTheDocument();
+        expect(screen.getByTestId("trace-signal-tab-logs")).toBeInTheDocument();
+        expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+      } finally {
+        permissions.mockRestore();
+      }
+    },
+  );
+
+  test("a master admin gets the metrics tab whatever the project grants", async () => {
     const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
       jest
         .spyOn(PermissionUtil, "getAllPermissions")
         .mockReturnValue([Permission.ReadTelemetryServiceTraces]);
+    const masterAdmin: SpyInstance<typeof User.isMasterAdmin> = jest
+      .spyOn(User, "isMasterAdmin")
+      .mockReturnValue(true);
 
     try {
       await renderTrace();
 
       expect(
-        screen.queryByTestId("trace-signal-tab-metrics"),
-      ).not.toBeInTheDocument();
-      expect(screen.getByTestId("trace-signal-tab-logs")).toBeInTheDocument();
-      expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+        screen.getByTestId("trace-signal-tab-metrics"),
+      ).toBeInTheDocument();
     } finally {
+      masterAdmin.mockRestore();
       permissions.mockRestore();
     }
   });
@@ -2196,6 +2233,35 @@ describe("related signals", () => {
       }
     },
   );
+
+  test("a Metrics tab still on screen after the snapshot changed sends nothing when clicked", async () => {
+    const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
+      jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([]);
+
+    try {
+      await renderTrace();
+      expect(
+        screen.getByTestId("trace-signal-tab-metrics"),
+      ).toBeInTheDocument();
+
+      // The snapshot lands without re-rendering the card: the tab is stale.
+      permissions.mockReturnValue([Permission.ReadTelemetryServiceTraces]);
+      fireEvent.click(screen.getByTestId("trace-signal-tab-metrics"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-signal-tab-logs")).toHaveAttribute(
+          "aria-selected",
+          "true",
+        );
+      });
+      expect(
+        screen.queryByTestId("trace-signal-tab-metrics"),
+      ).not.toBeInTheDocument();
+      expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+    } finally {
+      permissions.mockRestore();
+    }
+  });
 
   test("metrics opened while the snapshot loaded fall back to logs once it shows they may not be read", async () => {
     const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =

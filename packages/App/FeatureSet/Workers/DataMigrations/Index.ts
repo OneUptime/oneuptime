@@ -594,13 +594,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new RewriteMeasurementPointsInTheirUnit(),
   /*
-   * Metric data points are read, created and deleted with the Telemetry
-   * Service Metrics permissions now, where their table, routes and AI tools
-   * named the trace ones. Gives every team and API key the metric
-   * permission that does what its trace grants did for metrics (copied,
-   * never renamed). Postgres-only and idempotent; a row it cannot add, or
-   * a metric grant already held with another reach, is logged and left.
-   * No ordering requirement, so it sits before the last slot.
+   * Metric data points are read with Read Telemetry Service Metrics now,
+   * where their table, routes and AI tools named Read Telemetry Service
+   * Traces. Gives every team and API key holding Read Traces the metric
+   * read it stood for, with the same scope and labels (copied, never
+   * renamed; blocks and writes are not copied). Postgres-only and
+   * idempotent; a row it cannot add, or a metric read already held with
+   * another reach, is logged and left. No ordering requirement, so it sits
+   * before the last slot.
    */
   new AddTelemetryServiceMetricsPermissions(),
   /*

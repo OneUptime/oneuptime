@@ -9,6 +9,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { APP_API_URL } from "Common/UI/Config";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -17,8 +18,9 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
+import User from "Common/UI/Utils/User";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -32,7 +34,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { shouldAttemptRead } from "../../../Utils/OverviewSection";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
@@ -61,6 +62,33 @@ const METRICS_FOR_TRACE_LIMIT: number = 500;
 // Metric links widen the trace's window so near-instant traces still chart.
 export const TRACE_METRIC_WINDOW_PADDING_MINUTES: number = 5;
 const MAX_SAMPLED_METRIC_VALUES: number = 5;
+
+/*
+ * Whether to offer the Metrics tab. Metrics are read with their own
+ * permission, not the trace one, so the tab is left out for somebody who
+ * may read this trace but not metrics, rather than offered and then
+ * refused. The list is the Metric model's own read list, exactly what POST
+ * /telemetry/metrics/for-trace asks for (PermissionGate.check would also
+ * count the operational-resources wildcard, which that route does not).
+ * Offered while the permission snapshot is still loading: the server has
+ * the last word.
+ */
+function canOfferTraceMetrics(): boolean {
+  if (User.isMasterAdmin()) {
+    return true;
+  }
+
+  const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
+
+  if (permissions.length === 0) {
+    return true;
+  }
+
+  return PermissionHelper.doesPermissionsIntersect(
+    permissions,
+    new Metric().getReadPermissions(),
+  );
+}
 
 export function formatTraceMetricValue(value: number): string {
   if (!Number.isFinite(value)) {
@@ -208,35 +236,47 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     };
   }, [traceId]);
 
-  /*
-   * Metrics are read with their own permission, not the trace one, so the
-   * Metrics tab is left out for somebody who may read this trace but not
-   * metrics, rather than offered and then refused. Shown while the
-   * permission snapshot is still loading: the server has the last word.
-   */
-  const canReadMetrics: boolean = shouldAttemptRead(
-    PermissionGate.check(new Metric(), ModelAction.Read),
-  );
-
-  // If the gate closes while Profile is selected, fall back to the default tab.
-  useEffect(() => {
-    if (activeSignalTab === "profile" && profileSampleCount === 0) {
-      setActiveSignalTab("logs");
-    }
-  }, [activeSignalTab, profileSampleCount]);
+  const canReadMetrics: boolean = canOfferTraceMetrics();
 
   /*
-   * Likewise for Metrics: picked while the permission snapshot was still
-   * loading, by somebody it then shows may not read metrics.
+   * Which tabs are offered: Metrics to who may read metrics, Profile only
+   * when the trace was profiled. The tab list, the panels and the fallback
+   * below all ask this one question.
+   */
+  const isTabOffered: (tab: CorrelatedSignalTab) => boolean = (
+    tab: CorrelatedSignalTab,
+  ): boolean => {
+    if (tab === "metrics") {
+      return canReadMetrics;
+    }
+
+    if (tab === "profile") {
+      return profileSampleCount > 0;
+    }
+
+    return true;
+  };
+
+  const isActiveTabOffered: boolean = isTabOffered(activeSignalTab);
+
+  /*
+   * If a tab's gate closes while it is selected (a trace without profile
+   * samples, or a permission snapshot that arrives without the metric
+   * read), fall back to the default tab.
    */
   useEffect(() => {
-    if (activeSignalTab === "metrics" && !canReadMetrics) {
+    if (!isActiveTabOffered) {
       setActiveSignalTab("logs");
     }
-  }, [activeSignalTab, canReadMetrics]);
+  }, [isActiveTabOffered]);
 
   // Metrics tab: reverse exemplar lookup, fetched on first open only.
   useEffect(() => {
+    // Never asked of the server by somebody it would refuse.
+    if (!canReadMetrics) {
+      return;
+    }
+
     if (activeSignalTab !== "metrics" || metricsFetched) {
       return;
     }
@@ -371,7 +411,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   }> = [
     { id: "logs", label: "Logs", count: null },
     { id: "exceptions", label: "Exceptions", count: exceptionCount },
-    ...(canReadMetrics
+    ...(isTabOffered("metrics")
       ? [
           {
             id: "metrics" as CorrelatedSignalTab,
@@ -380,7 +420,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           },
         ]
       : []),
-    ...(profileSampleCount > 0
+    ...(isTabOffered("profile")
       ? [
           {
             id: "profile" as CorrelatedSignalTab,
@@ -473,7 +513,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {activeSignalTab === "metrics" && canReadMetrics && (
+        {activeSignalTab === "metrics" && isActiveTabOffered && (
           <div data-testid="trace-metrics">
             {metricsLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -571,7 +611,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {activeSignalTab === "profile" && profileSampleCount > 0 && (
+        {activeSignalTab === "profile" && isActiveTabOffered && (
           <div data-testid="trace-profile">
             <p className="mb-3 text-xs text-gray-500">
               Flame graph built from the {profileSampleCount.toLocaleString()}{" "}

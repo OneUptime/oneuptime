@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { SpyInstance } from "jest-mock";
 import ApiKeyPermissionService from "Common/Server/Services/ApiKeyPermissionService";
 import TeamPermissionService from "Common/Server/Services/TeamPermissionService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import APIKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
@@ -14,21 +14,23 @@ import Permission from "Common/Types/Permission";
 import AddTelemetryServiceMetricsPermissions, {
   MetricPermissionPlan,
   TelemetryGrant,
+  getMetricReach,
   planMetricPermissionCopies,
 } from "../../../FeatureSet/Workers/DataMigrations/AddTelemetryServiceMetricsPermissions";
 import fs from "fs";
 import path from "path";
 
 /*
- * Metric data points moved from the trace and log permissions to the
- * Telemetry Service Metrics ones. This backfill gives each team and API key
- * the metric permission that does what its trace grants did for metrics -
- * copied, never renamed - so the metrics a grantee read before the upgrade
- * it still reads after it, and a write is never widened.
+ * Metric data points moved from the trace permission to Read Telemetry
+ * Service Metrics. This backfill gives each team and API key holding Read
+ * Telemetry Service Traces the metric read it stood for - copied, never
+ * renamed - so the metrics a grantee read before the upgrade it still reads
+ * after it. Blocks and writes are not copied.
  */
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
+    EXTERNAL_FAULT: { "error.class": "user-error" },
     default: {
       debug: jest.fn(),
       info: jest.fn(),
@@ -79,7 +81,7 @@ function copiesOf(grants: Array<TelemetryGrant>): Array<TelemetryGrant> {
   return planMetricPermissionCopies(grants).copies;
 }
 
-describe("which metric permissions a grantee is given", () => {
+describe("which grantees are given Read Telemetry Service Metrics", () => {
   test("Read Traces read metrics: Read Metrics, with its scope and labels", () => {
     const plan: MetricPermissionPlan = planMetricPermissionCopies([
       grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
@@ -115,89 +117,48 @@ describe("which metric permissions a grantee is given", () => {
   });
 
   test.each([
-    [[Permission.ReadTelemetryServiceLog]],
-    [[Permission.EditTelemetryServiceTraces]],
-    [[Permission.EditTelemetryServiceLog]],
-    [[Permission.CreateTelemetryServiceTraces]],
-    [[Permission.CreateTelemetryServiceLog]],
-    [[Permission.DeleteTelemetryServiceLog]],
+    [Permission.ReadTelemetryServiceLog],
+    [Permission.EditTelemetryServiceTraces],
+    [Permission.EditTelemetryServiceLog],
+    [Permission.CreateTelemetryServiceTraces],
+    [Permission.CreateTelemetryServiceLog],
+    [Permission.DeleteTelemetryServiceTraces],
+    [Permission.DeleteTelemetryServiceLog],
   ])(
-    "a grantee holding only %j read, created and deleted no metric, and gets no metric permission",
-    (permissions: Array<Permission>) => {
-      expect(
-        planMetricPermissionCopies(
-          permissions.map((permission: Permission): TelemetryGrant => {
-            return grant(TEAM_A, permission);
-          }),
-        ),
-      ).toEqual({ copies: [], differing: [] });
+    "%s is not copied: it read no metric, or it is a write, and a write is not widened",
+    (permission: Permission) => {
+      expect(planMetricPermissionCopies([grant(TEAM_A, permission)])).toEqual({
+        copies: [],
+        differing: [],
+      });
     },
   );
 
-  test("Create Traces with Create Log creates metrics: Create Metrics", () => {
-    expect(
-      summary(
-        copiesOf([
-          grant(TEAM_A, Permission.CreateTelemetryServiceTraces),
-          grant(TEAM_A, Permission.CreateTelemetryServiceLog),
-        ]),
-      ),
-    ).toEqual([`A allow ${Permission.CreateTelemetryServiceMetrics}`]);
-  });
-
-  test("a write is not widened: Create Traces and Create Log must sit on the same grantee", () => {
+  test("writes together are not copied either: Create Traces with Create Log, Delete Traces", () => {
     expect(
       copiesOf([
         grant(TEAM_A, Permission.CreateTelemetryServiceTraces),
-        grant(TEAM_B, Permission.CreateTelemetryServiceLog),
+        grant(TEAM_A, Permission.CreateTelemetryServiceLog),
+        grant(TEAM_A, Permission.DeleteTelemetryServiceTraces),
       ]),
     ).toEqual([]);
   });
 
-  test("a blocked Create Log does not count as holding it", () => {
+  test("a blocked Read Traces is not copied: blocking Read Metrics would refuse the metric catalogue it never refused", () => {
     expect(
-      copiesOf([
-        grant(TEAM_A, Permission.CreateTelemetryServiceTraces),
-        grant(TEAM_A, Permission.CreateTelemetryServiceLog, {
-          isBlockPermission: true,
-        }),
-      ]),
-    ).toEqual([]);
-  });
-
-  test("Delete Traces deleted metrics: Delete Metrics", () => {
-    expect(
-      summary(
-        copiesOf([
-          grant(TEAM_A, Permission.DeleteTelemetryServiceTraces, {
-            labelIds: [LABEL],
-          }),
-        ]),
-      ),
-    ).toEqual([`A allow ${Permission.DeleteTelemetryServiceMetrics}`]);
-  });
-
-  test("a blocked Read Traces stays a denial: Read Metrics is blocked, with its labels", () => {
-    expect(
-      copiesOf([
+      planMetricPermissionCopies([
         grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
           isBlockPermission: true,
           labelIds: [LABEL],
         }),
+        grant(TEAM_B, Permission.ReadTelemetryServiceTraces, {
+          isBlockPermission: true,
+        }),
       ]),
-    ).toEqual([
-      {
-        granteeId: TEAM_A,
-        projectId: PROJECT,
-        permission: Permission.ReadTelemetryServiceMetrics,
-        isBlockPermission: true,
-        scope: PermissionScope.All,
-        labelIds: [LABEL],
-      },
-    ]);
+    ).toEqual({ copies: [], differing: [] });
   });
 
-  test("a grantee that already holds the metric permission, reaching the same records, is left alone quietly", () => {
+  test("a grantee whose Read Metrics reaches the same services is left alone quietly", () => {
     expect(
       planMetricPermissionCopies([
         grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
@@ -208,24 +169,61 @@ describe("which metric permissions a grantee is given", () => {
           scope: PermissionScope.Labels,
           labelIds: [OTHER_LABEL, LABEL],
         }),
-        grant(TEAM_A, Permission.DeleteTelemetryServiceTraces),
-        grant(TEAM_A, Permission.DeleteTelemetryServiceMetrics),
       ]),
     ).toEqual({ copies: [], differing: [] });
   });
 
-  test("an API key's grants carry no scope, and no scope reaches what All reaches", () => {
-    expect(
-      planMetricPermissionCopies([
-        grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
-          scope: undefined,
-        }),
-        grant(TEAM_A, Permission.ReadTelemetryServiceMetrics, {
-          scope: undefined,
-        }),
-      ]),
-    ).toEqual({ copies: [], differing: [] });
-  });
+  test.each([
+    [
+      "All, whatever its labels, reaches what All reaches",
+      { scope: PermissionScope.All, labelIds: [LABEL] },
+      { scope: PermissionScope.All, labelIds: [] },
+    ],
+    [
+      "Owned ignores labels",
+      { scope: PermissionScope.Owned, labelIds: [LABEL] },
+      { scope: PermissionScope.Owned, labelIds: [] },
+    ],
+    [
+      "Labels with no labels reaches every service",
+      { scope: PermissionScope.Labels, labelIds: [] },
+      { scope: PermissionScope.All, labelIds: [] },
+    ],
+    [
+      "an API key's grant has no scope: its labels decide",
+      { scope: undefined, labelIds: [LABEL] },
+      { scope: PermissionScope.Labels, labelIds: [LABEL] },
+    ],
+    [
+      "an API key's grant with no labels reaches every service",
+      { scope: undefined, labelIds: [] },
+      { scope: PermissionScope.All, labelIds: [LABEL] },
+    ],
+  ])(
+    "reach as the analytics read applies it: %s",
+    (
+      _rule: string,
+      traces: Partial<TelemetryGrant>,
+      metrics: Partial<TelemetryGrant>,
+    ) => {
+      const tracesGrant: TelemetryGrant = grant(
+        TEAM_A,
+        Permission.ReadTelemetryServiceTraces,
+        traces,
+      );
+      const metricsGrant: TelemetryGrant = grant(
+        TEAM_A,
+        Permission.ReadTelemetryServiceMetrics,
+        metrics,
+      );
+
+      expect(getMetricReach(tracesGrant)).toBe(getMetricReach(metricsGrant));
+      expect(planMetricPermissionCopies([tracesGrant, metricsGrant])).toEqual({
+        copies: [],
+        differing: [],
+      });
+    },
+  );
 
   test.each([
     ["another scope", { scope: PermissionScope.Owned }],
@@ -233,8 +231,9 @@ describe("which metric permissions a grantee is given", () => {
       "other labels",
       { scope: PermissionScope.Labels, labelIds: [OTHER_LABEL] },
     ],
+    ["every service", { scope: PermissionScope.All }],
   ])(
-    "a metric permission already held with %s keeps its row, and the trace grant's copy is reported",
+    "a Read Metrics already held reaching %s keeps its row, and the trace grant's copy is reported",
     (_reason: string, held: Partial<TelemetryGrant>) => {
       const plan: MetricPermissionPlan = planMetricPermissionCopies([
         grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
@@ -258,24 +257,17 @@ describe("which metric permissions a grantee is given", () => {
     },
   );
 
-  test("an allowed metric read does not stop a blocked one being copied, and the other way round", () => {
+  test("a blocked Read Metrics does not count as holding it: the allow is still copied", () => {
     expect(
       summary(
         copiesOf([
-          grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
-            isBlockPermission: true,
-          }),
-          grant(TEAM_A, Permission.ReadTelemetryServiceMetrics),
-          grant(TEAM_B, Permission.ReadTelemetryServiceTraces),
-          grant(TEAM_B, Permission.ReadTelemetryServiceMetrics, {
+          grant(TEAM_A, Permission.ReadTelemetryServiceTraces),
+          grant(TEAM_A, Permission.ReadTelemetryServiceMetrics, {
             isBlockPermission: true,
           }),
         ]),
       ),
-    ).toEqual([
-      `A block ${Permission.ReadTelemetryServiceMetrics}`,
-      `B allow ${Permission.ReadTelemetryServiceMetrics}`,
-    ]);
+    ).toEqual([`A allow ${Permission.ReadTelemetryServiceMetrics}`]);
   });
 
   test("running it again on what it made adds nothing", () => {
@@ -283,21 +275,17 @@ describe("which metric permissions a grantee is given", () => {
       grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
         scope: PermissionScope.Owned,
       }),
-      grant(TEAM_A, Permission.CreateTelemetryServiceTraces),
-      grant(TEAM_A, Permission.CreateTelemetryServiceLog),
-      grant(TEAM_A, Permission.DeleteTelemetryServiceTraces),
       grant(TEAM_B, Permission.ReadTelemetryServiceTraces, {
-        isBlockPermission: true,
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL],
       }),
     ];
 
     const copies: Array<TelemetryGrant> = copiesOf(grants);
 
     expect(summary(copies)).toEqual([
-      `A allow ${Permission.CreateTelemetryServiceMetrics}`,
-      `A allow ${Permission.DeleteTelemetryServiceMetrics}`,
       `A allow ${Permission.ReadTelemetryServiceMetrics}`,
-      `B block ${Permission.ReadTelemetryServiceMetrics}`,
+      `B allow ${Permission.ReadTelemetryServiceMetrics}`,
     ]);
     expect(planMetricPermissionCopies([...grants, ...copies])).toEqual({
       copies: [],
@@ -376,7 +364,7 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
     expect(migration.name).toBe(MIGRATION_NAME);
   });
 
-  test("gives a team and an API key the metric permissions their grants stood for", async () => {
+  test("gives a team and an API key the metric read their trace read stood for, and nothing for writes or blocks", async () => {
     const teamFind: SpyInstance<typeof TeamPermissionService.findBy> = jest
       .spyOn(TeamPermissionService, "findBy")
       .mockResolvedValue([
@@ -384,25 +372,26 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
           scope: PermissionScope.Labels,
           labels: [label(LABEL)],
         }),
-        teamRow(TEAM_B, Permission.CreateTelemetryServiceTraces),
+        teamRow(TEAM_B, Permission.ReadTelemetryServiceTraces, {
+          isBlockPermission: true,
+        }),
       ]);
     const keyFind: SpyInstance<typeof ApiKeyPermissionService.findBy> = jest
       .spyOn(ApiKeyPermissionService, "findBy")
       .mockResolvedValue([
-        keyRow(TEAM_B, Permission.DeleteTelemetryServiceTraces, {
+        keyRow(TEAM_B, Permission.ReadTelemetryServiceTraces, {
           labels: [label(LABEL)],
         }),
       ]);
 
     await migration.migrate();
 
-    // Read as root, every page, before anything is written.
+    // Read as root, the copied permission and its target only, every page.
     const teamQuery: FindBy<TeamPermission> = teamFind.mock.calls[0]![0];
     expect(teamQuery.props.isRoot).toBe(true);
     expect(teamQuery.skip).toBe(0);
     expect(keyFind.mock.calls[0]![0].props.isRoot).toBe(true);
 
-    // Team B's Create Traces alone created no metric: nothing for it.
     expect(teamCreate).toHaveBeenCalledTimes(1);
     const teamCopy: TeamPermission = teamCreate.mock.calls[0]![0].data;
     expect(teamCreate.mock.calls[0]![0].props.isRoot).toBe(true);
@@ -420,7 +409,8 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
     expect(keyCreate).toHaveBeenCalledTimes(1);
     const keyCopy: APIKeyPermission = keyCreate.mock.calls[0]![0].data;
     expect(keyCopy.apiKeyId?.toString()).toBe(TEAM_B);
-    expect(keyCopy.permission).toBe(Permission.DeleteTelemetryServiceMetrics);
+    expect(keyCopy.permission).toBe(Permission.ReadTelemetryServiceMetrics);
+    expect(keyCopy.isBlockPermission).toBe(false);
     expect(
       (keyCopy.labels || []).map((each: Label): string => {
         return each.id!.toString();
@@ -433,7 +423,7 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
       .spyOn(TeamPermissionService, "findBy")
       .mockResolvedValue([
         teamRow(TEAM_A, Permission.ReadTelemetryServiceTraces),
-        teamRow(TEAM_B, Permission.DeleteTelemetryServiceTraces),
+        teamRow(TEAM_B, Permission.ReadTelemetryServiceTraces),
       ]);
     jest.spyOn(ApiKeyPermissionService, "findBy").mockResolvedValue([]);
 
@@ -451,7 +441,7 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
     );
   });
 
-  test("a metric permission already held with another reach is left as it is, and logged", async () => {
+  test("a Read Metrics already held with another reach is left as it is, and logged where a default install prints it", async () => {
     jest.spyOn(TeamPermissionService, "findBy").mockResolvedValue([
       teamRow(TEAM_A, Permission.ReadTelemetryServiceTraces),
       teamRow(TEAM_A, Permission.ReadTelemetryServiceMetrics, {
@@ -469,16 +459,21 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
 
     expect(teamCreate).not.toHaveBeenCalled();
     expect(keyCreate).not.toHaveBeenCalled();
-    expect(logger.warn as unknown as jest.Mock).toHaveBeenCalledWith(
+
+    // logger.error, which LOG_LEVEL=ERROR keeps; marked as the project's own setting.
+    expect(logger.error as unknown as jest.Mock).toHaveBeenCalledWith(
       expect.stringContaining(
         `team ${TEAM_A} already holds ${Permission.ReadTelemetryServiceMetrics}`,
       ),
+      EXTERNAL_FAULT,
     );
-    expect(logger.warn as unknown as jest.Mock).toHaveBeenCalledWith(
+    expect(logger.error as unknown as jest.Mock).toHaveBeenCalledWith(
       expect.stringContaining(
         `API key ${TEAM_B} already holds ${Permission.ReadTelemetryServiceMetrics}`,
       ),
+      EXTERNAL_FAULT,
     );
+    expect(logger.warn as unknown as jest.Mock).not.toHaveBeenCalled();
   });
 
   test("a project with none of these grants is left as it is", async () => {
@@ -489,7 +484,7 @@ describe("AddTelemetryServiceMetricsPermissions", () => {
 
     expect(teamCreate).not.toHaveBeenCalled();
     expect(keyCreate).not.toHaveBeenCalled();
-    expect(logger.warn as unknown as jest.Mock).not.toHaveBeenCalled();
+    expect(logger.error as unknown as jest.Mock).not.toHaveBeenCalled();
   });
 
   test("is registered once, before the slot AddAuditLogMcpClientColumns keeps last", () => {
