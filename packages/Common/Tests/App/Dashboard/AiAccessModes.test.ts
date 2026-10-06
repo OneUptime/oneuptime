@@ -378,6 +378,25 @@ describe("the every-mode protections", () => {
     ]);
   });
 
+  /*
+   * Chinese, Japanese, Korean, Hindi and Persian have no capitals: a clause
+   * in one that starts with a code name keeps it as it is ("kubectl", not
+   * "Kubectl").
+   */
+  test("a clause in a script without capitals keeps its first letter", () => {
+    expect(
+      formatAiAccessProtections([
+        "kube-system への書き込みには常に人の確認が必要です",
+        "kubectl 허용 목록의 패턴은 승인 없이 실행됩니다",
+        "kube-system میں لکھنا",
+      ]),
+    ).toEqual([
+      "kube-system への書き込みには常に人の確認が必要です。",
+      "kubectl 허용 목록의 패턴은 승인 없이 실행됩니다.",
+      "kube-system میں لکھنا.",
+    ]);
+  });
+
   test("a clause that already ends with 。, । or ؟ keeps it", () => {
     expect(
       formatAiAccessProtections(["もう文です。", "पहले से वाक्य।", "چرا؟"]),
@@ -404,7 +423,15 @@ describe("names in a list", () => {
     expect(capitalizeFirst("switching fixes to Automatic")).toBe(
       "Switching fixes to Automatic",
     );
+    expect(capitalizeFirst("das Umstellen der Korrekturen")).toBe(
+      "Das Umstellen der Korrekturen",
+    );
     expect(capitalizeFirst("")).toBe("");
+  });
+
+  test("capitalizeFirst leaves text in a script without capitals as it is", () => {
+    expect(capitalizeFirst("kubectl 允许列表")).toBe("kubectl 允许列表");
+    expect(capitalizeFirst("पैटर्न जोड़ना")).toBe("पैटर्न जोड़ना");
   });
 });
 
@@ -440,6 +467,29 @@ describe("the sentences both pages share", () => {
       }),
     ).toBe(
       "Switching fixes to Automatic, binding a different Runner needs one of these permissions: Project Owner, Project Admin.",
+    );
+  });
+
+  // Chinese and Japanese list clauses with 、, Persian with ،.
+  test("the changes are listed the way their script lists them", () => {
+    const refusal: (changes: Array<string>) => string = (
+      changes: Array<string>,
+    ): string => {
+      return getAiAccessLooseningRefusal({
+        getChanges: (): Array<string> => {
+          return changes;
+        },
+        permissionTitles: TITLES,
+      });
+    };
+
+    expect(
+      refusal(["修正を「自動」に切り替えること", "別の Runner を紐付けること"]),
+    ).toBe(
+      "修正を「自動」に切り替えること、別の Runner を紐付けること needs one of these permissions: Project Owner, Project Admin.",
+    );
+    expect(refusal(["تغییر اصلاح‌ها", "اتصال یک Runner دیگر"])).toBe(
+      "تغییر اصلاح‌ها، اتصال یک Runner دیگر needs one of these permissions: Project Owner, Project Admin.",
     );
   });
 });

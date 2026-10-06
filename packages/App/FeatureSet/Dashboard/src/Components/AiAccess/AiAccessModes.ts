@@ -247,6 +247,40 @@ const IDEOGRAPHIC_END_REGEX: RegExp =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u;
 const DEVANAGARI_END_REGEX: RegExp = /\p{Script=Devanagari}$/u;
 
+/*
+ * Scripts without capital letters. A clause in one keeps its first letter
+ * as it is: a code name it may start with ("kubectl", "kube-system") must
+ * not read "Kubectl".
+ */
+const CASELESS_SCRIPT_REGEX: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Devanagari}\p{Script=Arabic}]/u;
+
+// Chinese and Japanese list with 、, Persian with ،.
+const IDEOGRAPHIC_REGEX: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const ARABIC_SCRIPT_REGEX: RegExp = /\p{Script=Arabic}/u;
+
+// The separator between clauses listed in a sentence, by their script.
+function getListSeparator(clauses: ReadonlyArray<string>): string {
+  if (
+    clauses.some((clause: string): boolean => {
+      return IDEOGRAPHIC_REGEX.test(clause);
+    })
+  ) {
+    return "、";
+  }
+
+  if (
+    clauses.some((clause: string): boolean => {
+      return ARABIC_SCRIPT_REGEX.test(clause);
+    })
+  ) {
+    return "، ";
+  }
+
+  return ", ";
+}
+
 // The full stop of the script a clause ends in.
 function getFullStop(clause: string): string {
   if (IDEOGRAPHIC_END_REGEX.test(clause)) {
@@ -276,7 +310,7 @@ export function formatAiAccessProtections(
       return clause.length > 0;
     })
     .map((clause: string): string => {
-      const capitalized: string = `${clause[0]!.toUpperCase()}${clause.slice(1)}`;
+      const capitalized: string = capitalizeFirst(clause);
       return SENTENCE_END_REGEX.test(capitalized)
         ? capitalized
         : `${capitalized}${getFullStop(capitalized)}`;
@@ -391,14 +425,23 @@ export function formatNameList(
   );
 }
 
+/*
+ * The first letter as a sentence starts it: capitalized, unless the text is
+ * in a script without capitals (see CASELESS_SCRIPT_REGEX).
+ */
 export function capitalizeFirst(value: string): string {
-  return value.length > 0 ? `${value[0]!.toUpperCase()}${value.slice(1)}` : "";
+  if (value.length === 0 || CASELESS_SCRIPT_REGEX.test(value)) {
+    return value;
+  }
+
+  return `${value[0]!.toUpperCase()}${value.slice(1)}`;
 }
 
 /*
  * What a save that loosens what AI may do says to someone without the
  * permissions it takes: what it would loosen, as clauses built with the
- * sentence's translator, then the permissions.
+ * sentence's translator and listed the way their script lists them, then
+ * the permissions.
  */
 export function getAiAccessLooseningRefusal(data: {
   getChanges: (translator: Translator) => Array<string>;
@@ -408,7 +451,9 @@ export function getAiAccessLooseningRefusal(data: {
     "{{changes}} needs one of these permissions: {{permissions}}.",
     {
       changes: composedValue((translator: Translator): string => {
-        return capitalizeFirst(data.getChanges(translator).join(", "));
+        const changes: Array<string> = data.getChanges(translator);
+
+        return capitalizeFirst(changes.join(getListSeparator(changes)));
       }),
       permissions: data.permissionTitles.join(", "),
     },
