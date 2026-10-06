@@ -2,6 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
+import {
+  INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE,
+  INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
+  LABEL_RULE_ADDS_NOTHING_MESSAGE,
+  OWNER_RULE_ADDS_NOTHING_MESSAGE,
+} from "Common/Utils/Rules/RuleAction";
 
 /*
  * Every label and owner rule is created in two steps - Match, then Labels
@@ -256,6 +262,47 @@ describe("the Label and Owner Rules page", () => {
     }
   });
 
+  /*
+   * A new rule must add something however it is made: the server refuses
+   * one from the API, Terraform, a workflow or an import. The page gives
+   * its answers word for word, so a reader who meets one finds it here.
+   */
+  test("gives the server's answer to a new rule that adds nothing, word for word", () => {
+    for (const message of [
+      LABEL_RULE_ADDS_NOTHING_MESSAGE,
+      INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE,
+      OWNER_RULE_ADDS_NOTHING_MESSAGE,
+      INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
+    ]) {
+      expect({ message, present: content.includes(`| ${message} |`) }).toEqual(
+        { message, present: true },
+      );
+    }
+
+    expect(content).toContain("### However the rule is made");
+    expect(content).toMatch(
+      /through the API, Terraform, a workflow or a \[label rule import\]/,
+    );
+    expect(content).toContain("terraform apply");
+    expect(content).toContain("labels_to_add");
+  });
+
+  test("names a rule that only inherits after its switches", () => {
+    expect(content).toContain("_Inherit labels from monitors_");
+    expect(content).toContain("_Inherit labels from monitors, hosts_");
+    expect(content).toContain("_Inherit labels from monitor_");
+    expect(content).toContain(
+      "is named after what it inherits from instead (see below)",
+    );
+  });
+
+  test("still lets an edit empty a rule, as decided", () => {
+    expect(content).toContain(
+      "an edit may take away everything a rule adds",
+    );
+    expect(content).not.toContain("before the form asked");
+  });
+
   test("links only pages that exist", () => {
     const links: Array<string> = Array.from(
       content.matchAll(/\]\((\/docs\/[^)#]+)/g),
@@ -275,3 +322,37 @@ describe("the Label and Owner Rules page", () => {
     }
   });
 });
+
+describe("the label rule import docs", () => {
+  const content: string = read("en", "configuration/label-rule-import-export");
+
+  test("say a rule that adds nothing stops the batch before it is imported", () => {
+    expect(content).toContain(
+      "So does a rule that adds nothing — an empty `labelsToAdd`",
+    );
+    expect(content).toContain(
+      "](/docs/configuration/label-and-owner-rules#however-the-rule-is-made)",
+    );
+  });
+});
+
+describe.each(LANGUAGES)(
+  "%s incident pages on a rule that only inherits",
+  (language: string) => {
+    test("the incident settings page names it after what it inherits from", () => {
+      const section: string = sectionOf(
+        read(language, "incidents/settings"),
+        INCIDENT_RULES_HEADING[language] as string,
+      );
+
+      expect(section).toContain("_Inherit labels from monitors, hosts_");
+      expect(section).toContain("Terraform");
+    });
+
+    test("the owners page names it after its switches", () => {
+      expect(read(language, "incidents/notes-owners-and-feed")).toContain(
+        "_Inherit owners from monitors_",
+      );
+    });
+  },
+);

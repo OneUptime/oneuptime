@@ -25804,5 +25804,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} آخرین وضعیت مربوط به {{time}} نمایش داده می‌شود؛ این صفحه خودش دوباره تلاش می‌کند.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "خلاصه‌های بعدی در همان ساعت روز ارسال می‌شوند. خالی بگذارید تا در آغاز هفته، روز یا ماه بعد، ساعت 09:00 به وقت منطقه زمانی خلاصه شروع شود.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "خلاصه‌ها در تمام سال در همان ساعت روز در این منطقه زمانی ارسال می‌شوند، حتی پس از تغییر ساعت رسمی.",
-  "Holds Monitors": "مانیتورها را در دست دارد"
+  "Holds Monitors": "مانیتورها را در دست دارد",
+  "Daily AI Spend Limit Reached At": "زمان رسیدن به سقف روزانه هزینه AI",
+  "Daily AI Token Limit Reached At": "زمان رسیدن به سقف روزانه توکن AI",
+  "Inherit labels from {{sources}}": "به ارث بردن برچسب‌ها از {{sources}}",
+  "Inherit labels from {{sources}} and {{count}} more": "به ارث بردن برچسب‌ها از {{sources}} و {{count}} مورد دیگر",
+  "Inherit labels from {{sources}} and {{count}} more_one": "به ارث بردن برچسب‌ها از {{sources}} و {{count}} مورد دیگر",
+  "Inherit owners from {{sources}}": "به ارث بردن مالکان از {{sources}}",
+  "Inherit owners from {{sources}} and {{count}} more": "به ارث بردن مالکان از {{sources}} و {{count}} مورد دیگر",
+  "Inherit owners from {{sources}} and {{count}} more_one": "به ارث بردن مالکان از {{sources}} و {{count}} مورد دیگر",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس برچسب‌هایی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود.",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود."
 }

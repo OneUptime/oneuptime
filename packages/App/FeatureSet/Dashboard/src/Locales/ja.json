@@ -25804,5 +25804,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} {{time}} 時点の最後のステータスを表示しています。このページは自動的に再試行します。",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "以降のサマリーは同じ時刻に送信されます。空欄のままにすると、次の週・日・月の始めの 09:00（サマリーのタイムゾーン）に開始します。",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "サマリーは、このタイムゾーンで一年中同じ時刻に送信されます。夏時間で時計が切り替わった後も同じです。",
-  "Holds Monitors": "モニターを保持"
+  "Holds Monitors": "モニターを保持",
+  "Daily AI Spend Limit Reached At": "1 日あたりの AI の支出上限に達した日時",
+  "Daily AI Token Limit Reached At": "1 日あたりの AI トークンの上限に達した日時",
+  "Inherit labels from {{sources}}": "{{sources}} からラベルを継承",
+  "Inherit labels from {{sources}} and {{count}} more": "{{sources}} ほか {{count}} 件からラベルを継承",
+  "Inherit labels from {{sources}} and {{count}} more_one": "{{sources}} ほか {{count}} 件からラベルを継承",
+  "Inherit owners from {{sources}}": "{{sources}} から所有者を継承",
+  "Inherit owners from {{sources}} and {{count}} more": "{{sources}} ほか {{count}} 件から所有者を継承",
+  "Inherit owners from {{sources}} and {{count}} more_one": "{{sources}} ほか {{count}} 件から所有者を継承",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加するラベル、またはその継承元に合わせて名前が付きます。",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加する所有者、またはその継承元に合わせて名前が付きます。"
 }

@@ -25804,5 +25804,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} De laatste status van {{time}} wordt getoond; deze pagina probeert het vanzelf opnieuw.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Latere samenvattingen volgen op hetzelfde tijdstip van de dag. Laat leeg om te beginnen om 09:00 uur in de tijdzone van de samenvatting, aan het begin van de volgende week, dag of maand.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Samenvattingen worden het hele jaar op hetzelfde tijdstip in deze tijdzone verzonden, ook nadat de klok is verzet.",
-  "Holds Monitors": "Houdt monitoren vast"
+  "Holds Monitors": "Houdt monitoren vast",
+  "Daily AI Spend Limit Reached At": "Dagelijkse AI-uitgavenlimiet bereikt op",
+  "Daily AI Token Limit Reached At": "Dagelijkse AI-tokenlimiet bereikt op",
+  "Inherit labels from {{sources}}": "Labels overnemen van: {{sources}}",
+  "Inherit labels from {{sources}} and {{count}} more": "Labels overnemen van: {{sources}} en {{count}} andere",
+  "Inherit labels from {{sources}} and {{count}} more_one": "Labels overnemen van: {{sources}} en {{count}} andere",
+  "Inherit owners from {{sources}}": "Eigenaren overnemen van: {{sources}}",
+  "Inherit owners from {{sources}} and {{count}} more": "Eigenaren overnemen van: {{sources}} en {{count}} andere",
+  "Inherit owners from {{sources}} and {{count}} more_one": "Eigenaren overnemen van: {{sources}} en {{count}} andere",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de labels die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt.",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Genoemd naar de eigenaren die de regel toevoegt, of waarvan ze worden overgenomen, totdat u zelf een naam typt."
 }

@@ -25804,5 +25804,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Viene mostrato l'ultimo stato, risalente al {{time}}; questa pagina riprova automaticamente.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "I riepiloghi successivi seguono alla stessa ora del giorno. Lascialo vuoto per iniziare alle 09:00 nel fuso orario del riepilogo, all'inizio della prossima settimana, del prossimo giorno o mese.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "I riepiloghi vengono inviati alla stessa ora del giorno in questo fuso orario tutto l'anno, anche dopo il cambio dell'ora.",
-  "Holds Monitors": "Tiene i monitor"
+  "Holds Monitors": "Tiene i monitor",
+  "Daily AI Spend Limit Reached At": "Limite giornaliero di spesa IA raggiunto il",
+  "Daily AI Token Limit Reached At": "Limite giornaliero di token IA raggiunto il",
+  "Inherit labels from {{sources}}": "Eredita etichette da: {{sources}}",
+  "Inherit labels from {{sources}} and {{count}} more": "Eredita etichette da: {{sources}} e altri {{count}}",
+  "Inherit labels from {{sources}} and {{count}} more_one": "Eredita etichette da: {{sources}} e {{count}} altro",
+  "Inherit owners from {{sources}}": "Eredita proprietari da: {{sources}}",
+  "Inherit owners from {{sources}} and {{count}} more": "Eredita proprietari da: {{sources}} e altri {{count}}",
+  "Inherit owners from {{sources}} and {{count}} more_one": "Eredita proprietari da: {{sources}} e {{count}} altro",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dalle etichette che aggiunge, o da dove le eredita, finché non digiti un nome tuo.",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dai proprietari che aggiunge, o da dove li eredita, finché non digiti un nome tuo."
 }

@@ -25804,5 +25804,15 @@
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Показано последнее состояние на {{time}}; эта страница сама повторит попытку.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Следующие сводки приходят в то же время суток. Оставьте пустым, чтобы начать в 09:00 по часовому поясу сводки в начале следующей недели, дня или месяца.",
   "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Сводки приходят в одно и то же время суток в этом часовом поясе весь год, в том числе после перевода часов.",
-  "Holds Monitors": "Удерживает мониторы"
+  "Holds Monitors": "Удерживает мониторы",
+  "Daily AI Spend Limit Reached At": "Дневной лимит расходов на ИИ достигнут",
+  "Daily AI Token Limit Reached At": "Дневной лимит токенов ИИ достигнут",
+  "Inherit labels from {{sources}}": "Наследование меток: {{sources}}",
+  "Inherit labels from {{sources}} and {{count}} more": "Наследование меток: {{sources}} и ещё {{count}}",
+  "Inherit labels from {{sources}} and {{count}} more_one": "Наследование меток: {{sources}} и ещё {{count}}",
+  "Inherit owners from {{sources}}": "Наследование владельцев: {{sources}}",
+  "Inherit owners from {{sources}} and {{count}} more": "Наследование владельцев: {{sources}} и ещё {{count}}",
+  "Inherit owners from {{sources}} and {{count}} more_one": "Наследование владельцев: {{sources}} и ещё {{count}}",
+  "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "Название дано по добавляемым меткам или по тому, откуда они наследуются, пока вы не введёте своё.",
+  "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Название дано по добавляемым владельцам или по тому, откуда они наследуются, пока вы не введёте своё."
 }
