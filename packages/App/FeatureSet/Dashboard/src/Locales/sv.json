@@ -20706,7 +20706,7 @@
   "{{count}} private users added successfully_one": "{{count}} private user added successfully",
   "{{count}} private users failed": "{{count}} private users failed",
   "{{count}} private users failed_one": "{{count}} private user failed",
-  "{{count}} processes": "{{count}} processes",
+  "{{count}} processes": "{{count}} processer",
   "{{count}} processes_one": "{{count}} process",
   "{{count}} projects": "{{count}} projects",
   "{{count}} projects_one": "{{count}} project",
@@ -23232,7 +23232,6 @@
   "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.": "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.",
   "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.": "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.",
   "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.": "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.",
-  "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.": "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.",
   "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.": "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.",
   "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.": "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.",
   "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.": "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.",
@@ -25890,5 +25889,12 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}; {{second}}; {{third}}; och {{fourth}}",
   "{{mode}} (current)": "{{mode}} (nuvarande)",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "Ersätt {{exampleNamespaces}} med de namespaces som AI får korrigera. Vart och ett måste redan finnas: chartet skapar aldrig ett namespace, och ett namespace som saknas gör att hela uppgraderingen misslyckas. En korrigering någon annanstans avvisas. Använd {{clusterWideFlag}} för att senare tillåta hela klustret (inte =null, som inte återställer en sparad namespace-lista med --reuse-values). nodeOperations=false håller korrigeringar borta från noder; sätt den till true för att tillåta cordon, uncordon, drain och taint (en drain, en taint eller en patch av en nod väntar fortfarande på godkännande av en person).",
-  "A team you are on blocks {{permissions}}.": "Ett team som du är med i blockerar {{permissions}}."
+  "A team you are on blocks {{permissions}}.": "Ett team som du är med i blockerar {{permissions}}.",
+  "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.": "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.",
+  "No processes match your search.": "Inga processer matchar din sökning.",
+  "PID": "PID",
+  "Search by name, PID, user or path...": "Sök efter namn, PID, användare eller sökväg...",
+  "Search processes": "Sök processer",
+  "{{shown}} of {{count}} processes": "{{shown}} av {{count}} processer",
+  "{{shown}} of {{count}} processes_one": "{{shown}} av {{count}} process"
 }

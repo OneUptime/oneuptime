@@ -68,18 +68,18 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-
 /*
  * The OTel hostmetrics `process` scraper attaches per-process identity
- * (pid, executable name, command, owner) to the *resource*. OneUptime's
- * ingest prefixes resource attributes with `resource.`, so they land in
- * ClickHouse as `resource.process.*` — same convention the Processes
- * list and Docker container pages already use.
+ * (pid, executable name, command, owner) to the *resource*, which ingest
+ * stores as `resource.process.*`. The keys are shared with the Processes
+ * list, so a row's View link always finds the process it came from.
  */
-const PROCESS_PID_ATTR: string = "resource.process.pid";
-const PROCESS_NAME_ATTR: string = "resource.process.executable.name";
-const PROCESS_COMMAND_ATTR: string = "resource.process.command";
-const PROCESS_OWNER_ATTR: string = "resource.process.owner";
+import {
+  PROCESS_COMMAND_ATTR,
+  PROCESS_NAME_ATTR,
+  PROCESS_OWNER_ATTR,
+  PROCESS_PID_ATTR,
+} from "../Utils/Processes";
 
 interface ProcessIdentity {
   pid: string;

@@ -20706,7 +20706,7 @@
   "{{count}} private users added successfully_one": "{{count}} private user added successfully",
   "{{count}} private users failed": "{{count}} private users failed",
   "{{count}} private users failed_one": "{{count}} private user failed",
-  "{{count}} processes": "{{count}} processes",
+  "{{count}} processes": "프로세스 {{count}}개",
   "{{count}} processes_one": "{{count}} process",
   "{{count}} projects": "{{count}} projects",
   "{{count}} projects_one": "{{count}} project",
@@ -23232,7 +23232,6 @@
   "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.": "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.",
   "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.": "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.",
   "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.": "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.",
-  "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.": "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.",
   "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.": "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.",
   "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.": "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.",
   "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.": "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.",
@@ -25890,5 +25889,12 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}. {{second}}. {{third}}. 또한 {{fourth}}",
   "{{mode}} (current)": "{{mode}}(현재)",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "{{exampleNamespaces}} 부분을 AI가 수정할 수 있는 네임스페이스로 바꾸세요. 각 네임스페이스는 이미 존재해야 합니다. 차트는 네임스페이스를 생성하지 않으며, 존재하지 않는 네임스페이스가 하나라도 있으면 업그레이드 전체가 실패합니다. 그 밖의 위치에 대한 수정은 거부됩니다. 나중에 클러스터 전체를 허용하려면 {{clusterWideFlag}} 플래그를 사용하세요(=null은 --reuse-values와 함께 쓰면 저장된 네임스페이스 목록을 초기화하지 않으므로 사용하지 마세요). nodeOperations=false이면 수정이 노드에 적용되지 않습니다. cordon, uncordon, drain, taint를 허용하려면 true로 설정하세요(drain, taint, 노드 patch는 여전히 사람의 승인을 기다립니다).",
-  "A team you are on blocks {{permissions}}.": "소속된 팀 중 하나가 {{permissions}}을(를) 차단합니다."
+  "A team you are on blocks {{permissions}}.": "소속된 팀 중 하나가 {{permissions}}을(를) 차단합니다.",
+  "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.": "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.",
+  "No processes match your search.": "검색과 일치하는 프로세스가 없습니다.",
+  "PID": "PID",
+  "Search by name, PID, user or path...": "이름, PID, 사용자 또는 경로로 검색...",
+  "Search processes": "프로세스 검색",
+  "{{shown}} of {{count}} processes": "{{count}}개 중 {{shown}}개 프로세스",
+  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process"
 }

@@ -23232,7 +23232,6 @@
   "This policy has {{total}} responders, more than this card reads at once. The counts and the list below cover the {{shown}} most-affected of them; anyone missing sorts behind everyone already shown.": "このポリシーには {{total}} 人の対応者がいて、このカードで一度に読み込める数を超えています。件数と下の一覧は、そのうち最も影響を受けている {{shown}} 人を対象にしています。表示されていない人は、すでに表示されている全員より後に並びます。",
   "This probe has not reported a result yet. Results usually appear within a few minutes of its next check.": "このプローブはまだ結果を報告していません。結果は通常、次のチェックから数分以内に表示されます。",
   "This probe is disabled for this monitor, so it is not collecting any data. Enable it under Probes.": "このプローブはこのモニターで無効になっているため、データを収集していません。「プローブ」で有効にしてください。",
-  "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.": "過去 15 分間のこのプロセスの最新の CPU 測定値を、ホストの総容量（全コアの合計）に対する割合で表したものです。コレクターは user、system、wait の測定値を別々に送信し、この列にはそのうち 1 つだけが表示されるため、低く表示されることがあります。",
   "This process's share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Its user, system and wait readings are averaged, not added, so it reads about a third of the real use.": "ホストの全 CPU コアに対するこのプロセスの割合を、範囲の直近 5 分間で平均したものです（12 時間を超える範囲や最近のデータがない場合は、通常は範囲全体）。user、system、wait の測定値を合計せずに平均するため、実際の使用量の約 3 分の 1 の値になります。",
   "This process's share of the host's total CPU capacity in each interval. Like the CPU tile, it averages the separate user, system and wait readings instead of adding them, so it reads about a third of the real use.": "各区間における、ホストの総 CPU 容量に対するこのプロセスの割合です。CPU タイルと同様に、user、system、wait の個別の測定値を合計せずに平均するため、実際の使用量の約 3 分の 1 の値になります。",
   "This process's threads, averaged over the last 5 minutes of the range (usually the whole range on ranges over 12 hours or with no recent data); open file handles are below. Both need the collector's process.threads and process.open_file_descriptors turned on.": "このプロセスのスレッド数を範囲の直近 5 分間で平均したもので（12 時間を超える範囲や最近のデータがない場合は、通常は範囲全体）、下に開いているファイルハンドルの数を示します。どちらも、コレクターで process.threads と process.open_file_descriptors を有効にする必要があります。",
@@ -25890,5 +25889,12 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}。{{second}}。{{third}}。また、{{fourth}}",
   "{{mode}} (current)": "{{mode}}（現在）",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "{{exampleNamespaces}} を、AI が修正してよい Namespace に置き換えてください。各 Namespace はすでに存在している必要があります。チャートは Namespace を作成しないため、存在しない Namespace が 1 つでもあるとアップグレード全体が失敗します。それ以外の場所での修正は拒否されます。後でクラスター全体を許可するには、{{clusterWideFlag}} を使用してください（=null は使わないでください。--reuse-values を指定すると、=null では保存済みの Namespace のリストがリセットされません）。nodeOperations=false にすると、修正はノードに及びません。cordon、uncordon、drain、taint を許可するには true に設定してください（drain、taint、ノードの patch は引き続き人の確認を待ちます）。",
-  "A team you are on blocks {{permissions}}.": "所属しているチームが{{permissions}}をブロックしています。"
+  "A team you are on blocks {{permissions}}.": "所属しているチームが{{permissions}}をブロックしています。",
+  "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.": "過去 15 分間の最新の測定値における、このプロセスの CPU 使用量（ユーザー時間 + システム時間）を、ホストの総容量（全コアの合計）に対する割合で表したものです。ディスク待ちに費やした時間は含まれません。",
+  "No processes match your search.": "検索に一致するプロセスはありません。",
+  "PID": "PID",
+  "Search by name, PID, user or path...": "名前、PID、ユーザー、パスで検索...",
+  "Search processes": "プロセスを検索",
+  "{{shown}} of {{count}} processes": "{{count}} 個中 {{shown}} 個のプロセス",
+  "{{shown}} of {{count}} processes_one": "{{shown}} of {{count}} process"
 }
