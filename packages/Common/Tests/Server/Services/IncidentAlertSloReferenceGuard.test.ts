@@ -311,6 +311,13 @@ CASES.forEach((recordCase: RecordCase) => {
     ])(
       "an update that %s reads no SLO",
       async (_label: string, data: JSONObject) => {
+        /*
+         * A title written is read from the record before the write, so its
+         * feed line follows a real change. Unrelated to the guard - the
+         * record's read finds nothing here.
+         */
+        recordCase.mockFindBy([]);
+
         await expect(
           callHook(recordCase.service, "onBeforeUpdate", {
             data: data,

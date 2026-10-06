@@ -141,6 +141,8 @@ afterEach(() => {
 describe("an incident update runs the severity side effects exactly when the severity changes", () => {
   // What each stored incident holds before the write, by id.
   let storedSeverities: Record<string, string | null> = {};
+  // The labels a stored incident holds, by id; none when left out.
+  let storedLabelIds: Record<string, Array<string>> = {};
 
   let incidentReads: MockFunction;
   let severityLookup: MockFunction;
@@ -151,6 +153,7 @@ describe("an incident update runs the severity side effects exactly when the sev
 
   beforeEach(() => {
     storedSeverities = { [RECORD_ID]: MINOR };
+    storedLabelIds = {};
 
     incidentReads = getJestMockFunction();
     incidentReads.mockImplementation(async (): Promise<Array<Incident>> => {
@@ -162,6 +165,13 @@ describe("an incident update runs the severity side effects exactly when the sev
           if (severityId) {
             incident.incidentSeverityId = new ObjectID(severityId);
           }
+          incident.labels = (storedLabelIds[id] || []).map(
+            (labelId: string): Label => {
+              const label: Label = new Label();
+              label._id = labelId;
+              return label;
+            },
+          );
           return incident;
         },
       );
@@ -368,6 +378,9 @@ describe("an incident update runs the severity side effects exactly when the sev
   );
 
   test("the dashboard's Incident Details card saving a new title with the severity unchanged records the title alone", async () => {
+    // The card sends back the labels the incident has, too.
+    storedLabelIds = { [RECORD_ID]: [LABEL_ID] };
+
     await runUpdate({
       title: "Checkout errors in EU",
       incidentSeverity: { _id: MINOR },
@@ -381,9 +394,13 @@ describe("an incident update runs the severity side effects exactly when the sev
     expect(feed).toHaveBeenCalledTimes(1);
     expect(feedMarkdown()[0]).toContain("Checkout errors in EU");
     expect(feedMarkdown()[0]).not.toContain("Incident Severity");
+    expect(feedMarkdown()[0]).not.toContain("Labels");
 
-    // The labels re-match the reminder rule, as they always did: once.
-    expect(refreshReminders).toHaveBeenCalledTimes(1);
+    /*
+     * Neither the severity nor the labels changed, so the reminder rule is
+     * not matched again and the interval runs on (UpdatedFeedRealChanges).
+     */
+    expect(refreshReminders).not.toHaveBeenCalled();
   });
 
   test("an update that writes no severity reads none and runs none of them", async () => {
