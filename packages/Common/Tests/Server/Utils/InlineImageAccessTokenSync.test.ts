@@ -8,7 +8,6 @@ import FileService from "../../../Server/Services/FileService";
 import PublishedImages from "../../../Server/Utils/File/PublishedImages";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Services/FileService", () => {
   return {
@@ -86,13 +85,13 @@ describe("extractImageAccessTokens", () => {
 
 describe("setIsPublicForMarkdownImages", () => {
   // Whether another record of the project still shows the image.
-  let isStillShown: SpyInstance;
+  let isStillShown: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
     isStillShown = jest
       .spyOn(PublishedImages, "isStillShown")
-      .mockResolvedValue(false) as unknown as SpyInstance;
+      .mockResolvedValue(false);
   });
 
   afterEach(() => {
