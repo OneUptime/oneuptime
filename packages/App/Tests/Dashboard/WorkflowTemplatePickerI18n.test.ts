@@ -165,6 +165,7 @@ const NEW_STRINGS: Array<string> = [
   "Maintenance",
   "On a Schedule",
   "Jira",
+  "Dynamics 365",
   "Integrations",
 ];
 
@@ -173,26 +174,29 @@ const NEW_STRINGS: Array<string> = [
  * there. Anything else identical to English is a copy someone forgot to
  * translate.
  */
+const NON_ENGLISH_LANGUAGES: Array<string> = [
+  "da",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "hi",
+  "it",
+  "ja",
+  "ko",
+  "nl",
+  "no",
+  "pt",
+  "ru",
+  "sv",
+  "zh-CN",
+  "zh-TW",
+];
+
 const IDENTICAL_TO_ENGLISH: Record<string, Array<string>> = {
-  // A product name.
-  Jira: [
-    "da",
-    "de",
-    "es",
-    "fa",
-    "fr",
-    "hi",
-    "it",
-    "ja",
-    "ko",
-    "nl",
-    "no",
-    "pt",
-    "ru",
-    "sv",
-    "zh-CN",
-    "zh-TW",
-  ],
+  // Product names.
+  Jira: NON_ENGLISH_LANGUAGES,
+  "Dynamics 365": NON_ENGLISH_LANGUAGES,
   /*
    * The word these languages' workflow docs and tools already use for it.
    * Not German: its Dashboard calls a trigger "Auslöser" on the builder's
@@ -472,6 +476,46 @@ describe("Create a workflow's strings", () => {
       });
     }
   });
+
+  test.each(NON_ENGLISH_FILES)(
+    "%s keeps the name Dynamics 365",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const named: Array<string> = STRINGS.filter((candidate: string) => {
+        return candidate.includes("Dynamics 365");
+      });
+
+      expect(named).toContain("Dynamics 365");
+
+      for (const text of named) {
+        expect({ text: text, value: locale[text] }).toEqual({
+          text: text,
+          value: expect.stringContaining("Dynamics 365"),
+        });
+      }
+    },
+  );
+
+  /*
+   * The category's line is not drawn by the picker today, but every other
+   * category's is in the locales, and so is this one's - with the product
+   * named as it is.
+   */
+  test.each(LOCALE_FILES)(
+    "%s carries the Dynamics 365 category's line, naming the product",
+    (file: string) => {
+      const locale: Record<string, unknown> = readLocale(file);
+      const line: string = getWorkflowTemplateCategoryInfo(
+        WorkflowTemplateCategory.Dynamics365,
+      ).description;
+
+      expect(locale[line]).toEqual(expect.stringContaining("Dynamics 365"));
+
+      if (file !== "en.json") {
+        expect(locale[line]).not.toBe(line);
+      }
+    },
+  );
 
   /*
    * "Basics" is a form step's key, and reads "basic information" in several
