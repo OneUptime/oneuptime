@@ -312,9 +312,10 @@ test.describe("header", () => {
       "isArchived=false",
     ]);
     expect(updates[0]!.id).toBe(EXCEPTION_ID);
-    expect(updates[0]!.data["markedAsResolvedAt"]).toBeTruthy();
-    expect(updates[0]!.data["markedAsResolvedByUserId"]).toBeTruthy();
-    expect(updates[2]!.data["markedAsResolvedAt"]).toBeNull();
+    // Who turned it, and when, is the server's to record: only the switch is sent.
+    for (const update of updates) {
+      expect(Object.keys(update.data)).toHaveLength(1);
+    }
   });
 
   test("a refused update is explained inline and can be dismissed", async ({

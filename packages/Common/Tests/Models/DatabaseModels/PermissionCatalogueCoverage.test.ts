@@ -61,15 +61,15 @@ const PERMISSIONS_WITHOUT_PROPS_BY_DESIGN: Array<string> = [
  * CreateIncidentPublicNote (and MetricType.services for
  * CreateProjectIncident before them) - now ask for their own record's
  * permission. What is left is a project's own columns: a project is created
- * by any signed-in user, before anyone holds a permission in it.
+ * by any signed-in user, before anyone holds a permission in it. (Its
+ * creator is no longer one of them: OneUptime decides who created a record,
+ * so no request writes it - UserAttribution.)
  *
  * This list must only ever shrink. A new entry means a new mis-key.
  */
 const KNOWN_CROSS_MODEL_COLUMN_GATES: Array<string> = [
   "Project.businessDetails requires ManageProjectBilling",
   "Project.businessDetailsCountry requires ManageProjectBilling",
-  "Project.createdByUser requires CurrentUser",
-  "Project.createdByUserId requires CurrentUser",
   "Project.financeAccountingEmail requires ManageProjectBilling",
   "Project.paymentProviderPlanId requires CurrentUser",
   "Project.sendInvoicesByEmail requires ManageProjectBilling",

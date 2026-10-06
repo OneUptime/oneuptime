@@ -37,10 +37,11 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  *
  * The maintainer's report was Create One Incident's list offering Created At
  * and Created by User ID - "system fields that should never be in the list".
- * The endpoint gated columns on their permission lists, and those two pass it:
- * the timestamps borrow the model's record-level permissions, and
- * createdByUserId carries a create list on almost every model so the write
- * path may stamp it.
+ * The endpoint gated columns on their permission lists, and those two passed
+ * it: the timestamps borrow the model's record-level permissions, and
+ * createdByUserId carried a create list on almost every model. It no longer
+ * does - OneUptime decides who created a record (UserAttribution) - so only
+ * the timestamps still need the system-column list.
  */
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -149,14 +150,19 @@ describe("what the endpoint says about each column", () => {
     }
   });
 
-  test("marks Created by User ID too, though its permissions let a create set it", async () => {
+  test("does not offer Created by User ID for writing at all: OneUptime decides who created a record", async () => {
+    expect(
+      findColumn(await getColumnsFor("Incident", "write"), "createdByUserId"),
+    ).toBeUndefined();
+
+    // It is still read back, and marked as OneUptime's own.
     const createdBy: ModelSchemaColumn | undefined = findColumn(
-      await getColumnsFor("Incident", "write"),
+      await getColumnsFor("Incident", "read"),
       "createdByUserId",
     );
 
     expect(createdBy?.isSystemColumn).toBe(true);
-    expect(createdBy?.canCreate).toBe(true);
+    expect(createdBy?.canCreate).toBe(false);
     expect(createdBy?.canUpdate).toBe(false);
   });
 

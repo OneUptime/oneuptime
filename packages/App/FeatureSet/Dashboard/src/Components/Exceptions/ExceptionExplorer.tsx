@@ -25,8 +25,6 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import OneUptimeDate from "Common/Types/Date";
-import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -398,28 +396,16 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           const isResolveChange: boolean =
             action.id === "resolve" || action.id === "unresolve";
 
+          /*
+           * Only the switch is sent: the server records who turned it, and
+           * when.
+           */
           await ModelAPI.updateById<TelemetryException>({
             id: props.telemetryExceptionId,
             modelType: TelemetryException,
             data: isResolveChange
-              ? {
-                  isResolved: action.nextState.isResolved,
-                  markedAsResolvedAt: action.nextState.isResolved
-                    ? OneUptimeDate.getCurrentDate()
-                    : null,
-                  markedAsResolvedByUserId: action.nextState.isResolved
-                    ? User.getUserId() || null
-                    : null,
-                }
-              : {
-                  isArchived: action.nextState.isArchived,
-                  markedAsArchivedAt: action.nextState.isArchived
-                    ? OneUptimeDate.getCurrentDate()
-                    : null,
-                  markedAsArchivedByUserId: action.nextState.isArchived
-                    ? User.getUserId() || null
-                    : null,
-                },
+              ? { isResolved: action.nextState.isResolved }
+              : { isArchived: action.nextState.isArchived },
           });
 
           await loadException();
