@@ -110,7 +110,26 @@ export default class Queue {
                 job.options.repeat as { pattern?: string } | undefined
               )?.pattern;
 
-              if (guard && !(await guard(job.jobName, registeredPattern))) {
+              let isStillWanted: boolean = true;
+
+              if (guard) {
+                /*
+                 * A guard that cannot answer (say its database is down)
+                 * re-adds, as before guards existed: a schedule Valkey lost
+                 * would otherwise stay lost, with nothing to say so, while
+                 * one re-added in error is removed by its owner later.
+                 */
+                try {
+                  isStillWanted = await guard(job.jobName, registeredPattern);
+                } catch (err: unknown) {
+                  logger.error(
+                    `Could not check repeatable job ${job.jobName} on queue ${queueName} before re-adding it, re-adding it anyway`,
+                  );
+                  logger.error(err);
+                }
+              }
+
+              if (!isStillWanted) {
                 delete jobs[jobId];
                 continue;
               }

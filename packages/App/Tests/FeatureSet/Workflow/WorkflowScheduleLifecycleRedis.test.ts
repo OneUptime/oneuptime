@@ -163,6 +163,7 @@ const id2: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 describe("Workflow schedule lifecycle (real Valkey)", () => {
   const runs: Record<string, number> = {};
+  let worker: ReturnType<typeof QueueWorker.getWorker> | null = null;
 
   beforeAll(async () => {
     const trigger: TriggerCode = Components[
@@ -171,7 +172,7 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
     trigger.scheduleWorkflow = QueueWorkflow.addWorkflowToQueue;
     trigger.removeWorkflow = QueueWorkflow.removeWorkflow;
 
-    QueueWorker.getWorker(
+    worker = QueueWorker.getWorker(
       QueueName.Workflow,
       async (job: { name: string }) => {
         runs[job.name] = (runs[job.name] || 0) + 1;
@@ -191,7 +192,10 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
   });
 
   afterAll(async () => {
+    // Open connections would keep the Jest worker from exiting.
+    await worker?.close();
     await Queue.getQueue(QueueName.Workflow).obliterate({ force: true });
+    await Queue.getQueue(QueueName.Workflow).close();
   });
 
   test("A: schedule -> manual removes the repeatable; no run after the next boundary", async () => {
@@ -391,6 +395,31 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
       await q.removeRepeatableByKey(r.key);
     }
     await reconnect();
+    expect(await repeatableNames()).toContain(id1);
+  });
+
+  test("L: a schedule is still re-added when the guard cannot answer", async () => {
+    addRow(id1);
+    await notify(id1);
+    Queue.setReconnectGuard(QueueName.Workflow, async () => {
+      throw new Error("database unreachable");
+    });
+    const q: any = Queue.getQueue(QueueName.Workflow);
+    for (const r of await q.getRepeatableJobs()) {
+      await q.removeRepeatableByKey(r.key);
+    }
+    await reconnect();
+    expect(await repeatableNames()).toContain(id1);
+  });
+
+  test("M: a reconcile that fails still answers the save and runs the trigger's update", async () => {
+    addRow(id1);
+    const spy: jest.SpyInstance = jest
+      .spyOn(QueueWorkflow, "reconcileSchedule")
+      .mockRejectedValueOnce(new Error("valkey unreachable"));
+    await notify(id1);
+    spy.mockRestore();
+    expect(sent[sent.length - 1]).toEqual({ status: "Updated" });
     expect(await repeatableNames()).toContain(id1);
   });
 });
