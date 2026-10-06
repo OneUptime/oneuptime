@@ -21,6 +21,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
@@ -97,6 +98,59 @@ const asCreatePath: AsCreatePathFunction = <
   service: unknown,
 ): CreatePathAccess<TBaseModel> => {
   return service as CreatePathAccess<TBaseModel>;
+};
+
+class PastTheHooks extends Error {}
+
+type PastTheHooksFunction = (
+  service: unknown,
+  createBy: CreateBy<DatabaseBaseModel>,
+) => Promise<Record<string, unknown>>;
+
+/*
+ * The service's real create path, hooks included, stopped right after the
+ * hooks: what the row would be saved with as far as they are concerned.
+ * DatabaseService takes out whatever the request named as who did something
+ * to the record before the hooks run (UserAttribution).
+ */
+const pastTheHooks: PastTheHooksFunction = async (
+  service: unknown,
+  createBy: CreateBy<DatabaseBaseModel>,
+): Promise<Record<string, unknown>> => {
+  let reached: Record<string, unknown> = {};
+
+  const stop: jest.SpyInstance = jest
+    .spyOn(
+      service as { generateSlug: (createBy: { data: unknown }) => unknown },
+      "generateSlug",
+    )
+    .mockImplementation((write: { data: unknown }) => {
+      reached = { ...(write.data as Record<string, unknown>) };
+      throw new PastTheHooks();
+    });
+
+  try {
+    await expect(
+      (
+        service as {
+          create: (createBy: CreateBy<DatabaseBaseModel>) => Promise<unknown>;
+        }
+      ).create(createBy),
+    ).rejects.toBeInstanceOf(PastTheHooks);
+  } finally {
+    stop.mockRestore();
+  }
+
+  return reached;
+};
+
+// An API key acting with the same permissions: no person on the request.
+const asApiKey: (
+  props: DatabaseCommonInteractionProps,
+) => DatabaseCommonInteractionProps = (
+  props: DatabaseCommonInteractionProps,
+): DatabaseCommonInteractionProps => {
+  return { ...props, userId: undefined, userType: UserType.API };
 };
 
 describe("RumApplication create path", () => {
@@ -223,13 +277,26 @@ describe("RumSessionErasureRequestService create path", () => {
 
   it("drops a spoofed requester when the caller is not a user", async () => {
     /*
-     * API key callers have no props.userId. Leaving a client-supplied
-     * requestedByUserId in place would attribute the erasure to somebody
-     * who never asked for it.
+     * API key callers have no props.userId. A client-supplied
+     * requestedByUserId never reaches the row: DatabaseService takes it out
+     * before the hook, which names nobody.
      */
     const createBy: CreateBy<RumSessionErasureRequest> = buildCreateBy();
-    createBy.props = { ...createBy.props, userId: undefined };
+    createBy.props = asApiKey(createBy.props);
     createBy.data.requestedByUserId = ObjectID.generate();
+
+    const row: Record<string, unknown> = await pastTheHooks(
+      RumSessionErasureRequestService,
+      createBy as unknown as CreateBy<DatabaseBaseModel>,
+    );
+
+    expect(row["requestedByUserId"]).toBeUndefined();
+    expect(row["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+  });
+
+  it("the hook alone names nobody when the caller is not a user", async () => {
+    const createBy: CreateBy<RumSessionErasureRequest> = buildCreateBy();
+    createBy.props = asApiKey(createBy.props);
 
     const onCreate: OnCreate<RumSessionErasureRequest> =
       await asCreatePath<RumSessionErasureRequest>(
@@ -301,8 +368,35 @@ describe("RumSessionPinService create path", () => {
 
   it("drops a spoofed pinnedByUserId when the caller is not a user", async () => {
     const createBy: CreateBy<RumSessionPin> = buildCreateBy();
-    createBy.props = { ...createBy.props, userId: undefined };
+    createBy.props = asApiKey(createBy.props);
     createBy.data.pinnedByUserId = ObjectID.generate();
+
+    // Not pinned yet: the create goes on to the write path.
+    const lookup: jest.SpyInstance = jest
+      .spyOn(
+        RumSessionPinService as unknown as {
+          getPinForSession: () => Promise<unknown>;
+        },
+        "getPinForSession",
+      )
+      .mockResolvedValue(null as never);
+
+    try {
+      const row: Record<string, unknown> = await pastTheHooks(
+        RumSessionPinService,
+        createBy as unknown as CreateBy<DatabaseBaseModel>,
+      );
+
+      expect(row["pinnedByUserId"]).toBeUndefined();
+      expect(row["sessionId"]).toBe("session-123");
+    } finally {
+      lookup.mockRestore();
+    }
+  });
+
+  it("the hook alone names nobody as the pinner when the caller is not a user", async () => {
+    const createBy: CreateBy<RumSessionPin> = buildCreateBy();
+    createBy.props = asApiKey(createBy.props);
 
     const onCreate: OnCreate<RumSessionPin> =
       await asCreatePath<RumSessionPin>(RumSessionPinService).onBeforeCreate(

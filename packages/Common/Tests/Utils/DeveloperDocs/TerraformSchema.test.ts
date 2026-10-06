@@ -115,7 +115,6 @@ describe("a workflow's attributes", () => {
       "project_id",
       "name",
       "description",
-      "created_by_user_id",
       "is_archived",
       "is_enabled",
       "graph",
@@ -159,12 +158,19 @@ describe("a workflow's attributes", () => {
     }
   });
 
-  test("the project and the creator are filled in by the server", () => {
+  test("the project is filled in by the server", () => {
     expect(attribute(Workflow, "project_id").isServerManaged).toBe(true);
-    expect(attribute(Workflow, "created_by_user_id").isServerManaged).toBe(
-      true,
-    );
     expect(attribute(Workflow, "name").isServerManaged).toBe(false);
+  });
+
+  test("who created it is no attribute at all: OneUptime decides it", () => {
+    expect(
+      getTerraformAttributes(Workflow).map(
+        (descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.attributeName;
+        },
+      ),
+    ).not.toContain("created_by_user_id");
   });
 });
 

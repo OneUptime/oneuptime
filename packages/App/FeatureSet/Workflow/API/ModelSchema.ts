@@ -157,10 +157,10 @@ const hasWriteAccess: (acl: ColumnAccessControl | undefined) => boolean = (
 
 /*
  * A column OneUptime fills in itself. `computed` is how the models mark it -
- * the ID and timestamps, every slug, record numbers, notification statuses -
- * and forceGetDefaultValueOnCreate overwrites whatever a create sends. The
- * shared list catches the rest, chiefly createdByUserId, which carries a
- * create list on nearly every model only so the write path may stamp it.
+ * the ID and timestamps, every slug, record numbers, notification statuses,
+ * who created or archived a record (UserAttribution) - and
+ * forceGetDefaultValueOnCreate overwrites whatever a create sends. The shared
+ * list catches the rest.
  */
 const isSystemColumn: (
   columnId: string,

@@ -3424,12 +3424,10 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Who declared the incident, as "Linked by" on the links and the actor of
-   * their feed entries. A user is recorded as themselves and an API key as
-   * nobody: Incident.createdByUserId is writable by the create payload, and
-   * an API key must not be able to name somebody else as the one who linked
-   * the alerts (IncidentAlertService.onBeforeCreate applies the same rule to
-   * a link created directly). Only an internal root caller is trusted to
-   * name the incident's creator.
+   * their feed entries: the incident's creator, as DatabaseService decided
+   * it (UserAttribution). A user is recorded as themselves and an API key or
+   * a workflow as nobody; only OneUptime's own server code names a creator
+   * itself.
    */
   private getDeclaringUserId(
     onCreate: OnCreate<Model>,

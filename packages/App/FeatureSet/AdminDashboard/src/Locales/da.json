@@ -831,7 +831,6 @@
   "Webhook Secret Token": "Webhook-hemmelig token",
   "Webhook Verify Token": "Webhook-bekræftelsestoken",
   "Webhook verify token": "Webhook-bekræftelsestoken",
-  "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "Hvem vil du have som ejer af dette projekt? Hvis du lader dette være tomt - vil du være ejer af projektet",
   "Yearly Plan": "Årlig plan",
   "You can find this in your Twilio console.": "Du kan finde dette i din Twilio-konsol.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Din bots Telegram-brugernavn, uden det indledende @. Telegram-brugernavne ender på 'bot'.",
