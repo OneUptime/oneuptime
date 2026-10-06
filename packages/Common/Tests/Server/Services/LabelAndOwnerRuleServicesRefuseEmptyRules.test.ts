@@ -552,8 +552,12 @@ describe("the base service", () => {
   test("serves label and owner rules only", () => {
     class NotARule extends DatabaseBaseModel {}
 
+    // Building it reads nothing; the check runs where the rule is used.
+    const service: LabelAndOwnerRuleBaseService<NotARule> =
+      new LabelAndOwnerRuleBaseService(NotARule);
+
     expect(() => {
-      return new LabelAndOwnerRuleBaseService(NotARule);
+      return service.getRuleAction();
     }).toThrow(/is not a label or owner rule/);
   });
 });
