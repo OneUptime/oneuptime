@@ -20,7 +20,16 @@ import { loadStripe } from "@stripe/stripe-js/pure";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "Common/Types/Billing/SubscriptionPlan";
+import {
+  getStopSentences,
+  getStoppedByMove,
+  PlanCutoffCounts,
+} from "../../Components/Billing/PlanCutoff";
+import PlanCutoffNote from "../../Components/Billing/PlanCutoffNote";
+import usePlanCutoffCounts from "../../Components/Billing/UsePlanCutoffCounts";
 import { Green } from "Common/Types/BrandColors";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -115,6 +124,24 @@ const Settings: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
 
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+
+  // The plan the project is on, or null while it loads or is not one of ours.
+  const currentPlanType: PlanType | null = currentPlanId
+    ? ((SubscriptionPlan.getSubscriptionPlanById(
+        currentPlanId,
+        getAllEnvVars(),
+      )?.getName() as PlanType | undefined) ?? null)
+    : null;
+
+  /*
+   * How many API keys and SCIM connections the project has: they stop
+   * working below the plans that sell them, so the plan picker names how
+   * many a lower plan stops, and the page how many the project's plan has
+   * stopped (Components/Billing/PlanCutoff).
+   */
+  const planCutoffCounts: PlanCutoffCounts | null = usePlanCutoffCounts({
+    enabled: BILLING_ENABLED && Boolean(currentPlanType),
+  });
 
   const formRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
@@ -595,6 +622,8 @@ const Settings: FunctionComponent<ComponentProps> = (
 
       {!isLoading && !error ? (
         <div>
+          <PlanCutoffNote counts={planCutoffCounts} plan={currentPlanType} />
+
           {!reseller && (
             <CardModelDetail<Project>
               name="Plan Details"
@@ -669,6 +698,25 @@ const Settings: FunctionComponent<ComponentProps> = (
                       description = translator.translateTemplate(
                         "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
                       );
+                    }
+
+                    // What moving to this plan stops, named before it is picked.
+                    if (planCutoffCounts) {
+                      description = [
+                        description,
+                        ...getStopSentences({
+                          translator,
+                          stopped: getStoppedByMove({
+                            counts: planCutoffCounts,
+                            fromPlan: currentPlanType,
+                            toPlan: plan.getName() as PlanType,
+                          }),
+                        }),
+                      ]
+                        .filter((sentence: string) => {
+                          return Boolean(sentence);
+                        })
+                        .join(" ");
                     }
 
                     return {
