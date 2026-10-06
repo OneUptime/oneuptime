@@ -17,6 +17,12 @@ import path from "node:path";
  * These tests pin both halves - that it is OFF by default, and that it is
  * actually applied when switched on - because either half silently wrong
  * produces a confusing failure a long way from here.
+ *
+ * Apple has since granted the entitlement to the team that publishes the
+ * official OneUptime On-Call app, so eas.json's production profile switches it
+ * on for store builds. That is pinned too: a store build without it signs,
+ * uploads and passes review just fine, and iOS then quietly declines every
+ * critical page it is sent.
  */
 
 /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports */
@@ -196,6 +202,33 @@ describe("The entitlement is applied when explicitly switched on", () => {
     appConfig.withCriticalAlertsEntitlement(config, env);
 
     expect(iosEntitlements(config)).toBeUndefined();
+  });
+});
+
+describe("Store builds carry the critical alerts entitlement", () => {
+  const easBuildProfiles: Record<string, { env?: Record<string, string> }> =
+    require("../../eas.json").build;
+
+  test("the production EAS profile switches it on", () => {
+    /*
+     * The exact string matters: the switch accepts "true" and nothing else, so
+     * a JSON boolean or "1" here would build a store binary without it.
+     */
+    expect(
+      easBuildProfiles["production"]?.env?.[
+        "EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT"
+      ],
+    ).toBe("true");
+  });
+
+  test("the production profile's environment really declares the entitlement", () => {
+    const result: Record<string, unknown> =
+      appConfig.withCriticalAlertsEntitlement(
+        baseConfig(),
+        easBuildProfiles["production"]?.env,
+      );
+
+    expect(iosEntitlements(result)?.[ENTITLEMENT]).toBe(true);
   });
 });
 

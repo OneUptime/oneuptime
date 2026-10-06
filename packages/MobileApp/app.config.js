@@ -16,7 +16,10 @@
  *   EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
  *
  * or, for EAS, add it to the build profile's `env` in eas.json once the
- * entitlement has been granted to your Apple team.
+ * entitlement has been granted to your Apple team. This repository's
+ * production profile does exactly that, because Apple has granted it to the
+ * team that publishes the official app; a fork signing with a different Apple
+ * team has to drop that entry until Apple grants it to them too.
  *
  * Nothing else in the feature is gated. Without the entitlement the app still
  * asks for the permission, iOS still declines to grant allowsCriticalAlerts,
@@ -61,7 +64,8 @@ module.exports = ({ config }) => {
   return withCriticalAlertsEntitlement(config, process.env);
 };
 
-module.exports.IOS_CRITICAL_ALERTS_ENTITLEMENT = IOS_CRITICAL_ALERTS_ENTITLEMENT;
+module.exports.IOS_CRITICAL_ALERTS_ENTITLEMENT =
+  IOS_CRITICAL_ALERTS_ENTITLEMENT;
 module.exports.isCriticalAlertsEntitlementEnabled =
   isCriticalAlertsEntitlementEnabled;
 module.exports.withCriticalAlertsEntitlement = withCriticalAlertsEntitlement;
