@@ -175,6 +175,9 @@
     "qs": "^6.15.2",
     "mermaid": {
       "katex": "^0.18.2"
+    },
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
     }
   }
 }
