@@ -28,9 +28,9 @@ import { describe, expect, test } from "@jest/globals";
  *   - acknowledged: at or below the acknowledged state, or flagged
  *     acknowledged, as on-call escalation reads it to stop paging.
  *
- * Alongside the stage it says whether the state carries the resolved flag
- * (flaggedResolved): what an episode's first timeline row reads to stamp its
- * resolvedAt, and so what its create stamps.
+ * Resolved is the one rule every reader shares (Common/Utils/ResolvedState),
+ * so an episode created in a state placed after Resolved is resolved from
+ * the moment it exists, as its first timeline row says.
  */
 
 const INCIDENT_STATES: StateListDefinition =
@@ -322,7 +322,7 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
   });
 });
 
-describe("StartingStageUtil.getStartingState - the stage, and whether the state is flagged resolved", () => {
+describe("StartingStageUtil.getStartingState - the stage the state starts a record at", () => {
   function startOf(
     stateId: string,
     rows: Array<unknown> = ROWS,
@@ -335,37 +335,28 @@ describe("StartingStageUtil.getStartingState - the stage, and whether the state 
   }
 
   test.each([
-    ["the created state", IDENTIFIED, StartingStage.Open, false],
-    ["the acknowledged state", ACKNOWLEDGED, StartingStage.Acknowledged, false],
+    ["the created state", IDENTIFIED, StartingStage.Open],
+    ["the acknowledged state", ACKNOWLEDGED, StartingStage.Acknowledged],
     [
       "a state of its own between acknowledged and resolved",
       MITIGATED,
       StartingStage.Acknowledged,
-      false,
     ],
-    ["the resolved state", RESOLVED, StartingStage.Resolved, true],
+    ["the resolved state", RESOLVED, StartingStage.Resolved],
     /*
-     * Resolved by its place, but not flagged: an episode's first timeline
-     * row writes no resolvedAt for it, so its create stamps none either.
+     * Resolved by its place, flagged or not (Common/Utils/ResolvedState): an
+     * episode created in it is resolved from the moment it exists, and its
+     * first timeline row stamps resolvedAt for it.
      */
     [
       "a state of its own placed after resolved",
       POSTMORTEM,
       StartingStage.Resolved,
-      false,
     ],
-  ] as Array<[string, string, StartingStage, boolean]>)(
-    "%s: %s, flagged resolved %s",
-    (
-      _name: string,
-      stateId: string,
-      stage: StartingStage,
-      flaggedResolved: boolean,
-    ) => {
-      expect(startOf(stateId)).toEqual({
-        stage: stage,
-        flaggedResolved: flaggedResolved,
-      });
+  ] as Array<[string, string, StartingStage]>)(
+    "%s: %s",
+    (_name: string, stateId: string, stage: StartingStage) => {
+      expect(startOf(stateId)).toEqual({ stage: stage });
     },
   );
 

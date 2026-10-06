@@ -1156,6 +1156,7 @@ export default class MonitorResourceUtil {
         const openIncidents: Array<Incident> =
           await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
             monitorId: monitor.id!,
+            projectId: monitor.projectId!,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             rootCause: response.rootCause,
             criteriaInstance: matchedCriteriaInstance,
@@ -1172,6 +1173,7 @@ export default class MonitorResourceUtil {
         const openAlerts: Array<Alert> =
           await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
             monitorId: monitor.id!,
+            projectId: monitor.projectId!,
             autoResolveCriteriaInstanceIdAlertIdsDictionary,
             rootCause: response.rootCause,
             criteriaInstance: matchedCriteriaInstance,
@@ -1292,6 +1294,7 @@ export default class MonitorResourceUtil {
 
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
           monitorId: monitor.id!,
+          projectId: monitor.projectId!,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary,
           rootCause: "No monitoring criteria met. Change to default status.",
           criteriaInstance: null, // no criteria met!
@@ -1312,6 +1315,7 @@ export default class MonitorResourceUtil {
 
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
           monitorId: monitor.id!,
+          projectId: monitor.projectId!,
           autoResolveCriteriaInstanceIdAlertIdsDictionary,
           rootCause: "No monitoring criteria met. Change to default status.",
           criteriaInstance: null, // no criteria met!

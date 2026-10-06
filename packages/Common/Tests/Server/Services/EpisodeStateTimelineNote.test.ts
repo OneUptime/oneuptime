@@ -18,12 +18,18 @@ import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/Inciden
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
  */
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   stubProjectDirectory({});
 });
 

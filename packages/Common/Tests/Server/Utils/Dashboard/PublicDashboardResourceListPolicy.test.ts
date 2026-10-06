@@ -62,6 +62,11 @@ interface MappingCase {
   resourceType: string;
   argumentsObject: JSONObject;
   expectedQuery: JSONObject;
+  /*
+   * Unresolved or Resolved, which the route turns into the project's state
+   * ids (Common/Utils/ResolvedState) - not a query on the resolved flag.
+   */
+  expectedResolvedStateFilter?: "unresolved" | "resolved" | undefined;
   expectedSort: JSONObject;
   expectedLimit: number;
   requestedQuery?: JSONObject | undefined;
@@ -81,12 +86,12 @@ const MAPPING_CASES: Array<MappingCase> = [
       labelIds: ["label"],
     },
     expectedQuery: {
-      currentIncidentState: { isResolvedState: true },
       incidentSeverityId: new Includes(["severity"]),
       currentIncidentStateId: new Includes(["state"]),
       monitors: new Includes(["monitor"]),
       labels: new Includes(["label"]),
     },
+    expectedResolvedStateFilter: "resolved",
     expectedSort: { createdAt: SortOrder.Descending },
     expectedLimit: 11,
   },
@@ -654,6 +659,9 @@ describe("PublicDashboardResourceListPolicy", () => {
 
         expect(result.resourceType).toBe(testCase.resourceType);
         expect(result.query).toEqual(testCase.expectedQuery);
+        expect(result.resolvedStateFilter).toBe(
+          testCase.expectedResolvedStateFilter,
+        );
         expect(result.select).toEqual(expect.any(Object));
         expect(Object.keys(result.select).length).toBeGreaterThan(0);
         expect(result.sort).toEqual(testCase.expectedSort);

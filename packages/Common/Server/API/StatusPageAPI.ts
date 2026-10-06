@@ -3988,6 +3988,36 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   /*
+   * The project's incident states as a status page is sent them: each one's
+   * id, place and resolved flag - what the page needs to tell, by the one
+   * rule (Common/Utils/ResolvedState), which incidents and episodes are
+   * resolved and which timeline rows mark a resolve. Names stay on the
+   * timeline rows that show them.
+   */
+  private async getIncidentStatesForStatusPage(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentState>> {
+    return await IncidentStateService.findBy({
+      query: {
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+        isResolvedState: true,
+        order: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
    * Every incident a public status page is sent goes through here - the
    * overview's active and timeline incidents, and the incident list and
    * detail - so it is where the page's JSON, and the overview cache, are made
@@ -4276,9 +4306,12 @@ export default class StatusPageAPI extends BaseAPI<
           createdAt: true,
           startsAt: true,
           incidentId: true,
+          incidentStateId: true,
           incidentState: {
             name: true,
             color: true,
+            isCreatedState: true,
+            isAcknowledgedState: true,
           },
         },
         sort: {
@@ -4293,22 +4326,9 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
-    // get all the incident states for this project.
+    // The project's incident states: where its resolved state sits.
     const incidentStates: Array<IncidentState> =
-      await IncidentStateService.findBy({
-        query: {
-          projectId: statusPage.projectId!,
-        },
-        select: {
-          isResolvedState: true,
-          order: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     const response: JSONObject = {
       incidentPublicNotes: BaseModel.toJSONArray(
@@ -4788,12 +4808,12 @@ export default class StatusPageAPI extends BaseAPI<
           createdAt: true,
           startsAt: true,
           incidentEpisodeId: true,
+          incidentStateId: true,
           incidentState: {
             name: true,
             color: true,
             isCreatedState: true,
             isAcknowledgedState: true,
-            isResolvedState: true,
           },
         },
         sort: {
@@ -4807,22 +4827,9 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
-    // Get all incident states for this project
+    // The project's incident states: where its resolved state sits.
     const incidentStates: Array<IncidentState> =
-      await IncidentStateService.findBy({
-        query: {
-          projectId: statusPage.projectId!,
-        },
-        select: {
-          isResolvedState: true,
-          order: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
+      await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     // Serialize episodes and add monitors to each
     const episodesJson: JSONArray = BaseModel.toJSONArray(
@@ -5447,12 +5454,12 @@ export default class StatusPageAPI extends BaseAPI<
           createdAt: true,
           startsAt: true,
           incidentId: true,
+          incidentStateId: true,
           incidentState: {
             _id: true,
             name: true,
             color: true,
             isCreatedState: true,
-            isResolvedState: true,
             isAcknowledgedState: true,
           },
         },
@@ -5806,12 +5813,12 @@ export default class StatusPageAPI extends BaseAPI<
                   createdAt: true,
                   startsAt: true,
                   incidentEpisodeId: true,
+                  incidentStateId: true,
                   incidentState: {
                     name: true,
                     color: true,
                     isCreatedState: true,
                     isAcknowledgedState: true,
-                    isResolvedState: true,
                   },
                 },
                 sort: {
@@ -6099,6 +6106,16 @@ export default class StatusPageAPI extends BaseAPI<
         monitorGroupCurrentStatuses,
       });
 
+    /*
+     * The project's incident states, read only when an active incident or
+     * episode is drawn: its timeline marks a row in the resolved state, or in
+     * one placed after it, as resolved (Common/Utils/ResolvedState).
+     */
+    const incidentStates: Array<IncidentState> =
+      activeIncidents.length > 0 || activeEpisodes.length > 0
+        ? await this.getIncidentStatesForStatusPage(statusPage.projectId!)
+        : [];
+
     const response: JSONObject = {
       overallStatus: overallStatus
         ? BaseModel.toJSON(overallStatus, MonitorStatus)
@@ -6126,6 +6143,7 @@ export default class StatusPageAPI extends BaseAPI<
       ),
 
       activeIncidents: this.serializeIncidentsForStatusPage(activeIncidents),
+      incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
 
       activeEpisodes: activeEpisodesJson,
       episodePublicNotes: BaseModel.toJSONArray(

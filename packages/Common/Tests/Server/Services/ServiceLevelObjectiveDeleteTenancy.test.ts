@@ -4,6 +4,7 @@
  * jest.spyOn returns with this repo's jest-mock version.
  */
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
@@ -403,6 +404,11 @@ function callHook(
 }
 
 beforeEach(() => {
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   events = [];
   repositoryFailure = null;
   alertTimelines = [];

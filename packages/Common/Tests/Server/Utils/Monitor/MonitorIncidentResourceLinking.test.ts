@@ -44,6 +44,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The incident half of the series-resource-linking contract, driven
@@ -170,6 +171,11 @@ describe("Incidents link the resources their series identifies", () => {
   let resourceContext: SeriesResolvedResourceIds;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
 
     hostRows = [];

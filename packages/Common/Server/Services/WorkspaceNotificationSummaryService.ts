@@ -10,6 +10,11 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import AlertStateTimelineService from "./AlertStateTimelineService";
+import IncidentStateService from "./IncidentStateService";
+import AlertStateService from "./AlertStateService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
@@ -711,6 +716,47 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     return items.includes(item);
   }
 
+  /*
+   * Whether an incident (or incident episode) in a state of the project is
+   * resolved - by the one rule (Common/Utils/ResolvedState): the project's
+   * resolved state, or a state placed after it. One read of its states.
+   */
+  private static async getIncidentResolvedRule(
+    projectId: ObjectID,
+  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+    const states: Array<unknown> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: projectId,
+        props: { isRoot: true },
+      });
+
+    return (stateId: ObjectID | undefined): boolean => {
+      return ResolvedStateUtil.isResolved({
+        list: StateListType.IncidentState,
+        states: states,
+        stateId: stateId,
+      });
+    };
+  }
+
+  // The same for an alert (or alert episode), by the project's alert states.
+  private static async getAlertResolvedRule(
+    projectId: ObjectID,
+  ): Promise<(stateId: ObjectID | undefined) => boolean> {
+    const states: Array<unknown> = await AlertStateService.getAllAlertStates({
+      projectId: projectId,
+      props: { isRoot: true },
+    });
+
+    return (stateId: ObjectID | undefined): boolean => {
+      return ResolvedStateUtil.isResolved({
+        list: StateListType.AlertState,
+        states: states,
+        stateId: stateId,
+      });
+    };
+  }
+
   // Check if an item matches the summary's filter conditions
   private static matchesFilters(data: {
     filters: Array<NotificationRuleCondition> | undefined;
@@ -1061,9 +1107,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         currentIncidentState: {
           name: true,
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
         },
+        currentIncidentStateId: true,
         labels: { _id: true, name: true },
         monitors: { name: true, _id: true },
         createdAt: true,
@@ -1085,10 +1131,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
+    // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+    const isResolvedIncidentState: (stateId: ObjectID | undefined) => boolean =
+      await Service.getIncidentResolvedRule(projectId);
+
     // Overview stats
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = incidents.filter((i: Incident) => {
-        return i.currentIncidentState?.isResolvedState;
+        return isResolvedIncidentState(i.currentIncidentStateId);
       }).length;
       const open: number = incidents.length - resolved;
 
@@ -1164,13 +1214,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           },
           select: {
             incidentId: true,
+            incidentStateId: true,
             incidentState: {
               isAcknowledgedState: true,
-              isResolvedState: true,
             },
             createdByUser: { name: true, email: true },
             createdAt: true,
           },
+          // The first resolve and acknowledgement come first.
+          sort: { createdAt: SortOrder.Ascending },
           props: { isRoot: true },
         });
 
@@ -1189,7 +1241,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }
-        if (tl.incidentState?.isResolvedState && !td.resolvedAt) {
+        if (isResolvedIncidentState(tl.incidentStateId) && !td.resolvedAt) {
           td.resolvedBy = userName;
           td.resolvedAt = tl.createdAt;
         }
@@ -1322,7 +1374,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             ackResolve.push(
               `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
-          } else if (!inc.currentIncidentState?.isResolvedState) {
+          } else if (!isResolvedIncidentState(inc.currentIncidentStateId)) {
             ackResolve.push(`_Not yet resolved_`);
           }
         }
@@ -1364,8 +1416,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           currentIncidentState: {
             name: true,
             _id: true,
-            isResolvedState: true,
           },
+          currentIncidentStateId: true,
           labels: { _id: true, name: true },
           createdAt: true,
           resolvedAt: true,
@@ -1387,8 +1439,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
+      // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+      const isResolvedIncidentState: (
+        stateId: ObjectID | undefined,
+      ) => boolean = await Service.getIncidentResolvedRule(projectId);
+
       const resolved: number = episodes.filter((e: IncidentEpisode) => {
-        return e.currentIncidentState?.isResolvedState;
+        return isResolvedIncidentState(e.currentIncidentStateId);
       }).length;
       blocks.push(
         Service.md(
@@ -1532,9 +1589,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         currentAlertState: {
           name: true,
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
         },
+        currentAlertStateId: true,
         labels: { _id: true, name: true },
         monitor: { name: true, _id: true },
         createdAt: true,
@@ -1555,9 +1612,13 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
+    // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+    const isResolvedAlertState: (stateId: ObjectID | undefined) => boolean =
+      await Service.getAlertResolvedRule(projectId);
+
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
       const resolved: number = alerts.filter((a: Alert) => {
-        return a.currentAlertState?.isResolvedState;
+        return isResolvedAlertState(a.currentAlertStateId);
       }).length;
       blocks.push(
         Service.md(
@@ -1626,13 +1687,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           query: { projectId, alertId: QueryHelper.any(ids) },
           select: {
             alertId: true,
+            alertStateId: true,
             alertState: {
               isAcknowledgedState: true,
-              isResolvedState: true,
             },
             createdByUser: { name: true, email: true },
             createdAt: true,
           },
+          // The first resolve and acknowledgement come first.
+          sort: { createdAt: SortOrder.Ascending },
           props: { isRoot: true },
         });
 
@@ -1651,7 +1714,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           td.ackBy = userName;
           td.ackAt = tl.createdAt;
         }
-        if (tl.alertState?.isResolvedState && !td.resolvedAt) {
+        if (isResolvedAlertState(tl.alertStateId) && !td.resolvedAt) {
           td.resolvedBy = userName;
           td.resolvedAt = tl.createdAt;
         }
@@ -1769,7 +1832,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
             ackResolve.push(
               `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
-          } else if (!a.currentAlertState?.isResolvedState) {
+          } else if (!isResolvedAlertState(a.currentAlertStateId)) {
             ackResolve.push(`_Not yet resolved_`);
           }
         }
@@ -1807,7 +1870,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         title: true,
         description: true,
         alertSeverity: { name: true, _id: true },
-        currentAlertState: { name: true, _id: true, isResolvedState: true },
+        currentAlertState: { name: true, _id: true },
+        currentAlertStateId: true,
         labels: { _id: true, name: true },
         createdAt: true,
         resolvedAt: true,
@@ -1829,8 +1893,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {
+      // Resolved or open, by the one rule (Common/Utils/ResolvedState).
+      const isResolvedAlertState: (stateId: ObjectID | undefined) => boolean =
+        await Service.getAlertResolvedRule(projectId);
+
       const resolved: number = episodes.filter((e: AlertEpisode) => {
-        return e.currentAlertState?.isResolvedState;
+        return isResolvedAlertState(e.currentAlertStateId);
       }).length;
       blocks.push(
         Service.md(

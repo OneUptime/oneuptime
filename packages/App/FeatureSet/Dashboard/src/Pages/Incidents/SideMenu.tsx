@@ -13,6 +13,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
+import useUnresolvedStateIds from "../../Components/EventView/useUnresolvedStateIds";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ObjectID from "Common/Types/ObjectID";
 
 export interface ComponentProps {
   project?: Project | undefined;
@@ -31,6 +34,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       connect: PageMap.INCIDENTS_WORKSPACE_CONNECTIONS,
     });
+
+  /*
+   * Active: in a state above the project's resolved state - a state placed
+   * after it counts as resolved (Common/Utils/ResolvedState). The badge
+   * counts once the states are read.
+   */
+  const { unresolvedStateIds } = useUnresolvedStateIds("incident");
 
   const sections: SideMenuSectionProps[] = [
     {
@@ -55,12 +65,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon: IconProp.Alert,
           badgeType: BadgeType.DANGER,
           modelType: Incident,
-          countQuery: {
-            projectId: props.project?._id,
-            currentIncidentState: {
-              isResolvedState: false,
-            },
-          } as any,
+          countQuery: unresolvedStateIds
+            ? ({
+                projectId: props.project?._id,
+                currentIncidentStateId: new Includes(
+                  unresolvedStateIds.map((stateId: ObjectID) => {
+                    return stateId.toString();
+                  }),
+                ),
+              } as any)
+            : undefined,
         },
       ],
     },

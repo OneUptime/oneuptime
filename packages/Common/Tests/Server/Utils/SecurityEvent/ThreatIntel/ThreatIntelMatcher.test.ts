@@ -56,6 +56,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { mockProjectStates } from "../../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The threat-intel matcher engine: due feeds run one match query, matched
@@ -152,6 +153,11 @@ let alertSeveritiesSpy: Spy;
 let insertRowsSpy: Spy;
 
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   matchesSpy = getJestSpyOn(
     ThreatIntelIndicatorService,
     "findIndicatorMatches",

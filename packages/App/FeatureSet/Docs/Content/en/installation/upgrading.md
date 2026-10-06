@@ -307,6 +307,32 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   SLA already responded to. Records created in the created state, as every
   monitor-opened one is, are unchanged. See
   [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+- **A state after your resolved state counts as resolved everywhere.** An
+  incident, alert or episode in a state you placed after the resolved state
+  — a **Closed** state below **Resolved**, say — used to count as resolved
+  in some places and as open in others. Every one of them now asks one
+  rule: the project's resolved state, and every state after it, is
+  resolved. Records in such a state leave the **Active Incidents** and
+  **Active Alerts** lists and their side-menu counts, the incident and
+  alert lists on dashboards, the active episodes and the mobile app's
+  lists of open records; Slack and Microsoft Teams summaries count them as
+  resolved, and status page timelines show such a row as resolved. A
+  monitor or an SLO burn-rate rule whose incident or alert sits in such a
+  state opens a new one the next time it fires, where it used to take the
+  old one for still open. Moving an incident straight into such a state
+  resolves it as **Resolved** does, and moving one on from **Resolved** no
+  longer reopens an episode or starts a new SLA for the incident. Projects
+  whose custom states all sit above the resolved state see no change. See
+  [The Active Incidents list](/docs/incidents/states-and-severities#the-active-incidents-list).
+- **Resolving an incident gives back only the monitors it holds.**
+  OneUptime now records whether an incident holds its monitors' status. An
+  incident resolved once already and then reopened no longer returns its
+  monitors to operational when it is resolved again, so a status they got
+  in between — from their probes, maintenance or set by hand — stays;
+  editing its monitors, or the status it puts them in, while it is open
+  makes it hold them again. Incidents from before the upgrade give their
+  monitors back on their next resolve, as they always did. See
+  [What resolving does](/docs/incidents/states-and-severities#what-resolving-does).
 - **An incident's or alert's episode is set by the episode's members
   only.** `incidentEpisodeId` and `alertEpisodeId` (and the `incidentEpisode`
   and `alertEpisode` relations) are read-only. The API, Terraform

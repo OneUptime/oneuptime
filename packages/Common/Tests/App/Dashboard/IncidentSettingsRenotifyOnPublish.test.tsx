@@ -70,7 +70,17 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (): Promise<unknown> => {
         return loadedIncident;
       },
-      getList: async (): Promise<unknown> => {
+      getList: async (request: { modelType?: unknown }): Promise<unknown> => {
+        // The project's incident states: what says whether it is resolved.
+        if (request?.modelType && request.modelType === stateModel()) {
+          return {
+            data: projectIncidentStates(),
+            count: projectIncidentStates().length,
+            skip: 0,
+            limit: 0,
+          };
+        }
+
         return { data: [], count: 0, skip: 0, limit: 0 };
       },
       getCommonHeaders: (): Record<string, unknown> => {
@@ -158,8 +168,34 @@ import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Navigation from "../../../UI/Utils/Navigation";
+import ProjectUtil from "../../../UI/Utils/Project";
+import ModelListCache from "../../../UI/Utils/ModelListCache";
 
 const INCIDENT_ID: string = "11111111-1111-4111-8111-111111111111";
+const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
+
+// The project's states: Identified, Resolved and, placed after it, Closed.
+const IDENTIFIED_STATE_ID: string = "33333333-3333-4333-8333-333333333301";
+const RESOLVED_STATE_ID: string = "33333333-3333-4333-8333-333333333303";
+const CLOSED_STATE_ID: string = "33333333-3333-4333-8333-333333333304";
+
+function stateModel(): unknown {
+  return IncidentState;
+}
+
+function projectIncidentStates(): Array<IncidentState> {
+  return [
+    [IDENTIFIED_STATE_ID, 1, false],
+    [RESOLVED_STATE_ID, 2, true],
+    [CLOSED_STATE_ID, 3, false],
+  ].map((row: Array<unknown>): IncidentState => {
+    const state: IncidentState = new IncidentState();
+    state._id = row[0] as string;
+    state.order = row[1] as number;
+    state.isResolvedState = row[2] as boolean;
+    return state;
+  });
+}
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/settings"),
@@ -173,6 +209,8 @@ interface IncidentShape {
   status?: StatusPageSubscriberNotificationStatus | undefined;
   notifyOnCreate?: boolean | undefined;
   isResolved?: boolean | undefined;
+  // The state it is in; by default Resolved when isResolved, else Identified.
+  stateId?: string | undefined;
   // The pages it is limited to, and the record of the ones told.
   statusPageIds?: Array<string> | undefined;
   notified?: Array<string> | null | undefined;
@@ -202,9 +240,10 @@ function buildIncident(shape: IncidentShape = {}): Incident {
     shape.notified === undefined ? null : shape.notified
   ) as Array<string>;
 
-  const state: IncidentState = new IncidentState();
-  state.isResolvedState = shape.isResolved ?? false;
-  incident.currentIncidentState = state;
+  incident.currentIncidentStateId = new ObjectID(
+    shape.stateId ||
+      (shape.isResolved ? RESOLVED_STATE_ID : IDENTIFIED_STATE_ID),
+  );
 
   return incident;
 }
@@ -258,6 +297,10 @@ async function loadIncident(shape: IncidentShape = {}): Promise<void> {
 }
 
 beforeEach(() => {
+  ModelListCache.invalidateAll();
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockImplementation((): ObjectID => {
@@ -281,7 +324,7 @@ describe("incident Settings tab: offering to notify subscribers on publish", () 
       expect.objectContaining({
         subscriberNotificationStatusOnIncidentCreated: true,
         shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-        currentIncidentState: { isResolvedState: true },
+        currentIncidentStateId: true,
         // Pages added while it was hidden can be told on publish.
         statusPages: { _id: true },
         statusPagesNotifiedOnCreation: true,
@@ -317,6 +360,14 @@ describe("incident Settings tab: offering to notify subscribers on publish", () 
   test("offers it unticked for a resolved incident", async () => {
     await renderSettings();
     await loadIncident({ isResolved: true });
+
+    expect(renotifyField()).toBeDefined();
+    expect(renotifyField()!.defaultValue).toBe(false);
+  });
+
+  test("offers it unticked for an incident in a state placed after Resolved, which counts as resolved", async () => {
+    await renderSettings();
+    await loadIncident({ stateId: CLOSED_STATE_ID });
 
     expect(renotifyField()).toBeDefined();
     expect(renotifyField()!.defaultValue).toBe(false);

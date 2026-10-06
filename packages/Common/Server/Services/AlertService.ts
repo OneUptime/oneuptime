@@ -111,6 +111,8 @@ import StartingStageUtil, {
   StartingStageCarryForward,
   StartingState,
 } from "../../Utils/StartingStage";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -183,19 +185,40 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * Whether the alert is acknowledged or further along - resolved included:
+   * what stops its on-call escalation. Read with the one rule
+   * (StartingStage): at or below the acknowledged state, or flagged
+   * acknowledged or resolved.
+   */
   @CaptureSpan()
   public async isAlertAcknowledged(data: {
     alertId: ObjectID;
   }): Promise<boolean> {
+    const alert: Model = await this.getAlertWithState(data.alertId);
+
+    if (!alert.currentAlertStateId) {
+      return false;
+    }
+
+    const startingState: StartingState | null =
+      await AlertStateService.getStartingState({
+        projectId: alert.projectId!,
+        alertStateId: alert.currentAlertStateId,
+      });
+
+    return Boolean(startingState && startingState.stage !== StartingStage.Open);
+  }
+
+  // The alert's project and current state, as OneUptime.
+  private async getAlertWithState(alertId: ObjectID): Promise<Model> {
     const alert: Model | null = await this.findOneBy({
       query: {
-        _id: data.alertId,
+        _id: alertId,
       },
       select: {
         projectId: true,
-        currentAlertState: {
-          order: true,
-        },
+        currentAlertStateId: true,
       },
       props: {
         isRoot: true,
@@ -210,22 +233,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Alert Project ID not found");
     }
 
-    const ackAlertState: AlertState =
-      await AlertStateService.getAcknowledgedAlertState({
-        projectId: alert.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
-    const ackAlertStateOrder: number = ackAlertState.order!;
-
-    if (currentAlertStateOrder >= ackAlertStateOrder) {
-      return true;
-    }
-
-    return false;
+    return alert;
   }
 
   @CaptureSpan()
@@ -2219,31 +2227,18 @@ ${alertSeverity.name}
     return `[${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
   }
 
+  // Whether another open alert raised by hand is still on the monitor.
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualAlerts(
     monitorId: ObjectID,
     proojectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: proojectId,
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-    });
-
     const alertCount: PositiveNumber = await this.countBy({
       query: {
         monitorId: monitorId,
-        currentAlertState: {
-          order: QueryHelper.lessThan(resolvedState?.order as number),
-        },
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(proojectId),
+        ),
         isCreatedAutomatically: false,
       },
       props: {
@@ -2503,7 +2498,6 @@ ${alertSeverity.name}
           alertStateId: true,
           alertState: {
             isAcknowledgedState: true,
-            isResolvedState: true,
           },
           startsAt: true,
           endsAt: true,
@@ -2513,6 +2507,15 @@ ${alertSeverity.name}
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // Which of them count as resolved (Common/Utils/ResolvedState).
+    const alertStates: Array<AlertState> =
+      await AlertStateService.getAllAlertStates({
+        projectId: alert.projectId,
         props: {
           isRoot: true,
         },
@@ -2684,17 +2687,25 @@ ${alertSeverity.name}
         }
       }
 
-      // time to resolve
-      const isAlertResolved: boolean = alertStateTimelines.some(
-        (timeline: AlertStateTimeline) => {
-          return timeline.alertState?.isResolvedState;
-        },
-      );
-
+      /*
+       * Time to resolve: until the alert first moved into a state that
+       * counts as resolved (Common/Utils/ResolvedState) - the project's
+       * resolved state, or one placed after it.
+       */
       const resolvedAlertStateTimeline: AlertStateTimeline | undefined =
-        alertStateTimelines.find((timeline: AlertStateTimeline) => {
-          return timeline.alertState?.isResolvedState;
-        });
+        ResolvedStateUtil.getResolutionRows({
+          list: StateListType.AlertState,
+          states: alertStates,
+          timeline: alertStateTimelines.map((timeline: AlertStateTimeline) => {
+            return {
+              stateId: timeline.alertStateId,
+              startsAt: timeline.startsAt,
+              timeline: timeline,
+            };
+          }),
+        })[0]?.timeline;
+
+      const isAlertResolved: boolean = Boolean(resolvedAlertStateTimeline);
 
       if (isAlertResolved && resolvedAlertStateTimeline) {
         // register the metric type so the catalog stays complete across refreshes.
@@ -2806,47 +2817,24 @@ ${alertSeverity.name}
     }
   }
 
+  /*
+   * Whether the alert is resolved: its state is at or below its project's
+   * resolved state, or flagged resolved - the one rule
+   * (Common/Utils/ResolvedState) that reminders, Slack, Microsoft Teams,
+   * auto-remediation and everything else read.
+   */
   @CaptureSpan()
   public async isAlertResolved(data: { alertId: ObjectID }): Promise<boolean> {
-    const alert: Model | null = await this.findOneBy({
-      query: {
-        _id: data.alertId,
-      },
-      select: {
-        projectId: true,
-        currentAlertState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
+    const alert: Model = await this.getAlertWithState(data.alertId);
+
+    if (!alert.currentAlertStateId) {
+      return false;
+    }
+
+    return await AlertStateService.isResolvedAlertState({
+      projectId: alert.projectId!,
+      alertStateId: alert.currentAlertStateId,
     });
-
-    if (!alert) {
-      throw new BadDataException("Alert not found");
-    }
-
-    if (!alert.projectId) {
-      throw new BadDataException("Alert Project ID not found");
-    }
-
-    const resolvedAlertState: AlertState =
-      await AlertStateService.getResolvedAlertState({
-        projectId: alert.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
-    const resolvedAlertStateOrder: number = resolvedAlertState.order!;
-
-    if (currentAlertStateOrder >= resolvedAlertStateOrder) {
-      return true;
-    }
-
-    return false;
   }
 
   @CaptureSpan()
@@ -2895,22 +2883,18 @@ ${alertSeverity.name}
       throw new BadDataException("Alert not found.");
     }
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
+    // The project's resolved state: the first from the top flagged resolved.
+    const alertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
         projectId: alert.projectId,
-        isResolvedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        props: {
+          isRoot: true,
+        },
+      });
 
-    if (!alertState || !alertState.id) {
+    if (!alertState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Resolved state not found for this project. Please add resolved state from settings.",
       );
     }
 

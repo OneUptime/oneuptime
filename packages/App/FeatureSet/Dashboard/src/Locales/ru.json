@@ -25803,5 +25803,6 @@
   "node operations on": "операции с узлами включены",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Показано последнее состояние на {{time}}; эта страница сама повторит попытку.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Следующие сводки приходят в то же время суток. Оставьте пустым, чтобы начать в 09:00 по часовому поясу сводки в начале следующей недели, дня или месяца.",
-  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Сводки приходят в одно и то же время суток в этом часовом поясе весь год, в том числе после перевода часов."
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Сводки приходят в одно и то же время суток в этом часовом поясе весь год, в том числе после перевода часов.",
+  "Holds Monitors": "Удерживает мониторы"
 }

@@ -25803,5 +25803,6 @@
   "node operations on": "عملیات گره روشن",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} آخرین وضعیت مربوط به {{time}} نمایش داده می‌شود؛ این صفحه خودش دوباره تلاش می‌کند.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "خلاصه‌های بعدی در همان ساعت روز ارسال می‌شوند. خالی بگذارید تا در آغاز هفته، روز یا ماه بعد، ساعت 09:00 به وقت منطقه زمانی خلاصه شروع شود.",
-  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "خلاصه‌ها در تمام سال در همان ساعت روز در این منطقه زمانی ارسال می‌شوند، حتی پس از تغییر ساعت رسمی."
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "خلاصه‌ها در تمام سال در همان ساعت روز در این منطقه زمانی ارسال می‌شوند، حتی پس از تغییر ساعت رسمی.",
+  "Holds Monitors": "مانیتورها را در دست دارد"
 }

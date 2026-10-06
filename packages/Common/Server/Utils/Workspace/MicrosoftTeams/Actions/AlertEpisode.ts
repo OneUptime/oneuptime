@@ -218,7 +218,6 @@ export default class MicrosoftTeamsAlertEpisodeActions {
           currentAlertState: {
             _id: true,
             name: true,
-            isResolvedState: true,
           },
         },
         props: {
@@ -234,7 +233,8 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         return;
       }
 
-      if (episode.currentAlertState?.isResolvedState) {
+      // Resolved by the one rule (Common/Utils/ResolvedState).
+      if (await AlertEpisodeService.isEpisodeResolved(episode.id!)) {
         logger.debug("Alert episode is already resolved", {
           projectId: data.teamsRequest.projectId.toString(),
           alertEpisodeId: episodeId,

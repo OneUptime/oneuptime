@@ -59,7 +59,6 @@ RunCron(
           incidentStateId: true,
           incidentState: {
             name: true,
-            isResolvedState: true,
             color: true,
           },
         },
