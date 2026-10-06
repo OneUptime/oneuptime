@@ -97,10 +97,11 @@ jest.mock("../../../Server/Utils/Response", () => {
  * them. One that dropped from Growth keeps posting to Slack and Microsoft
  * Teams, keeps its API keys authenticating and its schedules paging people.
  * Before this, below the plan none of it could even be read, let alone
- * switched off or removed. Now every plan reads what the project has,
- * switches it off and deletes it; creating, switching back on and changing
- * still need the plan, refused with its name - and so does deleting an API
- * key's permissions one by one, and reading what a feature produced (logs).
+ * switched off or removed. Now every plan reads what the project has of
+ * these, switches it off and deletes it; creating, switching back on and
+ * changing still need the plan, refused with its name - and so do deleting
+ * an API key's permissions one by one, reading anything else a plan sells
+ * (on-call logs here) and using the feature (a summary's test send).
  */
 
 const PLAN_ENVIRONMENT: Record<string, string> = {
