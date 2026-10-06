@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * choice, and nothing tells them apart. SET DEFAULT is a catalog change; it
  * rewrites no rows.
  */
-export class StartIncomingCallRulesAtTwentySeconds1798500000000
+export class StartIncomingCallRulesAtTwentySeconds1798600000000
   implements MigrationInterface
 {
-  public name: string = "StartIncomingCallRulesAtTwentySeconds1798500000000";
+  public name: string = "StartIncomingCallRulesAtTwentySeconds1798600000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

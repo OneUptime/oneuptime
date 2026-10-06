@@ -1,4 +1,4 @@
-import { StartIncomingCallRulesAtTwentySeconds1798500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798500000000-StartIncomingCallRulesAtTwentySeconds";
+import { StartIncomingCallRulesAtTwentySeconds1798600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798600000000-StartIncomingCallRulesAtTwentySeconds";
 import { DEFAULT_INCOMING_CALL_RING_SECONDS } from "../../../../Types/IncomingCall/IncomingCallRingTime";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -191,7 +191,7 @@ describePostgres(
 
       // The table as it was BEFORE the migration, whether or not the source ran it.
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new StartIncomingCallRulesAtTwentySeconds1798500000000().down(
+        await new StartIncomingCallRulesAtTwentySeconds1798600000000().down(
           queryRunner,
         );
       });
@@ -203,7 +203,7 @@ describePostgres(
       await readSeeds(ringTimesBeforeUp);
 
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new StartIncomingCallRulesAtTwentySeconds1798500000000().up(
+        await new StartIncomingCallRulesAtTwentySeconds1798600000000().up(
           queryRunner,
         );
       });
@@ -212,7 +212,7 @@ describePostgres(
 
       // And back down, to see what a rollback keeps.
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new StartIncomingCallRulesAtTwentySeconds1798500000000().down(
+        await new StartIncomingCallRulesAtTwentySeconds1798600000000().down(
           queryRunner,
         );
       });
@@ -267,7 +267,7 @@ describePostgres(
 
       // ...and up() again starts a new rule at 20.
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new StartIncomingCallRulesAtTwentySeconds1798500000000().up(
+        await new StartIncomingCallRulesAtTwentySeconds1798600000000().up(
           queryRunner,
         );
       });

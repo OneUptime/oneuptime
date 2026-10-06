@@ -1,5 +1,5 @@
 import { MigrationName1768825402472 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1768825402472-MigrationName";
-import { StartIncomingCallRulesAtTwentySeconds1798500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798500000000-StartIncomingCallRulesAtTwentySeconds";
+import { StartIncomingCallRulesAtTwentySeconds1798600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1798600000000-StartIncomingCallRulesAtTwentySeconds";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import IncomingCallPolicyEscalationRule from "../../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import { DEFAULT_INCOMING_CALL_RING_SECONDS } from "../../../../Types/IncomingCall/IncomingCallRingTime";
@@ -28,8 +28,8 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  */
 
 const MIGRATION_NAME: string =
-  "StartIncomingCallRulesAtTwentySeconds1798500000000";
-const TIMESTAMP: number = 1798500000000;
+  "StartIncomingCallRulesAtTwentySeconds1798600000000";
+const TIMESTAMP: number = 1798600000000;
 
 const UP: string = `ALTER TABLE "IncomingCallPolicyEscalationRule" ALTER COLUMN "escalateAfterSeconds" SET DEFAULT '20'`;
 const DOWN: string = `ALTER TABLE "IncomingCallPolicyEscalationRule" ALTER COLUMN "escalateAfterSeconds" SET DEFAULT '30'`;
@@ -96,13 +96,13 @@ async function createTableStatement(): Promise<string> {
   return statement as string;
 }
 
-describe("StartIncomingCallRulesAtTwentySeconds1798500000000", () => {
+describe("StartIncomingCallRulesAtTwentySeconds1798600000000", () => {
   test("is registered once, under the name its class carries", () => {
-    expect(new StartIncomingCallRulesAtTwentySeconds1798500000000().name).toBe(
+    expect(new StartIncomingCallRulesAtTwentySeconds1798600000000().name).toBe(
       MIGRATION_NAME,
     );
     expect(SchemaMigrations).toContain(
-      StartIncomingCallRulesAtTwentySeconds1798500000000,
+      StartIncomingCallRulesAtTwentySeconds1798600000000,
     );
     expect(
       registeredNames().filter((name: string): boolean => {
@@ -158,7 +158,7 @@ describe("StartIncomingCallRulesAtTwentySeconds1798500000000", () => {
   test("up() starts a new rule at 20 seconds, and does nothing else", async () => {
     expect(
       await recordQueries(
-        StartIncomingCallRulesAtTwentySeconds1798500000000,
+        StartIncomingCallRulesAtTwentySeconds1798600000000,
         "up",
       ),
     ).toEqual([UP]);
@@ -167,7 +167,7 @@ describe("StartIncomingCallRulesAtTwentySeconds1798500000000", () => {
   test("down() puts the 30 second default back, and does nothing else", async () => {
     expect(
       await recordQueries(
-        StartIncomingCallRulesAtTwentySeconds1798500000000,
+        StartIncomingCallRulesAtTwentySeconds1798600000000,
         "down",
       ),
     ).toEqual([DOWN]);
@@ -176,11 +176,11 @@ describe("StartIncomingCallRulesAtTwentySeconds1798500000000", () => {
   test("never writes a row: existing rules keep the ring time they hold", async () => {
     const statements: Array<string> = [
       ...(await recordQueries(
-        StartIncomingCallRulesAtTwentySeconds1798500000000,
+        StartIncomingCallRulesAtTwentySeconds1798600000000,
         "up",
       )),
       ...(await recordQueries(
-        StartIncomingCallRulesAtTwentySeconds1798500000000,
+        StartIncomingCallRulesAtTwentySeconds1798600000000,
         "down",
       )),
     ];
