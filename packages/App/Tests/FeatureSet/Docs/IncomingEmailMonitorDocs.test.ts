@@ -338,8 +338,9 @@ describe("The defaults the section quotes", () => {
       ),
       "utf8",
     );
+    // The email is stored as a jsonb-safe copy of the request.
     const writesEmail: number = ingest.indexOf(
-      "incomingEmailMonitorRequest: incomingEmailRequest",
+      "incomingEmailMonitorRequest: toStorableJson(",
     );
     // An archived monitor is skipped at the same point, for the same reason.
     const skipsDisabled: number = ingest.indexOf(

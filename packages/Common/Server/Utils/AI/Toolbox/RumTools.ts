@@ -31,6 +31,7 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
+import { getMetricReadPermissions } from "../../Telemetry/MetricReadPermissions";
 
 function getApplicationId(args: JSONObject): ObjectID | undefined {
   if (args["rumApplicationId"] === undefined) {
@@ -223,6 +224,17 @@ export const QueryRumWebVitalsTool: ObservabilityTool = {
   },
   get requiredPermissions(): Array<Permission> {
     return new RumApplication().getReadPermissions();
+  },
+  /*
+   * The vitals are metric data points, read with the caller's own
+   * permissions: the application and its metrics both have to be readable,
+   * or the tool is refused before it reads anything.
+   */
+  getRequiredPermissionGroups: (): Array<Array<Permission>> => {
+    return [
+      new RumApplication().getReadPermissions(),
+      getMetricReadPermissions(),
+    ];
   },
   execute: async (
     args: JSONObject,

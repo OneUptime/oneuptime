@@ -1,4 +1,5 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -8,6 +9,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+  UserTenantAccessPermission,
+} from "Common/Types/Permission";
 import { APP_API_URL } from "Common/UI/Config";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -16,7 +22,9 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
+import User from "Common/UI/Utils/User";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -58,6 +66,50 @@ const METRICS_FOR_TRACE_LIMIT: number = 500;
 // Metric links widen the trace's window so near-instant traces still chart.
 export const TRACE_METRIC_WINDOW_PADDING_MINUTES: number = 5;
 const MAX_SAMPLED_METRIC_VALUES: number = 5;
+
+/*
+ * Whether to offer the Metrics tab. Metrics are read with their own
+ * permission, not the trace one, so the tab is left out for somebody who
+ * may read this trace but not metrics, rather than offered and then
+ * refused. It asks what POST /telemetry/metrics/for-trace asks: one of the
+ * Metric model's own read permissions (PermissionGate.check would also
+ * count the operational-resources wildcard, which that route does not),
+ * held as an allow (a block row names a permission to deny it, and the
+ * route counts only allows). Offered while the permission snapshot is
+ * still loading: the server has the last word.
+ */
+function canOfferTraceMetrics(): boolean {
+  if (User.isMasterAdmin()) {
+    return true;
+  }
+
+  const globalPermissions: Array<Permission> =
+    PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+  const projectPermissions: UserTenantAccessPermission | null =
+    PermissionUtil.getProjectPermissions();
+  const projectRows: Array<UserPermission> =
+    projectPermissions?.permissions || [];
+
+  if (globalPermissions.length === 0 && projectRows.length === 0) {
+    return true;
+  }
+
+  const allowed: Array<Permission> = [
+    ...globalPermissions,
+    ...projectRows
+      .filter((row: UserPermission): boolean => {
+        return !row.isBlockPermission;
+      })
+      .map((row: UserPermission): Permission => {
+        return row.permission;
+      }),
+  ];
+
+  return PermissionHelper.doesPermissionsIntersect(
+    allowed,
+    new Metric().getReadPermissions(),
+  );
+}
 
 export function formatTraceMetricValue(value: number): string {
   if (!Number.isFinite(value)) {
@@ -205,15 +257,47 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     };
   }, [traceId]);
 
-  // If the gate closes while Profile is selected, fall back to the default tab.
+  const canReadMetrics: boolean = canOfferTraceMetrics();
+
+  /*
+   * Which tabs are offered: Metrics to who may read metrics, Profile only
+   * when the trace was profiled. The tab list, the panels and the fallback
+   * below all ask this one question.
+   */
+  const isTabOffered: (tab: CorrelatedSignalTab) => boolean = (
+    tab: CorrelatedSignalTab,
+  ): boolean => {
+    if (tab === "metrics") {
+      return canReadMetrics;
+    }
+
+    if (tab === "profile") {
+      return profileSampleCount > 0;
+    }
+
+    return true;
+  };
+
+  const isActiveTabOffered: boolean = isTabOffered(activeSignalTab);
+
+  /*
+   * If a tab's gate closes while it is selected (a trace without profile
+   * samples, or a permission snapshot that arrives without the metric
+   * read), fall back to the default tab.
+   */
   useEffect(() => {
-    if (activeSignalTab === "profile" && profileSampleCount === 0) {
+    if (!isActiveTabOffered) {
       setActiveSignalTab("logs");
     }
-  }, [activeSignalTab, profileSampleCount]);
+  }, [isActiveTabOffered]);
 
   // Metrics tab: reverse exemplar lookup, fetched on first open only.
   useEffect(() => {
+    // Never asked of the server by somebody it would refuse.
+    if (!canReadMetrics) {
+      return;
+    }
+
     if (activeSignalTab !== "metrics" || metricsFetched) {
       return;
     }
@@ -348,12 +432,16 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   }> = [
     { id: "logs", label: "Logs", count: null },
     { id: "exceptions", label: "Exceptions", count: exceptionCount },
-    {
-      id: "metrics",
-      label: "Metrics",
-      count: metricsFetched ? traceMetricSeries.length : null,
-    },
-    ...(profileSampleCount > 0
+    ...(isTabOffered("metrics")
+      ? [
+          {
+            id: "metrics" as CorrelatedSignalTab,
+            label: "Metrics",
+            count: metricsFetched ? traceMetricSeries.length : null,
+          },
+        ]
+      : []),
+    ...(isTabOffered("profile")
       ? [
           {
             id: "profile" as CorrelatedSignalTab,
@@ -446,7 +534,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {activeSignalTab === "metrics" && (
+        {activeSignalTab === "metrics" && isActiveTabOffered && (
           <div data-testid="trace-metrics">
             {metricsLoading ? (
               <div className="flex h-32 items-center justify-center">
@@ -544,7 +632,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {activeSignalTab === "profile" && profileSampleCount > 0 && (
+        {activeSignalTab === "profile" && isActiveTabOffered && (
           <div data-testid="trace-profile">
             <p className="mb-3 text-xs text-gray-500">
               Flame graph built from the {profileSampleCount.toLocaleString()}{" "}
