@@ -9,7 +9,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+  UserTenantAccessPermission,
+} from "Common/Types/Permission";
 import { APP_API_URL } from "Common/UI/Config";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -67,25 +71,42 @@ const MAX_SAMPLED_METRIC_VALUES: number = 5;
  * Whether to offer the Metrics tab. Metrics are read with their own
  * permission, not the trace one, so the tab is left out for somebody who
  * may read this trace but not metrics, rather than offered and then
- * refused. The list is the Metric model's own read list, exactly what POST
- * /telemetry/metrics/for-trace asks for (PermissionGate.check would also
- * count the operational-resources wildcard, which that route does not).
- * Offered while the permission snapshot is still loading: the server has
- * the last word.
+ * refused. It asks what POST /telemetry/metrics/for-trace asks: one of the
+ * Metric model's own read permissions (PermissionGate.check would also
+ * count the operational-resources wildcard, which that route does not),
+ * held as an allow (a block row names a permission to deny it, and the
+ * route counts only allows). Offered while the permission snapshot is
+ * still loading: the server has the last word.
  */
 function canOfferTraceMetrics(): boolean {
   if (User.isMasterAdmin()) {
     return true;
   }
 
-  const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  const globalPermissions: Array<Permission> =
+    PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+  const projectPermissions: UserTenantAccessPermission | null =
+    PermissionUtil.getProjectPermissions();
+  const projectRows: Array<UserPermission> =
+    projectPermissions?.permissions || [];
 
-  if (permissions.length === 0) {
+  if (globalPermissions.length === 0 && projectRows.length === 0) {
     return true;
   }
 
+  const allowed: Array<Permission> = [
+    ...globalPermissions,
+    ...projectRows
+      .filter((row: UserPermission): boolean => {
+        return !row.isBlockPermission;
+      })
+      .map((row: UserPermission): Permission => {
+        return row.permission;
+      }),
+  ];
+
   return PermissionHelper.doesPermissionsIntersect(
-    permissions,
+    allowed,
     new Metric().getReadPermissions(),
   );
 }
