@@ -231,11 +231,11 @@ const ALL_SUBJECTS: ReadonlyArray<Subject> = [
 
 // A member of the project, as the API's auth middleware leaves the request.
 const request: (data: {
-  body?: JSONObject;
-  permission?: Permission | null;
+  body?: JSONObject | undefined;
+  permission?: Permission | null | undefined;
 }) => OneUptimeRequest = (data: {
-  body?: JSONObject;
-  permission?: Permission | null;
+  body?: JSONObject | undefined;
+  permission?: Permission | null | undefined;
 }): OneUptimeRequest => {
   const permission: Permission | null =
     data.permission === undefined ? Permission.ProjectOwner : data.permission;
