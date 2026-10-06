@@ -463,14 +463,15 @@ data:
       # and the like made by work no request triggered: a worker's HTTP
       # queries to ClickHouse, a controller renewing its lease, a probe's
       # checks (ebpf.dropUnlinkedClientCalls, off by default). Database calls
-      # are filter/ebpf-unlinked-db's; messaging and GenAI calls are kept, as
-      # are SERVER, PRODUCER, CONSUMER and INTERNAL spans and spans
+      # are filter/ebpf-unlinked-db's; messaging, GenAI and MCP calls are
+      # kept, as are SERVER, PRODUCER, CONSUMER and INTERNAL spans and spans
       # applications push from their own SDKs. A processor of its own rather
       # than a third condition in filter/ebpf-unlinked-db: the two never match
       # the same span, and the collector reports what each one drops under
       # its own name. The cost — a call that is the root of a trace, because
-      # OBI linked the request it reached on the same node under it, goes too,
-      # leaving that trace without its root — is in values.yaml.
+      # the request it reached hangs under it (on the same node, or on any
+      # node with ebpf.contextPropagation), goes too, leaving that trace
+      # without its root — is in values.yaml.
       filter/ebpf-unlinked-client:
         error_mode: ignore
         traces:

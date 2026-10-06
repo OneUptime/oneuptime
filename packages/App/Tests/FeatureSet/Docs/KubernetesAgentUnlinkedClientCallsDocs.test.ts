@@ -10,14 +10,15 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * The kubernetes-agent chart's ebpf.dropUnlinkedClientCalls drops OBI's
- * client calls that belong to no trace (other than database, messaging and
- * GenAI calls). Unlike the database switches next to it, it is OFF by
+ * client calls that belong to no trace (other than database, messaging,
+ * GenAI and MCP calls). Unlike the database switches next to it, it is OFF by
  * default, because the collector cannot see what hangs under a span: a call
- * that OBI linked a same-node request under is the root of that trace, and
- * dropping it leaves the trace without its root. The chart's helm-unittest
- * suite (tests/traces-unlinked-client-spans_test.yaml) pins the render; this
- * keeps every copy an operator reads in step with it — the default, and the
- * cost they are told about before turning it on.
+ * that OBI linked a same-node request under (any node's, with
+ * ebpf.contextPropagation) is the root of that trace, and dropping it leaves
+ * the trace without its root. The chart's helm-unittest suite
+ * (tests/traces-unlinked-client-spans_test.yaml) pins the render; this keeps
+ * every copy an operator reads in step with it — the default, and the costs
+ * they are told about before turning it on.
  */
 
 const KEY: string = "dropUnlinkedClientCalls";
@@ -73,6 +74,66 @@ describe("kubernetes-agent docs: ebpf.dropUnlinkedClientCalls", () => {
     expect(page).toContain(`\`ebpf.${KEY}=true\``);
     expect(page).toContain("It is off by default");
     expect(page).toContain("leaves the trace without its root");
-    expect(page).toContain("database, messaging and GenAI calls are never");
+    expect(page).toContain(
+      "database, messaging and GenAI calls (MCP included) are never",
+    );
+  });
+
+  /*
+   * Two costs that are easy to miss: ebpf.contextPropagation makes calls the
+   * root of requests on any node (an SDK-instrumented service's too), and a
+   * service's overview tiles count its spans, so a worker or probe whose
+   * spans are mostly these calls loses most of its "requests".
+   */
+  test("every copy names the contextPropagation and service overview costs", () => {
+    /*
+     * The one paragraph or comment about this switch, not the whole file:
+     * contextPropagation and "overview" appear elsewhere in each of them.
+     */
+    const paragraph: (text: string, start: string) => string = (
+      text: string,
+      start: string,
+    ): string => {
+      const found: string | undefined = text
+        .split("\n\n")
+        .find((block: string): boolean => {
+          return block.startsWith(start);
+        });
+      expect(found).toBeDefined();
+      return found || "";
+    };
+    const schema: {
+      properties: {
+        ebpf: { properties: Record<string, { description: string }> };
+      };
+    } = JSON.parse(read(CHART_SCHEMA));
+    const valuesComment: string =
+      read(CHART_VALUES)
+        .split("\n  dropUnlinkedDatabaseCalls: true\n")[1]
+        ?.split(`\n  ${KEY}: false\n`)[0] || "";
+    const copies: Array<[string, string]> = [
+      ["values.yaml", valuesComment],
+      ["schema", schema.properties.ebpf.properties[KEY]?.description || ""],
+      [
+        "README",
+        paragraph(read(CHART_README), "Background work makes HTTP and gRPC"),
+      ],
+      [
+        "docs page",
+        paragraph(
+          read(KUBERNETES_AGENT_PAGE),
+          "Background work's HTTP and gRPC",
+        ),
+      ],
+    ];
+
+    for (const [name, text] of copies) {
+      expect([name, text.includes("contextPropagation")]).toEqual([name, true]);
+      expect([name, text.includes("overview")]).toEqual([name, true]);
+      expect([name, text.includes("OBI could not place in")]).toEqual([
+        name,
+        true,
+      ]);
+    }
   });
 });

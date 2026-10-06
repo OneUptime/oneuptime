@@ -892,7 +892,7 @@
         },
         "dropUnlinkedClientCalls": {
           "type": "boolean",
-          "description": "Drop an application's eBPF client call (kind CLIENT, no parent) that is not a database, messaging or GenAI call: HTTP, gRPC and other calls made by background work. Off by default; only true turns it on. Trade-offs: a call that OBI linked a same-node request under is the root of that trace, which then loses its root; the service map draws a dependency only background work calls from OBI's service graph metrics alone, and counts only in-request calls on an edge also seen inside requests. Spans pushed by application SDKs are never touched, and OBI's metrics are unaffected."
+          "description": "Drop an application's eBPF client call (kind CLIENT, no parent) that is not a database, messaging, GenAI or MCP call: HTTP, gRPC and other calls made by background work, and calls OBI could not place in their request's trace. Off by default; only true turns it on. Trade-offs: a call that OBI linked a request under (on the same node; on any node with ebpf.contextPropagation, SDK-instrumented services included) is the root of that trace, which then loses its root; the service map draws a dependency only background work calls from OBI's service graph metrics alone, and counts only in-request calls on an edge also seen inside requests; a service's overview counts only the spans left. Spans pushed by application SDKs are never dropped, and OBI's metrics are unaffected."
         },
         "dropNodeInspectorMetrics": {
           "type": "boolean",
