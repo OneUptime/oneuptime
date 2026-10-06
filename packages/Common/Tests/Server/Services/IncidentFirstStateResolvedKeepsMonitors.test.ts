@@ -16,6 +16,7 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
+import type { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -402,10 +403,9 @@ describe("IncidentService.recordHoldsMonitors", () => {
   test.each([true, false])(
     "writes %s as OneUptime, past the update hooks",
     async (value: boolean) => {
-      const update: jest.SpiedFunction<typeof IncidentService.updateOneById> =
-        jest
-          .spyOn(IncidentService, "updateOneById")
-          .mockResolvedValue(undefined as never);
+      const update: SpyInstance<typeof IncidentService.updateOneById> = jest
+        .spyOn(IncidentService, "updateOneById")
+        .mockResolvedValue(undefined as never);
 
       await IncidentService.recordHoldsMonitors({
         incidentId: INCIDENT_ID,

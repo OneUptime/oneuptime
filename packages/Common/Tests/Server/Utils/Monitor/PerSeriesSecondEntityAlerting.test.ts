@@ -609,6 +609,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdAlertIdsDictionary: AUTO_RESOLVE_BOTH,
         rootCause: "Disk usage is above 95% on host-a",
@@ -638,6 +639,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary:
           AUTO_RESOLVE_BOTH_INCIDENTS,
@@ -669,6 +671,7 @@ describe("A second breaching series alerts even while the first is open", () => 
 
       const survivors: Array<Alert> =
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdAlertIdsDictionary: AUTO_RESOLVE_BOTH,
           rootCause: "host-b recovered",
@@ -701,6 +704,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdAlertIdsDictionary: AUTO_RESOLVE_BOTH,
         rootCause: "Disk usage is above 95% on host-a",
@@ -730,6 +734,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary:
           AUTO_RESOLVE_BOTH_INCIDENTS,
@@ -767,6 +772,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdAlertIdsDictionary: {
           [CRITICAL_CRITERIA_ID]: [`${CRITICAL_CRITERIA_ID}-alert-template`],
@@ -796,6 +802,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
           [CRITICAL_CRITERIA_ID]: [`${CRITICAL_CRITERIA_ID}-incident-template`],
@@ -833,6 +840,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
           [CRITICAL_CRITERIA_ID]: [`${CRITICAL_CRITERIA_ID}-incident-template`],
@@ -864,6 +872,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdAlertIdsDictionary: {
           [CRITICAL_CRITERIA_ID]: [`${CRITICAL_CRITERIA_ID}-alert-template`],
@@ -888,6 +897,7 @@ describe("A second breaching series alerts even while the first is open", () => 
       ];
 
       await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdAlertIdsDictionary: {
           [CRITICAL_CRITERIA_ID]: [`${CRITICAL_CRITERIA_ID}-alert-template`],

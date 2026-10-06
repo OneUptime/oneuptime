@@ -409,6 +409,7 @@ describe("Incidents and alerts store payload copies Postgres can hold", () => {
 
       // No criteria met on this check: the open incident auto-resolves.
       await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
           "criteria-1": ["incident-template-1"],
@@ -517,6 +518,7 @@ describe("Incidents and alerts store payload copies Postgres can hold", () => {
       jest.spyOn(AlertService, "findBy").mockResolvedValue([openAlert]);
 
       await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+        projectId: PROJECT_ID,
         monitorId: MONITOR_ID,
         autoResolveCriteriaInstanceIdAlertIdsDictionary: {
           "criteria-1": ["alert-template-1"],

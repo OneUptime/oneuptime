@@ -540,6 +540,7 @@ describe.each(ENTITY_KINDS)(
       };
       if (kind === "alert") {
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           ...commonInput,
           autoResolveCriteriaInstanceIdAlertIdsDictionary: {
             [CRITERIA_ID]: [TEMPLATE_ID],
@@ -547,6 +548,7 @@ describe.each(ENTITY_KINDS)(
         });
       } else {
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           ...commonInput,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
             [CRITERIA_ID]: [TEMPLATE_ID],

@@ -412,6 +412,7 @@ describe("Per-series auto-resolve root cause", () => {
 
       const survivors: Array<Alert> =
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdAlertIdsDictionary: AUTO_RESOLVE,
           rootCause: input.rootCause,
@@ -454,6 +455,7 @@ describe("Per-series auto-resolve root cause", () => {
 
       const survivors: Array<Incident> =
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary: AUTO_RESOLVE,
           rootCause: input.rootCause,

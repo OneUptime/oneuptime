@@ -463,6 +463,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
 
       const openAlerts: Array<Alert> =
         await MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdAlertIdsDictionary: {
             "old-criteria": ["alert-template-1"],
@@ -604,6 +605,7 @@ describe("Dependency-suppression skip block in the alert / incident creators", (
 
       const openIncidents: Array<Incident> =
         await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          projectId: PROJECT_ID,
           monitorId: MONITOR_ID,
           autoResolveCriteriaInstanceIdIncidentIdsDictionary: {
             "old-criteria": ["incident-template-1"],
