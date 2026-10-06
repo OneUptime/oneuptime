@@ -9,7 +9,7 @@ import {
   ProjectAiDailyLimitsCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
-import {
+import ProjectAiDailyLimits, {
   MIN_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
   MIN_PROJECT_AI_DAILY_TOKEN_LIMIT,
   ProjectAiDailyLimit,
@@ -19,10 +19,7 @@ import Permission from "Common/Types/Permission";
 import { createTranslator } from "Common/UI/Utils/TranslateTemplate";
 import { getProjectDailyLimitMessage } from "Common/Server/Services/AIService";
 import ProjectAiDailyLimitOwnerNotice from "Common/Server/Utils/AI/ProjectAiDailyLimitOwnerNotice";
-import {
-  LIMIT_CATCH_UP_WINDOW_HOURS,
-} from "Common/Server/Utils/AI/SRE/InvestigationLimitCatchUp";
-import ProjectAiDailyLimits from "Common/Types/AI/ProjectAiDailyLimits";
+import { LIMIT_CATCH_UP_WINDOW_HOURS } from "Common/Server/Utils/AI/SRE/InvestigationLimitCatchUp";
 import ObjectID from "Common/Types/ObjectID";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import { describe, expect, it } from "@jest/globals";

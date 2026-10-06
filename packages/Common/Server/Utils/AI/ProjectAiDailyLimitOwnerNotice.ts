@@ -124,13 +124,12 @@ export default class ProjectAiDailyLimitOwnerNotice {
         return ProjectAiDailyLimitNoticeOutcome.AlreadyTold;
       }
 
-      const isFirstToday: boolean = await ProjectService.markAiDailyLimitReached(
-        {
+      const isFirstToday: boolean =
+        await ProjectService.markAiDailyLimitReached({
           projectId: data.projectId,
           limit,
           now,
-        },
-      );
+        });
 
       this.remember(key, dayStart);
 
@@ -189,13 +188,12 @@ export default class ProjectAiDailyLimitOwnerNotice {
     const mayChangeLimits: boolean =
       data.mayChangeLimits ?? OWNERS_MAY_CHANGE_PROJECT_AI_DAILY_LIMITS;
 
-    const resetsAt: string = OneUptimeDate.getDateAsCustomFormattedStringInTimezone(
-      {
+    const resetsAt: string =
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
         date: data.status.resetsAt,
         format: "HH:mm [UTC on] MMM D, YYYY",
         timezone: "UTC",
-      },
-    );
+      });
 
     const paused: string =
       data.status.reachedLimit === ProjectAiDailyLimit.Spend

@@ -391,7 +391,6 @@ describe("ProjectAiDailyLimits.formatUsd", () => {
   });
 });
 
-
 /*
  * When a limit last stopped AI, the sentences everything that says so is
  * made of, and who may change the limits - shared by the server's refusal,

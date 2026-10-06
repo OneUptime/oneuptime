@@ -245,9 +245,7 @@ describe("the project's owners hear when a daily AI limit stops OneUptime AI", (
   test("a model call refused by the token limit emails the owners: which limit, today's usage, the reset and where to change it", async () => {
     usedTokensToday = 5000;
 
-    await expect(askAi()).rejects.toThrow(
-      /reached its daily AI token limit/,
-    );
+    await expect(askAi()).rejects.toThrow(/reached its daily AI token limit/);
 
     const emails: Array<Array<unknown>> = emailsFor(projectRow.id!);
     expect(emails).toHaveLength(1);
@@ -268,9 +266,7 @@ describe("the project's owners hear when a daily AI limit stops OneUptime AI", (
     usedTokensToday = 5000;
 
     for (let attempt: number = 0; attempt < 5; attempt++) {
-      await expect(askAi()).rejects.toThrow(
-        /reached its daily AI token limit/,
-      );
+      await expect(askAi()).rejects.toThrow(/reached its daily AI token limit/);
     }
 
     expect(emailsFor(projectRow.id!)).toHaveLength(1);

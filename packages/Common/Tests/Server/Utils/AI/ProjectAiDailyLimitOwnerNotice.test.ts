@@ -50,9 +50,7 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
     configurable: true,
     enumerable: true,
     get: (): unknown => {
-      return urlModule.default.fromString(
-        mockGlobal.__ownerNoticeDashboardUrl,
-      );
+      return urlModule.default.fromString(mockGlobal.__ownerNoticeDashboardUrl);
     },
   });
 
@@ -221,9 +219,9 @@ describe("what the email says", () => {
       "aiDailyTokenLimit",
       "aiDailySpendLimitInUSD",
     ] as const) {
-      expect(
-        new Project().getColumnAccessControlFor(column)?.update,
-      ).toEqual(PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS);
+      expect(new Project().getColumnAccessControlFor(column)?.update).toEqual(
+        PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS,
+      );
     }
 
     expect(PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS).toContain(

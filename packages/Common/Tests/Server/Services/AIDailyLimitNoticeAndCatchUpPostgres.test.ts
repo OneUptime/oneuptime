@@ -176,9 +176,9 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
           now: morning,
         }),
       ).toBe(true);
-      expect(
-        await reachedAt(projectId, "aiDailyTokenLimitReachedAt"),
-      ).toEqual(morning);
+      expect(await reachedAt(projectId, "aiDailyTokenLimitReachedAt")).toEqual(
+        morning,
+      );
 
       expect(
         await ProjectService.markAiDailyLimitReached({
@@ -187,9 +187,9 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
           now: evening,
         }),
       ).toBe(false);
-      expect(
-        await reachedAt(projectId, "aiDailyTokenLimitReachedAt"),
-      ).toEqual(morning);
+      expect(await reachedAt(projectId, "aiDailyTokenLimitReachedAt")).toEqual(
+        morning,
+      );
     });
 
     test("the next UTC day wins again", async () => {
@@ -209,9 +209,9 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
           now: nextDay,
         }),
       ).toBe(true);
-      expect(
-        await reachedAt(projectId, "aiDailyTokenLimitReachedAt"),
-      ).toEqual(nextDay);
+      expect(await reachedAt(projectId, "aiDailyTokenLimitReachedAt")).toEqual(
+        nextDay,
+      );
     });
 
     test("each limit has its own column", async () => {

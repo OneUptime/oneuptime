@@ -182,11 +182,12 @@ function answerCandidateQuery(
   const stateColumn: string =
     lane === "Incident" ? "currentIncidentStateId" : "currentAlertStateId";
 
-  const allowedStates: Array<string> = (
-    operatorParameters(query[stateColumn])[0] as Array<string> | undefined
-  )?.map((id: string) => {
-    return id.toString();
-  }) || [];
+  const allowedStates: Array<string> =
+    (
+      operatorParameters(query[stateColumn])[0] as Array<string> | undefined
+    )?.map((id: string) => {
+      return id.toString();
+    }) || [];
 
   const contained: Record<string, unknown> = JSON.parse(
     operatorParameters(query["aiInvestigationDecision"])[0] as string,
@@ -203,7 +204,8 @@ function answerCandidateQuery(
     .filter((record: FakeRecord): boolean => {
       return (
         record.lane === lane &&
-        record.projectId.toString() === (query["projectId"] as ObjectID).toString() &&
+        record.projectId.toString() ===
+          (query["projectId"] as ObjectID).toString() &&
         allowedStates.includes(record.stateId.toString()) &&
         record.decision !== null &&
         Object.entries(contained).every(([key, value]: [string, unknown]) => {
@@ -285,7 +287,8 @@ function countRuns(query: Record<string, unknown>): number {
 
   return runs.filter((run: FakeRun): boolean => {
     return (
-      run.projectId.toString() === (query["projectId"] as ObjectID).toString() &&
+      run.projectId.toString() ===
+        (query["projectId"] as ObjectID).toString() &&
       run.subjectId.toString() === subjectId?.toString() &&
       query["runType"] === AIRunType.Investigation
     );
@@ -303,10 +306,11 @@ function findRecord(id: ObjectID): FakeRecord {
  * (the record has an investigation now). A test can make it record another
  * reason instead, as the real gates would.
  */
-let runnerOutcome: (record: FakeRecord) => InvestigationNotStartedCode | null =
-  () => {
-    return null;
-  };
+let runnerOutcome: (
+  record: FakeRecord,
+) => InvestigationNotStartedCode | null = () => {
+  return null;
+};
 
 function runRunner(lane: Lane, subjectId: ObjectID): boolean {
   const record: FakeRecord = findRecord(subjectId);
@@ -373,16 +377,18 @@ beforeEach(() => {
         data as Parameters<typeof answerCandidateQuery>[1],
       ) as Array<Incident>;
     });
-  jest.spyOn(AlertService, "findBy").mockImplementation(async (data: unknown) => {
-    const findBy: { query: Record<string, unknown> } = data as {
-      query: Record<string, unknown>;
-    };
-    alertQueries.push(findBy.query);
-    return answerCandidateQuery(
-      "Alert",
-      data as Parameters<typeof answerCandidateQuery>[1],
-    ) as Array<Alert>;
-  });
+  jest
+    .spyOn(AlertService, "findBy")
+    .mockImplementation(async (data: unknown) => {
+      const findBy: { query: Record<string, unknown> } = data as {
+        query: Record<string, unknown>;
+      };
+      alertQueries.push(findBy.query);
+      return answerCandidateQuery(
+        "Alert",
+        data as Parameters<typeof answerCandidateQuery>[1],
+      ) as Array<Alert>;
+    });
 
   jest
     .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
@@ -395,14 +401,19 @@ beforeEach(() => {
   jest
     .spyOn(AlertService, "compareAndSetColumnsByIdWithoutHooks")
     .mockImplementation(async (input: unknown) => {
-      return compareAndSet("Alert", input as Parameters<typeof compareAndSet>[1]);
+      return compareAndSet(
+        "Alert",
+        input as Parameters<typeof compareAndSet>[1],
+      );
     });
 
-  jest.spyOn(AIRunService, "countBy").mockImplementation(async (data: unknown) => {
-    return new PositiveNumber(
-      countRuns((data as { query: Record<string, unknown> }).query),
-    );
-  });
+  jest
+    .spyOn(AIRunService, "countBy")
+    .mockImplementation(async (data: unknown) => {
+      return new PositiveNumber(
+        countRuns((data as { query: Record<string, unknown> }).query),
+      );
+    });
 
   limitChecks = jest
     .spyOn(AIService, "getReachedProjectDailyLimit")
@@ -496,10 +507,9 @@ describe("only the records the limit skipped, still open, less than a day old", 
 
     expect(investigatedIncidentIds()).toEqual([open.id.toString()]);
     expect(investigateAlert).not.toHaveBeenCalled();
-    expect(IncidentStateService.getUnresolvedIncidentStates).toHaveBeenCalledWith(
-      PROJECT_A,
-      { isRoot: true },
-    );
+    expect(
+      IncidentStateService.getUnresolvedIncidentStates,
+    ).toHaveBeenCalledWith(PROJECT_A, { isRoot: true });
     expect(AlertStateService.getUnresolvedAlertStates).toHaveBeenCalledWith(
       PROJECT_A,
       { isRoot: true },
@@ -559,7 +569,9 @@ describe("only the records the limit skipped, still open, less than a day old", 
     ).toContain("@>");
     expect(
       JSON.parse(
-        operatorParameters(incidentQueries[0]!["aiInvestigationDecision"])[0] as string,
+        operatorParameters(
+          incidentQueries[0]!["aiInvestigationDecision"],
+        )[0] as string,
       ),
     ).toEqual({ code: "project_daily_limit_reached" });
   });
@@ -572,7 +584,9 @@ describe("only the records the limit skipped, still open, less than a day old", 
 
     expect(investigatedIncidentIds()).toEqual([recent.id.toString()]);
     expect(
-      (operatorParameters(incidentQueries[0]!["createdAt"])[0] as Date).getTime(),
+      (
+        operatorParameters(incidentQueries[0]!["createdAt"])[0] as Date
+      ).getTime(),
     ).toBe(hoursAgo(LIMIT_CATCH_UP_WINDOW_HOURS).getTime());
   });
 
@@ -805,7 +819,11 @@ describe("the limits still apply", () => {
   test(`it takes at most ${LIMIT_CATCH_UP_BATCH_SIZE} records of a lane per run, the most recent first`, async () => {
     const created: Array<FakeRecord> = [];
 
-    for (let index: number = 0; index < LIMIT_CATCH_UP_BATCH_SIZE + 3; index++) {
+    for (
+      let index: number = 0;
+      index < LIMIT_CATCH_UP_BATCH_SIZE + 3;
+      index++
+    ) {
       created.push(addRecord({ createdAt: hoursAgo(index + 1) }));
     }
 
@@ -883,9 +901,9 @@ describe("which projects are looked at", () => {
         call![0] as { query: Record<string, unknown> }
       ).query;
       expect(operatorSql(query[column])).toContain(">=");
-      expect(
-        (operatorParameters(query[column])[0] as Date).getTime(),
-      ).toBe(since.getTime());
+      expect((operatorParameters(query[column])[0] as Date).getTime()).toBe(
+        since.getTime(),
+      );
       expect((call![0] as { props: unknown }).props).toEqual({ isRoot: true });
     }
   });
@@ -904,10 +922,11 @@ describe("which projects are looked at", () => {
         return undefined as never;
       });
 
-    (IncidentStateService.getUnresolvedIncidentStates as unknown as jest.Mock)
-      .mockImplementationOnce(async () => {
-        throw new Error("database unavailable");
-      });
+    (
+      IncidentStateService.getUnresolvedIncidentStates as unknown as jest.Mock
+    ).mockImplementationOnce(async () => {
+      throw new Error("database unavailable");
+    });
 
     await expect(InvestigationLimitCatchUp.run()).resolves.toBeDefined();
 
