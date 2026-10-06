@@ -111,7 +111,7 @@ export function getResourceInvestigationOnSentence(
     {
       commands: translatableTerm(descriptor.readOnlyCommandsPhrase),
       noun: translatableTerm(descriptor.noun, { inSentence: true }),
-      examples: descriptor.readExamples,
+      examples: translatableTerm(descriptor.readExamples),
     },
   );
 }
