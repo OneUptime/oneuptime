@@ -1,4 +1,6 @@
 import { isKnownToBeBelowPlan } from "../../Enterprise/EnterpriseEligibility";
+// The column that switches a status page's email reports on: the card's own.
+import { REPORT_SWITCH_COLUMN } from "../StatusPage/StatusPageReportsCopy";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
@@ -104,9 +106,6 @@ const createTarget: (
   };
 };
 
-// The column switching a status page's email reports on.
-const STATUS_PAGE_REPORT_COLUMN: string = "isReportEnabled";
-
 export const TestSendTargets: {
   // Test Rule, and the Send Test of a Slack or Microsoft Teams channel or chat.
   NotificationRule: TestSendTarget;
@@ -139,9 +138,8 @@ export const TestSendTargets: {
   StatusPageReport: {
     getRequiredPlan: (): PlanType | null => {
       return (
-        new StatusPage().getColumnBillingAccessControl(
-          STATUS_PAGE_REPORT_COLUMN,
-        )?.update || null
+        new StatusPage().getColumnBillingAccessControl(REPORT_SWITCH_COLUMN)
+          ?.update || null
       );
     },
     checkPermission: (
@@ -149,7 +147,7 @@ export const TestSendTargets: {
     ): PermissionGateResult => {
       return PermissionGate.checkColumnUpdate(
         new StatusPage(),
-        STATUS_PAGE_REPORT_COLUMN,
+        REPORT_SWITCH_COLUMN,
         options,
       );
     },
