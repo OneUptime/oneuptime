@@ -1,7 +1,11 @@
 import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
+import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
+import AlertService from "../../../Server/Services/AlertService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember, {
   AlertEpisodeMemberAddedBy,
 } from "../../../Models/DatabaseModels/AlertEpisodeMember";
@@ -97,6 +101,18 @@ describe("AlertEpisodeMember first-member create permissions", () => {
     jest
       .spyOn(AlertEpisodeMemberService, "countBy")
       .mockResolvedValue(new PositiveNumber(0) as never);
+    /*
+     * The caller can see the episode and the alert it adds
+     * (EpisodeMemberPrivateEnds covers one they cannot).
+     */
+    const episode: AlertEpisode = new AlertEpisode();
+    episode.projectId = PROJECT_ID;
+    jest
+      .spyOn(AlertEpisodeService, "findOneById")
+      .mockResolvedValue(episode as never);
+    const alert: Alert = new Alert();
+    alert.projectId = PROJECT_ID;
+    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert as never);
     stubProjectDirectory({});
   });
 

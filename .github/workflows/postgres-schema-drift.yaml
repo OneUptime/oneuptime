@@ -114,6 +114,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
 
+      # A person adds only an incident or alert they can see to an episode
+      # they can see, and neither side's feed entry - nor the episode's Slack
+      # / Teams post - names the other side when it is private.
+      - name: Test adding to an episode with private ends on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_MEMBER_PRIVATE_ENDS_TESTS: "true"
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_MEMBER_PRIVATE_ENDS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeMemberPrivateEndsPostgres.test.ts
+          --forceExit
+
       # An incident's or alert's episode follows the episode's members only:
       # a create or update that names it is refused for every caller, and
       # joining and leaving through the members still moves it.

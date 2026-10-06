@@ -1,8 +1,11 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
-import ProjectReferencesService from "./ProjectReferencesService";
+import ProjectReferencesService, {
+  ProjectReferenceWrite,
+} from "./ProjectReferencesService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import CallerVisibleRead from "../Utils/Database/CallerVisibleRead";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -42,6 +45,90 @@ const getFeedTitle: GetFeedTitleFunction = (
   return escapeMarkdownValue(title || "No title");
 };
 
+// How a feed entry names the incident, or the episode, on the other side.
+interface FeedMention {
+  // "**Incident INC-42**", or "**Incident INC-42** (private incident)".
+  subject: string;
+  // ": <title>", or nothing for a private one.
+  titleSuffix: string;
+}
+
+/*
+ * Each side's entry is read by its own side's audience: the episode's feed
+ * and Slack / Microsoft Teams channels by whoever can see the episode, the
+ * incident's feed by whoever can see the incident. So a private end's title
+ * never goes into the other side's entry - not even when both are private,
+ * because the two can have different owners - as IncidentAlertService does
+ * for an alert linked to an incident. Its number is kept, so the entry still
+ * says what happened.
+ */
+type DescribeFeedMentionFunction = (data: {
+  label: string;
+  title: string | undefined | null;
+  isPrivate: boolean;
+  privateNoun: string;
+}) => FeedMention;
+
+const describeFeedMention: DescribeFeedMentionFunction = (data: {
+  label: string;
+  title: string | undefined | null;
+  isPrivate: boolean;
+  privateNoun: string;
+}): FeedMention => {
+  const subject: string = `**${data.label}**`;
+
+  if (data.isPrivate) {
+    return {
+      subject: `${subject} (private ${data.privateNoun})`,
+      titleSuffix: "",
+    };
+  }
+
+  return { subject: subject, titleSuffix: `: ${getFeedTitle(data.title)}` };
+};
+
+type DescribeIncidentFunction = (incident: Incident | null) => FeedMention;
+
+const describeIncident: DescribeIncidentFunction = (
+  incident: Incident | null,
+): FeedMention => {
+  return describeFeedMention({
+    label: `Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}`,
+    title: incident?.title,
+    isPrivate: incident?.isPrivate === true,
+    privateNoun: "incident",
+  });
+};
+
+type DescribeEpisodeFunction = (episode: IncidentEpisode | null) => FeedMention;
+
+const describeEpisode: DescribeEpisodeFunction = (
+  episode: IncidentEpisode | null,
+): FeedMention => {
+  return describeFeedMention({
+    label: `Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}`,
+    title: episode?.title,
+    isPrivate: episode?.isPrivate === true,
+    privateNoun: "episode",
+  });
+};
+
+// Postgres compares uuids by value, whatever case or padding an id came in.
+type IsSameIdFunction = (
+  id: ObjectID | string | undefined | null,
+  other: ObjectID,
+) => boolean;
+
+const isSameId: IsSameIdFunction = (
+  id: ObjectID | string | undefined | null,
+  other: ObjectID,
+): boolean => {
+  return (
+    (id?.toString() || "").trim().toLowerCase() ===
+    other.toString().trim().toLowerCase()
+  );
+};
+
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -50,19 +137,78 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * On a person's create, the episode and the incident are checked by this
+   * service's own hook: read as the caller, so a private one they cannot
+   * open, one of another project and one that does not exist all get the
+   * same answer. A generic check first would answer the last two in other
+   * words than the first. OneUptime's own writes - the grouping engine,
+   * adding by hand for the person who asked - and workflows write as root,
+   * and get the generic check, as every update does (no person may change a
+   * member's incident or episode).
+   */
+  protected override getRelationsCheckedByService(
+    write?: ProjectReferenceWrite,
+  ): Array<string> {
+    if (write && (write.kind === "update" || write.props.isRoot)) {
+      return [];
+    }
+
+    return ["incidentEpisode", "incident"];
+  }
+
+  /*
+   * A person may only add an incident they can see to an episode they can
+   * see. The foreign keys only require the rows to exist, and
+   * @CanAccessIfCanReadOn is not applied on create, so without this a member
+   * could add a private incident they cannot open to an episode by its id -
+   * and the episode's feed would then show its title - or add to a private
+   * episode they cannot open.
+   *
+   * This hook runs before DatabaseService checks the caller's create
+   * permission on the columns, so no refusal before the visibility check
+   * says anything about a record the caller cannot see: the duplicate check,
+   * which would, comes after it.
+   */
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.incidentEpisodeId) {
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    // A reference arrives as `incidentId` or as `incident: { _id }`.
+    const incidentEpisodeId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["incidentEpisodeId", "incidentEpisode"],
+      "episode",
+    );
+
+    const incidentId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["incidentId", "incident"],
+      "incident",
+    );
+
+    if (!incidentEpisodeId) {
       throw new BadDataException("incidentEpisodeId is required");
     }
 
-    if (!createBy.data.incidentId) {
+    if (!incidentId) {
       throw new BadDataException("incidentId is required");
     }
+
+    // The ids checked below are the only ones that can reach the insert.
+    RelationIdUtil.stamp(
+      data,
+      ["incidentEpisodeId", "incidentEpisode"],
+      incidentEpisodeId,
+    );
+    RelationIdUtil.stamp(data, ["incidentId", "incident"], incidentId);
 
     if (
       !createBy.props.isRoot &&
@@ -73,11 +219,19 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    if (!createBy.props.isRoot) {
+      await this.checkCallerCanSeeBothEnds({
+        createBy: createBy,
+        incidentEpisodeId: incidentEpisodeId,
+        incidentId: incidentId,
+      });
+    }
+
     // Check if this incident is already in the episode
     const existingMember: Model | null = await this.findOneBy({
       query: {
-        incidentEpisodeId: createBy.data.incidentEpisodeId,
-        incidentId: createBy.data.incidentId,
+        incidentEpisodeId: incidentEpisodeId,
+        incidentId: incidentId,
       },
       props: {
         isRoot: true,
@@ -124,7 +278,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (createBy.data.isOwnerNotifiedOfIncidentAdded === undefined) {
       const existingMemberCount: PositiveNumber = await this.countBy({
         query: {
-          incidentEpisodeId: createBy.data.incidentEpisodeId,
+          incidentEpisodeId: incidentEpisodeId,
         },
         props: {
           isRoot: true,
@@ -137,6 +291,62 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Reads the episode and the incident as the caller, so privacy, label and
+   * owner scoping apply exactly as they do on their own pages, and pins both
+   * to the member's project: the request's tenant, the only project the
+   * caller was checked in. A caller without read access at all gets the same
+   * answer as one asking for a record that does not exist.
+   */
+  @CaptureSpan()
+  private async checkCallerCanSeeBothEnds(data: {
+    createBy: CreateBy<Model>;
+    incidentEpisodeId: ObjectID;
+    incidentId: ObjectID;
+  }): Promise<void> {
+    const { createBy } = data;
+
+    const projectId: ObjectID | null =
+      createBy.props.tenantId ||
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["projectId", "project"],
+        "project",
+      );
+
+    if (!projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    const episode: IncidentEpisode | null = await CallerVisibleRead.find(() => {
+      return IncidentEpisodeService.findOneById({
+        id: data.incidentEpisodeId,
+        select: { _id: true, projectId: true },
+        props: createBy.props,
+      });
+    });
+
+    if (!episode || !isSameId(episode.projectId, projectId)) {
+      throw new BadDataException(
+        "The episode to add the incident to does not exist in this project, or you do not have access to it.",
+      );
+    }
+
+    const incident: Incident | null = await CallerVisibleRead.find(() => {
+      return IncidentService.findOneById({
+        id: data.incidentId,
+        select: { _id: true, projectId: true },
+        props: createBy.props,
+      });
+    });
+
+    if (!incident || !isSameId(incident.projectId, projectId)) {
+      throw new BadDataException(
+        "The incident to add does not exist in this project, or you do not have access to it.",
+      );
+    }
   }
 
   @CaptureSpan()
@@ -188,6 +398,7 @@ export class Service extends ProjectReferencesService<Model> {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         title: true,
+        isPrivate: true,
       },
       props: {
         isRoot: true,
@@ -202,11 +413,15 @@ export class Service extends ProjectReferencesService<Model> {
           episodeNumber: true,
           episodeNumberWithPrefix: true,
           title: true,
+          isPrivate: true,
         },
         props: {
           isRoot: true,
         },
       });
+
+    const incidentMention: FeedMention = describeIncident(incident);
+    const episodeMention: FeedMention = describeEpisode(episode);
 
     // Create feed item on episode
     await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -214,7 +429,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       incidentEpisodeFeedEventType: IncidentEpisodeFeedEventType.IncidentAdded,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** added to episode: ${getFeedTitle(incident?.title)}`,
+      feedInfoInMarkdown: `${incidentMention.subject} added to episode${incidentMention.titleSuffix}`,
       userId: createdItem.addedByUserId || undefined,
       workspaceNotification: {
         sendWorkspaceNotification: true,
@@ -228,7 +443,7 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: createdItem.projectId,
       incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
       displayColor: Yellow500,
-      feedInfoInMarkdown: `Added to **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
+      feedInfoInMarkdown: `Added to ${episodeMention.subject}${episodeMention.titleSuffix}`,
       userId: createdItem.addedByUserId || undefined,
     });
 
@@ -308,6 +523,7 @@ export class Service extends ProjectReferencesService<Model> {
               incidentNumber: true,
               incidentNumberWithPrefix: true,
               title: true,
+              isPrivate: true,
             },
             props: {
               isRoot: true,
@@ -324,11 +540,15 @@ export class Service extends ProjectReferencesService<Model> {
                   episodeNumber: true,
                   episodeNumberWithPrefix: true,
                   title: true,
+                  isPrivate: true,
                 },
                 props: {
                   isRoot: true,
                 },
               });
+
+            const incidentMention: FeedMention = describeIncident(incident);
+            const episodeMention: FeedMention = describeEpisode(episode);
 
             // Create feed item on episode
             await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
@@ -337,7 +557,7 @@ export class Service extends ProjectReferencesService<Model> {
               incidentEpisodeFeedEventType:
                 IncidentEpisodeFeedEventType.IncidentRemoved,
               displayColor: Green500,
-              feedInfoInMarkdown: `**Incident ${incident?.incidentNumberWithPrefix || "#" + (incident?.incidentNumber || "N/A")}** removed from episode: ${getFeedTitle(incident?.title)}`,
+              feedInfoInMarkdown: `${incidentMention.subject} removed from episode${incidentMention.titleSuffix}`,
               workspaceNotification: {
                 sendWorkspaceNotification: true,
               },
@@ -349,7 +569,7 @@ export class Service extends ProjectReferencesService<Model> {
               projectId: member.projectId,
               incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
               displayColor: Green500,
-              feedInfoInMarkdown: `Removed from **Episode ${episode?.episodeNumberWithPrefix || "#" + (episode?.episodeNumber || "N/A")}**: ${getFeedTitle(episode?.title)}`,
+              feedInfoInMarkdown: `Removed from ${episodeMention.subject}${episodeMention.titleSuffix}`,
             });
           }
         }

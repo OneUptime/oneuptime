@@ -1,13 +1,20 @@
+import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import AlertEpisodeMemberService from "../../../Server/Services/AlertEpisodeMemberService";
+import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
+import AlertService from "../../../Server/Services/AlertService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeMemberService from "../../../Server/Services/IncidentEpisodeMemberService";
+import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentGroupingEngineService from "../../../Server/Services/IncidentGroupingEngineService";
 import IncidentPublicNoteService from "../../../Server/Services/IncidentPublicNoteService";
+import IncidentService from "../../../Server/Services/IncidentService";
 import UserService from "../../../Server/Services/UserService";
 import {
   RunOptions,
@@ -255,6 +262,8 @@ describe("an incident or alert added to an episode is added by the person making
     label: string;
     service: DatabaseService<DatabaseBaseModel>;
     member: () => DatabaseBaseModel;
+    // The episode and the record, as the caller reads them before adding.
+    stubEnds: () => void;
   }
 
   const CASES: Array<EpisodeMemberCase> = [
@@ -269,6 +278,18 @@ describe("an incident or alert added to an episode is added by the person making
         member.incidentId = new ObjectID(RECORD_ID);
         return member;
       },
+      stubEnds: (): void => {
+        const episode: IncidentEpisode = new IncidentEpisode();
+        episode.projectId = PROJECT_ID;
+        getJestSpyOn(IncidentEpisodeService, "findOneById").mockResolvedValue(
+          episode,
+        );
+        const incident: Incident = new Incident();
+        incident.projectId = PROJECT_ID;
+        getJestSpyOn(IncidentService, "findOneById").mockResolvedValue(
+          incident,
+        );
+      },
     },
     {
       label: "an alert",
@@ -280,6 +301,16 @@ describe("an incident or alert added to an episode is added by the person making
         member.alertEpisodeId = new ObjectID(EPISODE_ID);
         member.alertId = new ObjectID(RECORD_ID);
         return member;
+      },
+      stubEnds: (): void => {
+        const episode: AlertEpisode = new AlertEpisode();
+        episode.projectId = PROJECT_ID;
+        getJestSpyOn(AlertEpisodeService, "findOneById").mockResolvedValue(
+          episode,
+        );
+        const alert: Alert = new Alert();
+        alert.projectId = PROJECT_ID;
+        getJestSpyOn(AlertService, "findOneById").mockResolvedValue(alert);
       },
     },
   ];
@@ -304,6 +335,8 @@ describe("an incident or alert added to an episode is added by the person making
   ): Promise<Record<string, unknown>> {
     // Not a member yet, in an episode that has others: the hook goes on.
     getJestSpyOn(entry.service, "findOneBy").mockResolvedValue(null);
+    // Both the caller's to see: they own the project.
+    entry.stubEnds();
     getJestSpyOn(entry.service, "countBy").mockResolvedValue(
       new PositiveNumber(1),
     );
