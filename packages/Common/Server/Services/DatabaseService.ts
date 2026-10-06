@@ -660,9 +660,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * The rows a delete removes, with what they show to everyone - their
-   * project and the columns PublishedImages reads - read as root, the
-   * deleted rows included, since a hard delete removes those too. The rows
-   * as given for a table that shows nothing, or when the read fails.
+   * project and the columns PublishedImages reads, or their project alone
+   * for a table whose delete takes something off a status page
+   * (StatusPageOverviewCache) - read as root, the deleted rows included,
+   * since a hard delete removes those too. The rows as given for a table
+   * that shows nothing, or when the read fails.
    */
   private async readRowsShowingImages(
     items: Array<TBaseModel>,
@@ -671,7 +673,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.model.tableName,
     );
 
-    if (columns.length === 0 || items.length === 0) {
+    if (
+      (columns.length === 0 &&
+        !StatusPageOverviewCache.forgetsOnDelete(this.model.tableName)) ||
+      items.length === 0
+    ) {
       return items;
     }
 

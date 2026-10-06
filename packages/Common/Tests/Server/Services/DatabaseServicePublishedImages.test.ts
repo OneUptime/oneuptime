@@ -15,6 +15,7 @@ import Dictionary from "../../../Types/Dictionary";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -272,6 +273,12 @@ class StatusPageWrites extends DatabaseService<StatusPage> {
 class GroupWrites extends DatabaseService<StatusPageGroup> {
   public constructor() {
     super(StatusPageGroup);
+  }
+}
+
+class EpisodeMemberWrites extends DatabaseService<IncidentEpisodeMember> {
+  public constructor() {
+    super(IncidentEpisodeMember);
   }
 }
 
@@ -669,6 +676,79 @@ describe("update: what the write stored decides", () => {
 
     expect(visibilityAsked()).toEqual(["aaa111:public"]);
   });
+
+  /*
+   * An update that writes a list goes through save(), which hands nothing
+   * back: the row is read back once written, and that decides.
+   */
+  test("a write through save() decides by the row as read back once written", async () => {
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({
+        description: image("aaa111"),
+        isVisibleOnStatusPage: true,
+      }),
+    ]);
+
+    // Made private by a write that landed after the update read the incident.
+    repository.save.mockImplementation(
+      async (entity: unknown): Promise<unknown> => {
+        const stored: Incident = storedIncident({
+          description: image("bbb222"),
+          isVisibleOnStatusPage: false,
+        });
+        stored.isPrivate = true;
+        repository.rows[0] = stored;
+
+        return entity;
+      },
+    );
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { description: image("bbb222"), labels: [] } as never,
+      props: rootProps(),
+    });
+
+    expect(repository.save).toHaveBeenCalledTimes(1);
+    // Read back with what it shows, after save().
+    expect(selectsAsked(repository).slice(-1)[0]).toEqual(
+      expect.arrayContaining([...INCIDENT_SHOWN_COLUMNS, "isPrivate"]),
+    );
+    expect(visibilityAsked()).not.toContain("bbb222:public");
+    expect(visibilityAsked()).toContain("aaa111:private");
+  });
+
+  test("a write through save() of a row nobody else wrote shows what it holds", async () => {
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({
+        description: image("aaa111"),
+        isVisibleOnStatusPage: true,
+      }),
+    ]);
+
+    repository.save.mockImplementation(
+      async (entity: unknown): Promise<unknown> => {
+        repository.rows[0] = storedIncident({
+          description: image("bbb222"),
+          isVisibleOnStatusPage: true,
+        });
+
+        return entity;
+      },
+    );
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { description: image("bbb222"), labels: [] } as never,
+      props: rootProps(),
+    });
+
+    expect(visibilityAsked()).toEqual(
+      expect.arrayContaining(["bbb222:public", "aaa111:private"]),
+    );
+  });
 });
 
 /*
@@ -919,6 +999,60 @@ describe("the status page overview cache follows the writes", () => {
     });
 
     expect(forgetProjects).not.toHaveBeenCalled();
+  });
+
+  test("a write that can only show more keeps them", async () => {
+    const forgetProjects: SpyInstance<
+      typeof StatusPageOverviewCache.forgetProjects
+    > = jest
+      .spyOn(StatusPageOverviewCache, "forgetProjects")
+      .mockResolvedValue(undefined);
+
+    const service: IncidentWrites = new IncidentWrites();
+    useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: false }),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true, isPrivate: false },
+      props: rootProps(),
+    });
+
+    expect(forgetProjects).not.toHaveBeenCalled();
+  });
+
+  test("a purge of an incident's place in an episode reads the rows' project, and forgets it", async () => {
+    const forgetProjects: SpyInstance<
+      typeof StatusPageOverviewCache.forgetProjects
+    > = jest
+      .spyOn(StatusPageOverviewCache, "forgetProjects")
+      .mockResolvedValue(undefined);
+
+    const member: IncidentEpisodeMember = new IncidentEpisodeMember();
+    member._id = RECORD_ID;
+    member.projectId = PROJECT_ID;
+
+    const service: EpisodeMemberWrites = new EpisodeMemberWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      member,
+    ]);
+
+    await service.hardDeleteBy({
+      query: {},
+      limit: 100,
+      skip: 0,
+      props: rootProps(),
+    });
+
+    // Nothing an episode member shows is read, but its project is.
+    expect(selectsAsked(repository)[0]).not.toContain("projectId");
+    expect(selectsAsked(repository).slice(-1)[0]).toEqual(
+      expect.arrayContaining(["_id", "projectId"]),
+    );
+    expect(forgetProjects).toHaveBeenCalledTimes(1);
+    expect(forgetProjects.mock.calls[0]![0]).toEqual([PROJECT_ID.toString()]);
+    expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 
   test("a delete, and a purge, forget them", async () => {

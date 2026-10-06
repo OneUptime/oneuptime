@@ -1,11 +1,15 @@
+import Entities from "../../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import {
   PUBLISHED_MARKDOWN,
   PublishedMarkdown,
 } from "../../../../Server/Utils/File/PublishedImages";
 import StatusPageOverviewCache, {
-  SHOWN_RECORD_SWITCHES,
+  HIDING_WRITES,
+  HidingWrite,
   SHOWN_RECORD_TABLES,
+  STATUS_PAGE_CONFIGURATION_TABLES,
   STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
 } from "../../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import { JSONObject } from "../../../../Types/JSON";
@@ -23,15 +27,19 @@ import type { Mock } from "jest-mock";
 jest.mock("../../../../Server/Utils/Logger");
 
 /*
- * A status page's overview is kept for a few seconds per process - and a
- * record a status page stops showing (made private, hidden, its postmortem
- * taken off, deleted) leaves it at once, in every process: each such write
- * starts a new generation of its project's overviews, kept in Redis, and an
- * overview is kept under the generation its build started in.
+ * A status page's overview is kept for a few seconds per process - and
+ * something a status page stops showing (a record made private, hidden,
+ * limited to other pages or deleted; the page's own resources changed)
+ * leaves it at once: each write that can take something off starts a new
+ * generation of its project's overviews - shared through Redis, and this
+ * process's own - and an overview is kept under the generation its build
+ * started in. A write that can only show more starts none.
  *
  * Redis is a stand-in here: a map every "process" shares, or a cache that
  * cannot be reached.
  */
+
+const GENERATION_KEY: string = `${STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE}-generation-70000000-0000-4000-8000-000000000001`;
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "70000000-0000-4000-8000-000000000001",
@@ -160,16 +168,21 @@ describe("StatusPageOverviewCache.getOrBuild", () => {
     expect(build).toHaveBeenCalledTimes(1);
   });
 
-  test("a change made by another process is seen through Redis", async () => {
+  test("a change made by another process is seen through Redis, within SHARED_GENERATION_READ_TTL_MS", async () => {
     const { build } = counter();
+    const startedAt: number = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
 
     await overview({ build });
 
     // Another process starts a new generation; this one keeps its entries.
-    redis.set(
-      `${STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE}-generation-${PROJECT_ID.toString()}`,
-      "elsewhere",
-    );
+    redis.set(GENERATION_KEY, "elsewhere");
+
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(
+        startedAt + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1,
+      );
 
     await overview({ build });
 
@@ -199,8 +212,12 @@ describe("StatusPageOverviewCache.getOrBuild", () => {
 
     // Read before the change; still building when it lands.
     const stale: Promise<JSONObject> = overview({ build });
-    await Promise.resolve();
-    await Promise.resolve();
+
+    while (build.mock.calls.length === 0) {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
 
     await StatusPageOverviewCache.forgetProjects([PROJECT_ID]);
 
@@ -292,8 +309,105 @@ describe("StatusPageOverviewCache.getOrBuild", () => {
   });
 });
 
+describe("StatusPageOverviewCache generations", () => {
+  beforeEach(redisReachable);
+
+  test("Redis is asked once per project for SHARED_GENERATION_READ_TTL_MS, not on every request", async () => {
+    const { build } = counter();
+    const startedAt: number = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
+
+    await overview({ build, statusPageId: PAGE_ID });
+    await overview({ build, statusPageId: PAGE_ID });
+    await overview({ build, statusPageId: OTHER_PAGE_ID });
+
+    expect(GlobalCache.getString).toHaveBeenCalledTimes(1);
+
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(
+        startedAt + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1,
+      );
+
+    await overview({ build, statusPageId: PAGE_ID });
+
+    expect(GlobalCache.getString).toHaveBeenCalledTimes(2);
+  });
+
+  test("requests that ask together share one read of Redis", async () => {
+    const { build } = counter();
+
+    await Promise.all([
+      overview({ build, statusPageId: PAGE_ID }),
+      overview({ build, statusPageId: OTHER_PAGE_ID }),
+      overview({ build, statusPageId: PAGE_ID }),
+    ]);
+
+    expect(GlobalCache.getString).toHaveBeenCalledTimes(1);
+  });
+
+  test("a change Redis did not take still counts in this process once Redis answers again", async () => {
+    const { build } = counter();
+    const startedAt: number = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
+
+    const before: JSONObject = await overview({ build });
+
+    // The write of the new shared generation fails; Redis keeps the old one.
+    (
+      GlobalCache.setString as unknown as Mock<typeof GlobalCache.setString>
+    ).mockRejectedValueOnce(new Error("blip"));
+
+    await StatusPageOverviewCache.forgetProjects([PROJECT_ID]);
+
+    const after: JSONObject = await overview({ build });
+    expect(after).not.toBe(before);
+
+    // Redis is read again, and still answers the generation from before.
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(
+        startedAt + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1,
+      );
+
+    const later: JSONObject = await overview({ build });
+
+    expect(later).not.toBe(before);
+    expect(later).toEqual(after);
+  });
+
+  test("a change made here is seen here at once, before Redis is read again", async () => {
+    const { build } = counter();
+    const startedAt: number = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
+
+    const before: JSONObject = await overview({ build });
+
+    await StatusPageOverviewCache.forgetProjects([PROJECT_ID]);
+
+    expect(await overview({ build })).not.toBe(before);
+    expect(build).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("StatusPageOverviewCache when Redis cannot be reached", () => {
   beforeEach(redisUnreachable);
+
+  test("an overview built meanwhile is not served once Redis can be reached, and Redis is asked again", async () => {
+    const { build } = counter();
+
+    const meanwhile: JSONObject = await overview({ build });
+
+    // Reached again: an overview built before is never taken for the shared one.
+    jest.restoreAllMocks();
+    redisReachable();
+    redis.set(GENERATION_KEY, "while-unreachable");
+
+    const reached: JSONObject = await overview({ build });
+
+    expect(reached).not.toBe(meanwhile);
+    expect(build).toHaveBeenCalledTimes(2);
+  });
 
   test("a change made in this process is still seen here at once", async () => {
     const { build } = counter();
@@ -381,14 +495,28 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
 
   test.each([
     ["Incident", "isVisibleOnStatusPage", false],
+    ["Incident", "isVisibleOnStatusPage", null],
     ["Incident", "isPrivate", true],
+    ["Incident", "isPrivate", "true"],
     ["Incident", "showPostmortemOnStatusPage", false],
+    ["Incident", "isScopedToStatusPages", true],
+    ["Incident", "statusPages", []],
+    ["Incident", "monitors", [{ _id: "monitor" }]],
     ["IncidentEpisode", "isVisibleOnStatusPage", false],
     ["IncidentEpisode", "isPrivate", true],
     ["ScheduledMaintenance", "isVisibleOnStatusPage", false],
-  ] as Array<[string, string, boolean]>)(
-    "a write of %s.%s forgets the overviews of the rows' projects, each once",
-    async (tableName: string, column: string, value: boolean) => {
+    ["ScheduledMaintenance", "statusPages", [{ _id: "page" }]],
+    ["ScheduledMaintenance", "monitors", []],
+    ["StatusPageAnnouncement", "showAnnouncementAt", new Date()],
+    ["StatusPageAnnouncement", "endAnnouncementAt", new Date()],
+    ["StatusPageAnnouncement", "statusPages", []],
+    ["StatusPageAnnouncement", "monitors", []],
+    ["StatusPage", "showIncidentLabelsOnStatusPage", false],
+    ["StatusPageGroup", "name", "Region"],
+    ["StatusPageResource", "displayName", "API"],
+  ] as Array<[string, string, unknown]>)(
+    "a write of %s.%s as %p, which may take something off a page, forgets the rows' projects, each once",
+    async (tableName: string, column: string, value: unknown) => {
       await StatusPageOverviewCache.afterUpdate({
         tableName: tableName,
         rows: ROWS,
@@ -403,11 +531,52 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     },
   );
 
+  test.each([
+    ["Incident", { isVisibleOnStatusPage: true }],
+    ["Incident", { isPrivate: false }],
+    ["Incident", { isPrivate: null }],
+    ["Incident", { showPostmortemOnStatusPage: true }],
+    ["Incident", { isScopedToStatusPages: false }],
+    // What the incident's Settings form sends with every save, shown.
+    [
+      "Incident",
+      {
+        isVisibleOnStatusPage: true,
+        isPrivate: false,
+        showPostmortemOnStatusPage: true,
+        title: "Renamed",
+      },
+    ],
+    ["IncidentEpisode", { isVisibleOnStatusPage: true, isPrivate: false }],
+    ["ScheduledMaintenance", { isVisibleOnStatusPage: true }],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "a write to %s that can only show more keeps them: %p",
+    async (tableName: string, written: Record<string, unknown>) => {
+      await StatusPageOverviewCache.afterUpdate({
+        tableName: tableName,
+        rows: ROWS,
+        written: written,
+      });
+
+      expect(forgetProjects).not.toHaveBeenCalled();
+    },
+  );
+
   test("a write of anything else, of a table no status page decides by, or of no rows, keeps them", async () => {
     await StatusPageOverviewCache.afterUpdate({
       tableName: "Incident",
       rows: ROWS,
       written: { title: "Renamed", isVisibleOnStatusPage: undefined },
+    });
+    await StatusPageOverviewCache.afterUpdate({
+      tableName: "StatusPageAnnouncement",
+      rows: ROWS,
+      written: { title: "Maintenance window", description: "Updated" },
+    });
+    await StatusPageOverviewCache.afterUpdate({
+      tableName: "IncidentPublicNote",
+      rows: ROWS,
+      written: { note: "Edited" },
     });
     await StatusPageOverviewCache.afterUpdate({
       tableName: "Monitor",
@@ -420,10 +589,18 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
       written: { isVisibleOnStatusPage: false },
     });
     await StatusPageOverviewCache.afterUpdate({
-      tableName: "toString",
-      rows: ROWS,
-      written: { isVisibleOnStatusPage: false },
+      tableName: "StatusPage",
+      rows: [],
+      written: { name: "Status" },
     });
+
+    for (const tableName of ["toString", "constructor", undefined, null]) {
+      await StatusPageOverviewCache.afterUpdate({
+        tableName: tableName,
+        rows: ROWS,
+        written: { isVisibleOnStatusPage: false },
+      });
+    }
 
     expect(forgetProjects).not.toHaveBeenCalled();
   });
@@ -432,10 +609,14 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     "Incident",
     "IncidentEpisode",
     "ScheduledMaintenance",
+    "StatusPageAnnouncement",
     "IncidentPublicNote",
     "IncidentEpisodePublicNote",
     "ScheduledMaintenancePublicNote",
-    "StatusPageAnnouncement",
+    "IncidentEpisodeMember",
+    "StatusPage",
+    "StatusPageGroup",
+    "StatusPageResource",
   ])(
     "a delete of a %s forgets the overviews of the rows' projects, each once",
     async (tableName: string) => {
@@ -455,7 +636,7 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
   test("a delete of anything else, or of no rows, keeps them", async () => {
     for (const tableName of [
       "Monitor",
-      "StatusPageResource",
+      "IncidentInternalNote",
       "toString",
       "constructor",
       undefined,
@@ -476,90 +657,136 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
   });
 });
 
+// The model of a table, as the database models name it.
+function modelOf(tableName: string): BaseModel {
+  const model: BaseModel | undefined = Entities.map(
+    (entity: { new (): BaseModel }): BaseModel => {
+      return new entity();
+    },
+  ).find((candidate: BaseModel): boolean => {
+    return candidate.tableName === tableName;
+  });
+
+  expect({ tableName, found: Boolean(model) }).toEqual({
+    tableName,
+    found: true,
+  });
+
+  return model!;
+}
+
 /*
- * GUARD: the switches that start a new generation are every switch a status
- * page shows an incident, an episode or an event's markdown by
- * (PublishedImages), so a switch added there is noticed here.
+ * GUARD: the writes that can take a record off a page name every switch a
+ * status page shows an incident, an episode or an event's markdown by
+ * (PublishedImages) - one that shows it as "off", one that hides it as "on" -
+ * so a switch added there is noticed here; and every column named is one of
+ * its model's.
  */
-describe("GUARD: SHOWN_RECORD_SWITCHES", () => {
-  test("names every status page switch of the records it covers", () => {
-    for (const [tableName, switches] of Object.entries(SHOWN_RECORD_SWITCHES)) {
-      const published: Set<string> = new Set<string>(
-        PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+describe("GUARD: HIDING_WRITES", () => {
+  test("names every status page switch of the records it covers, by how it hides them", () => {
+    for (const tableName of Object.keys(HIDING_WRITES)) {
+      const sources: Array<PublishedMarkdown> = PUBLISHED_MARKDOWN.filter(
+        (source: PublishedMarkdown): boolean => {
           return (
             source.tableName === tableName && source.shownOn === "statusPage"
           );
-        }).flatMap((source: PublishedMarkdown): Array<string> => {
-          return [...source.shownWhen, ...(source.hiddenWhen || [])];
-        }),
+        },
       );
 
-      expect(published.size).toBeGreaterThan(0);
-      expect([...switches].sort()).toEqual(Array.from(published).sort());
+      expect(sources.length).toBeGreaterThan(0);
+
+      for (const source of sources) {
+        for (const column of source.shownWhen) {
+          expect({
+            tableName,
+            column,
+            hidingWrite: HIDING_WRITES[tableName]![column],
+          }).toEqual({
+            tableName,
+            column,
+            hidingWrite: "off" as HidingWrite,
+          });
+        }
+
+        for (const column of source.hiddenWhen || []) {
+          expect({
+            tableName,
+            column,
+            hidingWrite: HIDING_WRITES[tableName]![column],
+          }).toEqual({
+            tableName,
+            column,
+            hidingWrite: "on" as HidingWrite,
+          });
+        }
+      }
     }
   });
 
-  test("covers the incident, the episode and the scheduled maintenance event", () => {
-    expect(Object.keys(SHOWN_RECORD_SWITCHES).sort()).toEqual([
+  test("covers the incident, the episode, the scheduled maintenance event and the announcement", () => {
+    expect(Object.keys(HIDING_WRITES).sort()).toEqual([
       "Incident",
       "IncidentEpisode",
       "ScheduledMaintenance",
+      "StatusPageAnnouncement",
     ]);
+  });
+
+  test("names only columns of its models", () => {
+    for (const [tableName, columns] of Object.entries(HIDING_WRITES)) {
+      const model: BaseModel = modelOf(tableName);
+
+      for (const column of Object.keys(columns)) {
+        expect({
+          tableName,
+          column,
+          isColumn: model.hasColumn(column),
+        }).toEqual({
+          tableName,
+          column,
+          isColumn: true,
+        });
+      }
+    }
   });
 });
 
 /*
- * GUARD: a delete forgets the overviews of every record of a project's own
- * that a status page shows - each with a switch above, each shown under one
- * (a public note) - and of its announcements. Each is a status page source
- * of PublishedImages, so the delete reads the project of each row.
+ * GUARD: a delete forgets the overviews of everything a status page shows of
+ * a project - every status page source of PublishedImages (its records, the
+ * notes shown with them, its announcements, the page's own configuration) -
+ * and of an incident's place in an episode. Each has a project, which the
+ * delete reads.
  */
 describe("GUARD: SHOWN_RECORD_TABLES", () => {
-  test("names every record with a switch, and every record shown under one", () => {
-    const shownUnderARecordWithASwitch: Array<string> =
-      PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
-        return (
-          source.shownOn === "statusPage" &&
-          Boolean(source.shownUnder) &&
-          Object.prototype.hasOwnProperty.call(
-            SHOWN_RECORD_SWITCHES,
-            source.shownUnder!.tableName,
-          )
-        );
+  test("names every record a status page shows, and every record with a write that can hide one", () => {
+    for (const tableName of [
+      ...PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+        return source.shownOn === "statusPage";
       }).map((source: PublishedMarkdown): string => {
         return source.tableName;
-      });
-
-    expect(shownUnderARecordWithASwitch.sort()).toEqual([
-      "IncidentEpisodePublicNote",
-      "IncidentPublicNote",
-      "ScheduledMaintenancePublicNote",
-    ]);
-
-    for (const tableName of [
-      ...Object.keys(SHOWN_RECORD_SWITCHES),
-      ...shownUnderARecordWithASwitch,
-      "StatusPageAnnouncement",
+      }),
+      ...Object.keys(HIDING_WRITES),
+      ...STATUS_PAGE_CONFIGURATION_TABLES,
+      "IncidentEpisodeMember",
     ]) {
       expect(SHOWN_RECORD_TABLES).toContain(tableName);
     }
   });
 
-  test("names only records a status page shows, each once", () => {
-    const statusPageSources: Set<string> = new Set<string>(
-      PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
-        return source.shownOn === "statusPage";
-      }).map((source: PublishedMarkdown): string => {
-        return source.tableName;
-      }),
-    );
-
-    for (const tableName of SHOWN_RECORD_TABLES) {
-      expect(statusPageSources.has(tableName)).toBe(true);
-    }
-
+  test("names each once, every one a model with a project", () => {
     expect(new Set<string>(SHOWN_RECORD_TABLES).size).toBe(
       SHOWN_RECORD_TABLES.length,
     );
+
+    for (const tableName of SHOWN_RECORD_TABLES) {
+      expect({
+        tableName,
+        tenant: modelOf(tableName).getTenantColumn(),
+      }).toEqual({
+        tableName,
+        tenant: "projectId",
+      });
+    }
   });
 });
