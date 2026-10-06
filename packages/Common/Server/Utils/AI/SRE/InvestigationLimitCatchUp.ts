@@ -8,9 +8,7 @@ import InvestigationNotStartedReason, {
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
 import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
@@ -39,9 +37,11 @@ import AIIncidentInvestigationRunner from "./IncidentInvestigationRunner";
  * Now a Workers job (AIChat:InvestigateAfterDailyLimitReset) takes such
  * records back once the limit no longer stops AI - the reset, or an owner
  * raising or removing the limit - when they are:
- *   - still open: in a state that does not count as resolved, read with the
- *     state services' own rule (getUnresolvedIncidentStates and its alert
- *     twin). A record resolved meanwhile is never investigated late;
+ *   - still open: in a state that does not count as resolved, by the one
+ *     rule for resolved (Common/Utils/ResolvedState, through the state
+ *     services' getUnresolvedIncidentStateIds and its alert twin) - a state
+ *     the project placed after Resolved counts as resolved too. A record
+ *     resolved meanwhile is never investigated late;
  *   - less than a day old (LIMIT_CATCH_UP_WINDOW_HOURS): every record has a
  *     reset within a day of it, and an analysis later than that is not the
  *     first look it was meant to be;
@@ -259,11 +259,10 @@ export default class InvestigationLimitCatchUp {
       QueryHelper.jsonContains({ code: PROJECT_DAILY_LIMIT_REACHED });
 
     if (data.lane === "Incident") {
-      const openStateIds: Array<ObjectID> = this.toIds(
-        await IncidentStateService.getUnresolvedIncidentStates(data.projectId, {
-          isRoot: true,
-        }),
-      );
+      const openStateIds: Array<ObjectID> =
+        await IncidentStateService.getUnresolvedIncidentStateIds(
+          data.projectId,
+        );
 
       if (openStateIds.length === 0) {
         return [];
@@ -284,11 +283,8 @@ export default class InvestigationLimitCatchUp {
       });
     }
 
-    const openStateIds: Array<ObjectID> = this.toIds(
-      await AlertStateService.getUnresolvedAlertStates(data.projectId, {
-        isRoot: true,
-      }),
-    );
+    const openStateIds: Array<ObjectID> =
+      await AlertStateService.getUnresolvedAlertStateIds(data.projectId);
 
     if (openStateIds.length === 0) {
       return [];
@@ -553,17 +549,5 @@ export default class InvestigationLimitCatchUp {
       expectedData: { aiInvestigationDecision: data.decision },
       skipUpdateDateColumn: true,
     });
-  }
-
-  private static toIds(
-    states: Array<IncidentState | AlertState>,
-  ): Array<ObjectID> {
-    return states
-      .map((state: IncidentState | AlertState): ObjectID | null => {
-        return state.id;
-      })
-      .filter((id: ObjectID | null): id is ObjectID => {
-        return Boolean(id);
-      });
   }
 }

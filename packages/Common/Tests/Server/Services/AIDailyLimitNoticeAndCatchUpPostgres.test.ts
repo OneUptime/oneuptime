@@ -1,8 +1,6 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import Alert from "../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import AIService from "../../../Server/Services/AIService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
@@ -122,8 +120,8 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
       AIService.getReachedProjectDailyLimit,
       AIService.getAutonomousDailyBudgetStatus,
       AIInvestigationEngine.getDisabledReason,
-      IncidentStateService.getUnresolvedIncidentStates,
-      AlertStateService.getUnresolvedAlertStates,
+      IncidentStateService.getUnresolvedIncidentStateIds,
+      AlertStateService.getUnresolvedAlertStateIds,
       AIIncidentInvestigationRunner.investigateNewIncident,
       AIAlertInvestigationRunner.investigateNewAlert,
       IncidentService.compareAndSetColumnsByIdWithoutHooks,
@@ -434,13 +432,11 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
           usedTokensToday: 0,
         });
       jest
-        .spyOn(IncidentStateService, "getUnresolvedIncidentStates")
-        .mockResolvedValue([
-          { id: OPEN_INCIDENT_STATE } as unknown as IncidentState,
-        ]);
+        .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
+        .mockResolvedValue([OPEN_INCIDENT_STATE]);
       jest
-        .spyOn(AlertStateService, "getUnresolvedAlertStates")
-        .mockResolvedValue([{ id: OPEN_ALERT_STATE } as unknown as AlertState]);
+        .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+        .mockResolvedValue([OPEN_ALERT_STATE]);
 
       // The investigation path, as far as the database sees it: a queued run.
       jest

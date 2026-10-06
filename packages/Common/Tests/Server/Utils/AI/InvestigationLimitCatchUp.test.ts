@@ -19,9 +19,7 @@ import IncidentStateService from "../../../../Server/Services/IncidentStateServi
 import ProjectService from "../../../../Server/Services/ProjectService";
 import logger from "../../../../Server/Utils/Logger";
 import Alert from "../../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
@@ -365,19 +363,16 @@ beforeEach(() => {
     return new Date(NOW.getTime());
   });
 
+  // The one rule for resolved (Common/Utils/ResolvedState) names the open states.
   jest
-    .spyOn(IncidentStateService, "getUnresolvedIncidentStates")
+    .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
     .mockImplementation(async () => {
-      return OPEN_INCIDENT_STATES.map((id: ObjectID): IncidentState => {
-        return { id, _id: id.toString() } as unknown as IncidentState;
-      });
+      return [...OPEN_INCIDENT_STATES];
     });
   jest
-    .spyOn(AlertStateService, "getUnresolvedAlertStates")
+    .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
     .mockImplementation(async () => {
-      return OPEN_ALERT_STATES.map((id: ObjectID): AlertState => {
-        return { id, _id: id.toString() } as unknown as AlertState;
-      });
+      return [...OPEN_ALERT_STATES];
     });
 
   jest
@@ -448,24 +443,22 @@ beforeEach(() => {
       },
     );
 
-  jest
-    .spyOn(AIService, "getAutonomousDailyBudgetStatus")
-    .mockImplementation(
-      async (
-        _projectId: ObjectID,
-        subject?: {
-          incidentId?: ObjectID | undefined;
-          alertId?: ObjectID | undefined;
-        },
-      ) => {
-        const lane: Lane = subject?.incidentId ? "Incident" : "Alert";
-        return {
-          exhausted: laneBudgetSpent[lane],
-          limitInTokens: laneBudgetSpent[lane] ? 1000 : null,
-          usedTokensToday: laneBudgetSpent[lane] ? 1000 : 0,
-        };
+  jest.spyOn(AIService, "getAutonomousDailyBudgetStatus").mockImplementation(
+    async (
+      _projectId: ObjectID,
+      subject?: {
+        incidentId?: ObjectID | undefined;
+        alertId?: ObjectID | undefined;
       },
-    );
+    ) => {
+      const lane: Lane = subject?.incidentId ? "Incident" : "Alert";
+      return {
+        exhausted: laneBudgetSpent[lane],
+        limitInTokens: laneBudgetSpent[lane] ? 1000 : null,
+        usedTokensToday: laneBudgetSpent[lane] ? 1000 : 0,
+      };
+    },
+  );
 
   investigateIncident = jest
     .spyOn(AIIncidentInvestigationRunner, "investigateNewIncident")
@@ -554,11 +547,10 @@ describe("only the records the limit skipped, still open, less than a day old", 
     expect(investigatedIncidentIds()).toEqual([open.id.toString()]);
     expect(investigateAlert).not.toHaveBeenCalled();
     expect(
-      IncidentStateService.getUnresolvedIncidentStates,
-    ).toHaveBeenCalledWith(PROJECT_A, { isRoot: true });
-    expect(AlertStateService.getUnresolvedAlertStates).toHaveBeenCalledWith(
+      IncidentStateService.getUnresolvedIncidentStateIds,
+    ).toHaveBeenCalledWith(PROJECT_A);
+    expect(AlertStateService.getUnresolvedAlertStateIds).toHaveBeenCalledWith(
       PROJECT_A,
-      { isRoot: true },
     );
 
     const stateFilter: Array<string> = operatorParameters(
@@ -1035,7 +1027,7 @@ describe("which projects are looked at", () => {
       });
 
     (
-      IncidentStateService.getUnresolvedIncidentStates as unknown as jest.Mock
+      IncidentStateService.getUnresolvedIncidentStateIds as unknown as jest.Mock
     ).mockImplementationOnce(async () => {
       throw new Error("database unavailable");
     });
