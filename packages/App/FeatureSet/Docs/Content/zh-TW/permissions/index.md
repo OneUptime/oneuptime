@@ -56,6 +56,8 @@ OneUptime 中的一切都存在於**專案**之內。誰能在專案裡做什麼
 
 為專案開啟或關閉簡訊、語音電話、WhatsApp 或 Telegram 屬於帳務事項，因為每則訊息都要花錢。只有 `ProjectOwner` 和 `ManageProjectBilling` 權限（**Manage Billing**）可以在 **專案設定 > 通知 > 通知設定** 中變更這些開關，`ProjectAdmin` 不行。
 
+為專案的預付餘額儲值同樣屬於帳務事項。在 OneUptime Cloud 上，簡訊、語音電話、WhatsApp 和 Telegram 從 **專案設定 > 通知 > 通知設定** 中的餘額支付，AI 從 **專案設定 > 人工智慧 > AI 點數** 中的 AI 點數支付。只有專案擁有者或擁有 **Manage Billing** 權限的使用者才能為它們儲值或變更它們的 **自動儲值**，專案管理員不行。關於餘額不足的訊息會說明誰可以儲值，只有這些人才會看到可用的 **儲值餘額** 按鈕或頁面連結。
+
 你可以建立任意多個額外團隊——「前端待命」、「支援」、「唯讀稽核」——並給每個團隊它需要的權限。
 
 位置：**設定 → 團隊**。開啟團隊即可進入 **Members** 與 **Permissions**；**Block Permissions** 位於 Permissions 頁面底部的 **More settings** 中。

@@ -5,7 +5,8 @@ export type InvestigationNotStartedCode =
   /*
    * The project runs on OneUptime's own (billed) LLM provider and has no AI
    * credits left, with auto-recharge off — every model call would be
-   * refused with "Insufficient AI balance", so no run is started.
+   * refused because the project's AI credits are used up, so no run is
+   * started.
    */
   | "insufficient_ai_balance"
   /*

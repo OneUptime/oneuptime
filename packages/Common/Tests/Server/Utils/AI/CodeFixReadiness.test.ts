@@ -1,4 +1,6 @@
-import CodeFixReadiness from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
+import CodeFixReadiness, {
+  CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
+} from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import AIAgentService from "../../../../Server/Services/AIAgentService";
 import RunnerService from "../../../../Server/Services/RunnerService";
@@ -169,6 +171,15 @@ describe("CodeFixReadiness.getLlmProviderCheck", () => {
 
     expect(check.ok).toBe(false);
     expect(check.detail).toContain("AI Credits");
+    /*
+     * Read by everyone on the AI Tasks page: it names who can add credits
+     * rather than telling the reader to recharge.
+     */
+    expect(check.detail).toBe(CODE_FIX_AI_CREDITS_USED_UP_DETAIL);
+    expect(check.detail).toContain(
+      "A project owner or someone with Manage Billing can add AI credits",
+    );
+    expect(check.detail).not.toMatch(/\brecharge\b/i);
   });
 });
 

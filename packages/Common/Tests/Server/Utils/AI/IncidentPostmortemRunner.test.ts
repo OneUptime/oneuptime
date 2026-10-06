@@ -1,6 +1,8 @@
 import AIIncidentPostmortemRunner from "../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
-import AIService from "../../../../Server/Services/AIService";
+import AIService, {
+  AI_BALANCE_INSUFFICIENT_MESSAGE,
+} from "../../../../Server/Services/AIService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
@@ -37,8 +39,7 @@ const INCIDENT_ID: ObjectID = new ObjectID(
   "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
 );
 
-const BALANCE_BLOCKER: string =
-  "This project is out of AI credits. Add credits under Project Settings → AI Credits, or turn on auto-recharge.";
+const BALANCE_BLOCKER: string = AI_BALANCE_INSUFFICIENT_MESSAGE;
 
 function mockProject(
   project: Record<string, unknown> | null,

@@ -32,7 +32,7 @@ The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** 
 
 Autonomous investigations are **on by default for new projects**. So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights. A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
 
-1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits (Project Settings > AI Credits) or auto-recharge.
+1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**, where **Auto Recharge** keeps them from running out.
 2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Features > Enable AI.
 3. **Choose per signal type** (both on for new projects):
    - Incidents: **Incidents > AI > Settings** — turn on _Investigate new incidents_.

@@ -56,6 +56,8 @@ Project
 
 روشن یا خاموش کردن پیامک، تماس تلفنی، WhatsApp یا Telegram برای پروژه جزو صورت‌حساب به شمار می‌آید، چون هر پیام هزینه دارد. فقط `ProjectOwner` و مجوز `ManageProjectBilling` (**Manage Billing**) می‌توانند این کلیدها را در **Project Settings > Notifications > Notification Settings** تغییر دهند — نه `ProjectAdmin`.
 
+شارژ کردن موجودی‌های پیش‌پرداخت پروژه هم جزو صورت‌حساب به شمار می‌آید. در OneUptime Cloud هزینه پیامک، تماس تلفنی، WhatsApp و Telegram از موجودی **Project Settings > Notifications > Notification Settings** پرداخت می‌شود، و هزینه هوش مصنوعی از اعتبار هوش مصنوعی در **Project Settings > AI > AI Credits**. فقط مالک پروژه یا کسی که مجوز **Manage Billing** دارد می‌تواند آن‌ها را شارژ کند یا **شارژ خودکار** آن‌ها را تغییر دهد — مدیر پروژه نمی‌تواند. پیامی که درباره موجودیِ رو به پایان است می‌گوید چه کسی می‌تواند آن را شارژ کند، و فقط همین افراد دکمه **شارژ موجودی** فعال یا پیوندی به آن صفحه می‌بینند.
+
 هر تعداد تیم اضافی که می‌خواهید بسازید — «Frontend On-Call»، «Support»، «Read-Only Auditors» — و به هرکدام دسترسی‌هایی را که لازم دارد بدهید.
 
 کجا پیدایش کنید: **Settings → Teams**. تیمی را باز کنید تا به **Members** و **Permissions** برسید؛ **Block Permissions** زیر **More settings** در پایین صفحه Permissions است.

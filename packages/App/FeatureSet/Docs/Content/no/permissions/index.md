@@ -56,6 +56,8 @@ Teamene **Owners** og **Admin** er bevisst låst: tillatelsene deres kan ikke re
 
 Å slå SMS, telefonanrop, WhatsApp eller Telegram av eller på for prosjektet regnes som fakturering, fordi hver melding koster penger. Bare `ProjectOwner` og tillatelsen `ManageProjectBilling` (**Manage Billing**) kan endre disse bryterne, under **Prosjektinnstillinger > Varsler > Varselinnstillinger** — ikke `ProjectAdmin`.
 
+Å fylle på prosjektets forhåndsbetalte saldoer regnes også som fakturering. På OneUptime Cloud betales SMS, telefonanrop, WhatsApp og Telegram fra saldoen under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og KI fra AI-kredittene under **Prosjektinnstillinger > KI > AI-kreditter**. Bare en prosjekteier eller noen med **Manage Billing** kan fylle dem på eller endre **Automatisk påfylling** for dem — ikke en prosjektadministrator. En melding om en saldo som er i ferd med å gå tom, sier hvem som kan fylle den på, og bare de personene får en knapp **Fyll på saldo** som virker, eller en lenke til siden.
+
 Opprett så mange ekstra team du vil — «Frontend-vakt», «Support», «Skrivebeskyttede revisorer» — og gi hvert av dem tillatelsene det trenger.
 
 Hvor du finner det: **Innstillinger → Team**. Åpne et team for å komme til **Members** og **Permissions**; **Block Permissions** ligger under **More settings** nederst på Permissions-siden.
