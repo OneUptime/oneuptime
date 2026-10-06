@@ -41,8 +41,10 @@ const dataSourceOptions: DataSourceOptions = {
    * migrate Job owns them). PostgresDatabase.connect() reads it and applies
    * them through SchemaMigrationRunner, on a connection of their own with a
    * bounded lock wait and retries; it never lets initialize() run them on
-   * this pool. The TypeORM CLI (migration:run, the schema drift check) turns
-   * it off and runs them itself.
+   * this pool. With it off, connect() waits for whoever does apply them
+   * (SchemaMigrationWait) instead of starting on an older schema. The TypeORM
+   * CLI (migration:run, the schema drift check) turns it off and runs them
+   * itself.
    */
   migrationsRun: RunDatabaseMigrationsOnBoot,
   /*
