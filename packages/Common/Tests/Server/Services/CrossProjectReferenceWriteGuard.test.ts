@@ -318,6 +318,12 @@ describe("cross-project reference guard on write", () => {
 
     test("update looks nothing up when no reference column is written", async () => {
       spyOnValidator();
+      /*
+       * Writing a title also has onBeforeUpdate read the title each matched
+       * incident holds, so its feed line follows a real change only.
+       * Unrelated to the guard - stub it out.
+       */
+      jest.spyOn(IncidentService, "findBy").mockResolvedValue([] as never);
 
       await callHook(IncidentService, "onBeforeUpdate", {
         data: { title: "renamed" },

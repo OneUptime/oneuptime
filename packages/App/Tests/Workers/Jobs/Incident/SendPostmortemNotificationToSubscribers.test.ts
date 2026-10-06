@@ -814,6 +814,28 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       message:
         "No monitors are attached to this incident. Skipping notifications to subscribers.",
     },
+    /*
+     * The status page shows a postmortem only on an incident it shows. The
+     * skip says it waits for the incident: showing it sends the postmortem
+     * (IncidentPostmortemPublication.isShownByUpdate).
+     */
+    {
+      name: "an incident hidden from status pages",
+      change: (row: Incident): void => {
+        row.isVisibleOnStatusPage = false;
+      },
+      message:
+        "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
+    },
+    // A private incident is hidden from every status page, whatever its switch says.
+    {
+      name: "a private incident",
+      change: (row: Incident): void => {
+        row.isPrivate = true;
+      },
+      message:
+        "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
+    },
   ];
 
   test.each(cases)(
@@ -882,9 +904,12 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
           IncidentService.compareAndSetColumnsByIdWithoutHooks,
         ).mock.calls[1]![0] as JSONObject;
 
+        // Only while it is still the skip this run wrote.
         expect(requeue["expectedData"]).toEqual({
           subscriberNotificationStatusOnPostmortemPublished:
             StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            testCase.message,
         });
         expect(
           (requeue["data"] as JSONObject)[
@@ -920,6 +945,140 @@ describe("Incident:SendPostmortemNotificationToSubscribers, skipping", () => {
       await runJob();
 
       expect(IncidentService.findOneById).not.toHaveBeenCalled();
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+  });
+
+  /*
+   * The run decides from the incident as it read it, before its claim. An
+   * update that showed the incident after that read - while the run held the
+   * notification, so the update found it on its way - would leave it skipped
+   * as waiting for an incident that is shown already. So after a skip for a
+   * hidden incident, the run looks again, and queues it again when the
+   * incident is shown now and its postmortem published.
+   */
+  describe("an incident made visible while the run held its notification", () => {
+    function hiddenRow(): Incident {
+      const row: Incident = incident();
+      row.isVisibleOnStatusPage = false;
+      return row;
+    }
+
+    test("shown since the run read it, it is queued again for the next run, from that skip only", async () => {
+      pendingIncidents = [hiddenRow()];
+      // Looked at again: shown now, with its postmortem published.
+      mock(IncidentService.findOneById).mockResolvedValue(incident() as never);
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(0);
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+        StatusPageSubscriberNotificationStatus.Pending,
+      ]);
+
+      const requeue: JSONObject = mock(
+        IncidentService.compareAndSetColumnsByIdWithoutHooks,
+      ).mock.calls[1]![0] as JSONObject;
+
+      // Only while it is still the skip this run wrote.
+      expect(requeue["expectedData"]).toEqual({
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Skipped,
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          "Incident is hidden from status pages. Subscribers will be sent the postmortem when the incident is made visible on status pages.",
+      });
+      expect(requeue["data"]).toEqual({
+        subscriberNotificationStatusOnPostmortemPublished:
+          StatusPageSubscriberNotificationStatus.Pending,
+        subscriberNotificationStatusMessageOnPostmortemPublished:
+          "Incident made visible on status pages. Subscribers will be sent its postmortem shortly.",
+      });
+    });
+
+    test("looked at again by its id, for its visibility and its postmortem only", async () => {
+      pendingIncidents = [hiddenRow()];
+
+      await runJob();
+
+      expect(IncidentService.findOneById).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          mock(IncidentService.findOneById).mock.calls[0]![0] as {
+            select: JSONObject;
+            props: JSONObject;
+          }
+        ).select,
+      ).toEqual({
+        isVisibleOnStatusPage: true,
+        isPrivate: true,
+        showPostmortemOnStatusPage: true,
+        postmortemNote: true,
+      });
+    });
+
+    test("shown since, but private, it stays skipped: a private incident is hidden", async () => {
+      pendingIncidents = [hiddenRow()];
+      const now: Incident = incident();
+      now.isPrivate = true;
+      mock(IncidentService.findOneById).mockResolvedValue(now as never);
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("reads whether the incident is private along with its visibility", async () => {
+      await runJob();
+
+      const select: JSONObject = (
+        mock(IncidentService.findAllBy).mock.calls[0]![0] as {
+          select: JSONObject;
+        }
+      ).select;
+
+      expect(select["isVisibleOnStatusPage"]).toBe(true);
+      expect(select["isPrivate"]).toBe(true);
+    });
+
+    test("still hidden when the run looks again, it stays skipped, waiting for the incident", async () => {
+      pendingIncidents = [hiddenRow()];
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("shown since, but with its postmortem taken off the status page, it stays skipped", async () => {
+      pendingIncidents = [hiddenRow()];
+      const now: Incident = incident();
+      now.showPostmortemOnStatusPage = false;
+      mock(IncidentService.findOneById).mockResolvedValue(now as never);
+
+      await runJob();
+
+      expect(postmortemStatuses()).toEqual([
+        StatusPageSubscriberNotificationStatus.InProgress,
+        StatusPageSubscriberNotificationStatus.Skipped,
+      ]);
+    });
+
+    test("gone by the time the run looks again, it stays skipped", async () => {
+      pendingIncidents = [hiddenRow()];
+      mock(IncidentService.findOneById).mockResolvedValue(null as never);
+
+      await runJob();
+
       expect(postmortemStatuses()).toEqual([
         StatusPageSubscriberNotificationStatus.InProgress,
         StatusPageSubscriberNotificationStatus.Skipped,

@@ -1,8 +1,10 @@
 import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../Models/DatabaseModels/Alert";
+import AlertEpisodeMember from "../../Models/DatabaseModels/AlertEpisodeMember";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Incident from "../../Models/DatabaseModels/Incident";
+import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentInternalNote from "../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
@@ -778,15 +780,16 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     tasks: [
       {
         title: "Its incidents",
-        description: "The incidents grouped into this episode.",
+        description:
+          "The incidents grouped into this episode, newest added first, each by its ID. An incident can be in several episodes, and its own episode ID names only the latest.",
         scopes: ["view"],
-        modelType: Incident,
+        modelType: IncidentEpisodeMember,
         operation: "list",
         query: [
           { column: "incidentEpisodeId", operator: "equals", value: THIS },
         ],
-        select: ["title", "incidentSeverityId", "declaredAt"],
-        sort: { column: "declaredAt", order: "DESC" },
+        select: ["incidentId", "addedAt", "addedBy"],
+        sort: { column: "addedAt", order: "DESC" },
       },
     ],
   },
@@ -941,13 +944,14 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     tasks: [
       {
         title: "Its alerts",
-        description: "The alerts grouped into this episode.",
+        description:
+          "The alerts grouped into this episode, newest added first, each by its ID. An alert can be in several episodes, and its own episode ID names only the latest.",
         scopes: ["view"],
-        modelType: Alert,
+        modelType: AlertEpisodeMember,
         operation: "list",
         query: [{ column: "alertEpisodeId", operator: "equals", value: THIS }],
-        select: ["title", "alertSeverityId", "createdAt"],
-        sort: { column: "createdAt", order: "DESC" },
+        select: ["alertId", "addedAt", "addedBy"],
+        sort: { column: "addedAt", order: "DESC" },
       },
     ],
   },

@@ -171,15 +171,28 @@ function helmInstallCommand(data: {
 }
 
 /*
- * A configuration change to an installed agent. --reuse-values keeps the
- * install's values (URL, key, cluster name, preset) and applies only what
- * is passed on top.
+ * The flag every upgrade of an installed agent carries. It keeps the values
+ * the release was given (URL, key, cluster name, preset, earlier --set
+ * flags) and takes every other value from the chart being installed, so a
+ * default a newer chart changes applies. Never --reuse-values: that renders
+ * the new chart with the old chart's defaults too (Helm replaces the new
+ * chart's values.yaml with the previous release's computed values), so an
+ * upgrade made with it keeps an old eBPF image and every other old default.
+ * Needs Helm 3.14; getKubernetesAgentChartUpgradeFallbackCommand is the
+ * upgrade on an older one.
+ */
+export const KUBERNETES_AGENT_KEEP_VALUES_FLAG: string =
+  "--reset-then-reuse-values";
+
+/*
+ * A configuration change to an installed agent: the release's own values,
+ * this chart's defaults for the rest, and what is passed on top.
  */
 export function getKubernetesAgentUpgradeCommand(flags: Array<string>): string {
   return [
     `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent`,
     `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
-    "  --reuse-values",
+    `  ${KUBERNETES_AGENT_KEEP_VALUES_FLAG}`,
     ...flags.map((flag: string): string => {
       return `  ${flag}`;
     }),
@@ -195,6 +208,23 @@ export function getKubernetesAgentUpgradeCommand(flags: Array<string>): string {
  */
 export function getKubernetesAgentChartUpgradeCommand(): string {
   return `helm repo update\n${getKubernetesAgentUpgradeCommand([])}`;
+}
+
+/*
+ * The same upgrade on Helm 3.13 and earlier, which has no
+ * --reset-then-reuse-values: the values the release was given (helm get
+ * values without --all, so none of the old chart's defaults) passed back
+ * with -f, which takes every other value from the new chart. `&&` keeps a
+ * failed `helm get values` (a wrong name or namespace) from upgrading with
+ * an empty file, which would drop every setting.
+ */
+export function getKubernetesAgentChartUpgradeFallbackCommand(): string {
+  return [
+    "helm repo update",
+    `helm get values ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} -o yaml > values.yaml && \\`,
+    `  helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\`,
+    `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} -f values.yaml`,
+  ].join("\n");
 }
 
 function getPrerequisites(platform: KubernetesPlatform): Array<string> {
@@ -556,9 +586,15 @@ Each \`oneuptime.labels.<key>=<value>\` becomes the label \`<key>:<value>\` on t
       title: "Upgrade or uninstall the agent",
       summary:
         "Move to the latest chart and keep your settings, or remove the agent.",
-      markdown: `**Upgrade** to the latest chart. \`--reuse-values\` keeps your existing configuration (preset, cluster name, filters); add any new \`--set\` flags on top of it:
+      markdown: `**Upgrade** to the latest chart. \`--reset-then-reuse-values\` (Helm 3.14+) keeps the values you set (preset, cluster name, filters) and takes everything else from the new chart; add any new \`--set\` flags on top of it:
 
 ${codeBlock("bash", getKubernetesAgentChartUpgradeCommand())}
+
+On Helm 3.13 and earlier, upgrade with the values you set instead:
+
+${codeBlock("bash", getKubernetesAgentChartUpgradeFallbackCommand())}
+
+Don't use \`--reuse-values\`: it also keeps the defaults of the chart you upgrade from, so a newer chart's defaults (its eBPF image among them) never apply.
 
 **Uninstall** the agent and its namespace:
 

@@ -374,6 +374,25 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   created without one takes its creator's profile time zone, or UTC when
   an API key creates it, and a name that is not a time zone is refused.
   See [Summaries](/docs/workspace-connections/slack#summaries).
+- **An incident's or alert's "updated" feed entry records only what
+  changed.** Saving the **Incident Details** card after changing only the
+  title, or an API client, a workflow or a script writing an incident or
+  an alert back as it is, used to add an entry repeating the title,
+  description, root cause, remediation notes and labels it carried — posted
+  to the incident's or alert's Slack and Microsoft Teams channels too — and
+  every write that carried the labels or the **Send reminders** switch
+  started the reminder interval over, even when nothing changed, so an
+  incident that was edited often kept putting its reminders off. Now each
+  line is written for a value that changed, and nothing for a save that
+  changed nothing; the reminder rule is matched again, and the interval
+  starts over, only when the severity or the labels change or **Send
+  reminders** is flipped. Text that reads the same counts as the same
+  (line endings and the spaces around it aside), and labels as the same
+  set in any order. Alerts now also record a root cause changed on its own
+  page, which they used to drop unless the title changed with it, and a
+  description, root cause or remediation notes that was cleared. Taking
+  every label off is recorded as "All labels removed.". See
+  [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
@@ -452,7 +471,7 @@ Agent retired in OneUptime 12
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 

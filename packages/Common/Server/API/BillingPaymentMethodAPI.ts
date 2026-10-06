@@ -13,11 +13,12 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
 import BillingPaymentMethod from "../../Models/DatabaseModels/BillingPaymentMethod";
 import Project from "../../Models/DatabaseModels/Project";
 
@@ -59,17 +60,13 @@ export default class UserAPI extends BaseAPI<
             );
           }
 
-          const userPermissions: Array<UserPermission> = (
-            await this.getPermissionsForTenant(req)
-          ).filter((permission: UserPermission) => {
-            return [
+          if (
+            !CallerPermission.holdsAnyOf(req as OneUptimeRequest, [
               Permission.ProjectOwner,
               Permission.ManageProjectBilling,
               Permission.CreateBillingPaymentMethod,
-            ].includes(permission.permission);
-          });
-
-          if (userPermissions.length === 0) {
+            ])
+          ) {
             throw new BadDataException(
               "Only project owners or members with Manage Billing access can add payment methods.",
             );
@@ -137,16 +134,11 @@ export default class UserAPI extends BaseAPI<
             );
           }
 
-          const userPermissions: Array<UserPermission> = (
-            await this.getPermissionsForTenant(req)
-          ).filter((permission: UserPermission) => {
-            return MANAGE_PAYMENT_METHOD_PERMISSIONS.includes(
-              permission.permission,
-            );
-          });
-
           if (
-            userPermissions.length === 0 &&
+            !CallerPermission.holdsAnyOf(
+              req as OneUptimeRequest,
+              MANAGE_PAYMENT_METHOD_PERMISSIONS,
+            ) &&
             !(req as OneUptimeRequest).userAuthorization?.isMasterAdmin
           ) {
             throw new BadDataException(

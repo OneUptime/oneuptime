@@ -36,6 +36,7 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/IncidentEpisode/ChangeState";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
 import TelemetrySnapshotPanel from "../../../Components/Telemetry/TelemetrySnapshotPanel";
 import {
   DerivedTelemetrySnapshot,
@@ -49,9 +50,14 @@ import EventStatTile from "../../../Components/EventView/EventStatTile";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import EpisodeMembersCard from "../../../Components/EpisodeView/EpisodeMembersCard";
 import {
+  INCIDENT_EPISODE_MEMBERSHIP,
   INCIDENT_EPISODE_MEMBER_SELECT,
   getIncidentEpisodeMemberRow,
 } from "../../../Components/EpisodeView/EpisodeMembers";
+import {
+  FetchedEpisodeMembers,
+  fetchEpisodeMembers,
+} from "../../../Components/EpisodeView/FetchEpisodeMembers";
 import {
   EpisodeTiming,
   getEpisodeTiming,
@@ -98,6 +104,8 @@ const IncidentEpisodeView: FunctionComponent<
    * Telemetry snapshot of the episode's FIRST member incident (earliest
    * declared): episodes group many incidents from one root cause, so the
    * first member's evaluation window is the "what kicked this off" view.
+   * Members are the episode's membership, as on the member card: an incident
+   * that joined this episode and then a later one is still this one's.
    */
   const [telemetrySnapshot, setTelemetrySnapshot] =
     useState<DerivedTelemetrySnapshot>(EMPTY_TELEMETRY_SNAPSHOT);
@@ -125,27 +133,32 @@ const IncidentEpisodeView: FunctionComponent<
     requestIdRef.current = requestId;
 
     try {
-      const [memberIncidents, episodeTimelines, stateList, loaded]: [
-        ListResult<Incident>,
+      const [firstMembers, episodeTimelines, stateList, loaded]: [
+        FetchedEpisodeMembers<Incident> | null,
         ListResult<IncidentEpisodeStateTimeline>,
         ListResult<IncidentState>,
         IncidentEpisode | null,
       ] = await Promise.all([
-        ModelAPI.getList({
+        /*
+         * The one read here the page can do without: it takes the episode's
+         * membership as well as its incidents, and a reader who may not read
+         * the membership (a custom role) still gets the overview, without
+         * the panel.
+         */
+        fetchEpisodeMembers<Incident, IncidentEpisodeMember>({
+          episodeId: modelId,
+          membership: INCIDENT_EPISODE_MEMBERSHIP,
           modelType: Incident,
-          query: {
-            incidentEpisodeId: modelId,
-          },
-          limit: 1,
-          skip: 0,
           select: {
             _id: true,
             telemetryQuery: true,
             seriesLabels: true,
           },
-          sort: {
-            declaredAt: SortOrder.Ascending,
-          },
+          sortField: "declaredAt",
+          sortOrder: SortOrder.Ascending,
+          limit: 1,
+        }).catch((): null => {
+          return null;
         }),
         ModelAPI.getList({
           modelType: IncidentEpisodeStateTimeline,
@@ -196,7 +209,7 @@ const IncidentEpisodeView: FunctionComponent<
         return;
       }
 
-      const firstMember: Incident | undefined = memberIncidents.data[0];
+      const firstMember: Incident | undefined = firstMembers?.members[0];
 
       setTelemetrySnapshot(
         deriveTelemetrySnapshot({
@@ -400,10 +413,10 @@ const IncidentEpisodeView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <EpisodeMembersCard<Incident>
+          <EpisodeMembersCard<Incident, IncidentEpisodeMember>
             modelType={Incident}
             episodeId={modelId}
-            episodeIdField="incidentEpisodeId"
+            membership={INCIDENT_EPISODE_MEMBERSHIP}
             select={INCIDENT_EPISODE_MEMBER_SELECT}
             sortField="declaredAt"
             toRow={getIncidentEpisodeMemberRow}

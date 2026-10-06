@@ -7,7 +7,9 @@
     "1 week",
     "Incident {{number}}: {{title}}",
     "Label: {{name}}",
+    "Offline",
     "Runbook: {{name}}",
+    "cluster",
     "{{count}} product",
     "{{field}} is {{value}}"
   ]

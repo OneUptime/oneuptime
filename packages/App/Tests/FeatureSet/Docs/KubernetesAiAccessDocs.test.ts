@@ -92,7 +92,9 @@ function getKubernetesInstallationMarkdown(data: {
  *   (getAiAgentHelmCommands), verbatim: `helm repo update` first (an old
  *   local index serves a chart whose schema rejects aiAgent.* with
  *   "Additional property aiAgent is not allowed"), the release name and
- *   namespace the dashboard's install instructions create, --reuse-values,
+ *   namespace the dashboard's install instructions create,
+ *   --reset-then-reuse-values (never --reuse-values, which keeps the old
+ *   chart's defaults),
  *   the install first and read-only, write access a separate step, and the
  *   cluster-wide command resetting a stored namespace list.
  * - No chart version is named: published charts carry the OneUptime
@@ -142,6 +144,8 @@ const DOCS_PAGES: Array<string> = [
 const TRAILING_CONTINUATION_PATTERN: RegExp = /\\\s*$/;
 // The chart version the docs once named; no customer's install carries it.
 const CHART_070_PATTERN: RegExp = /\b0\.7\.0\b/;
+// The --reuse-values flag itself, not --reset-then-reuse-values.
+const REUSE_VALUES_FLAG_PATTERN: RegExp = /(^|\s)--reuse-values(\s|$)/;
 const OUTER_BOUND_PATTERN: RegExp = /outer bound/i;
 // What patch access to workloads amounts to.
 const WORKLOAD_PATCH_EQUIVALENCE_PATTERN: RegExp =
@@ -240,7 +244,7 @@ describe("Kubernetes AI agent setup commands", () => {
       AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND,
     ]) {
       expect(command).toContain(
-        `helm upgrade ${target.release} oneuptime/kubernetes-agent \\\n  --namespace ${target.namespace} --reuse-values`,
+        `helm upgrade ${target.release} oneuptime/kubernetes-agent \\\n  --namespace ${target.namespace} --reset-then-reuse-values`,
       );
     }
   });
@@ -317,12 +321,14 @@ describe("Kubernetes AI agent setup commands", () => {
               "helm upgrade kubernetes-agent oneuptime/kubernetes-agent",
             ),
             namespace: block.includes("--namespace oneuptime-agent "),
-            reuseValues: block.includes("--reuse-values"),
+            keepsReleaseValues: block.includes("--reset-then-reuse-values"),
+            reuseValues: REUSE_VALUES_FLAG_PATTERN.test(block),
           }).toEqual({
             block,
             release: true,
             namespace: true,
-            reuseValues: true,
+            keepsReleaseValues: true,
+            reuseValues: false,
           });
         }
       });
@@ -434,9 +440,18 @@ describe("Kubernetes AI agent setup commands", () => {
       CHART_NOTES,
       CHART_VALUES,
     ]) {
+      /*
+       * Except values.yaml's chartDefaultsVersion, Chart.yaml's version in
+       * the repository: the release pipeline stamps the published one with
+       * the version it publishes the chart as, which is what customers see.
+       */
+      const text: string =
+        file === CHART_VALUES
+          ? read(file).replace(/^chartDefaultsVersion: .*$/m, "")
+          : read(file);
       expect({
         file: relative(file),
-        namesChart070: CHART_070_PATTERN.test(read(file)),
+        namesChart070: CHART_070_PATTERN.test(text),
       }).toEqual({ file: relative(file), namesChart070: false });
     }
 
@@ -1018,8 +1033,16 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(page).not.toContain("AI Credits > Enable AI");
   });
 
-  it("says the Cloud global provider needs AI credits or auto-recharge", () => {
+  /*
+   * Auto Recharge only tops up credits that have not run out, so it is not
+   * a way to start; and only an owner or Manage Billing may add them.
+   */
+  it("says the Cloud global provider needs AI credits, and who adds them", () => {
     expect(enabling).toContain("the project needs AI credits");
+    expect(enabling).toContain(
+      "a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**",
+    );
+    expect(enabling).not.toContain("or auto-recharge");
   });
 
   /*

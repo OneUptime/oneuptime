@@ -1,0 +1,54 @@
+# The stale-defaults warning (stale-defaults-notes_test.yaml) on the chart as
+# it is in the repository, before the release pipeline stamps it:
+#   - values.yaml's chartDefaultsVersion must equal Chart.yaml's version, or
+#     every install from a source checkout (CI, the e2e suites) would be told
+#     it runs an older chart's defaults;
+#   - kubernetes-agent.defaultEbpfImageTag must equal values.yaml's
+#     ebpf.image.tag, which a template cannot read once --reuse-values has
+#     replaced it: on a stale release whose OBI tag is this chart's default,
+#     the warning names no tag.
+suite: notes on the chart as it is in the repository
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: carries Chart.yaml's version in values.yaml, so its own defaults are never stale
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "WARNING"
+      - matchRegexRaw:
+          pattern: "\nTo upgrade to a newer chart, keeping the values you set \\(Helm 3\\.14\\+\\):\n"
+
+  - it: is not stale on an upgrade with its own values either
+    release:
+      upgrade: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "WARNING"
+
+  - it: knows its own OBI default, so a stale release on that tag gets no tag named
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "0.6.0"
+    asserts:
+      - matchRegexRaw:
+          pattern: "It renders with the defaults of chart 0\\.6\\.0 \\(chartDefaultsVersion\\)"
+      - notMatchRegexRaw:
+          pattern: "Stale here"
+
+  - it: still names any other OBI tag on a stale release
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "0.6.0"
+      ebpf.image.tag: v0.9.0
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \""

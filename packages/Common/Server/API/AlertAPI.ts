@@ -1,9 +1,6 @@
 import Alert from "../../Models/DatabaseModels/Alert";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import BadDataException from "../../Types/Exception/BadDataException";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../Types/ObjectID";
 import AlertService, {
   Service as AlertServiceType,
@@ -28,7 +25,8 @@ import AlertAIContextBuilder, {
   AlertContextData,
 } from "../Utils/AI/AlertAIContextBuilder";
 import JSONFunctions from "../../Types/JSONFunctions";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 
 export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
   public constructor() {
@@ -73,31 +71,16 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
     CommonAPI.assertTenantScoped(props);
 
     /*
-     * Read through getUserPermissions(Allow) rather than off
-     * userTenantAccessPermission directly. That dictionary is keyed by project
-     * id and its entries hold GRANTS AND DENIALS together, discriminated only
-     * by isBlockPermission, so the previous
-     * `userTenantAccessPermission["permissions"]` read was always undefined
-     * and denied every caller who was not a master admin. Mapping the array
-     * raw would swing the other way and count a team's explicit block
-     * entry for one of these permissions as a grant of it.
+     * Held the way every permission check reads it (CallerPermission): a
+     * team's block row is no grant, and a block with no labels on any of
+     * these takes it away.
      */
-    const permissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const hasPermission: boolean = permissions.some((p: Permission) => {
-      return (
-        p === Permission.ProjectOwner ||
-        p === Permission.ProjectAdmin ||
-        p === Permission.EditAlert ||
-        p === Permission.CreateAlertInternalNote
-      );
-    });
+    const hasPermission: boolean = CallerPermission.holdsAnyOf(props, [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlert,
+      Permission.CreateAlertInternalNote,
+    ]);
 
     if (!hasPermission && !props.isMasterAdmin) {
       throw new BadDataException(

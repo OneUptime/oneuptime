@@ -44,7 +44,6 @@ import {
   ResourceAiAccessSettingsFormValues,
   RESOURCE_REMEDIATION_MODE_SHORT_NAMES,
   RESOURCE_REMEDIATION_MODE_SUMMARIES,
-  capitalizeFirst,
   formatNameList,
   getEveryModeProtections,
   getResourceAiAccessAdminPermissionTitles,
@@ -76,6 +75,12 @@ import {
   getResourceAiAgentWriteDisclosure,
 } from "./ResourceAiAgentInstall";
 import {
+  getProjectBalanceAccess,
+  ProjectBalanceAccess,
+} from "../ProjectBalance/ProjectBalanceAccess";
+import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
+import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
+import {
   canChangeProjectAiSettingsForResource,
   canConfigureUnattendedResourceAiAccess,
   canResetResourceAiAgent,
@@ -92,6 +97,7 @@ import {
   AgentAiSettingsChoice,
   formatAiAccessProtections,
   getAiAccessCardDescription,
+  getAiAccessLooseningRefusal,
   getAiFixesBadge,
   getAiFixesFieldDescription,
   getAiFixesModeCardTitle,
@@ -178,6 +184,7 @@ import React, {
 } from "react";
 import { useParams } from "react-router-dom";
 import {
+  composedValue,
   translatableTerm,
   translateTemplate,
   translationKey,
@@ -253,20 +260,27 @@ async function postResourceAiAccess(data: {
   return (response.data || {}) as JSONObject;
 }
 
-// What an editor without the admin set may change here, and what they may not.
+/*
+ * What an editor without the admin set may change here, and what they may
+ * not. AiAccessPermissionNote looks its texts up; the permissions are
+ * listed in the language of the sentence they end.
+ */
 function AdminPermissionNote(): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <AiAccessPermissionNote
-      canText={translationKey(
-        "You can turn investigation on or off, lower fixes and remove allowlist entries.",
-      )}
-      cannotText={translateTemplate(
+      canText="You can turn investigation on or off, lower fixes and remove allowlist entries."
+      cannotText={translator.translateTemplate(
         "Turning fixes on or up, or adding allowlist entries, needs {{permissions}}.",
         {
-          permissions: formatNameList(
-            getResourceAiAccessAdminPermissionTitles(),
-            translateTemplate("or"),
-          ),
+          permissions: composedValue((sentence: Translator): string => {
+            return formatNameList(
+              getResourceAiAccessAdminPermissionTitles(),
+              "or",
+              sentence,
+            );
+          }),
         },
       )}
       dataTestId="resource-ai-access-admin-note"
@@ -533,20 +547,21 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     }
 
     if (!canConfigureUnattended) {
-      const loosening: Array<string> = getResourceAiAccessLooseningChanges({
-        saved,
-        changes,
-      });
-      if (loosening.length > 0) {
+      const getLoosening: (sentence?: Translator) => Array<string> = (
+        sentence?: Translator,
+      ): Array<string> => {
+        return getResourceAiAccessLooseningChanges(
+          { saved, changes },
+          sentence,
+        );
+      };
+
+      if (getLoosening().length > 0) {
         setSaveError(
-          translator.translateTemplate(
-            "{{changes}} needs one of these permissions: {{permissions}}.",
-            {
-              changes: capitalizeFirst(loosening.join(", ")),
-              permissions:
-                getResourceAiAccessAdminPermissionTitles().join(", "),
-            },
-          ),
+          getAiAccessLooseningRefusal({
+            getChanges: getLoosening,
+            permissionTitles: getResourceAiAccessAdminPermissionTitles(),
+          }),
         );
         return;
       }
@@ -1112,6 +1127,13 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     getResourceAccessTestPermissionGate(descriptor);
   const canChangeProjectSettings: boolean =
     canChangeProjectAiSettingsForResource();
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing
+   * - not a project admin - so their step has its own gate.
+   */
+  const aiCreditsAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.AI,
+  );
 
   const agent: ResourceAiAgentSummary | null = status.agent;
   const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(status);
@@ -1159,6 +1181,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // `title` is a translation key, shown in the reader's language.
   const renderSettingsLink: (
     pageMap: PageMap,
     title: string,
@@ -1168,7 +1191,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         to={RouteUtil.populateRouteParams(RouteMap[pageMap] as Route)}
         className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
       >
-        <span>{title}</span>
+        <span>{translator.translateText(title)}</span>
         <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
       </Link>
     );
@@ -1235,19 +1258,40 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
         );
       case "open_ai_features":
         return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_FEATURES, "Open AI Features")
+          ? renderSettingsLink(
+              PageMap.SETTINGS_AI_FEATURES,
+              translationKey("Open AI Features"),
+            )
           : renderAsk();
       case "open_llm_providers":
         return canChangeProjectSettings
           ? renderSettingsLink(
               PageMap.SETTINGS_AI_LLM_PROVIDERS,
-              "Open LLM Providers",
+              translationKey("Open LLM Providers"),
             )
           : renderAsk();
       case "open_ai_credits":
-        return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_CREDITS, "Open AI Credits")
-          : renderAsk();
+        /*
+         * The link only for someone who may add credits; everyone else is
+         * told who can. Nothing while the permissions are on their way.
+         */
+        if (aiCreditsAccess === ProjectBalanceAccess.Yes) {
+          return renderSettingsLink(
+            PageMap.SETTINGS_AI_CREDITS,
+            translationKey("Open AI Credits"),
+          );
+        }
+
+        return aiCreditsAccess === ProjectBalanceAccess.No ? (
+          <p
+            className="text-xs font-medium text-gray-500"
+            data-testid="ai-agent-gap-who-can-add-ai-credits"
+          >
+            {translator.translateText(WHO_CAN_ADD_AI_CREDITS)}
+          </p>
+        ) : (
+          <></>
+        );
       case "test_connection":
         return testGate.isAllowed ? (
           <Button
@@ -1679,9 +1723,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               { agent: translatableTerm(descriptor.agentName) },
             )}
             isSetByAgent={isSetByAgent}
-            actionText={
-              isSetByAgent ? undefined : translator.translateText("Show how")
-            }
+            actionText={isSetByAgent ? undefined : "Show how"}
             onAction={
               isSetByAgent
                 ? undefined
@@ -1720,8 +1762,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
               <AiAccessHint
                 text={
                   isSetByAgent
-                    ? translator.translateText(AI_FIXES_OFF_AGENT_SET_HINT) ||
-                      AI_FIXES_OFF_AGENT_SET_HINT
+                    ? AI_FIXES_OFF_AGENT_SET_HINT
                     : getAiFixesOffHint(
                         settingsGate.isAllowed &&
                           canConfigureUnattendedResourceAiAccess(),
@@ -1745,7 +1786,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
                   settingsGate.isAllowed &&
                   (canConfigureUnattendedResourceAiAccess() ||
                     allowlistInEffect.length > 0)
-                    ? translator.translateText("Edit")
+                    ? "Edit"
                     : undefined
                 }
                 onEdit={() => {

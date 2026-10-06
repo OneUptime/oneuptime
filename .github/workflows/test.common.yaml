@@ -70,6 +70,9 @@ jobs:
       RUN_POSTGRES_EVENT_OVERLAY_TESTS: "true"
       RUN_POSTGRES_MONITOR_DESCRIPTION_MIGRATION_TESTS: "true"
       RUN_POSTGRES_HIDDEN_INCIDENT_NOTIFICATION_MIGRATION_TESTS: "true"
+      # MarkPostmortemsWaitingForHiddenIncidents1799100000000 on real rows. A
+      # schema of its own, rolled back after each test and dropped after.
+      RUN_POSTGRES_POSTMORTEM_WAITING_MIGRATION_TESTS: "true"
       # BackfillFileOwners1797900000000 on real rows (#4394). It works in a
       # schema of its own, rolled back after each test and dropped after.
       RUN_POSTGRES_FILE_OWNER_BACKFILL_TESTS: "true"

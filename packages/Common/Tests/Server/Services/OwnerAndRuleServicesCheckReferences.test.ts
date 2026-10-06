@@ -87,6 +87,10 @@ const RULE_MODEL_CLASS: RegExp =
 // An owner row model: <Resource>OwnerUser or <Resource>OwnerTeam.
 const OWNER_MODEL_NAME: RegExp = /Owner(User|Team)$/;
 
+// The service of a label or owner rule: <Resource>LabelRule / OwnerRule.
+const LABEL_OR_OWNER_RULE_SERVICE_FILE: RegExp =
+  /(Label|Owner)RuleService\.ts$/;
+
 function findServiceCases(): Array<ServiceCase> {
   const serviceFiles: Array<string> = fs
     .readdirSync(SERVICES_DIRECTORY)
@@ -326,8 +330,15 @@ describe("rule and owner services", () => {
     (file: string) => {
       const source: string = sourceOf(file);
 
+      /*
+       * A label or owner rule's service extends it through
+       * LabelAndOwnerRuleBaseService, which also refuses a new rule that
+       * adds nothing (LabelAndOwnerRuleServicesRefuseEmptyRules).
+       */
       expect(source).toContain(
-        "export class Service extends ProjectReferencesService<Model>",
+        LABEL_OR_OWNER_RULE_SERVICE_FILE.test(file)
+          ? "export class Service extends LabelAndOwnerRuleBaseService<Model>"
+          : "export class Service extends ProjectReferencesService<Model>",
       );
 
       for (const hook of ["onBeforeCreate", "onBeforeUpdate"]) {

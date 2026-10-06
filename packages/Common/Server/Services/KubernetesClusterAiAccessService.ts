@@ -58,6 +58,10 @@ import AlertService from "./AlertService";
 import IncidentService from "./IncidentService";
 import KubernetesAiAgentService from "./KubernetesAiAgentService";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import {
+  getProjectBalanceWhoCanAddSentence,
+  ProjectBalanceType,
+} from "../../Utils/Project/ProjectBalance";
 import KubernetesClusterService from "./KubernetesClusterService";
 import LlmProviderService from "./LlmProviderService";
 import MonitorService from "./MonitorService";
@@ -191,12 +195,14 @@ export const CLUSTER_AI_AGENT_PAGE: string =
 /*
  * The one command that installs the Kubernetes AI agent (or turns it back
  * on), exactly as the dashboard, the docs and the chart's notes print it.
- * --reuse-values keeps everything else the release already has.
+ * --reset-then-reuse-values keeps every other value the release was given
+ * and takes the rest from the chart (--reuse-values would keep the old
+ * chart's defaults too).
  */
 export const AI_AGENT_INSTALL_COMMAND: string = [
   "helm repo update",
   "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
-  "  --namespace oneuptime-agent --reuse-values \\",
+  "  --namespace oneuptime-agent --reset-then-reuse-values \\",
   "  --set aiAgent.enabled=true",
 ].join("\n");
 
@@ -233,7 +239,7 @@ export type KubernetesAiAccessExecutorKind =
  * agent it names the value that grants writes and the two that bound them
  * (the namespaces the write role is bound in and the node switch); the
  * complete command is on the AI agent page (a bare --set line would miss
- * the chart index refresh and --reuse-values).
+ * the chart index refresh and --reset-then-reuse-values).
  */
 export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Upgrade the Kubernetes agent chart with --set aiAgent.fixes=ask-for-approval (or automatic, or bypass-approval), which grants the write access fixes need; the complete command is on ${CLUSTER_AI_AGENT_PAGE}. List the namespaces AI may fix in aiAgent.remediation.namespaces (without it the write role is cluster-wide), and add aiAgent.remediation.nodeOperations=false to keep fixes off nodes.`;
 
@@ -519,9 +525,16 @@ interface ResolvedTargetAccess {
   gaps: Array<KubernetesAiAccessGap>;
 }
 
-// What to do about an empty AI balance (ai_balance_insufficient).
+/*
+ * What to do about an empty AI balance (ai_balance_insufficient): who can
+ * add credits, and where. Read by anyone who sees the gap - the cluster's
+ * and resources' AI pages, the investigation panel, a refused fix - most of
+ * whom cannot add credits (Utils/Project/ProjectBalance). Not "turn on
+ * auto-recharge": AI credits are recharged after a call they paid for, so
+ * an empty balance stays empty until someone adds credits.
+ */
 export const AI_BALANCE_INSUFFICIENT_NEXT_STEP: string =
-  "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).";
+  getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI);
 
 class KubernetesClusterAiAccessServiceClass {
   /*

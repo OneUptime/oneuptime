@@ -6,11 +6,11 @@ import ModelAPI, {
   RequestOptions,
 } from "../../Utils/ModelAPI/ModelAPI";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
-import PermissionUtil from "../../Utils/Permission";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 import User from "../../Utils/User";
 import { ButtonStyleType } from "../Button/Button";
 import {
@@ -64,10 +64,7 @@ import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
@@ -384,6 +381,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return relationSelect;
     };
 
+  // What the user holds, read once per draw: every field is weighed against it.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
   const hasPermissionOnField: (fieldName: string) => boolean = (
     fieldName: string,
   ): boolean => {
@@ -392,42 +392,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
     }
 
     /*
-     * A copy. The Public permission is appended below, and pushing into the
-     * array the util handed back mutates the snapshot every other permission
-     * check on the page reads from.
+     * The column's create (or update) permissions, read the way the server's
+     * column check reads them (PermissionGate.holdsColumnPermission): one of
+     * them held - Public by everyone, so a public form shows its fields to a
+     * visitor - and no team block on any of them.
      */
-    let userPermissions: Array<Permission> = [
-      ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []),
-    ];
-    if (
-      PermissionUtil.getProjectPermissions() &&
-      PermissionUtil.getProjectPermissions()?.permissions &&
-      PermissionUtil.getProjectPermissions()!.permissions.length > 0
-    ) {
-      userPermissions = userPermissions.concat(
-        PermissionUtil.getProjectPermissions()!.permissions.map(
-          (i: UserPermission) => {
-            return i.permission;
-          },
-        ),
-      );
-    }
-
-    userPermissions.push(Permission.Public);
-
-    const fieldPermissions: Array<Permission> = getFieldPermissions(fieldName);
-
-    if (
-      fieldPermissions &&
-      PermissionHelper.doesPermissionsIntersect(
-        userPermissions,
-        fieldPermissions,
-      )
-    ) {
-      return true;
-    }
-
-    return false;
+    return PermissionGate.holdsColumnPermission(
+      model,
+      fieldName,
+      FormType.Create === props.formType ? "create" : "update",
+      { held: heldPermissions },
+    );
   };
 
   const getFieldPermissions: (fieldName: string) => Array<Permission> = (

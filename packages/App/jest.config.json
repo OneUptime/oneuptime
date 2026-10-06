@@ -1,10 +1,10 @@
 {
   "preset": "ts-jest",
   "testPathIgnorePatterns": [
-    "node_modules",
-    "dist",
-    "FeatureSet/BrowserRecorder",
-    "FeatureSet/MobileRecorder"
+    "/node_modules/",
+    "/dist/",
+    "<rootDir>/FeatureSet/BrowserRecorder/",
+    "<rootDir>/FeatureSet/MobileRecorder/"
   ],
   "verbose": true,
   "globals": {
@@ -14,7 +14,7 @@
       "isolatedModules": true
     }
   },
-  "modulePathIgnorePatterns": ["<rootDir>/build"],
+  "modulePathIgnorePatterns": ["<rootDir>/build/"],
   "moduleNameMapper": {
     "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/Tests/__mocks__/styleMock.js",

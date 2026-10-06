@@ -689,10 +689,11 @@ describe("PermissionGate", () => {
       ).toBe(false);
     });
 
-    test("allows a column that declares no read access control", () => {
+    test("refuses a column that declares no read permission, as the server's select check does", () => {
       /*
-       * Nothing to enforce, and ColumnPermission agrees - it only refuses
-       * columns that name permissions the user does not hold.
+       * SelectPermission lets a select name only the columns whose read
+       * permissions the caller holds (and the ones it never checks), so a
+       * column that names none would fail the whole request.
        */
       permissionsForTest = [Permission.Viewer];
 
@@ -705,15 +706,25 @@ describe("PermissionGate", () => {
           },
           "someColumn",
         ),
-      ).toBe(true);
+      ).toBe(false);
     });
 
-    test("allows a column name the model does not know about", () => {
+    test("refuses a column name the model does not declare, and keeps the ones the server never checks", () => {
       permissionsForTest = [Permission.Viewer];
 
       expect(PermissionGate.canReadColumn(new Monitor(), "noSuchColumn")).toBe(
-        true,
+        false,
       );
+      expect(
+        PermissionGate.canReadColumn(
+          {
+            getColumnAccessControlForAllColumns: () => {
+              return {};
+            },
+          },
+          "createdAt",
+        ),
+      ).toBe(true);
     });
 
     test("honours an explicitly supplied permission snapshot", () => {

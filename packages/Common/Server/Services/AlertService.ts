@@ -52,6 +52,10 @@ import {
 } from "../Utils/Database/AffectedResourceRelations";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ReferenceChange from "../Utils/Database/ReferenceChange";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+} from "../Utils/EventFieldChange";
 import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   ALERT_EPISODE_REFERENCE,
@@ -144,17 +148,32 @@ interface AlertMonitorChange {
 
 /*
  * Handed from onBeforeUpdate to onUpdateSuccess. Once the update has run the
- * row holds the new monitor and the new severity, so the ones it held before
- * are only known from the reads made before the write.
+ * row holds what the update wrote, so what it held before is only known from
+ * the reads made before the write.
  */
 interface AlertUpdateCarryForward {
   // Keyed by alert id.
   monitorChanges: Dictionary<AlertMonitorChange>;
   /*
    * The severity each alert held before the update (null: none), keyed by
-   * alert id, read only when the update writes one (getSeveritiesBeforeUpdate).
+   * alert id, read only when the update writes one
+   * (recordStoredValuesBeforeUpdate).
    */
   severityIdsBeforeUpdate: Dictionary<string | null>;
+  /*
+   * The title, root cause, description, remediation notes, labels and Send
+   * reminders switch each alert held before the update - those the update
+   * writes, and no others - keyed by alert id, so its feed item and its
+   * reminder refresh follow a real change (recordStoredValuesBeforeUpdate,
+   * EventFieldChange). Empty when the update writes none of them.
+   */
+  valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
+}
+
+// What the one read before an update holds, keyed by alert id.
+interface AlertStoredValues {
+  severityIdsBeforeUpdate: Dictionary<string | null>;
+  valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -402,58 +421,96 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy: updateBy,
     });
 
+    const storedValues: AlertStoredValues =
+      await this.recordStoredValuesBeforeUpdate(updateBy);
+
     const carryForward: AlertUpdateCarryForward = {
       monitorChanges: monitorChanges,
-      severityIdsBeforeUpdate: await this.getSeveritiesBeforeUpdate(updateBy),
+      severityIdsBeforeUpdate: storedValues.severityIdsBeforeUpdate,
+      valuesBeforeUpdate: storedValues.valuesBeforeUpdate,
     };
 
     return { updateBy, carryForward: carryForward };
   }
 
   /*
-   * A severity change records itself in the alert feed and re-matches the
-   * reminder rule (onUpdateSuccess). Updates often write back the severity
-   * an alert holds - the dashboard's forms send it with every save, and an
-   * API client or a workflow may write the whole alert - so the severity
-   * each alert the update matches holds is read here, before the write, for
-   * onUpdateSuccess to act on a real change only (ReferenceChange). One read,
-   * of that column alone, and only when the update writes a severity, under
-   * either of its names; nothing is read otherwise.
+   * What onUpdateSuccess compares an update with: each alert it matches as
+   * it is stored, read here, before the write, so a side effect follows a
+   * real change only. Updates often write back what an alert holds - the
+   * dashboard's cards send every field they show with each save, and an API
+   * client or a workflow may write the whole alert. One read, of the
+   * columns the update needs compared and no others, and only when it needs
+   * any:
+   *
+   * - the severity, when the update writes one under either of its names. A
+   *   severity change records itself in the alert feed and re-matches the
+   *   reminder rule (ReferenceChange);
+   * - the title, root cause, description, remediation notes, labels and
+   *   Send reminders switch the update writes. The "Alert updated" feed item
+   *   records each one that really changed, and a labels change or the
+   *   switch flipped matches the reminder rule again, which starts the
+   *   reminder interval over (EventFieldChange).
    */
-  private async getSeveritiesBeforeUpdate(
+  private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
-  ): Promise<Dictionary<string | null>> {
+  ): Promise<AlertStoredValues> {
+    const storedValues: AlertStoredValues = {
+      severityIdsBeforeUpdate: {},
+      valuesBeforeUpdate: {},
+    };
+
     const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
       updateBy.data as unknown as Record<string, unknown>,
       ALERT_SEVERITY_KEYS,
       "Alert Severity",
     );
 
-    if (!writtenSeverityId) {
-      return {};
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
+
+    if (!writtenSeverityId && !isFieldWritten) {
+      return storedValues;
     }
 
     const alerts: Array<Model> = await this.findAlertsForUpdateHook({
       updateBy: updateBy,
       select: {
         _id: true,
-        alertSeverityId: true,
+        ...(writtenSeverityId
+          ? {
+              alertSeverityId: true,
+            }
+          : {}),
+        ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
       },
     });
-
-    const severityIdsBeforeUpdate: Dictionary<string | null> = {};
 
     for (const alert of alerts) {
       if (!alert.id) {
         continue;
       }
 
-      severityIdsBeforeUpdate[alert.id.toString()] = alert.alertSeverityId
-        ? alert.alertSeverityId.toString()
-        : null;
+      const alertId: string = alert.id.toString();
+
+      if (writtenSeverityId) {
+        storedValues.severityIdsBeforeUpdate[alertId] = alert.alertSeverityId
+          ? alert.alertSeverityId.toString()
+          : null;
+      }
+
+      if (isFieldWritten) {
+        storedValues.valuesBeforeUpdate[alertId] =
+          EventFieldChange.getValuesBeforeUpdate({
+            record: alert,
+            fields: fieldsWritten,
+          });
+      }
     }
 
-    return severityIdsBeforeUpdate;
+    return storedValues;
   }
 
   /*
@@ -1842,6 +1899,15 @@ ${alert.remediationNotes || "No remediation notes provided."}
       (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
         ?.severityIdsBeforeUpdate || {};
 
+    /*
+     * The title, root cause, description, remediation notes, labels and Send
+     * reminders switch each alert held before the write, for those the
+     * update writes.
+     */
+    const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> =
+      (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
+        ?.valuesBeforeUpdate || {};
+
     for (const itemId of updatedItemIds) {
       /*
        * Every alert metric and measurement point is stamped with the alert's
@@ -1885,7 +1951,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
      * the AI tools the ID column, and onBeforeUpdate refused two that
      * disagree. Its feed entry and reminder refresh run for each alert whose
      * severity this changed - compared with the severity it held before the
-     * write (getSeveritiesBeforeUpdate) - so writing back the severity an
+     * write (recordStoredValuesBeforeUpdate) - so writing back the severity an
      * alert holds runs neither.
      */
     const writtenAlertSeverityId: ObjectID | null =
@@ -1950,89 +2016,32 @@ ${alert.remediationNotes || "No remediation notes provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        if (onUpdate.updateBy.data.title) {
-          // add alert feed.
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the alert held before the write (recordStoredValuesBeforeUpdate).
+         * An alert the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          valuesBeforeUpdate: valuesBeforeUpdate[alertId.toString()],
+        });
 
-          feedInfoInMarkdown += `\n\n**Title**: 
-${onUpdate.updateBy.data.title || "No title provided."}
-`;
+        /*
+         * A line for each of the title, root cause, description, remediation
+         * notes and labels the update really changed: writing back what the
+         * alert holds - every save of a card sends its fields - adds none.
+         */
+        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          changes: fieldChanges,
+          projectId: projectId,
+          recordName: "Alert",
+        });
+
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
           shouldAddAlertFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.rootCause) {
-          if (onUpdate.updateBy.data.title) {
-            // add alert feed.
-
-            feedInfoInMarkdown += `\n\n**📄 Root Cause**: 
-${onUpdate.updateBy.data.rootCause || "No root cause provided."}
-  `;
-            shouldAddAlertFeed = true;
-          }
-        }
-
-        if (onUpdate.updateBy.data.description) {
-          // add alert feed.
-
-          feedInfoInMarkdown += `\n\n**Alert Description**: 
-          ${onUpdate.updateBy.data.description || "No description provided."}
-          `;
-          shouldAddAlertFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.remediationNotes) {
-          // add alert feed.
-
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: 
-${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
-        `;
-          shouldAddAlertFeed = true;
-        }
-
-        if (
-          onUpdate.updateBy.data.labels &&
-          onUpdate.updateBy.data.labels.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.labels as any
-          )
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
-`;
-
-            shouldAddAlertFeed = true;
-          }
         }
 
         if (isSeverityChanged && writtenAlertSeverityId) {
@@ -2071,15 +2080,17 @@ ${alertSeverity.name}
           shouldAddAlertFeed = true;
         }
 
-        // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
+        /*
+         * The reminder rule is matched on the severity and the labels, and
+         * reminders can be switched on or off. One refresh covers whatever
+         * of those the update changed - clearing the labels included - and
+         * none runs when it changed none of them: each refresh restarts the
+         * interval, so writing back the labels the alert has must not.
+         */
         if (
           isSeverityChanged ||
-          (onUpdate.updateBy.data.labels &&
-            Array.isArray(onUpdate.updateBy.data.labels)) ||
-          Object.prototype.hasOwnProperty.call(
-            onUpdate.updateBy.data,
-            "enableReminders",
-          )
+          fieldChanges.labels ||
+          fieldChanges.enableReminders
         ) {
           try {
             await this.refreshReminderSchedule({

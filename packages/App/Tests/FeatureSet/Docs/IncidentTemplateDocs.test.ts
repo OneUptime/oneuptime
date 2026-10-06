@@ -65,7 +65,15 @@ const MARKDOWN_EDITOR_FILE: string = path.join(
   "Common/UI/Components/Markdown.tsx/MarkdownEditor.tsx",
 );
 
-// Places, besides IncidentService's feed items, that put a title into Markdown.
+/*
+ * Places, besides IncidentService's feed items, that put a title into Markdown.
+ * Writes the lines of an incident's (and an alert's) "updated" feed item.
+ */
+const EVENT_FIELD_CHANGE_FILE: string = path.join(
+  REPO_ROOT,
+  "Common/Server/Utils/EventFieldChange.ts",
+);
+
 const EPISODE_MEMBER_SERVICE_FILE: string = path.join(
   REPO_ROOT,
   "Common/Server/Services/IncidentEpisodeMemberService.ts",
@@ -795,8 +803,13 @@ describe("Incident docs", () => {
       expect(incidentService).toMatch(
         /\*\*\$\{escapeMarkdownValue\(incident\.title \|\| "No title provided\."\)\}\*\*/,
       );
-      expect(incidentService).toMatch(
-        /escapeMarkdownValue\(\s*\(updatedIncidentData\.title as string\)/,
+      /*
+       * The "updated" item's lines - the new title among them - are written
+       * by EventFieldChange, which alerts share.
+       */
+      expect(incidentService).toMatch(/EventFieldChange\.getFeedMarkdown\(/);
+      expect(readSource(EVENT_FIELD_CHANGE_FILE)).toMatch(
+        /data\.column === "title"\s*\?\s*escapeMarkdownValue\(text\)/,
       );
 
       // The items for joining or leaving an episode, on both feeds.

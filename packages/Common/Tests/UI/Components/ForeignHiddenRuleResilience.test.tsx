@@ -1120,9 +1120,19 @@ describe("Shared components under a foreign .hidden rule", () => {
       fireEvent.click(moreOptionsButton());
 
       for (const label of ["View Documentation", "Watch Demo"]) {
-        const entry: HTMLElement | null = screen
-          .getByText(label)
-          .closest('[role="menuitem"]');
+        /*
+         * The empty list offers the documentation too, in a link of its
+         * own: the entry asked about is the one in the menu.
+         */
+        const entry: HTMLElement | null =
+          screen
+            .getAllByText(label)
+            .map((element: HTMLElement): HTMLElement | null => {
+              return element.closest('[role="menuitem"]');
+            })
+            .find((candidate: HTMLElement | null): boolean => {
+              return candidate !== null;
+            }) || null;
 
         expect(entry).not.toBeNull();
         expect(entry!.getAttribute("class")).not.toContain("md:flex");

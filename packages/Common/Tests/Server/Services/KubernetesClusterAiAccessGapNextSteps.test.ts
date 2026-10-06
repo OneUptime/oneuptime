@@ -471,9 +471,12 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
           return gap.code;
         }),
     ).toEqual(["project_ai_disabled"]);
-    // Credits are still bought where credits live.
+    /*
+     * Credits are still bought where credits live - by the people who may
+     * buy them, named for everyone else who reads the gap.
+     */
     expect(stepOf("ai_balance_insufficient")).toBe(
-      "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).",
+      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
     );
   });
 
@@ -502,7 +505,7 @@ describe("the shared install and logs commands", () => {
       [
         "helm repo update",
         "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
-        "  --namespace oneuptime-agent --reuse-values \\",
+        "  --namespace oneuptime-agent --reset-then-reuse-values \\",
         "  --set aiAgent.enabled=true",
       ].join("\n"),
     );

@@ -509,7 +509,7 @@ export default class Register {
      * (which stops the agent) lets this Runner register again.
      */
     if (data.reason === "superseded_by_ai_agent") {
-      return `Cluster "${data.clusterName}" is connected through the Kubernetes AI agent, which replaces this in-cluster Runner, so this Runner is not needed. Upgrade the Kubernetes agent chart (helm repo update, then helm upgrade ... --reuse-values) to remove it. The Runner keeps retrying in case the AI agent is removed.`;
+      return `Cluster "${data.clusterName}" is connected through the Kubernetes AI agent, which replaces this in-cluster Runner, so this Runner is not needed. Upgrade the Kubernetes agent chart (helm repo update, then helm upgrade ... --reset-then-reuse-values) to remove it. The Runner keeps retrying in case the AI agent is removed.`;
     }
 
     if (isTransientKubernetesAgentRegistrationRefusal(data.reason)) {

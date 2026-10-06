@@ -468,7 +468,7 @@ export default class KubectlExecutor {
         success: false,
         output: "",
         errorMessage:
-          "This kubectl command has no Kubernetes credential, and only the in-cluster Runner installed by the Kubernetes agent chart may run kubectl with its pod's own ServiceAccount — this Runner is not that Runner (or is not running inside a cluster). Install the Kubernetes AI agent in that cluster (it ships with the Kubernetes agent chart: helm upgrade ... --reuse-values --set aiAgent.enabled=true), or reach the cluster through a Runner with a Kubernetes credential.",
+          "This kubectl command has no Kubernetes credential, and only the in-cluster Runner installed by the Kubernetes agent chart may run kubectl with its pod's own ServiceAccount — this Runner is not that Runner (or is not running inside a cluster). Install the Kubernetes AI agent in that cluster (it ships with the Kubernetes agent chart: helm upgrade ... --reset-then-reuse-values --set aiAgent.enabled=true), or reach the cluster through a Runner with a Kubernetes credential.",
       };
     }
 

@@ -78,10 +78,16 @@ export default class OwnedScopePermission {
       return query;
     }
 
+    /*
+     * The permissions whose rows grant this operation, as the table check
+     * reads them: the model's own, and its operational-resource wildcard
+     * unless a block with no labels takes the wildcard away.
+     */
     const effectivePermissions: Array<Permission> =
-      OwnedScopePermission.getEffectivePermissionsForModel(
+      TablePermission.getGrantingPermissions(
         modelType as DatabaseBaseModelType,
         type,
+        props,
       );
 
     const userPermissions: Array<UserPermission> =
@@ -173,49 +179,6 @@ export default class OwnedScopePermission {
     }
 
     return query;
-  }
-
-  /*
-   * Returns the permissions that should be considered to grant access for
-   * this op/model — model-enumerated plus operational wildcards. Mirrors the
-   * logic in TablePermission.getEffectiveModelPermissions but exposed here
-   * because we need to filter user-permission rows by this set.
-   */
-  private static getEffectivePermissionsForModel(
-    modelType: DatabaseBaseModelType,
-    type: DatabaseRequestType,
-  ): Array<Permission> {
-    const modelPermissions: Array<Permission> =
-      TablePermission.getTablePermission(modelType, type);
-    const effective: Array<Permission> = [...modelPermissions];
-
-    const model: BaseModel = new modelType();
-    if (model.isOperationalResource) {
-      const wildcard: Permission | null =
-        OwnedScopePermission.getWildcardPermissionForOperation(type);
-      if (wildcard && !effective.includes(wildcard)) {
-        effective.push(wildcard);
-      }
-    }
-
-    return effective;
-  }
-
-  private static getWildcardPermissionForOperation(
-    type: DatabaseRequestType,
-  ): Permission | null {
-    switch (type) {
-      case DatabaseRequestType.Read:
-        return Permission.ReadAllOperationalResources;
-      case DatabaseRequestType.Update:
-        return Permission.EditAllOperationalResources;
-      case DatabaseRequestType.Delete:
-        return Permission.DeleteAllOperationalResources;
-      case DatabaseRequestType.Create:
-        return Permission.CreateAllOperationalResources;
-      default:
-        return null;
-    }
   }
 
   private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {

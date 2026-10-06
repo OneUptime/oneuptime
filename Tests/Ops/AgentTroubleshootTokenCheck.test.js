@@ -383,7 +383,16 @@ const DOCKER_AGENTS = [
   },
 ];
 
-function runDockerAgent({ agent, env }, probes) {
+/*
+ * `containerEnv: false` has the collector container report no environment
+ * (it is not running), so the script falls back to .env; `envFileText`
+ * writes that .env as given instead of the plain lines.
+ */
+function runDockerAgent(
+  { agent, env },
+  probes,
+  { containerEnv = true, envFileText = null } = {},
+) {
   const dir = scratch();
   const bin = path.join(dir, "bin");
   fs.mkdirSync(bin);
@@ -391,7 +400,10 @@ function runDockerAgent({ agent, env }, probes) {
   writeProbes(dir, probes, true);
 
   const envText = `${[...COMMON_ENV, ...env].join("\n")}\n`;
-  fs.writeFileSync(path.join(dir, "container.env"), envText);
+  fs.writeFileSync(
+    path.join(dir, "container.env"),
+    containerEnv ? envText : "",
+  );
 
   const installDir = path.join(dir, "agent");
   fs.mkdirSync(installDir);
@@ -401,7 +413,10 @@ function runDockerAgent({ agent, env }, probes) {
       fs.copyFileSync(source, path.join(installDir, file));
     }
   }
-  fs.writeFileSync(path.join(installDir, ".env"), envText);
+  fs.writeFileSync(
+    path.join(installDir, ".env"),
+    envFileText === null ? envText : envFileText,
+  );
 
   const result = spawnSync(
     "bash",
@@ -418,7 +433,11 @@ function runDockerAgent({ agent, env }, probes) {
     },
   );
 
-  return { status: result.status, output: `${result.stdout}${result.stderr}` };
+  return {
+    status: result.status,
+    output: `${result.stdout}${result.stderr}`,
+    docker: fs.readFileSync(path.join(dir, "docker.log"), "utf8"),
+  };
 }
 
 /* -------------------------------------------------- kubernetes agent */
@@ -608,6 +627,46 @@ describe.each(DOCKER_AGENTS)("agents/$agent/troubleshoot.sh", (config) => {
       "ROOT CAUSE: the agent can't deliver telemetry to OneUptime (network/URL/TLS).",
     );
     expectVerdict(run, { refused: false });
+  });
+});
+
+/*
+ * The Ceph, Proxmox, VMware and Storage Array install scripts write .env
+ * quoted for Docker Compose ('value', or "value" with \\ \" and $$). With
+ * the collector down there is no container environment to read, and the
+ * script falls back to .env: it must read it as Compose does, or it would
+ * probe a URL and send a key with the quotes still on.
+ */
+describe.each(
+  DOCKER_AGENTS.filter((config) => {
+    return !config.swarm;
+  }),
+)("agents/$agent/troubleshoot.sh with the collector down", (config) => {
+  function quoted(line) {
+    const at = line.indexOf("=");
+    const value = line.slice(at + 1);
+    return value.includes("'")
+      ? `${line.slice(0, at)}="${value.replace(/\$/g, "$$$$")}"`
+      : `${line.slice(0, at)}='${value}'`;
+  }
+
+  test("reads the quoted .env install.sh writes, as Docker Compose does", () => {
+    const run = runDockerAgent(
+      config,
+      { validate: SERVER_KEY },
+      {
+        containerEnv: false,
+        envFileText: `${[...COMMON_ENV, ...config.env].map(quoted).join("\n")}\n`,
+      },
+    );
+
+    expect(tokenCheckLines(run.output)).toEqual(CASES[0].lines);
+    expectVerdict(run, { refused: false });
+    // The probe asked the URL and sent the key exactly as typed.
+    expect(run.docker).toContain(` ${BASE_URL}/otlp/v1/validate`);
+    expect(run.docker).toContain(`x-oneuptime-token: ${KEY}`);
+    expect(run.docker).not.toContain(`'${BASE_URL}`);
+    expect(run.docker).not.toContain(`'${KEY}'`);
   });
 });
 

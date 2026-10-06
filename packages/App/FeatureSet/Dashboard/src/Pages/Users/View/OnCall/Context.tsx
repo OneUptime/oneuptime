@@ -17,12 +17,11 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL, DASHBOARD_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -37,6 +36,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translateTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * Users > View > On-Call — the state every page in that section is built on,
@@ -227,26 +227,17 @@ export function useUserOnCallData(userId: ObjectID): UserOnCallData {
   const canRead: boolean =
     UserUtil.isMasterAdmin() ||
     isSelf ||
-    PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      NOTIFICATION_RULE_READ_PERMISSIONS,
-    );
+    PermissionGate.holdsAnyOf(NOTIFICATION_RULE_READ_PERMISSIONS);
 
   const canEdit: boolean =
     UserUtil.isMasterAdmin() ||
     isSelf ||
-    PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      NOTIFICATION_RULE_EDIT_PERMISSIONS,
-    );
+    PermissionGate.holdsAnyOf(NOTIFICATION_RULE_EDIT_PERMISSIONS);
 
   const canManageMethods: boolean =
     UserUtil.isMasterAdmin() ||
     isSelf ||
-    PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      NOTIFICATION_METHOD_MANAGE_PERMISSIONS,
-    );
+    PermissionGate.holdsAnyOf(NOTIFICATION_METHOD_MANAGE_PERMISSIONS);
 
   const [targetUser, setTargetUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState<boolean>(true);

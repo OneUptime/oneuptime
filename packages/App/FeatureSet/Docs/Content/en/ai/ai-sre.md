@@ -32,7 +32,7 @@ The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** 
 
 Autonomous investigations are **on by default for new projects**. So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights. A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
 
-1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits (Project Settings > AI Credits) or auto-recharge.
+1. **Configure an LLM provider.** Self-hosted installations bring their own key (or run fully air-gapped with local Ollama) — see [LLM Providers](/docs/ai/llm-provider). OneUptime Cloud users can use the pre-configured global provider, billed as metered AI tokens, so the project needs AI credits: a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**, where **Auto Recharge** keeps them from running out.
 2. **Make sure AI is enabled for the project** (it is by default) — Project Settings > AI > AI Features > Enable AI.
 3. **Choose per signal type** (both on for new projects):
    - Incidents: **Incidents > AI > Settings** — turn on _Investigate new incidents_.
@@ -67,7 +67,7 @@ On an agent installed before the Kubernetes AI agent existed, refresh your chart
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
@@ -95,7 +95,7 @@ Fixes are off until you turn them on with `aiAgent.fixes`, which also grants the
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -108,14 +108,14 @@ Or cluster-wide:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
   --set-json 'aiAgent.remediation.namespaces=[]'
 ```
 
-Replace `{web,api}` with the namespaces AI may fix. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector included — with `namespaces "api" not found`. Create it first, or take it off the list; take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the list stored on the release, so to go back to cluster-wide pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), as the second command does — not `={}`, which Helm reads as one empty name and the chart refuses. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes (a drain, a taint or a patch of a node still waits for a human).
+Replace `{web,api}` with the namespaces AI may fix. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector included — with `namespaces "api" not found`. Create it first, or take it off the list; take a namespace off the list before you delete it. Leaving the flag out of an upgrade keeps the list stored on the release, so to go back to cluster-wide pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), as the second command does — not `={}`, which Helm reads as one empty name and the chart refuses. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes (a drain, a taint or a patch of a node still waits for a human).
 
 Use `automatic` or `bypass-approval` in place of `ask-for-approval` for more autonomy, and `--set aiAgent.fixes=off` to turn fixes off again, which also removes the write access. The only project switch fixes need is **Enable AI** (Project Settings > AI > AI Features), which is on unless someone turned it off. It turns all of AI off for the project, whatever an agent's configuration says.
 

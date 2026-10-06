@@ -10,7 +10,6 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -39,8 +38,6 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionUtil from "Common/UI/Utils/Permission";
-import User from "Common/UI/Utils/User";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageGroupHierarchyViewUtil from "Common/Utils/StatusPage/GroupHierarchyView";
@@ -64,6 +61,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
  * One level of children is open on arrival - enough to show that the hierarchy
@@ -167,30 +165,33 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
   const [groupActionError, setGroupActionError] = useState<string>("");
 
-  const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
   const resourceModel: StatusPageResource = new StatusPageResource();
   const groupModel: StatusPageGroup = new StatusPageGroup();
-  const isMasterAdmin: boolean = User.isMasterAdmin();
 
   /*
    * The list and the tree are hand rolled, so the permission checks ModelTable
    * used to make on the page's behalf have to be made here - and separately for
    * the two models, because a viewer may well be allowed to add a monitor to a
-   * status page without being allowed to restructure it.
+   * status page without being allowed to restructure it. Each is the model's
+   * own gate (PermissionGate.check), read the way the server reads it.
    */
-  const canCreate: boolean =
-    isMasterAdmin || resourceModel.hasCreatePermissions(permissions);
-  const canEdit: boolean =
-    isMasterAdmin || resourceModel.hasUpdatePermissions(permissions);
-  const canDelete: boolean =
-    isMasterAdmin || resourceModel.hasDeletePermissions(permissions);
+  const canDo: (
+    model: StatusPageResource | StatusPageGroup,
+    action: ModelAction,
+  ) => boolean = (
+    model: StatusPageResource | StatusPageGroup,
+    action: ModelAction,
+  ): boolean => {
+    return PermissionGate.check(model, action).isAllowed;
+  };
 
-  const canCreateGroup: boolean =
-    isMasterAdmin || groupModel.hasCreatePermissions(permissions);
-  const canEditGroup: boolean =
-    isMasterAdmin || groupModel.hasUpdatePermissions(permissions);
-  const canDeleteGroup: boolean =
-    isMasterAdmin || groupModel.hasDeletePermissions(permissions);
+  const canCreate: boolean = canDo(resourceModel, ModelAction.Create);
+  const canEdit: boolean = canDo(resourceModel, ModelAction.Update);
+  const canDelete: boolean = canDo(resourceModel, ModelAction.Delete);
+
+  const canCreateGroup: boolean = canDo(groupModel, ModelAction.Create);
+  const canEditGroup: boolean = canDo(groupModel, ModelAction.Update);
+  const canDeleteGroup: boolean = canDo(groupModel, ModelAction.Delete);
 
   type FetchGroupsFunction = () => Promise<Array<StatusPageGroup>>;
 

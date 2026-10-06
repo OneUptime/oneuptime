@@ -54,6 +54,10 @@ import ProjectScopedReferenceValidator, {
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ReferenceChange from "../Utils/Database/ReferenceChange";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+} from "../Utils/EventFieldChange";
 import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   INCIDENT_EPISODE_REFERENCE,
@@ -235,12 +239,22 @@ type UpdateCarryForward = Dictionary<{
   severityIdBeforeUpdate?: string | null | undefined;
   /*
    * The incident's postmortem before the update - whether it was switched on
-   * for the status page, its note, and where its subscriber notification
-   * stood - read only when the update writes the note or the switch, so
-   * onUpdateSuccess tells subscribers once, when the update publishes it,
-   * and records a note that really changed (recordStoredValuesBeforeUpdate).
+   * for the status page and its note, when the update writes either, and
+   * where its subscriber notification stood - and, when the update may show
+   * the incident, whether the status page showed it and why the
+   * notification was settled (IncidentPostmortemPublication.isComparedBy).
+   * So onUpdateSuccess tells subscribers once, when the update publishes the
+   * postmortem or first shows it on status pages, and records a note that
+   * really changed (recordStoredValuesBeforeUpdate).
    */
   postmortemBeforeUpdate?: IncidentPostmortemStoredState | undefined;
+  /*
+   * The title, root cause, description, remediation notes, labels and Send
+   * reminders switch the incident held before the update - those the update
+   * writes, and no others - so its feed item and its reminder refresh follow
+   * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
+   */
+  valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
 }>;
 
 /*
@@ -894,7 +908,23 @@ export class Service extends ProjectReferencesService<Model> {
    *   or the switch. Subscribers are told once, when an update publishes the
    *   postmortem, and the feed records a note that really changed
    *   (IncidentPostmortemPublication). The Edit Postmortem form sends the
-   *   note with every save, so its being there is no news.
+   *   note with every save, so its being there is no news;
+   * - the incident's Visible on Status Page and Private Incident, and where
+   *   its postmortem's notification stands and why, when the update may show
+   *   the incident (it switches Visible on Status Page on, or writes Private
+   *   Incident off). A postmortem published while the incident was hidden
+   *   was skipped for that reason, and showing the incident sends it then
+   *   (IncidentPostmortemPublication.isShownByUpdate). The incident's
+   *   Settings form sends both switches with every save, so only a hidden
+   *   incident it shows counts. The postmortem's note is not read for this:
+   *   the rare update that does show such an incident reads it once it is
+   *   written;
+   * - the title, root cause, description, remediation notes, labels and
+   *   Send reminders switch the update writes. The "Incident updated" feed
+   *   item records each one that really changed, and a labels change or the
+   *   switch flipped matches the reminder rule again, which starts the
+   *   reminder interval over (EventFieldChange). The Incident Details card
+   *   sends the title, the severity and the labels with every save.
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -911,7 +941,25 @@ export class Service extends ProjectReferencesService<Model> {
         updateBy.data as unknown as Record<string, unknown>,
       );
 
-    if (!writtenSeverityId && !isPostmortemWritten) {
+    // Whether it may show the incident, and with it a postmortem that waits.
+    const mayShowIncident: boolean =
+      IncidentPostmortemPublication.mayShowIncident(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    // Either of the two, by the rule onUpdateSuccess acts on (isComparedBy).
+    const isPostmortemCompared: boolean =
+      IncidentPostmortemPublication.isComparedBy(
+        updateBy.data as unknown as Record<string, unknown>,
+      );
+
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
+
+    if (!writtenSeverityId && !isPostmortemCompared && !isFieldWritten) {
       return;
     }
 
@@ -926,9 +974,21 @@ export class Service extends ProjectReferencesService<Model> {
         ? {
             postmortemNote: true,
             showPostmortemOnStatusPage: true,
+          }
+        : {}),
+      ...(isPostmortemCompared
+        ? {
             subscriberNotificationStatusOnPostmortemPublished: true,
           }
         : {}),
+      ...(mayShowIncident
+        ? {
+            isVisibleOnStatusPage: true,
+            isPrivate: true,
+            subscriberNotificationStatusMessageOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
     };
 
     const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
@@ -956,14 +1016,35 @@ export class Service extends ProjectReferencesService<Model> {
                 : null,
             }
           : {}),
-        ...(isPostmortemWritten
+        ...(isPostmortemCompared
           ? {
               postmortemBeforeUpdate: {
-                showPostmortemOnStatusPage: incident.showPostmortemOnStatusPage,
-                postmortemNote: incident.postmortemNote,
+                ...(isPostmortemWritten
+                  ? {
+                      showPostmortemOnStatusPage:
+                        incident.showPostmortemOnStatusPage,
+                      postmortemNote: incident.postmortemNote,
+                    }
+                  : {}),
                 subscriberNotificationStatusOnPostmortemPublished:
                   incident.subscriberNotificationStatusOnPostmortemPublished,
+                ...(mayShowIncident
+                  ? {
+                      isVisibleOnStatusPage: incident.isVisibleOnStatusPage,
+                      isPrivate: incident.isPrivate,
+                      subscriberNotificationStatusMessageOnPostmortemPublished:
+                        incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+                    }
+                  : {}),
               },
+            }
+          : {}),
+        ...(isFieldWritten
+          ? {
+              valuesBeforeUpdate: EventFieldChange.getValuesBeforeUpdate({
+                record: incident,
+                fields: fieldsWritten,
+              }),
             }
           : {}),
       };
@@ -4300,8 +4381,9 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
   /*
    * What an update that writes the postmortem's note or its Publish on
-   * Status Page switch does to one incident, compared with the postmortem as
-   * it was before the write (recordStoredValuesBeforeUpdate; see
+   * Status Page switch, or switches the incident's Visible on Status Page
+   * on, does to one incident, compared with the postmortem as it was before
+   * the write (recordStoredValuesBeforeUpdate; see
    * IncidentPostmortemPublication):
    *
    * - a note that reads differently is recorded in the incident feed, and
@@ -4313,7 +4395,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
    *   it, and does now - queues its subscriber notification
    *   (getNotificationAction). Saving it again, editing it while it is
    *   published and taking it off the status page queue nothing; publishing
-   *   it again after that does.
+   *   it again after that does;
+   * - an update that shows a hidden incident queues its postmortem's
+   *   notification that was skipped because the incident was hidden - and
+   *   only that one, and only while the incident and its postmortem are on
+   *   the status page once the update is written: one that was sent, failed
+   *   or skipped for another reason stays as it is.
    *
    * Called once the update is written, and after the note's inline images
    * were made public, so the notification never links to images the status
@@ -4390,6 +4477,44 @@ ${incident.remediationNotes || "No remediation notes provided."}
         });
       }
     }
+
+    if (action === PostmortemNotificationAction.QueueIfSkippedAsHidden) {
+      /*
+       * The update showed the incident. Its postmortem's notification was
+       * skipped because the incident was hidden - or was on its way, and the
+       * run holding it may have skipped it so from a read made before this
+       * update. So the incident is read again now that the update is
+       * written, and the notification goes back in the queue if it is due
+       * (isDueOnceShown: skipped for that reason, with the incident and its
+       * postmortem on the status page now) - only while it still stands at
+       * that skip, which also keeps two updates that both show the incident
+       * from queueing it twice. (The send job looks again after such a skip
+       * too, for a skip settled after this.)
+       */
+      const current: Model | null = await this.findOneById({
+        id: data.incidentId,
+        select: {
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+          showPostmortemOnStatusPage: true,
+          postmortemNote: true,
+          subscriberNotificationStatusOnPostmortemPublished: true,
+          subscriberNotificationStatusMessageOnPostmortemPublished: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (IncidentPostmortemPublication.isDueOnceShown(current)) {
+        await this.setPostmortemNotificationPending({
+          incidentId: data.incidentId,
+          expectedStatus: StatusPageSubscriberNotificationStatus.Skipped,
+          expectedMessage: IncidentPostmortemPublication.hiddenIncidentMessage,
+          message: IncidentPostmortemPublication.shownQueuedMessage,
+        });
+      }
+    }
   }
 
   /*
@@ -4451,15 +4576,19 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
   /*
    * Puts the postmortem's subscriber notification back to Pending, with a
-   * message saying why, for Incident:SendPostmortemNotificationToSubscribers
-   * to send it - only while it still stands at `expectedStatus`, so a
-   * notification someone else queued again, or a job claimed, in the
-   * meantime is left to them. A hook-free write of those two columns, like
-   * the job's own claim (SubscriberNotificationClaim).
+   * message saying why (`message`, else that the postmortem was published),
+   * for Incident:SendPostmortemNotificationToSubscribers to send it - only
+   * while it still stands at `expectedStatus`, and with `expectedMessage`
+   * when one is given, so a notification someone else queued again, a job
+   * claimed, or a run settled for another reason in the meantime is left to
+   * them. A hook-free write of those two columns, like the job's own claim
+   * (SubscriberNotificationClaim).
    */
   private async setPostmortemNotificationPending(data: {
     incidentId: ObjectID;
     expectedStatus: StatusPageSubscriberNotificationStatus | null;
+    expectedMessage?: string | null | undefined;
+    message?: string | undefined;
   }): Promise<void> {
     const isQueued: boolean = await this.compareAndSetColumnsByIdWithoutHooks({
       id: data.incidentId,
@@ -4467,11 +4596,17 @@ ${incident.remediationNotes || "No remediation notes provided."}
         subscriberNotificationStatusOnPostmortemPublished:
           StatusPageSubscriberNotificationStatus.Pending,
         subscriberNotificationStatusMessageOnPostmortemPublished:
-          IncidentPostmortemPublication.queuedMessage,
+          data.message || IncidentPostmortemPublication.queuedMessage,
       },
-      // A null status is matched as null (IS NOT DISTINCT FROM).
+      // A null status or message is matched as null (IS NOT DISTINCT FROM).
       expectedData: {
         subscriberNotificationStatusOnPostmortemPublished: data.expectedStatus,
+        ...(data.expectedMessage !== undefined
+          ? {
+              subscriberNotificationStatusMessageOnPostmortemPublished:
+                data.expectedMessage,
+            }
+          : {}),
       } as unknown as PartialEntity<Model>,
     });
 
@@ -4569,9 +4704,14 @@ ${incident.remediationNotes || "No remediation notes provided."}
       }
     }
 
-    // Whether the update writes the postmortem's note or its switch.
-    const isPostmortemWritten: boolean =
-      IncidentPostmortemPublication.isWrittenBy(
+    /*
+     * Whether the update writes the postmortem's note or its switch, or may
+     * show the incident, and with it the postmortem for the first time: what
+     * applyPostmortemUpdate looks at, by the same rule
+     * recordStoredValuesBeforeUpdate read for.
+     */
+    const isPostmortemCompared: boolean =
+      IncidentPostmortemPublication.isComparedBy(
         onUpdate.updateBy.data as unknown as Record<string, unknown>,
       );
 
@@ -4611,7 +4751,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
          * as it wrote the update, before this hook (PublishedImages), so
          * the notification queued below never links to a private image.
          */
-        if (isPostmortemWritten) {
+        if (isPostmortemCompared) {
           await this.applyPostmortemUpdate({
             incidentId: incidentId,
             projectId: projectId,
@@ -4633,21 +4773,29 @@ ${incident.remediationNotes || "No remediation notes provided."}
         });
 
         /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the incident held before the write (recordStoredValuesBeforeUpdate).
+         * One the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: updatedIncidentData,
+          valuesBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.valuesBeforeUpdate,
+        });
+
+        /*
          * The reminder rule is matched on the severity and the labels, and
          * reminders can be switched on or off. One refresh covers whatever
-         * of those the update changed: each refresh restarts the interval.
+         * of those the update changed - clearing the labels included - and
+         * none runs when it changed none of them: each refresh restarts the
+         * interval, so writing back the labels the incident has must not.
          */
         const shouldRefreshReminders: boolean =
           isSeverityChanged ||
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "enableReminders",
-          ) ||
-          // Any labels change re-matches the rule, clearing them included.
-          Boolean(
-            updatedIncidentData.labels &&
-              Array.isArray(updatedIncidentData.labels),
-          );
+          fieldChanges.labels ||
+          fieldChanges.enableReminders;
 
         // emit postmortem completion time metric when postmortemPostedAt is set
         if (
@@ -4768,100 +4916,21 @@ ${incident.remediationNotes || "No remediation notes provided."}
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
-        ) {
-          // Plain text, escaped as in the "Incident Created" item.
-          const title: string = escapeMarkdownValue(
-            (updatedIncidentData.title as string) || "No title provided.",
-          );
-          feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
+        /*
+         * A line for each of the title, root cause, description, remediation
+         * notes and labels the update really changed: writing back what the
+         * incident holds - every save of a card sends its fields - adds none.
+         */
+        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+          written: updatedIncidentData,
+          changes: fieldChanges,
+          projectId: projectId,
+          recordName: "Incident",
+        });
+
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
           shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "rootCause")
-        ) {
-          const rootCause: string =
-            (updatedIncidentData.rootCause as string) || "";
-          const rootCauseText: string = rootCause.trim().length
-            ? rootCause
-            : "Root cause removed.";
-          feedInfoInMarkdown += `\n\n**📄 Root Cause**: \n${rootCauseText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "description",
-          )
-        ) {
-          const description: string =
-            (updatedIncidentData.description as string) ||
-            "No description provided.";
-          feedInfoInMarkdown += `\n\n**Incident Description**: \n${description}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "remediationNotes",
-          )
-        ) {
-          const remediationNotes: string =
-            (updatedIncidentData.remediationNotes as string) || "";
-          const remediationText: string = remediationNotes.trim().length
-            ? remediationNotes
-            : "Remediation notes removed.";
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: \n${remediationText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          updatedIncidentData.labels &&
-          (updatedIncidentData.labels as Array<Label>).length > 0 &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (updatedIncidentData.labels as any)
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
-`;
-
-            shouldAddIncidentFeed = true;
-          }
         }
 
         if (isSeverityChanged && writtenIncidentSeverityId) {

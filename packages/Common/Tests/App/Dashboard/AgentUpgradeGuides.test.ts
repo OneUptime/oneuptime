@@ -28,6 +28,7 @@ import {
   KUBERNETES_PLATFORMS,
   KubernetesPlatform,
   getKubernetesAgentChartUpgradeCommand,
+  getKubernetesAgentChartUpgradeFallbackCommand,
   getKubernetesSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import {
@@ -78,20 +79,21 @@ import {
 import {
   PROXMOX_AGENT_INSTALL_DIR,
   PROXMOX_AGENT_RAW_URL,
+  PROXMOX_AGENT_RECREATE_COMMAND,
   PROXMOX_CONNECT_METHODS,
-  ProxmoxAgentInstallMethod,
   ProxmoxConnectMethod,
   getProxmoxAgentDownloadCommand,
-  getProxmoxAgentRecreateCommand,
+  getProxmoxAgentUpgradeCommand,
   getProxmoxSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
   CEPH_AGENT_INSTALL_DIR,
   CEPH_AGENT_RAW_URL,
+  CEPH_AGENT_RECREATE_COMMAND,
   CEPH_INSTALL_METHODS,
   CephInstallMethod,
   getCephAgentDownloadCommand,
-  getCephAgentRecreateCommand,
+  getCephAgentUpgradeCommand,
   getCephSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import {
@@ -338,10 +340,63 @@ describe("the kinds whose upgrade needs the setup guide", () => {
   });
 });
 
+/*
+ * The words of a shell command line, continuations joined: what the shell
+ * hands each command in it. `&&` and `>` stay words of their own, so a
+ * command's flags are told apart from the next command's.
+ */
+function shellWords(command: string): Array<string> {
+  return command
+    .replace(/\\\n/g, " ")
+    .split(/\s+/)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+}
+
+// Every `helm upgrade` in a command, as the words up to the next command.
+function helmUpgrades(command: string): Array<Array<string>> {
+  const upgrades: Array<Array<string>> = [];
+  for (const line of command.replace(/\\\n/g, " ").split("\n")) {
+    const words: Array<string> = shellWords(line);
+    words.forEach((word: string, index: number) => {
+      if (word === "helm" && words[index + 1] === "upgrade") {
+        const end: number = words.findIndex(
+          (candidate: string, at: number): boolean => {
+            return at > index && (candidate === "&&" || candidate === ";");
+          },
+        );
+        upgrades.push(words.slice(index, end < 0 ? words.length : end));
+      }
+    });
+  }
+  return upgrades;
+}
+
+/*
+ * `helm upgrade --reuse-values` renders the new chart with the previous
+ * release's values, the old chart's defaults included (Helm replaces the new
+ * chart's values.yaml with them), so a default the new chart changed — the
+ * eBPF image a cluster was found still running — never applies. Helm 3.14+
+ * has --reset-then-reuse-values, which keeps only the values the release was
+ * given; an older Helm gets the same from `helm get values` (without --all)
+ * passed back with -f.
+ */
 describe("Kubernetes agent: upgrade the Helm release", () => {
-  test("one step, the chart upgrade that keeps the release's values", () => {
-    const guide: AgentUpgradeGuide = guideFor(AgentKind.KubernetesAgent);
-    expect(guide.methods).toHaveLength(1);
+  const guide: AgentUpgradeGuide = guideFor(AgentKind.KubernetesAgent);
+
+  test("a tab for Helm 3.14 or later first, and one for older Helm", () => {
+    expect(labelsOf(guide)).toEqual([
+      "Helm 3.14 or later",
+      "Helm 3.13 or earlier",
+    ]);
+    for (const method of guide.methods) {
+      expect(method.steps).toHaveLength(1);
+      expect(method.steps[0]!.title).toBe("Upgrade the Helm release");
+    }
+  });
+
+  test("Helm 3.14 or later: the chart upgrade that keeps the release's values and takes the new chart's defaults", () => {
     expect(codesOf(guide.methods[0]!)).toEqual([
       getKubernetesAgentChartUpgradeCommand(),
     ]);
@@ -350,29 +405,128 @@ describe("Kubernetes agent: upgrade the Helm release", () => {
         "helm repo update",
         `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\`,
         `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\`,
-        "  --reuse-values",
+        "  --reset-then-reuse-values",
       ].join("\n"),
     );
+    expect(guide.methods[0]!.steps[0]!.description).toContain(
+      "--reset-then-reuse-values keeps the values you set",
+    );
+  });
+
+  test("older Helm: the release's own values saved, then passed back with -f", () => {
+    expect(codesOf(guide.methods[1]!)).toEqual([
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    ]);
+    expect(getKubernetesAgentChartUpgradeFallbackCommand()).toBe(
+      [
+        "helm repo update",
+        `helm get values ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} -o yaml > values.yaml && \\`,
+        `  helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\`,
+        `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} -f values.yaml`,
+      ].join("\n"),
+    );
+
+    const words: Array<string> = shellWords(
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    );
+    const getValues: number = words.indexOf("get");
+    /*
+     * The values the release was given, as YAML (the default table output
+     * has a header -f cannot read), never --all, which would pin every
+     * default of the old chart again.
+     */
+    expect(words.slice(getValues - 1, getValues + 6)).toEqual([
+      "helm",
+      "get",
+      "values",
+      KUBERNETES_AGENT_HELM_RELEASE,
+      "--namespace",
+      KUBERNETES_AGENT_HELM_NAMESPACE,
+      "-o",
+    ]);
+    expect(words).not.toContain("--all");
+    expect(words).not.toContain("-a");
+    // The upgrade runs only when the values were saved: an empty file would drop every setting.
+    expect(words[words.indexOf("values.yaml") + 1]).toBe("&&");
+    const upgrades: Array<Array<string>> = helmUpgrades(
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    );
+    expect(upgrades).toHaveLength(1);
+    expect(upgrades[0]!.slice(-2)).toEqual(["-f", "values.yaml"]);
+  });
+
+  test("no tab recommends --reuse-values, and each says why not", () => {
+    for (const method of guide.methods) {
+      for (const code of codesOf(method)) {
+        const upgrades: Array<Array<string>> = helmUpgrades(code);
+        expect(upgrades).toHaveLength(1);
+        expect(upgrades[0]).not.toContain("--reuse-values");
+        expect(upgrades[0]!.slice(0, 4)).toEqual([
+          "helm",
+          "upgrade",
+          KUBERNETES_AGENT_HELM_RELEASE,
+          "oneuptime/kubernetes-agent",
+        ]);
+        // Either Helm's flag or the saved values: something keeps the release's settings.
+        expect(
+          upgrades[0]!.includes("--reset-then-reuse-values") ||
+            upgrades[0]!.includes("-f"),
+        ).toBe(true);
+      }
+      expect(method.note).toBe(
+        "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.",
+      );
+    }
+  });
+
+  // Harness guard: the parser does see a --reuse-values upgrade where there is one.
+  test("the command parser finds --reuse-values in a command that has it", () => {
+    expect(
+      helmUpgrades(
+        "helm repo update\nhelm upgrade r oneuptime/kubernetes-agent \\\n  --reuse-values",
+      )[0],
+    ).toContain("--reuse-values");
+    expect(
+      helmUpgrades("helm upgrade r c --reset-then-reuse-values")[0],
+    ).not.toContain("--reuse-values");
   });
 
   test.each(
     KUBERNETES_PLATFORMS.map((option: SetupGuideOption<KubernetesPlatform>) => {
       return [option.key];
     }),
-  )("is the command the %s guide's upgrade topic shows", (platform: string) => {
-    const setupGuide: SetupGuideContent = getKubernetesSetupGuide({
-      oneuptimeUrl: URL,
-      apiKey: KEY,
-      platform: platform as KubernetesPlatform,
-    });
-    expectCommandsFromGuide(
-      guideFor(AgentKind.KubernetesAgent).methods[0]!,
-      setupGuide,
-    );
-    expect(upgradeTopicOf(setupGuide).markdown).toContain(
-      getKubernetesAgentChartUpgradeCommand(),
-    );
-  });
+  )(
+    "both are the commands the %s guide's upgrade topic shows",
+    (platform: string) => {
+      const setupGuide: SetupGuideContent = getKubernetesSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        platform: platform as KubernetesPlatform,
+      });
+      for (const method of guide.methods) {
+        expectCommandsFromGuide(method, setupGuide);
+      }
+      const topic: SetupGuideTopic = upgradeTopicOf(setupGuide);
+      expect(topicCodeBlocks(topic)).toEqual(
+        expect.arrayContaining([
+          getKubernetesAgentChartUpgradeCommand(),
+          getKubernetesAgentChartUpgradeFallbackCommand(),
+        ]),
+      );
+      expect(topic.markdown).toContain("Don't use `--reuse-values`");
+      // No command in the guide, upgrade topic or not, is a --reuse-values upgrade.
+      for (const block of getSetupGuideCodeBlocks(setupGuide)) {
+        for (const upgrade of helmUpgrades(block)) {
+          expect({ block, upgrade }).toEqual({
+            block,
+            upgrade: upgrade.filter((word: string): boolean => {
+              return word !== "--reuse-values";
+            }),
+          });
+        }
+      }
+    },
+  );
 });
 
 describe("Docker agent: a tab per install method", () => {
@@ -766,17 +920,19 @@ describe("Resource AI agent: its compose service pulled and recreated", () => {
 });
 
 /*
- * The Proxmox and Ceph agents: the stock collector and a config, pinned in
- * the docker-compose.yml beside it. Installed with the install script or
- * with Docker Compose, they upgrade the same way in the folder that holds
- * them: both files again (the pin and the version stamp live in them), then
- * the images pulled and the containers recreated, because the collector
- * reads its config only when it starts.
+ * The Proxmox, Ceph and VMware agents: the stock collector and a config,
+ * pinned in the docker-compose.yml beside it. Their install scripts reuse
+ * the .env they find (nothing is asked again), download both files and
+ * recreate the containers, so running one again is the upgrade. A Docker
+ * Compose install takes both files again itself (the pin and the version
+ * stamp live in them), then the images pulled and the containers recreated,
+ * because the collector reads its config only when it starts.
  */
 describe.each([
   {
     name: "Proxmox",
     kind: AgentKind.ProxmoxAgent,
+    agentDir: "ProxmoxAgent",
     installDir: PROXMOX_AGENT_INSTALL_DIR,
     rawUrl: PROXMOX_AGENT_RAW_URL,
     methods: PROXMOX_CONNECT_METHODS.filter(
@@ -784,16 +940,9 @@ describe.each([
         return option.key !== "native-push";
       },
     ) as Array<SetupGuideOption<string>>,
-    download: (method: string): string => {
-      return getProxmoxAgentDownloadCommand(
-        method as ProxmoxAgentInstallMethod,
-      );
-    },
-    recreate: (method: string): string => {
-      return getProxmoxAgentRecreateCommand(
-        method as ProxmoxAgentInstallMethod,
-      );
-    },
+    upgrade: getProxmoxAgentUpgradeCommand(),
+    download: getProxmoxAgentDownloadCommand(),
+    recreate: PROXMOX_AGENT_RECREATE_COMMAND,
     setupGuide: (method: string): SetupGuideContent => {
       return getProxmoxSetupGuide({
         oneuptimeUrl: URL,
@@ -806,15 +955,13 @@ describe.each([
   {
     name: "Ceph",
     kind: AgentKind.CephAgent,
+    agentDir: "CephAgent",
     installDir: CEPH_AGENT_INSTALL_DIR,
     rawUrl: CEPH_AGENT_RAW_URL,
     methods: CEPH_INSTALL_METHODS as Array<SetupGuideOption<string>>,
-    download: (method: string): string => {
-      return getCephAgentDownloadCommand(method as CephInstallMethod);
-    },
-    recreate: (method: string): string => {
-      return getCephAgentRecreateCommand(method as CephInstallMethod);
-    },
+    upgrade: getCephAgentUpgradeCommand(),
+    download: getCephAgentDownloadCommand(),
+    recreate: CEPH_AGENT_RECREATE_COMMAND,
     setupGuide: (method: string): SetupGuideContent => {
       return getCephSetupGuide({
         oneuptimeUrl: URL,
@@ -824,16 +971,37 @@ describe.each([
       });
     },
   },
+  {
+    name: "VMware",
+    kind: AgentKind.VMwareAgent,
+    agentDir: "VMwareAgent",
+    installDir: VMWARE_AGENT_INSTALL_DIR,
+    rawUrl: VMWARE_AGENT_RAW_URL,
+    methods: VMWARE_INSTALL_METHODS as Array<SetupGuideOption<string>>,
+    upgrade: getVMwareAgentUpgradeCommand(),
+    download: getVMwareAgentDownloadCommand(),
+    recreate: VMWARE_AGENT_RECREATE_COMMAND,
+    setupGuide: (method: string): SetupGuideContent => {
+      return getVMwareSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        hasApiKey: true,
+        method: method as VMwareInstallMethod,
+      });
+    },
+  },
 ])(
-  "$name agent: the files again, then the containers recreated",
+  "$name agent: the install script again, or the files again",
   (agent: {
     name: string;
     kind: AgentKind;
+    agentDir: string;
     installDir: string;
     rawUrl: string;
     methods: Array<SetupGuideOption<string>>;
-    download: (method: string) => string;
-    recreate: (method: string) => string;
+    upgrade: string;
+    download: string;
+    recreate: string;
     setupGuide: (method: string) => SetupGuideContent;
   }) => {
     const guide: AgentUpgradeGuide = guideFor(agent.kind);
@@ -847,67 +1015,103 @@ describe.each([
       expect(labelsOf(guide)).toEqual(["Install script", "Docker Compose"]);
     });
 
-    test.each(["install-script", "docker-compose"])(
-      "%s: the files, then the recreate, each the guide's own upgrade block",
-      (key: string) => {
-        const label: string =
-          key === "install-script" ? "Install script" : "Docker Compose";
-        const method: AgentUpgradeMethod = methodLabelled(guide, label);
-        expect(codesOf(method)).toEqual([
-          agent.download(key),
-          agent.recreate(key),
-        ]);
-        expect(
-          method.steps.map((step: AgentUpgradeStep) => {
-            return step.title;
-          }),
-        ).toEqual([
-          "Download the latest files",
-          "Pull the latest images and recreate the agent",
-        ]);
-        // Nothing here needs a key, so nothing sends the reader to the guide.
-        expect(
-          method.steps.some((step: AgentUpgradeStep): boolean => {
-            return Boolean(step.needsSetupGuide);
-          }),
-        ).toBe(false);
-
+    test.each(
+      agent.methods.map((option: SetupGuideOption<string>) => {
+        return [option.key, option.label];
+      }),
+    )(
+      "%s: every command is that guide's own upgrade block",
+      (key: string, label: string) => {
         const setupGuide: SetupGuideContent = agent.setupGuide(key);
+        const method: AgentUpgradeMethod = methodLabelled(guide, label);
         expectCommandsFromGuide(method, setupGuide);
         expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
-          expect.arrayContaining([agent.download(key), agent.recreate(key)]),
+          expect.arrayContaining(codesOf(method)),
         );
       },
     );
 
-    test("the install script's folder is entered first; a Compose install runs where it is", () => {
-      for (const code of codesOf(methodLabelled(guide, "Install script"))) {
-        expect(code.split("\n")[0]).toBe(`cd ${agent.installDir}`);
-      }
-      for (const code of codesOf(methodLabelled(guide, "Docker Compose"))) {
-        expect(code).not.toContain("cd ");
-      }
+    test("the script tab runs the install script with nothing in its environment: it reuses the .env", () => {
+      const script: AgentUpgradeMethod = methodLabelled(
+        guide,
+        "Install script",
+      );
+      expect(
+        script.steps.map((step: AgentUpgradeStep) => {
+          return step.title;
+        }),
+      ).toEqual(["Run the install script again"]);
+      expect(script.steps[0]!.description).toBe(
+        "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
+      );
+      expect(codesOf(script)).toEqual([agent.upgrade]);
+      expect(agent.upgrade).toBe(
+        `curl -sSL ${agent.rawUrl}/install.sh -o install.sh\nbash install.sh`,
+      );
+      // A key or URL on the command would override what .env holds.
+      expect(agent.upgrade).not.toContain("ONEUPTIME_");
+      // Nothing here needs a key, so nothing sends the reader to the guide.
+      expect(
+        guide.methods.some((method: AgentUpgradeMethod): boolean => {
+          return method.steps.some((step: AgentUpgradeStep): boolean => {
+            return Boolean(step.needsSetupGuide);
+          });
+        }),
+      ).toBe(false);
     });
 
-    test("both files are downloaded again, from the agent's own folder of the repository", () => {
-      const download: string = agent.download("docker-compose");
-      expect(download).toBe(
+    test("the install script reuses the .env, installs where the guide says and recreates the containers it starts", () => {
+      const script: string = fs.readFileSync(
+        path.join(REPO_ROOT, "agents", agent.agentDir, "install.sh"),
+        "utf8",
+      );
+      expect(script).toContain("reusing it.");
+      expect(script).toContain(
+        'printf -v "$name" \'%s\' "$(dotenv_get "$name" "$ENV_FILE")"',
+      );
+      expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
+      expect(script).toContain(
+        `INSTALL_DIR="\${INSTALL_DIR:-${agent.installDir}}"`,
+      );
+      expect(script).toContain(`REPO_BASE="${agent.rawUrl}"`);
+    });
+
+    test("the Compose tab downloads both files from the agent's folder of the repository, then pulls and recreates", () => {
+      const compose: AgentUpgradeMethod = methodLabelled(
+        guide,
+        "Docker Compose",
+      );
+      expect(
+        compose.steps.map((step: AgentUpgradeStep) => {
+          return step.title;
+        }),
+      ).toEqual([
+        "Download the latest files",
+        "Pull the latest images and recreate the agent",
+      ]);
+      expect(codesOf(compose)).toEqual([agent.download, agent.recreate]);
+      expect(agent.download).toBe(
         [
           `curl -fsSLO ${agent.rawUrl}/docker-compose.yml`,
           `curl -fsSLO ${agent.rawUrl}/otel-collector-config.yaml`,
         ].join("\n"),
       );
-      // The same files the guide's own Compose install downloads.
-      const compose: string = getSetupGuideMarkdown(
-        agent.setupGuide("docker-compose"),
-      );
-      expect(compose).toContain(download);
-    });
-
-    test("the recreate pulls and forces new containers, so the new config is read", () => {
-      expect(agent.recreate("docker-compose")).toBe(
+      expect(agent.recreate).toBe(
         "docker compose pull\ndocker compose up -d --force-recreate",
       );
+      // The same files the guide's own Compose install downloads.
+      expect(
+        getSetupGuideMarkdown(agent.setupGuide("docker-compose")),
+      ).toContain(agent.download);
+    });
+
+    test("no command enters the install directory: the script finds it, a Compose install runs where it is", () => {
+      for (const method of guide.methods) {
+        for (const code of codesOf(method)) {
+          expect(code).not.toContain("cd ");
+          expect(code).not.toContain(agent.installDir);
+        }
+      }
     });
   },
 );
@@ -923,80 +1127,6 @@ test("a Proxmox cluster on the native push runs no agent, so its guide has nothi
   );
   expect(markdown).not.toContain("Upgrade or uninstall the agent");
   expect(markdown).not.toContain("docker compose");
-});
-
-/*
- * The VMware agent's install script reuses the .env it finds and recreates
- * the containers, so running it again is the upgrade; a Docker Compose
- * install takes both files again itself.
- */
-describe("VMware agent: the install script again, or the files again", () => {
-  const guide: AgentUpgradeGuide = guideFor(AgentKind.VMwareAgent);
-
-  test("the tabs are the setup guide's own install methods, in its order", () => {
-    expect(labelsOf(guide)).toEqual(
-      VMWARE_INSTALL_METHODS.map(
-        (option: SetupGuideOption<VMwareInstallMethod>): string => {
-          return option.label;
-        },
-      ),
-    );
-  });
-
-  test.each(
-    VMWARE_INSTALL_METHODS.map(
-      (option: SetupGuideOption<VMwareInstallMethod>) => {
-        return [option.key, option.label];
-      },
-    ),
-  )(
-    "%s: every command is the guide's own upgrade block",
-    (key: string, label: string) => {
-      const setupGuide: SetupGuideContent = getVMwareSetupGuide({
-        oneuptimeUrl: URL,
-        apiKey: KEY,
-        hasApiKey: true,
-        method: key as VMwareInstallMethod,
-      });
-      const method: AgentUpgradeMethod = methodLabelled(guide, label);
-      expectCommandsFromGuide(method, setupGuide);
-      expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
-        expect.arrayContaining(codesOf(method)),
-      );
-    },
-  );
-
-  test("the script tab runs the install script with no key or URL: it reuses the .env", () => {
-    const script: AgentUpgradeMethod = methodLabelled(guide, "Install script");
-    expect(codesOf(script)).toEqual([getVMwareAgentUpgradeCommand()]);
-    expect(getVMwareAgentUpgradeCommand()).toBe(
-      `curl -sSL ${VMWARE_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
-    );
-    // A key or URL on the command would override what .env holds.
-    expect(getVMwareAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
-  });
-
-  test("the install script reuses the .env and recreates the containers it starts", () => {
-    const script: string = fs.readFileSync(
-      path.join(REPO_ROOT, "agents/VMwareAgent/install.sh"),
-      "utf8",
-    );
-    expect(script).toContain("reusing it.");
-    expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
-    expect(script).toContain(
-      `INSTALL_DIR="\${INSTALL_DIR:-${VMWARE_AGENT_INSTALL_DIR}}"`,
-    );
-  });
-
-  test("the Compose tab downloads both files, then pulls and recreates", () => {
-    expect(codesOf(methodLabelled(guide, "Docker Compose"))).toEqual([
-      getVMwareAgentDownloadCommand(),
-      VMWARE_AGENT_RECREATE_COMMAND,
-    ]);
-    expect(VMWARE_AGENT_RECREATE_COMMAND).toBe(
-      "docker compose pull\ndocker compose up -d --force-recreate",
-    );
-  });
 });
 
 /*

@@ -16,6 +16,7 @@ import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserIncomingCallNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
+import { INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE } from "../../Utils/Project/ProjectBalance";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -65,9 +66,7 @@ export class Service extends DatabaseService<Model> {
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
-      throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE);
     }
 
     /*
@@ -179,9 +178,7 @@ export class Service extends DatabaseService<Model> {
       (project.smsOrCallCurrentBalanceInUSDCents as number) <= 100 &&
       IsBillingEnabled
     ) {
-      throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE);
     }
 
     /*
