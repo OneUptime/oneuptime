@@ -40,9 +40,11 @@ import {
  * through as "public" and takes the project from a caller-supplied
  * `tenantid` header. The work they trigger runs as root:
  *
- * - /workspace-notification-rule/test/:id loads the rule as root, takes the
- *   project from the rule itself, and posts a test message into that
- *   project's Slack / Teams channels (it can even create channels).
+ * - /workspace-notification-rule/test/:id takes the project from the rule
+ *   itself and posts a test message into that project's Slack / Teams
+ *   channels (it can even create channels). It reads the rule with the
+ *   caller's own permissions first; the plan and the permission to post are
+ *   WorkspaceNotificationRuleTestSend.test.ts's.
  * - /monitor/refresh-status/:id reads and writes the monitor as root.
  *
  * So each route has to prove two things itself: the caller is an
@@ -93,10 +95,12 @@ function buildMemberProps(data: {
   projectId: ObjectID;
   userId: ObjectID;
 }): DatabaseCommonInteractionProps {
+  // As the auth middleware leaves it: a grant, not a block.
   const memberPermission: UserPermission = {
     _type: "UserPermission",
     permission: Permission.ProjectMember,
     labelIds: [],
+    isBlockPermission: false,
   };
 
   const tenantPermission: UserTenantAccessPermission = {
@@ -442,6 +446,16 @@ describe("Project-scoped custom routes require an authenticated member of the re
         callerUserId.toString(),
       );
       expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+
+      // The rule is read as the caller, for their project - never as root.
+      const readProps: DatabaseCommonInteractionProps = (
+        findOneByIdSpy.mock.calls[0]![0] as {
+          props: DatabaseCommonInteractionProps;
+        }
+      ).props;
+      expect(readProps.isRoot).toBeFalsy();
+      expect(readProps.userId?.toString()).toBe(callerUserId.toString());
+      expect(readProps.tenantId?.toString()).toBe(callerProjectId.toString());
     });
 
     // Was BadDataException (400) before the credential check.
