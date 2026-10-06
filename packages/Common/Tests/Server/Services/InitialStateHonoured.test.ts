@@ -966,7 +966,7 @@ describe("the state services' starting-state lookups", () => {
     getStartingStage: (
       projectId: ObjectID,
       stateId: ObjectID,
-    ) => Promise<StartingStage>;
+    ) => Promise<StartingStage | null>;
     stateModel: new () => StateModel;
     noCreatedState: string;
   }
@@ -981,7 +981,7 @@ describe("the state services' starting-state lookups", () => {
       getStartingStage: (
         projectId: ObjectID,
         stateId: ObjectID,
-      ): Promise<StartingStage> => {
+      ): Promise<StartingStage | null> => {
         return AlertStateService.getStartingStage({
           projectId: projectId,
           alertStateId: stateId,
@@ -1000,7 +1000,7 @@ describe("the state services' starting-state lookups", () => {
       getStartingStage: (
         projectId: ObjectID,
         stateId: ObjectID,
-      ): Promise<StartingStage> => {
+      ): Promise<StartingStage | null> => {
         return IncidentStateService.getStartingStage({
           projectId: projectId,
           incidentStateId: stateId,
@@ -1149,7 +1149,7 @@ describe("the state services' starting-state lookups", () => {
   );
 
   test.each(LOOKUPS)(
-    "$name: the created, acknowledged and resolved states are open, acknowledged and resolved; a state not in the list is open",
+    "$name: the created, acknowledged and resolved states are open, acknowledged and resolved; a state not in the project's list has none",
     async (lookup: Lookup) => {
       stubListReads(lookup);
 
@@ -1167,7 +1167,27 @@ describe("the state services' starting-state lookups", () => {
       ).toBe(StartingStage.Resolved);
       expect(
         await lookup.getStartingStage(PROJECT_ID, new ObjectID(FOREIGN_STATE)),
-      ).toBe(StartingStage.Open);
+      ).toBeNull();
+    },
+  );
+
+  test.each(LOOKUPS)(
+    "$name: another project's list holds none of this project's states",
+    async (lookup: Lookup) => {
+      const reads: Array<{
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      }> = stubListReads(lookup);
+
+      // The read is pinned to the project it is asked about.
+      await lookup.getStartingStage(
+        OTHER_PROJECT_ID,
+        new ObjectID(RESOLVED_STATE),
+      );
+
+      expect(reads).toHaveLength(1);
+      expect(idOf(reads[0]!.query["projectId"])).toBe(idOf(OTHER_PROJECT_ID));
     },
   );
 });

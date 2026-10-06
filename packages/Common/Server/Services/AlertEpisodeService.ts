@@ -29,7 +29,6 @@ import {
   Green500,
   Yellow500,
   Purple500,
-  Gray500,
 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
@@ -246,38 +245,33 @@ export class Service extends ProjectReferencesService<Model> {
      * How far along it starts (StartingStage): read once, here, and handed
      * to onCreateSuccess, which decides on it what the create sets off. An
      * episode recorded already acknowledged pages nobody, and one recorded
-     * resolved opens no channel either. With no state picked it starts in
+     * resolved opens no channel either. The state picked was checked against
+     * the project above, with the severity. With none picked it starts in
      * the created state - open, as every episode a grouping rule opens - and
      * there is nothing to read.
      */
-    const startingStage: StartingStage = pickedAlertStateId
+    const pickedStage: StartingStage | null = pickedAlertStateId
       ? await AlertStateService.getStartingStage({
           projectId: projectId,
           alertStateId: pickedAlertStateId,
         })
-      : StartingStage.Open;
+      : null;
+
+    const startingStage: StartingStage = pickedStage || StartingStage.Open;
 
     /*
      * resolvedAt follows the state the episode starts in, as its first
      * timeline row writes it (AlertEpisodeStateTimelineService): set for a
-     * state flagged resolved. One recorded as already resolved is resolved
-     * from the moment it exists: grouping, auto-resolve and the unresolved
-     * episode lists read resolvedAt, which the first timeline row would
-     * otherwise set only once onCreateSuccess reaches it, after the
-     * workspace channels - and sets again then, to the moment that row
-     * records. Any other episode has none yet, whatever the write sent: the
-     * first timeline row would clear it anyway - one in a state of the
-     * project's own placed after the resolved state too, which still counts
-     * as resolved for what its create sets off.
+     * state flagged resolved - which is what starts it resolved. One
+     * recorded as already resolved is resolved from the moment it exists:
+     * grouping, auto-resolve and the unresolved episode lists read
+     * resolvedAt, which the first timeline row would otherwise set only once
+     * onCreateSuccess reaches it, after the workspace channels - and sets
+     * again then, to the moment that row records. Any other episode has none
+     * yet, whatever the write sent: the first timeline row would clear it
+     * anyway.
      */
-    if (
-      pickedAlertStateId &&
-      startingStage === StartingStage.Resolved &&
-      (await AlertStateService.isResolvedAlertState({
-        projectId: projectId,
-        alertStateId: pickedAlertStateId,
-      }))
-    ) {
+    if (startingStage === StartingStage.Resolved) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];
@@ -622,24 +616,12 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       if (!StartingStageUtil.pagesOnCall(startingStage)) {
-        const notRunMarkdown: string | null =
-          await OnCallNotRunOnCreate.getFeedMarkdown({
-            noun: "episode",
-            stage: startingStage,
-            projectId: createdItem.projectId,
-            policies: episodeWithPolicies.onCallDutyPolicies,
-          });
-
-        if (notRunMarkdown) {
-          await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
-            alertEpisodeId: createdItem.id,
-            projectId: createdItem.projectId,
-            alertEpisodeFeedEventType: AlertEpisodeFeedEventType.OnCallPolicy,
-            displayColor: Gray500,
-            feedInfoInMarkdown: notRunMarkdown,
-          });
-        }
-
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { alertEpisodeId: createdItem.id },
+          projectId: createdItem.projectId,
+          stage: startingStage,
+          policies: episodeWithPolicies.onCallDutyPolicies,
+        });
         return;
       }
 

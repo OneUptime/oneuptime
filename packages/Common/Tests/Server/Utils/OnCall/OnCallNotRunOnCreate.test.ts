@@ -1,6 +1,17 @@
+import AlertEpisodeFeedService from "../../../../Server/Services/AlertEpisodeFeedService";
+import AlertFeedService from "../../../../Server/Services/AlertFeedService";
+import IncidentEpisodeFeedService from "../../../../Server/Services/IncidentEpisodeFeedService";
+import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
-import OnCallNotRunOnCreate from "../../../../Server/Utils/OnCall/OnCallNotRunOnCreate";
+import OnCallNotRunOnCreate, {
+  OnCallNotRunRecord,
+} from "../../../../Server/Utils/OnCall/OnCallNotRunOnCreate";
+import { AlertEpisodeFeedEventType } from "../../../../Models/DatabaseModels/AlertEpisodeFeed";
+import { AlertFeedEventType } from "../../../../Models/DatabaseModels/AlertFeed";
+import { IncidentEpisodeFeedEventType } from "../../../../Models/DatabaseModels/IncidentEpisodeFeed";
+import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import { Gray500 } from "../../../../Types/BrandColors";
 import ObjectID from "../../../../Types/ObjectID";
 import { StartingStage } from "../../../../Utils/StartingStage";
 import {
@@ -264,7 +275,7 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
     expect(reads).toEqual([]);
   });
 
-  test("a policy with no name is still named, as an unnamed policy", async () => {
+  test("a policy with no name is still named, as an unnamed policy - and an empty id in the list is skipped", async () => {
     jest.restoreAllMocks();
     jest
       .spyOn(OnCallDutyPolicyService, "findBy")
@@ -279,10 +290,182 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
         noun: "incident",
         stage: StartingStage.Acknowledged,
         projectId: PROJECT_ID,
-        policies: listed([PRIMARY]),
+        policies: [new OnCallDutyPolicy(), ...listed([PRIMARY])],
       }),
     ).toBe(
       "📞 **No one was paged.** This incident was created already acknowledged, so its on-call policy **Unnamed policy** was not run.",
     );
+  });
+});
+
+/*
+ * The one place the line is written: each of the four services hands its
+ * record over (createFeedItem), and the line lands in that record's own
+ * feed - a grey on-call entry, kept off Slack and Microsoft Teams.
+ */
+describe("OnCallNotRunOnCreate.createFeedItem - the line, in the record's own feed", () => {
+  const RECORD_ID: ObjectID = new ObjectID(
+    "0193c0de-5a7e-4ddd-8eee-0000000000d1",
+  );
+
+  // Every item a feed service was asked to write, by service.
+  let written: Array<{ feed: string; item: Record<string, unknown> }> = [];
+
+  function stubFeed(target: unknown, method: string, feed: string): void {
+    jest
+      .spyOn(
+        target as Record<string, (...args: Array<unknown>) => unknown>,
+        method,
+      )
+      .mockImplementation((async (
+        item: Record<string, unknown>,
+      ): Promise<void> => {
+        written.push({ feed: feed, item: item });
+      }) as never);
+  }
+
+  beforeEach(() => {
+    written = [];
+
+    stubFeed(IncidentFeedService, "createIncidentFeedItem", "incident");
+    stubFeed(AlertFeedService, "createAlertFeedItem", "alert");
+    stubFeed(
+      AlertEpisodeFeedService,
+      "createAlertEpisodeFeedItem",
+      "alert episode",
+    );
+    stubFeed(
+      IncidentEpisodeFeedService,
+      "createIncidentEpisodeFeedItem",
+      "incident episode",
+    );
+
+    jest
+      .spyOn(OnCallDutyPolicyService, "findBy")
+      .mockImplementation((async (): Promise<Array<OnCallDutyPolicy>> => {
+        const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+        policy._id = PRIMARY;
+        policy.name = "Primary";
+        return [policy];
+      }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    [
+      "an incident",
+      { incidentId: RECORD_ID },
+      "incident",
+      "incidentId",
+      "incidentFeedEventType",
+      IncidentFeedEventType.OnCallPolicy,
+      "This incident",
+    ],
+    [
+      "an alert",
+      { alertId: RECORD_ID },
+      "alert",
+      "alertId",
+      "alertFeedEventType",
+      AlertFeedEventType.OnCallPolicy,
+      "This alert",
+    ],
+    [
+      "an alert episode",
+      { alertEpisodeId: RECORD_ID },
+      "alert episode",
+      "alertEpisodeId",
+      "alertEpisodeFeedEventType",
+      AlertEpisodeFeedEventType.OnCallPolicy,
+      "This episode",
+    ],
+    [
+      "an incident episode",
+      { incidentEpisodeId: RECORD_ID },
+      "incident episode",
+      "incidentEpisodeId",
+      "incidentEpisodeFeedEventType",
+      IncidentEpisodeFeedEventType.OnCallPolicy,
+      "This episode",
+    ],
+  ] as Array<
+    [string, OnCallNotRunRecord, string, string, string, string, string]
+  >)(
+    "%s: one grey on-call entry in its own feed, naming it as its feed does, posted nowhere else",
+    async (
+      _name: string,
+      record: OnCallNotRunRecord,
+      feed: string,
+      recordKey: string,
+      eventTypeKey: string,
+      eventType: string,
+      named: string,
+    ) => {
+      await OnCallNotRunOnCreate.createFeedItem({
+        record: record,
+        projectId: PROJECT_ID,
+        stage: StartingStage.Resolved,
+        policies: listed([PRIMARY]),
+      });
+
+      expect(written).toHaveLength(1);
+      expect(written[0]!.feed).toBe(feed);
+
+      const item: Record<string, unknown> = written[0]!.item;
+      expect(String(item[recordKey])).toBe(RECORD_ID.toString());
+      expect(String(item["projectId"])).toBe(PROJECT_ID.toString());
+      expect(item[eventTypeKey]).toBe(eventType);
+      expect(item["displayColor"]).toBe(Gray500);
+      expect(item["feedInfoInMarkdown"]).toBe(
+        `📞 **No one was paged.** ${named} was created already resolved, so its on-call policy **Primary** was not run.`,
+      );
+      // Not posted to Slack or Microsoft Teams, and written as OneUptime.
+      expect(item["workspaceNotification"]).toBeUndefined();
+      expect(item["userId"]).toBeUndefined();
+    },
+  );
+
+  test("the stage it was handed is the one the line names", async () => {
+    await OnCallNotRunOnCreate.createFeedItem({
+      record: { alertId: RECORD_ID },
+      projectId: PROJECT_ID,
+      stage: StartingStage.Acknowledged,
+      policies: listed([PRIMARY]),
+    });
+
+    expect(String(written[0]!.item["feedInfoInMarkdown"])).toContain(
+      "was created already acknowledged",
+    );
+  });
+
+  test("nothing is written when the record lists no policy", async () => {
+    await OnCallNotRunOnCreate.createFeedItem({
+      record: { incidentId: RECORD_ID },
+      projectId: PROJECT_ID,
+      stage: StartingStage.Acknowledged,
+      policies: [],
+    });
+
+    expect(written).toEqual([]);
+  });
+
+  test("nothing is written when none of its policies exists any more", async () => {
+    jest.restoreAllMocks();
+    stubFeed(IncidentFeedService, "createIncidentFeedItem", "incident");
+    jest
+      .spyOn(OnCallDutyPolicyService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await OnCallNotRunOnCreate.createFeedItem({
+      record: { incidentId: RECORD_ID },
+      projectId: PROJECT_ID,
+      stage: StartingStage.Resolved,
+      policies: listed([DELETED]),
+    });
+
+    expect(written).toEqual([]);
   });
 });

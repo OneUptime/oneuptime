@@ -26,7 +26,9 @@ import AIRunStatus from "../../Types/AI/AIRunStatus";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentStateService from "./IncidentStateService";
-import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import IncidentStateTimelineService, {
+  INCIDENT_NEVER_HELD_ITS_MONITORS_KEY,
+} from "./IncidentStateTimelineService";
 import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -2403,6 +2405,14 @@ export class Service extends ProjectReferencesService<Model> {
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
+    /*
+     * How far along the incident starts (StartingStage), read with the state
+     * it starts in: one read of the project's states both places a picked
+     * state, or a template's, and tells whether it is the project's own.
+     * Open for the created state, where it starts when neither names one.
+     */
+    let startingStage: StartingStage = StartingStage.Open;
+
     // Declared from a template whose status pages were all deleted.
     let isScopedToNothingByTemplate: boolean = false;
 
@@ -2431,26 +2441,20 @@ export class Service extends ProjectReferencesService<Model> {
     if (pickedIncidentStateId) {
       initialIncidentStateId = pickedIncidentStateId;
 
-      // Validate that the provided state exists and belongs to the project
-      const providedState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            _id: initialIncidentStateId.toString(),
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
+      // It has to be one of the project's states.
+      const pickedStage: StartingStage | null =
+        await IncidentStateService.getStartingStage({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
         });
 
-      if (!providedState) {
+      if (!pickedStage) {
         throw new BadDataException(
           "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
+
+      startingStage = pickedStage;
     } else if (incidentTemplateId) {
       /*
        * Created from a template — pull every field we may want to
@@ -2492,26 +2496,20 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (incidentTemplate?.initialIncidentStateId) {
-        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-
-        // Validate that the template's state exists and belongs to the project
-        const templateState: IncidentState | null =
-          await IncidentStateService.findOneBy({
-            query: {
-              _id: initialIncidentStateId.toString(),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
+        /*
+         * The template's state, while it is one of the project's states.
+         * One deleted since, or never the project's, leaves the incident to
+         * start in the created state.
+         */
+        const templateStage: StartingStage | null =
+          await IncidentStateService.getStartingStage({
+            projectId: projectId,
+            incidentStateId: incidentTemplate.initialIncidentStateId,
           });
 
-        if (!templateState) {
-          // Fall back to default if template state is invalid
-          initialIncidentStateId = undefined;
+        if (templateStage) {
+          initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+          startingStage = templateStage;
         }
       }
 
@@ -2702,8 +2700,6 @@ export class Service extends ProjectReferencesService<Model> {
      * does - which is open (StartingStage) with no need to read the rest of
      * the project's states.
      */
-    const startsInCreatedState: boolean = !initialIncidentStateId;
-
     if (!initialIncidentStateId) {
       initialIncidentStateId =
         await IncidentStateService.getCreatedIncidentStateId(projectId);
@@ -2779,19 +2775,11 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     /*
-     * How far along it starts (StartingStage): read once, here, and handed
-     * to onCreateSuccess, which decides on it what the create sets off. An
-     * incident declared already acknowledged pages nobody, and one declared
-     * resolved also sets off nothing that answers a live problem.
-     */
-    const startingStage: StartingStage = startsInCreatedState
-      ? StartingStage.Open
-      : await IncidentStateService.getStartingStage({
-          projectId: projectId,
-          incidentStateId: initialIncidentStateId,
-        });
-
-    /*
+     * How far along it starts (StartingStage), as read with its state above,
+     * is handed to onCreateSuccess, which decides on it what the create sets
+     * off: an incident declared already acknowledged pages nobody, and one
+     * declared resolved also sets off nothing that answers a live problem.
+     *
      * The alerts to acknowledge are asked for only with alerts to link (the
      * validator refuses the request otherwise), so they are empty, and the
      * state null, for an incident declared from no alerts.
@@ -3094,7 +3082,10 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         try {
-          return await this.handleIncidentStateChangeAsync(createdItem);
+          return await this.handleIncidentStateChangeAsync(
+            createdItem,
+            startingStage,
+          );
         } catch (error) {
           logger.error(
             `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3172,9 +3163,10 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         /*
          * An incident declared resolved leaves its monitors' status alone:
-         * resolving is what puts them back, and for it that has already
-         * happened, so nothing ever would. Its first state does not touch
-         * them either (IncidentStateTimelineService).
+         * only resolving puts them back, and it is resolved already, so
+         * nothing ever would. In turn its first state - resolved - gives
+         * them nothing back (handleIncidentStateChangeAsync), so a status a
+         * monitor holds for another reason stays.
          */
         try {
           if (
@@ -3327,9 +3319,9 @@ export class Service extends ProjectReferencesService<Model> {
         /*
          * Process incident for grouping into episodes - unless it was
          * declared resolved: it is over. One declared already acknowledged
-         * may join an episode that is open, but never opens or reopens one:
-         * a new episode runs its own on-call policies, and would page for
-         * the incident after all.
+         * may join an episode that is open, but never opens or reopens one
+         * (GroupingOptions): a new episode runs its own on-call policies, and
+         * would page for the incident after all.
          */
         if (!isOngoing) {
           return;
@@ -3918,6 +3910,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
   @CaptureSpan()
   private async handleIncidentStateChangeAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (!createdItem.currentIncidentStateId) {
@@ -3944,6 +3937,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
         rootCause: createdItem.rootCause,
         stateChangeLog: createdItem.createdStateLog,
         timelineStartsAt: createdItem.declaredAt,
+        /*
+         * Declared already resolved, the incident sets no status on its
+         * monitors and pauses none of their monitoring (onCreateSuccess), so
+         * its first state - resolved - has nothing of theirs to give back.
+         */
+        neverHeldItsMonitors: !StartingStageUtil.isOngoing(startingStage),
         props: {
           isRoot: true,
         },
@@ -3975,7 +3974,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
         createdItem.onCallDutyPolicies?.length > 0
       ) {
         if (!StartingStageUtil.pagesOnCall(startingStage)) {
-          await this.createOnCallNotRunFeedItem(createdItem, startingStage);
+          await OnCallNotRunOnCreate.createFeedItem({
+            record: { incidentId: createdItem.id! },
+            projectId: createdItem.projectId!,
+            stage: startingStage,
+            policies: createdItem.onCallDutyPolicies,
+          });
           return;
         }
 
@@ -4001,32 +4005,6 @@ ${incident.remediationNotes || "No remediation notes provided."}
       } as LogAttributes);
       throw error;
     }
-  }
-
-  // The feed line of an incident declared past open, in place of paging.
-  private async createOnCallNotRunFeedItem(
-    createdItem: Model,
-    startingStage: StartingStage,
-  ): Promise<void> {
-    const feedInfoInMarkdown: string | null =
-      await OnCallNotRunOnCreate.getFeedMarkdown({
-        noun: "incident",
-        stage: startingStage,
-        projectId: createdItem.projectId!,
-        policies: createdItem.onCallDutyPolicies || [],
-      });
-
-    if (!feedInfoInMarkdown) {
-      return;
-    }
-
-    await IncidentFeedService.createIncidentFeedItem({
-      incidentId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
-      displayColor: Gray500,
-      feedInfoInMarkdown: feedInfoInMarkdown,
-    });
   }
 
   @CaptureSpan()
@@ -5697,6 +5675,13 @@ ${incidentSeverity.name}
     stateChangeLog: JSONObject | undefined;
     props: DatabaseCommonInteractionProps | undefined;
     timelineStartsAt?: Date | string | undefined;
+    /*
+     * The first state of an incident declared already resolved, which never
+     * held its monitors: the resolve gives them nothing back
+     * (INCIDENT_NEVER_HELD_ITS_MONITORS_KEY). Heard only from OneUptime's
+     * own (root) write.
+     */
+    neverHeldItsMonitors?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -5709,6 +5694,7 @@ ${incidentSeverity.name}
       stateChangeLog,
       props,
       timelineStartsAt,
+      neverHeldItsMonitors,
     } = data;
 
     const declaredTimelineStart: Date | undefined = timelineStartsAt
@@ -5771,6 +5757,13 @@ ${incidentSeverity.name}
     await IncidentStateTimelineService.create({
       data: statusTimeline,
       props: props || {},
+      ...(neverHeldItsMonitors
+        ? {
+            miscDataProps: {
+              [INCIDENT_NEVER_HELD_ITS_MONITORS_KEY]: true,
+            },
+          }
+        : {}),
     });
   }
 

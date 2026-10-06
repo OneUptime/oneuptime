@@ -213,17 +213,17 @@ export class Service extends DatabaseService<AlertState> {
 
   /*
    * How far along an alert or an alert episode starts when it is created in
-   * one of the project's alert states: open, acknowledged or resolved, by
-   * the state's place in the project's list (StartingStage). What its create
-   * then sets off follows from it - no on-call from acknowledged on, nothing
-   * that answers a live problem once resolved. Read once per create, from
-   * the project's whole list, as OneUptime.
+   * `alertStateId` (StartingStage): open, acknowledged or resolved, and so
+   * what its create sets off - no on-call from acknowledged on, nothing that
+   * answers a live problem once resolved. One read of the project's whole
+   * list, as OneUptime, which only holds the project's own states: null
+   * when `alertStateId` is not one of them.
    */
   @CaptureSpan()
   public async getStartingStage(data: {
     projectId: ObjectID;
     alertStateId: ObjectID;
-  }): Promise<StartingStage> {
+  }): Promise<StartingStage | null> {
     const alertStates: Array<AlertState> = await this.getAllAlertStates({
       projectId: data.projectId,
       props: {
@@ -236,32 +236,6 @@ export class Service extends DatabaseService<AlertState> {
       states: alertStates,
       stateId: data.alertStateId,
     });
-  }
-
-  /*
-   * Whether one of the project's alert states is flagged as resolved: what
-   * an alert episode's timeline reads to set or clear its resolvedAt
-   * (AlertEpisodeStateTimelineService), and so what its create stamps.
-   */
-  @CaptureSpan()
-  public async isResolvedAlertState(data: {
-    projectId: ObjectID;
-    alertStateId: ObjectID;
-  }): Promise<boolean> {
-    const alertState: AlertState | null = await this.findOneBy({
-      query: {
-        _id: data.alertStateId.toString(),
-        projectId: data.projectId,
-      },
-      select: {
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Boolean(alertState?.isResolvedState);
   }
 }
 export default new Service();

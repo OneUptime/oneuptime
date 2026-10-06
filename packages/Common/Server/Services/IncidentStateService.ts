@@ -220,17 +220,17 @@ export class Service extends DatabaseService<IncidentState> {
 
   /*
    * How far along an incident or an incident episode starts when it is
-   * created in one of the project's incident states: open, acknowledged or
-   * resolved, by the state's place in the project's list (StartingStage).
-   * What its create then sets off follows from it - no on-call from
-   * acknowledged on, nothing that answers a live problem once resolved. Read
-   * once per create, from the project's whole list, as OneUptime.
+   * created in `incidentStateId` (StartingStage): open, acknowledged or
+   * resolved, and so what its create sets off - no on-call from
+   * acknowledged on, nothing that answers a live problem once resolved. One
+   * read of the project's whole list, as OneUptime, which only holds the
+   * project's own states: null when `incidentStateId` is not one of them.
    */
   @CaptureSpan()
   public async getStartingStage(data: {
     projectId: ObjectID;
     incidentStateId: ObjectID;
-  }): Promise<StartingStage> {
+  }): Promise<StartingStage | null> {
     const incidentStates: Array<IncidentState> =
       await this.getAllIncidentStates({
         projectId: data.projectId,
@@ -244,33 +244,6 @@ export class Service extends DatabaseService<IncidentState> {
       states: incidentStates,
       stateId: data.incidentStateId,
     });
-  }
-
-  /*
-   * Whether one of the project's incident states is flagged as resolved:
-   * what an incident episode's timeline reads to set or clear its
-   * resolvedAt (IncidentEpisodeStateTimelineService), and so what its create
-   * stamps.
-   */
-  @CaptureSpan()
-  public async isResolvedIncidentState(data: {
-    projectId: ObjectID;
-    incidentStateId: ObjectID;
-  }): Promise<boolean> {
-    const incidentState: IncidentState | null = await this.findOneBy({
-      query: {
-        _id: data.incidentStateId.toString(),
-        projectId: data.projectId,
-      },
-      select: {
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Boolean(incidentState?.isResolvedState);
   }
 }
 export default new Service();

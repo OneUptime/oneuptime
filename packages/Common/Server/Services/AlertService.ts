@@ -870,16 +870,19 @@ export class Service extends ProjectReferencesService<Model> {
      * How far along it starts (StartingStage): read once, here, and handed
      * to onCreateSuccess, which decides on it what the create sets off. An
      * alert recorded already acknowledged pages nobody, and one recorded
-     * resolved also sets off nothing that answers a live problem. With no
-     * state picked it starts in the created state - open, as every alert a
-     * monitor raises - and there is nothing to read.
+     * resolved also sets off nothing that answers a live problem. The state
+     * picked was checked against the project above, with the alert's other
+     * references. With none picked it starts in the created state - open, as
+     * every alert a monitor raises - and there is nothing to read.
      */
-    const startingStage: StartingStage = pickedAlertStateId
+    const pickedStage: StartingStage | null = pickedAlertStateId
       ? await AlertStateService.getStartingStage({
           projectId: projectId,
           alertStateId: pickedAlertStateId,
         })
-      : StartingStage.Open;
+      : null;
+
+    const startingStage: StartingStage = pickedStage || StartingStage.Open;
 
     /*
      * The state it starts in, under the ID column alone: stamp leaves no
@@ -1173,9 +1176,9 @@ export class Service extends ProjectReferencesService<Model> {
         /*
          * Process alert for grouping into episodes - unless it was created
          * resolved: it is over. One created already acknowledged may join an
-         * episode that is open, but never opens or reopens one: a new
-         * episode runs its own on-call policies, and would page for the
-         * alert after all.
+         * episode that is open, but never opens or reopens one
+         * (GroupingOptions): a new episode runs its own on-call policies, and
+         * would page for the alert after all.
          */
         if (!isOngoing) {
           return;
@@ -1526,7 +1529,12 @@ ${alert.remediationNotes || "No remediation notes provided."}
         createdItem.onCallDutyPolicies?.length > 0
       ) {
         if (!StartingStageUtil.pagesOnCall(startingStage)) {
-          await this.createOnCallNotRunFeedItem(createdItem, startingStage);
+          await OnCallNotRunOnCreate.createFeedItem({
+            record: { alertId: createdItem.id! },
+            projectId: createdItem.projectId!,
+            stage: startingStage,
+            policies: createdItem.onCallDutyPolicies,
+          });
           return;
         }
 
@@ -1552,32 +1560,6 @@ ${alert.remediationNotes || "No remediation notes provided."}
       } as LogAttributes);
       throw error;
     }
-  }
-
-  // The feed line of an alert created past open, in place of paging.
-  private async createOnCallNotRunFeedItem(
-    createdItem: Model,
-    startingStage: StartingStage,
-  ): Promise<void> {
-    const feedInfoInMarkdown: string | null =
-      await OnCallNotRunOnCreate.getFeedMarkdown({
-        noun: "alert",
-        stage: startingStage,
-        projectId: createdItem.projectId!,
-        policies: createdItem.onCallDutyPolicies || [],
-      });
-
-    if (!feedInfoInMarkdown) {
-      return;
-    }
-
-    await AlertFeedService.createAlertFeedItem({
-      alertId: createdItem.id!,
-      projectId: createdItem.projectId!,
-      alertFeedEventType: AlertFeedEventType.OnCallPolicy,
-      displayColor: Gray500,
-      feedInfoInMarkdown: feedInfoInMarkdown,
-    });
   }
 
   @CaptureSpan()

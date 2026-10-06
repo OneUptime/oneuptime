@@ -21,32 +21,42 @@ import {
  * API, Terraform, a workflow. Then one rule holds for incidents, alerts and
  * both kinds of episode:
  *
- *   - It starts at or past the acknowledged state: somebody is on it
- *     already, so no on-call policy runs, and its feed says so. Everything
- *     else runs as for a live record.
- *   - It starts at or past the resolved state: it is over. On top of that,
- *     nothing responds to it - it is not grouped into an episode, no runbook
- *     or auto-remediation rule acts on it, OneUptime AI does not investigate
- *     it and no channel is opened for it - and an incident leaves its
- *     monitors and their monitoring alone and starts no SLA.
+ *   - It starts acknowledged: somebody is on it already, so no on-call
+ *     policy runs, its feed says so, and grouping may put it into an
+ *     episode that is open but never opens or reopens one for it.
+ *     Everything else runs as for a live record.
+ *   - It starts resolved: it is over. On top of that, nothing responds to
+ *     it - it is not grouped into an episode, no runbook or
+ *     auto-remediation rule acts on it, OneUptime AI does not investigate it
+ *     and no channel is opened for it - and an incident leaves its monitors
+ *     and their monitoring alone and starts no SLA.
  *
  * Its owners still hear that it was created, its feed still records it, and
  * status page subscribers are still told when it is shown to them: a record
  * that is already over is still news.
  *
- * "At or past" is the comparison everything else makes on the project's
- * ordered state list (getStateListReachedBuiltIn): a state counts as
- * acknowledged when its place is at or below the acknowledged state's - as
- * on-call escalation reads it - and as resolved at or below the resolved
- * state's. A state of the project's own between the created and the
- * acknowledged state is still open: its record pages.
+ * Which state counts as which is what the rest of a record's life already
+ * reads, so a record never starts as one thing and lives as another:
+ *
+ *   - Resolved: the state is flagged resolved (isResolvedState) - the flag
+ *     the state timelines read to stamp an episode's resolvedAt, to give an
+ *     incident's monitors back, to draft its postmortem and grade its AI
+ *     investigation. A state of the project's own placed after the resolved
+ *     state, without the flag, is not resolved by any of those, so it is not
+ *     resolved here either.
+ *   - Acknowledged: any other state at or below the acknowledged state in
+ *     the project's ordered list (getStateListReachedBuiltIn), or flagged
+ *     acknowledged - the comparison on-call escalation makes to stop paging
+ *     (isIncidentAcknowledged and the like).
+ *   - Open: the created state, and any state of the project's own above the
+ *     acknowledged one: its record pages.
  */
 export enum StartingStage {
   // The created state, or a state before the acknowledged one.
   Open = "Open",
-  // At or past the acknowledged state, before the resolved one.
+  // At or past the acknowledged state, and not flagged resolved.
   Acknowledged = "Acknowledged",
-  // At or past the resolved state.
+  // A state flagged resolved.
   Resolved = "Resolved",
 }
 
@@ -66,23 +76,27 @@ const STARTING_STAGES: Array<string> = Object.values(StartingStage);
 export default class StartingStageUtil {
   /*
    * The stage a record starts at in `stateId`, read off its project's states
-   * (the models, or their JSON: id, place and the built-in flags). A state
-   * carrying the resolved or acknowledged flag counts as that whatever its
-   * place. A state the list does not hold is Open: the record then sets off
-   * what one created in the created state does, as before this rule.
+   * (the models, or their JSON: id, place and the built-in flags). Null when
+   * `stateId` is none of them - another project's state, or no state at
+   * all - so one read of the project's states both places a state and tells
+   * whether the project has it.
    */
   public static getStage(data: {
     definition: StateListDefinition;
     states: Array<unknown>;
     stateId: ObjectID | string;
-  }): StartingStage {
+  }): StartingStage | null {
     const rows: Array<StateListRow> = data.states.map(
       (state: unknown): StateListRow => {
         return toStateListRow(data.definition, state);
       },
     );
 
-    const stateId: string = data.stateId.toString().toLowerCase();
+    const stateId: string = data.stateId.toString().trim().toLowerCase();
+
+    if (!stateId) {
+      return null;
+    }
 
     const row: StateListRow | undefined = rows.find(
       (candidate: StateListRow): boolean => {
@@ -91,7 +105,11 @@ export default class StartingStageUtil {
     );
 
     if (!row) {
-      return StartingStage.Open;
+      return null;
+    }
+
+    if (row.flags.includes(RESOLVED_STATE_FLAG)) {
+      return StartingStage.Resolved;
     }
 
     const reached: string | null = getStateListReachedBuiltIn(
@@ -101,14 +119,8 @@ export default class StartingStageUtil {
     );
 
     if (
-      reached === RESOLVED_STATE_FLAG ||
-      row.flags.includes(RESOLVED_STATE_FLAG)
-    ) {
-      return StartingStage.Resolved;
-    }
-
-    if (
       reached === ACKNOWLEDGED_STATE_FLAG ||
+      reached === RESOLVED_STATE_FLAG ||
       row.flags.includes(ACKNOWLEDGED_STATE_FLAG)
     ) {
       return StartingStage.Acknowledged;

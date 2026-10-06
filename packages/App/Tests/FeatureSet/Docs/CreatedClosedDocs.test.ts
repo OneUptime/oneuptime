@@ -85,8 +85,16 @@ describe("the declare page says what a create in a later state sets off", () => 
     expect(text).toContain(`_${written}_`);
   });
 
-  test("at or past resolved: nothing that answers a live incident runs", () => {
-    expect(text).toContain("**At or past your resolved state**");
+  test("in the resolved state: nothing that answers a live incident runs", () => {
+    expect(text).toContain(
+      "**In your resolved state** — **Resolved**, or whatever you have renamed it to",
+    );
+    /*
+     * Only the resolved state itself is resolved: a state placed below it
+     * without the flag is covered by the acknowledged bullet, as the
+     * server's StartingStage reads it.
+     */
+    expect(text).not.toContain("**At or past your resolved state**");
 
     for (const sentence of [
       "it is not grouped into an episode",
@@ -150,6 +158,11 @@ describe("the Persian declare page keeps the section in step", () => {
     const inPageLink: string = `(#${anchorOf(FA_HEADING)})`;
 
     expect(page.split(inPageLink).length - 1).toBeGreaterThanOrEqual(3);
+  });
+
+  test("it names the resolved state itself, not every state after it, as the English does", () => {
+    expect(text).toContain("**در وضعیت برطرف‌شده پروژه‌تان** — **Resolved**");
+    expect(text).not.toContain("**در وضعیت برطرف‌شده پروژه‌تان یا پس از آن**");
   });
 });
 

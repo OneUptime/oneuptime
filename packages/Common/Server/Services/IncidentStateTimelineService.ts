@@ -43,6 +43,17 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentAlertService from "./IncidentAlertService";
 
+/*
+ * What IncidentService writes into the misc data of an incident's first
+ * state when the incident was declared already resolved: that incident never
+ * set a status on its monitors or paused their monitoring (Common/Utils/
+ * StartingStage), so the resolve that first state is has nothing of theirs
+ * to give back. Read only from OneUptime's own write: a request's misc data
+ * is whatever its body says.
+ */
+export const INCIDENT_NEVER_HELD_ITS_MONITORS_KEY: string =
+  "incidentNeverHeldItsMonitors";
+
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
     super(IncidentStateTimeline);
@@ -378,31 +389,20 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   }
 
   /*
-   * Whether a row is an incident's first state as its create wrote it
-   * (IncidentService.changeIncidentState): the incident's only row, starting
-   * the moment the incident was declared. Not a row that merely finds none
-   * before it - a resolve dated before the first state has that first state
-   * after it, and one written after the earlier rows aged out (the timeline
-   * keeps three years) starts long after the incident was declared.
+   * Whether this state is the first state of an incident declared already
+   * resolved, as IncidentService says when it writes it
+   * (INCIDENT_NEVER_HELD_ITS_MONITORS_KEY) - and only IncidentService, as
+   * OneUptime, can say it. Nothing about the timeline's own rows tells it:
+   * a resolve can find no row before it because it is dated before the
+   * first state, or because the earlier rows aged out (the timeline keeps
+   * three years), and either is a resolve that gives the monitors back.
    */
-  private isFirstStateAsDeclared(data: {
-    statusTimelineBeforeThisStatus: unknown;
-    statusTimelineAfterThisStatus: unknown;
-    startsAt: Date | undefined;
-    declaredAt: Date | undefined;
-  }): boolean {
-    if (
-      data.statusTimelineBeforeThisStatus ||
-      data.statusTimelineAfterThisStatus ||
-      !data.startsAt ||
-      !data.declaredAt
-    ) {
-      return false;
-    }
-
+  private isFirstStateOfIncidentDeclaredResolved(
+    createBy: CreateBy<IncidentStateTimeline>,
+  ): boolean {
     return (
-      OneUptimeDate.fromString(data.startsAt).getTime() ===
-      OneUptimeDate.fromString(data.declaredAt).getTime()
+      createBy.props.isRoot === true &&
+      createBy.miscDataProps?.[INCIDENT_NEVER_HELD_ITS_MONITORS_KEY] === true
     );
   }
 
@@ -650,7 +650,6 @@ ${createdItem.rootCause}`,
         select: {
           _id: true,
           projectId: true,
-          declaredAt: true,
           monitors: {
             _id: true,
           },
@@ -671,14 +670,7 @@ ${createdItem.rootCause}`,
        */
       if (
         incident &&
-        !this.isFirstStateAsDeclared({
-          statusTimelineBeforeThisStatus:
-            onCreate.carryForward.statusTimelineBeforeThisStatus,
-          statusTimelineAfterThisStatus:
-            onCreate.carryForward.statusTimelineAfterThisStatus,
-          startsAt: createdItem.startsAt,
-          declaredAt: incident.declaredAt,
-        })
+        !this.isFirstStateOfIncidentDeclaredResolved(onCreate.createBy)
       ) {
         await IncidentService.markMonitorsActiveForMonitoring(
           incident.projectId!,

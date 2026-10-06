@@ -12,13 +12,19 @@ import { describe, expect, test } from "@jest/globals";
 /*
  * How far along a new incident, alert or episode starts (StartingStage),
  * pinned without a database. The create hooks decide on it what a create
- * sets off: a record that starts open pages its on-call; one that starts at
- * or past the acknowledged state pages nobody; one that starts at or past
- * the resolved state also sets off nothing that answers a live problem.
+ * sets off: a record that starts open pages its on-call; one that starts
+ * acknowledged pages nobody; one that starts resolved also sets off nothing
+ * that answers a live problem.
  *
- * "At or past" is the order comparison the rest of the product makes on a
- * project's state list (getStateListReachedBuiltIn): the place of a state in
- * the list, not its name, and not only its flag.
+ * Each is what the rest of a record's life reads, so a record never starts
+ * as one thing and lives as another:
+ *
+ *   - resolved is the state's resolved flag, which the state timelines read
+ *     to stamp an episode's resolvedAt, to give an incident's monitors back,
+ *     to draft its postmortem and grade its AI investigation;
+ *   - acknowledged is any other state at or below the acknowledged state in
+ *     the project's order (getStateListReachedBuiltIn), as on-call
+ *     escalation reads it to stop paging - its place, not its name.
  */
 
 const INCIDENT_STATES: StateListDefinition =
@@ -67,7 +73,7 @@ function stageOf(
   stateId: ObjectID | string,
   rows: Array<unknown> = ROWS,
   definition: StateListDefinition = INCIDENT_STATES,
-): StartingStage {
+): StartingStage | null {
   return StartingStageUtil.getStage({
     definition: definition,
     states: rows,
@@ -75,7 +81,7 @@ function stageOf(
   });
 }
 
-describe("StartingStageUtil.getStage - where a record starts, by its state's place", () => {
+describe("StartingStageUtil.getStage - where a record starts, by its state's flag and place", () => {
   test.each([
     [
       "a state the project put above the created state",
@@ -96,8 +102,8 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
     ],
     ["the resolved state", StartingStage.Resolved, RESOLVED],
     [
-      "a state the project put after resolved, which counts as resolved,",
-      StartingStage.Resolved,
+      "a state the project put after resolved, without the resolved flag,",
+      StartingStage.Acknowledged,
       POSTMORTEM,
     ],
   ] as Array<[string, StartingStage, string]>)(
@@ -112,8 +118,9 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
     expect(stageOf(MITIGATED, ROWS, ALERT_STATES)).toBe(
       StartingStage.Acknowledged,
     );
+    expect(stageOf(RESOLVED, ROWS, ALERT_STATES)).toBe(StartingStage.Resolved);
     expect(stageOf(POSTMORTEM, ROWS, ALERT_STATES)).toBe(
-      StartingStage.Resolved,
+      StartingStage.Acknowledged,
     );
   });
 
@@ -130,7 +137,8 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
 
     expect(stageOf(MITIGATED, shuffled)).toBe(StartingStage.Acknowledged);
     expect(stageOf(INVESTIGATING, shuffled)).toBe(StartingStage.Open);
-    expect(stageOf(POSTMORTEM, shuffled)).toBe(StartingStage.Resolved);
+    expect(stageOf(RESOLVED, shuffled)).toBe(StartingStage.Resolved);
+    expect(stageOf(POSTMORTEM, shuffled)).toBe(StartingStage.Acknowledged);
   });
 
   test("gaps in the numbering change nothing", () => {
@@ -162,9 +170,61 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
     expect(stageOf(MITIGATED, unplaced)).toBe(StartingStage.Open);
   });
 
-  test("a state the list does not hold starts open: the create sets off what it always did", () => {
-    expect(stageOf(ELSEWHERE)).toBe(StartingStage.Open);
-    expect(stageOf(RESOLVED, [])).toBe(StartingStage.Open);
+  test("a state the list does not hold has no stage: it is not one of the project's states", () => {
+    expect(stageOf(ELSEWHERE)).toBeNull();
+    expect(stageOf(RESOLVED, [])).toBeNull();
+  });
+
+  test("an empty id names no state, not even a row read without an id", () => {
+    const withoutId: Array<Record<string, unknown>> = [
+      { name: "Nameless", order: 9, isResolvedState: true },
+      ...ROWS,
+    ];
+
+    expect(stageOf("", withoutId)).toBeNull();
+    expect(stageOf("   ", withoutId)).toBeNull();
+  });
+
+  test("only the resolved flag makes a state resolved, wherever it sits", () => {
+    /*
+     * The resolved state dragged above acknowledged (the settings page
+     * refuses that order, but a list read from the database is taken as it
+     * is): still resolved, and the acknowledged state below it acknowledged.
+     */
+    const resolvedFirst: Array<Row> = [
+      { _id: IDENTIFIED, name: "Identified", order: 1, isCreatedState: true },
+      { _id: RESOLVED, name: "Resolved", order: 2, isResolvedState: true },
+      {
+        _id: ACKNOWLEDGED,
+        name: "Acknowledged",
+        order: 3,
+        isAcknowledgedState: true,
+      },
+    ];
+
+    expect(stageOf(RESOLVED, resolvedFirst)).toBe(StartingStage.Resolved);
+    expect(stageOf(ACKNOWLEDGED, resolvedFirst)).toBe(
+      StartingStage.Acknowledged,
+    );
+  });
+
+  test("a state flagged both acknowledged and resolved is resolved", () => {
+    const both: Array<Row> = ROWS.map((row: Row): Row => {
+      return row._id === ACKNOWLEDGED ? { ...row, isResolvedState: true } : row;
+    });
+
+    expect(stageOf(ACKNOWLEDGED, both)).toBe(StartingStage.Resolved);
+  });
+
+  test("with two states flagged resolved, each is resolved and a state of the project's own between them is acknowledged", () => {
+    const twice: Array<Row> = [
+      ...ROWS,
+      { _id: ELSEWHERE, name: "Closed", order: 8, isResolvedState: true },
+    ];
+
+    expect(stageOf(RESOLVED, twice)).toBe(StartingStage.Resolved);
+    expect(stageOf(POSTMORTEM, twice)).toBe(StartingStage.Acknowledged);
+    expect(stageOf(ELSEWHERE, twice)).toBe(StartingStage.Resolved);
   });
 
   test("the id is read in any letter case, as an ObjectID or a string", () => {

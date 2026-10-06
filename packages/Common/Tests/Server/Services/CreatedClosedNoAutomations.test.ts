@@ -101,12 +101,16 @@ jest.mock("../../../Server/Utils/Logger");
  *     and its feed says so in one line, naming the policies. A grouping rule
  *     may still put it into an episode that is open, but never opens or
  *     reopens one for it: that episode's own on-call policies would page.
- *   - Created at or past the resolved state: also not grouped into an
- *     episode, no runbook or auto-remediation rule acts on it, no AI
+ *   - Created in a resolved state (the state flagged resolved, which is
+ *     what the rest of a record's life reads as resolved): also not grouped
+ *     into an episode, no runbook or auto-remediation rule acts on it, no AI
  *     investigation is queued (its AI card says why, unless something
  *     stops OneUptime AI for the whole project, which it names instead), no
  *     war-room channel is opened, and an incident leaves its monitors and
- *     their monitoring alone and starts no SLA.
+ *     their monitoring alone - its first state gives them nothing back
+ *     either - and starts no SLA. A state of the project's own placed after
+ *     the resolved state, without the flag, is not resolved anywhere else,
+ *     so here it is acknowledged.
  *   - Its owners, its created feed entry, its first timeline row and its
  *     rules (privacy, owners, labels, on-call) still happen: a record that
  *     is already over is still news.
@@ -141,6 +145,10 @@ const INVESTIGATING: string = "0193c0de-5a7e-4ccc-8ddd-0000000000a2";
 const ACKNOWLEDGED: string = "0193c0de-5a7e-4ccc-8ddd-0000000000a3";
 const MONITORING: string = "0193c0de-5a7e-4ccc-8ddd-0000000000a4";
 const RESOLVED: string = "0193c0de-5a7e-4ccc-8ddd-0000000000a5";
+// A state of the project's own placed after resolved, without the flag.
+const CLOSED: string = "0193c0de-5a7e-4ccc-8ddd-0000000000a6";
+// A state of another project.
+const FOREIGN_STATE: string = "0193c0de-5a7e-4ccc-8ddd-0000000000a9";
 
 interface StateRow {
   id: string;
@@ -162,6 +170,7 @@ const PROJECT_STATES: Array<StateRow> = [
   },
   { id: MONITORING, name: "Monitoring", order: 4 },
   { id: RESOLVED, name: "Resolved", order: 5, isResolvedState: true },
+  { id: CLOSED, name: "Closed", order: 6 },
 ];
 
 const POLICY_NAMES: Record<string, string> = {
@@ -195,6 +204,11 @@ interface Probes {
   monitoringPaused: Array<unknown>;
   // The state of the record's first timeline row.
   firstRows: Array<string>;
+  /*
+   * What an incident's first state was told about its monitors
+   * (neverHeldItsMonitors): one entry per first row.
+   */
+  firstRowNeverHeld: Array<unknown>;
   createdFeed: Array<unknown>;
   privacyRules: Array<unknown>;
   ownerRules: Array<unknown>;
@@ -221,6 +235,7 @@ function newProbes(): Probes {
     monitorStatus: [],
     monitoringPaused: [],
     firstRows: [],
+    firstRowNeverHeld: [],
     createdFeed: [],
     privacyRules: [],
     ownerRules: [],
@@ -385,9 +400,10 @@ const INCIDENT: Kind = {
       probes.createdFeed.push(args[0]);
     });
     stub(IncidentService, "changeIncidentState", (args: Array<unknown>) => {
-      probes.firstRows.push(
-        idOf((args[0] as { incidentStateId: unknown }).incidentStateId),
-      );
+      const change: { incidentStateId: unknown; neverHeldItsMonitors?: unknown } =
+        args[0] as { incidentStateId: unknown; neverHeldItsMonitors?: unknown };
+      probes.firstRows.push(idOf(change.incidentStateId));
+      probes.firstRowNeverHeld.push(change.neverHeldItsMonitors);
     });
     stub(MonitorService, "changeMonitorStatus", (args: Array<unknown>) => {
       probes.monitorStatus.push(args);
@@ -1697,6 +1713,199 @@ describe("an incident declared resolved from alerts still links and announces th
     expect(announced).toHaveLength(1);
     expect(probes.paged).toEqual([]);
     expect(probes.grouped).toEqual([]);
+  });
+});
+
+describe.each(KINDS)(
+  "an $name created in a state of the project's own placed after resolved, without the resolved flag",
+  (kind: Kind) => {
+    test("is acknowledged, as everything after its create reads it: it pages nobody and says so", async () => {
+      const { probes, carryForward } = await create(kind, CLOSED);
+
+      expect(
+        (carryForward as { startingStage: StartingStage }).startingStage,
+      ).toBe(StartingStage.Acknowledged);
+      expect(probes.paged).toEqual([]);
+      expect(onCallNotRunLines(kind, probes)).toHaveLength(1);
+      expect(
+        String(onCallNotRunLines(kind, probes)[0]!["feedInfoInMarkdown"]),
+      ).toContain("was created already acknowledged");
+    });
+
+    test("everything else runs as for a live record, and grouping may only join an open episode", async () => {
+      const { probes } = await create(kind, CLOSED);
+
+      expect(probes.warRoom).toHaveLength(1);
+      expect(probes.groupingOptions).toEqual(
+        kind.has.grouping ? [{ mayOpenEpisode: false }] : [],
+      );
+      expect(probes.runbooks).toHaveLength(kind.has.runbooks ? 1 : 0);
+      expect(probes.remediated).toHaveLength(kind.has.remediation ? 1 : 0);
+      expect(toldCreatedResolved(probes)).toEqual(
+        kind.has.investigation ? [false] : [],
+      );
+      expect(probes.monitorStatus).toHaveLength(
+        kind.has.monitorStatus ? 1 : 0,
+      );
+      expect(probes.monitoringPaused).toHaveLength(
+        kind.has.monitorStatus ? 1 : 0,
+      );
+      expect(probes.firstRows).toEqual([CLOSED]);
+      expect(chainErrors()).toEqual([]);
+    });
+
+    if (kind === ALERT_EPISODE || kind === INCIDENT_EPISODE) {
+      test("an episode in it is not resolved from the moment it exists: no resolvedAt, whatever the write sent", async () => {
+        const { record } = await create(kind, CLOSED, [PRIMARY_POLICY_ID], {
+          values: { resolvedAt: new Date("2026-10-01T00:00:00.000Z") },
+        });
+
+        expect(
+          (record as unknown as Record<string, unknown>)["resolvedAt"],
+        ).toBeUndefined();
+      });
+    }
+  },
+);
+
+describe.each([ALERT_EPISODE, INCIDENT_EPISODE])(
+  "an $name created resolved is resolved from the moment it exists",
+  (kind: Kind) => {
+    test("its resolvedAt is stamped by its create", async () => {
+      const { record } = await create(kind, RESOLVED);
+
+      expect(
+        (record as unknown as Record<string, unknown>)["resolvedAt"],
+      ).toBeInstanceOf(Date);
+    });
+
+    test.each([
+      ["no state picked", null],
+      ["the acknowledged state", ACKNOWLEDGED],
+      ["a state after acknowledged", MONITORING],
+    ] as Array<[string, string | null]>)(
+      "%s: no resolvedAt, whatever the write sent",
+      async (_name: string, state: string | null) => {
+        const { record } = await create(kind, state, [PRIMARY_POLICY_ID], {
+          values: { resolvedAt: new Date("2026-10-01T00:00:00.000Z") },
+        });
+
+        expect(
+          (record as unknown as Record<string, unknown>)["resolvedAt"],
+        ).toBeUndefined();
+      },
+    );
+  },
+);
+
+describe("an incident's first state gives its monitors nothing back only when it was declared resolved", () => {
+  test("declared resolved: its first state is told the incident never held its monitors", async () => {
+    const { probes } = await create(INCIDENT, RESOLVED);
+
+    expect(probes.firstRows).toEqual([RESOLVED]);
+    expect(probes.firstRowNeverHeld).toEqual([true]);
+  });
+
+  test.each([
+    ["no state picked", null],
+    ["the created state", CREATED],
+    ["a state before acknowledged", INVESTIGATING],
+    ["the acknowledged state", ACKNOWLEDGED],
+    ["a state after acknowledged", MONITORING],
+    ["a state of its own after resolved, without the flag", CLOSED],
+  ] as Array<[string, string | null]>)(
+    "%s: it holds its monitors, so a resolve gives them back as always",
+    async (_name: string, state: string | null) => {
+      const { probes } = await create(INCIDENT, state);
+
+      expect(probes.firstRowNeverHeld).toEqual([false]);
+    },
+  );
+});
+
+describe("an incident's picked state, or its template's, is read once - where it starts, and whether it is the project's", () => {
+  const TEMPLATE_ID: string = "0193c0de-5a7e-4ccc-8ddd-0000000000c8";
+
+  test("a state of another project, picked, is refused before a number is used", async () => {
+    const probes: Probes = newProbes();
+
+    stubProjectDirectory({});
+    stubStates(INCIDENT);
+    INCIDENT.stubHooks(probes, [PRIMARY_POLICY_ID]);
+    stub(CustomFieldMappingService, "applyMappingsToCreate");
+
+    const record: DatabaseBaseModel = INCIDENT.newRecord([PRIMARY_POLICY_ID]);
+    (record as Incident).currentIncidentStateId = new ObjectID(FOREIGN_STATE);
+
+    await expect(
+      (
+        IncidentService as unknown as Record<
+          string,
+          (...args: Array<unknown>) => Promise<unknown>
+        >
+      )["onBeforeCreate"]!.call(IncidentService, {
+        data: record,
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "Invalid incident state provided. The state does not exist or does not belong to this project.",
+    );
+
+    expect(
+      jest.mocked(ProjectService.incrementAndGetIncidentCounter).mock.calls,
+    ).toHaveLength(0);
+    // The one read that placed it found it missing from the project's list.
+    expect(stateListReads).toBe(1);
+  });
+
+  test("a template whose state is not the project's leaves the incident in the created state, and it pages", async () => {
+    const { record, carryForward, probes } = await create(
+      INCIDENT,
+      null,
+      [PRIMARY_POLICY_ID],
+      {
+        values: { createdIncidentTemplateId: new ObjectID(TEMPLATE_ID) },
+        extraStubs: () => {
+          stub(IncidentTemplateService, "findOneBy", undefined, () => {
+            const template: IncidentTemplate = new IncidentTemplate();
+            template._id = TEMPLATE_ID;
+            template.initialIncidentStateId = new ObjectID(FOREIGN_STATE);
+            return template;
+          });
+        },
+      },
+    );
+
+    expect(idOf((record as Incident).currentIncidentStateId)).toBe(CREATED);
+    expect(
+      (carryForward as { startingStage: StartingStage }).startingStage,
+    ).toBe(StartingStage.Open);
+    expect(probes.paged).toHaveLength(1);
+  });
+
+  test("a template's resolved state is read once, and nothing else asks where the incident starts", async () => {
+    await create(INCIDENT, null, [PRIMARY_POLICY_ID], {
+      values: { createdIncidentTemplateId: new ObjectID(TEMPLATE_ID) },
+      extraStubs: () => {
+        stub(IncidentTemplateService, "findOneBy", undefined, () => {
+          const template: IncidentTemplate = new IncidentTemplate();
+          template._id = TEMPLATE_ID;
+          template.initialIncidentStateId = new ObjectID(RESOLVED);
+          return template;
+        });
+      },
+    });
+
+    expect(stateListReads).toBe(1);
+    // No state is looked up on its own: not the template's, not the created one.
+    expect(stateReads).toBe(1);
+  });
+
+  test("a picked state is read once, and nothing else asks where the incident starts", async () => {
+    await create(INCIDENT, ACKNOWLEDGED);
+
+    expect(stateListReads).toBe(1);
+    expect(stateReads).toBe(1);
   });
 });
 

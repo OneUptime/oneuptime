@@ -30,7 +30,12 @@ import { describe, expect, test } from "@jest/globals";
  *     (pagesOnCall): an episode it opens runs its own on-call policies;
  *   - the on-call fan-out takes the stage and checks pagesOnCall before any
  *     OnCallDutyPolicyService.executePolicy call - the only calls of it in
- *     these services.
+ *     these services - and leaves the line saying nobody was paged to
+ *     OnCallNotRunOnCreate, which writes it to the record's own feed;
+ *   - an episode is resolved from the moment it exists exactly when it
+ *     starts resolved (its resolvedAt follows the stage), and an incident's
+ *     first state is told the incident never held its monitors exactly when
+ *     it starts resolved.
  *
  * Only real syntax is read, through the TypeScript AST.
  */
@@ -485,6 +490,36 @@ describe.each(SERVICES)(
       }
     });
 
+    test("the fan-out leaves the line saying nobody was paged to OnCallNotRunOnCreate", () => {
+      const fanOut: ts.MethodDeclaration | undefined = methodOf(
+        source,
+        service.onCallFanOut,
+      );
+
+      const lines: Array<ts.CallExpression> = [];
+
+      eachNode(fanOut!, (node: ts.Node) => {
+        if (
+          ts.isCallExpression(node) &&
+          node.expression.getText(source) === "OnCallNotRunOnCreate.createFeedItem"
+        ) {
+          lines.push(node);
+        }
+      });
+
+      expect(lines).toHaveLength(1);
+
+      // Only for a record that does not page.
+      expect(
+        isDecidedBy(source, lines[0]!, fanOut!, PAGES_ON_CALL_CONDITION),
+      ).toBe(true);
+
+      // No line of its own, anywhere in the service.
+      expect(source.getText()).not.toMatch(
+        /OnCallNotRunOnCreate\.getFeedMarkdown\(/,
+      );
+    });
+
     test("onCreateSuccess hands the stage to the on-call fan-out", () => {
       const fanOutCalls: Array<ts.CallExpression> = awaitedCalls(
         source,
@@ -506,6 +541,107 @@ describe.each(SERVICES)(
     });
   },
 );
+
+describe.each(["AlertEpisodeService.ts", "IncidentEpisodeService.ts"])(
+  "%s: resolvedAt follows the stage",
+  (file: string) => {
+    test("onBeforeCreate stamps resolvedAt exactly when the episode starts resolved, with no lookup of its own", () => {
+      const source: ts.SourceFile = parse(file);
+      const text: string = methodOf(source, "onBeforeCreate")!.getText(source);
+
+      expect(text).toMatch(
+        /if \(startingStage === StartingStage\.Resolved\) \{\s*createBy\.data\.resolvedAt = /,
+      );
+      expect(text).not.toMatch(/isResolved\w*State\(/);
+    });
+  },
+);
+
+describe("IncidentService.ts: the first state of an incident declared resolved", () => {
+  const source: ts.SourceFile = parse("IncidentService.ts");
+
+  test("onCreateSuccess hands the stage to the step that writes the first state", () => {
+    const calls: Array<ts.CallExpression> = awaitedCalls(
+      source,
+      methodOf(source, "onCreateSuccess")!,
+    )
+      .filter((step: { callee: string }): boolean => {
+        return step.callee === "this.handleIncidentStateChangeAsync";
+      })
+      .map((step: { call: ts.CallExpression }): ts.CallExpression => {
+        return step.call;
+      });
+
+    expect(calls).toHaveLength(1);
+    expect(
+      calls[0]!.arguments.map((argument: ts.Expression): string => {
+        return argument.getText(source);
+      }),
+    ).toContain("startingStage");
+  });
+
+  test("the first state is told the incident never held its monitors exactly when it does not start ongoing", () => {
+    const text: string = methodOf(
+      source,
+      "handleIncidentStateChangeAsync",
+    )!.getText(source);
+
+    expect(text).toMatch(
+      /neverHeldItsMonitors: !StartingStageUtil\.isOngoing\(startingStage\)/,
+    );
+    // Written as OneUptime: the timeline hears it from a root write only.
+    expect(text).toMatch(/props: \{\s*isRoot: true,?\s*\}/);
+  });
+});
+
+describe("IncidentStateTimelineService.ts: which resolve gives the monitors back", () => {
+  const timelineSource: ts.SourceFile = ts.createSourceFile(
+    "IncidentStateTimelineService.ts",
+    fs.readFileSync(
+      path.join(SERVICES_DIRECTORY, "IncidentStateTimelineService.ts"),
+      "utf8",
+    ),
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  test("every resolve but the first state of an incident declared resolved, said by a root write - not read off the timeline's rows", () => {
+    const onCreateSuccess: ts.MethodDeclaration = methodOf(
+      timelineSource,
+      "onCreateSuccess",
+    )!;
+
+    const giveBacks: Array<ts.CallExpression> = [];
+
+    eachNode(onCreateSuccess, (node: ts.Node) => {
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.getText(timelineSource) ===
+          "IncidentService.markMonitorsActiveForMonitoring"
+      ) {
+        giveBacks.push(node);
+      }
+    });
+
+    expect(giveBacks).toHaveLength(1);
+
+    const decidedBy: RegExp = /isFirstStateOfIncidentDeclaredResolved\(/;
+    expect(
+      isDecidedBy(timelineSource, giveBacks[0]!, onCreateSuccess, decidedBy),
+    ).toBe(true);
+
+    const decision: string = methodOf(
+      timelineSource,
+      "isFirstStateOfIncidentDeclaredResolved",
+    )!.getText(timelineSource);
+
+    expect(decision).toMatch(/createBy\.props\.isRoot === true/);
+    expect(decision).toMatch(/INCIDENT_NEVER_HELD_ITS_MONITORS_KEY\] === true/);
+    expect(decision).not.toMatch(/statusTimeline(Before|After)ThisStatus/);
+    expect(decision).not.toMatch(/declaredAt|startsAt/);
+  });
+});
 
 describe("the guard's own detector", () => {
   const sample: ts.SourceFile = ts.createSourceFile(

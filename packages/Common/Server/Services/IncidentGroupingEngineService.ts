@@ -45,10 +45,11 @@ export interface GroupingResult {
 }
 
 /*
- * How the record may be grouped. An episode a rule opens - or reopens -
- * starts in the created state and runs its own on-call policies, so a record
- * that pages nobody (one created already acknowledged, Common/Utils/
- * StartingStage) may only join an episode that is open already.
+ * How the record may be grouped. An episode a rule opens starts in the
+ * created state and runs its own on-call policies, and one it reopens goes
+ * back to the created state, live again, with its owners told so. Neither
+ * fits a record somebody is already on (one created already acknowledged,
+ * Common/Utils/StartingStage): it may only join an episode that is open.
  */
 export interface GroupingOptions {
   // Unset, a rule may open or reopen an episode for the record, as always.
@@ -595,9 +596,9 @@ class IncidentGroupingEngineServiceClass {
       }
 
       /*
-       * No open episode to join. Reopening one, or opening a new one, would
-       * page its on-call policies for an incident that pages nobody: it
-       * stays on its own (GroupingOptions).
+       * No open episode to join, and the incident may not open or reopen one
+       * (GroupingOptions): a new episode would page its own on-call policies
+       * for an incident that pages nobody. It stays on its own.
        */
       if (options.mayOpenEpisode === false) {
         return { grouped: false };
