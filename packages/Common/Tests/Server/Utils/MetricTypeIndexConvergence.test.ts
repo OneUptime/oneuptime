@@ -59,6 +59,7 @@ type AttachCall = { metricTypeId: ObjectID; serviceIds: Array<ObjectID> };
 let cache: Map<string, string>;
 let scalarUpdates: Array<ScalarUpdate>;
 let attachCalls: Array<AttachCall>;
+let membershipReads: Array<Array<string>>;
 let creates: Array<MetricType>;
 let saveUpdates: Array<unknown>;
 let existingRow: MetricType | null;
@@ -97,6 +98,7 @@ beforeEach(() => {
   cache = new Map<string, string>();
   scalarUpdates = [];
   attachCalls = [];
+  membershipReads = [];
   creates = [];
   saveUpdates = [];
   existingRow = storedRow();
@@ -144,6 +146,36 @@ beforeEach(() => {
           metricTypeId: input.metricTypeId,
           serviceIds: [...input.serviceIds],
         });
+      },
+    );
+
+  /*
+   * The junction as the targeted read sees it: `existingRow.services` stands
+   * in for the stored associations, and only the asked-about ids come back.
+   */
+  jest
+    .spyOn(MetricTypeService, "findAttachedServiceIds")
+    .mockImplementation(
+      async (input: {
+        metricTypeId: ObjectID;
+        serviceIds: Array<ObjectID>;
+      }) => {
+        const asked: Array<string> = input.serviceIds.map((id: ObjectID) => {
+          return id.toString();
+        });
+        membershipReads.push(asked);
+
+        const stored: Set<string> = new Set<string>(
+          (existingRow?.services || []).map((service: Service) => {
+            return service.id!.toString();
+          }),
+        );
+
+        return new Set<string>(
+          asked.filter((id: string) => {
+            return stored.has(id);
+          }),
+        );
       },
     );
 
@@ -363,6 +395,87 @@ describe("the write never reopens the transactional relation path", () => {
 
     expect(attachCalls).toHaveLength(0);
     expect(scalarUpdates).toHaveLength(0);
+  });
+});
+
+/*
+ * The READ loaded the whole relation too. `findOneBy` selected `services`, so
+ * every pass through the fence materialised one entity per service that had
+ * ever emitted the metric. Hosts that give each cron run a uniquely named
+ * container add thousands of services a day to the container metrics, and
+ * that read alone saturated the ingest workers. The reconcile only needs to
+ * know about its own batch's services.
+ */
+describe("the reconcile reads only the batch's associations", () => {
+  function selectsSeen(): Array<Record<string, unknown>> {
+    return (MetricTypeService.findOneBy as jest.Mock).mock.calls.map(
+      (call: Array<unknown>) => {
+        return (call[0] as { select: Record<string, unknown> }).select;
+      },
+    );
+  }
+
+  test("the row read never selects the services relation", async () => {
+    existingRow = storedRow({
+      services: [serviceRef(SERVICE_A), serviceRef(SERVICE_B)],
+    });
+
+    await TelemetryUtil.indexMetricNameServiceNameMap({
+      projectId: PROJECT_ID,
+      metricNameServiceNameMap: batch(
+        incoming({ services: [serviceRef(SERVICE_A)] }),
+      ),
+    });
+
+    expect(selectsSeen()).toHaveLength(1);
+    expect(Object.keys(selectsSeen()[0]!)).not.toContain("services");
+  });
+
+  test("membership is asked about the batch's services and nothing else", async () => {
+    existingRow = storedRow({
+      services: [serviceRef(SERVICE_A), serviceRef(SERVICE_B)],
+    });
+
+    await TelemetryUtil.indexMetricNameServiceNameMap({
+      projectId: PROJECT_ID,
+      metricNameServiceNameMap: batch(
+        incoming({ services: [serviceRef(SERVICE_B)] }),
+      ),
+    });
+
+    expect(membershipReads).toEqual([[SERVICE_B.toString()]]);
+    expect(attachCalls).toHaveLength(0);
+  });
+
+  test("the create-race re-read does not select the relation either", async () => {
+    existingRow = null;
+
+    jest
+      .spyOn(MetricTypeService, "create")
+      .mockRejectedValue(
+        new Error("Metric Type with this name already exists"),
+      );
+
+    jest
+      .spyOn(MetricTypeService, "findOneBy")
+      .mockImplementationOnce(async () => {
+        return null;
+      })
+      .mockImplementation(async () => {
+        return storedRow({ services: [] });
+      });
+
+    await TelemetryUtil.indexMetricNameServiceNameMap({
+      projectId: PROJECT_ID,
+      metricNameServiceNameMap: batch(
+        incoming({ services: [serviceRef(SERVICE_A)] }),
+      ),
+    });
+
+    expect(selectsSeen()).toHaveLength(2);
+    for (const select of selectsSeen()) {
+      expect(Object.keys(select)).not.toContain("services");
+    }
   });
 });
 
