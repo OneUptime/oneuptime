@@ -25802,5 +25802,7 @@
   "node operations off": "operaciones de nodo desactivadas",
   "node operations on": "operaciones de nodo activadas",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Se muestra el último estado, del {{time}}; esta página vuelve a intentarlo por sí sola.",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Los siguientes resúmenes se envían a la misma hora del día. Déjalo vacío para empezar a las 09:00 en la zona horaria del resumen, al comienzo de la próxima semana, día o mes.",
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Los resúmenes se envían a la misma hora del día en esta zona horaria todo el año, también después del cambio de hora.",
   "Holds Monitors": "Retiene los monitores"
 }

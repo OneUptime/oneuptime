@@ -27,22 +27,29 @@ RunCron(
           _id: true,
           nextSendAt: true,
           recurringInterval: true,
+          sendFirstReportAt: true,
+          timezone: true,
         },
       });
 
     for (const summary of summariesToSend) {
       try {
         /*
-         * The schedule's first occurrence after now, counted from the send
-         * that was due (WorkspaceSummaryScheduleUtil) - one interval on,
-         * normally. Moving on by one interval from a send long past (a
-         * worker that was down) left it in the past, and the summary went
-         * out once a minute until it caught up.
+         * The schedule's first occurrence after now, counted from the first
+         * summary on the clock of the summary's time zone
+         * (WorkspaceSummaryScheduleUtil) - one interval on, normally, at
+         * the same time of day there all year. Moving on by one interval
+         * from a send long past (a worker that was down) left it in the
+         * past, and the summary went out once a minute until it caught up;
+         * stepping in UTC moved a 09:00 Berlin summary to 08:00 there once
+         * the clocks went back.
          */
         const nextSendAt: Date =
           WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
             dueAt: summary.nextSendAt!,
             recurringInterval: summary.recurringInterval!,
+            sendFirstReportAt: summary.sendFirstReportAt,
+            timezone: summary.timezone,
             now: OneUptimeDate.getCurrentDate(),
           });
 

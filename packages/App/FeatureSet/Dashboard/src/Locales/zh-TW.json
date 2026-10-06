@@ -25802,5 +25802,7 @@
   "node operations off": "節點操作已關閉",
   "node operations on": "節點操作已開啟",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} 目前顯示的是 {{time}} 時的最後狀態；此頁面會自動重試。",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "之後的摘要會在每天相同的時間發送。留空則在下一週、下一天或下個月開始時，依摘要的時區於 09:00 開始。",
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "摘要全年都會在此時區的同一時間發送，日光節約時間調整時鐘後也一樣。",
   "Holds Monitors": "佔用監測器"
 }

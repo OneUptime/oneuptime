@@ -25802,5 +25802,7 @@
   "node operations off": "Knotenoperationen aus",
   "node operations on": "Knotenoperationen an",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Angezeigt wird der letzte Status vom {{time}}; diese Seite versucht es automatisch erneut.",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Spätere Zusammenfassungen folgen zur selben Uhrzeit. Lassen Sie das Feld leer, um um 09:00 Uhr in der Zeitzone der Zusammenfassung zu Beginn der nächsten Woche, des nächsten Tages oder Monats zu starten.",
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Zusammenfassungen werden das ganze Jahr über zur selben Uhrzeit in dieser Zeitzone gesendet, auch nach der Zeitumstellung.",
   "Holds Monitors": "Hält Monitore"
 }
