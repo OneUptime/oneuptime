@@ -265,6 +265,15 @@ const invalid: Array<{
     },
     message: /must be true or false/i,
   },
+  {
+    // A new rule must add something, as the server insists on every create.
+    title: "a rule that adds nothing",
+    file: {
+      ...ruleFile(),
+      items: [{ ...ruleFile().items[0], labelsToAdd: [] }],
+    },
+    message: /This label rule adds nothing/,
+  },
 ];
 for (const sample of invalid) {
   test(`rejects ${sample.title} without any create request`, async ({
