@@ -182,6 +182,21 @@
       color: rgb(var(--ou-ink-muted));
    }
 
+   /*
+    * Code reads left to right in every language. In a right-to-left sentence
+    * a path, a JSON key or a shortcut would otherwise be reordered by the
+    * prose around it (`/api/monitor` drawn `api/monitor/`, ⌘K drawn K⌘), and
+    * a long line would scroll from its end. Isolating it keeps it from
+    * reordering the prose in turn. Translated strings carry <code> too, so
+    * this is said of the elements rather than of the classes below.
+    */
+   pre,
+   code,
+   kbd {
+      direction: ltr;
+      unicode-bidi: isolate;
+   }
+
    /* Inline code, in prose and in property tables. */
    .inline-code,
    .model-inline-code {
@@ -197,7 +212,7 @@
 
    /* Anchor affordance on headings that have an id. */
    .heading-anchor {
-      margin-left: 0.5rem;
+      margin-inline-start: 0.5rem;
       color: rgb(var(--ou-ink-faint));
       opacity: 0;
       transition: opacity 0.15s ease, color 0.15s ease;
@@ -216,19 +231,19 @@
 
    /* Sidebar link states. Driven by aria-current so the server can set them. */
    .nav-link {
-      border-left: 2px solid transparent;
+      border-inline-start: 2px solid transparent;
       color: rgb(var(--ou-ink-muted));
    }
 
    .nav-link:hover {
       color: rgb(var(--ou-ink));
-      border-left-color: rgb(var(--ou-line));
+      border-inline-start-color: rgb(var(--ou-line));
       background-color: rgb(var(--ou-surface-soft) / 0.7);
    }
 
    .nav-link[aria-current="page"] {
       color: rgb(var(--ou-accent));
-      border-left-color: rgb(var(--ou-accent));
+      border-inline-start-color: rgb(var(--ou-accent));
       background-color: rgb(var(--ou-accent-soft) / 0.7);
       font-weight: 600;
    }
@@ -327,8 +342,7 @@
    .code-tab[aria-selected="true"]::after {
       content: "";
       position: absolute;
-      left: 0.75rem;
-      right: 0.75rem;
+      inset-inline: 0.75rem;
       bottom: -1px;
       height: 2px;
       border-radius: 2px;
@@ -369,7 +383,7 @@
    .copy-btn-floating {
       position: absolute;
       top: 0.75rem;
-      right: 0.75rem;
+      inset-inline-end: 0.75rem;
       z-index: 10;
       backdrop-filter: blur(4px);
    }
@@ -446,15 +460,38 @@
    input[type="datetime-local"]::-webkit-calendar-picker-indicator,
    input[type="date"]::-webkit-calendar-picker-indicator {
       background: transparent;
-      bottom: 0;
       color: transparent;
       cursor: pointer;
       height: auto;
-      left: 0;
+      inset: 0;
       position: absolute;
-      right: 0;
-      top: 0;
       width: auto;
+   }
+
+   /*
+    * Right to left. Persian pages are served with dir="rtl" on <html>. The
+    * layout is written with logical properties and utilities, so it follows
+    * the reading direction by itself; this is what those cannot express.
+    * Code stays left to right on every page - see "Code reads left to right".
+    */
+
+   /* Arrows and chevrons that point along the reading direction turn with it. */
+   [dir="rtl"] .rtl-mirror {
+      transform: scaleX(-1);
+   }
+
+   /* The drawer is pinned to the right, so it slides out that way. */
+   [dir="rtl"] #mobile-menu-panel.-translate-x-full {
+      transform: translateX(100%);
+   }
+
+   /*
+    * The endpoint path fills the row beside its methods, and reads left to
+    * right like all code - so left to its own devices it would line up at
+    * the far end of the row from them.
+    */
+   [dir="rtl"] .endpoint-path {
+      text-align: right;
    }
 
    @media print {

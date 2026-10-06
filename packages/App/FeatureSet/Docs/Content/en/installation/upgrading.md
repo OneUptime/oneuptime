@@ -307,6 +307,22 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   SLA already responded to. Records created in the created state, as every
   monitor-opened one is, are unchanged. See
   [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+- **An incident's or alert's episode is set by the episode's members
+  only.** `incidentEpisodeId` and `alertEpisodeId` (and the `incidentEpisode`
+  and `alertEpisode` relations) are read-only. The API, Terraform
+  (`incident_episode_id`, `alert_episode_id`), the MCP tools and workflows
+  could write them without adding the record to the episode: the episode's
+  overview then listed an incident or alert its **Members** page did not, and
+  one created with an episode set was never grouped. A create or update that
+  sends one is now refused, with a message pointing at the episode's members:
+  add the record with `POST /api/incident-episode-member` (or
+  `/api/alert-episode-member`) and delete that member to take it out, and the
+  episode reference follows. Reading it is unchanged. A Terraform
+  configuration that sets `incident_episode_id` or `alert_episode_id` must
+  drop it once you upgrade the provider, which only reads them now; the
+  `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member`
+  resources manage membership. See
+  [The episode an incident or alert is in](/docs/api-reference/api-reference#the-episode-an-incident-or-alert-is-in).
 - **New incoming call escalation rules ring for 20 seconds, not 30.** Many
   phones send an unanswered call to voicemail within 30 seconds, and a
   voicemail that answers ends the call there instead of moving it on to the
@@ -318,6 +334,20 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   will plan `30 -> 20` for the rules it manages once you upgrade the provider;
   set `escalate_after_seconds = 30` to keep 30. See
   [Incoming Call Policy](/docs/on-call/incoming-call-policy).
+- **Slack and Microsoft Teams summaries keep their time of day when the
+  clocks change.** A summary now has a time zone, and its schedule is read
+  on that clock. Until now it was read in UTC, so a summary set for 09:00 in
+  Berlin went out at 08:00 there once the clocks went back. The upgrade
+  gives each existing summary the time zone in its creator's profile, the
+  clock the dashboard showed them, or UTC when it has no creator with one
+  (an API key made it), which is what it was read in until now. No next
+  send moves during the upgrade; from its next send on, a summary that had
+  drifted an hour goes back to its first summary's time of day, and a
+  monthly summary on the 29th to 31st no longer slides to the 28th. The
+  API and Terraform (`timezone`) take an IANA time zone name; a summary
+  created without one takes its creator's profile time zone, or UTC when
+  an API key creates it, and a name that is not a time zone is refused.
+  See [Summaries](/docs/workspace-connections/slack#summaries).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next

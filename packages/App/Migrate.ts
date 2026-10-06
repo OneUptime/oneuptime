@@ -31,9 +31,12 @@ const migrate: PromiseVoidFunction = async (): Promise<void> => {
     `${APP_NAME}: connecting to Postgres (applies schema migrations)`,
   );
   /*
-   * migrationsRun on this DataSource applies all pending TypeORM schema
-   * migrations during initialize(). RUN_DATABASE_MIGRATIONS_ON_BOOT is left
-   * unset (true) for this process, so schema migrations run here.
+   * connect() applies every pending TypeORM schema migration:
+   * RUN_DATABASE_MIGRATIONS_ON_BOOT is left unset (true) for this process.
+   * It does so through SchemaMigrationRunner, on a connection of their own:
+   * a statement waits at most DATABASE_MIGRATION_LOCK_TIMEOUT_MS for a lock,
+   * and a migration that runs out is rolled back and retried, so a busy table
+   * delays the migration instead of the migration blocking the table.
    */
   await PostgresAppInstance.connect();
 

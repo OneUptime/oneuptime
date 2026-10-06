@@ -97,6 +97,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
 
+      # An incident's or alert's episode follows the episode's members only:
+      # a create or update that names it is refused for every caller, and
+      # joining and leaving through the members still moves it.
+      - name: Test episode reference writes on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_REFERENCE_WRITE_TESTS: "true"
+          EPISODE_REFERENCE_WRITE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_REFERENCE_WRITE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_REFERENCE_WRITE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeReferenceWritePostgres.test.ts --forceExit
+
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
       # Kubernetes / Docker / Podman parents) into an isolated schema and runs
@@ -676,6 +690,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/LlmLogDailyUsageIndexPostgres.test.ts
+          --forceExit
+
+      # Runs schema migrations through SchemaMigrationRunner while another
+      # session holds their table open and an app connection reads it in a
+      # loop: unbounded, the ALTER queues ahead of the reads and they fail;
+      # bounded, the migration gives up, steps aside and is applied once the
+      # table is free, without a single read failing. Then builds an index and
+      # validates a foreign key through OnlineDdl while inserts carry on. Its
+      # tables live in a schema of their own; it needs no migrated table.
+      - name: Test schema migrations against a busy table on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEMA_MIGRATION_LOCK_TESTS: "true"
+          SCHEMA_MIGRATION_LOCK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEMA_MIGRATION_LOCK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEMA_MIGRATION_LOCK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/SchemaMigrationLockRetryPostgres.test.ts
           --forceExit
 
       - name: Test the configurable rule criteria migration on migrated Postgres

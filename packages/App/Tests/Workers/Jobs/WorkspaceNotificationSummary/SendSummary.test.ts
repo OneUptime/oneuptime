@@ -4,6 +4,7 @@ import EventInterval from "Common/Types/Events/EventInterval";
 import Recurring from "Common/Types/Events/Recurring";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import Timezone from "Common/Types/Timezone";
 import WorkspaceSummaryScheduleUtil, {
   WorkspaceSummaryScheduleWrite,
 } from "Common/Utils/Workspace/WorkspaceSummarySchedule";
@@ -107,13 +108,33 @@ function summary(data: {
   id?: string | undefined;
   nextSendAt: Date;
   recurringInterval: Recurring;
+  sendFirstReportAt?: Date | undefined;
+  timezone?: string | undefined;
 }): WorkspaceNotificationSummary {
   const workspaceSummary: WorkspaceNotificationSummary =
     new WorkspaceNotificationSummary();
   workspaceSummary._id = data.id || FIRST_SUMMARY_ID;
   workspaceSummary.nextSendAt = data.nextSendAt;
   workspaceSummary.recurringInterval = data.recurringInterval;
+
+  if (data.sendFirstReportAt) {
+    workspaceSummary.sendFirstReportAt = data.sendFirstReportAt;
+  }
+
+  if (data.timezone) {
+    workspaceSummary.timezone = data.timezone as Timezone;
+  }
+
   return workspaceSummary;
+}
+
+// The wall clock an instant reads in a zone, for readable expectations.
+function wallClock(iso: string, timezone: string): string {
+  return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+    date: OneUptimeDate.fromString(iso),
+    format: "ddd YYYY-MM-DD HH:mm z",
+    timezone: timezone,
+  });
 }
 
 // One tick, at `at`, for the summaries the query finds.
@@ -441,6 +462,152 @@ describe("WorkspaceNotificationSummary:SendSummary", () => {
 
     expect(writtenNextSends()).toEqual([
       { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-13T09:00:00.000Z" },
+    ]);
+  });
+});
+
+/*
+ * The time of day a summary goes out at, all year: its schedule is counted
+ * on its own time zone's clock. Stepped in UTC, a summary set up for 09:00
+ * in Berlin went out at 08:00 there once the clocks went back on Sunday
+ * 25 Oct 2026, and New York's at 08:00 after Sunday 1 Nov.
+ */
+describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving change", () => {
+  test("asks for each summary's first summary date and time zone with its schedule", async () => {
+    await tick("2026-10-12T09:00:30.000Z", []);
+
+    const findArgument: { select: Record<string, unknown> } = service.findAllBy
+      .mock.calls[0]![0] as { select: Record<string, unknown> };
+
+    expect(findArgument.select["sendFirstReportAt"]).toBe(true);
+    expect(findArgument.select["timezone"]).toBe(true);
+  });
+
+  test("moves a Monday 09:00 Berlin summary to 09:00 Berlin after the clocks go back, not 08:00", async () => {
+    // Created on Mon 5 Oct in Berlin with the defaults: Mondays at 09:00 there.
+    const defaults: WorkspaceSummaryScheduleWrite =
+      WorkspaceSummaryScheduleUtil.getCreateWrite({
+        write: {},
+        now: OneUptimeDate.fromString("2026-10-05T12:00:00.000Z"),
+        timezone: "Europe/Berlin",
+      });
+
+    expect(defaults.timezone).toBe("Europe/Berlin");
+
+    // Its third send, on Mon 19 Oct at 09:00 CEST.
+    await tick("2026-10-19T07:00:30.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2026-10-19T07:00:00.000Z"),
+        recurringInterval: defaults.recurringInterval!,
+        sendFirstReportAt: defaults.sendFirstReportAt!,
+        timezone: defaults.timezone!,
+      }),
+    ]);
+
+    expect(writtenNextSends()).toEqual([
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-26T08:00:00.000Z" },
+    ]);
+    expect(wallClock(writtenNextSends()[0]!.nextSendAt, "Europe/Berlin")).toBe(
+      "Mon 2026-10-26 09:00 CET",
+    );
+    expect(postedSummaryIds()).toEqual([FIRST_SUMMARY_ID]);
+  });
+
+  test("moves a Monday 09:00 New York summary to 09:00 New York after the clocks go forward", async () => {
+    await tick("2027-03-08T14:00:30.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2027-03-08T14:00:00.000Z"),
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-11-02T14:00:00.000Z"),
+        timezone: "America/New_York",
+      }),
+    ]);
+
+    expect(
+      wallClock(writtenNextSends()[0]!.nextSendAt, "America/New_York"),
+    ).toBe("Mon 2027-03-15 09:00 EDT");
+  });
+
+  test("posts a daily summary at 09:00 on the day the clocks go back", async () => {
+    await tick("2026-10-24T07:00:20.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2026-10-24T07:00:00.000Z"),
+        recurringInterval: every(EventInterval.Day, 1),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-10-01T07:00:00.000Z"),
+        timezone: "Europe/Berlin",
+      }),
+    ]);
+
+    expect(wallClock(writtenNextSends()[0]!.nextSendAt, "Europe/Berlin")).toBe(
+      "Sun 2026-10-25 09:00 CET",
+    );
+  });
+
+  test("keeps stepping a summary that names no time zone in UTC, as before", async () => {
+    await tick("2026-10-19T07:00:30.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2026-10-19T07:00:00.000Z"),
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-10-12T07:00:00.000Z"),
+      }),
+    ]);
+
+    expect(writtenNextSends()).toEqual([
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-26T07:00:00.000Z" },
+    ]);
+  });
+
+  test("brings a summary that drifted an hour while it was stepped in UTC back to its first summary's time of day", async () => {
+    /*
+     * First summary Mon 15 Jun 2026, 09:00 AEST in Sydney; stepped in UTC,
+     * it has gone out at 10:00 there since the clocks went forward on 4 Oct.
+     */
+    await tick("2026-10-11T23:00:30.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2026-10-11T23:00:00.000Z"),
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-06-14T23:00:00.000Z"),
+        timezone: "Australia/Sydney",
+      }),
+    ]);
+
+    expect(
+      wallClock(writtenNextSends()[0]!.nextSendAt, "Australia/Sydney"),
+    ).toBe("Mon 2026-10-19 09:00 AEDT");
+  });
+
+  test("keeps a monthly summary on the 31st on each month's last day", async () => {
+    await tick("2027-02-28T08:00:30.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2027-02-28T08:00:00.000Z"),
+        recurringInterval: every(EventInterval.Month, 1),
+        sendFirstReportAt: OneUptimeDate.fromString("2027-01-31T08:00:00.000Z"),
+        timezone: "Europe/Berlin",
+      }),
+    ]);
+
+    expect(wallClock(writtenNextSends()[0]!.nextSendAt, "Europe/Berlin")).toBe(
+      "Wed 2027-03-31 09:00 CEST",
+    );
+  });
+
+  test("rolls back to the due send when posting fails, whatever the zone", async () => {
+    service.sendSummary.mockRejectedValueOnce(
+      new Error("Slack is down") as never,
+    );
+
+    await tick("2026-10-19T07:00:30.000Z", [
+      summary({
+        nextSendAt: OneUptimeDate.fromString("2026-10-19T07:00:00.000Z"),
+        recurringInterval: every(EventInterval.Week, 1),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-10-12T07:00:00.000Z"),
+        timezone: "Europe/Berlin",
+      }),
+    ]);
+
+    expect(writtenNextSends()).toEqual([
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-26T08:00:00.000Z" },
+      { id: FIRST_SUMMARY_ID, nextSendAt: "2026-10-19T07:00:00.000Z" },
     ]);
   });
 });
