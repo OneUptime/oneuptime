@@ -1,4 +1,6 @@
 import ProjectNotificationChannelOwnerNotice from "../../../Server/Utils/ProjectNotificationChannelOwnerNotice";
+import Protocol from "../../../Types/API/Protocol";
+import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import SafeHtml from "../../../Types/SafeHtml";
@@ -87,6 +89,24 @@ describe("the link to the switches", () => {
     expect(() => {
       ProjectNotificationChannelOwnerNotice.getSettingsLink(PROJECT_ID);
     }).toThrow("The dashboard's address is not configured.");
+  });
+
+  test("is refused when the address has no host (HOST is not set)", () => {
+    address.url = new URL(Protocol.HTTP, "", new Route("/dashboard"));
+
+    expect(() => {
+      ProjectNotificationChannelOwnerNotice.getSettingsLink(PROJECT_ID);
+    }).toThrow("The dashboard's address is not configured.");
+
+    // And the notice still says where the switch is.
+    expect(
+      ProjectNotificationChannelOwnerNotice.getHtml({
+        channel: ProjectNotificationChannel.SMS,
+        projectId: PROJECT_ID,
+      }),
+    ).toBe(
+      "SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+    );
   });
 });
 

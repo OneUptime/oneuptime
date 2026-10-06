@@ -25,7 +25,8 @@ export type { ProjectNotificationChannelColumn };
  * What a switch that is off does, so the copy says it right:
  * - Nobody in the project can add a method on that channel. UserSmsService,
  *   UserCallService, UserWhatsAppService and UserTelegramService refuse the
- *   new row ("SMS notifications are disabled for this project. ..."), and
+ *   new row ("SMS is off in this project. A project owner or someone
+ *   with Manage Billing can turn it on in ..."), and
  *   UserIncomingCallNumberService refuses incoming call numbers while SMS is
  *   off, because they are verified by text.
  * - Resending a verification code is refused too, for SMS, calls and

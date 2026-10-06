@@ -4,7 +4,6 @@ import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
-import { DashboardClientUrl } from "Common/Server/EnvironmentConfig";
 import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
@@ -66,10 +65,20 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
     "Common/Server/EnvironmentConfig",
   ) as Record<string, unknown>;
 
+  const URLType: { fromString: (url: string) => unknown } = (
+    jest.requireActual("Common/Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    }
+  ).default;
+
   return {
     __esModule: true,
     ...actual,
     IsBillingEnabled: true,
+    // Where the owners' email links to the switch.
+    DashboardClientUrl: URLType.fromString(
+      "https://oneuptime.example.com/dashboard",
+    ),
   };
 });
 
@@ -273,7 +282,7 @@ describe("an SMS the Notification service does not send", () => {
         ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
       ).mock.calls[0]!;
       const body: string = call[2] as string;
-      const link: string = `${DashboardClientUrl.toString()}/${PROJECT_ID.toString()}/settings/notification-settings`;
+      const link: string = `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`;
 
       expect(call[0]).toEqual(PROJECT_ID);
       expect(body).toContain(

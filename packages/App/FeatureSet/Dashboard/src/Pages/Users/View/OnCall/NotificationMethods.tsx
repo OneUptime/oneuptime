@@ -156,9 +156,9 @@ const ALL_ADDABLE_CHANNELS: Array<AdminAddableChannel> = [
 /*
  * The channels the Add form offers: email always, and SMS, calls and
  * WhatsApp while the project has them on. A channel that is off is not
- * offered, because the server refuses the method ("SMS notifications are
- * disabled for this project") - the commonest action of this page would be
- * a refusal on every new project, where all three start off.
+ * offered, because the server refuses the method ("SMS is off in this
+ * project. ...") - the commonest action of this page would be a refusal on
+ * every new project, where all three start off.
  *
  * A channel is only left out when it is KNOWN to be off. While the answer
  * is on its way, or when it could not be read, every channel is offered as

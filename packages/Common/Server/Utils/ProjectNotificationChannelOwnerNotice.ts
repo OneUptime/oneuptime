@@ -25,7 +25,8 @@ import {
 export default class ProjectNotificationChannelOwnerNotice {
   // The project's Notification Settings page in the dashboard.
   public static getSettingsLink(projectId: ObjectID): URL {
-    if (!DashboardClientUrl) {
+    // No HOST configured: a link to "http:///dashboard" helps nobody.
+    if (!DashboardClientUrl || !DashboardClientUrl.hostname?.toString()) {
       throw new Error("The dashboard's address is not configured.");
     }
 

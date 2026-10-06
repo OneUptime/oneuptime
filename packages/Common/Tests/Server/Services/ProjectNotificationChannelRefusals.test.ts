@@ -1,3 +1,4 @@
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
@@ -65,9 +66,13 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
   "5a000000-0000-4000-8000-000000000004",
 );
 
-type OnBeforeCreate<T> = (createBy: CreateBy<T>) => Promise<OnCreate<T>>;
+type OnBeforeCreate<T extends DatabaseBaseModel> = (
+  createBy: CreateBy<T>,
+) => Promise<OnCreate<T>>;
 
-function hooksOf<T>(service: unknown): { onBeforeCreate: OnBeforeCreate<T> } {
+function hooksOf<T extends DatabaseBaseModel>(
+  service: unknown,
+): { onBeforeCreate: OnBeforeCreate<T> } {
   return service as { onBeforeCreate: OnBeforeCreate<T> };
 }
 
@@ -100,7 +105,7 @@ async function refusalOf(promise: Promise<unknown>): Promise<string> {
   throw new Error("Expected a refusal, but the call went through.");
 }
 
-function createBy<T>(data: T): CreateBy<T> {
+function createBy<T extends DatabaseBaseModel>(data: T): CreateBy<T> {
   return {
     data: data,
     props: { tenantId: PROJECT_ID, userId: USER_ID },

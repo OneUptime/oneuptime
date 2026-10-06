@@ -170,7 +170,9 @@ describe("in German, the sentences that say who can turn a channel on", () => {
 
   test.each(
     CHANNEL_GATED_METHOD_LISTS.map(
-      (definition: ChannelGatedMethodListDefinition) => {
+      (
+        definition: ChannelGatedMethodListDefinition,
+      ): [string, ChannelGatedMethodListDefinition] => {
         return [definition.list, definition];
       },
     ),
