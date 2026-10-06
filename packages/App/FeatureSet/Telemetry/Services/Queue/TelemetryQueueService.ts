@@ -14,6 +14,7 @@ import OtelPayloadDecoder, {
 import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
+import IncomingRequestLatestPayloadStore from "../../Utils/IncomingRequestLatestPayloadStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
 
 export enum TelemetryType {
@@ -111,6 +112,14 @@ export interface IncomingRequestIngestJobData {
   requestMethod: string;
   ingestionTimestamp: Date;
   receivedViaProbeId?: string | undefined;
+  /*
+   * Set only when the request was queued with same-monitor coalescing: its id
+   * in IncomingRequestLatestPayloadStore. It tells the worker to evaluate the
+   * monitor's newest stored request, which may be newer than this copy. The
+   * copy stays on the job for workers that predate the store (a rolling
+   * deploy) and for jobs queued with coalescing off.
+   */
+  coalescedPayloadId?: string | undefined;
 }
 
 export interface TelemetryMonitorEvaluationJobData {
@@ -899,6 +908,32 @@ export default class TelemetryQueueService {
         receivedViaProbeId: data.receivedViaProbeId,
       };
 
+      /*
+       * Read once: whether the request is stored for coalescing and whether
+       * its job is deduplicated must agree.
+       */
+      const coalesce: boolean = INCOMING_REQUEST_INGEST_COALESCE_ENABLED;
+
+      if (coalesce) {
+        /*
+         * BullMQ's deduplication below keeps the newest payload only while
+         * the monitor's job is ACTIVE. A request that arrives while the job is
+         * still WAITING is discarded and the older waiting payload is the one
+         * evaluated - under a backlog, most requests. So the request is also
+         * stored as the monitor's newest, and a coalesced job evaluates that
+         * when it runs (see IncomingRequestLatestPayloadStore). Stored BEFORE
+         * the job is added, so the job that ends up evaluating this request
+         * always finds it.
+         */
+        incomingRequestData.coalescedPayloadId = ObjectID.generate().toString();
+
+        await IncomingRequestLatestPayloadStore.store({
+          secretKey: data.secretKey,
+          payloadId: incomingRequestData.coalescedPayloadId,
+          payload: incomingRequestData,
+        });
+      }
+
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.IncomingRequestIngest,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
@@ -933,14 +968,15 @@ export default class TelemetryQueueService {
            * secret key is 1:1 with the monitor. Gated so ops can disable
            * without a deploy.
            *
-           * Only a request that arrives while the monitor's job is ACTIVE
-           * replaces the pending payload. One that arrives while a job is
-           * still WAITING is dropped and the older waiting payload is the one
-           * processed - under a backlog that is most requests. Liveness does
-           * not depend on which payload survives: the endpoint records every
-           * arrival in IncomingRequestReceivedAtStore before enqueueing.
+           * Which request gets evaluated is not left to BullMQ, which keeps
+           * the latest payload only for a request that arrives while the
+           * monitor's job is ACTIVE: the job evaluates the monitor's newest
+           * request from IncomingRequestLatestPayloadStore, stored above, so
+           * the newest one is evaluated whichever job runs. Liveness does not
+           * depend on it either: the endpoint records every arrival in
+           * IncomingRequestReceivedAtStore before enqueueing.
            */
-          ...(INCOMING_REQUEST_INGEST_COALESCE_ENABLED
+          ...(coalesce
             ? {
                 deduplication: {
                   id: `incoming-request-${data.secretKey}`,

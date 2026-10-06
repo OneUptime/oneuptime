@@ -394,12 +394,14 @@ export default class Queue {
       /**
        * Coalesce same-key jobs so they are never processed in parallel.
        * When set, BullMQ keeps at most one active + one waiting job per
-       * `deduplication.id`: additional adds while one is active collapse into
-       * the single waiting slot, keeping only the latest job data
-       * (keepLastIfActive). Used by the incoming-request ingest path to stop
-       * an external sender hammering one monitor's URL from fanning out into
-       * many concurrent same-monitor jobs that contend on the per-monitor
-       * lock. Independent of `jobId`, which stays unique.
+       * `deduplication.id`. With keepLastIfActive, adds that arrive while
+       * that job is ACTIVE collapse into the single job queued after it, and
+       * the latest job data wins. Adds that arrive while it is still WAITING
+       * (or delayed for a retry) are discarded: the waiting job runs with its
+       * OLDER data. A caller that needs the newest data processed must keep
+       * that data outside the job, as the incoming-request ingest path does
+       * (TelemetryQueueService.addIncomingRequestIngestJob). Independent of
+       * `jobId`, which stays unique.
        */
       deduplication?:
         | { id: string; keepLastIfActive?: boolean | undefined }
