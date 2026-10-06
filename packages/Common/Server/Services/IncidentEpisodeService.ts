@@ -293,18 +293,18 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * resolvedAt follows the state the episode starts in exactly as its
-     * first timeline row writes it (IncidentEpisodeStateTimelineService):
-     * set for a state flagged resolved. One recorded as already resolved is
-     * resolved from the moment it exists:
-     * grouping, auto-resolve and the unresolved episode lists read
-     * resolvedAt, which the first timeline row would otherwise set only once
-     * onCreateSuccess reaches it, after the workspace channels - and sets
-     * again then, to the moment that row records. Any other episode has none
-     * yet, whatever the write sent: the first timeline row would clear it
-     * anyway.
+     * resolvedAt follows the state the episode starts in, by the one rule
+     * (Common/Utils/ResolvedState) its first timeline row reads too
+     * (IncidentEpisodeStateTimelineService): set for a state that counts as
+     * resolved - the project's resolved state, or one placed after it. One
+     * recorded as already resolved is resolved from the moment it exists:
+     * grouping, auto-resolve and the Active episode lists read resolvedAt,
+     * which the first timeline row would otherwise set only once
+     * onCreateSuccess reaches it, after the workspace channels; that row
+     * keeps it. Any other episode has none yet, whatever the write sent: the
+     * first timeline row would clear it anyway.
      */
-    if (pickedStart?.flaggedResolved) {
+    if (pickedStart?.stage === StartingStage.Resolved) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];
@@ -1000,21 +1000,16 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: episode.projectId,
-          isResolvedState: true,
-        },
-        select: {
-          _id: true,
-        },
+    // The project's resolved state: the first from the top flagged resolved.
+    const incidentState: IncidentState =
+      await IncidentStateService.getResolvedIncidentState({
+        projectId: episode.projectId,
         props: {
           isRoot: true,
         },
       });
 
-    if (!incidentState || !incidentState.id) {
+    if (!incidentState.id) {
       throw new BadDataException(
         "Resolved incident state not found for this project.",
       );
@@ -1409,50 +1404,57 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * Whether the episode is resolved: its state is at or below its project's
+   * resolved incident state, or flagged resolved - the one rule
+   * (Common/Utils/ResolvedState).
+   */
   @CaptureSpan()
   public async isEpisodeResolved(episodeId: ObjectID): Promise<boolean> {
-    const episode: Model | null = await this.findOneById({
-      id: episodeId,
-      select: {
-        projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const episode: Model = await this.getEpisodeWithState(episodeId);
 
-    if (!episode || !episode.projectId) {
-      throw new BadDataException("Episode not found.");
+    if (!episode.currentIncidentStateId) {
+      return false;
     }
 
-    const resolvedState: IncidentState =
-      await IncidentStateService.getResolvedIncidentState({
-        projectId: episode.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentOrder: number = episode.currentIncidentState?.order || 0;
-    const resolvedOrder: number = resolvedState.order || 0;
-
-    return currentOrder >= resolvedOrder;
+    return await IncidentStateService.isResolvedIncidentState({
+      projectId: episode.projectId!,
+      incidentStateId: episode.currentIncidentStateId,
+    });
   }
 
+  /*
+   * Whether the episode is acknowledged or further along - resolved
+   * included: what stops its on-call escalation (StartingStage).
+   */
   @CaptureSpan()
   public async isEpisodeAcknowledged(data: {
     episodeId: ObjectID;
   }): Promise<boolean> {
+    const episode: Model = await this.getEpisodeWithState(data.episodeId);
+
+    if (!episode.currentIncidentStateId) {
+      return false;
+    }
+
+    const startingState: StartingState | null =
+      await IncidentStateService.getStartingState({
+        projectId: episode.projectId!,
+        incidentStateId: episode.currentIncidentStateId,
+      });
+
+    return Boolean(
+      startingState && startingState.stage !== StartingStage.Open,
+    );
+  }
+
+  // The episode's project and current state, as OneUptime.
+  private async getEpisodeWithState(episodeId: ObjectID): Promise<Model> {
     const episode: Model | null = await this.findOneById({
-      id: data.episodeId,
+      id: episodeId,
       select: {
         projectId: true,
-        currentIncidentState: {
-          order: true,
-        },
+        currentIncidentStateId: true,
       },
       props: {
         isRoot: true,
@@ -1463,18 +1465,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Episode not found.");
     }
 
-    const acknowledgedState: IncidentState =
-      await IncidentStateService.getAcknowledgedIncidentState({
-        projectId: episode.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentOrder: number = episode.currentIncidentState?.order || 0;
-    const acknowledgedOrder: number = acknowledgedState.order || 0;
-
-    return currentOrder >= acknowledgedOrder;
+    return episode;
   }
 
   @CaptureSpan()

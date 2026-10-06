@@ -47,6 +47,7 @@ import { AddLlmLogProjectCreatedAtIndex1798300000000 } from "./1798300000000-Add
 import { AddPublicNotePostedWithState1798400000000 } from "./1798400000000-AddPublicNotePostedWithState";
 import { StartIncomingCallRulesAtTwentySeconds1798600000000 } from "./1798600000000-StartIncomingCallRulesAtTwentySeconds";
 import { AddStorageArrayTables1798700000000 } from "./1798700000000-AddStorageArrayTables";
+import { AddIncidentHoldsMonitors1798900000000 } from "./1798900000000-AddIncidentHoldsMonitors";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1294,4 +1295,5 @@ export default [
   AddPublicNotePostedWithState1798400000000,
   StartIncomingCallRulesAtTwentySeconds1798600000000,
   AddStorageArrayTables1798700000000,
+  AddIncidentHoldsMonitors1798900000000,
 ];
