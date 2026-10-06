@@ -56,7 +56,7 @@ Dashboards themselves don't expire. The data they show follows your project's re
 
 ## Duplicating a dashboard
 
-To copy an existing dashboard, open the dashboards list and pick **Duplicate**. The copy includes every widget, variable, and setting except public sharing — that always starts off so you can decide whether to turn it back on.
+To copy a dashboard, open it and go to **Settings → Duplicate Dashboard**. The copy's name is filled in for you: the dashboard's name, numbered past the names the project already has ("Checkout API" is copied as "Checkout API 2", and a copy of that one as "Checkout API 3"). Change it if you like, click **Duplicate Dashboard**, and the copy opens. It has the dashboard's widgets, variables, description and labels. Branding and custom domains stay with the original, and public sharing always starts off, so you can decide whether to turn it on.
 
 This is the right move when you want to fork a template (like "our on-call dashboard") into a service-specific copy.
 

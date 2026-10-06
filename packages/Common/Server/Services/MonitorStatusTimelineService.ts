@@ -988,21 +988,32 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
      * predecessor row (onBeforeCreate) through closing it (onCreateSuccess), so
      * the lock is held across the entire super.create(), not just one hook.
      */
-    if (createBy.props.ignoreHooks || !createBy.data.monitorId) {
+    /*
+     * The monitor under either of its names (the two must agree), kept in the
+     * ID column for onBeforeCreate and the saved row: the lock is the
+     * monitor's whichever name the write used.
+     */
+    const monitorId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["monitorId", "monitor"],
+      "Monitor",
+    );
+
+    if (createBy.props.ignoreHooks || !monitorId) {
       // No predecessor bookkeeping runs on these paths, so no serialization is needed.
       return await super.create(createBy);
     }
 
     const logAttributes: LogAttributes = {
       projectId: createBy.data.projectId?.toString(),
-      monitorId: createBy.data.monitorId?.toString(),
+      monitorId: monitorId.toString(),
     } as LogAttributes;
 
     let mutex: SemaphoreMutex | null = null;
 
     try {
       mutex = await Semaphore.lock({
-        key: createBy.data.monitorId.toString(),
+        key: monitorId.toString(),
         namespace: "MonitorStatusTimeline.create",
       });
     } catch (e) {

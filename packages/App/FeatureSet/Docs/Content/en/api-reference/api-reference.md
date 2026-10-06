@@ -36,6 +36,18 @@ A record can be named in two ways: by its ID field (`monitorId`), or by the rela
 Conflicting Monitor references were provided. monitorId and monitor are names for the same field and must hold the same value: send only one of them, or the same id in each.
 ```
 
+Either name is checked the same way. The rules about the record you name hold whichever name you send it under: a status page group's parent group must be on the same status page, a status page takes at most three header links, and a group's name must be unique on its status page.
+
+### Who created a record
+
+OneUptime records who created a record — and who archived it, resolved it, acknowledged it or triggered it — from the request itself: the person signed in, or nobody when the request comes with an API key or from a workflow. These fields (`createdByUserId` and the other fields ending in `ByUserId`, with their relations such as `createdByUser`) are read-only, and so is when a record was archived or resolved (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): turning `isArchived` or `isResolved` on records who did it and when, and turning it off clears both. Sending a switch as it already stands keeps who turned it, and when.
+
+The API reference marks these fields read-only. A value a request sends for one beside other changes is ignored, so the rest of the change goes through; an update that sends nothing else is refused with a message naming the fields. Records that OneUptime itself creates on someone's behalf — a note posted from Slack or Microsoft Teams, an account made by an invitation — name that person.
+
+### The state a new record starts in
+
+An incident, an alert, an incident episode and an alert episode can be created in any of your project's states, as the **Initial State** field of their create forms does: send `currentIncidentStateId` (incidents and incident episodes) or `currentAlertStateId` (alerts and alert episodes), or the relation. The record starts in that state and its state timeline begins with it. Leave it out and it starts in your project's created state, the one flagged `isCreatedState` — or, for an incident declared from a template that has an initial state, in the template's. A state of another project is refused like any other record. Terraform's `current_incident_state_id` and `current_alert_state_id` work the same way.
+
 ### API Reference
 
 Please click here to check out OneUptime's API reference ➡️ [OneUptime API Reference](/reference). The API reference is available in multiple languages — your preferred language is auto-detected from your browser, and you can switch languages at any time using the selector in the top navigation.

@@ -49,7 +49,7 @@ type ArchiveMode = "archive" | "unarchive";
  * does more pass `archiveConfirmMessage` / `unarchiveConfirmMessage`.
  *
  * The client only ever sends `{ isArchived: true | false }`; the server stamps
- * `archivedAt` / `archivedByUserId` (see DatabaseService.sanitizeCreateOrUpdate).
+ * `archivedAt` / `archivedByUserId` (see DatabaseService.stampSwitchAttribution).
  *
  * No form modal is needed — these actions use the confirm flow built into
  * BulkUpdateForm (confirmMessage / confirmTitle).

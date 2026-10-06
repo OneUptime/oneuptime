@@ -7,12 +7,24 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ContiguousOrder from "../Utils/Database/ContiguousOrder";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
 import Model from "../../Models/DatabaseModels/StatusPageGroup";
+
+/*
+ * The two names of each reference this service checks itself, ID column
+ * first. A write may name either, and the two must agree
+ * (RelationIdUtil.readConsistent).
+ */
+const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+const PARENT_GROUP_KEYS: Array<string> = [
+  "parentStatusPageGroupId",
+  "parentStatusPageGroup",
+];
 
 /*
  * A group moved to another place by a non-root update: where it was, where it
@@ -38,22 +50,42 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.statusPageId) {
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
+
+    /*
+     * The status page and the parent group, each under either of its names,
+     * and kept in the ID column for the checks below and for the saved row.
+     */
+    const statusPageId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createData,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    if (!statusPageId) {
       throw new BadDataException("Status Page Group statusPageId is required");
     }
 
-    if (createBy.data.parentStatusPageGroupId) {
+    const parentStatusPageGroupId: ObjectID | null =
+      RelationIdUtil.readIntoIdColumn(
+        createData,
+        PARENT_GROUP_KEYS,
+        "Parent Group",
+      );
+
+    if (parentStatusPageGroupId) {
       await this.assertParentIsValid({
         statusPageGroupId: null,
-        parentStatusPageGroupId: createBy.data.parentStatusPageGroupId,
-        statusPageId: createBy.data.statusPageId,
+        parentStatusPageGroupId: parentStatusPageGroupId,
+        statusPageId: statusPageId,
       });
     }
 
     if (!createBy.data.order) {
       const count: PositiveNumber = await this.countBy({
         query: {
-          statusPageId: createBy.data.statusPageId,
+          statusPageId: statusPageId,
         },
         props: {
           isRoot: true,
@@ -317,14 +349,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
-    const newParentIdValue: unknown = (updateBy.data as any)[
-      "parentStatusPageGroupId"
-    ];
+    /*
+     * The new parent, under either of its names. Detaching a group (parent
+     * set to null) has no parent to validate.
+     */
+    const newParentId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      PARENT_GROUP_KEYS,
+      "Parent Group",
+    );
 
-    // detaching a group (parent set to null) has no parent to validate.
-    if (newParentIdValue) {
-      const newParentId: ObjectID = new ObjectID(newParentIdValue.toString());
-
+    if (newParentId) {
       const groupsBeingUpdated: Array<Model> = await this.findBy({
         query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),
         select: {

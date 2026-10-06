@@ -1,12 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import { ScheduleTimelineResponse } from "../../../Types/OnCallDutyPolicy/ScheduleTimeline";
 import { TimeInterval } from "../../../Types/OnCallDutyPolicy/ScheduleTimelineLayout";
+import Color from "../../../Types/Color";
+import { DISTINCT_COLORS, getColorHue } from "../../../Utils/DistinctColor";
 import { getColorForUserId } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/LayerUserColors";
-import {
-  NEAR_BLACK_REPLACEMENT,
-  getTimelineColor,
-  getTimelineColorForUserId,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineColors";
 import TimelineModel, {
   ALL_SCHEDULES_GROUP_KEY,
   ALL_TEAMS,
@@ -508,7 +505,7 @@ describe("collectPeople", () => {
       ["Bob Berg", 48, 1, false],
     ]);
 
-    expect(people[0]?.color).toBe(getTimelineColorForUserId("u-alice"));
+    expect(people[0]?.color).toBe(getColorForUserId("u-alice"));
   });
 
   test("one person on two schedules is counted once, with both loads", () => {
@@ -639,35 +636,69 @@ describe("countPeople / hasOverrides", () => {
   });
 });
 
+/*
+ * The timeline used to lift a near-black person colour to slate, because the
+ * palette people were coloured from started with black. People are now
+ * coloured from the shared distinct palette, which has no black and no grey,
+ * so the timeline draws each person in exactly the colour the schedule's own
+ * pages give them - one colour per person, on every page.
+ */
 describe("timeline colours", () => {
-  test("near-black is lifted so it reads on the dark-mode surface", () => {
-    expect(getTimelineColor("#000000")).toBe(NEAR_BLACK_REPLACEMENT);
-    expect(getTimelineColor("#111111")).toBe(NEAR_BLACK_REPLACEMENT);
-    expect(getTimelineColor("000000")).toBe(NEAR_BLACK_REPLACEMENT);
+  const PALETTE: Array<string> = DISTINCT_COLORS.map((color: Color): string => {
+    return color.toString();
   });
 
-  test("every other palette colour is kept as the layer editor shows it", () => {
-    for (const color of ["#6366f1", "#ffbf53", "#ef4444", "#64748b"]) {
-      expect(getTimelineColor(color)).toBe(color);
+  test("each person's colour is the one the schedule's own pages give them", () => {
+    const people: Array<TimelinePerson> = TimelineModel.collectPeople({
+      schedules: ALL,
+      window: WINDOW,
+      now: NOW,
+    });
+
+    expect(people.length).toBeGreaterThan(0);
+
+    for (const person of people) {
+      expect({ userId: person.userId, color: person.color }).toEqual({
+        userId: person.userId,
+        color: getColorForUserId(person.userId),
+      });
     }
   });
 
-  test("anything that is not a hex colour passes through", () => {
-    expect(getTimelineColor("red")).toBe("red");
-    expect(getTimelineColor("#fff")).toBe("#fff");
+  test("one person on two schedules is one colour", () => {
+    const people: Array<TimelinePerson> = TimelineModel.collectPeople({
+      schedules: [
+        schedule("a", "A", {
+          shifts: [
+            shift("u-1", "Uno", "2026-09-14T00:00:00Z", "2026-09-15T00:00:00Z"),
+          ],
+        }),
+        schedule("b", "B", {
+          shifts: [
+            shift("u-1", "Uno", "2026-09-16T00:00:00Z", "2026-09-17T00:00:00Z"),
+          ],
+        }),
+      ],
+      window: WINDOW,
+      now: NOW,
+    });
+
+    expect(people).toHaveLength(1);
+    expect(people[0]?.color).toBe(getColorForUserId("u-1"));
   });
 
-  test("a user's timeline colour is their layer colour, lifted only if near-black", () => {
-    for (let index: number = 0; index < 200; index++) {
-      const userId: string = `user-${index}`;
-      const layerColor: string = getColorForUserId(userId);
-      const timelineColor: string = getTimelineColorForUserId(userId);
+  test("nobody is drawn black or grey: every colour is one of the shared palette", () => {
+    for (let index: number = 0; index < 500; index++) {
+      const color: string = getColorForUserId(`user-${index}`);
 
-      if (layerColor === "#000000") {
-        expect(timelineColor).toBe(NEAR_BLACK_REPLACEMENT);
-      } else {
-        expect(timelineColor).toBe(layerColor);
-      }
+      expect({ index, inPalette: PALETTE.includes(color) }).toEqual({
+        index,
+        inPalette: true,
+      });
+      expect({ index, hue: getColorHue(color) }).not.toEqual({
+        index,
+        hue: null,
+      });
     }
   });
 });

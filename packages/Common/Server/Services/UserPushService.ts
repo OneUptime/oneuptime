@@ -12,6 +12,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import PushDeviceType from "../../Types/PushNotification/PushDeviceType";
 import UserPush from "../../Models/DatabaseModels/UserPush";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 
 export class Service extends DatabaseService<UserPush> {
@@ -39,11 +40,23 @@ export class Service extends DatabaseService<UserPush> {
       );
     }
 
+    /*
+     * Whose device this is: the user the write names under either name, or
+     * - when it names nobody - the person registering it, whom
+     * CreatePermission stamps as the owner after this hook.
+     */
+    const userId: ObjectID | undefined =
+      RelationIdUtil.readConsistent(
+        createBy.data as unknown as Record<string, unknown>,
+        ["userId", "user"],
+        "User",
+      ) || createBy.props.userId;
+
     // Check if this device token already exists for this user and project
     const existingCount: PositiveNumber = await this.countBy({
       query: {
         deviceToken: createBy.data.deviceToken,
-        userId: createBy.data.userId!,
+        userId: userId!,
         projectId: createBy.data.projectId!,
       },
       props: {

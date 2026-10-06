@@ -25,6 +25,12 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
  * The job registers itself via RunCron at import time and exports nothing, so
  * the Cron util is mocked to CAPTURE the handler — the same recorder the other
  * App/Tests/Workers/Jobs suites use — and each test drives one full tick.
+ *
+ * Each tick first marks Skipped the events whose 'scheduled' message is queued
+ * while notifying subscribers is off, as the incident and announcement jobs
+ * do: an update that turns the flag off no longer writes the status itself
+ * (an update that merely re-sent the flag used to queue the message again),
+ * so the job is where a queued message meets the flag.
  */
 
 type CronHandler = () => Promise<void>;
@@ -93,6 +99,7 @@ function storedEvent(overrides?: {
   id?: string;
   endsAt?: Date | undefined;
   isVisibleOnStatusPage?: boolean;
+  shouldNotify?: boolean;
 }): ScheduledMaintenance {
   const event: ScheduledMaintenance = new ScheduledMaintenance();
 
@@ -106,6 +113,10 @@ function storedEvent(overrides?: {
       ? (overrides.endsAt as Date)
       : new Date(ENDS_AT);
   event.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  event.shouldStatusPageSubscribersBeNotifiedOnEventCreated =
+    overrides?.shouldNotify !== false;
+  event.subscriberNotificationStatusOnEventScheduled =
+    StatusPageSubscriberNotificationStatus.Pending;
   event.scheduledMaintenanceNumber = 7;
   event.scheduledMaintenanceNumberWithPrefix = "SM-7";
 
@@ -143,12 +154,74 @@ function project(
 
 let storedEvents: Array<ScheduledMaintenance> = [];
 
-function findAllBySelect(): Record<string, unknown> {
-  const args: { select: Record<string, unknown> } = (
-    ScheduledMaintenanceService.findAllBy as unknown as jest.Mock
-  ).mock.calls[0]![0] as { select: Record<string, unknown> };
+/*
+ * The rows a query matches, on the two columns the job queries by, as the
+ * database would answer it.
+ */
+function matches(
+  row: ScheduledMaintenance,
+  query: Record<string, unknown>,
+): boolean {
+  for (const column of [
+    "subscriberNotificationStatusOnEventScheduled",
+    "shouldStatusPageSubscribersBeNotifiedOnEventCreated",
+  ]) {
+    if (
+      query[column] !== undefined &&
+      (row as unknown as Record<string, unknown>)[column] !== query[column]
+    ) {
+      return false;
+    }
+  }
 
-  return args.select;
+  return true;
+}
+
+type FindAllByArgs = {
+  query: Record<string, unknown>;
+  select: Record<string, unknown>;
+};
+
+function findAllByCalls(): Array<FindAllByArgs> {
+  return (
+    ScheduledMaintenanceService.findAllBy as unknown as jest.Mock
+  ).mock.calls.map((call: Array<unknown>): FindAllByArgs => {
+    return call[0] as FindAllByArgs;
+  });
+}
+
+// The query for the events to notify, the one whose select feeds the service.
+function findAllBySelect(): Record<string, unknown> {
+  const args: FindAllByArgs | undefined = findAllByCalls().find(
+    (call: FindAllByArgs): boolean => {
+      return (
+        call.query["shouldStatusPageSubscribersBeNotifiedOnEventCreated"] ===
+        true
+      );
+    },
+  );
+
+  return args!.select;
+}
+
+// The statuses the job wrote, by event id.
+function writtenStatuses(): Array<{ id: string; status: unknown }> {
+  return (
+    ScheduledMaintenanceService.updateOneById as unknown as jest.Mock
+  ).mock.calls.map((call: Array<unknown>) => {
+    const args: {
+      id: ObjectID;
+      data: { subscriberNotificationStatusOnEventScheduled?: unknown };
+    } = call[0] as {
+      id: ObjectID;
+      data: { subscriberNotificationStatusOnEventScheduled?: unknown };
+    };
+
+    return {
+      id: args.id.toString(),
+      status: args.data.subscriberNotificationStatusOnEventScheduled,
+    };
+  });
 }
 
 function notifiedEvents(): Array<ScheduledMaintenance> {
@@ -169,13 +242,15 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
       ScheduledMaintenanceService.findAllBy as unknown as jest.Mock
     ).mockImplementation(
       async (args: unknown): Promise<Array<ScheduledMaintenance>> => {
-        const select: Record<string, unknown> = (
-          args as { select: Record<string, unknown> }
-        ).select;
+        const { query, select } = args as FindAllByArgs;
 
-        return storedEvents.map((row: ScheduledMaintenance) => {
-          return project(row, select);
-        });
+        return storedEvents
+          .filter((row: ScheduledMaintenance) => {
+            return matches(row, query);
+          })
+          .map((row: ScheduledMaintenance) => {
+            return project(row, select);
+          });
       },
     );
 
@@ -278,5 +353,128 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
     });
 
     expect(skipped).toBe(true);
+  });
+
+  describe("a queued message whose event no longer notifies subscribers", () => {
+    const QUIET_ID: string = "55555555-5555-4555-8555-555555555555";
+    const NOTIFYING_ID: string = "66666666-6666-4666-8666-666666666666";
+
+    test("is marked Skipped, with the same reason the event's create gives, and never sent", async () => {
+      storedEvents = [storedEvent({ id: QUIET_ID, shouldNotify: false })];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const updates: Array<Array<unknown>> = (
+        ScheduledMaintenanceService.updateOneById as unknown as jest.Mock
+      ).mock.calls as Array<Array<unknown>>;
+
+      expect(updates).toHaveLength(1);
+      expect(updates[0]![0]).toEqual({
+        id: new ObjectID(QUIET_ID),
+        data: {
+          subscriberNotificationStatusOnEventScheduled:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessage:
+            "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.",
+        },
+        props: { isRoot: true, ignoreHooks: true },
+      });
+
+      expect(
+        ScheduledMaintenanceService.notififySubscribersOnEventScheduled,
+      ).not.toHaveBeenCalled();
+      expect(
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("is looked up by the queued status and the flag being off, reading the id alone", async () => {
+      storedEvents = [storedEvent({ id: QUIET_ID, shouldNotify: false })];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const skipQuery: FindAllByArgs | undefined = findAllByCalls().find(
+        (call: FindAllByArgs): boolean => {
+          return (
+            call.query[
+              "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
+            ] === false
+          );
+        },
+      );
+
+      expect(skipQuery!.query).toEqual({
+        subscriberNotificationStatusOnEventScheduled:
+          StatusPageSubscriberNotificationStatus.Pending,
+        shouldStatusPageSubscribersBeNotifiedOnEventCreated: false,
+      });
+      expect(skipQuery!.select).toEqual({ _id: true });
+    });
+
+    test("does not hold up the events that do notify in the same tick", async () => {
+      storedEvents = [
+        storedEvent({ id: QUIET_ID, shouldNotify: false }),
+        storedEvent({ id: NOTIFYING_ID }),
+      ];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(writtenStatuses()).toEqual([
+        {
+          id: QUIET_ID,
+          status: StatusPageSubscriberNotificationStatus.Skipped,
+        },
+        {
+          id: NOTIFYING_ID,
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+        },
+        {
+          id: NOTIFYING_ID,
+          status: StatusPageSubscriberNotificationStatus.Success,
+        },
+      ]);
+
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([NOTIFYING_ID]);
+    });
+
+    test("a failure to mark one Skipped does not stop the tick", async () => {
+      storedEvents = [
+        storedEvent({ id: QUIET_ID, shouldNotify: false }),
+        storedEvent({ id: NOTIFYING_ID }),
+      ];
+
+      (
+        ScheduledMaintenanceService.updateOneById as unknown as jest.Mock
+      ).mockImplementationOnce(async () => {
+        throw new Error("database went away");
+      });
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([NOTIFYING_ID]);
+    });
+
+    test("an event that notifies is never marked Skipped by that step", async () => {
+      storedEvents = [storedEvent({ id: NOTIFYING_ID })];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        writtenStatuses().some((written: { id: string; status: unknown }) => {
+          return (
+            written.status === StatusPageSubscriberNotificationStatus.Skipped
+          );
+        }),
+      ).toBe(false);
+      expect(notifiedEvents()).toHaveLength(1);
+    });
   });
 });

@@ -179,5 +179,56 @@ export class Service extends DatabaseService<AlertState> {
 
     return ackAlertState;
   }
+
+  /*
+   * The project's created state: where a new alert or alert episode starts
+   * when its create names no state (AlertService, AlertEpisodeService), as
+   * every one OneUptime raises itself does.
+   */
+  @CaptureSpan()
+  public async getCreatedAlertStateId(projectId: ObjectID): Promise<ObjectID> {
+    const createdAlertState: AlertState | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isCreatedState: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!createdAlertState || !createdAlertState.id) {
+      throw new BadDataException(
+        "Created alert state not found for this project. Please add created alert state from settings.",
+      );
+    }
+
+    return createdAlertState.id;
+  }
+
+  // Whether one of the project's alert states is its resolved state.
+  @CaptureSpan()
+  public async isResolvedAlertState(data: {
+    projectId: ObjectID;
+    alertStateId: ObjectID;
+  }): Promise<boolean> {
+    const alertState: AlertState | null = await this.findOneBy({
+      query: {
+        _id: data.alertStateId.toString(),
+        projectId: data.projectId,
+      },
+      select: {
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(alertState?.isResolvedState);
+  }
 }
 export default new Service();

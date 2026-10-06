@@ -163,30 +163,30 @@ Escalation rules decide who is rung when someone calls the policy's number, from
 3. Click **Add Escalation Rule**
 4. Fill in the rule. It is one step:
    - **Who to call**: an on-call schedule or one person. A schedule rings whoever is on call in it when the call comes in. People are the members of your project.
-   - **Ring for (in seconds)**: how long their phone rings before the call moves on to the next rule. It starts at 30 seconds, and Twilio takes 5 to 600.
+   - **Ring for (in seconds)**: how long their phone rings before the call moves on to the next rule. It starts at 20 seconds, and Twilio takes 5 to 600.
    - **Name** and **Description** are optional, under **More fields**. A rule without a name is listed after its place in the list: **Level 1**, **Level 2**.
 5. Save it, and add a rule for each schedule or person to try next
 
 Rules are called from the top of the list down, and a new rule is added to the end. To change the order, drag a rule by the handle at its top left; from the keyboard, focus the handle, press Space, move it with the arrow keys and press Space again.
 
-> **Mind voicemail**: keep **Ring for** shorter than the time the person's phone takes to send an unanswered call to voicemail. If their voicemail answers first, the caller is connected to it and the call does not move on to the next rule. Twilio adds a few seconds of its own to every ring.
+> **Mind voicemail**: keep **Ring for** shorter than the time the person's phone takes to send an unanswered call to voicemail. If their voicemail answers first, the caller is connected to it and the call does not move on to the next rule. Twilio adds a few seconds of its own to every ring. A new rule starts at 20 seconds for this reason. Rules added when the default was 30 seconds keep their 30: if their calls end in voicemail, lower **Ring for** on those rules.
 
 ### Escalation Rule Example
 
 ```mermaid
 flowchart TD
     subgraph "Escalation Chain"
-        A[Level 1: Primary on-call schedule<br/>Ring for 30 seconds] --> B[Level 2: Secondary on-call schedule<br/>Ring for 30 seconds]
-        B --> C[Level 3: Engineering lead<br/>Ring for 30 seconds]
+        A[Level 1: Primary on-call schedule<br/>Ring for 20 seconds] --> B[Level 2: Secondary on-call schedule<br/>Ring for 20 seconds]
+        B --> C[Level 3: Engineering lead<br/>Ring for 20 seconds]
         C --> D[No Answer Message]
     end
 ```
 
 | Level   | Who to call                 | Ring for   |
 | ------- | --------------------------- | ---------- |
-| Level 1 | Primary on-call schedule    | 30 seconds |
-| Level 2 | Secondary on-call schedule  | 30 seconds |
-| Level 3 | Engineering lead (a person) | 30 seconds |
+| Level 1 | Primary on-call schedule    | 20 seconds |
+| Level 2 | Secondary on-call schedule  | 20 seconds |
+| Level 3 | Engineering lead (a person) | 20 seconds |
 
 ## Step 7: Configure Voice Messages (Optional)
 
@@ -216,11 +216,11 @@ Customize the messages callers hear:
 | Setting               | Description                                                                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Who to call           | An on-call schedule, which rings whoever is on call in it, or one person. Each rule calls one of them                                                       |
-| Ring for (in seconds) | How long the phone rings before the call moves on to the next rule (default: 30; from 5 to 600)                                                             |
+| Ring for (in seconds) | How long the phone rings before the call moves on to the next rule (default: 20; from 5 to 600)                                                             |
 | Name and Description  | Optional, under More fields. A rule without a name is listed as Level 1, Level 2 and so on, after its place in the list                                     |
 | Order                 | Where the rule sits in the list: rules are called from the top down. Set by dragging the rules; through the API, a new rule without one goes to the end |
 
-Through the API, a rule sets `onCallDutyPolicyScheduleId` or `userId` (one of them, never both) and `escalateAfterSeconds`: the ring time, 30 when left out.
+Through the API, a rule sets `onCallDutyPolicyScheduleId` or `userId` (one of them, never both) and `escalateAfterSeconds`: the ring time, 20 when left out.
 
 ## Viewing Call Logs
 

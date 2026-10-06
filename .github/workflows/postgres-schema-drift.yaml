@@ -632,6 +632,22 @@ jobs:
           Tests/Server/Infrastructure/Postgres/TurnOnResourceAiInvestigationByDefaultPostgres.test.ts
           --forceExit
 
+      # Clones the migrated IncomingCallPolicyEscalationRule table into an
+      # isolated schema and runs the 20 second ring time default on seeded
+      # rules: new rules start at 20, every existing rule keeps its ring time,
+      # and a rollback puts the 30 second default back.
+      - name: Test the incoming call ring time default migration on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_INCOMING_CALL_RING_TIME_TESTS: "true"
+          INCOMING_CALL_RING_TIME_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          INCOMING_CALL_RING_TIME_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          INCOMING_CALL_RING_TIME_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/StartIncomingCallRulesAtTwentySecondsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated LlmLog and AIRun tables into an isolated schema,
       # seeds a long AI Log history and reads the plans Postgres executes for
       # the daily AI limit sums (the project's limits and every incident and

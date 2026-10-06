@@ -476,8 +476,44 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
     await expect(create()).rejects.toThrow("connection reset");
   });
 
-  test("the user who made the request is recorded as the one who linked it", async () => {
-    const result: OnCreate<IncidentAlert> = await create(
+  /*
+   * Who linked it is the link's creator, which DatabaseService decides for
+   * every record (UserAttribution): it takes whatever creator the request
+   * names out of the write before this hook runs, and stamps the person
+   * making the request after the permission check. These run the real
+   * create path, hook included, and stop right after the hooks.
+   */
+  async function reachedPastTheHooks(
+    props: DatabaseCommonInteractionProps,
+    data: Partial<IncidentAlert>,
+  ): Promise<Record<string, unknown>> {
+    let reached: Record<string, unknown> = {};
+
+    jest
+      .spyOn(
+        IncidentAlertService as unknown as {
+          generateSlug: (createBy: CreateBy<IncidentAlert>) => unknown;
+        },
+        "generateSlug",
+      )
+      .mockImplementation((createBy: CreateBy<IncidentAlert>) => {
+        reached = {
+          ...(createBy.data as unknown as Record<string, unknown>),
+        };
+        throw new Error("past the hooks");
+      });
+
+    await expect(
+      IncidentAlertService.create({ data: buildLink(data), props: props }),
+    ).rejects.toThrow("past the hooks");
+
+    expect(incidentRead).toHaveBeenCalled();
+
+    return reached;
+  }
+
+  test("a user cannot name somebody else as the one who linked it, under either name", async () => {
+    const reached: Record<string, unknown> = await reachedPastTheHooks(
       userProps(Permission.ProjectMember),
       {
         createdByUserId: OTHER_USER_ID,
@@ -485,19 +521,27 @@ describe("onBeforeCreate: a user may only link what they can see", () => {
       },
     );
 
-    expect(result.createBy.data.createdByUserId?.toString()).toBe(
-      USER_ID.toString(),
-    );
-    expect(result.createBy.data.createdByUser).toBeUndefined();
+    expect(reached["createdByUserId"]).toBeUndefined();
+    expect(reached["createdByUser"]).toBeUndefined();
   });
 
   test("an API key cannot name somebody else as the one who linked it", async () => {
-    const result: OnCreate<IncidentAlert> = await create(
+    const reached: Record<string, unknown> = await reachedPastTheHooks(
       userProps(Permission.ProjectMember, null),
       { createdByUserId: OTHER_USER_ID },
     );
 
+    expect(reached["createdByUserId"]).toBeUndefined();
+    expect(reached["createdByUser"]).toBeUndefined();
+  });
+
+  test("the hook itself names nobody as the one who linked it", async () => {
+    const result: OnCreate<IncidentAlert> = await create(
+      userProps(Permission.ProjectMember),
+    );
+
     expect(result.createBy.data.createdByUserId).toBeUndefined();
+    expect(result.createBy.data.createdByUser).toBeUndefined();
   });
 
   test.each([

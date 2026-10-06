@@ -831,7 +831,6 @@
   "Webhook Secret Token": "Token secreto del webhook",
   "Webhook Verify Token": "Token de verificación del webhook",
   "Webhook verify token": "Token de verificación del webhook",
-  "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "¿A quién le gustaría que fuera el propietario de este proyecto? Si lo deja en blanco, usted será el propietario del proyecto",
   "Yearly Plan": "Plan anual",
   "You can find this in your Twilio console.": "Puede encontrar esto en su consola de Twilio.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "El nombre de usuario de Telegram de su bot, sin la @ inicial. Los nombres de usuario de Telegram terminan en 'bot'.",

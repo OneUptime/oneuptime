@@ -16,6 +16,7 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 | `no matching version found for oneuptime/oneuptime` | Exact-version pin on a version that was never published | Use a pessimistic constraint like `~> 11.0` |
 | Data source error: no match / more than one match | Name lookup found zero or multiple resources | Fix the name, or look up by `id` |
 | `references records that are not in this project` | An ID copied from another project's configuration, or one of a resource that has been deleted | Use the ID of your project's own record — see below |
+| `Invalid Configuration for Read-Only Attribute` on `created_by_user_id`, another `..._by_user_id` or `archived_at` | OneUptime records who created or archived a record, and when, so the provider offers these for reading only | Remove the attribute from the configuration — see below |
 | `x509: certificate signed by unknown authority` (self-hosted) | Instance serves a TLS certificate Terraform's host does not trust | Install the CA on the machine running Terraform |
 | Connection refused / 404s on every API call (self-hosted) | Wrong `oneuptime_url` (path suffix, wrong port, http vs https) | Set `oneuptime_url` to the bare instance origin, e.g. `https://oneuptime.example.com` |
 | Monitor JSON from the dashboard rejected | Dashboard-exported JSON pasted as Terraform configuration | Rebuild as HCL — see below |
@@ -55,6 +56,10 @@ This network device references records that are not in this project: Network Sit
 ```
 
 It usually means an ID was copied from another project's configuration or state, or the record was deleted outside Terraform. Refer to the record through its resource or a data source in the same configuration (`oneuptime_label.critical.id`) instead of a literal ID, and apply again. Someone named as a user must be a member of the project.
+
+## "Invalid Configuration for Read-Only Attribute" on `created_by_user_id`
+
+Who created a record — and who archived, resolved or acknowledged it — is recorded by OneUptime from the request: the person signed in, and nobody for a request made with an API key, which is how Terraform signs in. So `created_by_user_id`, and every other attribute ending in `_by_user_id`, is read-only: you can read it from a resource or a data source, but not set it. The same goes for `archived_at`: setting `is_archived` records when the resource was archived, and applying it again unchanged keeps that time. A configuration that sets one of these stops at `terraform plan` with this error. Remove the attribute from the resource block; nothing else about the resource changes.
 
 ## "no matching version found" from the registry
 

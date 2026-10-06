@@ -376,14 +376,7 @@ export default class StatusPageSubscriberNotificationTemplateStatusPage extends 
   public createdByUser?: User = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageSubscriberNotificationTemplateStatusPage,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

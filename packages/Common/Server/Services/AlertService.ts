@@ -51,6 +51,7 @@ import {
   getAffectedResourceRelations,
 } from "../Utils/Database/AffectedResourceRelations";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ReferenceChange from "../Utils/Database/ReferenceChange";
 import CreatedByUser from "../Utils/Database/CreatedByUser";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
@@ -132,12 +133,17 @@ interface AlertMonitorChange {
 
 /*
  * Handed from onBeforeUpdate to onUpdateSuccess. Once the update has run the
- * row holds the new monitor, so the one it held before is only known from
- * the read made before the write.
+ * row holds the new monitor and the new severity, so the ones it held before
+ * are only known from the reads made before the write.
  */
 interface AlertUpdateCarryForward {
   // Keyed by alert id.
   monitorChanges: Dictionary<AlertMonitorChange>;
+  /*
+   * The severity each alert held before the update (null: none), keyed by
+   * alert id, read only when the update writes one (getSeveritiesBeforeUpdate).
+   */
+  severityIdsBeforeUpdate: Dictionary<string | null>;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -371,9 +377,56 @@ export class Service extends ProjectReferencesService<Model> {
 
     const carryForward: AlertUpdateCarryForward = {
       monitorChanges: monitorChanges,
+      severityIdsBeforeUpdate: await this.getSeveritiesBeforeUpdate(updateBy),
     };
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A severity change records itself in the alert feed and re-matches the
+   * reminder rule (onUpdateSuccess). Updates often write back the severity
+   * an alert holds - the dashboard's forms send it with every save, and an
+   * API client or a workflow may write the whole alert - so the severity
+   * each alert the update matches holds is read here, before the write, for
+   * onUpdateSuccess to act on a real change only (ReferenceChange). One read,
+   * of that column alone, and only when the update writes a severity, under
+   * either of its names; nothing is read otherwise.
+   */
+  private async getSeveritiesBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Dictionary<string | null>> {
+    const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
+      updateBy.data as unknown as Record<string, unknown>,
+      ALERT_SEVERITY_KEYS,
+      "Alert Severity",
+    );
+
+    if (!writtenSeverityId) {
+      return {};
+    }
+
+    const alerts: Array<Model> = await this.findAlertsForUpdateHook({
+      updateBy: updateBy,
+      select: {
+        _id: true,
+        alertSeverityId: true,
+      },
+    });
+
+    const severityIdsBeforeUpdate: Dictionary<string | null> = {};
+
+    for (const alert of alerts) {
+      if (!alert.id) {
+        continue;
+      }
+
+      severityIdsBeforeUpdate[alert.id.toString()] = alert.alertSeverityId
+        ? alert.alertSeverityId.toString()
+        : null;
+    }
+
+    return severityIdsBeforeUpdate;
   }
 
   /*
@@ -642,25 +695,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The severity, the monitor status, the monitor and - on an update - the
-   * state an alert write names, each by both of its names
-   * (getWrittenRelationReferences): every name that holds an id is a
-   * reference to check, and two names that disagree are refused.
+   * The state, the severity, the monitor status and the monitor an alert
+   * write names, each by both of its names (getWrittenRelationReferences):
+   * every name that holds an id is a reference to check, and two names that
+   * disagree are refused. On a create, the state is the one the write
+   * picked, if any (onBeforeCreate).
    */
-  private getWrittenReferences(
-    data: unknown,
-    options?: { withState: boolean },
-  ): Array<ProjectScopedReference> {
+  private getWrittenReferences(data: unknown): Array<ProjectScopedReference> {
     return [
-      ...(options?.withState ?? true
-        ? getWrittenRelationReferences({
-            payload: data,
-            idColumn: "currentAlertStateId",
-            relation: "currentAlertState",
-            modelName: "Alert State",
-            service: AlertStateService,
-          })
-        : []),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "currentAlertStateId",
+        relation: "currentAlertState",
+        modelName: "Alert State",
+        service: AlertStateService,
+      }),
       ...getWrittenRelationReferences({
         payload: data,
         idColumn: "alertSeverityId",
@@ -746,41 +795,30 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alertState || !alertState.id) {
-      throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
-      );
-    }
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     /*
-     * Every alert starts in the project's created state, whatever state the
-     * write named under either name: stamp leaves no other name of it to be
-     * stored instead.
+     * The state the alert starts in, when the write picks one: the Create
+     * Alert form's Initial State sends the relation, the API, Terraform and
+     * workflows the ID column. Either name, and the two must agree. The pick
+     * is checked against the project with the alert's other references
+     * below, so a state of another project is refused like any of them.
+     * With none picked, the alert starts in the project's created state,
+     * where every alert a monitor raises starts.
      */
-    RelationIdUtil.stamp(
-      createBy.data as unknown as Record<string, unknown>,
+    const pickedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
       ALERT_STATE_KEYS,
-      alertState.id,
+      "Alert State",
     );
 
     /*
-     * The severity and the monitor status stamped on the alert come from the
-     * monitor criteria or the API caller, neither of which checked that the
-     * record belongs to this project. Persisting another project's id leaves
-     * that project undeletable, so reject it here.
+     * The state picked, the severity and the monitor status stamped on the
+     * alert come from the create form, the monitor criteria or the API
+     * caller, none of which checked that the record belongs to this project.
+     * Persisting another project's id leaves that project undeletable, so
+     * reject it here.
      *
      * The monitor, on-call policies and labels are checked too, for a worse
      * reason: onCreateSuccess executes every listed on-call policy, so
@@ -796,8 +834,11 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       subject: "alert",
       references: [
-        // The state is the stamp above, the project's own.
-        ...this.getWrittenReferences(createBy.data, { withState: false }),
+        /*
+         * The state as the write picked it, if it did: the created state
+         * stamped below is the project's own and needs no check.
+         */
+        ...this.getWrittenReferences(createBy.data),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -818,6 +859,20 @@ export class Service extends ProjectReferencesService<Model> {
         subject: "alert",
         serviceLevelObjectives: createBy.data.serviceLevelObjectives,
       },
+    );
+
+    /*
+     * The state it starts in, under the ID column alone: stamp leaves no
+     * other name of it to be stored instead, so the state checked above is
+     * the state stored - and the state onCreateSuccess writes the alert's
+     * first timeline row in. The created state is looked up only when the
+     * write picked none.
+     */
+    RelationIdUtil.stamp(
+      createData,
+      ALERT_STATE_KEYS,
+      pickedAlertStateId ||
+        (await AlertStateService.getCreatedAlertStateId(projectId)),
     );
 
     /*
@@ -1643,6 +1698,11 @@ ${alert.remediationNotes || "No remediation notes provided."}
       (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
         ?.monitorChanges || {};
 
+    // What each alert held before the write, when the update writes a severity.
+    const severityIdsBeforeUpdate: Dictionary<string | null> =
+      (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
+        ?.severityIdsBeforeUpdate || {};
+
     for (const itemId of updatedItemIds) {
       /*
        * Every alert metric and measurement point is stamped with the alert's
@@ -1681,23 +1741,20 @@ ${alert.remediationNotes || "No remediation notes provided."}
     );
 
     /*
-     * The severity's feed entry and reminder refresh follow a severity
-     * written as the relation, which is how the dashboard's forms send it,
-     * as they always have. They do not compare it with the severity the alert
-     * had, so they would repeat for every write that re-sends the ID column
-     * unchanged. The id they act on is the one stored: both names, read
-     * together.
+     * The severity the update wrote, under either of its names: the
+     * dashboard's forms send the relation, the API, Terraform, workflows and
+     * the AI tools the ID column, and onBeforeUpdate refused two that
+     * disagree. Its feed entry and reminder refresh run for each alert whose
+     * severity this changed - compared with the severity it held before the
+     * write (getSeveritiesBeforeUpdate) - so writing back the severity an
+     * alert holds runs neither.
      */
-    const updatedAlertSeverityId: ObjectID | null = RelationIdUtil.isPresent(
-      onUpdate.updateBy.data as unknown as Record<string, unknown>,
-      ["alertSeverity"],
-    )
-      ? RelationIdUtil.readConsistent(
-          onUpdate.updateBy.data as unknown as Record<string, unknown>,
-          ALERT_SEVERITY_KEYS,
-          "Alert Severity",
-        )
-      : null;
+    const writtenAlertSeverityId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        ALERT_SEVERITY_KEYS,
+        "Alert Severity",
+      );
 
     if (updatedAlertStateId && onUpdate.updateBy.props.tenantId) {
       for (const itemId of updatedItemIds) {
@@ -1721,6 +1778,16 @@ ${alert.remediationNotes || "No remediation notes provided."}
 
       for (const alertId of updatedItemIds) {
         let shouldAddAlertFeed: boolean = false;
+
+        /*
+         * An alert the read before the write did not see has no entry, and
+         * counts as changed (ReferenceChange), so a real change is never
+         * missed.
+         */
+        const isSeverityChanged: boolean = ReferenceChange.isChanged({
+          writtenId: writtenAlertSeverityId,
+          idBeforeUpdate: severityIdsBeforeUpdate[alertId.toString()],
+        });
 
         const alert: Model | null = await this.findOneById({
           id: alertId,
@@ -1829,11 +1896,11 @@ ${labels
           }
         }
 
-        if (updatedAlertSeverityId) {
+        if (isSeverityChanged && writtenAlertSeverityId) {
           const alertSeverity: AlertSeverity | null =
             await AlertSeverityService.findOneBy({
               query: {
-                _id: updatedAlertSeverityId,
+                _id: writtenAlertSeverityId,
               },
               select: {
                 name: true,
@@ -1867,7 +1934,7 @@ ${alertSeverity.name}
 
         // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
         if (
-          updatedAlertSeverityId ||
+          isSeverityChanged ||
           (onUpdate.updateBy.data.labels &&
             Array.isArray(onUpdate.updateBy.data.labels)) ||
           Object.prototype.hasOwnProperty.call(

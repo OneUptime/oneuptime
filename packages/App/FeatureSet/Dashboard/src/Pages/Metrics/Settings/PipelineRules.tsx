@@ -182,7 +182,7 @@ Add one or more **Filters** to decide which data points the rule fires on:
 - **Metric Name** — match on the metric name with conditions like Equal To, Contains, Starts With, Matches Regex, etc.
 - **Attribute** — match on a specific attribute key. Choose Is Present / Is Not Present / Is Empty / Is Not Empty for key-based checks, or Equal To / Contains / Matches Regex (etc.) to compare the attribute value.
 
-Once a rule has two or more filters, **Filter Condition** decides how they are combined (with one filter or none there is nothing to combine, so it is not asked):
+Once a rule has two or more filters, **Match Condition** decides how they are combined (with one filter or none there is nothing to combine, so it is not asked):
 
 - **All** (AND) — the data point must match every filter.
 - **Any** (OR) — the data point matches if at least one filter matches.
@@ -204,7 +204,7 @@ If no filters are added, the rule applies to every metric data point.
  * the two steps after it. Two steps now, both about the rule, as a log or
  * trace drop filter walks them (Components/Telemetry/DropFilterForm):
  *
- *   - Match: the rule's name and its filters. Filter Condition (All / Any)
+ *   - Match: the rule's name and its filters. Match Condition (All / Any)
  *     shows once there are two filters to combine (isFilterConditionNeeded,
  *     the rule the conditions builder follows); until then it keeps its
  *     default, All, which is what the rule is saved with. Then, folded under
@@ -341,7 +341,8 @@ const MetricPipelineRules: FunctionComponent<
          */
         {
           field: { filterCondition: true },
-          title: "Filter Condition",
+          // As every All / Any choice is titled (FilterConditionUtil).
+          title: "Match Condition",
           stepId: "match",
           description:
             "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).",

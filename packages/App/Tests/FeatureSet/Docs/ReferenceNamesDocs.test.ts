@@ -1,4 +1,7 @@
 import Alert from "Common/Models/DatabaseModels/Alert";
+import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
+import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
+import { getUniqueColumnsBy } from "Common/Types/Database/UniqueColumnBy";
 import RelationIdUtil from "Common/Server/Utils/Database/RelationIdUtil";
 import RelationNames, {
   RelationName,
@@ -71,6 +74,36 @@ describe("the API reference on a record named two ways", () => {
 
     expect(text).toContain(
       "two different IDs, or an ID and an empty value — is refused with a `400` that names both fields",
+    );
+  });
+
+  test("English says the record's rules hold whichever name a request uses", () => {
+    const text: string = readApiReference("en");
+
+    expect(text).toContain("Either name is checked the same way.");
+    expect(text).toContain(
+      "a status page group's parent group must be on the same status page",
+    );
+    expect(text).toContain("a status page takes at most three header links");
+    expect(text).toContain("a group's name must be unique on its status page");
+  });
+
+  test("Persian says the same", () => {
+    expect(readApiReference("fa")).toContain(
+      "هر دو نام به یک شکل سنجیده می‌شوند.",
+    );
+  });
+
+  test("the examples are the rules the server holds", () => {
+    // At most three header links on a page.
+    expect(new StatusPageHeaderLink().getTotalItemsByColumnName()).toBe(
+      "statusPageId",
+    );
+    expect(new StatusPageHeaderLink().getTotalItemsNumber()).toBe(3);
+
+    // A group's name is unique on its page.
+    expect(getUniqueColumnsBy(new StatusPageGroup())).toEqual(
+      expect.objectContaining({ name: "statusPageId" }),
     );
   });
 });

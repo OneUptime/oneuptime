@@ -58,6 +58,8 @@ const CREATED_STATE: string = "0193c0de-dec1-4aaa-8bbb-0000000000a1";
 const OTHER_STATE: string = "0193c0de-dec1-4aaa-8bbb-0000000000a2";
 
 const SEVERITY: string = "0193c0de-dec1-4aaa-8bbb-0000000000b1";
+// The severity a record held before an update changed it.
+const PREVIOUS_SEVERITY: string = "0193c0de-dec1-4aaa-8bbb-0000000000b3";
 const TEMPLATE_SEVERITY: string = "0193c0de-dec1-4aaa-8bbb-0000000000b2";
 const STATUS: string = "0193c0de-dec1-4aaa-8bbb-0000000000c1";
 const TEMPLATE_STATUS: string = "0193c0de-dec1-4aaa-8bbb-0000000000c2";
@@ -120,12 +122,22 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * An alert and both kinds of episode start in the state the write picks -
+ * their create forms offer an Initial State - or, with none picked, in the
+ * project's created state. A scheduled maintenance event always starts in
+ * the project's scheduled state: its state follows its schedule, and its
+ * form offers none. Either way the state is written under the ID column
+ * alone, so a relation sent beside it is not what TypeORM stores.
+ */
 describe("the state a record starts in is the one the service stamps", () => {
   interface StartingStateCase {
     name: string;
     service: unknown;
     relation: string;
     idColumn: string;
+    // Whether the state the write names is where the record starts.
+    startsInPickedState: boolean;
     // The step right after the stamp, stopped there.
     stopAfterStamp: () => void;
     newRecord: () => Record<string, unknown>;
@@ -137,6 +149,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: AlertService,
       relation: "currentAlertState",
       idColumn: "currentAlertStateId",
+      startsInPickedState: true,
       stopAfterStamp: () => {
         jest
           .spyOn(CustomFieldMappingService, "applyMappingsToCreate")
@@ -154,6 +167,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: ScheduledMaintenanceService,
       relation: "currentScheduledMaintenanceState",
       idColumn: "currentScheduledMaintenanceStateId",
+      startsInPickedState: false,
       stopAfterStamp: () => {
         jest
           .spyOn(ProjectService, "incrementAndGetScheduledMaintenanceCounter")
@@ -168,6 +182,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: IncidentEpisodeService,
       relation: "currentIncidentState",
       idColumn: "currentIncidentStateId",
+      startsInPickedState: true,
       stopAfterStamp: () => {
         jest
           .spyOn(ProjectService, "incrementAndGetIncidentEpisodeCounter")
@@ -182,6 +197,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: AlertEpisodeService,
       relation: "currentAlertState",
       idColumn: "currentAlertStateId",
+      startsInPickedState: true,
       stopAfterStamp: () => {
         jest
           .spyOn(ProjectService, "incrementAndGetAlertEpisodeCounter")
@@ -193,8 +209,13 @@ describe("the state a record starts in is the one the service stamps", () => {
     },
   ];
 
+  // Where a record whose write named OTHER_STATE starts.
+  function startingStateOf(testCase: StartingStateCase): string {
+    return testCase.startsInPickedState ? OTHER_STATE : CREATED_STATE;
+  }
+
   test.each(CASES)(
-    "$name: a state the write named under the relation is not stored over the starting state",
+    "$name: a state the write named under the relation is stored under the ID column alone, where the record may start in it",
     async (testCase: StartingStateCase) => {
       testCase.stopAfterStamp();
 
@@ -212,13 +233,13 @@ describe("the state a record starts in is the one the service stamps", () => {
         ),
       ).toBeInstanceOf(PastTheStep);
 
-      expect(String(data[testCase.idColumn])).toBe(CREATED_STATE);
+      expect(String(data[testCase.idColumn])).toBe(startingStateOf(testCase));
       expect(has(data, testCase.relation)).toBe(false);
     },
   );
 
   test.each(CASES)(
-    "$name: a state written under the ID column is replaced the same way",
+    "$name: a state written under the ID column is decided the same way",
     async (testCase: StartingStateCase) => {
       testCase.stopAfterStamp();
 
@@ -234,7 +255,28 @@ describe("the state a record starts in is the one the service stamps", () => {
         }),
       );
 
+      expect(String(data[testCase.idColumn])).toBe(startingStateOf(testCase));
+    },
+  );
+
+  test.each(CASES)(
+    "$name: with no state named, it starts in the project's starting state",
+    async (testCase: StartingStateCase) => {
+      testCase.stopAfterStamp();
+
+      const data: Record<string, unknown> = testCase.newRecord();
+
+      expect(
+        await outcomeOf(
+          hooksOf(testCase.service)["onBeforeCreate"]!({
+            data: data,
+            props: { tenantId: PROJECT_ID },
+          }),
+        ),
+      ).toBeInstanceOf(PastTheStep);
+
       expect(String(data[testCase.idColumn])).toBe(CREATED_STATE);
+      expect(has(data, testCase.relation)).toBe(false);
     },
   );
 });
@@ -549,12 +591,14 @@ describe("an update that writes a state changes the state, under either name", (
 });
 
 /*
- * The severity's feed entry, SLA recalculation and metric follow a severity
- * written as the relation, which is how the dashboard's forms send it, as
- * they did before both names were read: they do not compare it with the
- * severity the incident had. The id they act on is the stored one.
+ * The severity's feed entry, SLA recalculation, reminder refresh and metric
+ * follow a severity change written under either name - the relation the
+ * dashboard's forms send, or the ID column the API, Terraform, workflows and
+ * the AI tools send - against the severity the incident held before the
+ * write, which onBeforeUpdate hands over (SeverityChangeSideEffects.test.ts
+ * runs both hooks). The id they act on is the stored one.
  */
-describe("an incident update records a severity written as the relation", () => {
+describe("an incident update records a severity change written under either name", () => {
   interface SeverityEffects {
     severityLookup: jest.Mock;
     recalculate: jest.Mock;
@@ -596,7 +640,11 @@ describe("an incident update records a severity written as the relation", () => 
     };
   }
 
-  async function runUpdate(data: Record<string, unknown>): Promise<void> {
+  // The update, with the severity the incident held before it.
+  async function runUpdate(
+    data: Record<string, unknown>,
+    severityBeforeUpdate: string = PREVIOUS_SEVERITY,
+  ): Promise<void> {
     await hooksOf(IncidentService)["onUpdateSuccess"]!(
       {
         updateBy: {
@@ -604,7 +652,15 @@ describe("an incident update records a severity written as the relation", () => 
           data: data,
           props: { tenantId: PROJECT_ID, userId: USER_ID },
         },
-        carryForward: {},
+        carryForward: {
+          [RECORD_ID.toString()]: {
+            monitorsRemoved: [],
+            monitorsAdded: [],
+            oldChangeMonitorStatusIdTo: undefined,
+            newMonitorChangeStatusIdTo: undefined,
+            severityIdBeforeUpdate: severityBeforeUpdate,
+          },
+        },
       },
       [RECORD_ID],
     );
@@ -612,6 +668,10 @@ describe("an incident update records a severity written as the relation", () => 
 
   test.each([
     ["the relation alone", { incidentSeverity: { _id: SEVERITY } }],
+    [
+      "the ID column alone, as the API, Terraform and workflows write it",
+      { incidentSeverityId: new ObjectID(SEVERITY) },
+    ],
     [
       "both names, holding the same id",
       {
@@ -643,20 +703,27 @@ describe("an incident update records a severity written as the relation", () => 
     },
   );
 
-  test("the ID column alone, which an API write may re-send unchanged, is not announced", async () => {
-    const effects: SeverityEffects = spyOnSeverityEffects();
+  test.each([
+    ["the ID column", { incidentSeverityId: new ObjectID(SEVERITY) }],
+    ["the relation", { incidentSeverity: { _id: SEVERITY } }],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "the severity the incident already held, written back under %s, is not announced",
+    async (_label: string, data: Record<string, unknown>) => {
+      const effects: SeverityEffects = spyOnSeverityEffects();
 
-    await runUpdate({ incidentSeverityId: new ObjectID(SEVERITY) });
+      await runUpdate(data, SEVERITY);
 
-    expect(effects.severityLookup).not.toHaveBeenCalled();
-    expect(effects.recalculate).not.toHaveBeenCalled();
-    expect(effects.feed).not.toHaveBeenCalled();
-  });
+      expect(effects.severityLookup).not.toHaveBeenCalled();
+      expect(effects.recalculate).not.toHaveBeenCalled();
+      expect(effects.feed).not.toHaveBeenCalled();
+    },
+  );
 });
 
-describe("an alert update records a severity written as the relation", () => {
+describe("an alert update records a severity change written under either name", () => {
   async function runUpdate(
     data: Record<string, unknown>,
+    severityBeforeUpdate: string = PREVIOUS_SEVERITY,
   ): Promise<{ outcome: unknown; severityLookup: jest.Mock }> {
     const severityLookup: jest.Mock = jest
       .spyOn(AlertSeverityService, "findOneBy")
@@ -678,7 +745,12 @@ describe("an alert update records a severity written as the relation", () => {
             data: data,
             props: { tenantId: PROJECT_ID, userId: USER_ID },
           },
-          carryForward: null,
+          carryForward: {
+            monitorChanges: {},
+            severityIdsBeforeUpdate: {
+              [RECORD_ID.toString()]: severityBeforeUpdate,
+            },
+          },
         },
         [RECORD_ID],
       ),
@@ -689,6 +761,10 @@ describe("an alert update records a severity written as the relation", () => {
 
   test.each([
     ["the relation alone", { alertSeverity: { _id: SEVERITY } }],
+    [
+      "the ID column alone, as the API, Terraform and workflows write it",
+      { alertSeverityId: new ObjectID(SEVERITY) },
+    ],
     [
       "both names, holding the same id",
       {
@@ -711,12 +787,16 @@ describe("an alert update records a severity written as the relation", () => {
     },
   );
 
-  test("the ID column alone, which an API write may re-send unchanged, is not announced", async () => {
-    const { outcome, severityLookup } = await runUpdate({
-      alertSeverityId: new ObjectID(SEVERITY),
-    });
+  test.each([
+    ["the ID column", { alertSeverityId: new ObjectID(SEVERITY) }],
+    ["the relation", { alertSeverity: { _id: SEVERITY } }],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "the severity the alert already held, written back under %s, is not announced",
+    async (_label: string, data: Record<string, unknown>) => {
+      const { outcome, severityLookup } = await runUpdate(data, SEVERITY);
 
-    expect(outcome).not.toBeInstanceOf(PastTheStep);
-    expect(severityLookup).not.toHaveBeenCalled();
-  });
+      expect(outcome).not.toBeInstanceOf(PastTheStep);
+      expect(severityLookup).not.toHaveBeenCalled();
+    },
+  );
 });

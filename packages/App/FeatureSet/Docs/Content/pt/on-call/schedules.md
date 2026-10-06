@@ -22,6 +22,8 @@ O rodízio de um agendamento é feito de camadas, na sua página **Camadas**. As
 
 **Adicionar camada** adiciona uma camada que começa como a primeira: de plantão a partir de agora, cada pessoa por uma semana, 24 horas por dia. Expanda uma camada para adicionar pessoas e para mudar quando ela começa, com que frequência passa o plantão, quando passa pela primeira vez e as horas em que fica de plantão.
 
+Cada pessoa mantém a mesma cor em todos os lugares, para que você a acompanhe num relance: em cada camada, no agendamento final e nas substituições dele, e na **Linha do tempo de plantões**.
+
 ## Criar agendamentos com a API ou o Terraform
 
 Os agendamentos de plantão são o recurso `/api/on-call-duty-policy-schedule`; suas camadas e as pessoas nelas são os recursos `/api/on-call-duty-schedule-layer` e `/api/on-call-duty-schedule-layer-user`.

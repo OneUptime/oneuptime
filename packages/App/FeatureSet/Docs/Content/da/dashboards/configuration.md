@@ -56,7 +56,7 @@ Selve dashboards udløber ikke. De data, de viser, følger dit projekts opbevari
 
 ## Duplicering af et dashboard
 
-For at kopiere et eksisterende dashboard åbner du dashboard-listen og vælger **Duplicate**. Kopien inkluderer hver widget, variabel og indstilling undtagen offentlig deling — den starter altid slukket, så du kan beslutte, om du vil slå den til igen.
+For at kopiere et dashboard åbner du det og går til **Indstillinger → Duplicate Dashboard**. Kopiens navn er udfyldt for dig: dashboardets navn, nummereret forbi de navne, projektet allerede har ("Checkout API" kopieres som "Checkout API 2", og en kopi af den som "Checkout API 3"). Ret det, hvis du vil, klik på **Duplicate Dashboard**, og kopien åbnes. Den har dashboardets widgets, variabler, beskrivelse og labels. Branding og brugerdefinerede domæner bliver hos originalen, og offentlig deling starter altid slukket, så du kan beslutte, om du vil slå den til.
 
 Dette er det rigtige træk, når du vil forgrene en skabelon (såsom "vores vagt-dashboard") til en service-specifik kopi.
 

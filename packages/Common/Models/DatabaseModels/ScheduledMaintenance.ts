@@ -1636,7 +1636,7 @@ export default class ScheduledMaintenance extends BaseModel {
       Permission.ProjectMember,
       Permission.ScheduledMaintenanceAdmin,
       Permission.ScheduledMaintenanceMember,
-      Permission.CreateIncidentPublicNote,
+      Permission.CreateProjectScheduledMaintenance,
     ],
     read: [
       Permission.ProjectOwner,

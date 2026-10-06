@@ -125,7 +125,7 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1796700000000-AddMessageQueueTables
   "MessageQueueOwnerTeam",
   "MessageQueueOwnerUser",
-  // 1798500000000-AddStorageArrayTables
+  // 1798700000000-AddStorageArrayTables
   "StorageArrayOwnerTeam",
   "StorageArrayOwnerUser",
 ];

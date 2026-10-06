@@ -97,7 +97,7 @@ För att pausa ett arbetsflöde utan att ta bort det, slå av **Aktiverad**. Ing
 - Dra block för att flytta dem. Layouten sparas.
 - För att ta bort en linje, dra någon av dess ändar av punkten och släpp den på tom arbetsyta.
 - För att ta bort ett block, klicka på det och använd **Ta bort** längst ner i dess inställningsdialog. Att markera ett block eller en linje och trycka på backsteg tar också bort det.
-- Det går inte att duplicera ett enskilt block. **Duplicate Workflow** på arbetsflödets sida **Inställningar** kopierar hela saken, och kopian landar inaktiverad.
+- Det går inte att duplicera ett enskilt block. **Duplicate Workflow** på arbetsflödets sida **Inställningar** kopierar hela saken. Kopians namn är redan ifyllt, numrerat förbi projektets arbetsflöden ("Nightly Sync" kopieras som "Nightly Sync 2"), och kopian öppnas, inaktiverad.
 - Stapla blocken uppifrån och ner så att de läses i den riktning de körs — inmatningar sitter på överkanten, utgångar på nederkanten, så flödet går naturligt nedåt.
 
 ## Läs vidare

@@ -196,9 +196,10 @@ describe("rule criteria table integration", () => {
     const legacyRule: ExampleRule = new ExampleRule();
     legacyRule.monitorNamePattern = "^api";
 
+    // One condition is simply the condition: All or Any only from two.
     expect(
       getRuleCriteriaSummaryText({ fields: FORM_FIELDS, item: legacyRule }),
-    ).toBe("Match all: Monitor Name matches pattern “^api”");
+    ).toBe("Monitor Name matches pattern “^api”");
 
     expect(
       getRuleCriteriaSummaryText({
@@ -523,7 +524,46 @@ describe("the rule summary", () => {
     };
 
     expect(getRuleCriteriaSummaryText({ fields: [], item: rule })).toBe(
-      "Match all: Monitor Name contains “api”",
+      "Monitor Name contains “api”",
+    );
+  });
+
+  test("says Match all or Match any only once there are two conditions", () => {
+    const rule: ExampleRule = new ExampleRule();
+    rule.criteria = {
+      schemaVersion: 1,
+      filterCondition: FilterCondition.Any,
+      filters: [
+        {
+          field: "monitorNamePattern",
+          operator: RuleCriteriaOperator.Contains,
+          value: "api",
+        },
+      ],
+    };
+
+    // One condition reads the same under Any as under All.
+    expect(getRuleCriteriaSummaryText({ fields: [], item: rule })).toBe(
+      "Monitor Name contains “api”",
+    );
+
+    rule.criteria.filterCondition = FilterCondition.All;
+    expect(getRuleCriteriaSummaryText({ fields: [], item: rule })).toBe(
+      "Monitor Name contains “api”",
+    );
+
+    rule.criteria.filters.push({
+      field: "monitorNamePattern",
+      operator: RuleCriteriaOperator.Contains,
+      value: "web",
+    });
+    expect(getRuleCriteriaSummaryText({ fields: [], item: rule })).toBe(
+      "Match all: Monitor Name contains “api”; Monitor Name contains “web”",
+    );
+
+    rule.criteria.filterCondition = FilterCondition.Any;
+    expect(getRuleCriteriaSummaryText({ fields: [], item: rule })).toBe(
+      "Match any: Monitor Name contains “api”; Monitor Name contains “web”",
     );
   });
 });

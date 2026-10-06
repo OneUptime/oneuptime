@@ -129,11 +129,12 @@ export class Service extends ProjectReferencesService<Model> {
     delete createBy.data.materializedAt;
 
     /*
-     * Assigned or removed, never left as the client sent it. pinnedByUserId
-     * is declared `computed` on the model, which is what lets this
+     * Pinned by the person making the request. DatabaseService has already
+     * taken out whatever pinnedByUser the request named, under both names
+     * (UserAttribution), so with no person on it - an API key - nobody
+     * pinned it. pinnedByUserId is computed, which is what lets this
      * assignment survive the create-column permission check that runs after
-     * this hook; the delete is what stops an API-key caller (no
-     * props.userId) attributing the pin to a colleague.
+     * this hook.
      */
     if (createBy.props.userId) {
       RelationIdUtil.stamp(
@@ -141,9 +142,6 @@ export class Service extends ProjectReferencesService<Model> {
         ["pinnedByUserId", "pinnedByUser"],
         createBy.props.userId,
       );
-    } else {
-      delete createBy.data.pinnedByUserId;
-      delete createBy.data.pinnedByUser;
     }
 
     return { createBy, carryForward: null };

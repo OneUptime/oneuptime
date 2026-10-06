@@ -710,16 +710,18 @@ ModelAPI.updateById = async (options) => {
       {},
     );
   }
-  for (const key of ["isResolved", "isArchived"]) {
+  /*
+   * As the server does: turning a switch records when, and turning it off
+   * clears it. The page sends only the switch.
+   */
+  for (const [key, timeKey] of [
+    ["isResolved", "markedAsResolvedAt"],
+    ["isArchived", "markedAsArchivedAt"],
+  ]) {
     if (key in options.data) {
       triage[key] = Boolean(options.data[key]);
+      triage[timeKey] = triage[key] ? new Date(NOW) : null;
     }
-  }
-  if ("markedAsResolvedAt" in options.data) {
-    triage.markedAsResolvedAt = options.data.markedAsResolvedAt;
-  }
-  if ("markedAsArchivedAt" in options.data) {
-    triage.markedAsArchivedAt = options.data.markedAsArchivedAt;
   }
   return new HTTPResponse(200, {}, {});
 };

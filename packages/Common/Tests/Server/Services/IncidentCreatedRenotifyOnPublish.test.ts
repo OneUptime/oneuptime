@@ -467,7 +467,7 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
     );
   });
 
-  test("a root write turning notify-on-create off wins over the box", async () => {
+  test("a root write turning notify-on-create off wins over the box: nothing is queued", async () => {
     const data: Record<string, unknown> = await runHook(
       publishUpdate({
         miscDataProps: IncidentCreatedRenotify.getMiscDataProps(),
@@ -477,9 +477,14 @@ describe("IncidentService.onBeforeUpdate: notify subscribers when a hidden incid
       }),
     );
 
-    expect(data["subscriberNotificationStatusOnIncidentCreated"]).toBe(
-      StatusPageSubscriberNotificationStatus.Skipped,
-    );
+    /*
+     * The box is read against the flag as the update leaves it, and the
+     * flag itself never writes the 'created' status: it stays as it is.
+     */
+    expect(
+      data["subscriberNotificationStatusOnIncidentCreated"],
+    ).toBeUndefined();
+    expect(data["subscriberNotificationStatusMessage"]).toBeUndefined();
   });
 
   test("works for a non-root incident member's edit as well", async () => {

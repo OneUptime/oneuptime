@@ -2,6 +2,7 @@ import DatabaseService from "../../Services/DatabaseService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
+import UpdateBy from "../../Types/Database/UpdateBy";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -109,6 +110,20 @@ export interface ProjectScopedRelation {
 }
 
 /*
+ * A single relation a service checks itself, by both of its names (see
+ * getWrittenRelationReferences): an incident episode's state, say.
+ */
+export interface ProjectScopedSingleRelation {
+  // "currentIncidentStateId"
+  idColumn: string;
+  // "currentIncidentState"
+  relation: string;
+  // "Incident State": how a refusal names the record.
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+}
+
+/*
  * Per project the update touches (normalized id), per relation column, the
  * normalized ids that every matched record in that project already holds.
  */
@@ -134,6 +149,13 @@ interface RequestedReference {
  */
 function normalizeId(id: string): string {
   return id.trim().toLowerCase();
+}
+
+// An update's skip or limit, which it may carry as a PositiveNumber.
+function toNumber(
+  value: PositiveNumber | number | undefined,
+): number | undefined {
+  return value instanceof PositiveNumber ? value.toNumber() : value;
 }
 
 // The users table: a person, who has no project of their own.
@@ -342,6 +364,106 @@ export default class ProjectScopedReferenceValidator {
           ProjectScopedReferenceValidator.describeReferences(unavailable),
       }),
     );
+  }
+
+  /*
+   * The references an update writes through single relations a service
+   * checks itself - each read under both of its names, two that disagree
+   * refused (getWrittenRelationReferences) - checked against the project of
+   * every record the update changes.
+   *
+   * With a project on the request, against that project. Without one -
+   * OneUptime's own update, or a master admin's - against the project of
+   * each record the update matches, read the way the update reads them (its
+   * query, skip and limit): handing validateReferencesBelongToProject the
+   * request's project alone would check nothing for those updates. There an
+   * id that every matched record of the project already holds is left
+   * alone, as ProjectReferenceCheck leaves it: writing back what a record
+   * holds attaches nothing new to it.
+   */
+  public static async validateUpdateReferences<
+    TModel extends DatabaseBaseModel,
+  >(data: {
+    service: DatabaseService<TModel>;
+    updateBy: UpdateBy<TModel>;
+    relations: Array<ProjectScopedSingleRelation>;
+    subject?: string | undefined;
+  }): Promise<void> {
+    const written: Array<{
+      relation: ProjectScopedSingleRelation;
+      references: Array<ProjectScopedReference>;
+    }> = [];
+
+    for (const relation of data.relations) {
+      const references: Array<ProjectScopedReference> =
+        getWrittenRelationReferences({
+          payload: data.updateBy.data,
+          idColumn: relation.idColumn,
+          relation: relation.relation,
+          modelName: relation.modelName,
+          service: relation.service,
+        });
+
+      if (references.length > 0) {
+        written.push({ relation: relation, references: references });
+      }
+    }
+
+    if (written.length === 0) {
+      return;
+    }
+
+    const tenantId: ObjectID | undefined = data.updateBy.props.tenantId;
+
+    if (tenantId) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: tenantId,
+        references: written.flatMap(
+          (entry: {
+            references: Array<ProjectScopedReference>;
+          }): Array<ProjectScopedReference> => {
+            return entry.references;
+          },
+        ),
+        subject: data.subject,
+      });
+
+      return;
+    }
+
+    const heldIds: HeldRelationIds =
+      await ProjectScopedReferenceValidator.getHeldRelationIds({
+        service: data.service as unknown as DatabaseService<DatabaseBaseModel>,
+        query: data.updateBy.query as unknown as Query<DatabaseBaseModel>,
+        columns: written.map(
+          (entry: { relation: ProjectScopedSingleRelation }): string => {
+            return entry.relation.relation;
+          },
+        ),
+        skip: toNumber(data.updateBy.skip),
+        limit: toNumber(data.updateBy.limit),
+      });
+
+    for (const [projectId, held] of heldIds) {
+      const references: Array<ProjectScopedReference> = [];
+
+      for (const entry of written) {
+        const heldInColumn: Set<string> | undefined =
+          held[entry.relation.relation];
+
+        for (const reference of entry.references) {
+          if (!heldInColumn?.has(normalizeId(reference.id?.toString() || ""))) {
+            references.push(reference);
+          }
+        }
+      }
+
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: new ObjectID(projectId),
+        references: references,
+        subject: data.subject,
+      });
+    }
   }
 
   /*
@@ -690,6 +812,9 @@ export default class ProjectScopedReferenceValidator {
     service: DatabaseService<DatabaseBaseModel>;
     query: Query<DatabaseBaseModel>;
     columns: Array<string>;
+    // The update's own, so the rows read are the rows it writes.
+    skip?: number | undefined;
+    limit?: number | undefined;
   }): Promise<HeldRelationIds> {
     const heldIds: HeldRelationIds = new Map();
 
@@ -711,8 +836,8 @@ export default class ProjectScopedReferenceValidator {
             _id: true,
           },
         } as Select<DatabaseBaseModel>,
-        limit: LIMIT_MAX,
-        skip: 0,
+        limit: data.limit ?? LIMIT_MAX,
+        skip: data.skip ?? 0,
         props: {
           isRoot: true,
         },

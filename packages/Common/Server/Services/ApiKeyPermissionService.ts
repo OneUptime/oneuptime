@@ -434,8 +434,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const existingPermission: Model | null = await this.findOneBy({
       query: {
-        apiKeyId: createBy.data.apiKeyId,
-        projectId: createBy.data.projectId,
+        apiKeyId: references.apiKeyId,
+        projectId: references.projectId,
         permission: createBy.data.permission,
         isBlockPermission: isBlockPermission,
       },
@@ -458,8 +458,8 @@ export class Service extends ProjectReferencesService<Model> {
 
       const existingPermission: Model | null = await this.findOneBy({
         query: {
-          apiKeyId: createBy.data.apiKeyId,
-          projectId: createBy.data.projectId,
+          apiKeyId: references.apiKeyId,
+          projectId: references.projectId,
           permission: createBy.data.permission,
           isBlockPermission: !isBlockPermission,
         },

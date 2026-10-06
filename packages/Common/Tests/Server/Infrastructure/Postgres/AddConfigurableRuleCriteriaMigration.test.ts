@@ -34,7 +34,7 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1796700000000-AddMessageQueueTables
   "MessageQueueLabelRule",
   "MessageQueueOwnerRule",
-  // 1798500000000-AddStorageArrayTables
+  // 1798700000000-AddStorageArrayTables
   "StorageArrayLabelRule",
   "StorageArrayOwnerRule",
 ];

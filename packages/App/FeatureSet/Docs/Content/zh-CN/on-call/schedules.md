@@ -22,6 +22,8 @@
 
 **添加层** 会添加一个与第一层同样开始的层：从现在开始值班，每人一周，全天候。展开一层即可添加人员，并更改其开始时间、交接频率、首次交接时间以及值班时段。
 
+每个人在所有地方都使用同一种颜色，便于一眼找到：在每一层、最终计划及其覆盖中，以及在 **值班时间线** 上。
+
 ## 使用 API 或 Terraform 创建计划
 
 值班计划是 `/api/on-call-duty-policy-schedule` 资源；其层以及层中的人员是 `/api/on-call-duty-schedule-layer` 和 `/api/on-call-duty-schedule-layer-user` 资源。

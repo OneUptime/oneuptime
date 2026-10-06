@@ -443,6 +443,105 @@ describe("isFormFieldValueSet", () => {
       ),
     ).toBe(false);
   });
+
+  /*
+   * A custom element that keeps what it edits in other form values - a
+   * grouping rule's "Reopen recently resolved episodes" switch and its
+   * minutes, kept in two of the rule's columns - says itself whether it is
+   * set (Field.getFoldedValue). Its own form value is a carrier that is
+   * always there, so comparing it with its default says nothing.
+   */
+  const REOPEN: Field<JSONObject> = {
+    overrideFieldKey: "reopenWindowSetting",
+    title: "Reopen recently resolved episodes",
+    fieldType: FormFieldSchemaType.CustomComponent,
+    getDefaultValue: (): boolean => {
+      return true;
+    },
+    getFoldedValue: (values: Values): string | null => {
+      return values["enableReopenWindow"] === true ? "30 minutes" : null;
+    },
+  };
+
+  test("a custom element that keeps its value elsewhere says itself whether it is set", () => {
+    const on: Values = { reopenWindowSetting: true, enableReopenWindow: true };
+    const off: Values = {
+      reopenWindowSetting: true,
+      enableReopenWindow: false,
+    };
+
+    // Its carrier, compared with its default, would never say it is set.
+    expect(
+      isFormFieldValueSet({ ...REOPEN, getFoldedValue: undefined }, on),
+    ).toBe(false);
+
+    expect(isFormFieldValueSet(REOPEN, on)).toBe(true);
+    expect(isFormFieldValueSet(REOPEN, off)).toBe(false);
+    expect(isFormFieldValueSet(REOPEN, {})).toBe(false);
+
+    // What the control handed over last does not decide it either.
+    expect(
+      isFormFieldValueSet(REOPEN, {
+        reopenWindowSetting: { enabled: true, minutes: 30 },
+        enableReopenWindow: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("set with nothing more to say is set: an empty answer is not no answer", () => {
+    const line: Field<JSONObject> = {
+      ...REOPEN,
+      getFoldedValue: (values: Values): string | null => {
+        return values["defaultAssignToUserId"] ? "" : null;
+      },
+    };
+
+    expect(isFormFieldValueSet(line, { defaultAssignToUserId: "user" })).toBe(
+      true,
+    );
+    expect(isFormFieldValueSet(line, { defaultAssignToUserId: null })).toBe(
+      false,
+    );
+  });
+
+  test("its own answer wins over isAtDefault and over the field's own value and default", () => {
+    const line: Field<JSONObject> = {
+      overrideFieldKey: "legacyDefaultAssignee",
+      title: "Default assignee",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      defaultValue: "start",
+      isAtDefault: (): boolean => {
+        return true;
+      },
+      getFoldedValue: (values: Values): string | null => {
+        return values["defaultAssignToUserId"] ? "" : null;
+      },
+    };
+
+    expect(isFormFieldValueSet(line, { defaultAssignToUserId: "user" })).toBe(
+      true,
+    );
+    // Its own value, changed from its default, is not what counts.
+    expect(
+      isFormFieldValueSet(line, { legacyDefaultAssignee: "changed" }),
+    ).toBe(false);
+  });
+
+  test("a people picker still counts its picks, whatever else it says", () => {
+    const owners: Field<JSONObject> = {
+      field: { owners: true },
+      title: "Owners",
+      fieldType: FormFieldSchemaType.PeoplePicker,
+      peoplePicker: {
+        kinds: [{ kind: PeoplePickerKind.User, valueKey: "ownerUsers" }],
+      },
+      getFoldedValue: (): string | null => {
+        return null;
+      },
+    };
+
+    expect(isFormFieldValueSet(owners, { ownerUsers: ["user-1"] })).toBe(true);
+  });
 });
 
 describe("isFormSectionConfigured", () => {
@@ -515,6 +614,37 @@ describe("isFormSectionConfigured", () => {
         section: own,
         fields: FIELDS,
         values: { routing: "custom" },
+      }),
+    ).toBe(true);
+  });
+
+  test("is configured when a custom element that keeps its value elsewhere says it is set", () => {
+    const resolveDelay: Field<JSONObject> = {
+      overrideFieldKey: "resolveDelaySetting",
+      title: "Wait before resolving an episode",
+      fieldType: FormFieldSchemaType.CustomComponent,
+      collapsibleSection: SECTION,
+      getDefaultValue: (): boolean => {
+        return true;
+      },
+      getFoldedValue: (values: Values): string | null => {
+        return values["enableResolveDelay"] === true ? "5 minutes" : null;
+      },
+    };
+
+    // Its carrier is there either way: only what it edits counts.
+    expect(
+      isFormSectionConfigured({
+        section: SECTION,
+        fields: [...FIELDS, resolveDelay],
+        values: { resolveDelaySetting: true, enableResolveDelay: false },
+      }),
+    ).toBe(false);
+    expect(
+      isFormSectionConfigured({
+        section: SECTION,
+        fields: [...FIELDS, resolveDelay],
+        values: { resolveDelaySetting: true, enableResolveDelay: true },
       }),
     ).toBe(true);
   });

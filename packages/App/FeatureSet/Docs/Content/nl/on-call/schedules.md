@@ -22,6 +22,8 @@ De rotatie van een schema bestaat uit lagen, op de pagina **Lagen**. Lagen worde
 
 **Laag toevoegen** voegt een laag toe die begint zoals de eerste: vanaf nu bereikbaar, ieder een week, de klok rond. Klap een laag uit om er mensen aan toe te voegen en om te wijzigen wanneer ze begint, hoe vaak ze overdraagt, wanneer ze voor het eerst overdraagt en op welke uren ze bereikbaar is.
 
+Iedereen houdt overal dezelfde kleur, zodat u iemand in één oogopslag volgt: op elke laag, in het uiteindelijke schema en de overschrijvingen daarvan, en op de **Tijdlijn van bereikbaarheidsschema's**.
+
 ## Schema's maken met de API of Terraform
 
 Bereikbaarheidsschema's zijn de resource `/api/on-call-duty-policy-schedule`; hun lagen en de mensen erin zijn de resources `/api/on-call-duty-schedule-layer` en `/api/on-call-duty-schedule-layer-user`.

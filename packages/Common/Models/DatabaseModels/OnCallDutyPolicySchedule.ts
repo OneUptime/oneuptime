@@ -530,14 +530,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.OnCallAdmin,
-      Permission.OnCallMember,
-      Permission.CreateProjectOnCallDutyPolicySchedule,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -614,14 +607,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
   public currentUserIdOnRoster?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.OnCallAdmin,
-      Permission.OnCallMember,
-      Permission.CreateProjectOnCallDutyPolicySchedule,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

@@ -223,7 +223,7 @@ const MonitorCriteria: FunctionComponent<
                 },
                 title: "Disable Monitor",
                 description:
-                  "Should the new monitor be disabled when its duplicated?",
+                  "Should the new monitor be disabled when it is duplicated?",
                 fieldType: FormFieldSchemaType.Toggle,
                 defaultValue: true,
                 required: false,

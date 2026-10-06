@@ -402,3 +402,278 @@ describe("StatusPageGroupService nesting rules", () => {
     });
   });
 });
+
+/*
+ * The parent and the status page are references with two names each - the
+ * relation (`parentStatusPageGroup`, which the dashboard's forms post) and
+ * the ID column (`parentStatusPageGroupId`) - and the rules above hold
+ * whichever name a write uses: a write that named the parent only by the
+ * relation used to skip them all.
+ */
+describe("StatusPageGroupService nesting rules, under either name of a reference", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function createByRelation(data: {
+    parent?: ObjectID | undefined;
+    statusPage?: ObjectID | undefined;
+  }): CreateBy<StatusPageGroup> {
+    const group: StatusPageGroup = new StatusPageGroup();
+    group.name = "New Group";
+    group.projectId = PROJECT_ID;
+    group.order = 1;
+
+    if (data.statusPage) {
+      (group as unknown as Record<string, unknown>)["statusPage"] = {
+        _id: data.statusPage.toString(),
+      };
+    } else {
+      group.statusPageId = STATUS_PAGE_ID;
+    }
+
+    if (data.parent) {
+      (group as unknown as Record<string, unknown>)["parentStatusPageGroup"] = {
+        _id: data.parent.toString(),
+      };
+    }
+
+    return {
+      data: group,
+      props: { isRoot: true },
+    } as CreateBy<StatusPageGroup>;
+  }
+
+  function updateByRelation(data: {
+    id: ObjectID;
+    parent: ObjectID;
+  }): UpdateBy<StatusPageGroup> {
+    return {
+      query: { _id: data.id.toString() },
+      data: {
+        parentStatusPageGroup: { _id: data.parent.toString() },
+      },
+      props: { isRoot: true },
+    } as unknown as UpdateBy<StatusPageGroup>;
+  }
+
+  it("rejects a parent from another status page named by the relation", async () => {
+    mockService({
+      groupsOnStatusPage: [
+        makeGroup({ id: groupId(1), statusPageId: OTHER_STATUS_PAGE_ID }),
+      ],
+    });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeCreate(
+        createByRelation({ parent: groupId(1) }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException("Parent group must belong to the same status page."),
+    );
+  });
+
+  it("rejects a parent that does not exist named by the relation", async () => {
+    mockService({ groupsOnStatusPage: [] });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeCreate(
+        createByRelation({ parent: groupId(1) }),
+      ),
+    ).rejects.toThrow(new BadDataException("Parent group not found."));
+  });
+
+  it("rejects a parent named by the relation that is already at the nesting limit", async () => {
+    const chain: Array<StatusPageGroup> = [];
+
+    for (
+      let index: number = 0;
+      index < StatusPageGroupTreeUtil.MaxNestingDepth;
+      index++
+    ) {
+      chain.push(
+        makeGroup({
+          id: groupId(index),
+          parentId: index === 0 ? undefined : groupId(index - 1),
+        }),
+      );
+    }
+
+    mockService({ groupsOnStatusPage: chain });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeCreate(
+        createByRelation({
+          parent: groupId(StatusPageGroupTreeUtil.MaxNestingDepth - 1),
+        }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("keeps a parent named by the relation in its ID column, for the saved row", async () => {
+    mockService({ groupsOnStatusPage: [makeGroup({ id: groupId(1) })] });
+
+    const create: CreateBy<StatusPageGroup> = createByRelation({
+      parent: groupId(1),
+    });
+
+    await (StatusPageGroupService as any).onBeforeCreate(create);
+
+    expect(create.data.parentStatusPageGroupId?.toString()).toBe(
+      groupId(1).toString(),
+    );
+  });
+
+  it("takes a status page named by the relation alone, and numbers the group on it", async () => {
+    mockService({ groupsOnStatusPage: [makeGroup({ id: groupId(1) })] });
+
+    const create: CreateBy<StatusPageGroup> = createByRelation({
+      statusPage: STATUS_PAGE_ID,
+    });
+    delete (create.data as unknown as Record<string, unknown>)["order"];
+
+    await (StatusPageGroupService as any).onBeforeCreate(create);
+
+    expect(create.data.statusPageId?.toString()).toBe(
+      STATUS_PAGE_ID.toString(),
+    );
+    expect(
+      String(
+        (
+          (StatusPageGroupService.countBy as jest.Mock).mock.calls[0]![0] as {
+            query: { statusPageId: ObjectID };
+          }
+        ).query.statusPageId,
+      ),
+    ).toBe(STATUS_PAGE_ID.toString());
+    expect(create.data.order).toBe(2);
+  });
+
+  it("refuses a parent named differently under its two names", async () => {
+    mockService({
+      groupsOnStatusPage: [
+        makeGroup({ id: groupId(1) }),
+        makeGroup({ id: groupId(2) }),
+      ],
+    });
+
+    const create: CreateBy<StatusPageGroup> = createByRelation({
+      parent: groupId(1),
+    });
+    create.data.parentStatusPageGroupId = groupId(2);
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeCreate(create),
+    ).rejects.toThrow(
+      "Conflicting Parent Group references were provided. parentStatusPageGroupId and parentStatusPageGroup are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+    expect(StatusPageGroupService.findOneById).not.toHaveBeenCalled();
+  });
+
+  it("rejects an update nesting a group under its own child named by the relation", async () => {
+    const parent: StatusPageGroup = makeGroup({ id: groupId(1) });
+    const child: StatusPageGroup = makeGroup({
+      id: groupId(2),
+      parentId: groupId(1),
+    });
+
+    mockService({
+      groupsOnStatusPage: [parent, child],
+      groupsMatchedByUpdate: [parent],
+    });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeUpdate(
+        updateByRelation({ id: groupId(1), parent: groupId(2) }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException(
+        "This group cannot be nested under one of its own sub groups.",
+      ),
+    );
+  });
+
+  it("rejects an update making a group its own parent through the relation", async () => {
+    const group: StatusPageGroup = makeGroup({ id: groupId(1) });
+
+    mockService({
+      groupsOnStatusPage: [group],
+      groupsMatchedByUpdate: [group],
+    });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeUpdate(
+        updateByRelation({ id: groupId(1), parent: groupId(1) }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException("A group cannot be its own parent group."),
+    );
+  });
+
+  it("rejects an update moving a group under another page's group by the relation", async () => {
+    const group: StatusPageGroup = makeGroup({ id: groupId(1) });
+    const elsewhere: StatusPageGroup = makeGroup({
+      id: groupId(2),
+      statusPageId: OTHER_STATUS_PAGE_ID,
+    });
+
+    mockService({
+      groupsOnStatusPage: [group, elsewhere],
+      groupsMatchedByUpdate: [group],
+    });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeUpdate(
+        updateByRelation({ id: groupId(1), parent: groupId(2) }),
+      ),
+    ).rejects.toThrow(
+      new BadDataException("Parent group must belong to the same status page."),
+    );
+  });
+
+  it("accepts an update moving a group to another branch by the relation", async () => {
+    const branchA: StatusPageGroup = makeGroup({ id: groupId(1) });
+    const branchB: StatusPageGroup = makeGroup({ id: groupId(2) });
+    const moving: StatusPageGroup = makeGroup({
+      id: groupId(3),
+      parentId: groupId(1),
+    });
+
+    mockService({
+      groupsOnStatusPage: [branchA, branchB, moving],
+      groupsMatchedByUpdate: [moving],
+    });
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeUpdate(
+        updateByRelation({ id: groupId(3), parent: groupId(2) }),
+      ),
+    ).resolves.toBeDefined();
+
+    // The new parent was looked up: the move was checked, not skipped.
+    expect(
+      String(
+        (
+          (StatusPageGroupService.findOneById as jest.Mock).mock
+            .calls[0]![0] as { id: ObjectID }
+        ).id,
+      ),
+    ).toBe(groupId(2).toString());
+  });
+
+  it("refuses an update naming two different parents", async () => {
+    mockService({ groupsOnStatusPage: [], groupsMatchedByUpdate: [] });
+
+    const update: UpdateBy<StatusPageGroup> = updateByRelation({
+      id: groupId(3),
+      parent: groupId(2),
+    });
+    (update.data as unknown as Record<string, unknown>)[
+      "parentStatusPageGroupId"
+    ] = groupId(1);
+
+    await expect(
+      (StatusPageGroupService as any).onBeforeUpdate(update),
+    ).rejects.toThrow("Conflicting Parent Group references were provided.");
+  });
+});

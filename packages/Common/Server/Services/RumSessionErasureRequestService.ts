@@ -73,12 +73,19 @@ export class Service extends ProjectReferencesService<Model> {
      * (not cascaded) when the application is deleted - which is precisely
      * when the erasure still needs to run.
      */
+    // The application under either of its names (the two must agree).
+    const rumApplicationId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["rumApplicationId", "rumApplication"],
+      "RUM Application",
+    );
+
     if (
       requestType === RumSessionErasureRequestType.ByRumApplication &&
-      createBy.data.rumApplicationId &&
+      rumApplicationId &&
       !createBy.data.targetValue
     ) {
-      createBy.data.targetValue = createBy.data.rumApplicationId.toString();
+      createBy.data.targetValue = rumApplicationId.toString();
     }
 
     /*
@@ -92,21 +99,18 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.sessionsDeleted = 0;
     createBy.data.chunksDeleted = 0;
 
+    /*
+     * Asked for by the person making the request. DatabaseService has
+     * already taken out whatever requestedByUser the request named, under
+     * both names (UserAttribution), so with no person on it - an API key -
+     * nobody is named as having asked.
+     */
     if (createBy.props.userId) {
       RelationIdUtil.stamp(
         createBy.data as unknown as Record<string, unknown>,
         ["requestedByUserId", "requestedByUser"],
         createBy.props.userId,
       );
-    } else {
-      /*
-       * No authenticated user (an API key, say). Deleting rather than
-       * leaving the field alone matters: a client-supplied value would
-       * otherwise persist and attribute the erasure to somebody who never
-       * asked for it - under either of its names.
-       */
-      delete createBy.data.requestedByUserId;
-      delete createBy.data.requestedByUser;
     }
 
     return { createBy, carryForward: null };

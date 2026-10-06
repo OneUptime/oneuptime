@@ -21,6 +21,7 @@ import {
   readPeoplePickerFormValue,
 } from "../PeoplePicker/PeoplePickerTypes";
 import { isFormFieldValueSet } from "./Utils/AdvancedFormSection";
+import { CONFIGURED_BADGE } from "./CollapsibleFormSection";
 
 type SummaryElementFn<T extends GenericObject> = (
   item: FormValues<T>,
@@ -186,6 +187,43 @@ const getFileSummaryElement: <T extends GenericObject>(
 };
 
 /*
+ * A custom element that keeps what it edits in other form values says what
+ * it is set to (Field.getFoldedValue) - "30 minutes" - and the review says
+ * the same, since the element's own value is a carrier that says nothing. Set
+ * with nothing more to say ("") reads Configured, as a folded header's badge
+ * does; not set reads nothing.
+ */
+const getFoldedValueSummaryElement: <T extends GenericObject>(
+  field: Field<T>,
+) => SummaryElementFn<T> | undefined = <T extends GenericObject>(
+  field: Field<T>,
+): SummaryElementFn<T> | undefined => {
+  const getFoldedValue: Field<T>["getFoldedValue"] = field.getFoldedValue;
+
+  if (!getFoldedValue) {
+    return undefined;
+  }
+
+  const FoldedValueSummary: SummaryElementFn<T> = (
+    item: FormValues<T>,
+  ): ReactElement => {
+    const said: string | null = getFoldedValue(item);
+
+    return (
+      <span data-testid="form-summary-folded-value">
+        {said === null
+          ? ""
+          : said.trim()
+            ? said
+            : translateText(CONFIGURED_BADGE)}
+      </span>
+    );
+  };
+
+  return FoldedValueSummary;
+};
+
+/*
  * A people picker's picks are ids in a form value per kind (owners: people
  * in ownerUsers, teams in ownerTeams), shown as one list of names.
  */
@@ -346,7 +384,8 @@ const FormSummary: <T extends GenericObject>(
             formFields.map((field: Field<T>) => {
               const defaultSummaryElement: SummaryElementFn<T> | undefined =
                 getFileSummaryElement(field) ||
-                getPeoplePickerSummaryElement(field);
+                getPeoplePickerSummaryElement(field) ||
+                getFoldedValueSummaryElement(field);
 
               const detailField: DetailField<T> = {
                 title: field.title || "",

@@ -7,6 +7,7 @@ import CalendarFeedToken, {
   CalendarFeedRotation,
 } from "../Utils/OnCall/CalendarFeedToken";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -58,15 +59,23 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The project the feed is saved in: the request's, else the row's own.
     const projectId: ObjectID | undefined =
-      createBy.data.projectId || createBy.props.tenantId;
+      createBy.props.tenantId || createBy.data.projectId;
 
     if (!projectId) {
       throw new BadDataException("projectId is required");
     }
 
-    const scheduleId: ObjectID | undefined =
-      createBy.data.onCallDutyPolicyScheduleId;
+    /*
+     * The schedule under either of its names, kept in the ID column for the
+     * checks below and for the saved row.
+     */
+    const scheduleId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      ["onCallDutyPolicyScheduleId", "onCallDutyPolicySchedule"],
+      "On-Call Policy Schedule",
+    );
 
     if (!scheduleId) {
       throw new BadDataException("onCallDutyPolicyScheduleId is required");

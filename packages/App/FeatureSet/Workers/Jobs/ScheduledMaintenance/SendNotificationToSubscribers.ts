@@ -8,10 +8,63 @@ import { Blue500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import logger from "Common/Server/Utils/Logger";
+
+/*
+ * Why a 'scheduled' message that is queued while notifying subscribers is off
+ * is not sent - the same words the event's create writes when it is off.
+ */
+const SKIPPED_NOT_TO_BE_NOTIFIED_MESSAGE: string =
+  "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
+
 RunCron(
   "ScheduledMaintenance:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * A 'scheduled' message queued while notifying subscribers is off - it
+     * was turned off after the message was queued, or Retry or the API
+     * queued it again - is not sent. Marked Skipped, as the incident and
+     * announcement jobs do, rather than left "Sending Soon" for good: the
+     * query below only ever picks up events that notify.
+     */
+    const eventsToSkip: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findAllBy({
+        query: {
+          subscriberNotificationStatusOnEventScheduled:
+            StatusPageSubscriberNotificationStatus.Pending,
+          shouldStatusPageSubscribersBeNotifiedOnEventCreated: false,
+        },
+        props: {
+          isRoot: true,
+        },
+        skip: 0,
+        select: {
+          _id: true,
+        },
+      });
+
+    for (const event of eventsToSkip) {
+      try {
+        await ScheduledMaintenanceService.updateOneById({
+          id: event.id!,
+          data: {
+            subscriberNotificationStatusOnEventScheduled:
+              StatusPageSubscriberNotificationStatus.Skipped,
+            subscriberNotificationStatusMessage:
+              SKIPPED_NOT_TO_BE_NOTIFIED_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+      } catch (err) {
+        logger.error(
+          `Could not mark scheduled maintenance ${event.id} as Skipped for subscriber notifications: ${err}`,
+        );
+      }
+    }
+
     // get all scheduled events of all the projects.
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findAllBy({

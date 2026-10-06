@@ -708,6 +708,97 @@ describe("onBeforeCreate per-release ceiling", () => {
   });
 });
 
+/*
+ * The service is a reference with two names - the relation (`service`) and
+ * its ID column (`serviceId`) - and the release's ceiling holds whichever
+ * name an upload uses. An upload naming the service only by the relation
+ * used to skip the count, so a release could grow past the ceiling through
+ * the CRUD API.
+ */
+describe("onBeforeCreate per-release ceiling, under either name of the service", () => {
+  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  const OTHER_SERVICE_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function makeCreateByRelation(
+    overrides?: Partial<TelemetrySourceMap>,
+  ): CreateBy<TelemetrySourceMap> {
+    const createBy: CreateBy<TelemetrySourceMap> = makeCreateBy(overrides);
+    delete createBy.data.serviceId;
+    (createBy.data as unknown as Record<string, unknown>)["service"] = {
+      _id: SERVICE_ID.toString(),
+    };
+    return createBy;
+  }
+
+  it("counts the release of a service named by the relation", async () => {
+    const countBySpy: FindBySpy = mockReleaseRowCount(0);
+
+    await invokeOnBeforeCreate(makeCreateByRelation());
+
+    const countArgs: { query: Record<string, unknown> } = countBySpy.mock
+      .calls[0]![0] as never;
+
+    expect(String(countArgs.query["serviceId"])).toBe(SERVICE_ID.toString());
+    expect(countArgs.query["serviceVersion"]).toBe("1.4.2");
+  });
+
+  it("rejects a new bundle at the ceiling when the service is named by the relation", async () => {
+    mockReleaseRowCount(MAX_SOURCE_MAPS_PER_RELEASE);
+    mockStoredBundlePaths(makeBundlePaths(MAX_SOURCE_MAPS_PER_RELEASE));
+
+    const error: Error = await captureOnBeforeCreateRejection(
+      makeCreateByRelation({ bundlePath: "brand-new-chunk.js" }),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error.message).toContain("SOURCE_MAP_MAX_MAPS_PER_RELEASE");
+  });
+
+  it("keeps the service named by the relation in its ID column, for the saved row", async () => {
+    mockReleaseRowCount(0);
+
+    const createBy: CreateBy<TelemetrySourceMap> = makeCreateByRelation();
+
+    await invokeOnBeforeCreate(createBy);
+
+    expect(createBy.data.serviceId?.toString()).toBe(SERVICE_ID.toString());
+  });
+
+  it("refuses a service named differently under its two names, before it counts", async () => {
+    const countBySpy: FindBySpy = mockReleaseRowCount(0);
+
+    const createBy: CreateBy<TelemetrySourceMap> = makeCreateByRelation();
+    createBy.data.serviceId = OTHER_SERVICE_ID;
+
+    const error: Error = await captureOnBeforeCreateRejection(createBy);
+
+    expect(error.message).toBe(
+      "Conflicting Service references were provided. serviceId and service are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+    );
+    expect(countBySpy).not.toHaveBeenCalled();
+  });
+
+  it("counts the release in the request's project, whatever project the payload names", async () => {
+    const countBySpy: FindBySpy = mockReleaseRowCount(0);
+
+    const createBy: CreateBy<TelemetrySourceMap> = makeCreateBy({
+      projectId: OTHER_PROJECT_ID,
+    });
+    createBy.props.tenantId = PROJECT_ID;
+
+    await invokeOnBeforeCreate(createBy);
+
+    const countArgs: { query: Record<string, unknown> } = countBySpy.mock
+      .calls[0]![0] as never;
+
+    expect(String(countArgs.query["projectId"])).toBe(PROJECT_ID.toString());
+  });
+});
+
 describe("replaceSourceMap", () => {
   it("hard deletes existing rows for the same bundle before creating the new one", async () => {
     const callOrder: Array<string> = [];

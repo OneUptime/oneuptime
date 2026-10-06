@@ -1,5 +1,10 @@
 import AllModelTypes from "../../../Models/DatabaseModels/Index";
+import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import Dictionary from "../../../Types/Dictionary";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -47,37 +52,27 @@ const PERMISSIONS_WITHOUT_PROPS_BY_DESIGN: Array<string> = [
 
 /*
  * Columns whose create list requires a granular permission the table's own
- * create list never accepts. Each is a pre-existing copy-paste mis-key of the
- * same family as the ScheduledMaintenanceTemplateOwnerUser one this test was
- * written for — MonitorFeed asking for CreateScheduledMaintenanceFeed, and so
- * on (MetricType.services asked for CreateProjectIncident until its lists
- * were given the telemetry metric permissions). They are recorded
- * rather than fixed here because each needs its own judgement about which
- * permission was intended, and because a required column gated this way cannot
- * be set by a granular-only holder at all.
+ * create list never accepts. The copy-paste mis-keys of the same family as
+ * the ScheduledMaintenanceTemplateOwnerUser one this test was written for -
+ * the incident, monitor and on-call feeds asking for
+ * CreateScheduledMaintenanceFeed, a monitor's current status for
+ * CreateProjectIncident, a runbook secret's runners for ReadRunbookSecret, a
+ * scheduled maintenance event's status message for
+ * CreateIncidentPublicNote (and MetricType.services for
+ * CreateProjectIncident before them) - now ask for their own record's
+ * permission. What is left is a project's own columns: a project is created
+ * by any signed-in user, before anyone holds a permission in it. (Its
+ * creator is no longer one of them: OneUptime decides who created a record,
+ * so no request writes it - UserAttribution.)
  *
  * This list must only ever shrink. A new entry means a new mis-key.
  */
 const KNOWN_CROSS_MODEL_COLUMN_GATES: Array<string> = [
-  "IncidentFeed.postedAt requires CreateScheduledMaintenanceFeed",
-  "IncidentFeed.user requires CreateScheduledMaintenanceFeed",
-  "IncidentFeed.userId requires CreateScheduledMaintenanceFeed",
-  "Monitor.currentMonitorStatusId requires CreateProjectIncident",
-  "MonitorFeed.postedAt requires CreateScheduledMaintenanceFeed",
-  "MonitorFeed.user requires CreateScheduledMaintenanceFeed",
-  "MonitorFeed.userId requires CreateScheduledMaintenanceFeed",
-  "OnCallDutyPolicyFeed.postedAt requires CreateScheduledMaintenanceFeed",
-  "OnCallDutyPolicyFeed.user requires CreateScheduledMaintenanceFeed",
-  "OnCallDutyPolicyFeed.userId requires CreateScheduledMaintenanceFeed",
   "Project.businessDetails requires ManageProjectBilling",
   "Project.businessDetailsCountry requires ManageProjectBilling",
-  "Project.createdByUser requires CurrentUser",
-  "Project.createdByUserId requires CurrentUser",
   "Project.financeAccountingEmail requires ManageProjectBilling",
   "Project.paymentProviderPlanId requires CurrentUser",
   "Project.sendInvoicesByEmail requires ManageProjectBilling",
-  "RunbookSecret.runners requires ReadRunbookSecret",
-  "ScheduledMaintenance.subscriberNotificationStatusMessage requires CreateIncidentPublicNote",
 ];
 
 function modelName(modelType: ModelType): string {
@@ -239,4 +234,212 @@ describe("Permission catalogue coverage across database models", () => {
       KNOWN_CROSS_MODEL_COLUMN_GATES.slice().sort(),
     );
   });
+});
+
+/*
+ * The analytics tables are held to the same rule: a column's create list
+ * asks for a granular permission its table accepts. An exception's span name
+ * asked for the trace permissions, where every other exception column asks
+ * for the exception permissions.
+ *
+ * A table whose columns ask for another family's permission on purpose, or
+ * for a change of its own. This list must only ever shrink: an entry no
+ * column holds any more fails below, and is removed with its reason.
+ */
+const KNOWN_ANALYTICS_COLUMN_GATES: Array<{
+  tableName: string;
+  permission: Permission;
+  reason: string;
+}> = [
+  {
+    tableName: AnalyticsTableName.Metric,
+    permission: Permission.CreateTelemetryServiceLog,
+    reason:
+      "A metric data point's columns are created and read with the log permissions while the table's own lists name the trace permissions, and neither is the Telemetry Service Metrics family. Which family a metric belongs to decides what custom roles can read in metric charts, so it is a change of its own.",
+  },
+];
+
+const ANALYTICS_MODELS: Array<AnalyticsBaseModel> = (
+  AnalyticsModels as Array<{ new (): AnalyticsBaseModel }>
+).map((modelType: { new (): AnalyticsBaseModel }): AnalyticsBaseModel => {
+  return new modelType();
+});
+
+function analyticsColumnCreateLists(
+  model: AnalyticsBaseModel,
+): Array<{ column: string; permissions: Array<Permission> }> {
+  const columns: Dictionary<ColumnAccessControl> =
+    model.getColumnAccessControlForAllColumns();
+
+  return Object.keys(columns)
+    .sort()
+    .map((column: string) => {
+      return { column: column, permissions: columns[column]?.create || [] };
+    });
+}
+
+function isKnownAnalyticsGate(
+  tableName: string,
+  permission: Permission,
+): boolean {
+  return KNOWN_ANALYTICS_COLUMN_GATES.some(
+    (entry: { tableName: string; permission: Permission }): boolean => {
+      return entry.tableName === tableName && entry.permission === permission;
+    },
+  );
+}
+
+describe("Permission catalogue coverage across analytics models", () => {
+  test("the sweep sees the analytics tables", () => {
+    expect(
+      ANALYTICS_MODELS.map((model: AnalyticsBaseModel): string => {
+        return model.tableName;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        AnalyticsTableName.Metric,
+        AnalyticsTableName.ExceptionInstance,
+      ]),
+    );
+  });
+
+  test("no column is gated on a granular permission its table does not accept", () => {
+    const rolePermissions: Set<string> = new Set(
+      PermissionHelper.getRolePermissionProps().map(
+        (props: PermissionProps) => {
+          return props.permission.toString();
+        },
+      ),
+    );
+
+    const offenders: Array<string> = [];
+
+    for (const model of ANALYTICS_MODELS) {
+      const tableCreate: Set<string> = new Set(
+        (model.getCreatePermissions() || []).map((permission: Permission) => {
+          return permission.toString();
+        }),
+      );
+
+      if (tableCreate.size === 0) {
+        continue;
+      }
+
+      for (const list of analyticsColumnCreateLists(model)) {
+        for (const permission of list.permissions) {
+          const value: string = permission.toString();
+
+          if (
+            rolePermissions.has(value) ||
+            tableCreate.has(value) ||
+            isKnownAnalyticsGate(model.tableName, permission)
+          ) {
+            continue;
+          }
+
+          offenders.push(`${model.tableName}.${list.column} requires ${value}`);
+        }
+      }
+    }
+
+    expect(offenders.sort()).toEqual([]);
+  });
+
+  test("an exception's span name is created and read with the exception permissions", () => {
+    const spanName: ColumnAccessControl | undefined = ANALYTICS_MODELS.find(
+      (model: AnalyticsBaseModel): boolean => {
+        return model.tableName === AnalyticsTableName.ExceptionInstance;
+      },
+    )!.getColumnAccessControlForAllColumns()["spanName"];
+
+    expect(spanName?.create).toContain(Permission.CreateTelemetryException);
+    expect(spanName?.read).toContain(Permission.ReadTelemetryException);
+    expect(spanName?.create).not.toContain(
+      Permission.CreateTelemetryServiceTraces,
+    );
+    expect(spanName?.read).not.toContain(Permission.ReadTelemetryServiceTraces);
+  });
+
+  test("every known gate still matches a column, and says why", () => {
+    for (const entry of KNOWN_ANALYTICS_COLUMN_GATES) {
+      const model: AnalyticsBaseModel = ANALYTICS_MODELS.find(
+        (candidate: AnalyticsBaseModel): boolean => {
+          return candidate.tableName === entry.tableName;
+        },
+      )!;
+
+      expect(entry.reason.length).toBeGreaterThan(40);
+      expect([
+        entry.tableName,
+        entry.permission,
+        analyticsColumnCreateLists(model).some(
+          (list: { permissions: Array<Permission> }): boolean => {
+            return list.permissions.includes(entry.permission);
+          },
+        ),
+      ]).toEqual([entry.tableName, entry.permission, true]);
+    }
+  });
+});
+
+/*
+ * The columns that asked for another record's permission, each now asking
+ * for its own record's - set at create by whoever may create the record.
+ */
+describe("the columns that asked for another record's permission", () => {
+  function columnLists(
+    tableName: string,
+    column: string,
+  ): ColumnAccessControl | undefined {
+    const modelType: ModelType | undefined = MODEL_TYPES.find(
+      (candidate: ModelType): boolean => {
+        return new candidate().tableName === tableName;
+      },
+    );
+
+    expect([tableName, Boolean(modelType)]).toEqual([tableName, true]);
+
+    return new modelType!().getColumnAccessControlFor(column) || undefined;
+  }
+
+  test.each([
+    ["Monitor", "currentMonitorStatusId", Permission.CreateProjectMonitor],
+    ["IncidentFeed", "postedAt", Permission.CreateIncidentFeed],
+    ["IncidentFeed", "user", Permission.CreateIncidentFeed],
+    ["IncidentFeed", "userId", Permission.CreateIncidentFeed],
+    ["MonitorFeed", "postedAt", Permission.CreateMonitorFeed],
+    ["MonitorFeed", "user", Permission.CreateMonitorFeed],
+    ["MonitorFeed", "userId", Permission.CreateMonitorFeed],
+    ["OnCallDutyPolicyFeed", "postedAt", Permission.CreateOnCallDutyPolicyFeed],
+    ["OnCallDutyPolicyFeed", "user", Permission.CreateOnCallDutyPolicyFeed],
+    ["OnCallDutyPolicyFeed", "userId", Permission.CreateOnCallDutyPolicyFeed],
+    [
+      "ScheduledMaintenance",
+      "subscriberNotificationStatusMessage",
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    ["RunbookSecret", "runners", Permission.CreateRunbookSecret],
+  ])(
+    "%s.%s is created with %s",
+    (tableName: string, column: string, permission: Permission) => {
+      expect(columnLists(tableName, column)?.create).toContain(permission);
+    },
+  );
+
+  test.each([
+    ["IncidentFeed", Permission.ReadIncidentFeed],
+    ["MonitorFeed", Permission.ReadMonitorFeed],
+    ["OnCallDutyPolicyFeed", Permission.ReadOnCallDutyPolicyFeed],
+  ])(
+    "%s's posted-at and posted-by columns are read with %s",
+    (tableName: string, permission: Permission) => {
+      for (const column of ["postedAt", "user", "userId"]) {
+        const read: Array<Permission> =
+          columnLists(tableName, column)?.read || [];
+
+        expect([column, read.includes(permission)]).toEqual([column, true]);
+        expect(read).not.toContain(Permission.ReadScheduledMaintenanceFeed);
+      }
+    },
+  );
 });
