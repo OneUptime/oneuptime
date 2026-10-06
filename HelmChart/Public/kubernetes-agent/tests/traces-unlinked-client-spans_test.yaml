@@ -13,7 +13,7 @@
 # node, which OBI links under the call), and dropping them leaves those traces
 # without a root. The service map also reads these calls
 # (ServiceDependencyDiscovery). Database calls belong to filter/ebpf-unlinked-db;
-# messaging and GenAI calls are always kept.
+# messaging, GenAI and MCP calls are always kept.
 #
 # These tests pin the switch (off by default and when the key is missing, as
 # after --reuse-values), the condition text (its behaviour against a real
@@ -64,14 +64,14 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "filter/ebpf-unlinked-client"
 
-  - it: defines the filter when asked, scoped to OBI client spans with no parent that are no database, messaging or GenAI call
+  - it: defines the filter when asked, scoped to OBI client spans with no parent that are no database, messaging, GenAI or MCP call
     set:
       ebpf.dropUnlinkedClientCalls: true
     asserts:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  filter/ebpf-unlinked-client:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and kind == SPAN_KIND_CLIENT and parent_span_id == SpanID\\(0x0000000000000000\\) and attributes\\[\"db\\.system\\.name\"\\] == nil and attributes\\[\"db\\.system\"\\] == nil and attributes\\[\"messaging\\.system\"\\] == nil and attributes\\[\"gen_ai\\.operation\\.name\"\\] == nil and attributes\\[\"gen_ai\\.system\"\\] == nil'\\n(?:\\n|  [#a-z])"
+          pattern: "\\n  filter/ebpf-unlinked-client:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and kind == SPAN_KIND_CLIENT and parent_span_id == SpanID\\(0x0000000000000000\\) and attributes\\[\"db\\.system\\.name\"\\] == nil and attributes\\[\"db\\.system\"\\] == nil and attributes\\[\"messaging\\.system\"\\] == nil and attributes\\[\"gen_ai\\.operation\\.name\"\\] == nil and attributes\\[\"gen_ai\\.system\"\\] == nil and attributes\\[\"mcp\\.method\\.name\"\\] == nil'\\n(?:\\n|  [#a-z])"
 
   - it: runs it right after the database filter, before batch
     set:

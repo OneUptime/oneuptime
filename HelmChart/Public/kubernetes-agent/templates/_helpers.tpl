@@ -386,10 +386,12 @@ Whether to drop OBI's other client calls that belong to no trace in
 `filter/ebpf-unlinked-client` (ebpf.dropUnlinkedClientCalls). Only with eBPF
 on, and OFF unless explicitly set to true — the opposite of the database
 switches above. A stateless filter cannot tell a one-span call from the root
-of a trace: when the callee is traced by OBI on the same node, OBI links its
-request under the call, and dropping the call leaves that trace without its
-root (see the value for what else it costs). So a release upgraded with
---reuse-values, whose values predate the key, keeps every span as before.
+of a trace: when the callee is traced by OBI on the same node (on any node
+with ebpf.contextPropagation, which also hands the call's context to a callee
+running its own OpenTelemetry SDK), its request hangs under the call, and
+dropping the call leaves that trace without its root (see the value for what
+else it costs). So a release upgraded with --reuse-values, whose values
+predate the key, keeps every span as before.
 */}}
 {{- define "kubernetes-agent.dropUnlinkedClientCalls" -}}
 {{- and (.Values.ebpf.enabled | default false) (eq (toString .Values.ebpf.dropUnlinkedClientCalls) "true") -}}
@@ -411,14 +413,19 @@ no parent that is none of the calls other features read from spans.
   - Messaging calls (messaging.system): OBI v0.14 types a receive or settle
     as CLIENT, and OneUptime's queue discovery reads every messaging span
     that is not SERVER.
-  - GenAI calls (gen_ai.operation.name, which OBI v0.14 sets on every GenAI
-    span; gen_ai.system for an OBI on the older semantic conventions):
-    OneUptime's LLM cost and token figures come from these spans, and it
-    turns to the GenAI metrics only when there are none at all, so dropping
-    a batch job's calls would under-count them, not hand them to the metrics.
+  - GenAI calls (gen_ai.operation.name, which OBI v0.14 sets on every call
+    to a model provider; gen_ai.system for an OBI on the older semantic
+    conventions): OneUptime's LLM cost and token figures come from these
+    spans, and it turns to the GenAI metrics only when there are none at
+    all, so dropping a batch job's calls would under-count them, not hand
+    them to the metrics.
+  - MCP calls (mcp.method.name, on every MCP span OBI v0.14 records): it sets
+    gen_ai.operation.name only on tools/call, yet a prompts/get still carries
+    gen_ai.prompt.name, and OneUptime counts any span with a gen_ai.* key as
+    an LLM span.
 */}}
 {{- define "kubernetes-agent.ebpfUnlinkedClientSpanCondition" -}}
-resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and kind == SPAN_KIND_CLIENT and parent_span_id == SpanID(0x0000000000000000) and attributes["db.system.name"] == nil and attributes["db.system"] == nil and attributes["messaging.system"] == nil and attributes["gen_ai.operation.name"] == nil and attributes["gen_ai.system"] == nil
+resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and kind == SPAN_KIND_CLIENT and parent_span_id == SpanID(0x0000000000000000) and attributes["db.system.name"] == nil and attributes["db.system"] == nil and attributes["messaging.system"] == nil and attributes["gen_ai.operation.name"] == nil and attributes["gen_ai.system"] == nil and attributes["mcp.method.name"] == nil
 {{- end }}
 
 {{/*

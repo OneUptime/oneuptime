@@ -207,6 +207,11 @@ const payload = {
       // GenAI calls: LLM cost and token figures come from these spans.
       span("KEEP worker unlinked OpenAI chat call", CLIENT, "", { "http.request.method": "POST", "gen_ai.operation.name": "chat", "gen_ai.provider.name": "openai" }),
       span("KEEP worker unlinked GenAI call on the older gen_ai.system", CLIENT, "", { "http.request.method": "POST", "gen_ai.system": "openai" }),
+      // MCP calls: OBI v0.14 sets gen_ai.operation.name on tools/call only,
+      // but a prompts/get still carries gen_ai.prompt.name (an LLM span to
+      // OneUptime), and every MCP span carries mcp.method.name.
+      span("KEEP worker unlinked MCP prompts/get", CLIENT, "", { "http.request.method": "POST", "mcp.method.name": "prompts/get", "gen_ai.prompt.name": "summarize" }),
+      span("KEEP worker unlinked MCP tools/list", CLIENT, "", { "http.request.method": "POST", "mcp.method.name": "tools/list" }),
     ]),
     // A controller renewing its lease, a metrics agent pushing over gRPC.
     resource(OBI, "keda-operator", [
