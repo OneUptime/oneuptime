@@ -21,10 +21,12 @@ import {
   isAgentAiSettingsSourceAgent,
 } from "Common/Types/AI/AgentAiSettings";
 import {
+  getGlobalTranslator,
   TemplateValues,
   translatableTerm,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -470,25 +472,29 @@ export function getAiAgentPodNamespace(
  * "Read-only", "Can change: web, api" or "Can change: whole cluster"
  * (writeNamespaces empty means cluster-wide; absent means an older Runner
  * that never said where). Null without a posture.
+ *
+ * In `translator`'s language: the reader's, unless it goes into a sentence
+ * as a composedValue() of it.
  */
 export function describeAiAgentWriteAccess(
   posture: KubernetesAgentPosture | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): string | null {
   if (!posture) {
     return null;
   }
 
   if (posture.allowWrites !== true) {
-    return translateTemplate("Read-only");
+    return translator.translateTemplate("Read-only");
   }
 
   if (!posture.writeNamespaces) {
-    return translateTemplate("Can change the cluster");
+    return translator.translateTemplate("Can change the cluster");
   }
 
   return posture.writeNamespaces.length === 0
-    ? translateTemplate("Can change: whole cluster")
-    : translateTemplate("Can change: {{namespaces}}", {
+    ? translator.translateTemplate("Can change: whole cluster")
+    : translator.translateTemplate("Can change: {{namespaces}}", {
         namespaces: posture.writeNamespaces.join(", "),
       });
 }

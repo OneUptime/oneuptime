@@ -229,12 +229,8 @@ describe("the words for each mode", () => {
       );
 
       // Automatic names this type's riskier changes, without the prefix.
-      const riskier: string = descriptor.riskierExamples.replace(
-        /^riskier changes such as /,
-        "",
-      );
       expect(descriptions[ResourceAiRemediationMode.Automatic]).toContain(
-        `Riskier ones, such as ${riskier}, wait for one-click approval unless the command allowlist names them.`,
+        `Riskier ones, such as ${descriptor.riskierChanges}, wait for one-click approval unless the command allowlist names them.`,
       );
       expect(descriptions[ResourceAiRemediationMode.Automatic]).not.toContain(
         "riskier changes such as",
@@ -1233,6 +1229,48 @@ describe("in the reader's language", () => {
 
     expect(ENGLISH[broad!.title]).toBe(broad!.title);
     expect(broad!.description).toMatch(LOOKED_UP);
+  });
+
+  /*
+   * The Automatic card used to cut "riskier changes such as" off a key and
+   * look the rest up, which no locale has: its examples read English in
+   * every language. The Investigation row's examples are words for a
+   * Proxmox cluster and a database server, and command names otherwise.
+   */
+  test("the mode cards and the investigation sentence name their examples in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(ENGLISH[descriptor.riskierChanges]).toBe(
+        descriptor.riskierChanges,
+      );
+      expect(
+        getResourceRemediationModeOptionDescriptions(descriptor)[
+          ResourceAiRemediationMode.Automatic
+        ],
+      ).toContain(`‹${descriptor.riskierChanges}›`);
+    }
+
+    for (const type of [
+      AiResourceType.ProxmoxCluster,
+      AiResourceType.DatabaseServer,
+    ]) {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(ENGLISH[descriptor.readExamples]).toBe(descriptor.readExamples);
+      expect(getResourceInvestigationOnSentence(descriptor)).toContain(
+        `: ‹${descriptor.readExamples}›.`,
+      );
+    }
+
+    // Command names stay as they are.
+    expect(getResourceInvestigationOnSentence(DOCKER)).toContain(
+      ": ps, inspect, logs, stats, events.",
+    );
   });
 
   test("a confirmation the reader's language lacks is English, its protections too", async () => {

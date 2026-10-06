@@ -416,7 +416,7 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         description: translator.translateTemplate(
           "Read-only: {{readExamples}}. An investigation never changes this {{noun}}.",
           {
-            readExamples: descriptor.readExamples,
+            readExamples: translatableTerm(descriptor.readExamples),
             noun: translatableTerm(descriptor.noun),
           },
         ),

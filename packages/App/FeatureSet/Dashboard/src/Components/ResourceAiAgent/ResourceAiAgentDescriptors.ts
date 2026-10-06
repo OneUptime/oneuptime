@@ -60,7 +60,11 @@ export interface ResourceAiAgentDescriptor {
   agentCardDescription: string;
   // The investigation switch's label: "Investigate with docker".
   investigateTitle: string;
-  // What an investigation runs, in a few words: "ps, inspect, logs, …".
+  /*
+   * What an investigation runs, in a few words: "ps, inspect, logs, …".
+   * Command names stay as they are; a list in words (a Proxmox cluster's,
+   * a database server's) is a translation key, looked up where it is said.
+   */
   readExamples: string;
   // How the ready line and the commands card name what AI runs.
   readOnlyCommandsPhrase: string;
@@ -82,6 +86,12 @@ export interface ResourceAiAgentDescriptor {
   writeExamples: string;
   alwaysHumanExamples: string | null;
   riskierExamples: string;
+  /*
+   * The same riskier changes without "riskier changes such as", for the
+   * Automatic card's "Riskier ones, such as {{riskier}}, …": a key of its
+   * own, so the card reads them in the reader's language too.
+   */
+  riskierChanges: string;
   // The table and preference keys of the commands table.
   commandsTableId: string;
 }
@@ -118,6 +128,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as stopping, killing or updating a container",
     ),
+    riskierChanges: translationKey("stopping, killing or updating a container"),
     commandsTableId: "docker-host-ai-commands",
   },
   [AiResourceType.PodmanHost]: {
@@ -141,6 +152,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as stopping, killing or updating a container",
     ),
+    riskierChanges: translationKey("stopping, killing or updating a container"),
     commandsTableId: "podman-host-ai-commands",
   },
   [AiResourceType.DockerSwarmCluster]: {
@@ -164,6 +176,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as scaling a service to zero or changing its image",
     ),
+    riskierChanges: translationKey(
+      "scaling a service to zero or changing its image",
+    ),
     commandsTableId: "docker-swarm-cluster-ai-commands",
   },
   [AiResourceType.ProxmoxCluster]: {
@@ -175,8 +190,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "The small container next to your Proxmox agent that calls the Proxmox VE API (pvesh) for OneUptime AI with its own API token.",
     ),
     investigateTitle: translationKey("Investigate with pvesh"),
-    readExamples:
+    readExamples: translationKey(
       "cluster status and resources, node and guest status, tasks and logs",
+    ),
     readOnlyCommandsPhrase: translationKey("read-only pvesh requests"),
     commandsCardTitle: translationKey("pvesh commands"),
     toolVersionLabel: "Proxmox VE",
@@ -189,6 +205,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     ),
     riskierExamples: translationKey(
       "riskier changes such as shutting down, stopping or resetting a guest",
+    ),
+    riskierChanges: translationKey(
+      "shutting down, stopping or resetting a guest",
     ),
     commandsTableId: "proxmox-cluster-ai-commands",
   },
@@ -215,6 +234,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as powering a VM off, resetting or suspending it",
     ),
+    riskierChanges: translationKey(
+      "powering a VM off, resetting or suspending it",
+    ),
     commandsTableId: "vmware-vcenter-ai-commands",
   },
   [AiResourceType.CephCluster]: {
@@ -240,6 +262,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as marking an OSD out, setting noout or repairing a PG",
     ),
+    riskierChanges: translationKey(
+      "marking an OSD out, setting noout or repairing a PG",
+    ),
     commandsTableId: "ceph-cluster-ai-commands",
   },
   [AiResourceType.DatabaseServer]: {
@@ -251,8 +276,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
       "The small container next to your database agent that runs a fixed catalog of diagnostics for OneUptime AI with its own login. It never runs free SQL.",
     ),
     investigateTitle: translationKey("Investigate with db diagnostics"),
-    readExamples:
+    readExamples: translationKey(
       "sessions, locks, long-running queries, replication, sizes, settings",
+    ),
     readOnlyCommandsPhrase: translationKey("read-only db diagnostics"),
     commandsCardTitle: translationKey("db commands"),
     toolVersionLabel: null,
@@ -260,6 +286,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     writeExamples: translationKey("cancel a running query and end one session"),
     alwaysHumanExamples: null,
     riskierExamples: translationKey("riskier changes such as ending a session"),
+    riskierChanges: translationKey("ending a session"),
     commandsTableId: "database-server-ai-commands",
   },
   [AiResourceType.Host]: {
@@ -285,6 +312,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as stopping a unit or vacuuming the journal",
     ),
+    riskierChanges: translationKey("stopping a unit or vacuuming the journal"),
     commandsTableId: "host-ai-commands",
   },
 };

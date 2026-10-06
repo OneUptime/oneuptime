@@ -415,10 +415,15 @@ describe("the descriptors", () => {
         descriptor.commandsCardTitle,
         descriptor.writeExamples,
         descriptor.riskierExamples,
+        descriptor.riskierChanges,
       ]) {
         expect(value.trim().length).toBeGreaterThan(0);
       }
       expect(descriptor.riskierExamples).toMatch(/^riskier changes such as /);
+      // The Automatic card's words for the same changes.
+      expect(descriptor.riskierExamples).toBe(
+        `riskier changes such as ${descriptor.riskierChanges}`,
+      );
     },
   );
 });

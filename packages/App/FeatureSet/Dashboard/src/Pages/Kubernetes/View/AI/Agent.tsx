@@ -217,6 +217,7 @@ import React, {
 import { Navigate, useParams } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  ComposedValue,
   composedValue,
   translatableTerm,
   translationKey,
@@ -1662,9 +1663,14 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     }
 
     if (pendingConfirmation === "switch") {
-      const writeAccess: string | null = describeAiAgentWriteAccess(
+      // What the agent may change, in the language of the sentence it ends.
+      const writeAccess: ComposedValue | null = describeAiAgentWriteAccess(
         aiAgent?.posture,
-      );
+      )
+        ? composedValue((sentence: Translator): string => {
+            return describeAiAgentWriteAccess(aiAgent?.posture, sentence) || "";
+          })
+        : null;
       return (
         <ConfirmModal
           title="Switch to the AI agent?"
