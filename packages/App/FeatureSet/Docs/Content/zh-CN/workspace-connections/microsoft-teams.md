@@ -26,6 +26,8 @@
 
 和 **项目设置** > **Workspace** > **Microsoft Teams** 中频道旁边的 **发送测试** 一样，它需要创建通知规则的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自定义角色中的 **Create Workspace Notification Rule** 和 **Read Workspace Notification Rule**。对于只能查看规则的人（例如 **Viewer**），**测试规则** 是锁定的，它的提示会说明需要什么；API 会以 "You do not have permission to send test notifications in this project." 拒绝其测试。在 OneUptime Cloud 上，测试规则和添加规则一样需要 **Growth** 套餐。
 
+在 OneUptime Cloud 上，频道或聊天旁边的 **发送测试** 也需要 **Growth** 套餐，因为向频道发帖正是规则和摘要所做的事。摘要上的 **立即发送测试** 需要创建摘要的权限（自定义角色中的 **Create Workspace Notification Summary** 和 **Read Workspace Notification Summary**），在 OneUptime Cloud 上还需要 **Growth** 套餐；对其他人它是锁定的，它的提示会说明需要什么。以只读权限连接的 MCP 客户端不能发送任何测试。
+
 ## 摘要
 
 **事件** > **Workspace** > **Microsoft Teams**（以及 **警报**）的 **Summary** 选项卡会定期向你指定的频道发布汇总：有多少事件或警报、确认和解决的速度，以及带链接的列表。新摘要每周发送一次，涵盖最近 7 天。将 **发送首份报告时间** 留空，第一份摘要会在下一周、下一天或下个月开始时的 09:00 发送；表单会显示具体时间。

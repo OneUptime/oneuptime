@@ -93,7 +93,7 @@ Twilio에는 [공개적으로 접근 가능한 웹후크 URL](https://www.twilio
 ## 4. 전달과 콜백을 별도로 테스트
 
 1. 회사 네트워크와 VPN 외부에서 콜백 호스트 이름이 공개 게이트웨이로 확인되고 유효한 TLS 인증서를 제공하는지 확인합니다. 브라우저 GET은 이러한 POST 콜백을 테스트하지 않습니다.
-2. 프로젝트의 Twilio 설정에서 **테스트 SMS 보내기**와 **테스트 전화 걸기**를 사용합니다. 대상 휴대전화에서 수신을 확인합니다.
+2. 프로젝트의 Twilio 설정에서 **테스트 SMS 보내기**와 **테스트 전화 걸기**를 사용합니다. 대상 휴대전화에서 수신을 확인합니다. 둘 다 Twilio 설정을 추가할 권한이 필요합니다: **Project Owner**, **Project Admin**, 또는 사용자 지정 역할의 **Create Call and SMS** 및 **Read Call and SMS**.
 3. 사용자의 인증된 SMS/통화 연락처와 알림 규칙을 설정한 다음, 통제된 온콜 테스트 알림을 발생시킵니다. 1번을 누르고 OneUptime에서 확인 처리되었는지 확인합니다. 수신 전화 정책을 사용한다면 설정한 번호로 전화해 라우팅과 통화 로그를 확인하세요.
 4. OneUptime과 Twilio 메시지 로그에서 SMS 전달 상태를 확인합니다. 전송 요청이 수락되었다고 전달된 것은 아닙니다. [Twilio는 이후 상태 변경을 콜백으로 보고합니다](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

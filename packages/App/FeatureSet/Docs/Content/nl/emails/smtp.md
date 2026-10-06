@@ -27,7 +27,7 @@ Al het andere is ingeklapt onder **Meer velden** aan het eind van de stap Server
 
 **Microsoft Graph.** Open **Meer velden**, zet **Transport** op `Microsoft Graph` en vul een Azure-app in met de toepassingsmachtiging **Mail.Send**: de client-ID en het clientgeheim, de token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` en de scope `https://graph.microsoft.com/.default`. E-mail wordt verzonden vanuit de mailbox van **E-mail van**, die een mailbox met licentie in uw tenant moet zijn.
 
-Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** op de rij of die werkt.
+Zodra een projectconfiguratie is opgeslagen, controleert **Test-e-mail verzenden** op de rij of die werkt. Daarvoor is toestemming nodig om SMTP-configuraties toe te voegen: **Project Owner**, **Project Admin**, of **Create SMTP Config** en **Read SMTP Config** in een eigen rol. Op OneUptime Cloud is ook het abonnement **Growth** nodig, net als voor het toevoegen van een configuratie. Voor iedereen anders is het vergrendeld en zegt de tooltip wat ervoor nodig is.
 
 ## OAuth 2.0-authenticatie
 

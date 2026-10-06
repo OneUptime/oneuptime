@@ -4909,6 +4909,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const affectedItems: Array<TBaseModel> = [];
 
       /*
+       * A query that names the row's version is a compare-and-set: the row
+       * is written only while it still holds that version. The find above is
+       * a statement of its own, so the UPDATE asks again - a write landing
+       * between the two would otherwise be overwritten by values computed
+       * from what the row held before it. The workflow Update steps merge
+       * custom fields this way (CustomFieldsArgument). Rows written through
+       * save(), for a many-to-many column, are not guarded.
+       */
+      const expectedVersion: unknown = (
+        beforeUpdateBy.query as Dictionary<unknown>
+      )["version"];
+
+      /*
        * The per-item debug payload below is a pretty-printed JSON.stringify
        * of every matched row; skip building it entirely unless the log level
        * is DEBUG, since logger.debug() no-ops at any other level.
@@ -5033,7 +5046,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           /*
            * save() writes values, never an expression: the columns the
            * database works out are left out of it and written by a
-           * statement of their own, which hands them back.
+           * statement of their own, which decides them on the row as it is
+           * then, under its lock, and hands them back. save() never writes
+           * Private alongside them (a write of Private decides both switches
+           * itself: StatusPageVisibility.normalizeWrite), so nothing stored
+           * between the two statements is both private and visible.
            */
           const savedItem: any = { ...updatedItem };
 
@@ -5052,9 +5069,29 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               ),
               returnedColumns,
             );
+          } else if (returnedColumns.length > 0) {
+            /*
+             * Nothing to work out, but what the row shows to everyone is
+             * still decided by what it holds once written - read back right
+             * after save(), never the read made before it.
+             */
+            storedByWrite =
+              (await this.readStoredColumns(item, returnedColumns)) ||
+              undefined;
           }
         } else {
           const { _id, ...updateData } = updatedItem;
+          /*
+           * The row, at the version the query named, if it named one (see
+           * expectedVersion above).
+           */
+          const criteria: any = {
+            _id: _id,
+            ...(typeof expectedVersion === "number"
+              ? { version: expectedVersion }
+              : {}),
+          };
+
           const values: any = {
             ...updateData,
             // Never the update's own value: see getRowWriteSql.
@@ -5071,16 +5108,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
           const updateResult: UpdateResult =
             returnedColumns.length > 0
-              ? await this.getRepository().update({ _id: _id } as any, values, {
+              ? await this.getRepository().update(criteria, values, {
                   returning: returnedColumns,
                 })
-              : await this.getRepository().update({ _id: _id } as any, values);
+              : await this.getRepository().update(criteria, values);
 
           /*
-           * The row was hard-deleted between the find above and this write.
-           * Nothing was updated, so skip the success hooks for it: they
-           * re-read the row and would dereference null (and would report a
-           * change that never happened).
+           * The row was hard-deleted between the find above and this write,
+           * or moved past the version the query named. Nothing was updated,
+           * so skip the success hooks for it: they re-read the row and would
+           * dereference null (and would report a change that never happened).
            */
           if (updateResult.affected === 0) {
             continue;

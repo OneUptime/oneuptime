@@ -142,6 +142,25 @@ const ALERT_JIRA_IDS: Array<string> = ids(
   }),
 );
 
+/* The Dynamics 365 templates, split the same way. */
+const DYNAMICS_TEMPLATES: Array<WorkflowTemplate> = ALL_TEMPLATES.filter(
+  (candidate: WorkflowTemplate) => {
+    return candidate.category === WorkflowTemplateCategory.Dynamics365;
+  },
+);
+
+const INCIDENT_DYNAMICS_IDS: Array<string> = ids(
+  DYNAMICS_TEMPLATES.filter((candidate: WorkflowTemplate) => {
+    return candidate.subcategory === "Incidents";
+  }),
+);
+
+const ALERT_DYNAMICS_IDS: Array<string> = ids(
+  DYNAMICS_TEMPLATES.filter((candidate: WorkflowTemplate) => {
+    return candidate.subcategory === "Alerts";
+  }),
+);
+
 describe("the picker's views", () => {
   test("Recommended comes first, then every category in the catalog's order, then All templates", () => {
     expect(
@@ -450,11 +469,49 @@ describe("what a search matches", () => {
     expect(new Set(searchIds("jira"))).toEqual(new Set(ids(JIRA_TEMPLATES)));
   });
 
-  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones", () => {
+  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, then the six Dynamics 365 ones", () => {
     expect(searchIds("alert")).toEqual([
       ...ids(getTemplatesInView(WorkflowTemplateCategory.Alerts)),
       ...ALERT_JIRA_IDS,
+      ...ALERT_DYNAMICS_IDS,
     ]);
+    expect(ALERT_DYNAMICS_IDS).toHaveLength(6);
+  });
+
+  test("a search for dynamics finds the thirteen Dynamics 365 templates and nothing else", () => {
+    expect(DYNAMICS_TEMPLATES).toHaveLength(13);
+    expect(new Set(searchIds("dynamics"))).toEqual(
+      new Set(ids(DYNAMICS_TEMPLATES)),
+    );
+    expect(new Set(searchIds("Dynamics 365"))).toEqual(
+      new Set(ids(DYNAMICS_TEMPLATES)),
+    );
+  });
+
+  /*
+   * Dataverse names its case table "incident", so the alert templates are
+   * written without the word: a search for incidents must not bring back an
+   * alert-only template, any more than it does for Jira.
+   */
+  test("a search for incident never brings back an alert-only Dynamics 365 template", () => {
+    const results: Array<string> = searchIds("incident");
+
+    for (const alertDynamicsId of ALERT_DYNAMICS_IDS) {
+      expect(results).not.toContain(alertDynamicsId);
+    }
+
+    for (const incidentDynamicsId of INCIDENT_DYNAMICS_IDS) {
+      expect(results).toContain(incidentDynamicsId);
+    }
+  });
+
+  test("a search for case finds the Dynamics 365 templates, the ones that open a case first", () => {
+    const results: Array<string> = searchIds("dynamics case");
+
+    expect(new Set(results)).toEqual(new Set(ids(DYNAMICS_TEMPLATES)));
+    expect(searchIds("create a dynamics 365 case")[0]).toBe(
+      "dynamics-create-case-for-incident",
+    );
   });
 
   test("a search for incident never brings back an alert-only Jira template", () => {
@@ -744,6 +801,27 @@ describe("the list for each state", () => {
     ]);
     expect(INCIDENT_JIRA_IDS).toHaveLength(9);
     expect(ALERT_JIRA_IDS).toHaveLength(8);
+  });
+
+  test("Dynamics 365 is two lists as well: its incident templates, then its alert ones", () => {
+    const list: WorkflowTemplatePickerList = getWorkflowTemplatePickerList(
+      stateWith({ browseView: WorkflowTemplateCategory.Dynamics365 }),
+    );
+
+    expect(
+      list.sections.map((section: WorkflowTemplatePickerSection) => {
+        return {
+          id: section.id,
+          title: section.title,
+          templates: ids(section.templates),
+        };
+      }),
+    ).toEqual([
+      { id: "incidents", title: "Incidents", templates: INCIDENT_DYNAMICS_IDS },
+      { id: "alerts", title: "Alerts", templates: ALERT_DYNAMICS_IDS },
+    ]);
+    expect(INCIDENT_DYNAMICS_IDS).toHaveLength(7);
+    expect(ALERT_DYNAMICS_IDS).toHaveLength(6);
   });
 
   test("All templates is one list per category, headed by its label, in category order", () => {

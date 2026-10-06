@@ -8,10 +8,11 @@ import path from "path";
  * variant). A class it has no rule for keeps its light colour in the dark
  * theme, and nothing fails.
  *
- * So this reads the products menu's folding pieces - the category line
- * (name, count, the products it holds, the chevron), the phone menu's list
- * and the heading rows the desktop menu draws around them - and holds every
- * colour class they draw with to what Theme.css remaps.
+ * So this reads the products menu's folding pieces - the category row
+ * (icon, name, the products it holds, count, chevron, and the cursor's and
+ * the hover's colours on it), the phone menu's list, the frame of the
+ * desktop menu's list of categories and the plain headings around them -
+ * and holds every colour class they draw with to what Theme.css remaps.
  */
 
 const NAVBAR_DIR: string = path.join(
@@ -144,7 +145,7 @@ describe.each(["NavBarCategoryToggle.tsx", "NavBarMobileMenu.tsx"])(
   },
 );
 
-describe("the category line's colours", () => {
+describe("the category row's colours", () => {
   const tokens: Array<string> = colorTokens(
     readCode("NavBarCategoryToggle.tsx"),
   );
@@ -152,34 +153,68 @@ describe("the category line's colours", () => {
   test("the scan finds them, so the check above is not vacuous", () => {
     expect(tokens).toEqual(
       expect.arrayContaining([
+        // The name, the products it holds, the count and the chevron.
+        "text-gray-900",
         "text-gray-500",
         "text-gray-600",
         "text-gray-400",
         "bg-gray-100",
+        // The icon's tile.
+        "bg-gray-50",
+        "ring-gray-200",
+        // The hover, and the keyboard cursor on the row.
         "hover:bg-gray-50",
-        "border-indigo-300",
         "bg-indigo-50",
-        "border-transparent",
+        "bg-white",
+        "ring-indigo-200",
+        "bg-indigo-100",
+        "text-indigo-700",
+        "text-indigo-600",
+        "text-indigo-500",
       ]),
     );
   });
 
-  test("the heading rows of the desktop menu use only remapped colours too", () => {
+  test("the row no longer draws a border of its own: the list draws the lines between rows", () => {
+    expect(tokens).not.toContain("border-indigo-300");
+    expect(tokens).not.toContain("border-transparent");
+  });
+
+  test("the plain headings of the desktop menu use only remapped colours too", () => {
     const modal: string = readCode("NavBarMenuModal.tsx");
 
-    // The plain heading that lines up with the category lines.
-    expect(modal).toContain("border border-transparent px-2");
+    // The plain heading that lines up with the icons of the category rows.
+    expect(modal).toContain("border border-transparent px-3");
     for (const token of ["border-transparent", "text-gray-500"]) {
       expect(isRemapped(token)).toBe(true);
     }
   });
 
-  test("the phone menu's plain heading (Essentials, which never fold) is drawn in remapped colours", () => {
+  test("the frame of the desktop menu's list of categories is drawn in remapped colours", () => {
+    const modal: string = readCode("NavBarMenuModal.tsx");
+    // The class list of the element laid out on the list's columns.
+    const frame: RegExpMatchArray | null = modal.match(
+      /className=\{`([^`]*\$\{CATEGORY_LIST_COLUMNS\}[^`]*)`\}/,
+    );
+
+    expect(frame).not.toBeNull();
+    const frameTokens: Array<string> = colorTokens(frame![1]!);
+
+    // A border around the list and a rule between its rows.
+    expect(frameTokens).toEqual(
+      expect.arrayContaining(["border-gray-200", "divide-gray-100"]),
+    );
+    for (const token of frameTokens) {
+      expect([token, isRemapped(token)]).toEqual([token, true]);
+    }
+  });
+
+  test("the phone menu's plain heading, rule and guide line are drawn in remapped colours", () => {
     const tokens: Array<string> = colorTokens(readCode("NavBarMobileMenu.tsx"));
 
     // The scan sees the heading's own classes, so the check above covers it.
     expect(tokens).toEqual(
-      expect.arrayContaining(["border-transparent", "text-gray-500"]),
+      expect.arrayContaining(["border-gray-100", "text-gray-500"]),
     );
     for (const token of tokens) {
       expect([token, isRemapped(token)]).toEqual([token, true]);

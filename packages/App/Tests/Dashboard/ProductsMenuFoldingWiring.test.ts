@@ -17,6 +17,8 @@ import path from "path";
  *     and phone menu alike);
  *   - the offline browser fixture passes it the same way, so the Playwright
  *     suite exercises the menu users see;
+ *   - the catalog gives every folded section an icon of its own, by the
+ *     same translated name, and the icons reach both menus the same way;
  *   - the Admin Dashboard, five entries in four sections, folds nothing;
  *   - the command palette, which searches the same catalog, stays a flat
  *     search (folding is the menu's business, not the catalog's).
@@ -142,7 +144,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
       "moreMenuCategoriesAlwaysOpen:Array<string>;",
     );
     expect(NAVIGATION_ITEMS).toMatch(
-      /return\{navItems,moreMenuItems,moreMenuCategoriesAlwaysOpen,rightElement,?\};/,
+      /return\{navItems,moreMenuItems,moreMenuCategoriesAlwaysOpen,moreMenuCategoryIcons,rightElement,?\};/,
     );
   });
 
@@ -156,7 +158,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
 
   test("the Dashboard navbar hands it to the shared NavBar", () => {
     expect(DASHBOARD_NAVBAR).toContain(
-      "moreMenuCategoriesAlwaysOpen,rightElement,}:DashboardNavigationItems=useDashboardNavigationItems();",
+      "moreMenuCategoriesAlwaysOpen,moreMenuCategoryIcons,rightElement,}:DashboardNavigationItems=useDashboardNavigationItems();",
     );
     expect(DASHBOARD_NAVBAR).toContain(
       "moreMenuCategoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}",
@@ -178,7 +180,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
 
   test("the offline browser fixture opens the menu the way the Dashboard does", () => {
     expect(E2E_FIXTURE).toContain(
-      "const{moreMenuItems,moreMenuCategoriesAlwaysOpen}=useDashboardNavigationItems();",
+      "const{moreMenuItems,moreMenuCategoriesAlwaysOpen,moreMenuCategoryIcons}=useDashboardNavigationItems();",
     );
     expect(E2E_FIXTURE).toContain(
       "categoriesAlwaysOpen={moreMenuCategoriesAlwaysOpen}",
@@ -195,8 +197,9 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
       "constcanFold:boolean=!isSearching&&!group.isRecent&&folds.canFold(group.title);",
     );
     expect(NAVBAR_MOBILE_MENU).toContain(
-      "{folds.canFold(category.title)?(<NavBarCategoryToggle",
+      "constcanFold:boolean=folds.canFold(category.title);",
     );
+    expect(NAVBAR_MOBILE_MENU).toContain("{canFold?(<NavBarCategoryToggle");
     expect(NAVBAR_CATALOG).toContain(
       "if(!canCategoryFold(category,state)){returntrue;}",
     );
@@ -220,16 +223,95 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
   });
 });
 
+describe("every folded section is drawn with an icon of its own", () => {
+  // The sections of the catalog, by the variable their translated name is in.
+  const SECTION_VARIABLES: Array<string> = Array.from(
+    new Set(
+      Array.from(
+        NAVIGATION_ITEMS.matchAll(/category:(\w+Category),/g),
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  );
+
+  // The body of the catalog's map of icons.
+  const ICONS: string = ((): string => {
+    const match: RegExpMatchArray | null = NAVIGATION_ITEMS.match(
+      /constmoreMenuCategoryIcons:Dictionary<IconProp>=\{([^}]*)\};/,
+    );
+    expect(match).not.toBeNull();
+    return match![1]!;
+  })();
+
+  test("the scan finds the catalog's sections, so the checks below are not vacuous", () => {
+    expect(SECTION_VARIABLES).toEqual([
+      "essentialsCategory",
+      "observabilityCategory",
+      "aiCategory",
+      "codeCategory",
+      "resourcesCategory",
+      "infrastructureCategory",
+      "analyticsAutomationCategory",
+      "settingsCategory",
+    ]);
+  });
+
+  test("the catalog gives one to every section that folds, keyed by the name its items carry", () => {
+    for (const section of SECTION_VARIABLES) {
+      const hasIcon: boolean = ICONS.includes(`[${section}]:IconProp.`);
+      // Essentials never fold, so they have no row to draw an icon on.
+      expect([section, hasIcon]).toEqual([
+        section,
+        section !== "essentialsCategory",
+      ]);
+    }
+  });
+
+  test("it hands them over with the rest of the catalog", () => {
+    expect(NAVIGATION_ITEMS).toContain(
+      "moreMenuCategoryIcons:Dictionary<IconProp>;",
+    );
+  });
+
+  test("the Dashboard navbar hands them to the shared NavBar", () => {
+    expect(DASHBOARD_NAVBAR).toContain(
+      "moreMenuCategoryIcons={moreMenuCategoryIcons}",
+    );
+  });
+
+  test("the shared NavBar passes them to the desktop dialog and the phone menu", () => {
+    expect(
+      COMMON_NAVBAR.split("categoryIcons={props.moreMenuCategoryIcons}"),
+    ).toHaveLength(3);
+  });
+
+  test("both menus look the icon up by the section's name and give it to the section's row", () => {
+    expect(NAVBAR_MODAL).toContain("icon={props.categoryIcons?.[group.title]}");
+    expect(NAVBAR_MOBILE_MENU).toContain(
+      "icon={props.categoryIcons?.[category.title]}",
+    );
+  });
+
+  test("the offline browser fixture draws them the way the Dashboard does", () => {
+    expect(E2E_FIXTURE).toContain("categoryIcons={moreMenuCategoryIcons}");
+  });
+});
+
 describe("menus that keep every section open", () => {
   test("the Admin Dashboard names no sections to keep open", () => {
     expect(ADMIN_NAVBAR).toContain("<NavBar");
     expect(ADMIN_NAVBAR).not.toContain("CategoriesAlwaysOpen");
+    // Nothing folds there, so no row needs an icon.
+    expect(ADMIN_NAVBAR).not.toContain("CategoryIcons");
     expect(OLD_NAME.test(ADMIN_NAVBAR)).toBe(false);
   });
 
   test("the command palette searches the catalog without folding it", () => {
     expect(COMMAND_PALETTE).toContain("useDashboardNavigationItems()");
     expect(COMMAND_PALETTE).not.toContain("moreMenuCategoriesAlwaysOpen");
+    expect(COMMAND_PALETTE).not.toContain("moreMenuCategoryIcons");
     expect(OLD_NAME.test(COMMAND_PALETTE)).toBe(false);
   });
 });

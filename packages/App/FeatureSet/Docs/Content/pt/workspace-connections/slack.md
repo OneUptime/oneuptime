@@ -26,6 +26,8 @@
 
 Assim como **Enviar teste** ao lado de um canal em **Configurações do projeto** > **Workspace** > **Slack**, é preciso permissão para criar regras de notificação: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** ou **Create Workspace Notification Rule** e **Read Workspace Notification Rule** em uma função personalizada. Para quem só pode ver as regras, como um **Viewer**, **Regra de teste** fica bloqueado e a dica diz o que é preciso; a API recusa o teste com "You do not have permission to send test notifications in this project." No OneUptime Cloud, testar uma regra exige o plano **Growth**, assim como adicionar uma.
 
+No OneUptime Cloud, **Enviar teste** ao lado de um canal também exige o plano **Growth**, pois publicar em um canal é o que regras e resumos fazem. **Enviar teste agora** em um resumo exige permissão para criar resumos (**Create Workspace Notification Summary** e **Read Workspace Notification Summary** em uma função personalizada) e, no OneUptime Cloud, o plano **Growth**; para qualquer outra pessoa ele fica bloqueado e a dica diz o que é preciso. Um cliente MCP conectado com acesso somente leitura não pode enviar nenhum teste.
+
 ## Resumos
 
 A aba **Summary** de **Incidentes** > **Workspace** > **Slack** (e a de **Alertas**) publica um resumo periódico nos canais que você indicar: quantos incidentes ou alertas houve, com que rapidez foram reconhecidos e resolvidos, e uma lista com links. Um novo resumo sai toda semana e cobre os últimos 7 dias. Deixe **Enviar primeiro relatório às** em branco e o primeiro sai às 09:00 no início da próxima semana, do próximo dia ou mês; o formulário mostra quando.

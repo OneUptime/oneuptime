@@ -93,7 +93,7 @@ Til udvikling beskriver Twilios [vejledning til webhook-test](https://www.twilio
 ## 4. Test levering og callbacks hver for sig
 
 1. Kontrollér uden for virksomhedens netværk og VPN, at callback-værtsnavnet peger på den offentlige gateway og leverer et gyldigt TLS-certifikat. En GET fra browseren afprøver ikke disse POST-callbacks.
-2. Brug **Send Test SMS** og **Send Test Call** i projektets Twilio-konfiguration. Bekræft modtagelsen på modtagerens telefon.
+2. Brug **Send Test SMS** og **Send Test Call** i projektets Twilio-konfiguration. Bekræft modtagelsen på modtagerens telefon. Begge kræver tilladelse til at tilføje Twilio-konfigurationer: **Project Owner**, **Project Admin** eller **Create Call and SMS** og **Read Call and SMS** i en brugerdefineret rolle.
 3. Konfigurer brugerens bekræftede SMS-/opkaldskontakt og notifikationsregler, og udløs derefter en kontrolleret vagtalarm. Tryk på 1, og kontroller bekræftelsen i OneUptime. Hvis du bruger politikker for indgående opkald, skal du ringe til det konfigurerede nummer og kontrollere routing og opkaldslog.
 4. Kontroller SMS-leveringsstatus i OneUptime og Twilios beskedlogfiler. En accepteret afsendelse er ikke bevis på levering; [Twilio rapporterer senere statusændringer via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

@@ -27,7 +27,7 @@ Alles andere ist am Ende des Schritts Server unter **Weitere Felder** eingeklapp
 
 **Microsoft Graph.** Öffnen Sie **Weitere Felder**, setzen Sie **Transport** auf `Microsoft Graph` und tragen Sie eine Azure-App mit der Anwendungsberechtigung **Mail.Send** ein: ihre Client-ID und ihr Client-Secret, die Token-URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` und den Geltungsbereich `https://graph.microsoft.com/.default`. E-Mails werden aus dem Postfach der **Absender-E-Mail** gesendet, das ein lizenziertes Postfach in Ihrem Mandanten sein muss.
 
-Sobald eine Projektkonfiguration gespeichert ist, prüft **Test-E-Mail senden** in ihrer Zeile, ob sie funktioniert.
+Sobald eine Projektkonfiguration gespeichert ist, prüft **Test-E-Mail senden** in ihrer Zeile, ob sie funktioniert. Dafür braucht es die Berechtigung, SMTP-Konfigurationen anzulegen: **Project Owner**, **Project Admin** oder **Create SMTP Config** und **Read SMTP Config** in einer eigenen Rolle. In OneUptime Cloud braucht es außerdem den Tarif **Growth**, wie das Anlegen einer Konfiguration. Für alle anderen ist es gesperrt, und der Tooltip sagt, was es braucht.
 
 ## OAuth 2.0-Authentifizierung
 

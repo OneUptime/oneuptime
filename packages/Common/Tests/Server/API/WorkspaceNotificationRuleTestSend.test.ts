@@ -1,6 +1,5 @@
-import WorkspaceNotificationRuleAPI, {
-  TEST_NOTIFICATION_PERMISSION_MESSAGE,
-} from "../../../Server/API/WorkspaceNotificationRuleAPI";
+import WorkspaceNotificationRuleAPI from "../../../Server/API/WorkspaceNotificationRuleAPI";
+import { TEST_NOTIFICATION_PERMISSION_MESSAGE } from "../../../Server/API/TestSendAccess";
 import ProjectService from "../../../Server/Services/ProjectService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";

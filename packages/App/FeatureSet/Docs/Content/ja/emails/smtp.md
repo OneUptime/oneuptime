@@ -27,7 +27,7 @@ OneUptime は、3 つの認証方式によるカスタム SMTP サーバー経�
 
 **Microsoft Graph。** **その他の項目** を開き、**トランスポート** を `Microsoft Graph` にして、**Mail.Send** アプリケーション権限を持つ Azure アプリの情報を入力します。クライアント ID とクライアントシークレット、トークン URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`、スコープ `https://graph.microsoft.com/.default` です。メールは **送信元メールアドレス** のメールボックスから送信されます。これはテナント内のライセンスのあるメールボックスである必要があります。
 
-プロジェクトの設定を保存したら、その行の **テストメールを送信** で動作を確認できます。
+プロジェクトの設定を保存したら、その行の **テストメールを送信** で動作を確認できます。これには SMTP 設定を追加する権限が必要です。**Project Owner**、**Project Admin**、またはカスタムロールの **Create SMTP Config** と **Read SMTP Config** です。OneUptime Cloud では、設定の追加と同じく **Growth** プランも必要です。それ以外の人にはロックされ、ツールチップに必要なものが表示されます。
 
 ## OAuth 2.0 認証
 

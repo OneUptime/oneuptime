@@ -123,11 +123,7 @@ const LAST_15_MINUTE_LISTS: Array<HostMetric> = [
   "unitListState",
 ];
 
-const SPLIT_CPU_READINGS: Array<HostMetric> = [
-  "processCpu",
-  "processCpuChart",
-  "processListCpu",
-];
+const SPLIT_CPU_READINGS: Array<HostMetric> = ["processCpu", "processCpuChart"];
 
 // Word-boundary matchers, hoisted: eslint's wrap-regex fights prettier.
 const RAW_METRIC_NAME: RegExp = /\b(system|process|windows|systemd)\.[a-z_]+/;
@@ -501,24 +497,35 @@ describe("honest about how process CPU is read", () => {
     expect(D.processCpuChart).toContain("about a third of the real use");
   });
 
-  test("the list says it shows only one of the readings", () => {
-    expect(D.processListCpu).toContain("only one of them");
+  test("the list says it adds user and system time and leaves wait out", () => {
+    /*
+     * The list sums each process's user and system readings at its newest
+     * scrape (Pages/Host/Utils/Processes.ts). Wait is time blocked on disk,
+     * not CPU, so the text says it is not counted.
+     */
+    expect(D.processListCpu).toContain("(user plus system time)");
+    expect(D.processListCpu).toContain("waiting on disk is left out");
+    expect(D.processListCpu).not.toContain("only one of them");
+    expect(D.processListCpu).not.toContain("can read low");
   });
 
   test("the pages still read process CPU the way the texts describe", () => {
     /*
-     * If someone fixes the aggregation (filter or sum the states), these
-     * texts must change with it - this test is the reminder.
+     * If someone fixes the detail page's aggregation (filter or sum the
+     * states), its texts must change with it - this test is the reminder.
+     * The list has been fixed: it adds the readings in a tested module, so
+     * the page must keep handing them to it rather than reading them itself.
      */
     const processView: string = readPage("ProcessView.tsx");
     const processes: string = readPage("Processes.tsx");
 
     expect(processView).toContain('"process.cpu.utilization",');
     expect(processView).not.toContain('state: "user"');
-    expect(processes).toContain('buildQuery("process.cpu.utilization")');
     expect(processes).toContain(
-      "// Skip — first datapoint per key is the most recent (sorted DESC).",
+      "const rollup: ProcessRollup = buildProcessRows({",
     );
+    expect(processes).toContain("processCpuWaitExclusion(),");
+    expect(processes).not.toContain("first datapoint per key");
   });
 });
 

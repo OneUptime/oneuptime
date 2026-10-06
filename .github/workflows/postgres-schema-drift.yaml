@@ -475,6 +475,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentCustomFieldRenamePostgres.test.ts --forceExit
 
+      # Clones the migrated Project, Incident, Monitor, IncidentMonitor and
+      # IncidentCustomField tables into an isolated schema and runs the
+      # workflow Update steps through the production IncidentService (#4469).
+      # Writing one custom field must keep every other one, Update Many must
+      # merge into each incident's own values, and customFields set to null
+      # must still clear them all. An update whose query names the version
+      # must write nothing once the row has moved past it - in the UPDATE
+      # itself, not only in the find before it - so two workflows setting
+      # different custom fields of one incident at the same moment both land.
+      - name: Test workflow custom field merges on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKFLOW_CUSTOM_FIELD_MERGE_TESTS: "true"
+          WORKFLOW_CUSTOM_FIELD_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_CUSTOM_FIELD_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_CUSTOM_FIELD_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Types/Workflow/Components/UpdateMergesCustomFieldsPostgres.test.ts --forceExit
+
       # Clones the migrated WorkspaceProjectAuthToken table into an isolated
       # schema and runs the Microsoft Teams chat store against it with only
       # Graph and the Bot Framework faked (#4106). A group chat's Teams name,
