@@ -189,6 +189,7 @@ measured 94.2-99.6% and 99.8-100%.
 | TR-10 | `service.peer.name` on at least 99% of the app's CLIENT spans, and `downstream` on its `GET /ping`                               |
 | TR-11 | at least 95% of the app's server spans are named by its 4 Express routes (`GET /api/items/:id`, ...), and all 4 appear           |
 | TR-12 | no spans from the `sleeper` or from an excluded namespace                                                                        |
+| TR-13 | no parentless OBI CLIENT span but database, messaging and GenAI calls (`ebpf.dropUnlinkedClientCalls`, when rendered on)         |
 | PR-1  | profiler pods Ready, 0 restarts                                                                                                  |
 | PR-2  | no pin or create failure in the profiler logs                                                                                    |
 | PR-3  | at least 3 profile exports reached `/otlp/v1/profiles`, stamped with `k8s.cluster.name`                                          |
@@ -199,6 +200,11 @@ measured 94.2-99.6% and 99.8-100%.
 
 On kind, PR-5 also needs the root-namespace profiler to log that it uses
 OBI's pin ("Using shared map for OBI span/trace ID communication").
+
+TR-13 checks only when the render runs `ebpf.dropUnlinkedClientCalls`, which is
+off by default: otherwise it reports, and never fails on, how many spans the
+switch would drop. `E2E_HELM_ARGS='--set ebpf.dropUnlinkedClientCalls=true'`
+turns it into a check.
 
 PR-7 never fails. OBI v0.14.0 leaves `traces_ctx_v1` entries keyed by threads
 it does not instrument (a containerd shim, runc, another cluster's containerd),

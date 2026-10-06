@@ -30,8 +30,20 @@ ROUTES = [('GET', 'GET /api/items/:id', '/api/items/:id'), ('POST', 'POST /api/o
 EXCLUDE = ['*/sh', '*/bash', '*/busybox', '*/otelcol*', '*/obi']
 # Every check analyze.py reports with profiling on. A check that is dropped
 # or renamed fails test_every_check_reports.
-ALL_CHECKS = (['OBI-%d' % i for i in range(1, 10)] + ['TR-%d' % i for i in range(1, 13)] +
+ALL_CHECKS = (['OBI-%d' % i for i in range(1, 10)] + ['TR-%d' % i for i in range(1, 14)] +
               ['PR-%d' % i for i in range(1, 8)])
+# Reported, never failed, by a healthy capture of the chart's defaults: PR-7
+# always, TR-13 while ebpf.dropUnlinkedClientCalls is off (its default).
+INFO_CHECKS = {'PR-7', 'TR-13'}
+OBI_DISTRO = 'opentelemetry-ebpf-instrumentation'
+# The traces pipeline as the chart renders it with
+# ebpf.dropUnlinkedClientCalls=true, indented as inside the ConfigMap.
+CLIENT_FILTER_RENDER = ('    traces:\n      receivers:\n        - otlp\n      processors:\n'
+                        '        - memory_limiter\n        - k8sattributes\n        - resource\n'
+                        '        - filter/ebpf-unlinked-db\n'
+                        '        # Before the user\'s filters and the sampler too. It never matches\n'
+                        '        # a span filter/ebpf-unlinked-db does, so their order is free.\n'
+                        '        - filter/ebpf-unlinked-client\n        - batch\n')
 
 
 def kv(key, value):
@@ -46,10 +58,18 @@ def hexid(rng, n):
     return ''.join(rng.choice('0123456789abcdef') for _ in range(n * 2))
 
 
+def unlinked_client_call(name='GET /ping', kind=3, parent='', attrs=None):
+    """A CLIENT span of the app with no parent: an HTTP call outside any request by default."""
+    if attrs is None:
+        attrs = [kv('http.request.method', 'GET'), kv('service.peer.name', 'downstream')]
+    return {'traceId': 'a' * 32, 'spanId': 'b' * 16, 'parentSpanId': parent, 'name': name, 'kind': kind,
+            'attributes': attrs}
+
+
 class Capture:
     """A healthy capture as plain Python data; tests mutate it, then write()."""
 
-    def __init__(self, requests=400, seed=7, host_profiler=False):
+    def __init__(self, requests=400, seed=7, host_profiler=False, client_filter=False):
         rng = random.Random(seed)
         # kind: run.sh's second profiler, in the host's root PID namespace,
         # where the app has another PID than the one its node gives it
@@ -87,6 +107,9 @@ class Capture:
         self.render = ('discovery:\n  exclude_instrument:\n' +
                        ''.join('    - exe_path: "%s"\n' % g for g in EXCLUDE) +
                        '    - k8s_namespace: "kube-system"\n  attributes:\n')
+        if client_filter:
+            # rendered with ebpf.dropUnlinkedClientCalls=true
+            self.render += CLIENT_FILTER_RENDER
         per = requests // len(ROUTES)
         self.loadgen = {'event': 'done', 'total': per * len(ROUTES),
                         'stats': {r[2]: {'n': per, 'codes': {'200': per}} for r in ROUTES}}
@@ -134,8 +157,10 @@ class Capture:
         self.profile_cluster = CLUSTER
 
     @staticmethod
-    def resource(ns, deployment):
+    def resource(ns, deployment, distro=OBI_DISTRO):
         attrs = [kv('k8s.cluster.name', CLUSTER), kv('oneuptime.agent.version', '1.0.0')]
+        if distro:
+            attrs.append(kv('telemetry.distro.name', distro))
         if ns:
             attrs += [kv('k8s.namespace.name', ns), kv('k8s.deployment.name', deployment),
                       kv('service.name', deployment)]
@@ -246,8 +271,8 @@ class Healthy(unittest.TestCase):
         # what CI runs on kind
         rc, status, outp = run(Capture(host_profiler=True))
         self.assertEqual(rc, 0, outp)
-        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-7'}, outp)
-        self.assertEqual(status['PR-7'], 'INFO')
+        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, INFO_CHECKS, outp)
+        self.assertEqual({status[k] for k in INFO_CHECKS}, {'INFO'}, outp)
 
     def test_every_check_reports(self):
         _, status, outp = run(Capture(host_profiler=True))
@@ -256,21 +281,69 @@ class Healthy(unittest.TestCase):
     def test_kind_without_the_host_profiler_skips_only_the_sample_link(self):
         rc, status, outp = run(Capture(), host_profiler='false')
         self.assertEqual(rc, 0, outp)
-        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-5', 'PR-6', 'PR-7'}, outp)
+        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-5', 'PR-6', 'PR-7', 'TR-13'}, outp)
         self.assertEqual({status[k] for k in ('PR-5', 'PR-6', 'PR-7')}, {'SKIP'}, outp)
 
     def test_k3s_passes_everything(self):
         # the chart's own profiler, in the root PID namespace
         rc, status, outp = run(Capture(), platform='k3s')
         self.assertEqual(rc, 0, outp)
-        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-7'}, outp)
+        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, INFO_CHECKS, outp)
         self.assertEqual(sorted(status), sorted(ALL_CHECKS), outp)
 
     def test_profiling_off_skips_the_profiler_checks(self):
         rc, status, outp = run(Capture(), profiling='false')
         self.assertEqual(rc, 0, outp)
         self.assertFalse([k for k in status if k.startswith('PR-') and status[k] != 'SKIP'], outp)
-        self.assertFalse([k for k in status if not k.startswith('PR-') and status[k] != 'PASS'], outp)
+        self.assertFalse([k for k in status if not k.startswith('PR-') and k not in INFO_CHECKS
+                          and status[k] != 'PASS'], outp)
+
+    def test_client_call_filter_on_passes_everything(self):
+        # E2E_HELM_ARGS='--set ebpf.dropUnlinkedClientCalls=true': TR-13 is a check
+        rc, status, outp = run(Capture(host_profiler=True, client_filter=True))
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-7'}, outp)
+
+    def test_unlinked_client_calls_reported_while_the_switch_is_off(self):
+        # the chart's default: what the switch would drop is measured, not failed
+        c = Capture()
+        c.spans.append((Capture.resource('shop', 'app'), unlinked_client_call()))
+        rc, status, outp = run(c)
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual(status['TR-13'], 'INFO', outp)
+        self.assertIn('"spans": 1', outp)
+        self.assertIn('"app GET /ping"', outp)
+
+    def test_switch_on_ignores_the_spans_the_filter_keeps(self):
+        # messaging (PRODUCER / CONSUMER, and a receive OBI v0.14 types
+        # CLIENT), GenAI calls on either key, calls inside a trace, and spans
+        # an app pushes from its own SDK or another distro
+        c = Capture(client_filter=True)
+        app = Capture.resource('shop', 'app')
+        c.spans += [
+            (app, unlinked_client_call(name='publish orders', kind=4, attrs=[kv('messaging.system', 'kafka')])),
+            (app, unlinked_client_call(name='process orders', kind=5, attrs=[kv('messaging.system', 'kafka')])),
+            (app, unlinked_client_call(name='receive orders', attrs=[kv('messaging.system', 'nats')])),
+            (app, unlinked_client_call(name='chat gpt-4o', attrs=[kv('gen_ai.operation.name', 'chat')])),
+            (app, unlinked_client_call(name='chat gpt-4o', attrs=[kv('gen_ai.system', 'openai')])),
+            (app, unlinked_client_call(parent='c' * 16)),
+            (Capture.resource('shop', 'app', distro=None), unlinked_client_call()),
+            (Capture.resource('shop', 'app', distro='some-other-distro'), unlinked_client_call()),
+        ]
+        rc, status, outp = run(c)
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual(status['TR-13'], 'PASS', outp)
+
+    def test_filter_named_only_outside_a_pipeline_is_not_the_switch(self):
+        # its definition and a comment name it too; only a pipeline entry
+        # means the collector runs it
+        c = Capture()
+        c.render += ('  filter/ebpf-unlinked-client:\n    error_mode: ignore\n'
+                     '        # see filter/ebpf-unlinked-client\n')
+        c.spans.append((Capture.resource('shop', 'app'), unlinked_client_call()))
+        rc, status, outp = run(c)
+        self.assertEqual(rc, 0, outp)
+        self.assertEqual(status['TR-13'], 'INFO', outp)
 
     def test_torn_last_line_is_tolerated(self):
         # the file exporter may be mid-write when the sink files are copied
@@ -434,6 +507,24 @@ class EachFaultFailsItsCheck(unittest.TestCase):
                         {'traceId': 'a' * 32, 'spanId': 'b' * 16, 'name': 'SELECT postgres', 'kind': 3,
                          'attributes': [kv('db.system.name', 'postgresql'), kv('service.peer.name', 'postgres')]}))
         self.assertOnlyFails(c, ['TR-7'])
+
+    def test_parentless_client_call_with_the_switch_on(self):
+        # what ebpf.dropUnlinkedClientCalls exists to drop: an HTTP call made
+        # outside any request
+        c = Capture(client_filter=True)
+        c.spans.append((Capture.resource('shop', 'app'), unlinked_client_call()))
+        self.assertOnlyFails(c, ['TR-13'])
+
+    def test_parentless_grpc_and_failed_calls_with_the_switch_on(self):
+        # any protocol, failed or not
+        c = Capture(client_filter=True)
+        c.spans += [
+            (Capture.resource('shop', 'app'),
+             unlinked_client_call(name='CreateTimeSeries', attrs=[kv('rpc.system.name', 'grpc')])),
+            (Capture.resource('shop', 'app'), dict(unlinked_client_call(name='CONNECT', attrs=[]),
+                                                   status={'code': 2})),
+        ]
+        self.assertOnlyFails(c, ['TR-13'])
 
     def test_span_without_cluster_name(self):
         c = Capture()

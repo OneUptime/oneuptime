@@ -39,6 +39,11 @@ APP_ROUTES = ['GET /api/items/:id', 'POST /api/orders', 'GET /status/ready', 'GE
 # Excluded from OBI discovery by values-e2e.yaml (kube-system by the chart's
 # default rule).
 EXCLUDED_NAMESPACES = {'kube-system', 'sink', 'loadgen'}
+# telemetry.distro.name on the resource of every span OBI exports.
+OBI_DISTRO = 'opentelemetry-ebpf-instrumentation'
+# The collector processor ebpf.dropUnlinkedClientCalls adds to the traces
+# pipeline.
+CLIENT_CALL_FILTER = 'filter/ebpf-unlinked-client'
 
 
 # --------------------------------------------------------------------- helpers
@@ -217,6 +222,30 @@ def rendered_exclude_globs(out):
     return globs
 
 
+def renders_client_call_filter(out):
+    """Whether the render runs CLIENT_CALL_FILTER in a pipeline (ebpf.dropUnlinkedClientCalls).
+
+    A pipeline lists it as `- filter/ebpf-unlinked-client` on a line of its
+    own; the processor's definition (`filter/ebpf-unlinked-client:`) and the
+    comments that name it do not count.
+    """
+    return re.search(r'^\s*- ' + re.escape(CLIENT_CALL_FILTER) + r'\s*$', read(os.path.join(out, 'render.yaml')),
+                     re.M) is not None
+
+
+def is_db_span(s):
+    return 'db.system.name' in s['a'] or 'db.system' in s['a']
+
+
+def is_unlinked_client_call(s):
+    """A span filter/ebpf-unlinked-client drops: OBI's, CLIENT, no parent, and
+    no database (filter/ebpf-unlinked-db's), messaging or GenAI call."""
+    a = s['a']
+    return (s['res'].get('telemetry.distro.name') == OBI_DISTRO and s['kind'] == 'CLIENT' and not s['parent']
+            and not is_db_span(s) and 'messaging.system' not in a
+            and 'gen_ai.operation.name' not in a and 'gen_ai.system' not in a)
+
+
 # ---------------------------------------------------------------------- checks
 def main():
     ap = argparse.ArgumentParser()
@@ -366,11 +395,8 @@ def main():
           "app requests whose trace holds a Redis call of their own (OBI links Redis less reliably; floor only)",
           '%.1f%%' % pct(has_redis, len(srv)), '>=25%')
 
-    def is_db(s):
-        return 'db.system.name' in s['a'] or 'db.system' in s['a']
-
-    db_server = [s for s in via if s['kind'] == 'SERVER' and (is_db(s) or s['ns'] == 'data')]
-    unlinked_db = [s for s in via if s['kind'] == 'CLIENT' and is_db(s) and not s['parent']]
+    db_server = [s for s in via if s['kind'] == 'SERVER' and (is_db_span(s) or s['ns'] == 'data')]
+    unlinked_db = [s for s in via if s['kind'] == 'CLIENT' and is_db_span(s) and not s['parent']]
     C.add('TR-6', not db_server, 'no database SERVER spans at the sink (ebpf.dropDatabaseServerSpans)',
           len(db_server), 0)
     C.add('TR-7', not unlinked_db, 'no parentless database CLIENT spans at the sink (ebpf.dropUnlinkedDatabaseCalls)',
@@ -403,6 +429,22 @@ def main():
     C.add('TR-12', not sleeper and not plumbing,
           'no spans from the excluded executable or the excluded namespaces',
           {'sleeper': len(sleeper), 'sink/loadgen/kube-system': len(plumbing)}, 0)
+    # ebpf.dropUnlinkedClientCalls is off by default, and then what it would
+    # drop is only reported; E2E_HELM_ARGS='--set ebpf.dropUnlinkedClientCalls=true'
+    # makes this a check.
+    unlinked_client = [s for s in via if is_unlinked_client_call(s)]
+    client_filter = renders_client_call_filter(out)
+    R['unlinkedClientCalls'] = {
+        'filterRendered': client_filter, 'spans': len(unlinked_client),
+        'top': dict(collections.Counter('%s %s' % (s['wl'], s['name']) for s in unlinked_client).most_common(5))}
+    if client_filter:
+        C.add('TR-13', not unlinked_client,
+              'no parentless OBI CLIENT spans but database, messaging and GenAI calls at the sink '
+              '(ebpf.dropUnlinkedClientCalls)', R['unlinkedClientCalls'], 0)
+    else:
+        C.add('TR-13', 'info',
+              'parentless OBI CLIENT spans but database, messaging and GenAI calls at the sink '
+              '(ebpf.dropUnlinkedClientCalls off: what it would drop)', R['unlinkedClientCalls'], 'report only')
 
     # --- profiling -------------------------------------------------------------------
     if args.profiling != 'true':
