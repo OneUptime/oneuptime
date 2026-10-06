@@ -362,6 +362,56 @@ describe("TelemetryQueueService.addIncomingRequestIngestJob", () => {
     expect(firstDedupId).toBe(`incoming-request-${secretKey}`);
     expect(secondDedupId).toBe(firstDedupId);
   });
+
+  /*
+   * The worker records the heartbeat at this time, not at the time the queue
+   * gets around to the job - under a backlog those are minutes apart, and the
+   * heartbeat cron judges "received in the last N minutes" from it.
+   */
+  test("carries the endpoint's arrival time as the job's ingestion timestamp", async () => {
+    const receivedAt: Date = new Date("2026-10-05T12:19:00.000Z");
+
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-05T12:19:00.250Z"));
+
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey: ObjectID.generate().toString(),
+      requestHeaders: {},
+      requestBody: {},
+      requestMethod: "POST",
+      receivedAt: receivedAt,
+    });
+
+    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+
+    expect(
+      new Date(
+        jobData.incomingRequestIngest!.ingestionTimestamp as Date,
+      ).getTime(),
+    ).toBe(receivedAt.getTime());
+  });
+
+  test("without an arrival time the job is stamped with the enqueue time", async () => {
+    const enqueuedAt: Date = new Date("2026-10-05T12:19:00.250Z");
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(enqueuedAt);
+
+    await TelemetryQueueService.addIncomingRequestIngestJob({
+      secretKey: ObjectID.generate().toString(),
+      requestHeaders: {},
+      requestBody: {},
+      requestMethod: "POST",
+    });
+
+    const jobData: TelemetryIngestJobData = getEnqueuedJobData();
+
+    expect(
+      new Date(
+        jobData.incomingRequestIngest!.ingestionTimestamp as Date,
+      ).getTime(),
+    ).toBe(enqueuedAt.getTime());
+  });
 });
 
 describe("TelemetryQueueService.addTelemetryMonitorEvaluationJob", () => {

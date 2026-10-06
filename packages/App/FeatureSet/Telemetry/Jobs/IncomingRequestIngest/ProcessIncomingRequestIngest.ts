@@ -11,6 +11,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
@@ -82,7 +83,29 @@ export async function processIncomingRequestFromQueue(
     return;
   }
 
-  const now: Date = OneUptimeDate.getCurrentDate();
+  /*
+   * The heartbeat is recorded at the time it ARRIVED, not the time this
+   * worker got to it. Under a Telemetry backlog those are minutes apart, and
+   * because same-monitor jobs are coalesced, newer requests for this monitor
+   * may have arrived (and been dropped from the queue) since this one. The
+   * store returns the latest arrival the endpoint saw.
+   *
+   * It is judged as of now, exactly as the heartbeat cron judges it, so the
+   * two can never disagree and flap the monitor: a sender that is still
+   * sending has a recent arrival however late this job runs, and a sender
+   * that stopped is not revived by its last request being processed late.
+   */
+  const latestReceivedAt: Date = await IncomingRequestReceivedAtStore.track({
+    secretKey: monitorSecretKeyAsString,
+    receivedAt: getReceivedAt(jobData),
+  });
+
+  const checkedAt: Date = OneUptimeDate.getCurrentDate();
+
+  const receivedAt: Date = IncomingRequestReceivedAtStore.getReceivedAtAsOf(
+    latestReceivedAt,
+    checkedAt,
+  );
 
   /*
    * Ingest boundary, matching the incoming-email path above it.
@@ -115,10 +138,10 @@ export async function processIncomingRequestFromQueue(
     monitorId: new ObjectID(monitor._id.toString()),
     requestHeaders: redactedRequestHeaders,
     requestBody: redactedRequestBody,
-    incomingRequestReceivedAt: now,
+    incomingRequestReceivedAt: receivedAt,
     onlyCheckForIncomingRequestReceivedAt: false,
     requestMethod: httpMethod,
-    checkedAt: now,
+    checkedAt: checkedAt,
     receivedViaProbeId:
       jobData.receivedViaProbeId &&
       ObjectID.isValidUUID(jobData.receivedViaProbeId)
@@ -128,6 +151,34 @@ export async function processIncomingRequestFromQueue(
 
   // process probe response here.
   await MonitorResourceUtil.monitorResource(incomingRequest);
+}
+
+/*
+ * When the endpoint received the request. The job carries it as JSON, so it
+ * arrives here as a string; a job carrying nothing usable falls back to now -
+ * the old behaviour. A time in the future (clock skew between pods) is
+ * clamped to now.
+ */
+export function getReceivedAt(jobData: IncomingRequestIngestJobData): Date {
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const value: unknown = jobData.ingestionTimestamp;
+
+  const receivedAt: Date | null =
+    value instanceof Date
+      ? value
+      : typeof value === "string"
+        ? new Date(value)
+        : null;
+
+  if (
+    !receivedAt ||
+    !Number.isFinite(receivedAt.getTime()) ||
+    receivedAt.getTime() > now.getTime()
+  ) {
+    return now;
+  }
+
+  return receivedAt;
 }
 
 logger.debug("Incoming request ingest processing functions loaded");
