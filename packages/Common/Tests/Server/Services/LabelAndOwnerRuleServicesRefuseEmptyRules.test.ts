@@ -19,7 +19,6 @@ import {
   RuleActionColumns,
 } from "../../../Utils/Rules/RuleAction";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
-import type { SpyInstance } from "jest-mock";
 import {
   afterEach,
   beforeEach,
@@ -122,6 +121,13 @@ const ruleNamesOf: (kind: "labels" | "owners") => Array<string> = (
     return ruleCase.model;
   });
 };
+
+// One row per service, named by its file, for test.each.
+const SERVICE_ROWS: Array<[string, RuleCase]> = RULE_CASES.map(
+  (ruleCase: RuleCase): [string, RuleCase] => {
+    return [ruleCase.serviceFile, ruleCase];
+  },
+);
 
 type LoadServiceFunction = (
   ruleCase: RuleCase,
@@ -262,11 +268,7 @@ describe("every label and owner rule service", () => {
     ]);
   });
 
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s is a LabelAndOwnerRuleBaseService, and still a ProjectReferencesService",
     (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
@@ -290,11 +292,7 @@ describe("every label and owner rule service", () => {
     },
   );
 
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s refuses a new rule that adds nothing, with one plain answer",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
@@ -309,11 +307,7 @@ describe("every label and owner rule service", () => {
     },
   );
 
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s refuses empty lists, entries that name nothing, and switches that are off",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
@@ -347,11 +341,7 @@ describe("every label and owner rule service", () => {
     },
   );
 
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s refuses it from OneUptime's own writes and workflows too",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
@@ -372,36 +362,24 @@ describe("every label and owner rule service", () => {
    * The check reads nothing, so a rule that adds nothing is refused before
    * the project's records are looked up.
    */
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s refuses it before anything is looked up",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
-      const referenceCheck: SpyInstance<
-        typeof ProjectReferenceCheck.validateCreate
-      > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+      jest.spyOn(ProjectReferenceCheck, "validateCreate");
 
       await expect(createHook(service, newRule(service))).rejects.toThrow(
         BadDataException,
       );
-      expect(referenceCheck).not.toHaveBeenCalled();
+      expect(ProjectReferenceCheck.validateCreate).not.toHaveBeenCalled();
     },
   );
 
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s creates a rule that adds something, and still checks the project's records",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
-      const referenceCheck: SpyInstance<
-        typeof ProjectReferenceCheck.validateCreate
-      > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+      jest.spyOn(ProjectReferenceCheck, "validateCreate");
 
       const payloads: Array<Record<string, unknown>> =
         ruleCase.kind === "labels"
@@ -429,7 +407,9 @@ describe("every label and owner rule service", () => {
         );
       }
 
-      expect(referenceCheck).toHaveBeenCalledTimes(payloads.length);
+      expect(ProjectReferenceCheck.validateCreate).toHaveBeenCalledTimes(
+        payloads.length,
+      );
     },
   );
 });
@@ -445,7 +425,7 @@ const INHERITING_CASES: Array<RuleCase> = RULE_CASES.filter(
 );
 
 describe.each(
-  INHERITING_CASES.map((ruleCase: RuleCase) => {
+  INHERITING_CASES.map((ruleCase: RuleCase): [string, RuleCase] => {
     return [ruleCase.model, ruleCase];
   }),
 )("a new %s", (_model: string, ruleCase: RuleCase) => {
@@ -512,11 +492,7 @@ describe.each(
  * it "Adds nothing", and it can still be renamed, switched off or deleted.
  */
 describe("an update", () => {
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s may still empty what a rule adds",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
@@ -554,18 +530,11 @@ describe("an update", () => {
  * refused before anything is saved.
  */
 describe("creating a rule that adds nothing, through the service's create", () => {
-  test.each(
-    RULE_CASES.map((ruleCase: RuleCase) => {
-      return [ruleCase.serviceFile, ruleCase];
-    }),
-  )(
+  test.each(SERVICE_ROWS)(
     "%s saves nothing and answers with the plain message",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
-      const repository: SpyInstance<typeof service.getRepository> = jest.spyOn(
-        service,
-        "getRepository",
-      );
+      jest.spyOn(service, "getRepository");
 
       await expect(
         service.create({
@@ -574,7 +543,7 @@ describe("creating a rule that adds nothing, through the service's create", () =
         }),
       ).rejects.toThrow(new BadDataException(messageFor(ruleCase)));
 
-      expect(repository).not.toHaveBeenCalled();
+      expect(service.getRepository).not.toHaveBeenCalled();
     },
   );
 });
