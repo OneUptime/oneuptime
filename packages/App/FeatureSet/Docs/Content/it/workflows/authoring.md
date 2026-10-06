@@ -97,7 +97,7 @@ Per mettere in pausa un workflow senza eliminarlo, spegni **Abilitato**. Non par
 - Trascina i blocchi per spostarli. La disposizione viene salvata.
 - Per eliminare una linea, trascina una delle sue estremità via dal puntino e lasciala su una zona vuota della tela.
 - Per eliminare un blocco, cliccalo e usa **Elimina** in fondo alla finestra delle sue impostazioni. Anche selezionare un blocco o una linea e premere Backspace lo rimuove.
-- Non c'è modo di duplicare un singolo blocco. **Duplicate Workflow**, nella pagina **Impostazioni** del workflow, copia tutto quanto, e la copia nasce disabilitata.
+- Non c'è modo di duplicare un singolo blocco. **Duplicate Workflow**, nella pagina **Impostazioni** del workflow, copia tutto quanto. Il nome della copia è già compilato, numerato dopo i workflow del progetto ("Nightly Sync" viene copiato come "Nightly Sync 2"), e la copia si apre, disabilitata.
 - Impila i blocchi dall'alto verso il basso, così si leggono nella direzione in cui vengono eseguiti — gli input stanno sul bordo superiore e gli output su quello inferiore, quindi il flusso scende in modo naturale.
 
 ## Cosa leggere dopo

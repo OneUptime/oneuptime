@@ -56,7 +56,7 @@ Instrumentpaneler i sig själva förfaller inte. Datan de visar följer ditt pro
 
 ## Duplicera en instrumentpanel
 
-För att kopiera en befintlig instrumentpanel, öppna instrumentpanellistan och välj **Duplicate**. Kopian inkluderar varje widget, variabel och inställning förutom offentlig delning — den börjar alltid av så att du kan bestämma om du vill slå på den igen.
+För att kopiera en instrumentpanel, öppna den och gå till **Inställningar → Duplicate Dashboard**. Kopians namn är redan ifyllt: instrumentpanelens namn, numrerat förbi de namn projektet redan har ("Checkout API" kopieras som "Checkout API 2", och en kopia av den som "Checkout API 3"). Ändra det om du vill, klicka på **Duplicate Dashboard**, så öppnas kopian. Den har instrumentpanelens widgetar, variabler, beskrivning och etiketter. Varumärke och anpassade domäner stannar hos originalet, och offentlig delning börjar alltid av så att du kan bestämma om du vill slå på den.
 
 Detta är rätt drag när du vill forka en mall (som "vår jourinstrumentpanel") till en tjänstespecifik kopia.
 

@@ -56,7 +56,7 @@ Os próprios painéis não expiram. Os dados que eles mostram seguem as configur
 
 ## Duplicando um painel
 
-Para copiar um painel existente, abra a lista de painéis e escolha **Duplicar**. A cópia inclui todos os widgets, variáveis e configurações, exceto o compartilhamento público — esse sempre começa desligado para que você decida se quer ligá-lo novamente.
+Para copiar um painel, abra-o e vá em **Configurações → Duplicate Dashboard**. O nome da cópia já vem preenchido: o nome do painel, numerado depois dos nomes que o projeto já tem ("Checkout API" é copiado como "Checkout API 2", e uma cópia dele como "Checkout API 3"). Mude-o se quiser, clique em **Duplicate Dashboard** e a cópia se abre. Ela tem os widgets, as variáveis, a descrição e as etiquetas do painel. A marca e os domínios personalizados ficam com o original, e o compartilhamento público sempre começa desligado para que você decida se quer ligá-lo.
 
 Essa é a abordagem certa quando você quer derivar um template (como "nosso painel de plantão") em uma cópia específica para um serviço.
 

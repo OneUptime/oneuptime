@@ -56,7 +56,7 @@ Dashboards zelf verlopen niet. De data die ze tonen volgt de retentie-instelling
 
 ## Een dashboard dupliceren
 
-Om een bestaand dashboard te kopiëren open je de dashboards-lijst en kies je **Duplicate**. De kopie bevat elke widget, variabele en instelling behalve publiek delen — dat staat altijd uit zodat je kunt besluiten of je het weer wilt aanzetten.
+Om een dashboard te kopiëren open je het en ga je naar **Instellingen → Duplicate Dashboard**. De naam van de kopie is al ingevuld: de naam van het dashboard, doorgenummerd voorbij de namen die het project al heeft ("Checkout API" wordt gekopieerd als "Checkout API 2", en een kopie daarvan als "Checkout API 3"). Pas hem aan als je wilt, klik op **Duplicate Dashboard** en de kopie opent. Die heeft de widgets, variabelen, beschrijving en labels van het dashboard. Branding en custom domains blijven bij het origineel, en publiek delen staat altijd uit zodat je kunt besluiten of je het aanzet.
 
 Dit is de juiste zet wanneer je een template (zoals "ons oncall-dashboard") wilt afsplitsen naar een servicespecifieke kopie.
 

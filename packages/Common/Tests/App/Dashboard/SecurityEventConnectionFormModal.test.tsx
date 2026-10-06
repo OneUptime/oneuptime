@@ -737,8 +737,8 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     });
 
     /*
-     * BasicFormModal renders the error itself and also passes it to Modal,
-     * so the message appears twice; either instance proves the point.
+     * BasicFormModal hands the error to Modal, which draws it once, as the
+     * alert at the top of the dialog's body.
      */
     expect(
       (
