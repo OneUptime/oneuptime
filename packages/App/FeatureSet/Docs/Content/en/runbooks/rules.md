@@ -45,6 +45,7 @@ With two or more conditions, choose **Match all** (every condition must be true)
 - Multiple rules can match the same event — every match fires, and the union of their runbooks runs (each runbook gets its own execution).
 - Monitor conditions are checked one monitor at a time. With **Match all**, "**Monitor Name** contains `api`" and "**Monitor Labels** has any of _Production_" need one monitor that is both, not one monitor of each.
 - Runbook rules run after label rules, so a label that a label rule attaches to a new incident, alert or event can start a runbook.
+- An incident or alert created already resolved starts no runbook: it was over before it was recorded. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 - A condition on another product's severity — **Alert Severities** on an incident rule, say — can never be true, so the API refuses to save it.
 
 ## Example: DB failover for database incidents

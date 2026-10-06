@@ -39,6 +39,7 @@ const codes: Array<InvestigationNotStartedCode> = [
   "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
+  "created_resolved",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -1030,6 +1031,89 @@ describe("investigation diagnostic boundaries", () => {
       }),
     ).resolves.toBeNull();
   });
+});
+
+/*
+ * An incident or alert created already resolved was over before it was
+ * recorded: its create queues no investigation and records why
+ * (created_resolved), so its AI card says so instead of "no investigation
+ * was recorded". Only ever recorded at creation, never derived from the
+ * current settings, and nothing in the settings would change it.
+ */
+describe("a record created already resolved (created_resolved)", () => {
+  it.each([
+    [{ projectId, incidentId }, "incident"],
+    [{ projectId, alertId }, "alert"],
+  ] as Array<[InvestigationSubject, string]>)(
+    "says plainly why the %o was not investigated, and what to do instead",
+    (subject: InvestigationSubject, kind: string) => {
+      const reason: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("created_resolved", subject);
+
+      expect(reason.code).toBe("created_resolved");
+      expect(reason.source).toBe("recorded");
+      expect(reason.title).toBe(`This ${kind} was created already resolved`);
+      expect(reason.description).toBe(
+        "It was already resolved when it was created, so OneUptime AI did not investigate it automatically.",
+      );
+      expect(reason.nextStep).toBe(
+        "To look into it anyway, ask OneUptime AI below.",
+      );
+      // A recorded fact, not a reading of the current settings.
+      expect(reason.description).not.toContain("current conditions");
+      expect(Number.isFinite(Date.parse(reason.evaluatedAt))).toBe(true);
+    },
+  );
+
+  it.each(subjects)(
+    "is recorded once, without hooks, for %o",
+    async (subject: InvestigationSubject) => {
+      const updateAlert: jest.SpyInstance = jest
+        .spyOn(AlertService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+      const updateIncident: jest.SpyInstance = jest
+        .spyOn(IncidentService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await InvestigationEligibility.recordSkipped(subject, "created_resolved");
+
+      const update: jest.SpyInstance = subject.alertId
+        ? updateAlert
+        : updateIncident;
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedData: { projectId, aiInvestigationDecision: null },
+          data: {
+            aiInvestigationDecision: expect.objectContaining({
+              code: "created_resolved",
+              source: "recorded",
+            }),
+          },
+        }),
+      );
+    },
+  );
+
+  it.each(subjects)(
+    "the recorded reason is what the card reads back for %o",
+    async (subject: InvestigationSubject) => {
+      const recorded: InvestigationNotStartedReason =
+        InvestigationEligibility.reason("created_resolved", subject);
+
+      jest
+        .spyOn(AlertService, "findOneBy")
+        .mockResolvedValue({ aiInvestigationDecision: recorded } as never);
+      jest
+        .spyOn(IncidentService, "findOneBy")
+        .mockResolvedValue({ aiInvestigationDecision: recorded } as never);
+
+      expect(await InvestigationEligibility.getNotStartedReason(subject)).toBe(
+        recorded,
+      );
+    },
+  );
 });
 
 /*

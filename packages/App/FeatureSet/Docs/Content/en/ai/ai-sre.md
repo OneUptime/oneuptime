@@ -218,6 +218,7 @@ If the project uses auto-remediation rules (rules under **Incidents > AI > Auto 
 
 - When a new incident or alert **enqueues an AI investigation**, auto-remediation for that incident or alert is deferred until the investigation **settles** — any terminal outcome: the analysis is posted, the run errors out after its retries, it expires in the queue, or it goes stale. Only then do the remediation rules run, so the remediation planner always has the posted root cause analysis as input instead of racing it.
 - When **no investigation is enqueued** (investigations disabled, or a severity floor, cooldown or budget you set skipped it), remediation fires immediately when the incident or alert is created, exactly as before. Auto-remediation never depends on the AI investigation lane being enabled.
+- An incident or alert **created already resolved** is neither investigated nor remediated: it was over before it was recorded. Its **AI Investigation** card says so, and you can still ask OneUptime AI about it. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
 An investigation that fails, expires, or goes stale still releases remediation — the deferral delays remediation until the outcome is known; it never cancels it.
 

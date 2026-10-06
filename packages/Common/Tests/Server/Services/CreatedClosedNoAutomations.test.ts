@@ -32,6 +32,8 @@ import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentP
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
+import IncidentAlertService from "../../../Server/Services/IncidentAlertService";
+import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -54,9 +56,14 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import { IncidentEpisodeFeedEventType } from "../../../Models/DatabaseModels/IncidentEpisodeFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ObjectID from "../../../Types/ObjectID";
+import { Gray500 } from "../../../Types/BrandColors";
+import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../Types/Incident/IncidentAlertLink";
+import { JSONObject } from "../../../Types/JSON";
+import { StartingStage } from "../../../Utils/StartingStage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import {
   afterEach,
@@ -277,6 +284,8 @@ interface Kind {
   // How the record is named in its own feed: "incident", "alert", "episode".
   noun: string;
   feedEventTypeKey: string;
+  // The key its feed items name the record under: "incidentId".
+  feedRecordKey: string;
   onCallPolicyEventType: string;
   // The automations this kind has at all.
   has: {
@@ -312,6 +321,7 @@ const INCIDENT: Kind = {
   idColumn: "currentIncidentStateId",
   noun: "incident",
   feedEventTypeKey: "incidentFeedEventType",
+  feedRecordKey: "incidentId",
   onCallPolicyEventType: IncidentFeedEventType.OnCallPolicy,
   has: {
     grouping: true,
@@ -438,6 +448,7 @@ const ALERT: Kind = {
   idColumn: "currentAlertStateId",
   noun: "alert",
   feedEventTypeKey: "alertFeedEventType",
+  feedRecordKey: "alertId",
   onCallPolicyEventType: AlertFeedEventType.OnCallPolicy,
   has: {
     grouping: true,
@@ -553,6 +564,7 @@ const ALERT_EPISODE: Kind = {
   idColumn: "currentAlertStateId",
   noun: "episode",
   feedEventTypeKey: "alertEpisodeFeedEventType",
+  feedRecordKey: "alertEpisodeId",
   onCallPolicyEventType: AlertEpisodeFeedEventType.OnCallPolicy,
   has: {
     grouping: false,
@@ -634,6 +646,7 @@ const INCIDENT_EPISODE: Kind = {
   idColumn: "currentIncidentStateId",
   noun: "episode",
   feedEventTypeKey: "incidentEpisodeFeedEventType",
+  feedRecordKey: "incidentEpisodeId",
   onCallPolicyEventType: IncidentEpisodeFeedEventType.OnCallPolicy,
   has: {
     grouping: false,
@@ -728,6 +741,9 @@ const KINDS: Array<Kind> = [INCIDENT, ALERT, ALERT_EPISODE, INCIDENT_EPISODE];
 // Each read of the project's states a create made.
 let stateReads: number = 0;
 
+// Each read of the project's whole state list (where a record starts).
+let stateListReads: number = 0;
+
 /*
  * The project's states, answered the way the database would: one by id or
  * by the created-state flag, or the whole list in its order.
@@ -777,6 +793,7 @@ function stubStates(kind: Kind): void {
     "findBy",
     () => {
       stateReads++;
+      stateListReads++;
     },
     (args: Array<unknown>): Array<StateModel> => {
       const query: Record<string, unknown> = (
@@ -815,10 +832,19 @@ interface Created {
  * (or with no state picked), with `policyIds` as its on-call policies, and
  * waits for the chain its success hook starts.
  */
+interface CreateOptions {
+  // More the write sends: a template, say.
+  values?: Record<string, unknown> | undefined;
+  miscDataProps?: JSONObject | undefined;
+  // Stand-ins of the test's own, set up after the usual ones.
+  extraStubs?: ((probes: Probes) => void) | undefined;
+}
+
 async function create(
   kind: Kind,
   state: string | null,
   policyIds: Array<string> = [PRIMARY_POLICY_ID],
+  options: CreateOptions = {},
 ): Promise<Created> {
   const probes: Probes = newProbes();
 
@@ -830,11 +856,19 @@ async function create(
     return "**Ada**";
   });
 
+  if (options.extraStubs) {
+    options.extraStubs(probes);
+  }
+
   const record: DatabaseBaseModel = kind.newRecord(policyIds);
 
   if (state) {
     (record as unknown as Record<string, unknown>)[kind.idColumn] =
       new ObjectID(state);
+  }
+
+  for (const [key, value] of Object.entries(options.values || {})) {
+    (record as unknown as Record<string, unknown>)[key] = value;
   }
 
   const hooks: Record<string, AnyFunction> = kind.service as Record<
@@ -846,6 +880,9 @@ async function create(
     (await hooks["onBeforeCreate"]!.call(kind.service, {
       data: record,
       props: { tenantId: PROJECT_ID },
+      ...(options.miscDataProps
+        ? { miscDataProps: options.miscDataProps }
+        : {}),
     })) as { createBy: unknown; carryForward: unknown };
 
   // What the database hands back: the row as written, with its id.
@@ -882,6 +919,7 @@ function chainErrors(): Array<unknown> {
 
 beforeEach(() => {
   stateReads = 0;
+  stateListReads = 0;
   jest.mocked(logger.error).mockClear();
 });
 
@@ -1201,6 +1239,261 @@ describe("the on-call policies a live record pages are told what paged them", ()
       expect(idOf(probes.paged[0]!.options[triggerKey])).toBe(
         idOf(RECORD_ID),
       );
+    },
+  );
+});
+
+/*
+ * Where the record starts is read once, in onBeforeCreate, and handed to
+ * onCreateSuccess, which decides on it: no second read after the record is
+ * written, and none at all for a record that starts in the created state.
+ */
+describe.each(KINDS)(
+  "an $name: where it starts is read once and handed on",
+  (kind: Kind) => {
+    test.each([
+      ["no state picked", null, StartingStage.Open],
+      ["the created state", CREATED, StartingStage.Open],
+      ["a state before acknowledged", INVESTIGATING, StartingStage.Open],
+      ["the acknowledged state", ACKNOWLEDGED, StartingStage.Acknowledged],
+      ["a state after acknowledged", MONITORING, StartingStage.Acknowledged],
+      ["the resolved state", RESOLVED, StartingStage.Resolved],
+    ] as Array<[string, string | null, StartingStage]>)(
+      "%s: handed on as %s",
+      async (_name: string, state: string | null, expected: StartingStage) => {
+        const { carryForward } = await create(kind, state);
+
+        expect(
+          (carryForward as { startingStage: StartingStage }).startingStage,
+        ).toBe(expected);
+      },
+    );
+
+    test("a picked state is placed with one read of the project's whole list", async () => {
+      await create(kind, RESOLVED);
+
+      expect(stateListReads).toBe(1);
+    });
+
+    test("no state picked: the list is never read", async () => {
+      await create(kind, null);
+
+      expect(stateListReads).toBe(0);
+    });
+  },
+);
+
+describe.each(KINDS)(
+  "an $name: the line that says nobody was paged",
+  (kind: Kind) => {
+    test("is an on-call entry of the record's own feed, in grey, and is not posted to Slack or Microsoft Teams", async () => {
+      const { probes } = await create(kind, MONITORING);
+
+      const lines: Array<Record<string, unknown>> = onCallNotRunLines(
+        kind,
+        probes,
+      );
+
+      expect(lines).toHaveLength(1);
+      expect(lines[0]![kind.feedEventTypeKey]).toBe(kind.onCallPolicyEventType);
+      expect(lines[0]!["displayColor"]).toBe(Gray500);
+      expect(lines[0]!["workspaceNotification"]).toBeUndefined();
+      expect(idOf(lines[0]![kind.feedRecordKey])).toBe(idOf(RECORD_ID));
+    });
+
+    test("is written once, however many policies it names", async () => {
+      const { probes } = await create(kind, RESOLVED, [
+        PRIMARY_POLICY_ID,
+        DATABASE_POLICY_ID,
+        PRIMARY_POLICY_ID,
+      ]);
+
+      expect(onCallNotRunLines(kind, probes)).toHaveLength(1);
+      expect(
+        String(onCallNotRunLines(kind, probes)[0]!["feedInfoInMarkdown"]),
+      ).toContain("**Primary** and **Database \\[team\\]** were not run");
+    });
+  },
+);
+
+describe("an incident or alert created resolved tells its AI card why it was not investigated", () => {
+  test.each([
+    [INCIDENT, "incidentId"],
+    [ALERT, "alertId"],
+  ] as Array<[Kind, string]>)(
+    "%#: the decision is recorded for this record of this project",
+    async (kind: Kind, subjectKey: string) => {
+      const subjects: Array<Record<string, unknown>> = [];
+
+      await create(kind, RESOLVED, [PRIMARY_POLICY_ID], {
+        extraStubs: () => {
+          jest
+            .spyOn(InvestigationEligibility, "recordSkipped")
+            .mockImplementation((async (
+              subject: Record<string, unknown>,
+              code: string,
+            ): Promise<void> => {
+              subjects.push({ ...subject, code: code });
+            }) as never);
+        },
+      });
+
+      expect(subjects).toHaveLength(1);
+      expect(subjects[0]!["code"]).toBe("created_resolved");
+      expect(idOf(subjects[0]![subjectKey])).toBe(idOf(RECORD_ID));
+      expect(idOf(subjects[0]!["projectId"])).toBe(idOf(PROJECT_ID));
+    },
+  );
+});
+
+describe("an incident declared from a template that starts it acknowledged or resolved", () => {
+  const TEMPLATE_ID: string = "0193c0de-5a7e-4ccc-8ddd-0000000000c7";
+
+  function fromTemplateStarting(state: string): CreateOptions {
+    return {
+      values: { createdIncidentTemplateId: new ObjectID(TEMPLATE_ID) },
+      extraStubs: () => {
+        stub(IncidentTemplateService, "findOneBy", undefined, () => {
+          const template: IncidentTemplate = new IncidentTemplate();
+          template._id = TEMPLATE_ID;
+          template.initialIncidentStateId = new ObjectID(state);
+          return template;
+        });
+      },
+    };
+  }
+
+  test("starts in the template's state", async () => {
+    const { record, carryForward } = await create(
+      INCIDENT,
+      null,
+      [PRIMARY_POLICY_ID],
+      fromTemplateStarting(ACKNOWLEDGED),
+    );
+
+    expect(idOf((record as Incident).currentIncidentStateId)).toBe(
+      ACKNOWLEDGED,
+    );
+    expect(
+      (carryForward as { startingStage: StartingStage }).startingStage,
+    ).toBe(StartingStage.Acknowledged);
+  });
+
+  test("acknowledged: pages nobody, and says so", async () => {
+    const { probes } = await create(
+      INCIDENT,
+      null,
+      [PRIMARY_POLICY_ID],
+      fromTemplateStarting(ACKNOWLEDGED),
+    );
+
+    expect(probes.paged).toEqual([]);
+    expect(onCallNotRunLines(INCIDENT, probes)).toHaveLength(1);
+    expect(probes.grouped).toHaveLength(1);
+  });
+
+  test("resolved: nothing answers it", async () => {
+    const { probes } = await create(
+      INCIDENT,
+      null,
+      [PRIMARY_POLICY_ID],
+      fromTemplateStarting(RESOLVED),
+    );
+
+    expect(probes.paged).toEqual([]);
+    expect(probes.warRoom).toEqual([]);
+    expect(probes.grouped).toEqual([]);
+    expect(probes.runbooks).toEqual([]);
+    expect(probes.remediated).toEqual([]);
+    expect(probes.investigated).toEqual([]);
+    expect(probes.sla).toEqual([]);
+    expect(probes.monitorStatus).toEqual([]);
+    expect(probes.monitoringPaused).toEqual([]);
+    expect(chainErrors()).toEqual([]);
+  });
+});
+
+describe("an incident declared resolved from alerts still links and announces them", () => {
+  const ALERT_A: string = "0193c0de-5a7e-4ccc-8ddd-0000000000aa";
+  const ALERT_B: string = "0193c0de-5a7e-4ccc-8ddd-0000000000ab";
+
+  test("the alerts are linked and announced, and nobody is paged", async () => {
+    const linked: Array<Record<string, unknown>> = [];
+    const announced: Array<Record<string, unknown>> = [];
+
+    const { probes, carryForward } = await create(
+      INCIDENT,
+      RESOLVED,
+      [PRIMARY_POLICY_ID],
+      {
+        miscDataProps: { [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_A, ALERT_B] },
+        extraStubs: () => {
+          stub(
+            IncidentAlertService,
+            "validateAlertIdsForNewIncident",
+            undefined,
+            () => {
+              return [new ObjectID(ALERT_A), new ObjectID(ALERT_B)];
+            },
+          );
+          stub(
+            IncidentAlertService,
+            "linkAlertsToIncident",
+            (args: Array<unknown>) => {
+              linked.push(args[0] as Record<string, unknown>);
+            },
+            () => {
+              return {
+                linkedAlertIds: [new ObjectID(ALERT_A), new ObjectID(ALERT_B)],
+                alreadyLinkedAlertIds: [],
+                failed: [],
+              };
+            },
+          );
+          stub(
+            IncidentAlertService,
+            "createDeclaredFromAlertsFeedItem",
+            (args: Array<unknown>) => {
+              announced.push(args[0] as Record<string, unknown>);
+            },
+          );
+        },
+      },
+    );
+
+    expect(carryForward).toEqual(
+      expect.objectContaining({
+        startingStage: StartingStage.Resolved,
+        alertIdsToLink: [new ObjectID(ALERT_A), new ObjectID(ALERT_B)],
+      }),
+    );
+    expect(linked).toHaveLength(1);
+    expect(
+      (linked[0]!["alertIds"] as Array<ObjectID>).map(idOf).sort(),
+    ).toEqual([ALERT_A, ALERT_B].sort());
+    expect(announced).toHaveLength(1);
+    expect(probes.paged).toEqual([]);
+    expect(probes.grouped).toEqual([]);
+  });
+});
+
+describe("a live record still pages every policy, its rules' included", () => {
+  test.each([
+    ["the created state", CREATED],
+    ["a state before acknowledged", INVESTIGATING],
+  ] as Array<[string, string]>)(
+    "an incident in %s pages the policy it named and the one a rule attached",
+    async (_name: string, state: string) => {
+      const { probes } = await createWithOnCallRule(INCIDENT, state);
+
+      expect(
+        probes.paged
+          .map((page: { policyId: string }): string => {
+            return page.policyId;
+          })
+          .sort(),
+      ).toEqual([PRIMARY_POLICY_ID, DATABASE_POLICY_ID].sort());
+      expect(onCallNotRunLines(INCIDENT, probes)).toHaveLength(0);
     },
   );
 });

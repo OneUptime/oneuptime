@@ -296,6 +296,17 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   no state still starts in the created state, and a state of another project
   is refused. See
   [The state a new record starts in](/docs/api-reference/api-reference#the-state-a-new-record-starts-in).
+- **A record created already acknowledged or resolved pages no one.** An
+  incident, alert or episode created in a later state — through **Initial
+  State**, a template's initial state, the API, Terraform or a workflow — no
+  longer runs its on-call policies; its feed says so instead. One created
+  resolved is also no longer grouped into an episode, remediated,
+  investigated by OneUptime AI, or given a Slack or Microsoft Teams channel,
+  and an incident created resolved leaves its monitors' status and
+  monitoring alone and starts no SLA. One created acknowledged starts its
+  SLA already responded to. Records created in the created state, as every
+  monitor-opened one is, are unchanged. See
+  [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
