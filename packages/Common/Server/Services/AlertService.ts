@@ -102,7 +102,6 @@ import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
-import InvestigationEligibility from "../Utils/AI/SRE/InvestigationEligibility";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
   StartingStage,
@@ -1173,14 +1172,19 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         /*
          * Process alert for grouping into episodes - unless it was created
-         * resolved: grouped, it could open an episode that pages.
+         * resolved: it is over. One created already acknowledged may join an
+         * episode that is open, but never opens or reopens one: a new
+         * episode runs its own on-call policies, and would page for the
+         * alert after all.
          */
         if (!isOngoing) {
           return;
         }
 
         try {
-          await AlertGroupingEngineService.processAlert(createdItem);
+          await AlertGroupingEngineService.processAlert(createdItem, {
+            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+          });
         } catch (error) {
           logger.error(
             `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
@@ -1220,25 +1224,17 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            if (!isOngoing) {
-              /*
-               * Over before it was recorded: nothing to investigate. Its
-               * AI card says why no investigation ran.
-               */
-              await InvestigationEligibility.recordSkipped(
-                {
-                  projectId: createdItem.projectId,
-                  alertId: createdItem.id,
-                },
-                "created_resolved",
-              );
-              return;
-            }
-
+            /*
+             * An alert created resolved was over before it was recorded:
+             * nothing to investigate. The runner records why on its AI card -
+             * after what stops OneUptime AI for the whole project, such as AI
+             * being off, which the card then names instead.
+             */
             aiInvestigationEnqueued =
               await AIAlertInvestigationRunner.investigateNewAlert({
                 alertId: createdItem.id,
                 projectId: createdItem.projectId,
+                createdResolved: !isOngoing,
               });
           }
         } catch (error) {
@@ -1567,13 +1563,8 @@ ${alert.remediationNotes || "No remediation notes provided."}
       await OnCallNotRunOnCreate.getFeedMarkdown({
         noun: "alert",
         stage: startingStage,
-        policyIds: (createdItem.onCallDutyPolicies || [])
-          .map((policy: OnCallDutyPolicy): string => {
-            return String(policy["_id"] || "");
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          }),
+        projectId: createdItem.projectId!,
+        policies: createdItem.onCallDutyPolicies || [],
       });
 
     if (!feedInfoInMarkdown) {

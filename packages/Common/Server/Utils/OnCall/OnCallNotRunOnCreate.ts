@@ -48,18 +48,21 @@ export default class OnCallNotRunOnCreate {
   }
 
   /*
-   * The line for the policies `policyIds` names, in that order, read as
-   * OneUptime. Null when none of them exists any more, or none was named.
+   * The line for the record's on-call `policies` (as the record lists them:
+   * only their ids are read), in that order. Their names are read as
+   * OneUptime, from the record's own project only. Null when none of them
+   * exists any more, or there is none.
    */
   public static async getFeedMarkdown(data: {
     noun: string;
     stage: StartingStage;
-    policyIds: Array<ObjectID | string>;
+    projectId: ObjectID;
+    policies: Array<OnCallDutyPolicy>;
   }): Promise<string | null> {
     const policyIds: Array<string> = [];
 
-    for (const policyId of data.policyIds) {
-      const id: string = policyId.toString().toLowerCase();
+    for (const policy of data.policies) {
+      const id: string = (policy?._id || "").toString().toLowerCase();
 
       if (id && !policyIds.includes(id)) {
         policyIds.push(id);
@@ -78,6 +81,7 @@ export default class OnCallNotRunOnCreate {
               return new ObjectID(id);
             }),
           ),
+          projectId: data.projectId,
         },
         select: {
           _id: true,

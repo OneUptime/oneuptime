@@ -237,5 +237,31 @@ export class Service extends DatabaseService<AlertState> {
       stateId: data.alertStateId,
     });
   }
+
+  /*
+   * Whether one of the project's alert states is flagged as resolved: what
+   * an alert episode's timeline reads to set or clear its resolvedAt
+   * (AlertEpisodeStateTimelineService), and so what its create stamps.
+   */
+  @CaptureSpan()
+  public async isResolvedAlertState(data: {
+    projectId: ObjectID;
+    alertStateId: ObjectID;
+  }): Promise<boolean> {
+    const alertState: AlertState | null = await this.findOneBy({
+      query: {
+        _id: data.alertStateId.toString(),
+        projectId: data.projectId,
+      },
+      select: {
+        isResolvedState: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(alertState?.isResolvedState);
+  }
 }
 export default new Service();

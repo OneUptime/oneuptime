@@ -286,15 +286,26 @@ export class Service extends ProjectReferencesService<Model> {
       : StartingStage.Open;
 
     /*
-     * resolvedAt follows the state the episode starts in. One recorded as
-     * already resolved is resolved from the moment it exists: grouping,
-     * auto-resolve and the unresolved episode lists read resolvedAt, which
-     * the first timeline row would otherwise set only once onCreateSuccess
-     * reaches it, after the workspace channels - and sets again then, to the
-     * moment that row records. Any other episode has none yet, whatever the
-     * write sent: the first timeline row would clear it anyway.
+     * resolvedAt follows the state the episode starts in, as its first
+     * timeline row writes it (IncidentEpisodeStateTimelineService): set for
+     * a state flagged resolved. One recorded as already resolved is resolved
+     * from the moment it exists: grouping, auto-resolve and the unresolved
+     * episode lists read resolvedAt, which the first timeline row would
+     * otherwise set only once onCreateSuccess reaches it, after the
+     * workspace channels - and sets again then, to the moment that row
+     * records. Any other episode has none yet, whatever the write sent: the
+     * first timeline row would clear it anyway - one in a state of the
+     * project's own placed after the resolved state too, which still counts
+     * as resolved for what its create sets off.
      */
-    if (startingStage === StartingStage.Resolved) {
+    if (
+      pickedIncidentStateId &&
+      startingStage === StartingStage.Resolved &&
+      (await IncidentStateService.isResolvedIncidentState({
+        projectId: projectId,
+        incidentStateId: pickedIncidentStateId,
+      }))
+    ) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];
@@ -689,13 +700,8 @@ export class Service extends ProjectReferencesService<Model> {
           await OnCallNotRunOnCreate.getFeedMarkdown({
             noun: "episode",
             stage: startingStage,
-            policyIds: episodeWithPolicies.onCallDutyPolicies
-              .map((policy: OnCallDutyPolicy): string => {
-                return String(policy._id || "");
-              })
-              .filter((id: string): boolean => {
-                return Boolean(id);
-              }),
+            projectId: createdItem.projectId,
+            policies: episodeWithPolicies.onCallDutyPolicies,
           });
 
         if (notRunMarkdown) {

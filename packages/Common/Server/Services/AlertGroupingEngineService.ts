@@ -40,9 +40,23 @@ export interface GroupingResult {
   wasReopened?: boolean;
 }
 
+/*
+ * How the record may be grouped. An episode a rule opens - or reopens -
+ * starts in the created state and runs its own on-call policies, so a record
+ * that pages nobody (one created already acknowledged, Common/Utils/
+ * StartingStage) may only join an episode that is open already.
+ */
+export interface GroupingOptions {
+  // Unset, a rule may open or reopen an episode for the record, as always.
+  mayOpenEpisode?: boolean | undefined;
+}
+
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
-  public async processAlert(alert: Alert): Promise<GroupingResult> {
+  public async processAlert(
+    alert: Alert,
+    options: GroupingOptions = {},
+  ): Promise<GroupingResult> {
     logger.debug(`Processing alert ${alert.id} for grouping`, {
       projectId: alert.projectId?.toString(),
     } as LogAttributes);
@@ -165,6 +179,7 @@ class AlertGroupingEngineServiceClass {
           const result: GroupingResult = await this.groupAlertWithRule(
             alert,
             rule,
+            options,
           );
           return result;
         }
@@ -412,6 +427,7 @@ class AlertGroupingEngineServiceClass {
   private async groupAlertWithRule(
     alert: Alert,
     rule: AlertGroupingRule,
+    options: GroupingOptions = {},
   ): Promise<GroupingResult> {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(alert, rule);
@@ -480,6 +496,15 @@ class AlertGroupingEngineServiceClass {
           episodeId: existingEpisode.id,
           isNewEpisode: false,
         };
+      }
+
+      /*
+       * No open episode to join. Reopening one, or opening a new one, would
+       * page its on-call policies for an alert that pages nobody: it stays
+       * on its own (GroupingOptions).
+       */
+      if (options.mayOpenEpisode === false) {
+        return { grouped: false };
       }
 
       // Check if we can reopen a recently resolved episode (only if enabled)

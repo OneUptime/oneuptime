@@ -1,5 +1,7 @@
 import AIAlertInvestigationRunner from "../../../Server/Utils/AI/SRE/AlertInvestigationRunner";
 import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
+import AIInvestigationEngine from "../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import AIInvestigationQueue from "../../../Server/Utils/AI/SRE/InvestigationQueue";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
 import AlertEpisodeLabelRuleEngineService from "../../../Server/Services/AlertEpisodeLabelRuleEngineService";
@@ -96,12 +98,15 @@ jest.mock("../../../Server/Utils/Logger");
  *
  *   - Created at or past the acknowledged state (its place in the project's
  *     list is at or below the acknowledged state's): no on-call policy runs,
- *     and its feed says so in one line, naming the policies.
+ *     and its feed says so in one line, naming the policies. A grouping rule
+ *     may still put it into an episode that is open, but never opens or
+ *     reopens one for it: that episode's own on-call policies would page.
  *   - Created at or past the resolved state: also not grouped into an
  *     episode, no runbook or auto-remediation rule acts on it, no AI
- *     investigation is queued (its AI card says why), no war-room channel is
- *     opened, and an incident leaves its monitors and their monitoring
- *     alone and starts no SLA.
+ *     investigation is queued (its AI card says why, unless something
+ *     stops OneUptime AI for the whole project, which it names instead), no
+ *     war-room channel is opened, and an incident leaves its monitors and
+ *     their monitoring alone and starts no SLA.
  *   - Its owners, its created feed entry, its first timeline row and its
  *     rules (privacy, owners, labels, on-call) still happen: a record that
  *     is already over is still news.
@@ -177,9 +182,12 @@ interface Probes {
   paged: Array<{ policyId: string; options: Record<string, unknown> }>;
   warRoom: Array<unknown>;
   grouped: Array<unknown>;
+  // The options each grouping was asked with (GroupingOptions).
+  groupingOptions: Array<unknown>;
   runbooks: Array<unknown>;
   remediated: Array<Record<string, unknown>>;
-  investigated: Array<unknown>;
+  // What the investigation runner was handed, once per create.
+  investigated: Array<Record<string, unknown>>;
   // InvestigationEligibility.recordSkipped: the code recorded.
   investigationSkipped: Array<string>;
   sla: Array<Record<string, unknown>>;
@@ -204,6 +212,7 @@ function newProbes(): Probes {
     paged: [],
     warRoom: [],
     grouped: [],
+    groupingOptions: [],
     runbooks: [],
     remediated: [],
     investigated: [],
@@ -424,6 +433,7 @@ const INCIDENT: Kind = {
       "processIncident",
       (args: Array<unknown>) => {
         probes.grouped.push(args[0]);
+        probes.groupingOptions.push(args[1]);
       },
       () => {
         return { grouped: false };
@@ -446,7 +456,7 @@ const INCIDENT: Kind = {
       AIIncidentInvestigationRunner,
       "investigateNewIncident",
       (args: Array<unknown>) => {
-        probes.investigated.push(args[0]);
+        probes.investigated.push(args[0] as Record<string, unknown>);
       },
       () => {
         return false;
@@ -560,6 +570,7 @@ const ALERT: Kind = {
       "processAlert",
       (args: Array<unknown>) => {
         probes.grouped.push(args[0]);
+        probes.groupingOptions.push(args[1]);
       },
       () => {
         return { grouped: false };
@@ -572,7 +583,7 @@ const ALERT: Kind = {
       AIAlertInvestigationRunner,
       "investigateNewAlert",
       (args: Array<unknown>) => {
-        probes.investigated.push(args[0]);
+        probes.investigated.push(args[0] as Record<string, unknown>);
       },
       () => {
         return false;
@@ -998,6 +1009,16 @@ function chainErrors(): Array<unknown> {
   return jest.mocked(logger.error).mock.calls;
 }
 
+/*
+ * Whether the runner was told the record was created resolved, once per
+ * investigation it was handed: [false] for a live record.
+ */
+function toldCreatedResolved(probes: Probes): Array<boolean> {
+  return probes.investigated.map((call: Record<string, unknown>): boolean => {
+    return call["createdResolved"] === true;
+  });
+}
+
 beforeEach(() => {
   stateReads = 0;
   stateListReads = 0;
@@ -1026,10 +1047,13 @@ describe.each(KINDS)(
         expect(onCallNotRunLines(kind, probes)).toHaveLength(0);
 
         expect(probes.grouped).toHaveLength(kind.has.grouping ? 1 : 0);
+        expect(probes.groupingOptions).toEqual(
+          kind.has.grouping ? [{ mayOpenEpisode: true }] : [],
+        );
         expect(probes.runbooks).toHaveLength(kind.has.runbooks ? 1 : 0);
         expect(probes.remediated).toHaveLength(kind.has.remediation ? 1 : 0);
-        expect(probes.investigated).toHaveLength(
-          kind.has.investigation ? 1 : 0,
+        expect(toldCreatedResolved(probes)).toEqual(
+          kind.has.investigation ? [false] : [],
         );
         expect(probes.investigationSkipped).toEqual([]);
         expect(probes.sla).toHaveLength(kind.has.sla ? 1 : 0);
@@ -1147,8 +1171,8 @@ describe.each(KINDS)(
         expect(probes.grouped).toHaveLength(kind.has.grouping ? 1 : 0);
         expect(probes.runbooks).toHaveLength(kind.has.runbooks ? 1 : 0);
         expect(probes.remediated).toHaveLength(kind.has.remediation ? 1 : 0);
-        expect(probes.investigated).toHaveLength(
-          kind.has.investigation ? 1 : 0,
+        expect(toldCreatedResolved(probes)).toEqual(
+          kind.has.investigation ? [false] : [],
         );
         expect(probes.investigationSkipped).toEqual([]);
         expect(probes.monitorStatus).toHaveLength(
@@ -1160,6 +1184,20 @@ describe.each(KINDS)(
         expect(chainErrors()).toEqual([]);
       },
     );
+
+    if (kind.has.grouping) {
+      test.each([
+        ["the acknowledged state", ACKNOWLEDGED],
+        ["a state of the project's own after acknowledged", MONITORING],
+      ] as Array<[string, string]>)(
+        "%s: it may join an open episode, but grouping never opens or reopens one for it, whose on-call policies would page",
+        async (_name: string, state: string) => {
+          const { probes } = await create(kind, state);
+
+          expect(probes.groupingOptions).toEqual([{ mayOpenEpisode: false }]);
+        },
+      );
+    }
   },
 );
 
@@ -1198,11 +1236,12 @@ describe.each(KINDS)(
     }
 
     if (kind.has.investigation) {
-      test("no AI investigation is queued, and its AI card is told why", async () => {
+      test("no AI investigation is queued: the runner is told it was created resolved, and records why on its AI card", async () => {
         const { probes } = await create(kind, RESOLVED);
 
-        expect(probes.investigated).toEqual([]);
-        expect(probes.investigationSkipped).toEqual(["created_resolved"]);
+        expect(toldCreatedResolved(probes)).toEqual([true]);
+        // Nothing of the service's own: the runner decides what the card says.
+        expect(probes.investigationSkipped).toEqual([]);
       });
     }
   },
@@ -1400,31 +1439,132 @@ describe.each(KINDS)(
 );
 
 describe("an incident or alert created resolved tells its AI card why it was not investigated", () => {
-  test.each([
-    [INCIDENT, "incidentId"],
-    [ALERT, "alertId"],
-  ] as Array<[Kind, string]>)(
-    "%#: the decision is recorded for this record of this project",
-    async (kind: Kind, subjectKey: string) => {
-      const subjects: Array<Record<string, unknown>> = [];
+  const AI_KINDS: Array<[Kind, string, AnyFunction, string, string]> = [
+    [
+      INCIDENT,
+      "incidentId",
+      AIIncidentInvestigationRunner.investigateNewIncident as AnyFunction,
+      "investigateNewIncident",
+      "shouldInvestigateIncident",
+    ],
+    [
+      ALERT,
+      "alertId",
+      AIAlertInvestigationRunner.investigateNewAlert as AnyFunction,
+      "investigateNewAlert",
+      "shouldInvestigateAlert",
+    ],
+  ];
 
-      await create(kind, RESOLVED, [PRIMARY_POLICY_ID], {
-        extraStubs: () => {
-          jest
-            .spyOn(InvestigationEligibility, "recordSkipped")
-            .mockImplementation((async (
-              subject: Record<string, unknown>,
-              code: string,
-            ): Promise<void> => {
-              subjects.push({ ...subject, code: code });
-            }) as never);
-        },
-      });
+  /*
+   * The create, with the kind's real investigation runner in place of the
+   * stand-in, and the project's AI as `disabledReason` says.
+   */
+  async function createResolvedWithRealRunner(
+    kind: Kind,
+    runner: AnyFunction,
+    runnerName: string,
+    gateName: string,
+    disabledReason: string | null,
+  ): Promise<{
+    subjects: Array<Record<string, unknown>>;
+    gated: number;
+    queued: number;
+  }> {
+    const subjects: Array<Record<string, unknown>> = [];
+    let gated: number = 0;
+    let queued: number = 0;
+
+    const runnerClass: Record<string, AnyFunction> = (
+      kind === INCIDENT
+        ? AIIncidentInvestigationRunner
+        : AIAlertInvestigationRunner
+    ) as unknown as Record<string, AnyFunction>;
+
+    await create(kind, RESOLVED, [PRIMARY_POLICY_ID], {
+      extraStubs: () => {
+        jest
+          .spyOn(runnerClass, runnerName)
+          .mockImplementation(((...args: Array<unknown>): unknown => {
+            return runner.apply(runnerClass, args);
+          }) as never);
+        jest
+          .spyOn(AIInvestigationEngine, "getDisabledReason")
+          .mockResolvedValue(disabledReason as never);
+        jest.spyOn(runnerClass, gateName).mockImplementation((async () => {
+          gated++;
+          return { investigate: true, reason: "test" };
+        }) as never);
+        jest
+          .spyOn(AIInvestigationQueue, "enqueue")
+          .mockImplementation((async () => {
+            queued++;
+            return null;
+          }) as never);
+        jest
+          .spyOn(InvestigationEligibility, "recordSkipped")
+          .mockImplementation((async (
+            subject: Record<string, unknown>,
+            code: string,
+          ): Promise<void> => {
+            subjects.push({ ...subject, code: code });
+          }) as never);
+      },
+    });
+
+    return { subjects, gated, queued };
+  }
+
+  test.each(AI_KINDS)(
+    "%#: with OneUptime AI available, it was created resolved - recorded for this record of this project, and nothing is gated or queued",
+    async (
+      kind: Kind,
+      subjectKey: string,
+      runner: AnyFunction,
+      runnerName: string,
+      gateName: string,
+    ) => {
+      const { subjects, gated, queued } = await createResolvedWithRealRunner(
+        kind,
+        runner,
+        runnerName,
+        gateName,
+        null,
+      );
 
       expect(subjects).toHaveLength(1);
       expect(subjects[0]!["code"]).toBe("created_resolved");
       expect(idOf(subjects[0]![subjectKey])).toBe(idOf(RECORD_ID));
       expect(idOf(subjects[0]!["projectId"])).toBe(idOf(PROJECT_ID));
+      expect(gated).toBe(0);
+      expect(queued).toBe(0);
+    },
+  );
+
+  test.each(AI_KINDS)(
+    "%#: with AI turned off for the project, the card names that instead - asking OneUptime AI about it would not work either",
+    async (
+      kind: Kind,
+      _subjectKey: string,
+      runner: AnyFunction,
+      runnerName: string,
+      gateName: string,
+    ) => {
+      const { subjects, gated, queued } = await createResolvedWithRealRunner(
+        kind,
+        runner,
+        runnerName,
+        gateName,
+        "ai_disabled",
+      );
+
+      expect(
+        subjects.map((subject: Record<string, unknown>): unknown => {
+          return subject["code"];
+        }),
+      ).toEqual(["ai_disabled"]);
+      expect(gated).toBe(0);
+      expect(queued).toBe(0);
     },
   );
 });
@@ -1472,7 +1612,7 @@ describe("an incident declared from a template that starts it acknowledged or re
 
     expect(probes.paged).toEqual([]);
     expect(onCallNotRunLines(INCIDENT, probes)).toHaveLength(1);
-    expect(probes.grouped).toHaveLength(1);
+    expect(probes.groupingOptions).toEqual([{ mayOpenEpisode: false }]);
   });
 
   test("resolved: nothing answers it", async () => {
@@ -1488,7 +1628,7 @@ describe("an incident declared from a template that starts it acknowledged or re
     expect(probes.grouped).toEqual([]);
     expect(probes.runbooks).toEqual([]);
     expect(probes.remediated).toEqual([]);
-    expect(probes.investigated).toEqual([]);
+    expect(toldCreatedResolved(probes)).toEqual([true]);
     expect(probes.sla).toEqual([]);
     expect(probes.monitorStatus).toEqual([]);
     expect(probes.monitoringPaused).toEqual([]);

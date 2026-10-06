@@ -20,10 +20,14 @@ import { describe, expect, test } from "@jest/globals";
  *     reads it from the state service (getStartingStage), never with an
  *     order comparison of its own;
  *   - every awaited step of onCreateSuccess is listed below as running for
- *     every record, as decided by isOngoing, or as the on-call fan-out;
- *     a step that is in none of the lists fails here, so a new step has to
- *     be decided for a record created already over;
- *   - a step listed as decided by isOngoing sits under a condition on it;
+ *     every record, as decided by isOngoing, as handed isOngoing to decide
+ *     on itself, or as the on-call fan-out; a step that is in none of the
+ *     lists fails here, so a new step has to be decided for a record
+ *     created already over;
+ *   - a step listed as decided by isOngoing sits under a condition on it,
+ *     and a step listed as handed it gets it as an argument;
+ *   - grouping may open (or reopen) an episode only for a record that pages
+ *     (pagesOnCall): an episode it opens runs its own on-call policies;
  *   - the on-call fan-out takes the stage and checks pagesOnCall before any
  *     OnCallDutyPolicyService.executePolicy call - the only calls of it in
  *     these services.
@@ -42,6 +46,14 @@ interface ServiceSteps {
   always: Record<string, string>;
   // Steps that run only for a record that does not start resolved.
   decidedByOngoing: Array<string>;
+  /*
+   * Steps that run for every record and are told whether it starts
+   * resolved, to decide on it themselves - the AI investigation runner,
+   * which records why it did not start in its own order.
+   */
+  handedIsOngoing: Array<string>;
+  // The grouping step, told whether it may open an episode.
+  grouping?: string | undefined;
   // The method that runs the on-call policies, deciding on pagesOnCall.
   onCallFanOut: string;
 }
@@ -77,10 +89,10 @@ const SERVICES: Array<ServiceSteps> = [
       "RunbookRuleEngineService.applyRulesToIncident",
       "IncidentGroupingEngineService.processIncident",
       "IncidentSlaService.createSlaForIncident",
-      "InvestigationEligibility.recordSkipped",
-      "AIIncidentInvestigationRunner.investigateNewIncident",
       "AutoRemediationRuleEngineService.onIncidentCreated",
     ],
+    handedIsOngoing: ["AIIncidentInvestigationRunner.investigateNewIncident"],
+    grouping: "IncidentGroupingEngineService.processIncident",
     onCallFanOut: "executeOnCallDutyPoliciesAsync",
   },
   {
@@ -102,10 +114,10 @@ const SERVICES: Array<ServiceSteps> = [
       "this.handleAlertWorkspaceOperationsAsync",
       "RunbookRuleEngineService.applyRulesToAlert",
       "AlertGroupingEngineService.processAlert",
-      "InvestigationEligibility.recordSkipped",
-      "AIAlertInvestigationRunner.investigateNewAlert",
       "AutoRemediationRuleEngineService.onAlertCreated",
     ],
+    handedIsOngoing: ["AIAlertInvestigationRunner.investigateNewAlert"],
+    grouping: "AlertGroupingEngineService.processAlert",
     onCallFanOut: "executeAlertOnCallDutyPoliciesAsync",
   },
   {
@@ -121,6 +133,7 @@ const SERVICES: Array<ServiceSteps> = [
         "which on-call policies it lists",
     },
     decidedByOngoing: ["this.handleEpisodeWorkspaceOperationsAsync"],
+    handedIsOngoing: [],
     onCallFanOut: "executeEpisodeOnCallDutyPoliciesAsync",
   },
   {
@@ -136,12 +149,15 @@ const SERVICES: Array<ServiceSteps> = [
         "which on-call policies it lists",
     },
     decidedByOngoing: ["this.handleEpisodeWorkspaceOperationsAsync"],
+    handedIsOngoing: [],
     onCallFanOut: "executeEpisodeOnCallDutyPoliciesAsync",
   },
 ];
 
 const ONGOING_CONDITION: RegExp = /\bisOngoing\b/;
 const PAGES_ON_CALL_CONDITION: RegExp = /\bStartingStageUtil\.pagesOnCall\(/;
+const MAY_OPEN_EPISODE_OPTION: RegExp =
+  /\bmayOpenEpisode:\s*StartingStageUtil\.pagesOnCall\(\s*startingStage\s*\)/;
 
 function parse(file: string): ts.SourceFile {
   const fullPath: string = path.join(SERVICES_DIRECTORY, file);
@@ -307,6 +323,7 @@ describe.each(SERVICES)(
       const known: Set<string> = new Set<string>([
         ...Object.keys(service.always),
         ...service.decidedByOngoing,
+        ...service.handedIsOngoing,
         `this.${service.onCallFanOut}`,
       ]);
 
@@ -355,6 +372,54 @@ describe.each(SERVICES)(
 
       expect(ungated).toEqual([]);
     });
+
+    test("the steps handed whether the record starts resolved get it as an argument", () => {
+      const steps: Array<{ callee: string; call: ts.CallExpression }> =
+        awaitedCalls(source, onCreateSuccess!).filter(
+          (step: { callee: string }): boolean => {
+            return service.handedIsOngoing.includes(step.callee);
+          },
+        );
+
+      expect(
+        steps
+          .map((step: { callee: string }): string => {
+            return step.callee;
+          })
+          .sort(),
+      ).toEqual([...service.handedIsOngoing].sort());
+
+      for (const step of steps) {
+        expect(
+          step.call.arguments
+            .map((argument: ts.Expression): string => {
+              return argument.getText(source);
+            })
+            .join(" "),
+        ).toMatch(ONGOING_CONDITION);
+      }
+    });
+
+    if (service.grouping) {
+      test("grouping may open or reopen an episode only for a record that pages", () => {
+        const calls: Array<ts.CallExpression> = awaitedCalls(
+          source,
+          onCreateSuccess!,
+        )
+          .filter((step: { callee: string }): boolean => {
+            return step.callee === service.grouping;
+          })
+          .map((step: { call: ts.CallExpression }): ts.CallExpression => {
+            return step.call;
+          });
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]!.arguments).toHaveLength(2);
+        expect(calls[0]!.arguments[1]!.getText(source)).toMatch(
+          MAY_OPEN_EPISODE_OPTION,
+        );
+      });
+    }
 
     test("the steps that run for every record are not held back by the stage", () => {
       const held: Array<string> = awaitedCalls(source, onCreateSuccess!)

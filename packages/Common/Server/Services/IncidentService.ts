@@ -159,7 +159,6 @@ import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
-import InvestigationEligibility from "../Utils/AI/SRE/InvestigationEligibility";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
   StartingStage,
@@ -3173,8 +3172,9 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         /*
          * An incident declared resolved leaves its monitors' status alone:
-         * its first state has already put them back to operational, and
-         * nothing would put them back again.
+         * resolving is what puts them back, and for it that has already
+         * happened, so nothing ever would. Its first state does not touch
+         * them either (IncidentStateTimelineService).
          */
         try {
           if (
@@ -3326,14 +3326,19 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         /*
          * Process incident for grouping into episodes - unless it was
-         * declared resolved: grouped, it could open an episode that pages.
+         * declared resolved: it is over. One declared already acknowledged
+         * may join an episode that is open, but never opens or reopens one:
+         * a new episode runs its own on-call policies, and would page for
+         * the incident after all.
          */
         if (!isOngoing) {
           return;
         }
 
         try {
-          await IncidentGroupingEngineService.processIncident(createdItem);
+          await IncidentGroupingEngineService.processIncident(createdItem, {
+            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+          });
         } catch (error) {
           logger.error(
             `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3412,25 +3417,17 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            if (!isOngoing) {
-              /*
-               * Over before it was declared: nothing to investigate. Its AI
-               * card says why no investigation ran.
-               */
-              await InvestigationEligibility.recordSkipped(
-                {
-                  projectId: createdItem.projectId,
-                  incidentId: createdItem.id,
-                },
-                "created_resolved",
-              );
-              return;
-            }
-
+            /*
+             * An incident declared resolved was over before it was declared:
+             * nothing to investigate. The runner records why on its AI card -
+             * after what stops OneUptime AI for the whole project, such as AI
+             * being off, which the card then names instead.
+             */
             aiInvestigationEnqueued =
               await AIIncidentInvestigationRunner.investigateNewIncident({
                 incidentId: createdItem.id,
                 projectId: createdItem.projectId,
+                createdResolved: !isOngoing,
               });
           }
         } catch (error) {
@@ -4015,13 +4012,8 @@ ${incident.remediationNotes || "No remediation notes provided."}
       await OnCallNotRunOnCreate.getFeedMarkdown({
         noun: "incident",
         stage: startingStage,
-        policyIds: (createdItem.onCallDutyPolicies || [])
-          .map((policy: OnCallDutyPolicy): string => {
-            return String(policy["_id"] || "");
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          }),
+        projectId: createdItem.projectId!,
+        policies: createdItem.onCallDutyPolicies || [],
       });
 
     if (!feedInfoInMarkdown) {

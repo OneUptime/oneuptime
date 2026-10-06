@@ -377,6 +377,35 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     }
   }
 
+  /*
+   * Whether a row is an incident's first state as its create wrote it
+   * (IncidentService.changeIncidentState): the incident's only row, starting
+   * the moment the incident was declared. Not a row that merely finds none
+   * before it - a resolve dated before the first state has that first state
+   * after it, and one written after the earlier rows aged out (the timeline
+   * keeps three years) starts long after the incident was declared.
+   */
+  private isFirstStateAsDeclared(data: {
+    statusTimelineBeforeThisStatus: unknown;
+    statusTimelineAfterThisStatus: unknown;
+    startsAt: Date | undefined;
+    declaredAt: Date | undefined;
+  }): boolean {
+    if (
+      data.statusTimelineBeforeThisStatus ||
+      data.statusTimelineAfterThisStatus ||
+      !data.startsAt ||
+      !data.declaredAt
+    ) {
+      return false;
+    }
+
+    return (
+      OneUptimeDate.fromString(data.startsAt).getTime() ===
+      OneUptimeDate.fromString(data.declaredAt).getTime()
+    );
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<IncidentStateTimeline>,
@@ -613,43 +642,49 @@ ${createdItem.rootCause}`,
 
     const isResolvedState: boolean = incidentState?.isResolvedState || false;
 
-    /*
-     * Resolving gives an incident's monitors back: their monitoring resumes
-     * and their status returns to operational. Not for an incident's first
-     * state - one declared already resolved, which never set a status on its
-     * monitors or paused their monitoring (StartingStage), so there is
-     * nothing of its own to give back, and a status a monitor holds for
-     * another reason stays.
-     */
-    const givesMonitorsBack: boolean = Boolean(
-      onCreate.carryForward.statusTimelineBeforeThisStatus,
-    );
-
     if (isResolvedState) {
-      if (givesMonitorsBack) {
-        const incident: Incident | null = await IncidentService.findOneBy({
-          query: {
-            _id: createdItem.incidentId.toString(),
-          },
-          select: {
+      const incident: Incident | null = await IncidentService.findOneBy({
+        query: {
+          _id: createdItem.incidentId.toString(),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          declaredAt: true,
+          monitors: {
             _id: true,
-            projectId: true,
-            monitors: {
-              _id: true,
-            },
           },
-          props: {
-            isRoot: true,
-          },
-        });
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
-        if (incident) {
-          await IncidentService.markMonitorsActiveForMonitoring(
-            incident.projectId!,
-            incident.monitors || [],
-            createdItem.startsAt || undefined,
-          );
-        }
+      /*
+       * Resolving gives an incident's monitors back: their monitoring
+       * resumes and their status returns to operational. Not the first state
+       * of an incident declared already resolved: that incident never set a
+       * status on its monitors or paused their monitoring (StartingStage),
+       * so there is nothing of its own to give back, and a status a monitor
+       * holds for another reason stays. Any other resolve gives them back,
+       * as always.
+       */
+      if (
+        incident &&
+        !this.isFirstStateAsDeclared({
+          statusTimelineBeforeThisStatus:
+            onCreate.carryForward.statusTimelineBeforeThisStatus,
+          statusTimelineAfterThisStatus:
+            onCreate.carryForward.statusTimelineAfterThisStatus,
+          startsAt: createdItem.startsAt,
+          declaredAt: incident.declaredAt,
+        })
+      ) {
+        await IncidentService.markMonitorsActiveForMonitoring(
+          incident.projectId!,
+          incident.monitors || [],
+          createdItem.startsAt || undefined,
+        );
       }
 
       /*

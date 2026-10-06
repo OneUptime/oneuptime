@@ -31,6 +31,22 @@ const NAMES: Record<string, string | undefined> = {
   [PAYMENTS]: "Payments",
 };
 
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193c0de-5a7e-4ddd-8eee-000000000001",
+);
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "0193c0de-5a7e-4ddd-8eee-000000000002",
+);
+
+// The policies as a record lists them: their ids only.
+function listed(ids: Array<string>): Array<OnCallDutyPolicy> {
+  return ids.map((id: string): OnCallDutyPolicy => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy._id = id;
+    return policy;
+  });
+}
+
 describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
   test("one policy, created acknowledged", () => {
     expect(
@@ -96,10 +112,11 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
   });
 });
 
-describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a record names", () => {
+describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a record lists", () => {
   // Each read of the policies: what it asked for.
   let reads: Array<{
     ids: Array<string>;
+    projectId: string;
     select: Record<string, unknown>;
     props: Record<string, unknown>;
   }> = [];
@@ -114,14 +131,25 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
         select: Record<string, unknown>;
         props: Record<string, unknown>;
       }): Promise<Array<OnCallDutyPolicy>> => {
-        const asked: string = JSON.stringify(findBy.query).toLowerCase();
+        const asked: string = JSON.stringify(findBy.query["_id"]).toLowerCase();
         const ids: Array<string> = Object.keys(NAMES)
           .concat([DELETED])
           .filter((id: string): boolean => {
             return asked.includes(id);
           });
+        const projectId: string = String(findBy.query["projectId"]);
 
-        reads.push({ ids: ids, select: findBy.select, props: findBy.props });
+        reads.push({
+          ids: ids,
+          projectId: projectId,
+          select: findBy.select,
+          props: findBy.props,
+        });
+
+        // Every policy here is of PROJECT_ID.
+        if (projectId !== PROJECT_ID.toString()) {
+          return [];
+        }
 
         // The database answers in its own order, and has no DELETED policy.
         return ids
@@ -148,7 +176,8 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
     const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
       noun: "incident",
       stage: StartingStage.Acknowledged,
-      policyIds: [new ObjectID(PRIMARY), new ObjectID(DATABASE)],
+      projectId: PROJECT_ID,
+      policies: listed([PRIMARY, DATABASE]),
     });
 
     expect(markdown).toBe(
@@ -160,11 +189,29 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
     expect(reads[0]!.props).toEqual({ isRoot: true });
   });
 
+  test("the names are read from the record's own project only", async () => {
+    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
+      noun: "incident",
+      stage: StartingStage.Acknowledged,
+      projectId: OTHER_PROJECT_ID,
+      policies: listed([PRIMARY]),
+    });
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.projectId).toBe(OTHER_PROJECT_ID.toString());
+    // A policy of another project is no policy of this record's.
+    expect(markdown).toBeNull();
+  });
+
   test("a policy listed twice, in any letter case, is named once", async () => {
+    const upper: OnCallDutyPolicy = new OnCallDutyPolicy();
+    upper._id = PRIMARY.toUpperCase();
+
     const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
       noun: "alert",
       stage: StartingStage.Resolved,
-      policyIds: [PRIMARY, PRIMARY.toUpperCase(), new ObjectID(PRIMARY)],
+      projectId: PROJECT_ID,
+      policies: [...listed([PRIMARY]), upper, ...listed([PRIMARY])],
     });
 
     expect(markdown).toBe(
@@ -176,7 +223,8 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
     const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
       noun: "episode",
       stage: StartingStage.Resolved,
-      policyIds: [DELETED, PAYMENTS],
+      projectId: PROJECT_ID,
+      policies: listed([DELETED, PAYMENTS]),
     });
 
     expect(markdown).toBe(
@@ -184,29 +232,33 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
     );
   });
 
-  test("no line when every policy it named is gone: there was nobody to page", async () => {
+  test("no line when every policy it lists is gone: there was nobody to page", async () => {
     expect(
       await OnCallNotRunOnCreate.getFeedMarkdown({
         noun: "incident",
         stage: StartingStage.Acknowledged,
-        policyIds: [DELETED],
+        projectId: PROJECT_ID,
+        policies: listed([DELETED]),
       }),
     ).toBeNull();
   });
 
-  test("no line, and no read, when the record names no policy", async () => {
+  test("no line, and no read, when the record lists no policy", async () => {
     expect(
       await OnCallNotRunOnCreate.getFeedMarkdown({
         noun: "incident",
         stage: StartingStage.Acknowledged,
-        policyIds: [],
+        projectId: PROJECT_ID,
+        policies: [],
       }),
     ).toBeNull();
     expect(
       await OnCallNotRunOnCreate.getFeedMarkdown({
         noun: "incident",
         stage: StartingStage.Acknowledged,
-        policyIds: [""],
+        projectId: PROJECT_ID,
+        // A policy with no id yet names nothing.
+        policies: [new OnCallDutyPolicy()],
       }),
     ).toBeNull();
     expect(reads).toEqual([]);
@@ -226,7 +278,8 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
       await OnCallNotRunOnCreate.getFeedMarkdown({
         noun: "incident",
         stage: StartingStage.Acknowledged,
-        policyIds: [PRIMARY],
+        projectId: PROJECT_ID,
+        policies: listed([PRIMARY]),
       }),
     ).toBe(
       "📞 **No one was paged.** This incident was created already acknowledged, so its on-call policy **Unnamed policy** was not run.",

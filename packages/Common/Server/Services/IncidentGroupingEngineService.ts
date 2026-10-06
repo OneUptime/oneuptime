@@ -44,6 +44,17 @@ export interface GroupingResult {
   wasReopened?: boolean;
 }
 
+/*
+ * How the record may be grouped. An episode a rule opens - or reopens -
+ * starts in the created state and runs its own on-call policies, so a record
+ * that pages nobody (one created already acknowledged, Common/Utils/
+ * StartingStage) may only join an episode that is open already.
+ */
+export interface GroupingOptions {
+  // Unset, a rule may open or reopen an episode for the record, as always.
+  mayOpenEpisode?: boolean | undefined;
+}
+
 type ReplaceAllLiterallyFunction = (
   text: string,
   placeholder: RegExp,
@@ -69,7 +80,10 @@ export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
 
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
-  public async processIncident(incident: Incident): Promise<GroupingResult> {
+  public async processIncident(
+    incident: Incident,
+    options: GroupingOptions = {},
+  ): Promise<GroupingResult> {
     logger.debug(`Processing incident ${incident.id} for grouping`, {
       projectId: incident.projectId?.toString(),
     } as LogAttributes);
@@ -199,6 +213,7 @@ class IncidentGroupingEngineServiceClass {
           const result: GroupingResult = await this.groupIncidentWithRule(
             incident,
             rule,
+            options,
           );
           return result;
         }
@@ -508,6 +523,7 @@ class IncidentGroupingEngineServiceClass {
   private async groupIncidentWithRule(
     incident: Incident,
     rule: IncidentGroupingRule,
+    options: GroupingOptions = {},
   ): Promise<GroupingResult> {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(incident, rule);
@@ -576,6 +592,15 @@ class IncidentGroupingEngineServiceClass {
           episodeId: existingEpisode.id,
           isNewEpisode: false,
         };
+      }
+
+      /*
+       * No open episode to join. Reopening one, or opening a new one, would
+       * page its on-call policies for an incident that pages nobody: it
+       * stays on its own (GroupingOptions).
+       */
+      if (options.mayOpenEpisode === false) {
+        return { grouped: false };
       }
 
       // Check if we can reopen a recently resolved episode (only if enabled)
