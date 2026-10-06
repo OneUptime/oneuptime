@@ -831,7 +831,6 @@
   "Webhook Secret Token": "Webhook Secret Token",
   "Webhook Verify Token": "Webhook Verify Token",
   "Webhook verify token": "Webhook verify token",
-  "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project",
   "Yearly Plan": "Yearly Plan",
   "You can find this in your Twilio console.": "You can find this in your Twilio console.",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.",

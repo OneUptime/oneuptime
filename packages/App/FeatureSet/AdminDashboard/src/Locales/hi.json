@@ -831,7 +831,6 @@
   "Webhook Secret Token": "Webhook गुप्त टोकन",
   "Webhook Verify Token": "Webhook सत्यापन टोकन",
   "Webhook verify token": "Webhook सत्यापन टोकन",
-  "Who would you like the owner of this project to be? If you leave this blank - you will be the owner of the project": "आप इस प्रोजेक्ट का स्वामी किसे बनाना चाहेंगे? यदि आप इसे खाली छोड़ते हैं - तो आप प्रोजेक्ट के स्वामी होंगे",
   "Yearly Plan": "वार्षिक योजना",
   "You can find this in your Twilio console.": "आप इसे अपने Twilio console में पा सकते हैं।",
   "Your bot's Telegram username, without the leading @. Telegram usernames end in 'bot'.": "आपके बॉट का Telegram उपयोगकर्ता नाम, बिना शुरुआती @ के। Telegram उपयोगकर्ता नाम 'bot' से समाप्त होते हैं।",

@@ -100,8 +100,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Triggered by the person making the request. Stamped with stamp, so a
-     * `triggeredByUser` relation sent beside it is not what is stored.
+     * Triggered by the person making the request. DatabaseService has
+     * already taken out whatever triggeredByUser the request named, under
+     * both names (UserAttribution), so with no person on it - an API key, a
+     * workflow - nobody triggered it by hand. Stamped with stamp, so a
+     * relation a server caller names beside it is not what is stored.
      */
     if (createBy.props.userId) {
       RelationIdUtil.stamp(

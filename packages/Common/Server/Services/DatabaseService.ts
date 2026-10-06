@@ -60,6 +60,10 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import { TableColumnMetadata } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import { getUniqueColumnsBy } from "../../Types/Database/UniqueColumnBy";
+import UserAttribution, {
+  ATTRIBUTED_SWITCHES,
+  CREATED_BY_USER_ID_COLUMN,
+} from "../../Types/Database/UserAttribution";
 import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -123,6 +127,16 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasNoneOf,
   ]);
 
+/*
+ * A switch an update turns, and the who and when columns the server stamped
+ * for it (see stampSwitchAttribution).
+ */
+interface SwitchStamp {
+  switchColumn: string;
+  isOn: boolean;
+  stampedColumns: Array<string>;
+}
+
 // A hook-free write to one row by id, ready to run (see buildColumnsByIdUpdateStatement).
 interface ColumnsByIdUpdateStatement {
   tableName: string;
@@ -145,6 +159,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public modelType!: { new (): TBaseModel };
   private model!: TBaseModel;
   private modelName!: string;
+  private userAttributionColumns: Array<string> | null = null;
 
   private _hardDeleteItemByColumnName: string = "";
   public get hardDeleteItemByColumnName(): string {
@@ -1680,7 +1695,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): void {
-    if (props.isRoot && !props.tenantId) {
+    if (this.isWriteOneUptimeMakesItself(props)) {
       return;
     }
 
@@ -1728,39 +1743,239 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Who created a record is the person making the request:
-   * sanitizeCreateOrUpdate stamps `createdByUserId` with props.userId. The
-   * `createdByUser` relation is that same column, and TypeORM stores a
-   * relation over its ID column, so a request that also sent the relation
-   * would have it stored in place of the stamp. When there is a person to
-   * stamp, the relation is dropped here, before the hooks, so they read no
-   * one else either. Writes with no person on the request (OneUptime's own,
-   * a workflow) keep what they name.
-   *
-   * Only the relation goes here, not RelationIdUtil.stamp: the ID column is
-   * stamped after the create permission check, so a person is never asked
-   * for create access to a column they did not send.
+   * A write OneUptime makes itself: root, with no project on the request - a
+   * job, an engine, a service acting for someone it names in code. A
+   * workflow writes as root too, but in its project: that is a write made in
+   * a project, like a request through the API or the admin dashboard.
    */
-  private dropCreatedByUserRelationWhenStamped(
+  private isWriteOneUptimeMakesItself(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    return Boolean(props.isRoot) && !props.tenantId;
+  }
+
+  // This model's columns that say who did something to a record. See UserAttribution.
+  private getUserAttributionColumns(): Array<string> {
+    if (!this.userAttributionColumns) {
+      this.userAttributionColumns = UserAttribution.getColumns(this.model);
+    }
+
+    return this.userAttributionColumns;
+  }
+
+  /*
+   * Who did something to a record - created it, archived it, acknowledged
+   * it, triggered it - and when a switch was turned (UserAttribution) is not
+   * a write's to say. So a write made in a project - a person's request, an
+   * API key's, Terraform's, a workflow's, the admin dashboard's - has every
+   * such column cleared, under both of its names, before the ID columns are
+   * filled from the relations (fillIdColumnsFromRelations) and before any
+   * hook reads it. Cleared rather than deleted: `data` is the caller's model
+   * instance (see BaseAPI.createItem).
+   *
+   * The record is then created by the person making the write, stamped after
+   * the permission check (sanitizeCreateOrUpdate), and by nobody when there
+   * is no person: a record an API key or a workflow creates names no creator.
+   * The services stamp the person into the columns that are about the
+   * request itself - who triggered a policy, who added an incident to an
+   * episode - in their hooks, which run after this. A value a request sends
+   * is dropped, not refused, so a client that still sends one keeps working.
+   *
+   * OneUptime's own writes name the person they act for - a Slack action
+   * posts a note as the person who clicked, an invitation records who
+   * invited - and keep it. With a person on such a write, that person is
+   * still its creator, so a relation over `createdByUserId` beside the stamp
+   * goes: TypeORM stores a relation in place of its ID column.
+   */
+  private decideUserAttributionOnCreate(
     data: TBaseModel | PartialEntity<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): void {
-    if (!props.userId || !this.model.isTableColumn("createdByUser")) {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const isOwnWrite: boolean = this.isWriteOneUptimeMakesItself(props);
+
+    for (const column of this.getUserAttributionColumns()) {
+      if (record[column] === undefined) {
+        continue;
+      }
+
+      if (
+        !isOwnWrite ||
+        (props.userId &&
+          this.model.getTableColumnMetadata(column)?.manyToOneRelationColumn ===
+            CREATED_BY_USER_ID_COLUMN)
+      ) {
+        record[column] = undefined;
+      }
+    }
+  }
+
+  /*
+   * An update made in a project changes none of them either: they are taken
+   * out of the write (a plain object by now - see sanitizeUpdateData), under
+   * both names, before anything reads it, and the columns taken out are
+   * returned. Turning a switch stamps who turned it, and when
+   * (stampSwitchAttribution). OneUptime's own writes keep what they name.
+   */
+  private decideUserAttributionOnUpdate(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Array<string> {
+    if (this.isWriteOneUptimeMakesItself(props)) {
+      return [];
+    }
+
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const takenOut: Array<string> = [];
+
+    for (const column of this.getUserAttributionColumns()) {
+      if (record[column] !== undefined) {
+        takenOut.push(column);
+      }
+
+      delete record[column];
+    }
+
+    return takenOut;
+  }
+
+  /*
+   * An update that asked for nothing but columns OneUptime decides changes
+   * nothing. Answering that with "no rows to update" would read as a
+   * missing record or a refused permission, so it says which fields are
+   * OneUptime's instead.
+   */
+  private assertUpdateChangesSomething(
+    takenOut: Array<string>,
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    if (takenOut.length === 0 || Object.keys(data).length > 0) {
       return;
     }
 
-    const metadata: TableColumnMetadata | undefined =
-      this.model.getTableColumnMetadata("createdByUser");
+    throw new BadDataException(
+      `${takenOut.join(", ")} ${
+        takenOut.length === 1 ? "is" : "are"
+      } recorded by OneUptime and cannot be changed.`,
+    );
+  }
+
+  /*
+   * Who turned a switch, and when, from the update that turns it
+   * (ATTRIBUTED_SWITCHES). Runs after the permission check, like the
+   * creator's stamp, so the person is never asked for access to a column
+   * they did not send. A write OneUptime makes itself keeps a value it
+   * names. Returns what it stamped, so a row whose switch already stands
+   * where the update puts it keeps the who and when it has
+   * (keepSwitchAttributionOfUnturnedRow).
+   */
+  private stampSwitchAttribution(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Array<SwitchStamp> {
+    const record: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const stamps: Array<SwitchStamp> = [];
+
+    for (const entry of ATTRIBUTED_SWITCHES) {
+      if (record[entry.switchColumn] === undefined) {
+        continue;
+      }
+
+      const isOn: boolean = Boolean(record[entry.switchColumn]);
+
+      const stampedColumns: Array<string> = [
+        this.stampSwitchColumn(
+          record,
+          entry.atColumn,
+          isOn ? OneUptimeDate.getCurrentDate() : null,
+          props,
+        ),
+        this.stampSwitchColumn(
+          record,
+          entry.byUserColumn,
+          isOn && props.userId ? props.userId : null,
+          props,
+        ),
+      ].filter((column: string | null): column is string => {
+        return column !== null;
+      });
+
+      if (stampedColumns.length > 0) {
+        stamps.push({
+          switchColumn: entry.switchColumn,
+          isOn: isOn,
+          stampedColumns: stampedColumns,
+        });
+      }
+    }
+
+    return stamps;
+  }
+
+  // Stamps one column of a switch, and says which, or null when it did not.
+  private stampSwitchColumn(
+    record: Record<string, unknown>,
+    column: string,
+    value: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): string | null {
+    if (!this.model.hasColumn(column)) {
+      return null;
+    }
 
     if (
-      !metadata ||
-      metadata.type !== TableColumnType.Entity ||
-      metadata.manyToOneRelationColumn !== "createdByUserId"
+      this.isWriteOneUptimeMakesItself(props) &&
+      record[column] !== undefined
     ) {
-      return;
+      return null;
     }
 
-    delete (data as Record<string, unknown>)["createdByUser"];
+    record[column] = value;
+
+    return column;
+  }
+
+  /*
+   * Re-sending a switch as it stands - Terraform sends a resource's whole
+   * state on every apply, an edit form re-sends what it shows - turns
+   * nothing, so the row keeps who turned it, and when. Only a row whose
+   * switch really turns takes the stamps.
+   */
+  private keepSwitchAttributionOfUnturnedRow(
+    dataForItem: PartialEntity<TBaseModel>,
+    item: TBaseModel,
+    stamps: Array<SwitchStamp>,
+  ): Array<string> {
+    const kept: Array<string> = [];
+
+    for (const stamp of stamps) {
+      const wasOn: boolean = Boolean(
+        (item as unknown as Record<string, unknown>)[stamp.switchColumn],
+      );
+
+      if (wasOn !== stamp.isOn) {
+        continue;
+      }
+
+      for (const column of stamp.stampedColumns) {
+        delete (dataForItem as Record<string, unknown>)[column];
+        kept.push(column);
+      }
+    }
+
+    return kept;
   }
 
   /*
@@ -1972,32 +2187,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
     }
 
-    // check createByUserId.
-
-    if (!isUpdate && props.userId) {
-      (data as any)["createdByUserId"] = props.userId;
-    }
-
     /*
-     * Stamp archive audit fields when a resource is being (un)archived.
-     * The client only ever sends `isArchived`; we stamp `archivedAt` and
-     * `archivedByUserId` here — which runs after column update-permission
-     * checks — so these audit fields are server-controlled and cannot be
-     * spoofed, exactly like `createdByUserId` above.
+     * The record's creator: the person making the write, stamped here,
+     * after the permission check, so a person is never asked for create
+     * access to a column they did not send. A write with no person on it
+     * names nobody - decideUserAttributionOnCreate took out whatever a
+     * request named - unless OneUptime makes it itself and names the person
+     * it acts for.
      */
-    if (isUpdate && (data as any)["isArchived"] !== undefined) {
-      const isArchivedValue: boolean = Boolean((data as any)["isArchived"]);
-
-      if (this.model.hasColumn("archivedAt")) {
-        (data as any)["archivedAt"] = isArchivedValue
-          ? OneUptimeDate.getCurrentDate()
-          : null;
-      }
-
-      if (this.model.hasColumn("archivedByUserId")) {
-        (data as any)["archivedByUserId"] =
-          isArchivedValue && props.userId ? props.userId : null;
-      }
+    if (!isUpdate && props.userId) {
+      (data as any)[CREATED_BY_USER_ID_COLUMN] = props.userId;
     }
 
     return data;
@@ -2198,8 +2397,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     this.unwrapHashedStringsForUnhashedColumns(createBy.data);
 
-    // Created by the person making the request. See the helper.
-    this.dropCreatedByUserRelationWhenStamped(createBy.data, createBy.props);
+    // Who did something to the record is OneUptime's to say. See the helper.
+    this.decideUserAttributionOnCreate(createBy.data, createBy.props);
 
     // One reference, one value, whichever name it is sent under. See the helper.
     this.assertRelationNamesAgree(createBy.data, createBy.props);
@@ -4202,6 +4401,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
+      // Who did something to the record is OneUptime's to say. See the helpers.
+      this.assertUpdateChangesSomething(
+        this.decideUserAttributionOnUpdate(updateBy.data, updateBy.props),
+        updateBy.data,
+      );
+
       // One reference, one value, whichever name it is sent under. See the helper.
       this.assertRelationNamesAgree(updateBy.data, updateBy.props);
 
@@ -4250,6 +4455,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           updateBy.props,
           true,
         )) as PartialEntity<TBaseModel>;
+
+      // Who archived or resolved it, and when, from the switch it turns.
+      const switchStamps: Array<SwitchStamp> = this.stampSwitchAttribution(
+        data,
+        updateBy.props,
+      );
 
       if (!(updateBy.skip instanceof PositiveNumber)) {
         updateBy.skip = new PositiveNumber(updateBy.skip);
@@ -4393,6 +4604,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          */
         const dataForItem: PartialEntity<TBaseModel> = { ...data };
 
+        // Only a row whose switch really turns takes its stamps. See the helper.
+        const keptSwitchColumns: Array<string> =
+          this.keepSwitchAttributionOfUnturnedRow(
+            dataForItem,
+            item,
+            switchStamps,
+          );
+
+        // What this row is written with, for the workflow and the audit log.
+        const writtenData: PartialEntity<TBaseModel> = { ...data };
+
+        for (const column of keptSwitchColumns) {
+          delete (writtenData as Record<string, unknown>)[column];
+        }
+
         if (
           this.model instanceof RelationOnlyRuleBaseModel &&
           (data as Record<string, unknown>)["criteria"] === undefined &&
@@ -4506,7 +4732,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
           if (tenantId) {
             await this.onTriggerWorkflow(item.id!, tenantId, "on-update", {
-              updatedFields: JSONFunctions.serialize(data as JSONObject),
+              updatedFields: JSONFunctions.serialize(writtenData as JSONObject),
             });
 
             await this.onTriggerRealtime(
@@ -4531,7 +4757,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           await auditLogService.recordUpdate({
             model: this.getModel(),
             before: item,
-            updatedFields: data as JSONObject,
+            updatedFields: writtenData as JSONObject,
             itemId: item.id,
             props: updateBy.props,
           });

@@ -1,4 +1,6 @@
-import { RumSessionErasureRequestType } from "../../../Models/DatabaseModels/RumSessionErasureRequest";
+import RumSessionErasureRequest, {
+  RumSessionErasureRequestType,
+} from "../../../Models/DatabaseModels/RumSessionErasureRequest";
 import IncomingCallPolicyEscalationRuleService from "../../../Server/Services/IncomingCallPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -9,7 +11,11 @@ import UserService from "../../../Server/Services/UserService";
 import UserTotpAuthService from "../../../Server/Services/UserTotpAuthService";
 import UserWebAuthnService from "../../../Server/Services/UserWebAuthnService";
 import RelationIdUtil from "../../../Server/Utils/Database/RelationIdUtil";
+import RumSessionPin from "../../../Models/DatabaseModels/RumSessionPin";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Permission from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { getJestSpyOn } from "../../Spy";
@@ -74,6 +80,69 @@ function has(data: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(data, key);
 }
 
+// An API key with every project permission: no person on the request.
+const API_KEY_PROPS: DatabaseCommonInteractionProps = {
+  tenantId: PROJECT_ID,
+  userType: UserType.API,
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          permission: Permission.ProjectOwner,
+          labelIds: [],
+          isBlockPermission: false,
+          _type: "UserPermission",
+        },
+      ],
+      _type: "UserTenantAccessPermission",
+    },
+  },
+};
+
+/*
+ * A create through the service's real write path, hooks included, stopped
+ * right after the hooks: what the row would be saved with as far as the
+ * hooks are concerned. DatabaseService takes out whatever the request named
+ * as who did something to the record before the hooks run
+ * (UserAttribution), so with no person on the request the hooks are handed
+ * nobody, and name nobody.
+ */
+async function pastTheHooks(
+  service: unknown,
+  data: unknown,
+  props: DatabaseCommonInteractionProps,
+): Promise<Record<string, unknown>> {
+  let reached: Record<string, unknown> = {};
+
+  jest
+    .spyOn(
+      service as {
+        generateSlug: (createBy: { data: unknown }) => unknown;
+      },
+      "generateSlug",
+    )
+    .mockImplementation((createBy: { data: unknown }) => {
+      reached = { ...(createBy.data as Record<string, unknown>) };
+      throw new PastTheStep();
+    });
+
+  const outcome: unknown = await outcomeOf(
+    (
+      service as {
+        create: (createBy: {
+          data: unknown;
+          props: DatabaseCommonInteractionProps;
+        }) => Promise<unknown>;
+      }
+    ).create({ data: data, props: props }),
+  );
+
+  expect(outcome).toBeInstanceOf(PastTheStep);
+
+  return reached;
+}
+
 describe("an authenticator is enrolled for the person making the request", () => {
   test.each([
     ["a TOTP authenticator", UserTotpAuthService],
@@ -130,9 +199,28 @@ describe("a session replay erasure is asked for by the person making the request
   });
 
   test("with no person on the request, neither name is kept", async () => {
-    const data: Record<string, unknown> = {
+    const data: RumSessionErasureRequest = new RumSessionErasureRequest();
+    Object.assign(data, {
       ...erasure(),
       requestedByUserId: new ObjectID(ID_A),
+    });
+
+    const reached: Record<string, unknown> = await pastTheHooks(
+      RumSessionErasureRequestService,
+      data,
+      API_KEY_PROPS,
+    );
+
+    expect(reached["targetValue"]).toBe("session-1");
+    expect(reached["requestedByUserId"]).toBeUndefined();
+    expect(reached["requestedByUser"]).toBeUndefined();
+  });
+
+  test("the hook alone, with no person on the request, names nobody", async () => {
+    const data: Record<string, unknown> = {
+      projectId: PROJECT_ID,
+      requestType: RumSessionErasureRequestType.BySessionId,
+      targetValue: "session-1",
     };
 
     await hookOf(
@@ -168,7 +256,39 @@ describe("a recording is pinned by the person making the request", () => {
   });
 
   test("with no person on the request, neither name is kept", async () => {
-    const data: Record<string, unknown> = pin();
+    const data: RumSessionPin = new RumSessionPin();
+    Object.assign(data, {
+      ...pin(),
+      pinnedByUserId: new ObjectID(ID_A),
+    });
+
+    // Not pinned yet: the create goes on to the write path.
+    jest
+      .spyOn(
+        RumSessionPinService as unknown as {
+          getPinForSession: () => Promise<unknown>;
+        },
+        "getPinForSession",
+      )
+      .mockResolvedValue(null as never);
+
+    const reached: Record<string, unknown> = await pastTheHooks(
+      RumSessionPinService,
+      data,
+      API_KEY_PROPS,
+    );
+
+    expect(reached["sessionId"]).toBe("session-1");
+    expect(reached["pinnedByUserId"]).toBeUndefined();
+    expect(reached["pinnedByUser"]).toBeUndefined();
+  });
+
+  test("the hook alone, with no person on the request, names nobody", async () => {
+    const data: Record<string, unknown> = {
+      projectId: PROJECT_ID,
+      rumApplicationId: new ObjectID(ID_A),
+      sessionId: "session-1",
+    };
 
     await hookOf(
       RumSessionPinService,

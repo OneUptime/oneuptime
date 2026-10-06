@@ -6,7 +6,9 @@ import RelationNames, {
 import Entities from "../../../Models/DatabaseModels/Index";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import UserAttribution from "../../../Types/Database/UserAttribution";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -94,6 +96,18 @@ const CASES: Array<ReferenceCase> = (Entities as Array<ModelType>).flatMap(
         };
       },
     );
+  },
+);
+
+/*
+ * Who did something to a record - its creator, who archived it - is never a
+ * write's to name: DatabaseService takes both names out of every write made
+ * in a project before this check (DatabaseServiceUserAttribution.test.ts),
+ * so the two cannot disagree. Every other reference is held to the check.
+ */
+const CASES_A_WRITE_NAMES: Array<ReferenceCase> = CASES.filter(
+  (reference: ReferenceCase): boolean => {
+    return !UserAttribution.isColumn(reference.relation.idColumn);
   },
 );
 
@@ -199,6 +213,8 @@ afterEach(() => {
 
 test("the sweep sees the references of every model", () => {
   expect(CASES.length).toBeGreaterThan(1000);
+  expect(CASES_A_WRITE_NAMES.length).toBeGreaterThan(500);
+  expect(CASES_A_WRITE_NAMES.length).toBeLessThan(CASES.length);
   expect(
     CASES.some((reference: ReferenceCase): boolean => {
       return (
@@ -213,7 +229,7 @@ describe.each(WRITES)("%s", (_name: string, write: Write) => {
   test("two names naming different records are refused, with a message naming both fields, before any hook", async () => {
     const wrong: Array<string> = [];
 
-    for (const reference of CASES) {
+    for (const reference of CASES_A_WRITE_NAMES) {
       const outcome: unknown = await write(
         reference,
         {
@@ -239,7 +255,7 @@ describe.each(WRITES)("%s", (_name: string, write: Write) => {
   test("a record under one name and a clear under the other are refused", async () => {
     const wrong: Array<string> = [];
 
-    for (const reference of CASES) {
+    for (const reference of CASES_A_WRITE_NAMES) {
       const outcome: unknown = await write(
         reference,
         {
@@ -265,7 +281,7 @@ describe.each(WRITES)("%s", (_name: string, write: Write) => {
   test("the same record under both names, in any case, goes on to the hooks", async () => {
     const wrong: Array<string> = [];
 
-    for (const reference of CASES) {
+    for (const reference of CASES_A_WRITE_NAMES) {
       const outcome: unknown = await write(
         reference,
         {
@@ -288,7 +304,7 @@ describe.each(WRITES)("%s", (_name: string, write: Write) => {
   test("a reference under one name alone goes on to the hooks", async () => {
     const wrong: Array<string> = [];
 
-    for (const reference of CASES) {
+    for (const reference of CASES_A_WRITE_NAMES) {
       for (const values of [
         { [reference.relation.idColumn]: new ObjectID(ID_A) },
         { [reference.relation.relation]: { _id: ID_B } },
@@ -428,7 +444,25 @@ describe("who created a record is the person making the request", () => {
     expect(reached()?.["title"]).toBe("Payments are down");
   });
 
-  test("with no person on the request, the creator the write names stays", async () => {
+  test("with no person on the request, the creator the write names is taken out under both names", async () => {
+    const { service, reached } = capturedCreate();
+
+    const outcome: unknown = await outcomeOf(
+      service.create({
+        data: payloadFor(Incident as unknown as ModelType, {
+          createdByUserId: new ObjectID(ID_A),
+          createdByUser: { _id: ID_B },
+        }),
+        props: WORKFLOW_PROPS,
+      }),
+    );
+
+    expect(outcome).toBeInstanceOf(PastTheCheck);
+    expect(reached()?.["createdByUser"]).toBeUndefined();
+    expect(reached()?.["createdByUserId"]).toBeUndefined();
+  });
+
+  test("OneUptime's own write keeps the creator it names", async () => {
     const { service, reached } = capturedCreate();
 
     await outcomeOf(
@@ -436,10 +470,120 @@ describe("who created a record is the person making the request", () => {
         data: payloadFor(Incident as unknown as ModelType, {
           createdByUser: { _id: ID_B },
         }),
-        props: WORKFLOW_PROPS,
+        props: SERVER_PROPS,
       }),
     );
 
     expect(reached()?.["createdByUser"]).toEqual({ _id: ID_B });
+    expect(String(reached()?.["createdByUserId"])).toBe(ID_B);
+  });
+});
+
+/*
+ * The references the sweeps above leave out say who did something to a
+ * record, which no write made in a project names at all
+ * (DatabaseServiceUserAttribution.test.ts): a create carries neither name
+ * on to the hooks, and an update that asks for nothing else is told the
+ * field is OneUptime's. Either way the two names never reach the check.
+ */
+describe("who did something to a record, under either name", () => {
+  const ATTRIBUTION_CASES: Array<ReferenceCase> = CASES.filter(
+    (reference: ReferenceCase): boolean => {
+      return !CASES_A_WRITE_NAMES.includes(reference);
+    },
+  );
+
+  const BOTH_NAMES: (reference: ReferenceCase) => Record<string, unknown> = (
+    reference: ReferenceCase,
+  ): Record<string, unknown> => {
+    return {
+      [reference.relation.idColumn]: new ObjectID(ID_A),
+      [reference.relation.relation]: { _id: ID_B },
+    };
+  };
+
+  test("is a reference of most models", () => {
+    expect(ATTRIBUTION_CASES.length).toBeGreaterThan(400);
+
+    for (const reference of ATTRIBUTION_CASES) {
+      expect(UserAttribution.isColumn(reference.relation.idColumn)).toBe(true);
+    }
+  });
+
+  test("a create carries neither name on to the hooks", async () => {
+    const wrong: Array<string> = [];
+
+    for (const reference of ATTRIBUTION_CASES) {
+      const service: DatabaseService<DatabaseBaseModel> =
+        new DatabaseService<DatabaseBaseModel>(reference.modelType);
+      let reached: Record<string, unknown> = {};
+
+      jest
+        .spyOn(
+          service as unknown as {
+            _onBeforeCreate: (createBy: {
+              data: Record<string, unknown>;
+            }) => Promise<unknown>;
+          },
+          "_onBeforeCreate",
+        )
+        .mockImplementation(
+          async (createBy: { data: Record<string, unknown> }) => {
+            reached = { ...createBy.data };
+            throw new PastTheCheck();
+          },
+        );
+
+      const outcome: unknown = await outcomeOf(
+        service.create({
+          data: payloadFor(reference.modelType, BOTH_NAMES(reference)),
+          props: WORKFLOW_PROPS,
+        }),
+      );
+
+      const named: Array<string> = [
+        reference.relation.idColumn,
+        reference.relation.relation,
+      ].filter((column: string): boolean => {
+        return reached[column] !== undefined;
+      });
+
+      if (!(outcome instanceof PastTheCheck) || named.length > 0) {
+        wrong.push(
+          `${reference.table}.${reference.relation.relation}: ${describeOutcome(outcome)} ${named.join(", ")}`,
+        );
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  test("an update asking for nothing else is refused, naming both fields", async () => {
+    const wrong: Array<string> = [];
+
+    for (const reference of ATTRIBUTION_CASES) {
+      const outcome: unknown = await updateWith(
+        reference,
+        BOTH_NAMES(reference),
+        WORKFLOW_PROPS,
+      );
+
+      const { idColumn, relation } = reference.relation;
+      const refusals: Array<string> = [
+        `${idColumn}, ${relation} are recorded by OneUptime and cannot be changed.`,
+        `${relation}, ${idColumn} are recorded by OneUptime and cannot be changed.`,
+      ];
+
+      if (
+        !(outcome instanceof BadDataException) ||
+        !refusals.includes(outcome.message)
+      ) {
+        wrong.push(
+          `${reference.table}.${relation}: ${describeOutcome(outcome)}`,
+        );
+      }
+    }
+
+    expect(wrong).toEqual([]);
   });
 });
