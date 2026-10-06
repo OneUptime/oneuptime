@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" dir="<%= typeof dir !== 'undefined' ? dir : 'ltr' %>" class="h-full antialiased">
 <%- include('../partials/head', {
    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false,
 }) -%>
 
 <body class="min-h-full bg-canvas text-ink-muted">
    <a href="#reference-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-accent-contrast">
+      class="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-accent-contrast">
       <%= t('ui.skipToContent') %>
    </a>
 
    <%- include('../partials/nav') -%>
 
-   <div class="lg:pl-72">
+   <div class="lg:ps-72">
       <div class="mx-auto w-full max-w-8xl px-4 pt-14 sm:px-6 lg:px-10">
          <%#
             min-w-0 on the content column is load-bearing: a grid item defaults
