@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import StorageArrayLabelRuleEngineService from "./StorageArrayLabelRuleEngineService";
 import StorageArrayOwnerRuleEngineService from "./StorageArrayOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/StorageArray";
@@ -97,7 +97,7 @@ const STORAGE_ARRAY_MATCH_COLUMN: MatchColumn = matchedOnName({
   resourceName: "storage array",
 });
 
-export class Service extends DatabaseService<Model> {
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }

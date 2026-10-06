@@ -353,10 +353,10 @@ More details stay here.
       },
     );
 
-    expect(staticRuleFormFiles).toHaveLength(68);
-    expect(helpFormFiles).toHaveLength(61);
-    // 67, and the five episode rule help texts that now have the heading too.
-    expect(helpMarkdown).toHaveLength(72);
+    expect(staticRuleFormFiles).toHaveLength(70);
+    expect(helpFormFiles).toHaveLength(63);
+    // 69, and the five episode rule help texts that now have the heading too.
+    expect(helpMarkdown).toHaveLength(74);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

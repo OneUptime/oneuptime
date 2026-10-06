@@ -27,6 +27,7 @@ import StorageArrayOwnerUserService from "../../../Server/Services/StorageArrayO
 import StorageArrayService from "../../../Server/Services/StorageArrayService";
 import StorageArrayFeedService from "../../../Server/Services/StorageArrayFeedService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import logger from "../../../Server/Utils/Logger";
 import {
   RuleApplicationResult,
@@ -197,6 +198,8 @@ beforeEach(() => {
   ).mockResolvedValue(
     "[Storage Array pure-prod-01](https://example.com/storage-arrays/1)",
   );
+  // The labels and teams the rules name are the project's.
+  stubProjectDirectory({});
 });
 
 afterEach(() => {

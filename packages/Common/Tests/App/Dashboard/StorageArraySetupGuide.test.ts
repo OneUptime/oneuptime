@@ -369,7 +369,11 @@ describe.each(PLATFORMS)("the %s guide", (platform: StorageArrayPlatform) => {
     expect(prerequisites).toContain("TCP 443");
     expect(prerequisites).toContain("administrator account");
     // Only the exporter platforms pull Pure's image.
-    expect(prerequisites.includes("quay.io")).toBe(platform !== "flasharray");
+    expect(
+      prerequisites.includes(
+        "Access from that machine to `quay.io`, where Docker pulls Pure's exporter image",
+      ),
+    ).toBe(platform !== "flasharray");
   });
 
   test("the read-only user gets the readonly role and a token without an expiry", () => {
