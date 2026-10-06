@@ -79,15 +79,17 @@ const TEMPLATE_UPDATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.EditNetworkDeviceAutoImportRule,
 ];
-const MONITOR_TEMPLATE_READ_PERMISSIONS: Array<Permission> = [
+/*
+ * Which template a rule applies is read with the rule itself, like every
+ * other column of it: whoever may read the rule sees its template. The
+ * template's own fields stay with the template's permissions.
+ */
+const RULE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ProjectMember,
   Permission.Viewer,
-  Permission.MonitorAdmin,
-  Permission.MonitorMember,
-  Permission.MonitorViewer,
-  Permission.ReadMonitorTemplate,
+  Permission.ReadNetworkDeviceAutoImportRule,
 ];
 
 function makeCreateBy(
@@ -176,11 +178,14 @@ describe("NetworkDeviceAutoImportRule monitor template column access", () => {
   );
 
   it.each(MONITOR_TEMPLATE_COLUMNS)(
-    "%s requires monitor-template permission to read",
+    "%s is read with the rule's own read permissions",
     (columnName: string) => {
-      expect(rule.getColumnAccessControlFor(columnName)?.read).toEqual(
-        MONITOR_TEMPLATE_READ_PERMISSIONS,
-      );
+      const read: Array<Permission> =
+        rule.getColumnAccessControlFor(columnName)?.read || [];
+
+      expect(read).toEqual(RULE_READ_PERMISSIONS);
+      expect([...read].sort()).toEqual([...rule.getReadPermissions()].sort());
+      expect(read).not.toContain(Permission.ReadMonitorTemplate);
     },
   );
 });

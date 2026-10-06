@@ -307,6 +307,48 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   SLA already responded to. Records created in the created state, as every
   monitor-opened one is, are unchanged. See
   [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
+- **A state after your resolved state counts as resolved everywhere.** An
+  incident, alert or episode in a state you placed after the resolved state
+  — a **Closed** state below **Resolved**, say — used to count as resolved
+  in some places and as open in others. Every one of them now asks one
+  rule: the project's resolved state, and every state after it, is
+  resolved. Records in such a state leave the **Active Incidents** and
+  **Active Alerts** lists and their side-menu counts, the incident and
+  alert lists on dashboards, the active episodes and the mobile app's
+  lists of open records; Slack and Microsoft Teams summaries count them as
+  resolved, and status page timelines show such a row as resolved. A
+  monitor or an SLO burn-rate rule whose incident or alert sits in such a
+  state opens a new one the next time it fires, where it used to take the
+  old one for still open. Moving an incident straight into such a state
+  resolves it as **Resolved** does, and moving one on from **Resolved** no
+  longer reopens an episode or starts a new SLA for the incident. Projects
+  whose custom states all sit above the resolved state see no change. See
+  [The Active Incidents list](/docs/incidents/states-and-severities#the-active-incidents-list).
+- **Resolving an incident gives back only the monitors it holds.**
+  OneUptime now records whether an incident holds its monitors' status. An
+  incident resolved once already and then reopened no longer returns its
+  monitors to operational when it is resolved again, so a status they got
+  in between — from their probes, maintenance or set by hand — stays;
+  editing its monitors, or the status it puts them in, while it is open
+  makes it hold them again. Incidents from before the upgrade give their
+  monitors back on their next resolve, as they always did. See
+  [What resolving does](/docs/incidents/states-and-severities#what-resolving-does).
+- **An incident's or alert's episode is set by the episode's members
+  only.** `incidentEpisodeId` and `alertEpisodeId` (and the `incidentEpisode`
+  and `alertEpisode` relations) are read-only. The API, Terraform
+  (`incident_episode_id`, `alert_episode_id`), the MCP tools and workflows
+  could write them without adding the record to the episode: the episode's
+  overview then listed an incident or alert its **Members** page did not, and
+  one created with an episode set was never grouped. A create or update that
+  sends one is now refused, with a message pointing at the episode's members:
+  add the record with `POST /api/incident-episode-member` (or
+  `/api/alert-episode-member`) and delete that member to take it out, and the
+  episode reference follows. Reading it is unchanged. A Terraform
+  configuration that sets `incident_episode_id` or `alert_episode_id` must
+  drop it once you upgrade the provider, which only reads them now; the
+  `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member`
+  resources manage membership. See
+  [The episode an incident or alert is in](/docs/api-reference/api-reference#the-episode-an-incident-or-alert-is-in).
 - **New incoming call escalation rules ring for 20 seconds, not 30.** Many
   phones send an unanswered call to voicemail within 30 seconds, and a
   voicemail that answers ends the call there instead of moving it on to the
@@ -318,6 +360,39 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   will plan `30 -> 20` for the rules it manages once you upgrade the provider;
   set `escalate_after_seconds = 30` to keep 30. See
   [Incoming Call Policy](/docs/on-call/incoming-call-policy).
+- **Slack and Microsoft Teams summaries keep their time of day when the
+  clocks change.** A summary now has a time zone, and its schedule is read
+  on that clock. Until now it was read in UTC, so a summary set for 09:00 in
+  Berlin went out at 08:00 there once the clocks went back. The upgrade
+  gives each existing summary the time zone in its creator's profile, the
+  clock the dashboard showed them, or UTC when it has no creator with one
+  (an API key made it), which is what it was read in until now. No next
+  send moves during the upgrade; from its next send on, a summary that had
+  drifted an hour goes back to its first summary's time of day, and a
+  monthly summary on the 29th to 31st no longer slides to the 28th. The
+  API and Terraform (`timezone`) take an IANA time zone name; a summary
+  created without one takes its creator's profile time zone, or UTC when
+  an API key creates it, and a name that is not a time zone is refused.
+  See [Summaries](/docs/workspace-connections/slack#summaries).
+- **An incident's or alert's "updated" feed entry records only what
+  changed.** Saving the **Incident Details** card after changing only the
+  title, or an API client, a workflow or a script writing an incident or
+  an alert back as it is, used to add an entry repeating the title,
+  description, root cause, remediation notes and labels it carried — posted
+  to the incident's or alert's Slack and Microsoft Teams channels too — and
+  every write that carried the labels or the **Send reminders** switch
+  started the reminder interval over, even when nothing changed, so an
+  incident that was edited often kept putting its reminders off. Now each
+  line is written for a value that changed, and nothing for a save that
+  changed nothing; the reminder rule is matched again, and the interval
+  starts over, only when the severity or the labels change or **Send
+  reminders** is flipped. Text that reads the same counts as the same
+  (line endings and the spaces around it aside), and labels as the same
+  set in any order. Alerts now also record a root cause changed on its own
+  page, which they used to drop unless the title changed with it, and a
+  description, root cause or remediation notes that was cleared. Taking
+  every label off is recorded as "All labels removed.". See
+  [What the feed records](/docs/incidents/notes-owners-and-feed#what-the-feed-records).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next

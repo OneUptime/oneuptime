@@ -1,11 +1,9 @@
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import Alert from "../../../Models/DatabaseModels/Alert";
-import AlertState from "../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -807,45 +805,39 @@ export default class RemediationVerifier {
   private static async isSubjectResolved(
     suggestion: AutoRemediationSuggestion,
   ): Promise<boolean> {
+    // Resolved by the one rule (Common/Utils/ResolvedState).
     if (suggestion.incidentId) {
       const incident: Incident | null = await IncidentService.findOneById({
         id: suggestion.incidentId,
-        select: { _id: true, currentIncidentStateId: true },
+        select: { _id: true, projectId: true, currentIncidentStateId: true },
         props: { isRoot: true },
       });
 
-      if (!incident?.currentIncidentStateId) {
+      if (!incident?.currentIncidentStateId || !incident.projectId) {
         return false;
       }
 
-      const state: IncidentState | null =
-        await IncidentStateService.findOneById({
-          id: incident.currentIncidentStateId,
-          select: { _id: true, isResolvedState: true },
-          props: { isRoot: true },
-        });
-
-      return state?.isResolvedState === true;
+      return await IncidentStateService.isResolvedIncidentState({
+        projectId: incident.projectId,
+        incidentStateId: incident.currentIncidentStateId,
+      });
     }
 
     if (suggestion.alertId) {
       const alert: Alert | null = await AlertService.findOneById({
         id: suggestion.alertId,
-        select: { _id: true, currentAlertStateId: true },
+        select: { _id: true, projectId: true, currentAlertStateId: true },
         props: { isRoot: true },
       });
 
-      if (!alert?.currentAlertStateId) {
+      if (!alert?.currentAlertStateId || !alert.projectId) {
         return false;
       }
 
-      const state: AlertState | null = await AlertStateService.findOneById({
-        id: alert.currentAlertStateId,
-        select: { _id: true, isResolvedState: true },
-        props: { isRoot: true },
+      return await AlertStateService.isResolvedAlertState({
+        projectId: alert.projectId,
+        alertStateId: alert.currentAlertStateId,
       });
-
-      return state?.isResolvedState === true;
     }
 
     return false;

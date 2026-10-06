@@ -1285,11 +1285,13 @@ describe("the project's own daily AI limits (project_daily_limit_reached)", () =
           subject.alertId ? "alert" : "incident"
         } was created, so its automatic investigation did not start.`,
       );
-      expect(reason.nextStep).toMatch(/^Review /);
-      expect(reason.nextStep).toContain(
-        "Project Settings → AI Features → More settings",
+      // It is taken back after the reset (InvestigationLimitCatchUp).
+      expect(reason.nextStep).toBe(
+        `OneUptime AI investigates this ${
+          subject.alertId ? "alert" : "incident"
+        } after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI Features → More settings.`,
       );
-      expect(reason.nextStep).toContain("midnight UTC");
+      expect(reason.nextStep).not.toContain("not automatically retried");
     },
   );
 

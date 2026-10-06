@@ -168,3 +168,106 @@ describe("the first summary's sentence", () => {
     expect(sentence()).toBeNull();
   });
 });
+
+/*
+ * The summary's time zone, as the form's Timezone field holds it: the
+ * first summary is 09:00 there, and the sentence says it on that clock.
+ * The field starts on the creator's own zone, so the sentence reads the
+ * same as before until someone picks another.
+ */
+describe("the first summary's sentence, in the summary's time zone", () => {
+  test("says 09:00 New York time for a summary in New York, though the creator is in Berlin", () => {
+    // It is 08:00 in New York: this Monday's 09:00 there is still ahead.
+    render(<WorkspaceSummaryFirstSendPreview timezone="America/New_York" />);
+
+    expect(sentence()).toBe(
+      "The first summary goes out Mon, Oct 5, 2026, 09:00 EDT.",
+    );
+  });
+
+  test("keeps 09:00 on the summary's clock for a first summary after its clocks go back", () => {
+    // The 1st of November: New York is on standard time by then.
+    render(
+      <WorkspaceSummaryFirstSendPreview
+        timezone="America/New_York"
+        recurringInterval={every(EventInterval.Month, 1)}
+      />,
+    );
+
+    expect(sentence()).toBe(
+      "The first summary goes out Sun, Nov 1, 2026, 09:00 EST.",
+    );
+  });
+
+  test("says a date picked on the summary's clock", () => {
+    render(
+      <WorkspaceSummaryFirstSendPreview
+        timezone="America/New_York"
+        recurringInterval={every(EventInterval.Week, 1)}
+        sendFirstReportAt={OneUptimeDate.fromString("2026-10-08T14:30:00.000Z")}
+      />,
+    );
+
+    expect(sentence()).toBe(
+      "The first summary goes out Thu, Oct 8, 2026, 10:30 EDT.",
+    );
+  });
+
+  test("moves a date already past to the next occurrence on the summary's clock, after its clocks change", () => {
+    // Mondays at 09:00 CEST since 7 Sep; on 28 Oct Berlin is on CET.
+    getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+      OneUptimeDate.fromString("2026-10-28T12:00:00.000Z"),
+    );
+
+    render(
+      <WorkspaceSummaryFirstSendPreview
+        timezone="Europe/Berlin"
+        recurringInterval={every(EventInterval.Week, 1)}
+        sendFirstReportAt="2026-09-07T07:00:00.000Z"
+      />,
+    );
+
+    expect(sentence()).toBe(
+      "The first summary goes out Mon, Nov 2, 2026, 09:00 CET.",
+    );
+  });
+
+  test.each([
+    ["none", undefined],
+    ["an empty one", ""],
+    ["one that is not a time zone", "Mars/Olympus_Mons"],
+  ])(
+    "reads the creator's own time zone while the form holds %s",
+    (_what: string, timezone: string | undefined) => {
+      render(<WorkspaceSummaryFirstSendPreview timezone={timezone} />);
+
+      expect(sentence()).toBe(
+        "The first summary goes out Mon, Oct 12, 2026, 09:00 CEST.",
+      );
+    },
+  );
+
+  test("reads a legacy name as its zone", () => {
+    render(<WorkspaceSummaryFirstSendPreview timezone="US/Eastern" />);
+
+    expect(sentence()).toBe(
+      "The first summary goes out Mon, Oct 5, 2026, 09:00 EDT.",
+    );
+  });
+
+  test("says what the server will store for a summary in that time zone", () => {
+    render(<WorkspaceSummaryFirstSendPreview timezone="Asia/Tokyo" />);
+
+    const stored: Date | undefined =
+      WorkspaceSummaryScheduleUtil.getCreateWrite({
+        write: { timezone: "Asia/Tokyo" },
+        now: NOW,
+      }).nextSendAt;
+
+    // 21:00 in Tokyo now: next Monday's 09:00 JST is 00:00 UTC on 12 Oct.
+    expect(stored?.toISOString()).toBe("2026-10-12T00:00:00.000Z");
+    expect(sentence()).toBe(
+      "The first summary goes out Mon, Oct 12, 2026, 09:00 JST.",
+    );
+  });
+});

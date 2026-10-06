@@ -84,15 +84,22 @@
             <% } else if (tab.icon === 'powershell') { %>
             <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.181 2.974c.568 0 .923.463.792 1.035l-3.659 15.982c-.13.572-.697 1.035-1.265 1.035H.819c-.568 0-.923-.463-.792-1.035L3.686 4.009c.13-.572.697-1.035 1.265-1.035h18.23zm-8.375 12.15c0-.292-.123-.559-.322-.744l.004.004-5.444-4.678c-.162-.144-.373-.232-.605-.232-.506 0-.916.41-.916.916 0 .272.119.516.307.684l-.002-.002 4.453 3.832-4.453 3.832c-.188.166-.307.41-.307.684 0 .506.41.916.916.916.232 0 .443-.088.605-.232l5.444-4.678c.2-.186.323-.453.323-.746v-.556h-.003zm.62 2.406c0-.355.288-.644.644-.644h4.023c.355 0 .644.288.644.644 0 .355-.288.644-.644.644h-4.023a.644.644 0 01-.644-.644z"/></svg>
             <% } %>         </span>
-         <span><%= tab.name %></span>
+         <%# A language's name reads left to right: right to left, "C#" would be drawn "#C". -%>
+         <span<% if (!tab.isPreview) { %> dir="ltr"<% } %>><%= tab.name %></span>
       </button>
       <% }); %>
    </div>
 
+   <%#
+      A language's panel is all code, so the whole panel reads left to right on
+      every page - its floating copy button included, which then sits over the
+      end of the first line rather than its start. The request preview follows
+      the page: its captions are translated.
+   -%>
    <% tabs.forEach(function(tab, index){ %>
    <div role="tabpanel" id="<%= uniqueId %>-panel-<%= tab.id %>" aria-labelledby="<%= uniqueId %>-tab-<%= tab.id %>"
       data-panel-id="<%= tab.id %>" data-copy-scope
-      class="code-panel relative <%= index === 0 ? '' : 'hidden' %>">
+      class="code-panel relative <%= index === 0 ? '' : 'hidden' %>"<% if (!tab.isPreview) { %> dir="ltr"<% } %>>
       <button type="button" class="copy-btn copy-btn-floating" data-copy-button
          aria-label="<%= tab.isPreview ? t('ui.copyRequest') : t('ui.copyCode') %>">
          <svg class="copy-icon h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">

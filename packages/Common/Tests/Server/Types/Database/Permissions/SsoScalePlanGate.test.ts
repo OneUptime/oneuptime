@@ -24,6 +24,7 @@ import Project from "../../../../../Models/DatabaseModels/Project";
 import ProjectOIDC from "../../../../../Models/DatabaseModels/ProjectOidc";
 import ProjectSCIM from "../../../../../Models/DatabaseModels/ProjectSCIM";
 import ProjectSSO from "../../../../../Models/DatabaseModels/ProjectSso";
+import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import StatusPageOIDC from "../../../../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSCIM from "../../../../../Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSSO from "../../../../../Models/DatabaseModels/StatusPageSso";
@@ -58,7 +59,9 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
  *     is the only gate (EditionPermission never refuses with billing on).
  *
  * A project's own "Require SSO for login" switch is Scale-gated the same way
- * (Project.requireSsoForLogin's @ColumnBillingAccessControl). Global SSO/OIDC
+ * (Project.requireSsoForLogin's @ColumnBillingAccessControl), and so is a
+ * status page's (StatusPage.requireSsoForLogin): turning either on needs
+ * Scale, turning it off works on every plan. Global SSO/OIDC
  * (master admins only) has no plan gate. SCIM stays on Scale too. And with
  * billing off - every self-hosted install, Community or Enterprise - no plan
  * gate applies at all, whatever plan the props carry.
@@ -369,6 +372,52 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
         }
       });
 
+      test('a status page\'s "Require SSO for login" switch is Scale-gated too, on a create as on an update; off works on every plan', () => {
+        for (const operation of [
+          DatabaseRequestType.Create,
+          DatabaseRequestType.Update,
+        ]) {
+          const on: StatusPage = new StatusPage();
+          on.requireSsoForLogin = true;
+
+          const off: StatusPage = new StatusPage();
+          off.requireSsoForLogin = false;
+
+          for (const plan of PLANS_BELOW_SCALE) {
+            expect(() => {
+              ColumnPermissions.checkDataColumnPermissions(
+                StatusPage,
+                on,
+                ownerOnPlan(plan),
+                operation,
+              );
+            }).toThrow(new PaymentRequiredException(SCALE_REFUSAL));
+          }
+
+          for (const plan of [...PLANS_BELOW_SCALE, ...PLANS_FROM_SCALE]) {
+            expect(() => {
+              ColumnPermissions.checkDataColumnPermissions(
+                StatusPage,
+                off,
+                ownerOnPlan(plan),
+                operation,
+              );
+            }).not.toThrow();
+          }
+
+          for (const plan of PLANS_FROM_SCALE) {
+            expect(() => {
+              ColumnPermissions.checkDataColumnPermissions(
+                StatusPage,
+                on,
+                ownerOnPlan(plan),
+                operation,
+              );
+            }).not.toThrow();
+          }
+        }
+      });
+
       test.each(GLOBAL_SSO_MODELS)(
         "%s (global single sign-on, master admins only) has no plan gate",
         (_name: string, modelType: ModelType) => {
@@ -443,6 +492,25 @@ describe("single sign-on on OneUptime Cloud: the Scale plan gate", () => {
             DatabaseRequestType.Update,
           );
         }).not.toThrow();
+      });
+
+      test('a status page\'s "Require SSO for login" switch is not plan-gated', () => {
+        const data: StatusPage = new StatusPage();
+        data.requireSsoForLogin = true;
+
+        for (const operation of [
+          DatabaseRequestType.Create,
+          DatabaseRequestType.Update,
+        ]) {
+          expect(() => {
+            ColumnPermissions.checkDataColumnPermissions(
+              StatusPage,
+              data,
+              ownerOnPlan(PlanType.Free),
+              operation,
+            );
+          }).not.toThrow();
+        }
       });
     },
   );

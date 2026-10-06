@@ -89,6 +89,51 @@ add_finding() { FINDINGS+=("$1"); }
 CONFIG_FILE="$DIR/otel-collector-config.yaml"
 ENV_FILE="$DIR/.env"
 
+# Read one variable from .env the way Docker Compose v2 does (the same rules
+# install.sh writes by): the last assignment wins, single-quoted values are
+# literal, double-quoted values undo \\ \" and $$, and an unquoted value
+# stops at " #" and is trimmed. Without this a quoted URL or key would be
+# probed with its quotes still on.
+dotenv_get() {
+  local name="$1" file="$2" raw="" value="" rest="" ch=""
+  raw=$(grep "^[[:space:]]*$name=" "$file" 2>/dev/null | tail -1) || true
+  [ -n "$raw" ] || return 0
+  value="${raw#*=}"
+  case "$value" in
+    \'*\'*)
+      value="${value#\'}"
+      value="${value%%\'*}"
+      ;;
+    \"*\"*)
+      value="${value#\"}"
+      rest="$value"
+      value=""
+      while [ -n "$rest" ]; do
+        ch="${rest:0:1}"
+        if [ "$ch" = '\' ] && [ -n "${rest:1:1}" ] && [ "${rest:1:1}" != '$' ]; then
+          value="$value${rest:1:1}"
+          rest="${rest:2}"
+        elif [ "$ch" = '$' ] && [ "${rest:1:1}" = '$' ]; then
+          value="$value\$"
+          rest="${rest:2}"
+        elif [ "$ch" = '"' ]; then
+          break
+        else
+          value="$value$ch"
+          rest="${rest:1}"
+        fi
+      done
+      ;;
+    *)
+      value="${value%% #*}"
+      value="${value#"${value%%[![:space:]]*}"}"
+      value="${value%"${value##*[![:space:]]}"}"
+      value="${value//\$\$/\$}"
+      ;;
+  esac
+  printf '%s' "$value"
+}
+
 # Read an env var as the running container actually sees it (compose defaults
 # included). Falls back to the .env file when the container isn't running.
 agent_env() {
@@ -96,7 +141,7 @@ agent_env() {
   v=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$AGENT_CONTAINER" 2>/dev/null \
         | sed -n "s/^$1=//p" | head -1)
   if [ -z "$v" ] && [ -f "$ENV_FILE" ]; then
-    v=$(sed -n "s/^[[:space:]]*$1=//p" "$ENV_FILE" | tail -1)
+    v=$(dotenv_get "$1" "$ENV_FILE")
   fi
   printf '%s' "$v"
 }

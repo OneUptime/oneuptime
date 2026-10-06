@@ -27,6 +27,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeInternalNote from "../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
+import StateChangeNote from "../Utils/StateChangeNote";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   public constructor() {
@@ -52,6 +53,26 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
+
+      /*
+       * The private note that comes with the change, if any (a blank one is
+       * none). It is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the episode's feed and a change that fails leaves no note behind.
+       * Whether they may post it is asked now, before the change takes its
+       * lock or reads the timeline, with the check the note's own create
+       * runs: a change whose note they may not post is refused whole, with
+       * one plain message, rather than saved and then answered with an
+       * error (StateChangeNote).
+       */
+      const privateNotesToPost: Array<IncidentEpisodeInternalNote> =
+        StateChangeNote.preparePrivateNotes({
+          noteModelType: IncidentEpisodeInternalNote,
+          stateChange: createBy.data,
+          eventColumn: "incidentEpisodeId",
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          props: createBy.props,
+        });
 
       try {
         mutex = await Semaphore.lock({
@@ -190,21 +211,12 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
       } as LogAttributes);
 
-      /*
-       * The note a user writes when they change the state. It is not a column
-       * on this model, so it travels alongside the create and becomes an
-       * internal note on the episode once the timeline row exists.
-       */
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
-
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
@@ -317,6 +329,17 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       } as LogAttributes);
     }
 
+    /*
+     * Whether the episode is resolved in this state, by the one rule
+     * (Common/Utils/ResolvedState): the project's resolved state, or a state
+     * placed after it, flagged or not.
+     */
+    const isResolvedState: boolean =
+      await IncidentStateService.isResolvedIncidentState({
+        projectId: createdItem.projectId!,
+        incidentStateId: createdItem.incidentStateId,
+      });
+
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
       const updateData: {
@@ -326,23 +349,29 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         currentIncidentStateId: createdItem.incidentStateId,
       };
 
-      // Check if the new state is a resolved state and update resolvedAt accordingly
-      const newIncidentState: IncidentState | null =
-        await IncidentStateService.findOneById({
-          id: createdItem.incidentStateId,
-          select: {
-            isResolvedState: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      /*
+       * resolvedAt is when the episode was resolved: stamped when it moves
+       * into a resolved state, kept while it moves on from one resolved
+       * state to another ("Resolved" to "Closed"), and cleared when it is
+       * reopened into one that is not. The Active episode lists, grouping
+       * and auto-resolve read it.
+       */
+      if (isResolvedState) {
+        const episode: IncidentEpisode | null =
+          await IncidentEpisodeService.findOneById({
+            id: createdItem.incidentEpisodeId,
+            select: {
+              resolvedAt: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-      if (newIncidentState?.isResolvedState) {
-        // Set resolvedAt when transitioning to resolved state
-        updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+        if (!episode?.resolvedAt) {
+          updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+        }
       } else {
-        // Clear resolvedAt when transitioning away from resolved state
         updateData.resolvedAt = null;
       }
 
@@ -398,7 +427,6 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         },
         select: {
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
           isCreatedState: true,
           color: true,
@@ -409,7 +437,7 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     const stateName: string = incidentState?.name || "";
     let stateEmoji: string = "➡️";
 
-    if (incidentState?.isResolvedState) {
+    if (isResolvedState) {
       stateEmoji = "✅";
     } else if (incidentState?.isAcknowledgedState) {
       stateEmoji = "👀";
@@ -454,21 +482,17 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
-      const episodeInternalNote: IncidentEpisodeInternalNote =
-        new IncidentEpisodeInternalNote();
-      episodeInternalNote.incidentEpisodeId = createdItem.incidentEpisodeId;
-      episodeInternalNote.note = privateNote;
-      episodeInternalNote.createdAt = createdItem.startsAt!;
-      episodeInternalNote.projectId = createdItem.projectId!;
-
-      await IncidentEpisodeInternalNoteService.create({
-        data: episodeInternalNote,
-        props: onCreate.createBy.props,
-      });
-    }
+    /*
+     * The private notes that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: IncidentEpisodeInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     return createdItem;
   }

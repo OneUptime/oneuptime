@@ -436,7 +436,14 @@ describe("AIInvestigationQueue", () => {
       findProject.mock.calls.map((call: Array<unknown>): unknown => {
         return (call[0] as { select: unknown }).select;
       }),
-    ).toEqual([{ aiDailyTokenLimit: true, aiDailySpendLimitInUSD: true }]);
+    ).toEqual([
+      {
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
+      },
+    ]);
     expect(count).not.toHaveBeenCalled();
     expect(claim).toHaveBeenCalledTimes(1);
   });

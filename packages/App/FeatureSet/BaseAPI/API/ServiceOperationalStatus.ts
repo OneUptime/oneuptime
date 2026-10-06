@@ -22,6 +22,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * Operational status for a set of services, for the Service Map's
@@ -187,35 +189,45 @@ export default class ServiceOperationalStatusAPI {
           }
 
           /*
-           * No resolved state configured means "active" is undefined for
-           * that signal — report zero instead of failing the overlay.
+           * Active: in a state above the project's resolved state - the
+           * resolved state and any placed after it are over
+           * (Common/Utils/ResolvedState). No resolved state configured means
+           * "active" is undefined for that signal — report zero instead of
+           * failing the overlay.
            */
-          const [resolvedIncidentState, resolvedAlertState]: [
-            IncidentState | null,
-            AlertState | null,
+          const [incidentStates, alertStates]: [
+            Array<IncidentState>,
+            Array<AlertState>,
           ] = await Promise.all([
-            IncidentStateService.findOneBy({
-              query: { projectId: props.tenantId, isResolvedState: true },
-              select: { _id: true, order: true },
+            IncidentStateService.getAllIncidentStates({
+              projectId: props.tenantId,
               props: { isRoot: true },
             }),
-            AlertStateService.findOneBy({
-              query: { projectId: props.tenantId, isResolvedState: true },
-              select: { _id: true, order: true },
+            AlertStateService.getAllAlertStates({
+              projectId: props.tenantId,
               props: { isRoot: true },
             }),
           ]);
 
+          const resolvedIncidentOrder: number | null =
+            ResolvedStateUtil.getResolvedOrder({
+              list: StateListType.IncidentState,
+              states: incidentStates,
+            });
+
+          const resolvedAlertOrder: number | null =
+            ResolvedStateUtil.getResolvedOrder({
+              list: StateListType.AlertState,
+              states: alertStates,
+            });
+
           let activeIncidents: Array<Incident> = [];
-          if (
-            resolvedIncidentState &&
-            resolvedIncidentState.order !== undefined
-          ) {
+          if (resolvedIncidentOrder !== null) {
             activeIncidents = await IncidentService.findBy({
               query: {
                 projectId: props.tenantId,
                 currentIncidentState: {
-                  order: QueryHelper.lessThan(resolvedIncidentState.order),
+                  order: QueryHelper.lessThan(resolvedIncidentOrder),
                 },
               },
               select: {
@@ -237,12 +249,12 @@ export default class ServiceOperationalStatusAPI {
           }
 
           let activeAlerts: Array<Alert> = [];
-          if (resolvedAlertState && resolvedAlertState.order !== undefined) {
+          if (resolvedAlertOrder !== null) {
             activeAlerts = await AlertService.findBy({
               query: {
                 projectId: props.tenantId,
                 currentAlertState: {
-                  order: QueryHelper.lessThan(resolvedAlertState.order),
+                  order: QueryHelper.lessThan(resolvedAlertOrder),
                 },
               },
               select: {

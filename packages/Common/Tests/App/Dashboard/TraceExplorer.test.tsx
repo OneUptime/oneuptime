@@ -16,7 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { Mock } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 import * as React from "react";
 import TraceExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
@@ -33,6 +33,12 @@ import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Clipboard from "../../../UI/Utils/Clipboard";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import { resetPreferencesForTesting } from "../../../UI/Components/AttributesJSON/AttributesJSONPreferences";
 
 /*
@@ -2078,6 +2084,77 @@ describe("performance fix with AI", () => {
   });
 });
 
+/*
+ * The permission snapshot the page reads, as the response header carries
+ * it: the project's rows, allow and block. Every gate on the page reads it
+ * (PermissionUtil.getAllPermissions goes through getProjectPermissions), so
+ * the Metrics tab and the rest of the page agree. No rows at all is a
+ * snapshot that has not landed yet.
+ */
+interface HeldPermissions {
+  set: (allowed: Array<Permission>, blocked?: Array<Permission>) => void;
+  restore: () => void;
+}
+
+function snapshotOf(
+  allowed: Array<Permission>,
+  blocked: Array<Permission>,
+): UserTenantAccessPermission | null {
+  if (allowed.length === 0 && blocked.length === 0) {
+    return null;
+  }
+
+  const row: (
+    isBlockPermission: boolean,
+  ) => (permission: Permission) => UserPermission = (
+    isBlockPermission: boolean,
+  ): ((permission: Permission) => UserPermission) => {
+    return (permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: isBlockPermission,
+      };
+    };
+  };
+
+  return {
+    _type: "UserTenantAccessPermission",
+    projectId: ObjectID.generate(),
+    permissions: [...allowed.map(row(false)), ...blocked.map(row(true))],
+  };
+}
+
+function holdPermissions(
+  allowed: Array<Permission>,
+  blocked: Array<Permission> = [],
+): HeldPermissions {
+  let current: UserTenantAccessPermission | null = snapshotOf(allowed, blocked);
+
+  const project: SpyInstance<typeof PermissionUtil.getProjectPermissions> = jest
+    .spyOn(PermissionUtil, "getProjectPermissions")
+    .mockImplementation((): UserTenantAccessPermission | null => {
+      return current;
+    });
+  const global: SpyInstance<typeof PermissionUtil.getGlobalPermissions> = jest
+    .spyOn(PermissionUtil, "getGlobalPermissions")
+    .mockReturnValue(null);
+
+  return {
+    set: (
+      nextAllowed: Array<Permission>,
+      nextBlocked: Array<Permission> = [],
+    ): void => {
+      current = snapshotOf(nextAllowed, nextBlocked);
+    },
+    restore: (): void => {
+      project.mockRestore();
+      global.mockRestore();
+    },
+  };
+}
+
 describe("related signals", () => {
   test("logs and exceptions are scoped to this trace, with an exception count", async () => {
     await renderTrace();
@@ -2145,6 +2222,170 @@ describe("related signals", () => {
     expect(screen.getByTestId("trace-signal-tab-metrics")).toHaveTextContent(
       "2",
     );
+  });
+
+  /*
+   * Metrics are read with the metric permission, not the trace one. Somebody
+   * who may read this trace but not metrics gets no Metrics tab, rather than
+   * a tab whose request the server refuses.
+   */
+  test.each([
+    [[Permission.ReadTelemetryServiceTraces], []],
+    /*
+     * The operational-resources wildcard is not on the list the metrics
+     * route asks for, so it does not open the tab either.
+     */
+    [
+      [
+        Permission.ReadTelemetryServiceTraces,
+        Permission.ReadAllOperationalResources,
+      ],
+      [],
+    ],
+    /*
+     * Nor does the metric permission held only as a block: the route counts
+     * only allow rows.
+     */
+    [
+      [Permission.ReadTelemetryServiceTraces],
+      [Permission.ReadTelemetryServiceMetrics],
+    ],
+  ])(
+    "the metrics tab is left out for %j (blocked: %j), which reads the trace but not metrics",
+    async (allowed: Array<Permission>, blocked: Array<Permission>) => {
+      const permissions: HeldPermissions = holdPermissions(allowed, blocked);
+
+      try {
+        await renderTrace();
+
+        expect(
+          screen.queryByTestId("trace-signal-tab-metrics"),
+        ).not.toBeInTheDocument();
+        expect(screen.getByTestId("trace-signal-tab-logs")).toBeInTheDocument();
+        expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+      } finally {
+        permissions.restore();
+      }
+    },
+  );
+
+  test("a master admin gets the metrics tab whatever the project grants", async () => {
+    const permissions: HeldPermissions = holdPermissions([
+      Permission.ReadTelemetryServiceTraces,
+    ]);
+    const masterAdmin: SpyInstance<typeof User.isMasterAdmin> = jest
+      .spyOn(User, "isMasterAdmin")
+      .mockReturnValue(true);
+
+    try {
+      await renderTrace();
+
+      expect(
+        screen.getByTestId("trace-signal-tab-metrics"),
+      ).toBeInTheDocument();
+    } finally {
+      masterAdmin.mockRestore();
+      permissions.restore();
+    }
+  });
+
+  test.each([
+    [[Permission.ReadTelemetryServiceMetrics], []],
+    [[Permission.TelemetryViewer], []],
+    // An allow next to a block of the same permission still counts.
+    [
+      [Permission.ReadTelemetryServiceMetrics],
+      [Permission.ReadTelemetryServiceMetrics],
+    ],
+    [[], []],
+  ])(
+    "the metrics tab is there for %j (blocked: %j; an empty snapshot is still loading)",
+    async (allowed: Array<Permission>, blocked: Array<Permission>) => {
+      const permissions: HeldPermissions = holdPermissions(allowed, blocked);
+
+      try {
+        await renderTrace();
+
+        expect(
+          screen.getByTestId("trace-signal-tab-metrics"),
+        ).toBeInTheDocument();
+      } finally {
+        permissions.restore();
+      }
+    },
+  );
+
+  test("a Metrics tab still on screen after the snapshot changed sends nothing when clicked", async () => {
+    const permissions: HeldPermissions = holdPermissions([]);
+
+    try {
+      await renderTrace();
+      expect(
+        screen.getByTestId("trace-signal-tab-metrics"),
+      ).toBeInTheDocument();
+
+      // The snapshot lands without re-rendering the card: the tab is stale.
+      permissions.set([Permission.ReadTelemetryServiceTraces]);
+      fireEvent.click(screen.getByTestId("trace-signal-tab-metrics"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-signal-tab-logs")).toHaveAttribute(
+          "aria-selected",
+          "true",
+        );
+      });
+      expect(
+        screen.queryByTestId("trace-signal-tab-metrics"),
+      ).not.toBeInTheDocument();
+      expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+    } finally {
+      permissions.restore();
+    }
+  });
+
+  test("metrics opened while the snapshot loaded fall back to logs once it shows they may not be read", async () => {
+    const permissions: HeldPermissions = holdPermissions([]);
+    let releaseMetrics: () => void = () => {};
+    const metricsHeld: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        releaseMetrics = resolve;
+      },
+    );
+
+    postMock.mockImplementation(async (args: PostArgs) => {
+      if (args.url.toString().includes("/telemetry/metrics/for-trace")) {
+        await metricsHeld;
+        return new HTTPResponse(200, { items: [] }, {});
+      }
+      return new HTTPResponse(200, { sampleCount: 0 }, {});
+    });
+
+    try {
+      await renderTrace();
+
+      fireEvent.click(screen.getByTestId("trace-signal-tab-metrics"));
+      expect(screen.getByTestId("trace-metrics")).toBeInTheDocument();
+
+      // The snapshot arrives: this trace's reader may not read metrics.
+      permissions.set([Permission.ReadTelemetryServiceTraces]);
+      releaseMetrics();
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId("trace-signal-tab-metrics"),
+        ).not.toBeInTheDocument();
+      });
+      expect(screen.queryByTestId("trace-metrics")).not.toBeInTheDocument();
+      expect(screen.getByTestId("trace-signal-tab-logs")).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(logsViewerProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({ traceIds: [TRACE_ID] }),
+      );
+    } finally {
+      permissions.restore();
+    }
   });
 
   test("the profile tab only exists when the trace was profiled", async () => {

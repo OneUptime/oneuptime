@@ -82,8 +82,8 @@ export interface TerraformAttributeDescriptor {
   secretKind?: TerraformSecretKind | undefined;
   /*
    * Set by the server as the resource runs (its current status, when it was
-   * last seen, which episode an incident joined). Writing the value it has
-   * now into a configuration would make Terraform put it back every time the
+   * last seen, when its postmortem was posted). Writing the value it has now
+   * into a configuration would make Terraform put it back every time the
    * server moves it on, so generated configuration leaves these out.
    */
   isServerManaged: boolean;
@@ -157,7 +157,10 @@ const SERVER_MANAGED_COLUMN_PATTERNS: ReadonlyArray<RegExp> = [
  * Server-managed columns no name rule catches, by table. Add one here when a
  * new model has a field the server keeps moving: a column listed here is
  * still an attribute of the resource, it is only left out of the
- * configuration the dashboard writes.
+ * configuration the dashboard writes. A column nobody may write is no
+ * attribute at all and needs no entry: an incident's or alert's episode
+ * (incidentEpisodeId, alertEpisodeId), which OneUptime sets from the
+ * episode's members, is one.
  */
 export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
   Record<string, ReadonlyArray<string>>
@@ -170,8 +173,8 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
     "incomingMonitorRequest",
     "serverMonitorResponse",
   ],
-  Incident: ["incidentEpisodeId", "postmortemPostedAt"],
-  Alert: ["alertEpisodeId", "monitorStatusWhenThisAlertWasCreatedId"],
+  Incident: ["postmortemPostedAt"],
+  Alert: ["monitorStatusWhenThisAlertWasCreatedId"],
   IncidentEpisode: ["resolvedAt", "episodeNumber", "groupingKey"],
   AlertEpisode: [
     "resolvedAt",

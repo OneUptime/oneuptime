@@ -2,6 +2,11 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import ProjectUtil from "Common/UI/Utils/Project";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import IncidentStateUtil from "../../../Utils/IncidentState";
 import React, {
   Fragment,
   FunctionComponent,
@@ -78,8 +83,35 @@ const IncidentDelete: FunctionComponent<
     ? IncidentCreatedRenotify.getFormFieldDescription(renotifyState)
     : undefined;
 
-  const isResolved: boolean =
-    loadedIncident?.currentIncidentState?.isResolvedState === true;
+  /*
+   * Resolved by the one rule (Common/Utils/ResolvedState): the project's
+   * resolved state, or a state placed after it.
+   */
+  const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
+    [],
+  );
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    IncidentStateUtil.getIncidentStates(projectId)
+      .then((states: Array<IncidentState>) => {
+        setIncidentStates(states);
+      })
+      .catch(() => {
+        // Left open: the publish checkbox starts ticked, as for an open incident.
+      });
+  }, []);
+
+  const isResolved: boolean = ResolvedStateUtil.isResolved({
+    list: StateListType.IncidentState,
+    states: incidentStates,
+    stateId: loadedIncident?.currentIncidentStateId,
+  });
 
   const settingsFormFields: Fields<Incident> = useMemo(() => {
     const fields: Fields<Incident> = [
@@ -336,9 +368,7 @@ const IncidentDelete: FunctionComponent<
           selectMoreFields: {
             subscriberNotificationStatusOnIncidentCreated: true,
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-            currentIncidentState: {
-              isResolvedState: true,
-            },
+            currentIncidentStateId: true,
             // Pages added while it was hidden can be told when it is published.
             statusPages: {
               _id: true,

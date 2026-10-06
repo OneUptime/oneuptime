@@ -334,12 +334,18 @@ export default class CommonAPI {
    * to get around a team block the CRUD endpoint honours. Like
    * assertPermittedInProject, it must be called after
    * assertAuthenticatedProjectMember has confirmed the tenant.
+   *
+   * A credential issued for reading only (an MCP client connected
+   * read-only) is refused first, whatever its member may do, as that create
+   * refuses it.
    */
   public static assertCanCreateTable(data: {
     modelType: DatabaseBaseModelType;
     props: DatabaseCommonInteractionProps;
     errorMessage?: string | undefined;
   }): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
+
     CommonAPI.assertPermittedInProject({
       databaseProps: data.props,
       allowedPermissions: new data.modelType().getCreatePermissions(),

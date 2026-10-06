@@ -52,7 +52,14 @@ import {
 } from "../Utils/Database/AffectedResourceRelations";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ReferenceChange from "../Utils/Database/ReferenceChange";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+} from "../Utils/EventFieldChange";
 import CreatedByUser from "../Utils/Database/CreatedByUser";
+import EpisodeMembershipReference, {
+  ALERT_EPISODE_REFERENCE,
+} from "../Utils/Episode/EpisodeMembershipReference";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -108,6 +115,8 @@ import StartingStageUtil, {
   StartingStageCarryForward,
   StartingState,
 } from "../../Utils/StartingStage";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -139,17 +148,32 @@ interface AlertMonitorChange {
 
 /*
  * Handed from onBeforeUpdate to onUpdateSuccess. Once the update has run the
- * row holds the new monitor and the new severity, so the ones it held before
- * are only known from the reads made before the write.
+ * row holds what the update wrote, so what it held before is only known from
+ * the reads made before the write.
  */
 interface AlertUpdateCarryForward {
   // Keyed by alert id.
   monitorChanges: Dictionary<AlertMonitorChange>;
   /*
    * The severity each alert held before the update (null: none), keyed by
-   * alert id, read only when the update writes one (getSeveritiesBeforeUpdate).
+   * alert id, read only when the update writes one
+   * (recordStoredValuesBeforeUpdate).
    */
   severityIdsBeforeUpdate: Dictionary<string | null>;
+  /*
+   * The title, root cause, description, remediation notes, labels and Send
+   * reminders switch each alert held before the update - those the update
+   * writes, and no others - keyed by alert id, so its feed item and its
+   * reminder refresh follow a real change (recordStoredValuesBeforeUpdate,
+   * EventFieldChange). Empty when the update writes none of them.
+   */
+  valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
+}
+
+// What the one read before an update holds, keyed by alert id.
+interface AlertStoredValues {
+  severityIdsBeforeUpdate: Dictionary<string | null>;
+  valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -180,19 +204,40 @@ export class Service extends ProjectReferencesService<Model> {
     ];
   }
 
+  /*
+   * Whether the alert is acknowledged or further along - resolved included:
+   * what stops its on-call escalation. Read with the one rule
+   * (StartingStage): at or below the acknowledged state, or flagged
+   * acknowledged or resolved.
+   */
   @CaptureSpan()
   public async isAlertAcknowledged(data: {
     alertId: ObjectID;
   }): Promise<boolean> {
+    const alert: Model = await this.getAlertWithState(data.alertId);
+
+    if (!alert.currentAlertStateId) {
+      return false;
+    }
+
+    const startingState: StartingState | null =
+      await AlertStateService.getStartingState({
+        projectId: alert.projectId!,
+        alertStateId: alert.currentAlertStateId,
+      });
+
+    return Boolean(startingState && startingState.stage !== StartingStage.Open);
+  }
+
+  // The alert's project and current state, as OneUptime.
+  private async getAlertWithState(alertId: ObjectID): Promise<Model> {
     const alert: Model | null = await this.findOneBy({
       query: {
-        _id: data.alertId,
+        _id: alertId,
       },
       select: {
         projectId: true,
-        currentAlertState: {
-          order: true,
-        },
+        currentAlertStateId: true,
       },
       props: {
         isRoot: true,
@@ -207,22 +252,7 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Alert Project ID not found");
     }
 
-    const ackAlertState: AlertState =
-      await AlertStateService.getAcknowledgedAlertState({
-        projectId: alert.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
-    const ackAlertStateOrder: number = ackAlertState.order!;
-
-    if (currentAlertStateOrder >= ackAlertStateOrder) {
-      return true;
-    }
-
-    return false;
+    return alert;
   }
 
   @CaptureSpan()
@@ -357,6 +387,16 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    /*
+     * The alert's episode follows its episode membership: only
+     * AlertEpisodeMemberService moves it (EpisodeMembershipReference).
+     */
+    EpisodeMembershipReference.refuseWriteMadeInProject({
+      payload: updateBy.data,
+      props: updateBy.props,
+      reference: ALERT_EPISODE_REFERENCE,
+    });
+
     updateBy.query = applyAlertSelfPrivacyFilter(
       updateBy.query,
       updateBy.props,
@@ -381,58 +421,96 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy: updateBy,
     });
 
+    const storedValues: AlertStoredValues =
+      await this.recordStoredValuesBeforeUpdate(updateBy);
+
     const carryForward: AlertUpdateCarryForward = {
       monitorChanges: monitorChanges,
-      severityIdsBeforeUpdate: await this.getSeveritiesBeforeUpdate(updateBy),
+      severityIdsBeforeUpdate: storedValues.severityIdsBeforeUpdate,
+      valuesBeforeUpdate: storedValues.valuesBeforeUpdate,
     };
 
     return { updateBy, carryForward: carryForward };
   }
 
   /*
-   * A severity change records itself in the alert feed and re-matches the
-   * reminder rule (onUpdateSuccess). Updates often write back the severity
-   * an alert holds - the dashboard's forms send it with every save, and an
-   * API client or a workflow may write the whole alert - so the severity
-   * each alert the update matches holds is read here, before the write, for
-   * onUpdateSuccess to act on a real change only (ReferenceChange). One read,
-   * of that column alone, and only when the update writes a severity, under
-   * either of its names; nothing is read otherwise.
+   * What onUpdateSuccess compares an update with: each alert it matches as
+   * it is stored, read here, before the write, so a side effect follows a
+   * real change only. Updates often write back what an alert holds - the
+   * dashboard's cards send every field they show with each save, and an API
+   * client or a workflow may write the whole alert. One read, of the
+   * columns the update needs compared and no others, and only when it needs
+   * any:
+   *
+   * - the severity, when the update writes one under either of its names. A
+   *   severity change records itself in the alert feed and re-matches the
+   *   reminder rule (ReferenceChange);
+   * - the title, root cause, description, remediation notes, labels and
+   *   Send reminders switch the update writes. The "Alert updated" feed item
+   *   records each one that really changed, and a labels change or the
+   *   switch flipped matches the reminder rule again, which starts the
+   *   reminder interval over (EventFieldChange).
    */
-  private async getSeveritiesBeforeUpdate(
+  private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
-  ): Promise<Dictionary<string | null>> {
+  ): Promise<AlertStoredValues> {
+    const storedValues: AlertStoredValues = {
+      severityIdsBeforeUpdate: {},
+      valuesBeforeUpdate: {},
+    };
+
     const writtenSeverityId: ObjectID | null = RelationIdUtil.readConsistent(
       updateBy.data as unknown as Record<string, unknown>,
       ALERT_SEVERITY_KEYS,
       "Alert Severity",
     );
 
-    if (!writtenSeverityId) {
-      return {};
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
+
+    if (!writtenSeverityId && !isFieldWritten) {
+      return storedValues;
     }
 
     const alerts: Array<Model> = await this.findAlertsForUpdateHook({
       updateBy: updateBy,
       select: {
         _id: true,
-        alertSeverityId: true,
+        ...(writtenSeverityId
+          ? {
+              alertSeverityId: true,
+            }
+          : {}),
+        ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
       },
     });
-
-    const severityIdsBeforeUpdate: Dictionary<string | null> = {};
 
     for (const alert of alerts) {
       if (!alert.id) {
         continue;
       }
 
-      severityIdsBeforeUpdate[alert.id.toString()] = alert.alertSeverityId
-        ? alert.alertSeverityId.toString()
-        : null;
+      const alertId: string = alert.id.toString();
+
+      if (writtenSeverityId) {
+        storedValues.severityIdsBeforeUpdate[alertId] = alert.alertSeverityId
+          ? alert.alertSeverityId.toString()
+          : null;
+      }
+
+      if (isFieldWritten) {
+        storedValues.valuesBeforeUpdate[alertId] =
+          EventFieldChange.getValuesBeforeUpdate({
+            record: alert,
+            fields: fieldsWritten,
+          });
+      }
     }
 
-    return severityIdsBeforeUpdate;
+    return storedValues;
   }
 
   /*
@@ -799,6 +877,17 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * A new alert is in no episode: it joins one through grouping or the
+     * episode's members (EpisodeMembershipReference). Refused before the
+     * alert number is taken.
+     */
+    EpisodeMembershipReference.refuseWriteMadeInProject({
+      payload: createBy.data,
+      props: createBy.props,
+      reference: ALERT_EPISODE_REFERENCE,
+    });
 
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException("ProjectId required to create alert.");
@@ -1810,6 +1899,15 @@ ${alert.remediationNotes || "No remediation notes provided."}
       (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
         ?.severityIdsBeforeUpdate || {};
 
+    /*
+     * The title, root cause, description, remediation notes, labels and Send
+     * reminders switch each alert held before the write, for those the
+     * update writes.
+     */
+    const valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate> =
+      (onUpdate.carryForward as AlertUpdateCarryForward | null | undefined)
+        ?.valuesBeforeUpdate || {};
+
     for (const itemId of updatedItemIds) {
       /*
        * Every alert metric and measurement point is stamped with the alert's
@@ -1853,7 +1951,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
      * the AI tools the ID column, and onBeforeUpdate refused two that
      * disagree. Its feed entry and reminder refresh run for each alert whose
      * severity this changed - compared with the severity it held before the
-     * write (getSeveritiesBeforeUpdate) - so writing back the severity an
+     * write (recordStoredValuesBeforeUpdate) - so writing back the severity an
      * alert holds runs neither.
      */
     const writtenAlertSeverityId: ObjectID | null =
@@ -1918,89 +2016,32 @@ ${alert.remediationNotes || "No remediation notes provided."}
         const createdByUserId: ObjectID | undefined | null =
           onUpdate.updateBy.props.userId;
 
-        if (onUpdate.updateBy.data.title) {
-          // add alert feed.
+        /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the alert held before the write (recordStoredValuesBeforeUpdate).
+         * An alert the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          valuesBeforeUpdate: valuesBeforeUpdate[alertId.toString()],
+        });
 
-          feedInfoInMarkdown += `\n\n**Title**: 
-${onUpdate.updateBy.data.title || "No title provided."}
-`;
+        /*
+         * A line for each of the title, root cause, description, remediation
+         * notes and labels the update really changed: writing back what the
+         * alert holds - every save of a card sends its fields - adds none.
+         */
+        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+          written: onUpdate.updateBy.data as unknown as Record<string, unknown>,
+          changes: fieldChanges,
+          projectId: projectId,
+          recordName: "Alert",
+        });
+
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
           shouldAddAlertFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.rootCause) {
-          if (onUpdate.updateBy.data.title) {
-            // add alert feed.
-
-            feedInfoInMarkdown += `\n\n**📄 Root Cause**: 
-${onUpdate.updateBy.data.rootCause || "No root cause provided."}
-  `;
-            shouldAddAlertFeed = true;
-          }
-        }
-
-        if (onUpdate.updateBy.data.description) {
-          // add alert feed.
-
-          feedInfoInMarkdown += `\n\n**Alert Description**: 
-          ${onUpdate.updateBy.data.description || "No description provided."}
-          `;
-          shouldAddAlertFeed = true;
-        }
-
-        if (onUpdate.updateBy.data.remediationNotes) {
-          // add alert feed.
-
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: 
-${onUpdate.updateBy.data.remediationNotes || "No remediation notes provided."}
-        `;
-          shouldAddAlertFeed = true;
-        }
-
-        if (
-          onUpdate.updateBy.data.labels &&
-          onUpdate.updateBy.data.labels.length > 0 &&
-          Array.isArray(onUpdate.updateBy.data.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (
-            onUpdate.updateBy.data.labels as any
-          )
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
-`;
-
-            shouldAddAlertFeed = true;
-          }
         }
 
         if (isSeverityChanged && writtenAlertSeverityId) {
@@ -2039,15 +2080,17 @@ ${alertSeverity.name}
           shouldAddAlertFeed = true;
         }
 
-        // Re-evaluate reminder schedule when severity or labels change or reminders are toggled
+        /*
+         * The reminder rule is matched on the severity and the labels, and
+         * reminders can be switched on or off. One refresh covers whatever
+         * of those the update changed - clearing the labels included - and
+         * none runs when it changed none of them: each refresh restarts the
+         * interval, so writing back the labels the alert has must not.
+         */
         if (
           isSeverityChanged ||
-          (onUpdate.updateBy.data.labels &&
-            Array.isArray(onUpdate.updateBy.data.labels)) ||
-          Object.prototype.hasOwnProperty.call(
-            onUpdate.updateBy.data,
-            "enableReminders",
-          )
+          fieldChanges.labels ||
+          fieldChanges.enableReminders
         ) {
           try {
             await this.refreshReminderSchedule({
@@ -2195,31 +2238,18 @@ ${alertSeverity.name}
     return `[${monitor.name}](${(await MonitorService.getMonitorLinkInDashboard(data.projectId, data.monitorId)).toString()})`;
   }
 
+  // Whether another open alert raised by hand is still on the monitor.
   @CaptureSpan()
   public async doesMonitorHasMoreActiveManualAlerts(
     monitorId: ObjectID,
     proojectId: ObjectID,
   ): Promise<boolean> {
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: proojectId,
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-      },
-    });
-
     const alertCount: PositiveNumber = await this.countBy({
       query: {
         monitorId: monitorId,
-        currentAlertState: {
-          order: QueryHelper.lessThan(resolvedState?.order as number),
-        },
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(proojectId),
+        ),
         isCreatedAutomatically: false,
       },
       props: {
@@ -2479,7 +2509,6 @@ ${alertSeverity.name}
           alertStateId: true,
           alertState: {
             isAcknowledgedState: true,
-            isResolvedState: true,
           },
           startsAt: true,
           endsAt: true,
@@ -2489,6 +2518,15 @@ ${alertSeverity.name}
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // Which of them count as resolved (Common/Utils/ResolvedState).
+    const alertStates: Array<AlertState> =
+      await AlertStateService.getAllAlertStates({
+        projectId: alert.projectId,
         props: {
           isRoot: true,
         },
@@ -2660,17 +2698,25 @@ ${alertSeverity.name}
         }
       }
 
-      // time to resolve
-      const isAlertResolved: boolean = alertStateTimelines.some(
-        (timeline: AlertStateTimeline) => {
-          return timeline.alertState?.isResolvedState;
-        },
-      );
-
+      /*
+       * Time to resolve: until the alert first moved into a state that
+       * counts as resolved (Common/Utils/ResolvedState) - the project's
+       * resolved state, or one placed after it.
+       */
       const resolvedAlertStateTimeline: AlertStateTimeline | undefined =
-        alertStateTimelines.find((timeline: AlertStateTimeline) => {
-          return timeline.alertState?.isResolvedState;
-        });
+        ResolvedStateUtil.getResolutionRows({
+          list: StateListType.AlertState,
+          states: alertStates,
+          timeline: alertStateTimelines.map((timeline: AlertStateTimeline) => {
+            return {
+              stateId: timeline.alertStateId,
+              startsAt: timeline.startsAt,
+              timeline: timeline,
+            };
+          }),
+        })[0]?.timeline;
+
+      const isAlertResolved: boolean = Boolean(resolvedAlertStateTimeline);
 
       if (isAlertResolved && resolvedAlertStateTimeline) {
         // register the metric type so the catalog stays complete across refreshes.
@@ -2782,47 +2828,24 @@ ${alertSeverity.name}
     }
   }
 
+  /*
+   * Whether the alert is resolved: its state is at or below its project's
+   * resolved state, or flagged resolved - the one rule
+   * (Common/Utils/ResolvedState) that reminders, Slack, Microsoft Teams,
+   * auto-remediation and everything else read.
+   */
   @CaptureSpan()
   public async isAlertResolved(data: { alertId: ObjectID }): Promise<boolean> {
-    const alert: Model | null = await this.findOneBy({
-      query: {
-        _id: data.alertId,
-      },
-      select: {
-        projectId: true,
-        currentAlertState: {
-          order: true,
-        },
-      },
-      props: {
-        isRoot: true,
-      },
+    const alert: Model = await this.getAlertWithState(data.alertId);
+
+    if (!alert.currentAlertStateId) {
+      return false;
+    }
+
+    return await AlertStateService.isResolvedAlertState({
+      projectId: alert.projectId!,
+      alertStateId: alert.currentAlertStateId,
     });
-
-    if (!alert) {
-      throw new BadDataException("Alert not found");
-    }
-
-    if (!alert.projectId) {
-      throw new BadDataException("Alert Project ID not found");
-    }
-
-    const resolvedAlertState: AlertState =
-      await AlertStateService.getResolvedAlertState({
-        projectId: alert.projectId,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const currentAlertStateOrder: number = alert.currentAlertState!.order!;
-    const resolvedAlertStateOrder: number = resolvedAlertState.order!;
-
-    if (currentAlertStateOrder >= resolvedAlertStateOrder) {
-      return true;
-    }
-
-    return false;
   }
 
   @CaptureSpan()
@@ -2871,22 +2894,18 @@ ${alertSeverity.name}
       throw new BadDataException("Alert not found.");
     }
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
+    // The project's resolved state: the first from the top flagged resolved.
+    const alertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
         projectId: alert.projectId,
-        isResolvedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        props: {
+          isRoot: true,
+        },
+      });
 
-    if (!alertState || !alertState.id) {
+    if (!alertState.id) {
       throw new BadDataException(
-        "Acknowledged state not found for this project. Please add acknowledged state from settings.",
+        "Resolved state not found for this project. Please add resolved state from settings.",
       );
     }
 

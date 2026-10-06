@@ -20,6 +20,18 @@
 4. **Konfigurer advarsels- og planlagt vedligeholdelsesnotifikationer**
    - Lignende regler kan anvendes på Advarsler og Planlagt vedligeholdelse ved at navigere til deres respektive sider og konfigurere de ønskede regler.
 
+## Test af en regel
+
+**Testregel** på en regels række sender en testbesked for reglen til de kanaler, den nævner, så du kan se den komme frem. Opretter reglen en kanal for hver hændelse, opretter testen også en og inviterer reglens personer til den.
+
+Ligesom **Send test** ved siden af en kanal i **Projektindstillinger** > **Workspace** > **Slack** kræver det tilladelse til at oprette notifikationsregler: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en brugerdefineret rolle. For den, der kun kan se reglerne, for eksempel en **Viewer**, er **Testregel** låst, og dens værktøjstip siger, hvad det kræver; API'et afviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud kræver det planen **Growth** at teste en regel, ligesom at tilføje en.
+
+## Oversigter
+
+Fanen **Summary** under **Hændelser** > **Workspace** > **Slack** (og under **Advarsler**) sender jævnligt et overblik til de kanaler, du angiver: hvor mange hændelser eller advarsler der var, hvor hurtigt de blev kvitteret og løst, og en liste med links. En ny oversigt sendes hver uge og dækker de seneste 7 dage. Lad **Send første rapport kl.** stå tomt, så sendes den første kl. 09:00 ved begyndelsen af næste uge, dag eller måned; formularen viser hvornår.
+
+En oversigt følger uret i sin **Tidszone**, som starter på din. Dér holder den sit tidspunkt hele året: en oversigt sat til kl. 09:00 i Berlin sendes stadig kl. 09:00 Berlin-tid, efter at uret er stillet om, og datoerne i dens besked er også Berlins. Send via API'et `timezone` som et IANA-tidszonenavn, fx `Europe/Berlin`. En oversigt oprettet uden tidszone får tidszonen fra profilen hos den, der opretter den, eller UTC, når en API-nøgle opretter den.
+
 ## Netværksadgang for selvhostede installationer
 
 Læs afsnittet om netværksadgang i [Slack-integration](/docs/self-hosted/slack-integration) for oplysninger om udgående forbindelser, indgående callbacks og private installationer.

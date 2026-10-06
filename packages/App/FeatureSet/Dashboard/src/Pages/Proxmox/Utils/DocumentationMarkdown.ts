@@ -381,30 +381,35 @@ function inAgentFolder(
 
 /*
  * The commands that upgrade the agent. The collector image is pinned in
- * docker-compose.yml and its config is a file beside it, so an upgrade
- * downloads both again and recreates the containers: Compose recreates a
- * container for a new image or environment, never for a new config file,
- * and the collector reads its config only when it starts. The .env stays.
- * The guide's "Upgrade or uninstall the agent" topic and the dialog beside
- * an outdated agent version (Components/AgentVersion) both show these.
+ * docker-compose.yml and its config is a file beside it, so pulling alone
+ * never moves the agent forward. An install-script install runs the script
+ * again: it reuses every value in .env (nothing is asked again), downloads
+ * the latest docker-compose.yml and otel-collector-config.yaml (keeping a
+ * file the reader edited as <file>.bak.<timestamp>), pulls the images and
+ * recreates the containers. A Docker Compose install downloads the two
+ * files itself, then pulls and recreates: Compose recreates a container for
+ * a new image or environment, never for a new config file, and the
+ * collector reads its config only when it starts. The guide's "Upgrade or
+ * uninstall the agent" topic and the dialog beside an outdated agent
+ * version (Components/AgentVersion) both show these.
  */
-export function getProxmoxAgentDownloadCommand(
-  method: ProxmoxAgentInstallMethod,
-): string {
-  return inAgentFolder(method, [
-    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
-    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
-  ]);
+export function getProxmoxAgentUpgradeCommand(): string {
+  return getProxmoxInstallScriptCommand({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+  });
 }
 
-export function getProxmoxAgentRecreateCommand(
-  method: ProxmoxAgentInstallMethod,
-): string {
-  return inAgentFolder(method, [
-    "docker compose pull",
-    "docker compose up -d --force-recreate",
-  ]);
+export function getProxmoxAgentDownloadCommand(): string {
+  return [
+    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
+    `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+  ].join("\n");
 }
+
+export const PROXMOX_AGENT_RECREATE_COMMAND: string =
+  "docker compose pull\ndocker compose up -d --force-recreate";
 
 function agentFolder(method: ProxmoxAgentInstallMethod): string {
   return method === "install-script"
@@ -496,7 +501,7 @@ ${
 - **API token** — the token id and secret from the previous step.
 - **OneUptime AI agent** — whether it may apply fixes; answer **N** to keep it read-only.
 
-It installs to \`${PROXMOX_AGENT_INSTALL_DIR}\` and starts everything with Docker Compose.`,
+It installs to \`${PROXMOX_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts everything with Docker Compose. Running the script again reuses everything in that \`.env\` instead of asking again, so it is also how you upgrade.`,
   };
 }
 
@@ -516,7 +521,7 @@ function getDockerComposeStep(context: AgentGuideContext): SetupGuideStep {
 ${codeBlock(
   "bash",
   `mkdir oneuptime-proxmox-agent && cd oneuptime-proxmox-agent
-${getProxmoxAgentDownloadCommand("docker-compose")}`,
+${getProxmoxAgentDownloadCommand()}`,
 )}
 
 Create a \`.env\` file next to them — it holds the token secret, so keep it private with \`chmod 600 .env\`:
@@ -737,22 +742,26 @@ What it may run and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastr
 }
 
 function getUpgradeTopic(context: AgentGuideContext): SetupGuideTopic {
-  const where: string =
+  const upgrade: string =
     context.method === "install-script"
-      ? ""
-      : "Run these in the agent's folder, the one with `docker-compose.yml`.\n\n";
+      ? `**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Run the install script again. It reuses every value in your existing \`.env\` (nothing is asked again), downloads the latest \`docker-compose.yml\` and \`otel-collector-config.yaml\` — a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\` — pulls the images and recreates the agent with them:
+
+${codeBlock("bash", getProxmoxAgentUpgradeCommand())}`
+      : `Run these in the agent's folder, the one with \`docker-compose.yml\`.
+
+**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
+
+${codeBlock("bash", getProxmoxAgentDownloadCommand())}
+
+Then pull the images and recreate the agent, so the collector reads its new config:
+
+${codeBlock("bash", PROXMOX_AGENT_RECREATE_COMMAND)}`;
 
   return {
     title: "Upgrade or uninstall the agent",
     summary:
       "Download the latest files and recreate the agent, or stop and remove it.",
-    markdown: `${where}**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
-
-${codeBlock("bash", getProxmoxAgentDownloadCommand(context.method))}
-
-Then pull the images and recreate the agent, so the collector reads its new config:
-
-${codeBlock("bash", getProxmoxAgentRecreateCommand(context.method))}
+    markdown: `${upgrade}
 
 The config reports the collector version it pins as the cluster's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.
 

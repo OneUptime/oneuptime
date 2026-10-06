@@ -25,6 +25,7 @@ import { useScreenPadding } from "../hooks/useScreenPadding";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import { matchesSearch } from "../utils/search";
+import { getResolvedStateIds } from "../utils/resolvedState";
 import { useAllProjectIncidents } from "../hooks/useAllProjectIncidents";
 import { useAllProjectIncidentEpisodes } from "../hooks/useAllProjectIncidentEpisodes";
 import { useAllProjectIncidentStates } from "../hooks/useAllProjectIncidentStates";
@@ -150,13 +151,15 @@ export default function IncidentsScreen({
   const { successFeedback, errorFeedback, lightImpact } = useHaptics();
   const queryClient: QueryClient = useQueryClient();
 
+  /*
+   * Per project, the states a record counts as resolved in: the project's
+   * resolved state and any state placed after it (utils/resolvedState).
+   */
   const resolvedStateIds: Set<string> = useMemo(() => {
     const ids: Set<string> = new Set();
     statesMap.forEach((states: IncidentState[]) => {
-      states.forEach((s: IncidentState) => {
-        if (s.isResolvedState) {
-          ids.add(s._id);
-        }
+      getResolvedStateIds(states).forEach((stateId: string) => {
+        ids.add(stateId);
       });
     });
     return ids;

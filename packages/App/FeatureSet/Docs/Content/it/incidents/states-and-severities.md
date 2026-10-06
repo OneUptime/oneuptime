@@ -2,7 +2,7 @@
 
 Ogni incidente porta con sé due classificazioni: uno **stato**, che dice a che punto della vostra risposta si trova, e una **gravità**, che dice quanto fa male. Nella dashboard si somigliano — entrambi compaiono come pillole colorate nell'elenco degli incidenti, entrambi sono elenchi legati al progetto che potete rinominare e ricolorare. Ma svolgono lavori molto diversi.
 
-Gli stati guidano il comportamento. Tre flag booleani sulle righe di stato decidono quali incidenti contano come attivi, quali pulsanti compaiono nell'intestazione dell'incidente, quando si ferma il cronometro dello SLA e quando l'incidente sparisce dalla vostra pagina di stato. Le gravità, da sole, non guidano nulla: sono etichette che descrivono l'impatto e su cui altre regole possono fare corrispondenza.
+Gli stati guidano il comportamento. Tre flag booleani sulle righe di stato, insieme all'ordine degli stati, decidono quali incidenti contano come attivi, quali pulsanti compaiono nell'intestazione dell'incidente, quando si ferma il cronometro dello SLA e quando l'incidente sparisce dalla vostra pagina di stato. Le gravità, da sole, non guidano nulla: sono etichette che descrivono l'impatto e su cui altre regole possono fare corrispondenza.
 
 Entrambi gli elenchi vengono preimpostati alla creazione del progetto ed entrambi si modificano in **Incidenti → Impostazioni**. Quella sezione del menu laterale di Incidenti è compressa per impostazione predefinita, quindi espandete **Impostazioni** prima di cercarla.
 
@@ -36,7 +36,7 @@ Attenzione al nome: il primo stato è **Identified**, anche se diverse descrizio
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Lo stato che un incidente riceve quando nessuno ne ha scelto uno. Se nel progetto nessuno stato porta questo flag, la creazione di un incidente fallisce con un errore che vi chiede di aggiungere uno stato di creazione dalle impostazioni. |
 | `isAcknowledgedState` | Alimenta il pulsante **Acknowledge** e il riquadro statistico "<nome stato> in" nella **Panoramica** dell'incidente. Al passaggio a questo stato, lo SLA dell'incidente viene marcato come "risposto". |
-| `isResolvedState`     | Alimenta il pulsante **Risolvi** e il riquadro statistico del risolto, definisce l'elenco **Incidenti attivi** ed è ciò che toglie l'incidente dalla sezione attiva di una pagina di stato. Marca lo SLA come risolto. |
+| `isResolvedState`     | Indica lo stato risolto del progetto: quello in cui **Risolvi** porta l'incidente e che mostra il riquadro statistico del risolto. Un incidente in questo stato, o in qualsiasi stato successivo, è risolto: esce da **Incidenti attivi** e dalla sezione attiva di una pagina di stato, e il suo SLA viene marcato come risolto. |
 
 Per progetto ci si aspetta che ciascun flag sia portato da un solo stato — le ricerche recuperano una riga sola. I tre stati con i flag si possono rinominare, ricolorare e riordinare, ma la pagina delle impostazioni rifiuta di eliminarli e mostra un errore che nomina lo stato di creazione, quello di riconoscimento e quello di risoluzione.
 
@@ -44,7 +44,7 @@ Poiché l'interfaccia legge i nomi degli stati in modo dinamico, rinominare uno 
 
 ## Aggiungere stati vostri
 
-Andate in **Incidenti → Impostazioni → Stato incidente**. La pagina è un elenco ordinato per `order` crescente e i nuovi stati vengono accodati in fondo. Trascinate una riga per cambiarne la posizione.
+Andate in **Incidenti → Impostazioni → Stato incidente**. La pagina è un elenco ordinato per `order` crescente e un nuovo stato viene aggiunto subito sopra lo stato risolto. Trascinate una riga per cambiarne la posizione.
 
 **Campi di uno stato:**
 
@@ -54,7 +54,7 @@ Andate in **Incidenti → Impostazioni → Stato incidente**. La pagina è un el
 
 Da questo modulo non potete impostare i tre flag: appartengono alle righe preimpostate. Uno stato che aggiungete voi è quindi uno stato senza flag, il che comporta due conseguenze da tenere presenti:
 
-- **Conta come attivo.** **Incidenti attivi** è definito come "lo stato attuale non è lo stato risolto", quindi qualunque cosa aggiungiate a parte lo stato risolto tiene l'incidente nell'elenco attivo e nel conteggio della barra laterale.
+- **Sopra lo stato risolto, tiene l'incidente attivo.** **Incidenti attivi** raccoglie gli incidenti il cui stato attuale sta sopra lo stato risolto, quindi uno stato che aggiungete lì tiene l'incidente nell'elenco attivo e nel conteggio della barra laterale. Uno stato trascinato sotto lo stato risolto conta come risolto ovunque — negli elenchi attivi, sulle pagine di stato, nei promemoria e nello SLA — e spostarvi un incidente da **Resolved** non è una seconda risoluzione.
 - **Il suo pulsante di transizione è generico.** Invece di **Acknowledge** o **Risolvi**, la finestra di conferma si intitola **Mark Incident as `<state name>`** con un pulsante di invio **Mark as `<state name>`**.
 
 Una forma ricorrente è inserire un passaggio di triage o di mitigazione tra lo stato di riconoscimento e quello di risoluzione — per esempio, trascinare un nuovo stato "Mitigated" in modo che stia dopo **Acknowledged** e prima di **Resolved**.
@@ -104,6 +104,15 @@ Ci sono quattro modi in cui un incidente cambia stato:
 
 Ognuno di questi scrive una riga di cronologia. Un cambio di stato fa anche qualche cosa che non dovete chiedere: pubblica una voce nel feed dell'incidente, assegna un Comandante dell'incidente se l'incidente non ne ha ancora uno e aggiorna il cronometro dello SLA. Riaprire un incidente risolto avvia un nuovo record SLA a partire dal momento della riapertura.
 
+## Cosa fa la risoluzione
+
+Un incidente è risolto quando passa da uno stato sopra il vostro stato risolto allo stato risolto, o a qualsiasi stato successivo, con qualunque delle quattro vie qui sopra. Ogni risoluzione:
+
+- **Restituisce i monitor che l'incidente tiene.** Un incidente dichiarato aperto tiene i suoi monitor: li ha messi nel suo stato **Change Monitor Status to**, se ne indica uno, e, se dichiarato a mano, ne ha sospeso il monitoraggio. Una modifica mentre è aperto — aggiungere monitor o cambiare quello stato — glieli fa tenere ugualmente. La risoluzione riprende il loro monitoraggio e li riporta a operativo, a meno che un altro incidente aperto sia ancora su di loro, e da quel momento l'incidente non tiene più nulla. Così un incidente dichiarato già risolto non restituisce nulla, e nemmeno una seconda risoluzione dopo una riapertura: lo stato che i monitor hanno ricevuto nel frattempo — dalle loro sonde, da una manutenzione o impostato a mano — resta.
+- **Marca lo SLA come risolto** e, quando le bozze di post-mortem di OneUptime AI sono attive, scrive una bozza di post-mortem.
+
+Passare da **Resolved** a uno stato successivo — **Closed**, per esempio — non è una seconda risoluzione: nulla di tutto questo viene rieseguito e non parte un nuovo SLA. Un incidente dichiarato prima che OneUptime registrasse questo restituisce i suoi monitor alla prossima risoluzione, come sempre.
+
 ## La cronologia di stato
 
 La pagina **Cronologia stato** nel menu laterale dell'incidente è la traccia di controllo di ogni stato attraversato. La scheda su quella pagina si intitola **Cronologia di stato** ed è ordinata dal più recente.
@@ -125,11 +134,11 @@ Le righe di cronologia si possono creare ed eliminare, ma non modificare. Elimin
 
 ## L'elenco Incidenti attivi
 
-**Incidenti → Incidenti attivi** è l'elenco che tenete d'occhio durante un turno. La sua definizione è esattamente una condizione: lo stato attuale dell'incidente è uno stato in cui `isResolvedState` è falso. Nient'altro viene considerato — né la gravità, né l'età, né se qualcuno l'ha riconosciuto.
+**Incidenti → Incidenti attivi** è l'elenco che tenete d'occhio durante un turno. La sua definizione è esattamente una condizione: lo stato attuale dell'incidente sta sopra il vostro stato risolto, il primo stato nell'ordine contrassegnato `isResolvedState`. Nient'altro viene considerato — né la gravità, né l'età, né se qualcuno l'ha riconosciuto.
 
 La voce del menu laterale porta un badge rosso con il conteggio basato sulla stessa query, così badge ed elenco concordano sempre. Quando non c'è nulla da vedere, la pagina ve lo dice.
 
-La conseguenza pratica: qualsiasi stato personalizzato che aggiungete tiene gli incidenti in questo elenco. Di solito è quello che volete — "Mitigated" non è "finito" — ma significa anche che il badge si azzera solo quando gli incidenti raggiungono davvero lo stato risolto.
+La conseguenza pratica: uno stato personalizzato che aggiungete sopra lo stato risolto tiene gli incidenti in questo elenco — "Mitigated" non è "finito" — e uno che mettete dopo li toglie, come fa lo stato risolto. Avvisi ed episodi seguono la stessa regola con i propri stati, e la leggono i conteggi del menu laterale, i promemoria, le pagine di stato e l'app mobile.
 
 ## Informare gli iscritti alla pagina di stato di un cambio di stato
 
@@ -146,6 +155,8 @@ La notifica viene richiesta per ogni riga di cronologia da **Notifica gli iscrit
 
 **Un'altra cosa che cambia l'esito.** Se scrivete una **Nota pubblica** nella finestra di cambio stato, la riga di cronologia viene marcata come già notificata invece che messa in coda. È la nota stessa a raggiungere gli iscritti, quindi ricevono un messaggio invece di due. Quel messaggio nomina il nuovo stato su ogni canale, come avrebbe fatto il messaggio di cambio stato: per esempio `[Resolved Incident] <title>` nell'oggetto dell'email e `**Status:** Resolved` in Slack e Microsoft Teams. Pubblicare la nota richiede il permesso di creare note pubbliche: senza, la finestra non offre la nota, e un cambio di stato inviato con una nota viene rifiutato, quindi lo stato resta com'era. Il tipo di evento dietro il messaggio semplice di cambio stato è `Subscriber Incident State Changed`.
 
+Gli avvisi, gli episodi di avvisi e gli episodi di incidenti offrono invece una nota privata con il cambio di stato (**Aggiungi una nota privata**), e funziona allo stesso modo: pubblicarla richiede il permesso proprio della nota (**Create Alert Internal Note**, **Create Alert Episode Internal Note** o **Create Incident Episode Internal Note** in un ruolo personalizzato; i ruoli predefiniti di avvisi, incidenti e progetto li hanno), e un cambio di stato inviato con una nota privata da chi non ha quel permesso viene rifiutato per intero, quindi lo stato non cambia.
+
 Per sapere chi riceve queste comunicazioni e come vengono scelti i modelli, vedete [Iscritti e annunci](/docs/status-pages/subscribers).
 
 ## Tenere un incidente fuori dalla pagina di stato
@@ -154,7 +165,7 @@ Tre cose distinte decidono se un incidente compare sulla pagina pubblica, e tutt
 
 - **Mostra incidenti** (`showIncidentsOnStatusPage`) sulla pagina di stato stessa.
 - **Visibile sulla pagina di stato** (`isVisibleOnStatusPage`) sull'incidente — un interruttore nella pagina **Impostazioni** dell'incidente. È attivo per impostazione predefinita e non compare nella procedura guidata di dichiarazione; un criterio di monitor può impostarlo con **Mostra incidente sulla pagina di stato**.
-- **Lo stato attuale non è lo stato risolto.** È questo a togliere un incidente dalla sezione attiva: la query della pagina di stato recupera gli incidenti il cui stato attuale è uno stato non risolto. Non archiviate né chiudete nulla — lo risolvete, e passa nello storico.
+- **Lo stato attuale sta sopra lo stato risolto.** È questo a togliere un incidente dalla sezione attiva: la query della pagina di stato recupera gli incidenti il cui stato attuale sta sopra il vostro stato risolto, quindi lo stato risolto e ogni stato successivo lo tolgono. Non archiviate né chiudete nulla — lo risolvete, e passa nello storico.
 
 **Gli incidenti privati non compaiono mai.** Attivare **Incidente privato** nasconde l'incidente da ogni pagina di stato, a prescindere dagli interruttori qui sopra, e lo limita ai suoi proprietari più gli amministratori e i proprietari del progetto.
 

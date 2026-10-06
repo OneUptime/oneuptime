@@ -72,8 +72,12 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
     /*
      * Legacy id-based image route. Kept for assets that are intentionally
      * public (probe icons, AI agent icons), and serves only public files:
-     * an id is no secret, so a private file - an inline image, an
-     * attachment - is never served by it, however the request is signed in.
+     * an id is no secret, so a private file - an inline image nothing
+     * published shows, an attachment - is never served by it, however the
+     * request is signed in. A file is public only while a record shows it to
+     * everyone, or while it is an icon (PublishedImages); files uploaded
+     * public before that rule were set to it once
+     * (SetFileVisibilityFromPublishedRecords).
      */
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/image/:imageId`,

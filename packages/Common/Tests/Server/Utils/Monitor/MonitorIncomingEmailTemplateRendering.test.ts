@@ -46,6 +46,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * An Incoming Email monitor's criteria opening an alert or an incident whose
@@ -271,6 +272,11 @@ let createdAlerts: Array<Alert> = [];
 let createdIncidents: Array<Incident> = [];
 
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   createdAlerts = [];
   createdIncidents = [];
 

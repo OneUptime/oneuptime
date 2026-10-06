@@ -164,7 +164,7 @@ Skapandeanropet gör mer än att skriva en rad. I tur och ordning:
 9. **Prenumeranter köas**, om **Meddela statussideprenumeranter** lämnades påslaget och incidenten är synlig på statussidan. Leveransen sköts av ett bakgrundsjobb, inte inuti din förfrågan.
 10. **Arbetsflöden utlöses.** Utlösaren **On Create Incident** startar varje arbetsflöde som byggts på den. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
-Därifrån är incidenten aktiv: den räknas mot märket **Aktiva incidenter** i incidenternas sidomeny (varje tillstånd utan flaggan `isResolvedState` räknas som aktivt), den dyker upp på statussidorna som bär någon av dess monitorer, och dess **Tillståndstidslinje** börjar registrera.
+Därifrån är incidenten aktiv: den räknas mot märket **Aktiva incidenter** i incidenternas sidomeny (varje tillstånd ovanför ert lösta tillstånd räknas som aktivt), den dyker upp på statussidorna som bär någon av dess monitorer, och dess **Tillståndstidslinje** börjar registrera.
 
 ## Läs vidare
 

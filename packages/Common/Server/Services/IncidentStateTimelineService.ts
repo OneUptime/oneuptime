@@ -42,17 +42,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentAlertService from "./IncidentAlertService";
-
-/*
- * What IncidentService writes into the misc data of an incident's first
- * state when the incident was declared already resolved: that incident never
- * set a status on its monitors or paused their monitoring (Common/Utils/
- * StartingStage), so the resolve that first state is has nothing of theirs
- * to give back. Read only from OneUptime's own write: a request's misc data
- * is whatever its body says.
- */
-export const INCIDENT_NEVER_HELD_ITS_MONITORS_KEY: string =
-  "incidentNeverHeldItsMonitors";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -62,29 +53,32 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     }
   }
 
+  /*
+   * The project's resolved state, which resolving an incident moves it
+   * into: the first from the top flagged resolved.
+   */
   @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isResolvedState: true,
-        },
+    let resolvedState: IncidentState | null = null;
+
+    try {
+      resolvedState = await IncidentStateService.getResolvedIncidentState({
+        projectId: projectId,
         props: {
           isRoot: true,
         },
-        select: {
-          _id: true,
-        },
       });
+    } catch {
+      resolvedState = null;
+    }
 
-    if (!resolvedState) {
+    if (!resolvedState || !resolvedState.id) {
       throw new BadDataException("No resolved state found for the project");
     }
 
-    return resolvedState.id!;
+    return resolvedState.id;
   }
 
   @CaptureSpan()
@@ -229,7 +223,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
               _id: true,
               order: true,
               name: true,
-              isResolvedState: true,
             },
             startsAt: true,
             endsAt: true,
@@ -388,24 +381,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     }
   }
 
-  /*
-   * Whether this state is the first state of an incident declared already
-   * resolved, as IncidentService says when it writes it
-   * (INCIDENT_NEVER_HELD_ITS_MONITORS_KEY) - and only IncidentService, as
-   * OneUptime, can say it. Nothing about the timeline's own rows tells it:
-   * a resolve can find no row before it because it is dated before the
-   * first state, or because the earlier rows aged out (the timeline keeps
-   * three years), and either is a resolve that gives the monitors back.
-   */
-  private isFirstStateOfIncidentDeclaredResolved(
-    createBy: CreateBy<IncidentStateTimeline>,
-  ): boolean {
-    return (
-      createBy.props.isRoot === true &&
-      createBy.miscDataProps?.[INCIDENT_NEVER_HELD_ITS_MONITORS_KEY] === true
-    );
-  }
-
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<IncidentStateTimeline>,
@@ -530,7 +505,6 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
         select: {
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
           isCreatedState: true,
           color: true,
@@ -572,12 +546,47 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
       });
     }
 
+    /*
+     * Whether the incident is resolved in this state, and was in the state
+     * before it, by the one rule (Common/Utils/ResolvedState): the project's
+     * resolved state, or a state placed after it, flagged or not.
+     */
+    const incidentStates: Array<IncidentState> =
+      await IncidentStateService.getAllIncidentStates({
+        projectId: createdItem.projectId!,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const isResolved: boolean = ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId: createdItem.incidentStateId,
+    });
+
+    const previousStateWasResolved: boolean = ResolvedStateUtil.isResolved({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+      stateId:
+        onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+    });
+
+    /*
+     * This change resolves the incident: it moves the incident's current
+     * state - not a row dated before it - from a state that is not resolved,
+     * or from none, into one that is. Moving on from one resolved state to
+     * another ("Resolved" to "Closed") is no new resolve.
+     */
+    const resolvesIncident: boolean =
+      !createdItem.endsAt && isResolved && !previousStateWasResolved;
+
     const stateName: string = incidentState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
 
-    if (incidentState?.isResolvedState) {
+    if (isResolved) {
       stateEmoji = "✅";
     } else if (incidentState?.isAcknowledgedState) {
       // eyes emoji for acknowledged state.
@@ -640,9 +649,7 @@ ${createdItem.rootCause}`,
       });
     }
 
-    const isResolvedState: boolean = incidentState?.isResolvedState || false;
-
-    if (isResolvedState) {
+    if (resolvesIncident) {
       const incident: Incident | null = await IncidentService.findOneBy({
         query: {
           _id: createdItem.incidentId.toString(),
@@ -653,6 +660,7 @@ ${createdItem.rootCause}`,
           monitors: {
             _id: true,
           },
+          holdsMonitors: true,
         },
         props: {
           isRoot: true,
@@ -660,23 +668,25 @@ ${createdItem.rootCause}`,
       });
 
       /*
-       * Resolving gives an incident's monitors back: their monitoring
-       * resumes and their status returns to operational. Not the first state
-       * of an incident declared already resolved: that incident never set a
-       * status on its monitors or paused their monitoring (StartingStage),
-       * so there is nothing of its own to give back, and a status a monitor
-       * holds for another reason stays. Any other resolve gives them back,
-       * as always.
+       * Resolving gives back the monitors the incident holds
+       * (Incident.holdsMonitors): their monitoring resumes and their status
+       * returns to operational, and from then on it holds nothing. An
+       * incident that holds nothing - declared already resolved, or resolved
+       * once already and reopened since - gives nothing back, so a status a
+       * monitor holds for another reason stays. One from before this was
+       * recorded gives its monitors back, as it always did.
        */
-      if (
-        incident &&
-        !this.isFirstStateOfIncidentDeclaredResolved(onCreate.createBy)
-      ) {
+      if (incident && incident.holdsMonitors !== false) {
         await IncidentService.markMonitorsActiveForMonitoring(
           incident.projectId!,
           incident.monitors || [],
           createdItem.startsAt || undefined,
         );
+
+        await IncidentService.recordHoldsMonitors({
+          incidentId: createdItem.incidentId,
+          holdsMonitors: false,
+        });
       }
 
       /*
@@ -769,11 +779,9 @@ ${createdItem.rootCause}`,
       incidentId: createdItem.incidentId,
       projectId: createdItem.projectId!,
       isAcknowledgedState: incidentState?.isAcknowledgedState || false,
-      isResolvedState: incidentState?.isResolvedState || false,
+      isResolved: isResolved,
       stateChangedAt: createdItem.startsAt || OneUptimeDate.getCurrentDate(),
-      previousStateWasResolved:
-        onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentState
-          ?.isResolvedState || false,
+      previousStateWasResolved: previousStateWasResolved,
     }).catch((error: Error) => {
       logger.error(`Error while tracking SLA state change:`, {
         projectId: createdItem.projectId?.toString(),
@@ -1125,13 +1133,17 @@ ${createdItem.rootCause}`,
     incidentId: ObjectID;
     projectId: ObjectID;
     isAcknowledgedState: boolean;
-    isResolvedState: boolean;
+    isResolved: boolean;
     stateChangedAt: Date;
     previousStateWasResolved: boolean;
   }): Promise<void> {
     try {
-      // Check if incident is being reopened (previous state was resolved, current state is not resolved)
-      if (data.previousStateWasResolved && !data.isResolvedState) {
+      /*
+       * Reopened: from a resolved state into one that is not (the one rule,
+       * Common/Utils/ResolvedState). A state placed after Resolved is no
+       * reopen.
+       */
+      if (data.previousStateWasResolved && !data.isResolved) {
         // Incident is being reopened - create a new SLA record
         const incident: Incident | null = await IncidentService.findOneById({
           id: data.incidentId,
@@ -1171,8 +1183,11 @@ ${createdItem.rootCause}`,
         });
       }
 
-      // Track resolved state
-      if (data.isResolvedState) {
+      /*
+       * Track the resolve: the move into a resolved state. Moving on from
+       * one resolved state to another closes nothing more.
+       */
+      if (data.isResolved && !data.previousStateWasResolved) {
         await IncidentSlaService.markResolved({
           incidentId: data.incidentId,
           resolvedAt: data.stateChangedAt,

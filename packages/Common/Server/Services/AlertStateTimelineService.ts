@@ -29,6 +29,7 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeNote from "../Utils/StateChangeNote";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -38,28 +39,32 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     }
   }
 
+  /*
+   * The project's resolved state, which resolving an alert moves it into:
+   * the first from the top flagged resolved.
+   */
   @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
+    let resolvedState: AlertState | null = null;
 
-    if (!resolvedState) {
+    try {
+      resolvedState = await AlertStateService.getResolvedAlertState({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch {
+      resolvedState = null;
+    }
+
+    if (!resolvedState || !resolvedState.id) {
       throw new BadDataException("No resolved state found for the project");
     }
 
-    return resolvedState.id!;
+    return resolvedState.id;
   }
 
   @CaptureSpan()
@@ -78,6 +83,30 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
+
+      /*
+       * The private note that comes with the change, if any - under
+       * `privateNote`, or the older `internalNote` (a blank one is none). It
+       * is posted once the change is saved (onCreateSuccess), as the person
+       * changing the state, so that it comes after the change in the alert's
+       * feed and a change that fails leaves no note behind. Whether they may
+       * post it is asked now, before the change takes its lock or reads the
+       * timeline, with the check the note's own create runs: a change whose
+       * note they may not post is refused whole, with one plain message,
+       * rather than saved and then answered with an error (StateChangeNote).
+       */
+      const privateNotesToPost: Array<AlertInternalNote> =
+        StateChangeNote.preparePrivateNotes({
+          noteModelType: AlertInternalNote,
+          stateChange: createBy.data,
+          eventColumn: "alertId",
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          props: createBy.props,
+          noteKeys: [
+            StateChangeNote.legacyAlertInternalNoteKey,
+            StateChangeNote.privateNoteKey,
+          ],
+        });
 
       try {
         mutex = await Semaphore.lock({
@@ -253,33 +282,12 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       logger.debug("State After this");
       logger.debug(stateAfterThis);
 
-      const internalNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["internalNote"] as string | undefined;
-
-      if (internalNote) {
-        const alertNote: AlertInternalNote = new AlertInternalNote();
-        alertNote.alertId = createBy.data.alertId;
-        alertNote.note = internalNote;
-        alertNote.createdAt = createBy.data.startsAt;
-        alertNote.projectId = createBy.data.projectId!;
-
-        await AlertInternalNoteService.create({
-          data: alertNote,
-          props: createBy.props,
-        });
-      }
-
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
-
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
@@ -406,7 +414,6 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       },
       select: {
         _id: true,
-        isResolvedState: true,
         isAcknowledgedState: true,
         isCreatedState: true,
         color: true,
@@ -414,12 +421,19 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       },
     });
 
+    // Resolved by the one rule (Common/Utils/ResolvedState).
+    const isResolvedState: boolean =
+      await AlertStateService.isResolvedAlertState({
+        projectId: createdItem.projectId!,
+        alertStateId: createdItem.alertStateId,
+      });
+
     const stateName: string = alertState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
 
-    if (alertState?.isResolvedState) {
+    if (isResolvedState) {
       stateEmoji = "✅";
     } else if (alertState?.isAcknowledgedState) {
       // eyes emoji for acknowledged state.
@@ -458,20 +472,17 @@ ${createdItem.rootCause}`,
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
-      const alertInternalNote: AlertInternalNote = new AlertInternalNote();
-      alertInternalNote.alertId = createdItem.alertId;
-      alertInternalNote.note = privateNote;
-      alertInternalNote.createdAt = createdItem.startsAt!;
-      alertInternalNote.projectId = createdItem.projectId!;
-
-      await AlertInternalNoteService.create({
-        data: alertInternalNote,
-        props: onCreate.createBy.props,
-      });
-    }
+    /*
+     * The private notes that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: AlertInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     AlertService.refreshAlertMetrics({
       alertId: createdItem.alertId,

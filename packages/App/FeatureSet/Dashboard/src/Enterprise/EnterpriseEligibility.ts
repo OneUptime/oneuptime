@@ -48,7 +48,9 @@ export const IDENTITY_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
  * Single sign-on (SAML and OIDC, for projects and status pages) is part of
  * every edition. OneUptime Cloud sells it on Scale: @TableBillingAccessControl
  * on ProjectSso, ProjectOidc, StatusPageSso and StatusPageOidc says Scale, and
- * so does the update rule on Project.requireSsoForLogin.
+ * so do the rules on Project.requireSsoForLogin and
+ * StatusPage.requireSsoForLogin (@ColumnBillingAccessControl: turning it on
+ * needs Scale, turning it off works on every plan).
  */
 export const SSO_REQUIRED_PLAN: EnterpriseRequiredPlan = PlanType.Scale;
 
