@@ -138,8 +138,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     return stateId.toString();
   });
 
-  const isAlertResolved: (alert: Alert) => boolean = (alert: Alert): boolean => {
-    const stateId: string | undefined = alert.currentAlertState?._id?.toString();
+  const isAlertResolved: (alert: Alert) => boolean = (
+    alert: Alert,
+  ): boolean => {
+    const stateId: string | undefined =
+      alert.currentAlertState?._id?.toString();
 
     return Boolean(stateId && resolvedStateIds.includes(stateId));
   };

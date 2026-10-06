@@ -2508,9 +2508,9 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule",
       `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
     );
     // Unresolved: in a state above the project's resolved state.
-    expect(idsOfAnyFilter(findByArguments.query["currentIncidentStateId"])).toEqual(
-      openStateIds(INCIDENT_STATE_IDS),
-    );
+    expect(
+      idsOfAnyFilter(findByArguments.query["currentIncidentStateId"]),
+    ).toEqual(openStateIds(INCIDENT_STATE_IDS));
     expect(Object.keys(findByArguments.query).sort()).toEqual(
       ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
     );

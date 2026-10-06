@@ -94,7 +94,12 @@ interface StateRow {
 // Listed out of order on purpose: nothing may lean on the order rows come in.
 const STATES: Array<StateRow> = [
   { id: CLOSED, name: "Closed", order: 5 },
-  { id: ACKNOWLEDGED, name: "Acknowledged", order: 2, isAcknowledgedState: true },
+  {
+    id: ACKNOWLEDGED,
+    name: "Acknowledged",
+    order: 2,
+    isAcknowledgedState: true,
+  },
   { id: RESOLVED, name: "Resolved", order: 4, isResolvedState: true },
   { id: IDENTIFIED, name: "Identified", order: 1, isCreatedState: true },
   { id: INVESTIGATING, name: "Investigating", order: 3 },
@@ -137,22 +142,24 @@ function serveStates<T extends IncidentState | AlertState>(
 ): void {
   const target: Record<string, unknown> = service as Record<string, unknown>;
 
-  jest.spyOn(target as never, "findBy" as never).mockImplementation((async (
-    findBy: { query?: Record<string, unknown> },
-  ): Promise<Array<T>> => {
-    const query: Record<string, unknown> = findBy?.query || {};
-    return STATES.filter((row: StateRow): boolean => {
-      if (query["isResolvedState"] === true) {
-        return Boolean(row.isResolvedState);
-      }
-      if (query["isResolvedState"] === false) {
-        return !row.isResolvedState;
-      }
-      return true;
-    }).map((row: StateRow): T => {
-      return toModel(modelType, row);
-    });
-  }) as never);
+  jest
+    .spyOn(target as never, "findBy" as never)
+    .mockImplementation((async (findBy: {
+      query?: Record<string, unknown>;
+    }): Promise<Array<T>> => {
+      const query: Record<string, unknown> = findBy?.query || {};
+      return STATES.filter((row: StateRow): boolean => {
+        if (query["isResolvedState"] === true) {
+          return Boolean(row.isResolvedState);
+        }
+        if (query["isResolvedState"] === false) {
+          return !row.isResolvedState;
+        }
+        return true;
+      }).map((row: StateRow): T => {
+        return toModel(modelType, row);
+      });
+    }) as never);
 
   const findOne: (query: Record<string, unknown>) => T | null = (
     query: Record<string, unknown>,
@@ -181,11 +188,13 @@ function serveStates<T extends IncidentState | AlertState>(
     return null;
   };
 
-  jest.spyOn(target as never, "findOneBy" as never).mockImplementation((async (
-    findOneBy: { query: Record<string, unknown> },
-  ): Promise<T | null> => {
-    return findOne(findOneBy.query);
-  }) as never);
+  jest
+    .spyOn(target as never, "findOneBy" as never)
+    .mockImplementation((async (findOneBy: {
+      query: Record<string, unknown>;
+    }): Promise<T | null> => {
+      return findOne(findOneBy.query);
+    }) as never);
 
   jest
     .spyOn(target as never, "findOneById" as never)
@@ -373,13 +382,11 @@ describe("an incident's state change: one rule decides when it is resolved", () 
       created.endsAt = after.startsAt!;
     }
 
-    const hooks: Record<
-      string,
-      (...args: Array<unknown>) => Promise<unknown>
-    > = IncidentStateTimelineService as unknown as Record<
-      string,
-      (...args: Array<unknown>) => Promise<unknown>
-    >;
+    const hooks: Record<string, (...args: Array<unknown>) => Promise<unknown>> =
+      IncidentStateTimelineService as unknown as Record<
+        string,
+        (...args: Array<unknown>) => Promise<unknown>
+      >;
 
     await hooks["onCreateSuccess"]!.call(
       IncidentStateTimelineService,
@@ -545,44 +552,49 @@ describe("an episode's resolvedAt follows the one rule", () => {
     serveStates(IncidentStateService, IncidentState);
     serveStates(AlertStateService, AlertState);
 
+    // What the episode services write, and the episode they read back.
+    const recordUpdate: (updateBy: {
+      data: JSONObject;
+    }) => Promise<number> = async (updateBy: {
+      data: JSONObject;
+    }): Promise<number> => {
+      episodeUpdates.push(updateBy.data);
+      return 1;
+    };
+
+    const recordUpdateById: (updateBy: {
+      data: JSONObject;
+    }) => Promise<void> = async (updateBy: {
+      data: JSONObject;
+    }): Promise<void> => {
+      episodeUpdates.push(updateBy.data);
+    };
+
+    const storedEpisode: () => Promise<JSONObject> =
+      async (): Promise<JSONObject> => {
+        return {
+          _id: EPISODE_ID.toString(),
+          id: EPISODE_ID,
+          projectId: PROJECT_ID,
+          episodeNumber: 3,
+          episodeNumberWithPrefix: "EP-3",
+          resolvedAt: storedResolvedAt,
+        } as unknown as JSONObject;
+      };
+
     for (const service of [IncidentEpisodeService, AlertEpisodeService]) {
       jest
         .spyOn(service as never, "updateOneBy" as never)
-        .mockImplementation((async (updateBy: {
-          data: JSONObject;
-        }): Promise<number> => {
-          episodeUpdates.push(updateBy.data);
-          return 1;
-        }) as never);
+        .mockImplementation(recordUpdate as never);
       jest
         .spyOn(service as never, "updateOneById" as never)
-        .mockImplementation((async (updateBy: {
-          data: JSONObject;
-        }): Promise<void> => {
-          episodeUpdates.push(updateBy.data);
-        }) as never);
+        .mockImplementation(recordUpdateById as never);
       jest
         .spyOn(service as never, "findOneById" as never)
-        .mockImplementation((async () => {
-          return {
-            _id: EPISODE_ID.toString(),
-            id: EPISODE_ID,
-            projectId: PROJECT_ID,
-            episodeNumber: 3,
-            episodeNumberWithPrefix: "EP-3",
-            resolvedAt: storedResolvedAt,
-          };
-        }) as never);
+        .mockImplementation(storedEpisode as never);
       jest
         .spyOn(service as never, "findOneBy" as never)
-        .mockImplementation((async () => {
-          return {
-            _id: EPISODE_ID.toString(),
-            id: EPISODE_ID,
-            projectId: PROJECT_ID,
-            resolvedAt: storedResolvedAt,
-          };
-        }) as never);
+        .mockImplementation(storedEpisode as never);
     }
 
     jest

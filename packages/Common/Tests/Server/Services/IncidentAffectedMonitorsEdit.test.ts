@@ -436,16 +436,18 @@ beforeEach(() => {
     .mockImplementation(isIncidentResolved as never);
 
   holdsRecorded = [];
-  jest.spyOn(IncidentService, "recordHoldsMonitors").mockImplementation(((data: {
-    incidentId: ObjectID;
-    holdsMonitors: boolean;
-  }): Promise<void> => {
-    holdsRecorded.push({
-      incidentId: data.incidentId.toString(),
-      holdsMonitors: data.holdsMonitors,
-    });
-    return Promise.resolve();
-  }) as never);
+  jest
+    .spyOn(IncidentService, "recordHoldsMonitors")
+    .mockImplementation(((data: {
+      incidentId: ObjectID;
+      holdsMonitors: boolean;
+    }): Promise<void> => {
+      holdsRecorded.push({
+        incidentId: data.incidentId.toString(),
+        holdsMonitors: data.holdsMonitors,
+      });
+      return Promise.resolve();
+    }) as never);
 
   markMonitorsActive = getJestMockFunction();
   markMonitorsActive.mockResolvedValue(undefined);
@@ -542,7 +544,10 @@ afterEach(() => {
 describe("IncidentService: an edit and the monitors the incident holds (Incident.holdsMonitors)", () => {
   test("a monitor taken off an incident that holds nothing (declared resolved, reopened since) is not restored: there is nothing of the incident's to give back", async () => {
     storedIncidents = [
-      storedIncident({ monitorIds: [MONITOR_A, MONITOR_B], holdsMonitors: false }),
+      storedIncident({
+        monitorIds: [MONITOR_A, MONITOR_B],
+        holdsMonitors: false,
+      }),
     ];
 
     await runUpdate({
@@ -555,7 +560,10 @@ describe("IncidentService: an edit and the monitors the incident holds (Incident
 
   test("a monitor taken off an incident from before it was recorded (null) is restored, as it always was", async () => {
     storedIncidents = [
-      storedIncident({ monitorIds: [MONITOR_A, MONITOR_B], holdsMonitors: null }),
+      storedIncident({
+        monitorIds: [MONITOR_A, MONITOR_B],
+        holdsMonitors: null,
+      }),
     ];
 
     await runUpdate({

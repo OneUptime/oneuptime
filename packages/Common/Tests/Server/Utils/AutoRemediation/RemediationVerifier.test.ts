@@ -10,7 +10,6 @@ import MonitorStatusService from "../../../../Server/Services/MonitorStatusServi
 import RunbookExecutionService from "../../../../Server/Services/RunbookExecutionService";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";

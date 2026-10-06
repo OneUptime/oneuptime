@@ -98,8 +98,10 @@ export function getResolvedAtByEventId(
   timelines: Array<EventTimelineDate>,
   resolvedStateIds: Array<string>,
 ): Record<string, Date> {
-  const timelinesByEventId: Map<string, Array<EventStateTimelineDate>> =
-    new Map();
+  const timelinesByEventId: Map<
+    string,
+    Array<EventStateTimelineDate>
+  > = new Map();
 
   for (const timeline of timelines) {
     if (!timeline.eventId) {

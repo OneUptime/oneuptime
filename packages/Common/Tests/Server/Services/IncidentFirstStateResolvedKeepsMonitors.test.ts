@@ -295,9 +295,11 @@ describe("an incident's resolve gives back the monitors it holds, and only those
       });
 
       expect(givenBack).toHaveLength(1);
-      expect(recorded.map((entry: { holdsMonitors: boolean }) => {
-        return entry.holdsMonitors;
-      })).toEqual([false]);
+      expect(
+        recorded.map((entry: { holdsMonitors: boolean }) => {
+          return entry.holdsMonitors;
+        }),
+      ).toEqual([false]);
     },
   );
 
@@ -328,10 +330,7 @@ describe("an incident's resolve gives back the monitors it holds, and only those
   });
 
   test.each([
-    [
-      "no row before it (its first row deleted, say)",
-      {},
-    ],
+    ["no row before it (its first row deleted, say)", {}],
     [
       "dated before the incident's first state",
       {

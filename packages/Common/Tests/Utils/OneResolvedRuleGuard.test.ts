@@ -35,8 +35,10 @@ import { describe, expect, test } from "@jest/globals";
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
 
-// Where the readers live. A directory that is not in the checkout is skipped
-// (the core test job runs without ee/).
+/*
+ * Where the readers live. A directory that is not in the checkout is skipped
+ * (the core test job runs without ee/).
+ */
 const SCANNED_DIRECTORIES: Array<string> = [
   "packages/Common/Server",
   "packages/Common/Utils",
@@ -109,6 +111,16 @@ export interface FlagRead {
 const QUERY_CONTEXT: RegExp = /^(query|\w*Query|where)$/;
 const SELECT_CONTEXT: RegExp = /^(select|selectMoreFields|\w*Select)$/;
 
+// The names and types that make a node a select or a query.
+const SELECT_TYPE: RegExp = /\bSelect</;
+const QUERY_TYPE: RegExp = /\bQuery</;
+const SELECT_TARGET: RegExp = /\b\w*[sS]elect\b/;
+const QUERY_TARGET: RegExp = /\b(query|\w*Query)\b/;
+
+// The source files the guard reads: TypeScript, not tests.
+const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
+const TEST_FILE: RegExp = /\.(test|spec)\.(ts|tsx)$/;
+
 function nameOf(name: ts.PropertyName | ts.JsxAttributeName): string | null {
   if (
     ts.isIdentifier(name) ||
@@ -160,11 +172,11 @@ function contextOf(
     if (ts.isVariableDeclaration(current) && current.type) {
       const type: string = current.type.getText(source);
 
-      if (/\bSelect</.test(type)) {
+      if (SELECT_TYPE.test(type)) {
         return "select";
       }
 
-      if (/\bQuery</.test(type)) {
+      if (QUERY_TYPE.test(type)) {
         return "query";
       }
     }
@@ -175,11 +187,11 @@ function contextOf(
     ) {
       const target: string = current.left.getText(source);
 
-      if (/\b\w*[sS]elect\b/.test(target)) {
+      if (SELECT_TARGET.test(target)) {
         return "select";
       }
 
-      if (/\b(query|\w*Query)\b/.test(target)) {
+      if (QUERY_TARGET.test(target)) {
         return "query";
       }
     }
@@ -239,7 +251,8 @@ export function findFlagReads(file: string, text: string): Array<FlagRead> {
   const record: (node: ts.Node) => void = (node: ts.Node): void => {
     reads.push({
       file: file,
-      line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+      line:
+        source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
       text: node.getText(source).replace(/\s+/g, " ").slice(0, 160),
     });
   };
@@ -283,7 +296,8 @@ export function findFlagReads(file: string, text: string): Array<FlagRead> {
      * for records by the flag (a query built in a helper and returned, say).
      */
     if (
-      (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
+      (ts.isPropertyAssignment(node) ||
+        ts.isShorthandPropertyAssignment(node)) &&
       nameOf(node.name) === FLAG
     ) {
       const context: "query" | "select" | null = contextOf(source, node);
@@ -319,8 +333,8 @@ function listSourceFiles(directory: string): Array<string> {
       }
 
       if (
-        /\.(ts|tsx)$/.test(entry.name) &&
-        !/\.(test|spec)\.(ts|tsx)$/.test(entry.name) &&
+        SOURCE_FILE.test(entry.name) &&
+        !TEST_FILE.test(entry.name) &&
         !entry.name.endsWith(".d.ts")
       ) {
         files.push(path.join(current, entry.name));
@@ -415,7 +429,10 @@ describe("the guard's own detector", () => {
 
   test.each([
     ["a read of the flag", "if (state.isResolvedState) { go(); }"],
-    ["an optional read", "const x = incident.currentIncidentState?.isResolvedState;"],
+    [
+      "an optional read",
+      "const x = incident.currentIncidentState?.isResolvedState;",
+    ],
     ["a string-keyed read", 'const x = state["isResolvedState"];'],
     ["a destructured read", "const { isResolvedState } = state;"],
     [
@@ -460,18 +477,30 @@ describe("the guard's own detector", () => {
   });
 
   test.each([
-    ["a select", "await IncidentStateService.findBy({ query: { projectId }, select: { _id: true, isResolvedState: true } });"],
+    [
+      "a select",
+      "await IncidentStateService.findBy({ query: { projectId }, select: { _id: true, isResolvedState: true } });",
+    ],
     [
       "a nested select",
       "await IncidentService.findBy({ query: {}, select: { currentIncidentState: { isResolvedState: true } } });",
     ],
-    ["a typed select", "const select: Select<Incident> = { currentIncidentState: { isResolvedState: true } };"],
-    ["the flags handed on", "const row = { id: state.id, isResolvedState: state.isResolvedState };"],
+    [
+      "a typed select",
+      "const select: Select<Incident> = { currentIncidentState: { isResolvedState: true } };",
+    ],
+    [
+      "the flags handed on",
+      "const row = { id: state.id, isResolvedState: state.isResolvedState };",
+    ],
     ["a write of the flag", "resolvedState.isResolvedState = true;"],
     ["a label map", 'const labels = { isResolvedState: "Resolved" };'],
     ["a string naming the flag", 'const flag = "isResolvedState";'],
     ["a type member", "interface S { isResolvedState?: boolean }"],
-  ] as Array<[string, string]>)("leaves %s alone", (_name: string, text: string) => {
-    expect(linesOf(text)).toEqual([]);
-  });
+  ] as Array<[string, string]>)(
+    "leaves %s alone",
+    (_name: string, text: string) => {
+      expect(linesOf(text)).toEqual([]);
+    },
+  );
 });

@@ -204,9 +204,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertStateId: alert.currentAlertStateId,
       });
 
-    return Boolean(
-      startingState && startingState.stage !== StartingStage.Open,
-    );
+    return Boolean(startingState && startingState.stage !== StartingStage.Open);
   }
 
   // The alert's project and current state, as OneUptime.
@@ -2862,14 +2860,13 @@ ${alertSeverity.name}
     }
 
     // The project's resolved state: the first from the top flagged resolved.
-    const alertState: AlertState = await AlertStateService.getResolvedAlertState(
-      {
+    const alertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
         projectId: alert.projectId,
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     if (!alertState.id) {
       throw new BadDataException(

@@ -25741,5 +25741,6 @@
   "Turn this off?": "要关闭吗？",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "您的套餐已不再包含这些，但它们仍在工作。您可以删除它们。更改它们或添加新的需要 {{planName}} 套餐。",
   "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的套餐已不再包含这些。已开启的仍在工作：您可以将其关闭或删除。再次开启或添加新的需要 {{planName}} 套餐。",
-  "Sending a test needs permission to create notification rules.": "发送测试需要创建通知规则的权限。"
+  "Sending a test needs permission to create notification rules.": "发送测试需要创建通知规则的权限。",
+  "Holds Monitors": "占用监视器"
 }

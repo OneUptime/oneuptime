@@ -168,13 +168,12 @@ describe("SLO attributes on incident metrics", () => {
   }
 
   beforeEach(() => {
-
     /*
-
+     *
      * The project's states: the refresh times a resolve as the move into
-
+     *
      * a state that counts as resolved (Common/Utils/ResolvedState).
-
+     *
      */
 
     mockProjectStates();
@@ -417,13 +416,12 @@ describe("SLO attributes on alert metrics", () => {
   }
 
   beforeEach(() => {
-
     /*
-
+     *
      * The project's states: the refresh times a resolve as the move into
-
+     *
      * a state that counts as resolved (Common/Utils/ResolvedState).
-
+     *
      */
 
     mockProjectStates();

@@ -25741,5 +25741,6 @@
   "Turn this off?": "Ausschalten?",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Ihr Tarif enthält diese nicht mehr, aber sie funktionieren weiterhin. Sie können sie löschen. Um sie zu ändern oder neue hinzuzufügen, brauchen Sie den {{planName}}-Tarif.",
   "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Ihr Tarif enthält diese nicht mehr. Die eingeschalteten funktionieren weiterhin: Sie können sie ausschalten oder löschen. Um sie wieder einzuschalten oder neue hinzuzufügen, brauchen Sie den {{planName}}-Tarif.",
-  "Sending a test needs permission to create notification rules.": "Zum Senden eines Tests brauchen Sie die Berechtigung, Benachrichtigungsregeln anzulegen."
+  "Sending a test needs permission to create notification rules.": "Zum Senden eines Tests brauchen Sie die Berechtigung, Benachrichtigungsregeln anzulegen.",
+  "Holds Monitors": "Hält Monitore"
 }

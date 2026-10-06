@@ -876,7 +876,10 @@ describe("DetectionRuleEvaluator", () => {
       const query: JSONObject = findByArg["query"] as JSONObject;
       expect(query["projectId"]).toEqual(PROJECT_ID);
       expect(query["seriesFingerprint"]).toEqual(
-        new Includes([expectedFingerprint("alice"), expectedFingerprint("bob")]),
+        new Includes([
+          expectedFingerprint("alice"),
+          expectedFingerprint("bob"),
+        ]),
       );
       // Unresolved: in a state above the project's resolved state.
       expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(

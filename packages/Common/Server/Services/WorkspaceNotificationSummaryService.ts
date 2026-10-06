@@ -914,9 +914,8 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     // Resolved or open, by the one rule (Common/Utils/ResolvedState).
-    const isResolvedIncidentState: (
-      stateId: ObjectID | undefined,
-    ) => boolean = await Service.getIncidentResolvedRule(projectId);
+    const isResolvedIncidentState: (stateId: ObjectID | undefined) => boolean =
+      await Service.getIncidentResolvedRule(projectId);
 
     // Overview stats
     if (Service.has(items, WorkspaceNotificationSummaryItem.TotalCount)) {

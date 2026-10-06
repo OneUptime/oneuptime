@@ -141,13 +141,12 @@ describe("Alert metric label and custom field attributes", () => {
   }
 
   beforeEach(() => {
-
     /*
-
+     *
      * The project's states: the refresh times a resolve as the move into
-
+     *
      * a state that counts as resolved (Common/Utils/ResolvedState).
-
+     *
      */
 
     mockProjectStates();

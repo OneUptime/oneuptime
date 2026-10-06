@@ -13,7 +13,6 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";

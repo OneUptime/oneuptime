@@ -190,10 +190,11 @@ const fetchResolvedStates: FetchResolvedStatesFunction = async (
   }
 
   for (const [projectKey, projectStates] of statesByProjectId) {
-    const resolvedState: IncidentState | null = ResolvedStateUtil.getResolvedState({
-      list: StateListType.IncidentState,
-      states: projectStates,
-    });
+    const resolvedState: IncidentState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: projectStates,
+      });
 
     if (resolvedState) {
       resolvedStateByProjectId.set(projectKey, resolvedState);

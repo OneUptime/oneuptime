@@ -224,7 +224,12 @@ function projectStates(): Array<IncidentState> {
       flag: "isAcknowledgedState",
     },
     { id: MITIGATED_STATE_ID, name: "Mitigated", order: 3 },
-    { id: RESOLVED_STATE_ID, name: "Resolved", order: 4, flag: "isResolvedState" },
+    {
+      id: RESOLVED_STATE_ID,
+      name: "Resolved",
+      order: 4,
+      flag: "isResolvedState",
+    },
     { id: CLOSED_STATE_ID, name: "Closed", order: 5 },
   ];
 

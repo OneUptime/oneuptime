@@ -106,7 +106,10 @@ export const getEventResponseTimes: (
       resolvedStateId,
     );
 
-    if (reachedAt && (!resolvedAt || reachedAt.getTime() < resolvedAt.getTime())) {
+    if (
+      reachedAt &&
+      (!resolvedAt || reachedAt.getTime() < resolvedAt.getTime())
+    ) {
       resolvedAt = reachedAt;
     }
   }

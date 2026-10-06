@@ -6,8 +6,8 @@ import {
   isResolvedState,
   isResolvedStateId,
   toStateIdsQuery,
+  type ResolvedRuleState,
 } from "./resolvedState";
-import type { ResolvedRuleState } from "./resolvedState";
 
 /*
  * The app's copy of the one resolved rule (Common/Utils/ResolvedState): a

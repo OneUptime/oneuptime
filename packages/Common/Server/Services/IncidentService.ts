@@ -396,9 +396,7 @@ export class Service extends ProjectReferencesService<Model> {
         incidentStateId: incident.currentIncidentStateId,
       });
 
-    return Boolean(
-      startingState && startingState.stage !== StartingStage.Open,
-    );
+    return Boolean(startingState && startingState.stage !== StartingStage.Open);
   }
 
   // The incident's project and current state, as OneUptime.

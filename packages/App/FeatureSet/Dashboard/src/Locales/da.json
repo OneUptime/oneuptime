@@ -25741,5 +25741,6 @@
   "Turn this off?": "Slå den fra?",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Dit abonnement omfatter dem ikke længere, men de virker stadig. Du kan slette dem. For at ændre dem eller tilføje nye skal du have {{planName}}-abonnementet.",
   "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Dit abonnement omfatter dem ikke længere. Dem, der er slået til, virker stadig: du kan slå dem fra eller slette dem. For at slå dem til igen eller tilføje nye skal du have {{planName}}-abonnementet.",
-  "Sending a test needs permission to create notification rules.": "Det kræver tilladelse til at oprette notifikationsregler at sende en test."
+  "Sending a test needs permission to create notification rules.": "Det kræver tilladelse til at oprette notifikationsregler at sende en test.",
+  "Holds Monitors": "Holder monitorer"
 }

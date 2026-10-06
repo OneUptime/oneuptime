@@ -158,8 +158,9 @@ describe("the Incident model carries the column the migration adds", () => {
   });
 
   test("its TableColumn is an optional boolean OneUptime computes", () => {
-    const metadata: TableColumnMetadata =
-      new Incident().getTableColumnMetadata("holdsMonitors");
+    const metadata: TableColumnMetadata = new Incident().getTableColumnMetadata(
+      "holdsMonitors",
+    );
 
     expect(metadata.type).toBe(TableColumnType.Boolean);
     expect(metadata.required).toBe(false);

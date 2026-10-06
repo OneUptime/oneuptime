@@ -571,7 +571,9 @@ describe("IncidentService.ts: whether an incident holds its monitors", () => {
 
   test("the first state no longer carries a signal of its own: the column says it", () => {
     expect(source.getText()).not.toMatch(/neverHeldItsMonitors/);
-    expect(source.getText()).not.toMatch(/INCIDENT_NEVER_HELD_ITS_MONITORS_KEY/);
+    expect(source.getText()).not.toMatch(
+      /INCIDENT_NEVER_HELD_ITS_MONITORS_KEY/,
+    );
   });
 
   test("it is recorded as OneUptime, never through the caller's permissions or hooks", () => {
@@ -661,10 +663,9 @@ describe("IncidentStateTimelineService.ts: which resolve gives the monitors back
   });
 
   test("a resolve is decided by the one rule: into a resolved state, from one that is not, for the current row", () => {
-    const text: string = methodOf(
+    const text: string = methodOf(timelineSource, "onCreateSuccess")!.getText(
       timelineSource,
-      "onCreateSuccess",
-    )!.getText(timelineSource);
+    );
 
     expect(text).toMatch(
       /const resolvesIncident: boolean =\s*!createdItem\.endsAt && isResolved && !previousStateWasResolved;/,

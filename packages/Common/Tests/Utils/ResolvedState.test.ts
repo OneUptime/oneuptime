@@ -55,7 +55,13 @@ const CLOSED: Row = {
 };
 
 // Listed out of order on purpose: the rule reads the order, not the position.
-const ROWS: Array<Row> = [CLOSED, INVESTIGATING, RESOLVED, IDENTIFIED, ACKNOWLEDGED];
+const ROWS: Array<Row> = [
+  CLOSED,
+  INVESTIGATING,
+  RESOLVED,
+  IDENTIFIED,
+  ACKNOWLEDGED,
+];
 
 const LISTS: Array<[string, ResolvedStateList]> = [
   ["incident states", StateListType.IncidentState],
@@ -83,185 +89,200 @@ function asModels(
   });
 }
 
-describe.each(LISTS)("the one rule over %s", (_name: string, list: ResolvedStateList) => {
-  describe.each([
-    ["their JSON", (rows: Array<Row>): Array<unknown> => {
-      return rows;
-    }],
-    ["models", (rows: Array<Row>): Array<unknown> => {
-      return asModels(list, rows);
-    }],
-  ] as Array<[string, (rows: Array<Row>) => Array<unknown>]>)(
-    "read from %s",
-    (_shape: string, shape: (rows: Array<Row>) => Array<unknown>) => {
-      const states: Array<unknown> = shape(ROWS);
+describe.each(LISTS)(
+  "the one rule over %s",
+  (_name: string, list: ResolvedStateList) => {
+    describe.each([
+      [
+        "their JSON",
+        (rows: Array<Row>): Array<unknown> => {
+          return rows;
+        },
+      ],
+      [
+        "models",
+        (rows: Array<Row>): Array<unknown> => {
+          return asModels(list, rows);
+        },
+      ],
+    ] as Array<[string, (rows: Array<Row>) => Array<unknown>]>)(
+      "read from %s",
+      (_shape: string, shape: (rows: Array<Row>) => Array<unknown>) => {
+        const states: Array<unknown> = shape(ROWS);
 
-      test("the resolved state is the one flagged, wherever it is listed", () => {
-        const resolved: unknown = ResolvedStateUtil.getResolvedState({
-          list,
-          states,
+        test("the resolved state is the one flagged, wherever it is listed", () => {
+          const resolved: unknown = ResolvedStateUtil.getResolvedState({
+            list,
+            states,
+          });
+
+          expect((resolved as { _id: string })._id).toBe(RESOLVED._id);
+          expect(ResolvedStateUtil.getResolvedOrder({ list, states })).toBe(4);
         });
 
-        expect((resolved as { _id: string })._id).toBe(RESOLVED._id);
-        expect(ResolvedStateUtil.getResolvedOrder({ list, states })).toBe(4);
-      });
+        test.each([
+          ["Identified", IDENTIFIED, false],
+          ["Acknowledged", ACKNOWLEDGED, false],
+          ["a state of its own before Resolved", INVESTIGATING, false],
+          ["Resolved", RESOLVED, true],
+          [
+            "a state of its own placed after Resolved, not flagged",
+            CLOSED,
+            true,
+          ],
+        ] as Array<[string, Row, boolean]>)(
+          "%s: resolved %s",
+          (_label: string, row: Row, resolved: boolean) => {
+            expect(
+              ResolvedStateUtil.isResolved({ list, states, stateId: row._id }),
+            ).toBe(resolved);
+            expect(
+              ResolvedStateUtil.isResolved({
+                list,
+                states,
+                stateId: new ObjectID(row._id),
+              }),
+            ).toBe(resolved);
+            expect(
+              ResolvedStateUtil.isStateResolved({ list, states, state: row }),
+            ).toBe(resolved);
+          },
+        );
 
-      test.each([
-        ["Identified", IDENTIFIED, false],
-        ["Acknowledged", ACKNOWLEDGED, false],
-        ["a state of its own before Resolved", INVESTIGATING, false],
-        ["Resolved", RESOLVED, true],
-        ["a state of its own placed after Resolved, not flagged", CLOSED, true],
-      ] as Array<[string, Row, boolean]>)(
-        "%s: resolved %s",
-        (_label: string, row: Row, resolved: boolean) => {
-          expect(
-            ResolvedStateUtil.isResolved({ list, states, stateId: row._id }),
-          ).toBe(resolved);
+        test("ids are read whatever their case", () => {
           expect(
             ResolvedStateUtil.isResolved({
               list,
               states,
-              stateId: new ObjectID(row._id),
+              stateId: CLOSED._id.toUpperCase(),
             }),
-          ).toBe(resolved);
+          ).toBe(true);
+        });
+
+        test("splits the project's states, in the order given", () => {
           expect(
-            ResolvedStateUtil.isStateResolved({ list, states, state: row }),
-          ).toBe(resolved);
-        },
-      );
+            ResolvedStateUtil.getResolvedStates({ list, states }).map(
+              (state: unknown): string => {
+                return (state as { _id: string })._id;
+              },
+            ),
+          ).toEqual([CLOSED._id, RESOLVED._id]);
+          expect(
+            ResolvedStateUtil.getUnresolvedStates({ list, states }).map(
+              (state: unknown): string => {
+                return (state as { _id: string })._id;
+              },
+            ),
+          ).toEqual([INVESTIGATING._id, IDENTIFIED._id, ACKNOWLEDGED._id]);
+        });
 
-      test("ids are read whatever their case", () => {
-        expect(
-          ResolvedStateUtil.isResolved({
-            list,
-            states,
-            stateId: CLOSED._id.toUpperCase(),
-          }),
-        ).toBe(true);
-      });
-
-      test("splits the project's states, in the order given", () => {
-        expect(
-          ResolvedStateUtil.getResolvedStates({ list, states }).map(
-            (state: unknown): string => {
-              return (state as { _id: string })._id;
-            },
-          ),
-        ).toEqual([CLOSED._id, RESOLVED._id]);
-        expect(
-          ResolvedStateUtil.getUnresolvedStates({ list, states }).map(
-            (state: unknown): string => {
-              return (state as { _id: string })._id;
-            },
-          ),
-        ).toEqual([INVESTIGATING._id, IDENTIFIED._id, ACKNOWLEDGED._id]);
-      });
-
-      test("and gives their ids as ObjectIDs, for a query", () => {
-        expect(
-          ResolvedStateUtil.getResolvedStateIds({ list, states }).map(
-            (id: ObjectID): string => {
-              return id.toString();
-            },
-          ),
-        ).toEqual([CLOSED._id, RESOLVED._id]);
-        expect(
-          ResolvedStateUtil.getUnresolvedStateIds({ list, states }).map(
-            (id: ObjectID): string => {
-              return id.toString();
-            },
-          ),
-        ).toEqual([INVESTIGATING._id, IDENTIFIED._id, ACKNOWLEDGED._id]);
-      });
-    },
-  );
-
-  test("the resolved state is the first flagged from the top when two are", () => {
-    const autoClosed: Row = {
-      _id: "0193c0de-5a7e-4eee-8fff-0000000000a6",
-      name: "Auto-closed",
-      order: 6,
-      isResolvedState: true,
-    };
-    const states: Array<Row> = [autoClosed, ...ROWS];
-
-    expect(
-      (
-        ResolvedStateUtil.getResolvedState({ list, states }) as Row
-      )._id,
-    ).toBe(RESOLVED._id);
-    // Both flagged ones, and Closed between them, are resolved.
-    expect(
-      ResolvedStateUtil.isResolved({ list, states, stateId: autoClosed._id }),
-    ).toBe(true);
-  });
-
-  test("a flagged state is resolved wherever it is placed", () => {
-    const early: Row = {
-      _id: "0193c0de-5a7e-4eee-8fff-0000000000a7",
-      name: "Done early",
-      order: 1,
-      isResolvedState: true,
-    };
-
-    expect(
-      ResolvedStateUtil.isResolved({
-        list,
-        states: [early, { ...IDENTIFIED, order: 2 }],
-        stateId: early._id,
-      }),
-    ).toBe(true);
-  });
-
-  test("a state none of the project's, or no state, is not resolved", () => {
-    expect(
-      ResolvedStateUtil.isResolved({
-        list,
-        states: ROWS,
-        stateId: "0193c0de-5a7e-4eee-8fff-0000000000ff",
-      }),
-    ).toBe(false);
-    expect(
-      ResolvedStateUtil.isResolved({ list, states: ROWS, stateId: undefined }),
-    ).toBe(false);
-    expect(
-      ResolvedStateUtil.isResolved({ list, states: ROWS, stateId: null }),
-    ).toBe(false);
-    expect(
-      ResolvedStateUtil.isStateResolved({ list, states: ROWS, state: null }),
-    ).toBe(false);
-  });
-
-  test("without a resolved state, only a flag says resolved", () => {
-    const states: Array<Row> = [IDENTIFIED, CLOSED];
-
-    expect(ResolvedStateUtil.getResolvedState({ list, states })).toBeNull();
-    expect(ResolvedStateUtil.getResolvedOrder({ list, states })).toBeNull();
-    expect(
-      ResolvedStateUtil.isResolved({ list, states, stateId: CLOSED._id }),
-    ).toBe(false);
-    expect(ResolvedStateUtil.getUnresolvedStates({ list, states })).toEqual(
-      states,
+        test("and gives their ids as ObjectIDs, for a query", () => {
+          expect(
+            ResolvedStateUtil.getResolvedStateIds({ list, states }).map(
+              (id: ObjectID): string => {
+                return id.toString();
+              },
+            ),
+          ).toEqual([CLOSED._id, RESOLVED._id]);
+          expect(
+            ResolvedStateUtil.getUnresolvedStateIds({ list, states }).map(
+              (id: ObjectID): string => {
+                return id.toString();
+              },
+            ),
+          ).toEqual([INVESTIGATING._id, IDENTIFIED._id, ACKNOWLEDGED._id]);
+        });
+      },
     );
-  });
 
-  test("a state with no place is resolved only by its own flag", () => {
-    const unplaced: Row = {
-      _id: "0193c0de-5a7e-4eee-8fff-0000000000a8",
-      name: "Unplaced",
-      order: null,
-    };
+    test("the resolved state is the first flagged from the top when two are", () => {
+      const autoClosed: Row = {
+        _id: "0193c0de-5a7e-4eee-8fff-0000000000a6",
+        name: "Auto-closed",
+        order: 6,
+        isResolvedState: true,
+      };
+      const states: Array<Row> = [autoClosed, ...ROWS];
 
-    expect(
-      ResolvedStateUtil.isResolved({
-        list,
-        states: [...ROWS, unplaced],
-        stateId: unplaced._id,
-      }),
-    ).toBe(false);
-  });
-});
+      expect(
+        (ResolvedStateUtil.getResolvedState({ list, states }) as Row)._id,
+      ).toBe(RESOLVED._id);
+      // Both flagged ones, and Closed between them, are resolved.
+      expect(
+        ResolvedStateUtil.isResolved({ list, states, stateId: autoClosed._id }),
+      ).toBe(true);
+    });
+
+    test("a flagged state is resolved wherever it is placed", () => {
+      const early: Row = {
+        _id: "0193c0de-5a7e-4eee-8fff-0000000000a7",
+        name: "Done early",
+        order: 1,
+        isResolvedState: true,
+      };
+
+      expect(
+        ResolvedStateUtil.isResolved({
+          list,
+          states: [early, { ...IDENTIFIED, order: 2 }],
+          stateId: early._id,
+        }),
+      ).toBe(true);
+    });
+
+    test("a state none of the project's, or no state, is not resolved", () => {
+      expect(
+        ResolvedStateUtil.isResolved({
+          list,
+          states: ROWS,
+          stateId: "0193c0de-5a7e-4eee-8fff-0000000000ff",
+        }),
+      ).toBe(false);
+      expect(
+        ResolvedStateUtil.isResolved({
+          list,
+          states: ROWS,
+          stateId: undefined,
+        }),
+      ).toBe(false);
+      expect(
+        ResolvedStateUtil.isResolved({ list, states: ROWS, stateId: null }),
+      ).toBe(false);
+      expect(
+        ResolvedStateUtil.isStateResolved({ list, states: ROWS, state: null }),
+      ).toBe(false);
+    });
+
+    test("without a resolved state, only a flag says resolved", () => {
+      const states: Array<Row> = [IDENTIFIED, CLOSED];
+
+      expect(ResolvedStateUtil.getResolvedState({ list, states })).toBeNull();
+      expect(ResolvedStateUtil.getResolvedOrder({ list, states })).toBeNull();
+      expect(
+        ResolvedStateUtil.isResolved({ list, states, stateId: CLOSED._id }),
+      ).toBe(false);
+      expect(ResolvedStateUtil.getUnresolvedStates({ list, states })).toEqual(
+        states,
+      );
+    });
+
+    test("a state with no place is resolved only by its own flag", () => {
+      const unplaced: Row = {
+        _id: "0193c0de-5a7e-4eee-8fff-0000000000a8",
+        name: "Unplaced",
+        order: null,
+      };
+
+      expect(
+        ResolvedStateUtil.isResolved({
+          list,
+          states: [...ROWS, unplaced],
+          stateId: unplaced._id,
+        }),
+      ).toBe(false);
+    });
+  },
+);
 
 describe("when a record became resolved, off its timeline", () => {
   const list: ResolvedStateList = StateListType.IncidentState;
@@ -288,7 +309,11 @@ describe("when a record became resolved, off its timeline", () => {
 
   test("a resolve is the move into a resolved state from one that is not", () => {
     expect(
-      resolutions([row(IDENTIFIED, 0), row(ACKNOWLEDGED, 5), row(RESOLVED, 30)]),
+      resolutions([
+        row(IDENTIFIED, 0),
+        row(ACKNOWLEDGED, 5),
+        row(RESOLVED, 30),
+      ]),
     ).toEqual([at(30)]);
   });
 

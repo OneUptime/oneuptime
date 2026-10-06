@@ -1842,12 +1842,7 @@ describe("an incident records whether it holds its monitors (Incident.holdsMonit
     ["declared open, sent false", CREATED, false, true],
   ] as Array<[string, string, boolean, boolean]>)(
     "it is OneUptime's to record, whatever the write sent: %s",
-    async (
-      _name: string,
-      state: string,
-      sent: boolean,
-      recorded: boolean,
-    ) => {
+    async (_name: string, state: string, sent: boolean, recorded: boolean) => {
       const { written } = await create(INCIDENT, state, [PRIMARY_POLICY_ID], {
         values: { holdsMonitors: sent },
       });

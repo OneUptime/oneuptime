@@ -918,14 +918,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     // The project's resolved state: the first from the top flagged resolved.
-    const alertState: AlertState = await AlertStateService.getResolvedAlertState(
-      {
+    const alertState: AlertState =
+      await AlertStateService.getResolvedAlertState({
         projectId: episode.projectId,
         props: {
           isRoot: true,
         },
-      },
-    );
+      });
 
     if (!alertState.id) {
       throw new BadDataException("Resolved state not found for this project.");
@@ -1161,9 +1160,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertStateId: episode.currentAlertStateId,
       });
 
-    return Boolean(
-      startingState && startingState.stage !== StartingStage.Open,
-    );
+    return Boolean(startingState && startingState.stage !== StartingStage.Open);
   }
 
   @CaptureSpan()

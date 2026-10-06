@@ -27,7 +27,6 @@ import {
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { FindOperator } from "typeorm";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
