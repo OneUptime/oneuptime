@@ -73,19 +73,20 @@ interface ChannelWords {
   isPlural: boolean;
 }
 
-const CHANNEL_WORDS: Readonly<Record<ProjectNotificationChannel, ChannelWords>> =
-  {
-    [ProjectNotificationChannel.SMS]: { name: "SMS", isPlural: false },
-    [ProjectNotificationChannel.Call]: { name: "Phone calls", isPlural: true },
-    [ProjectNotificationChannel.WhatsApp]: {
-      name: "WhatsApp",
-      isPlural: false,
-    },
-    [ProjectNotificationChannel.Telegram]: {
-      name: "Telegram",
-      isPlural: false,
-    },
-  };
+const CHANNEL_WORDS: Readonly<
+  Record<ProjectNotificationChannel, ChannelWords>
+> = {
+  [ProjectNotificationChannel.SMS]: { name: "SMS", isPlural: false },
+  [ProjectNotificationChannel.Call]: { name: "Phone calls", isPlural: true },
+  [ProjectNotificationChannel.WhatsApp]: {
+    name: "WhatsApp",
+    isPlural: false,
+  },
+  [ProjectNotificationChannel.Telegram]: {
+    name: "Telegram",
+    isPlural: false,
+  },
+};
 
 export type ChannelPronoun = "it" | "them";
 

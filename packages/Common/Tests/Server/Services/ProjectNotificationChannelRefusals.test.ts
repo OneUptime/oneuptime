@@ -229,9 +229,7 @@ describe("adding a WhatsApp number", () => {
     row.phone = new Phone("+15551230123");
 
     const message: string = await refusalOf(
-      hooksOf<UserWhatsApp>(UserWhatsAppService).onBeforeCreate(
-        createBy(row),
-      ),
+      hooksOf<UserWhatsApp>(UserWhatsAppService).onBeforeCreate(createBy(row)),
     );
 
     expect(message).toBe(
@@ -290,9 +288,10 @@ describe("adding a number for incoming calls", () => {
     const row: UserIncomingCallNumber = incoming();
     row._id = ITEM_ID.toString();
     row.isVerified = false;
-    getJestSpyOn(UserIncomingCallNumberService, "findOneById").mockResolvedValue(
-      row,
-    );
+    getJestSpyOn(
+      UserIncomingCallNumberService,
+      "findOneById",
+    ).mockResolvedValue(row);
     readsProject(projectWithOff(ProjectNotificationChannel.SMS));
 
     const message: string = await refusalOf(

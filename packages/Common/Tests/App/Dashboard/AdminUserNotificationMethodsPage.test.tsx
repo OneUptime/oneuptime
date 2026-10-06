@@ -2597,9 +2597,9 @@ describe("a project with channels switched off", () => {
   ] as Array<[string, Array<Permission>]>)(
     "%s is sent straight to the switches",
     async (_who: string, permissions: Array<Permission>) => {
-      jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue(
-        permissions,
-      );
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions);
       respondWithChannels({ ...ALL_ON, call: false });
 
       await renderPage();

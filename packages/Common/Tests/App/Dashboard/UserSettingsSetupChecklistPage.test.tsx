@@ -1386,12 +1386,14 @@ describe("setup checklist page - who can turn a channel on", () => {
     permissions: Array<Permission>,
     isMasterAdmin: boolean = false,
   ): void => {
-    jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([
-      Permission.Public,
-      Permission.User,
-      Permission.CurrentUser,
-      ...permissions,
-    ]);
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+        ...permissions,
+      ]);
     jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(isMasterAdmin);
   };
 
@@ -1475,7 +1477,9 @@ describe("setup checklist page - who can turn a channel on", () => {
       );
       expect(detail.toLowerCase()).not.toContain("admin");
       expect(within(step).getByText("Needs someone else")).toBeInTheDocument();
-      expect(screen.getByTestId("setup-checklist-blocked-note").textContent).toBe(
+      expect(
+        screen.getByTestId("setup-checklist-blocked-note").textContent,
+      ).toBe(
         "1 more step needs a project owner or someone with Manage Billing, so it is not counted here.",
       );
 

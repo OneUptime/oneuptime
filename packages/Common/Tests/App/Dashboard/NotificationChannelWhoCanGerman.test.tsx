@@ -209,8 +209,7 @@ describe("in German, the sentences that say who can turn a channel on", () => {
     );
 
     expect(
-      screen.getByTestId("setup-checklist-detail-channels-enabled")
-        .textContent,
+      screen.getByTestId("setup-checklist-detail-channels-enabled").textContent,
     ).toBe(DE[ChannelStepCopy.whoCanTurnOnDetail]);
     expect(screen.getByText(DE[BLOCKED_STEP_LABEL]!)).toBeInTheDocument();
     expect(
@@ -232,8 +231,7 @@ describe("in German, the sentences that say who can turn a channel on", () => {
     );
 
     expect(
-      screen.getByTestId("setup-checklist-detail-channels-enabled")
-        .textContent,
+      screen.getByTestId("setup-checklist-detail-channels-enabled").textContent,
     ).toBe(DE[ChannelStepCopy.canTurnOnDetail]);
     expect(
       screen.getByTestId("setup-checklist-step-channels-enabled"),

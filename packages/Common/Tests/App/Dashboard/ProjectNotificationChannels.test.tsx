@@ -959,11 +959,10 @@ describe("the panel at the top of a list while its channel is off", () => {
 
   test("calls are 'them', every other channel 'it', as each sentence's own subject is", () => {
     const pronouns: Record<string, string> = {};
+    const TURN_THEM_ON: RegExp = / can turn them on /;
 
     for (const definition of CHANNEL_GATED_METHOD_LISTS) {
-      pronouns[definition.list] = / can turn them on /.test(
-        definition.offSentence,
-      )
+      pronouns[definition.list] = TURN_THEM_ON.test(definition.offSentence)
         ? "them"
         : "it";
     }
@@ -1101,8 +1100,10 @@ describe("who may turn the channels on", () => {
       expect(canChangeProjectNotificationChannels()).toBe(expected);
 
       for (const channel of Object.values(ProjectNotificationChannel)) {
-        expect([channel, canChangeProjectNotificationChannels([channel])])
-          .toEqual([channel, expected]);
+        expect([
+          channel,
+          canChangeProjectNotificationChannels([channel]),
+        ]).toEqual([channel, expected]);
       }
     },
   );
@@ -1211,7 +1212,9 @@ describe("the Notification Channels card on Project Settings", () => {
     await renderCard();
 
     expect(
-      screen.queryByTestId(PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID),
+      screen.queryByTestId(
+        PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID,
+      ),
     ).not.toBeInTheDocument();
   });
 

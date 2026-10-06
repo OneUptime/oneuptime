@@ -165,7 +165,9 @@ const ProjectNotificationChannelsCard: FunctionComponent = (): ReactElement => {
          */}
         <div className="-mx-5 -mb-6 divide-y divide-gray-200 border-t border-gray-200 md:-mx-6">
           {PROJECT_NOTIFICATION_CHANNELS.map(
-            (definition: ProjectNotificationChannelDefinition): ReactElement => {
+            (
+              definition: ProjectNotificationChannelDefinition,
+            ): ReactElement => {
               return (
                 <div className="px-5 py-4 md:px-6" key={definition.column}>
                   <ModelSwitchRow<Project>

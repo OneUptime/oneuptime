@@ -90,7 +90,10 @@ describe("who may turn them on", () => {
       expect([
         column,
         project.getColumnAccessControlFor(column)?.update,
-      ]).toEqual([column, [...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS]]);
+      ]).toEqual([
+        column,
+        [...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS],
+      ]);
     }
   });
 
@@ -215,13 +218,20 @@ describe("what the server says when a channel is off", () => {
   });
 
   test("no sentence tells its reader to do it themselves, or to ask an admin", () => {
+    const ADMIN: RegExp = /admin/i;
+    const PLEASE_ENABLE: RegExp = /\bPlease enable\b/i;
+    const TURN_IT_ON_YOURSELF: RegExp = /^Turn /;
+
     for (const sentence of ALL_SENTENCES) {
-      expect([sentence, /admin/i.test(sentence)]).toEqual([sentence, false]);
-      expect([sentence, /\bPlease enable\b/i.test(sentence)]).toEqual([
+      expect([sentence, ADMIN.test(sentence)]).toEqual([sentence, false]);
+      expect([sentence, PLEASE_ENABLE.test(sentence)]).toEqual([
         sentence,
         false,
       ]);
-      expect([sentence, /^Turn /.test(sentence)]).toEqual([sentence, false]);
+      expect([sentence, TURN_IT_ON_YOURSELF.test(sentence)]).toEqual([
+        sentence,
+        false,
+      ]);
     }
   });
 

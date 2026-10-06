@@ -37,7 +37,8 @@ function readPage(relative: string): string {
 }
 
 const CARD: string = `**${ProjectNotificationChannelsCopy.cardTitle}**`;
-const PAGE: string = "**Project Settings > Notifications > Notification Settings**";
+const PAGE: string =
+  "**Project Settings > Notifications > Notification Settings**";
 
 describe("the people the docs name", () => {
   test("are the people the columns let in", () => {
@@ -46,9 +47,13 @@ describe("the people the docs name", () => {
     for (const channel of Object.values(ProjectNotificationChannel)) {
       const column: string = PROJECT_NOTIFICATION_CHANNEL_COLUMNS[channel];
 
-      expect([column, project.getColumnAccessControlFor(column)?.update]).toEqual(
-        [column, [Permission.ProjectOwner, Permission.ManageProjectBilling]],
-      );
+      expect([
+        column,
+        project.getColumnAccessControlFor(column)?.update,
+      ]).toEqual([
+        column,
+        [Permission.ProjectOwner, Permission.ManageProjectBilling],
+      ]);
     }
 
     expect([...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS]).toEqual([

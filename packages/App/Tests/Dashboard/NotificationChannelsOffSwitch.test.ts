@@ -517,22 +517,19 @@ describe("nothing tells a reader to ask a project admin, or to turn a channel on
     ],
   ];
 
-  test.each(FORBIDDEN)(
-    "no source %s",
-    (_what: string, pattern: RegExp) => {
-      const found: Array<string> = [];
+  test.each(FORBIDDEN)("no source %s", (_what: string, pattern: RegExp) => {
+    const found: Array<string> = [];
 
-      for (const directory of SCANNED) {
-        for (const file of listSources(directory)) {
-          if (pattern.test(readSource(file))) {
-            found.push(path.relative(REPO_PACKAGES, file));
-          }
+    for (const directory of SCANNED) {
+      for (const file of listSources(directory)) {
+        if (pattern.test(readSource(file))) {
+          found.push(path.relative(REPO_PACKAGES, file));
         }
       }
+    }
 
-      expect(found).toEqual([]);
-    },
-  );
+    expect(found).toEqual([]);
+  });
 });
 
 describe("the admin's Add form offers only the channels that are on", () => {

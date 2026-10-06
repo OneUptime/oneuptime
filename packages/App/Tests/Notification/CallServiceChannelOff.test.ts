@@ -193,9 +193,7 @@ describe("a call while phone calls are off in the project", () => {
     expect(body).toContain(
       "This call was not made. Phone calls are off in this project. If they should be on, turn them on in Project Settings &gt; Notification Settings.",
     );
-    expect(body).toContain(
-      `<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`,
-    );
+    expect(body).toContain(`<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`);
     expect(body).not.toContain("Please enable");
 
     // Told once: the flag that stops a second email is set.
