@@ -146,6 +146,8 @@
 
 **还有一件事会改变结果。** 如果你在状态变更对话框里写了 **公开备注**，那条时间线记录会被标记为"已通知"而不是进入队列。真正送达订阅者的是这条备注本身，所以他们收到的是一条消息而不是两条。这条消息会在每个渠道上写明新的状态，就像状态变更消息那样：例如邮件主题里的 `[Resolved Incident] <title>`，以及 Slack 和 Microsoft Teams 里的 `**Status:** Resolved`。发布这条备注需要创建公开备注的权限：没有该权限时，对话框不会提供备注，而带备注提交的状态变更会被拒绝，状态保持不变。纯状态变更消息背后的事件类型是 `Subscriber Incident State Changed`。
 
+告警、告警片段和事件片段则在状态变更时提供私密备注（**添加私密备注**），规则相同：发布它需要备注自己的权限（自定义角色中的 **Create Alert Internal Note**、**Create Alert Episode Internal Note** 或 **Create Incident Episode Internal Note**；内置的告警、事件和项目角色都有这些权限），没有该权限的人带私密备注提交的状态变更会被整体拒绝，状态保持不变。
+
 关于谁会收到这些消息以及模板如何选择，见 [订阅者与公告](/docs/status-pages/subscribers)。
 
 ## 让事件不出现在状态页上

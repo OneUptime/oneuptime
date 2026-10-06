@@ -16,6 +16,20 @@ Every resource in the OneUptime dashboard has a **Developer** section in its sid
 
 The examples are written for the resource. On the **Incidents** list, for example, the list request shows its answer with your first incident, the filters find incidents that are not resolved, of one severity, about one monitor or from the last seven days, using your own states, severities and monitors, and the create request declares an incident with one of your severities, with a line on what each field is for. An incident's own page reads it with its real answer, moves it to another of your severities, and has its common tasks: acknowledge and resolve it (with your project's own states), and add internal or public notes. Every API page ends with the resource's endpoints.
 
+### Features your plan does not include
+
+On OneUptime Cloud, some resources are sold on a plan: single sign-on providers and SCIM connections on **Scale**; API keys, on-call schedules, and Slack and Microsoft Teams notification rules and summaries on **Growth**, among others. Creating one, changing one or switching one on needs that plan. Below it, the request is refused with `402 Payment Required`, and the message names the plan.
+
+What a project already has stays manageable whatever its plan, for example after a trial ends or the plan goes down:
+
+- you can delete those records;
+- you can switch one off, on a resource with an `isEnabled` field, by sending `"isEnabled": false` and nothing else;
+- you can list and read the ones that keep working after the plan goes down: single sign-on providers, SCIM connections, API keys and their permissions, on-call schedules, and Slack and Microsoft Teams notification rules and summaries.
+
+The usual permissions still decide who can do each, exactly as on the plan. Reading the other resources a plan sells, such as templates, custom fields, monitor groups, on-call logs and form submissions, still needs the plan: reading them is using the feature. An API key's permissions are not deleted one by one below **Growth**, because deleting a block permission would give the key more access; delete the key instead.
+
+API keys keep working after a plan goes down. Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has, so any of them can be deleted (revoked) on every plan. Creating or changing keys needs **Growth**.
+
 ### Finding a resource's ID
 
 Requests that read, change or delete one resource name it by its ID, a UUID. On the resource's own page, its details card ends with a small **ID** line that shows the start of the ID: click the ID, or the copy button beside it, to copy the whole ID. Lists that offer it have **Show ID** in a row's **⋯** menu, and the ID is also the last part of the page's address. Your project's ID is the first thing on the **Project Details** card of **Project Settings → Project**.

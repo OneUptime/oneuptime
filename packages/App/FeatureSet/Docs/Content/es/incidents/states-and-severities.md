@@ -146,6 +146,8 @@ La notificación se solicita por fila de la línea de tiempo con **Notificar a s
 
 **Otra cosa que cambia el resultado.** Si escribes una **Nota pública** en el modal de cambio de estado, la fila de la línea de tiempo se marca como ya notificada en lugar de ponerse en cola. Lo que llega a los suscriptores es la propia nota, así que reciben un mensaje en vez de dos. Ese mensaje nombra el nuevo estado en todos los canales, como lo haría el mensaje de cambio de estado: por ejemplo, `[Resolved Incident] <title>` en el asunto del correo y `**Status:** Resolved` en Slack y Microsoft Teams. Publicar la nota requiere permiso para crear notas públicas: sin él, el modal no ofrece la nota, y un cambio de estado enviado con una nota se rechaza, así que el estado no cambia. El tipo de evento que hay detrás del mensaje simple de cambio de estado es `Subscriber Incident State Changed`.
 
+Las alertas, los episodios de alertas y los episodios de incidentes ofrecen en su lugar una nota privada con el cambio de estado (**Añadir una nota privada**), y funciona igual: publicarla requiere el permiso propio de la nota (**Create Alert Internal Note**, **Create Alert Episode Internal Note** o **Create Incident Episode Internal Note** en un rol personalizado; los roles integrados de alertas, incidentes y proyecto los tienen), y un cambio de estado enviado con una nota privada por alguien sin ese permiso se rechaza entero, así que el estado no cambia.
+
 Para saber quién recibe estos avisos y cómo se eligen las plantillas, consulta [Suscriptores y anuncios](/docs/status-pages/subscribers).
 
 ## Mantener un incidente fuera de la página de estado

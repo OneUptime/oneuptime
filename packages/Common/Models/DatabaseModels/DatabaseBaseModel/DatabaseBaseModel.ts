@@ -156,6 +156,17 @@ export default class DatabaseBaseModel extends BaseEntity {
   public deleteBillingPlan!: PlanType | null;
 
   /*
+   * Set by @TableBillingAccessControl({ readableBelowPlan: true }) on
+   * configuration that keeps working after a downgrade (SSO providers, API
+   * keys, schedules...): below its read plan, the records a project has stay
+   * readable. And by deleteStaysGated on a table whose records restrict
+   * something (an API key's block permissions): below its delete plan they
+   * are not deleted. See Types/Billing/PlanGatedTable.
+   */
+  public readableBelowPlan!: boolean;
+  public deleteStaysGated!: boolean;
+
+  /*
    * Edition gating. When true, the model is only available on the
    * Enterprise self-hosted edition or on the cloud Enterprise plan.
    * Set by the @TableEditionAccessControl decorator.

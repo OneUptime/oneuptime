@@ -33,6 +33,10 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import PlanLeftoverPage from "../../Components/Billing/PlanLeftoverPage";
+import PlanLeftoverTable from "../../Components/Billing/PlanLeftoverTable";
+import { PlanLeftoverTitle } from "../../Components/Billing/PlanLeftoverCopy";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 
 /*
  * Whether the user may add layers and people to them, which "Who takes
@@ -287,4 +291,60 @@ const OnCallDutyPage: FunctionComponent<
   );
 };
 
-export default OnCallDutyPage;
+// The plan on-call schedules are sold at.
+const ON_CALL_SCHEDULE_PLAN: PlanType =
+  new OnCallDutySchedule().getCreateBillingPlan() || PlanType.Growth;
+
+// The schedules a project below the plan still has: each can be deleted.
+const OnCallSchedulesLeftover: FunctionComponent = (): ReactElement => {
+  return (
+    <PlanLeftoverTable<OnCallDutySchedule>
+      modelType={OnCallDutySchedule}
+      id="on-call-schedules"
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      }}
+      requiredPlan={ON_CALL_SCHEDULE_PLAN}
+      title={PlanLeftoverTitle.onCallSchedules}
+      columns={[
+        {
+          field: {
+            name: true,
+          },
+          title: "Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            description: true,
+          },
+          noValueMessage: "-",
+          title: "Description",
+          type: FieldType.LongText,
+        },
+      ]}
+    />
+  );
+};
+
+/*
+ * On-call schedules are sold on the Growth plan, and a schedule keeps paging
+ * the people on it, through the escalation rules that name it, after a
+ * project drops below the plan. Below it this page is the plan note with
+ * the schedules the project still has under it, to delete
+ * (PlanLeftoverPage); on the plan, and with billing off, it is the page.
+ */
+const OnCallDutySchedulesPage: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  return (
+    <PlanLeftoverPage
+      requiredPlan={ON_CALL_SCHEDULE_PLAN}
+      leftovers={<OnCallSchedulesLeftover />}
+    >
+      <OnCallDutyPage {...props} />
+    </PlanLeftoverPage>
+  );
+};
+
+export default OnCallDutySchedulesPage;

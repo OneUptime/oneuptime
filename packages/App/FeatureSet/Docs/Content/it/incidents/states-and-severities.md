@@ -146,6 +146,8 @@ La notifica viene richiesta per ogni riga di cronologia da **Notifica gli iscrit
 
 **Un'altra cosa che cambia l'esito.** Se scrivete una **Nota pubblica** nella finestra di cambio stato, la riga di cronologia viene marcata come già notificata invece che messa in coda. È la nota stessa a raggiungere gli iscritti, quindi ricevono un messaggio invece di due. Quel messaggio nomina il nuovo stato su ogni canale, come avrebbe fatto il messaggio di cambio stato: per esempio `[Resolved Incident] <title>` nell'oggetto dell'email e `**Status:** Resolved` in Slack e Microsoft Teams. Pubblicare la nota richiede il permesso di creare note pubbliche: senza, la finestra non offre la nota, e un cambio di stato inviato con una nota viene rifiutato, quindi lo stato resta com'era. Il tipo di evento dietro il messaggio semplice di cambio stato è `Subscriber Incident State Changed`.
 
+Gli avvisi, gli episodi di avvisi e gli episodi di incidenti offrono invece una nota privata con il cambio di stato (**Aggiungi una nota privata**), e funziona allo stesso modo: pubblicarla richiede il permesso proprio della nota (**Create Alert Internal Note**, **Create Alert Episode Internal Note** o **Create Incident Episode Internal Note** in un ruolo personalizzato; i ruoli predefiniti di avvisi, incidenti e progetto li hanno), e un cambio di stato inviato con una nota privata da chi non ha quel permesso viene rifiutato per intero, quindi lo stato non cambia.
+
 Per sapere chi riceve queste comunicazioni e come vengono scelti i modelli, vedete [Iscritti e annunci](/docs/status-pages/subscribers).
 
 ## Tenere un incidente fuori dalla pagina di stato

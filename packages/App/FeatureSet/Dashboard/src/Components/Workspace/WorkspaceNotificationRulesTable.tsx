@@ -55,6 +55,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
+import { getTestRuleLock, TestRuleLock } from "./TestRuleLock";
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
@@ -107,6 +108,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
   const [showTestSuccessModal, setShowTestSuccessModal] =
     React.useState<boolean>(false);
+
+  // Locked, saying why, for someone who may not send a test (TestRuleLock).
+  const testRuleLock: TestRuleLock = getTestRuleLock();
 
   type TestRuleFunction = (ruleId: ObjectID) => Promise<void>;
 
@@ -515,6 +519,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: "Test Rule",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Play,
+            disabled: testRuleLock.isLocked,
+            tooltip: testRuleLock.tooltip,
             onClick: async (
               item: WorkspaceNotificationRule,
               onCompleteAction: VoidFunction,

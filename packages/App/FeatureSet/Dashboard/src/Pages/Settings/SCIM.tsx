@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import EnterprisePluginPage from "../../Enterprise/EnterprisePluginPage";
 import { IDENTITY_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
+import { ProjectScimConnectionsLeftover } from "../../Components/Billing/IdentityPlanLeftovers";
 import IconProp from "Common/Types/Icon/IconProp";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -11,7 +12,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The screen is part of the Enterprise Edition (ee/Dashboard/Identity). This
  * shell keeps the route and the page module where they were: it renders the
  * Enterprise screen when the project may use the feature and this build
- * includes it, and the upsell card otherwise.
+ * includes it, and the upsell card otherwise - on OneUptime Cloud below
+ * Scale, with the SCIM connections the project still has under it: they
+ * keep provisioning people until they are deleted
+ * (ProjectScimConnectionsLeftover).
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -21,6 +25,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
       plugin={getDashboardPlugins().SettingsSCIM}
       pluginProps={props}
       requiredPlan={IDENTITY_REQUIRED_PLAN}
+      belowPlan={<ProjectScimConnectionsLeftover />}
       upsell={{
         title: "SCIM User Provisioning",
         description: "Automate user provisioning via SCIM.",

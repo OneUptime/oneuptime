@@ -203,12 +203,12 @@ route:
 ## 故障排查
 
 - **什么都没收到** —— 确认 Alertmanager 能访问该 URL；检查它的日志有无投递错误。OneUptime 会在做任何校验之前就用空的 `200` 回应每个请求，所以 `200` 并不能确认负载被接受。请改看监控器的时间线。
-- **事件能打开但从不关闭** —— 检查 Alertmanager 中的 `send_resolved: true`、条件里的恢复字段与取值（比较区分大小写），以及事件 **More fields** 下的 **Auto Resolve Incident**。还有两个更隐蔽的原因：当负载中不同键的数量超过 **Max incidents per request** 时，超出上限的键对恢复同样不可见；另外，如果被入口合并（见下）丢弃的恰好是 `resolved` 通知，该事件就会被永久搁置，因为 Alertmanager 会重复发送触发通知，却不会重复发送恢复通知。这些只能手动关闭。
+- **事件能打开但从不关闭** —— 检查 Alertmanager 中的 `send_resolved: true`、条件里的恢复字段与取值（比较区分大小写），以及事件 **More fields** 下的 **Auto Resolve Incident**。还有两个更隐蔽的原因：当负载中不同键的数量超过 **Max incidents per request** 时，超出上限的键对恢复同样不可见；另外，如果在某条 `resolved` 通知被评估之前，就到达了一条关于其他告警的通知，入口合并（见下）会跳过这条 `resolved` 通知，该事件也就会被永久搁置，因为 Alertmanager 会重复发送触发通知，却不会重复发送恢复通知。这些只能手动关闭。
 - **完全没有事件，监控器状态也没变** —— 分组路径必须以字面量 `requestBody.` 开头，且路径中只有第一个 `[*]` 是通配符。这两个错误都会静默失败。
 - **事件文本中显示原始的 `{{...}}` 占位符** —— 路径没有解析成功，而 OneUptime 会原样保留未解析的占位符，而不是清空它们。不同规则设置的注解不同，所以请引用你的规则中确实存在的字段（`commonAnnotations` 还是每条告警各自的 `annotations`）。
 - **一份满是告警的负载只产生一个事件** —— 你按一个在通知内部不变的标签做了分组，通常正是路由 `group_by` 中的那个标签。请改用 `requestBody.alerts[*].fingerprint` 分组。
 - **事件太多** —— 放宽 `group_by` / `group_interval`，让 Alertmanager 把相关告警合并。调低 **Max incidents per request** 能限制数量，但也会让超出上限的键对恢复不可见。
-- **在密集突发时似乎有些通知被跳过** —— 发往同一监控器的请求会在入口处合并，以免单个发送方压垮监控器，因此当通知接连到达时可能会丢弃中间的某次负载。增大 `group_wait` 和 `group_interval` 可以把它们拉开。合并由应用容器的环境变量 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` 控制，默认开启；需要每次负载都被评估的自托管运维人员，可以在该容器上把它设为 `false`。
+- **在密集突发时似乎有些通知被跳过** —— 发往同一监控器的请求会在入口处合并，以免单个发送方压垮监控器：如果在较早的请求被评估之前，同一监控器又收到了更新的请求，则只评估更新的那条。一次突发中的最后一条通知总会被评估，但之前的通知会被跳过，即使后一条通知涉及的是其他告警，因为 Alertmanager 会把每个 `group_by` 分组作为单独的通知发送到同一个 URL。增大 `group_wait` 和 `group_interval` 可以把它们拉开。合并由应用容器的环境变量 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` 控制，默认开启；需要每次负载都被评估的自托管运维人员，可以在该容器上把它设为 `false`。
 
 ## 接下来读什么
 

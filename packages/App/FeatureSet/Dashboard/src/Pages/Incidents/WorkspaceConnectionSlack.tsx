@@ -4,6 +4,7 @@ import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTa
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
 import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnectionGate";
+import WorkspacePlanLeftoverGate from "../../Components/Workspace/WorkspacePlanLeftoverGate";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Card from "Common/UI/Components/Card/Card";
@@ -82,14 +83,26 @@ When you react with a pin emoji, OneUptime will automatically save the message c
   ];
 
   return (
-    <WorkspaceConnectionGate workspaceType={WorkspaceType.Slack}>
-      <Tabs
-        tabs={tabs}
-        onTabChange={() => {
-          // Tab changed
-        }}
-      />
-    </WorkspaceConnectionGate>
+    <WorkspacePlanLeftoverGate
+      workspaceType={WorkspaceType.Slack}
+      eventTypes={[
+        NotificationRuleEventType.Incident,
+        NotificationRuleEventType.IncidentEpisode,
+      ]}
+      summaryTypes={[
+        WorkspaceNotificationSummaryType.Incident,
+        WorkspaceNotificationSummaryType.IncidentEpisode,
+      ]}
+    >
+      <WorkspaceConnectionGate workspaceType={WorkspaceType.Slack}>
+        <Tabs
+          tabs={tabs}
+          onTabChange={() => {
+            // Tab changed
+          }}
+        />
+      </WorkspaceConnectionGate>
+    </WorkspacePlanLeftoverGate>
   );
 };
 

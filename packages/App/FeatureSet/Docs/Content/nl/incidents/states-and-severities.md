@@ -146,6 +146,8 @@ De melding wordt per tijdlijnrij aangevraagd met **Statuspagina-abonnees op de h
 
 **Nog één ding dat de uitkomst verandert.** Typ je een **Openbare notitie** in de statuswijzigingsdialoog, dan wordt de tijdlijnrij gemarkeerd als reeds gemeld in plaats van in de wachtrij gezet. De notitie zelf is wat abonnees bereikt, dus ze krijgen één bericht in plaats van twee. Dat bericht noemt op elk kanaal de nieuwe status, zoals het statuswijzigingsbericht zou hebben gedaan: bijvoorbeeld `[Resolved Incident] <title>` in het onderwerp van de e-mail en `**Status:** Resolved` in Slack en Microsoft Teams. Voor de notitie is toestemming nodig om openbare notities te maken: zonder die toestemming biedt de dialoog de notitie niet aan, en een statuswijziging die met een notitie wordt verstuurd, wordt geweigerd, zodat de status blijft zoals hij was. Het gebeurtenistype achter het kale statuswijzigingsbericht is `Subscriber Incident State Changed`.
 
+Waarschuwingen, waarschuwingsepisodes en incidentepisodes bieden bij een statuswijziging in plaats daarvan een privénotitie aan (**Privénotitie toevoegen**), en die werkt op dezelfde manier: plaatsen vraagt de eigen toestemming van de notitie (**Create Alert Internal Note**, **Create Alert Episode Internal Note** of **Create Incident Episode Internal Note** in een eigen rol; de ingebouwde waarschuwings-, incident- en projectrollen hebben ze), en een statuswijziging die iemand zonder die toestemming met een privénotitie stuurt, wordt in zijn geheel geweigerd, zodat de status niet verandert.
+
 Voor wie deze ontvangt en hoe de sjablonen worden gekozen, zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
 
 ## Een incident van de statuspagina houden

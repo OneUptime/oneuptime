@@ -38,6 +38,8 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Pages people after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @EnableWorkflow({
   create: true,
