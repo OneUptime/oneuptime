@@ -520,7 +520,7 @@ describe("Needs attention, from the server's own statuses", () => {
       ],
       [
         "ai_balance_insufficient",
-        "Add AI credits to this project, or turn on auto-recharge.",
+        "Add AI credits to this project.",
         "open_ai_credits",
       ],
     ]);

@@ -8,6 +8,7 @@ import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "Common/Utils/Project/NotificationChannels";
+import { getProjectBalanceMessageNotSentReason } from "Common/Utils/Project/ProjectBalance";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -307,7 +308,14 @@ describe("an SMS the Notification service does not send", () => {
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as BadDataException).message).toBe(
-        `SMS not sent: Project ${PROJECT_ID.toString()} does not have enough SMS balance.`,
+        `SMS not sent: ${getProjectBalanceMessageNotSentReason({
+          channel: ProjectNotificationChannel.SMS,
+          balanceInUSDCents: 0,
+          costInUSDCents: 10,
+        })}`,
+      );
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: This project's balance is used up. A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()).toHaveLength(1);
@@ -321,8 +329,8 @@ describe("an SMS the Notification service does not send", () => {
         send({ failIfNotSent: true, onGlobalTwilioAccount: true }),
       );
 
-      expect((error as BadDataException).message).toMatch(
-        /^SMS not sent: Project does not have enough balance to send SMS\./,
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: This project's balance (0.01 USD) is less than this SMS costs (0.10 USD). A project owner or someone with Manage Billing can add balance in Project Settings > Notification Settings.",
       );
       expect(createMessage).not.toHaveBeenCalled();
       expect(loggedRows()[0]!.status).toBe(SmsStatus.LowBalance);
@@ -388,9 +396,14 @@ describe("an SMS the Notification service does not send", () => {
       ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
     ).mock.calls[0]![2] as string;
 
-    expect(body).not.toContain("<a href");
+    expect(body).not.toContain('<a href="https://evil.example"');
     expect(body).toContain(
       "Incident &lt;a href=&quot;https://evil.example&quot;&gt;Verify billing&lt;/a&gt; on Site 03.",
+    );
+    // The one link is OneUptime's own: the page to add balance on.
+    expect(body.match(/<a href=/g)).toHaveLength(1);
+    expect(body).toContain(
+      `<a href="https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings">`,
     );
   });
 });
