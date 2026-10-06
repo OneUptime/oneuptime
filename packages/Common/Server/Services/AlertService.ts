@@ -695,25 +695,21 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The severity, the monitor status, the monitor and - on an update - the
-   * state an alert write names, each by both of its names
-   * (getWrittenRelationReferences): every name that holds an id is a
-   * reference to check, and two names that disagree are refused.
+   * The state, the severity, the monitor status and the monitor an alert
+   * write names, each by both of its names (getWrittenRelationReferences):
+   * every name that holds an id is a reference to check, and two names that
+   * disagree are refused. On a create, the state is the one the write
+   * picked, if any (onBeforeCreate).
    */
-  private getWrittenReferences(
-    data: unknown,
-    options?: { withState: boolean },
-  ): Array<ProjectScopedReference> {
+  private getWrittenReferences(data: unknown): Array<ProjectScopedReference> {
     return [
-      ...(options?.withState ?? true
-        ? getWrittenRelationReferences({
-            payload: data,
-            idColumn: "currentAlertStateId",
-            relation: "currentAlertState",
-            modelName: "Alert State",
-            service: AlertStateService,
-          })
-        : []),
+      ...getWrittenRelationReferences({
+        payload: data,
+        idColumn: "currentAlertStateId",
+        relation: "currentAlertState",
+        modelName: "Alert State",
+        service: AlertStateService,
+      }),
       ...getWrittenRelationReferences({
         payload: data,
         idColumn: "alertSeverityId",
@@ -799,41 +795,30 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    const alertState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isCreatedState: true,
-      },
-      select: {
-        _id: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!alertState || !alertState.id) {
-      throw new BadDataException(
-        "Created alert state not found for this project. Please add created alert state from settings.",
-      );
-    }
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     /*
-     * Every alert starts in the project's created state, whatever state the
-     * write named under either name: stamp leaves no other name of it to be
-     * stored instead.
+     * The state the alert starts in, when the write picks one: the Create
+     * Alert form's Initial State sends the relation, the API, Terraform and
+     * workflows the ID column. Either name, and the two must agree. The pick
+     * is checked against the project with the alert's other references
+     * below, so a state of another project is refused like any of them.
+     * With none picked, the alert starts in the project's created state,
+     * where every alert a monitor raises starts.
      */
-    RelationIdUtil.stamp(
-      createBy.data as unknown as Record<string, unknown>,
+    const pickedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
+      createData,
       ALERT_STATE_KEYS,
-      alertState.id,
+      "Alert State",
     );
 
     /*
-     * The severity and the monitor status stamped on the alert come from the
-     * monitor criteria or the API caller, neither of which checked that the
-     * record belongs to this project. Persisting another project's id leaves
-     * that project undeletable, so reject it here.
+     * The state picked, the severity and the monitor status stamped on the
+     * alert come from the create form, the monitor criteria or the API
+     * caller, none of which checked that the record belongs to this project.
+     * Persisting another project's id leaves that project undeletable, so
+     * reject it here.
      *
      * The monitor, on-call policies and labels are checked too, for a worse
      * reason: onCreateSuccess executes every listed on-call policy, so
@@ -849,8 +834,11 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       subject: "alert",
       references: [
-        // The state is the stamp above, the project's own.
-        ...this.getWrittenReferences(createBy.data, { withState: false }),
+        /*
+         * The state as the write picked it, if it did: the created state
+         * stamped below is the project's own and needs no check.
+         */
+        ...this.getWrittenReferences(createBy.data),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -871,6 +859,20 @@ export class Service extends ProjectReferencesService<Model> {
         subject: "alert",
         serviceLevelObjectives: createBy.data.serviceLevelObjectives,
       },
+    );
+
+    /*
+     * The state it starts in, under the ID column alone: stamp leaves no
+     * other name of it to be stored instead, so the state checked above is
+     * the state stored - and the state onCreateSuccess writes the alert's
+     * first timeline row in. The created state is looked up only when the
+     * write picked none.
+     */
+    RelationIdUtil.stamp(
+      createData,
+      ALERT_STATE_KEYS,
+      pickedAlertStateId ||
+        (await AlertStateService.getCreatedAlertStateId(projectId)),
     );
 
     /*

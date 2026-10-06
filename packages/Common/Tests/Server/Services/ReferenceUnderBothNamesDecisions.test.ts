@@ -122,12 +122,22 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * An alert and both kinds of episode start in the state the write picks -
+ * their create forms offer an Initial State - or, with none picked, in the
+ * project's created state. A scheduled maintenance event always starts in
+ * the project's scheduled state: its state follows its schedule, and its
+ * form offers none. Either way the state is written under the ID column
+ * alone, so a relation sent beside it is not what TypeORM stores.
+ */
 describe("the state a record starts in is the one the service stamps", () => {
   interface StartingStateCase {
     name: string;
     service: unknown;
     relation: string;
     idColumn: string;
+    // Whether the state the write names is where the record starts.
+    startsInPickedState: boolean;
     // The step right after the stamp, stopped there.
     stopAfterStamp: () => void;
     newRecord: () => Record<string, unknown>;
@@ -139,6 +149,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: AlertService,
       relation: "currentAlertState",
       idColumn: "currentAlertStateId",
+      startsInPickedState: true,
       stopAfterStamp: () => {
         jest
           .spyOn(CustomFieldMappingService, "applyMappingsToCreate")
@@ -156,6 +167,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: ScheduledMaintenanceService,
       relation: "currentScheduledMaintenanceState",
       idColumn: "currentScheduledMaintenanceStateId",
+      startsInPickedState: false,
       stopAfterStamp: () => {
         jest
           .spyOn(ProjectService, "incrementAndGetScheduledMaintenanceCounter")
@@ -170,6 +182,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: IncidentEpisodeService,
       relation: "currentIncidentState",
       idColumn: "currentIncidentStateId",
+      startsInPickedState: true,
       stopAfterStamp: () => {
         jest
           .spyOn(ProjectService, "incrementAndGetIncidentEpisodeCounter")
@@ -184,6 +197,7 @@ describe("the state a record starts in is the one the service stamps", () => {
       service: AlertEpisodeService,
       relation: "currentAlertState",
       idColumn: "currentAlertStateId",
+      startsInPickedState: true,
       stopAfterStamp: () => {
         jest
           .spyOn(ProjectService, "incrementAndGetAlertEpisodeCounter")
@@ -195,8 +209,13 @@ describe("the state a record starts in is the one the service stamps", () => {
     },
   ];
 
+  // Where a record whose write named OTHER_STATE starts.
+  function startingStateOf(testCase: StartingStateCase): string {
+    return testCase.startsInPickedState ? OTHER_STATE : CREATED_STATE;
+  }
+
   test.each(CASES)(
-    "$name: a state the write named under the relation is not stored over the starting state",
+    "$name: a state the write named under the relation is stored under the ID column alone, where the record may start in it",
     async (testCase: StartingStateCase) => {
       testCase.stopAfterStamp();
 
@@ -214,13 +233,13 @@ describe("the state a record starts in is the one the service stamps", () => {
         ),
       ).toBeInstanceOf(PastTheStep);
 
-      expect(String(data[testCase.idColumn])).toBe(CREATED_STATE);
+      expect(String(data[testCase.idColumn])).toBe(startingStateOf(testCase));
       expect(has(data, testCase.relation)).toBe(false);
     },
   );
 
   test.each(CASES)(
-    "$name: a state written under the ID column is replaced the same way",
+    "$name: a state written under the ID column is decided the same way",
     async (testCase: StartingStateCase) => {
       testCase.stopAfterStamp();
 
@@ -236,7 +255,28 @@ describe("the state a record starts in is the one the service stamps", () => {
         }),
       );
 
+      expect(String(data[testCase.idColumn])).toBe(startingStateOf(testCase));
+    },
+  );
+
+  test.each(CASES)(
+    "$name: with no state named, it starts in the project's starting state",
+    async (testCase: StartingStateCase) => {
+      testCase.stopAfterStamp();
+
+      const data: Record<string, unknown> = testCase.newRecord();
+
+      expect(
+        await outcomeOf(
+          hooksOf(testCase.service)["onBeforeCreate"]!({
+            data: data,
+            props: { tenantId: PROJECT_ID },
+          }),
+        ),
+      ).toBeInstanceOf(PastTheStep);
+
       expect(String(data[testCase.idColumn])).toBe(CREATED_STATE);
+      expect(has(data, testCase.relation)).toBe(false);
     },
   );
 });
