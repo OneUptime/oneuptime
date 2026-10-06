@@ -1,6 +1,7 @@
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../Server/Infrastructure/Redis";
 import OneUptimeDate from "../../../Types/Date";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 
 jest.mock("../../../Server/Infrastructure/Redis", () => {
@@ -930,5 +931,147 @@ describe("GlobalCache.withJitter", () => {
   test("passes through non-positive TTLs unchanged", () => {
     expect(GlobalCache.withJitter(0)).toBe(0);
     expect(GlobalCache.withJitter(-1)).toBe(-1);
+  });
+});
+
+/*
+ * setNumberIfGreater keeps a monotonic timestamp: when an Incoming Request
+ * monitor last received a request (IncomingRequestReceivedAtStore). The
+ * ingest endpoint, the ingest workers and the heartbeat cron all write it
+ * concurrently, so the compare and the write must be one step - a client-side
+ * GET then SET lets a smaller value land last and move the clock backwards.
+ * The endpoint is unauthenticated and may only advance a key a trusted
+ * caller created, which is what onlyIfExists pins.
+ *
+ * The script's Redis semantics were checked against a real Valkey; these
+ * tests pin the call shape and the reply handling.
+ */
+describe("GlobalCache.setNumberIfGreater", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue("1791234567890"),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("compares and writes in ONE eval - never a client-side GET then SET", async () => {
+    await GlobalCache.setNumberIfGreater("ns", "key", 1791234567890, {
+      expiresInSeconds: 86400,
+    });
+
+    expect(client.eval).toHaveBeenCalledTimes(1);
+    expect(client.get).not.toHaveBeenCalled();
+    expect(client.set).not.toHaveBeenCalled();
+    expect(client.expire).not.toHaveBeenCalled();
+  });
+
+  test("passes the key as KEYS[1] and the value, TTL and create flag as ARGV", async () => {
+    await GlobalCache.setNumberIfGreater("ns", "key", 1791234567890, {
+      expiresInSeconds: 86400,
+    });
+
+    const args: Array<unknown> = client.eval.mock.calls[0] as Array<unknown>;
+    const script: string = args[0] as string;
+
+    expect(args.slice(1)).toEqual([1, "ns-key", "1791234567890", "86400", "0"]);
+    expect(script).toContain("KEYS[1]");
+    expect(script).not.toContain("ns-key");
+  });
+
+  test("onlyIfExists sends the update-only flag", async () => {
+    await GlobalCache.setNumberIfGreater("ns", "key", 5, {
+      expiresInSeconds: 60,
+      onlyIfExists: true,
+    });
+
+    const args: Array<unknown> = client.eval.mock.calls[0] as Array<unknown>;
+
+    expect(args[5]).toBe("1");
+  });
+
+  test("the script only creates a missing key when the update-only flag is off", async () => {
+    await GlobalCache.setNumberIfGreater("ns", "key", 5, {
+      expiresInSeconds: 60,
+    });
+
+    const script: string = client.eval.mock.calls[0]![0] as string;
+
+    // Missing key + update-only: answer nil before any write.
+    expect(script).toMatch(
+      /if not stored and ARGV\[3\] == '1' then return false end/,
+    );
+    // A write sets the value and its expiry together.
+    expect(script).toContain(
+      "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])",
+    );
+    // Only a strictly greater number (or a missing/garbled one) is written.
+    expect(script).toContain("tonumber(ARGV[1]) > current");
+    // A kept value still has its expiry re-armed.
+    expect(script).toContain("redis.call('EXPIRE', KEYS[1], ARGV[2])");
+  });
+
+  test("returns the number the key holds afterwards", async () => {
+    client.eval.mockResolvedValue("1791234599999");
+
+    await expect(
+      GlobalCache.setNumberIfGreater("ns", "key", 1791234567890, {
+        expiresInSeconds: 60,
+      }),
+    ).resolves.toBe(1791234599999);
+  });
+
+  test("returns null when an update-only call found no key", async () => {
+    client.eval.mockResolvedValue(null);
+
+    await expect(
+      GlobalCache.setNumberIfGreater("ns", "key", 1791234567890, {
+        expiresInSeconds: 60,
+        onlyIfExists: true,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("throws on a reply that is not a number", async () => {
+    client.eval.mockResolvedValue("not-a-number");
+
+    await expect(
+      GlobalCache.setNumberIfGreater("ns", "key", 1, {
+        expiresInSeconds: 60,
+      }),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  test("refuses a value that is not a finite number, without calling Redis", async () => {
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      await expect(
+        GlobalCache.setNumberIfGreater("ns", "key", value, {
+          expiresInSeconds: 60,
+        }),
+      ).rejects.toThrow(BadDataException);
+    }
+
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(
+      GlobalCache.setNumberIfGreater("ns", "key", 1, {
+        expiresInSeconds: 60,
+      }),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+    expect(client.eval).not.toHaveBeenCalled();
   });
 });
