@@ -34,9 +34,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - Who to call is one picker of on-call schedules and people that takes
  *     one pick, and the rule is saved with that pick in its own column -
  *     onCallDutyPolicyScheduleId or userId - as before;
- *   - the phone rings for 30 seconds unless changed, within Twilio's 5 to
- *     600;
- *   - the edit dialog is the same page, opened on the rule as it is;
+ *   - the phone rings for 20 seconds unless changed, within Twilio's 5 to
+ *     600, so the call moves on before most voicemail picks up;
+ *   - the edit dialog is the same page, opened on the rule as it is - a
+ *     rule saved when the default was 30 keeps its 30;
  *   - each rule in the list shows who it calls and for how long, and a rule
  *     nobody named is shown after its place in the list, "Level 2".
  */
@@ -163,6 +164,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { DEFAULT_INCOMING_CALL_RING_SECONDS } from "../../../Types/IncomingCall/IncomingCallRingTime";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
@@ -175,6 +177,9 @@ jest.setTimeout(30000);
 
 const PROJECT_ID: string = "0e300000-0000-4000-8000-000000000001";
 const POLICY_ID: string = "0e300000-0000-4000-8000-000000000002";
+
+// The ring time field's placeholder: the default a new rule starts with.
+const RING_PLACEHOLDER: string = String(DEFAULT_INCOMING_CALL_RING_SECONDS);
 
 const RULE_ONE: string = "0e300000-0000-4000-8000-0000000000a1";
 const RULE_TWO: string = "0e300000-0000-4000-8000-0000000000a2";
@@ -281,7 +286,8 @@ beforeEach(() => {
   /*
    * Two rules: an unnamed one calling the primary rotation, then Sam,
    * named. Their order numbers have a gap where a deleted rule was: a level
-   * is a rule's place in the list, not its number.
+   * is a rule's place in the list, not its number. The first was saved when
+   * a new rule rang for 30 seconds, and still does.
    */
   rules = [
     {
@@ -408,7 +414,7 @@ async function openAddDialog(): Promise<HTMLElement> {
 
   // BasicForm fills in the fields' defaults in an effect of its own.
   await waitFor(() => {
-    expect(ringInput(modal).value).toBe("30");
+    expect(ringInput(modal).value).toBe("20");
   });
 
   return modal;
@@ -437,7 +443,9 @@ async function openEditDialog(card: HTMLElement): Promise<HTMLElement> {
 }
 
 function ringInput(modal: HTMLElement): HTMLInputElement {
-  return within(modal).getByPlaceholderText("30") as HTMLInputElement;
+  return within(modal).getByPlaceholderText(
+    RING_PLACEHOLDER,
+  ) as HTMLInputElement;
 }
 
 async function pick(modal: HTMLElement, name: string): Promise<void> {
@@ -503,6 +511,7 @@ describe("the escalation rules list", () => {
     const [first, second] = (await renderPage()) as [HTMLElement, HTMLElement];
 
     expect(cardField(first, "Who to call")).toContain("Primary rotation");
+    // Saved when the default was 30: it still rings, and reads, 30.
     expect(cardField(first, "Ring for")).toBe("30 seconds");
 
     expect(cardField(second, "Who to call")).toContain("Sam Rivera");
@@ -558,7 +567,7 @@ describe("adding a rule", () => {
     ).toBeEnabled();
   });
 
-  test("asks who to call and how long to ring, with 30 seconds filled in", async () => {
+  test("asks who to call and how long to ring, with 20 seconds filled in", async () => {
     await renderPage();
     const modal: HTMLElement = await openAddDialog();
 
@@ -566,7 +575,8 @@ describe("adding a rule", () => {
     expect(
       within(modal).getByText("Ring for (in seconds)"),
     ).toBeInTheDocument();
-    expect(ringInput(modal).value).toBe("30");
+    expect(ringInput(modal).value).toBe("20");
+    expect(RING_PLACEHOLDER).toBe("20");
 
     // None of the old wizard's questions.
     for (const old of [
@@ -596,7 +606,7 @@ describe("adding a rule", () => {
     ).not.toBeVisible();
   });
 
-  test("saves the picked schedule in the rule's own column, ringing for 30 seconds", async () => {
+  test("saves the picked schedule in the rule's own column, ringing for 20 seconds", async () => {
     await renderPage();
     const modal: HTMLElement = await openAddDialog();
 
@@ -618,7 +628,7 @@ describe("adding a rule", () => {
     );
     expect(request.model.onCallDutyPolicyScheduleId).toBeInstanceOf(ObjectID);
     expect(request.model.userId).toBeUndefined();
-    expect(Number(request.model.escalateAfterSeconds)).toBe(30);
+    expect(Number(request.model.escalateAfterSeconds)).toBe(20);
     expect(idOf(request.model.incomingCallPolicyId)).toBe(POLICY_ID);
     expect(idOf(request.model.projectId)).toBe(PROJECT_ID);
     // Left unnamed, it is listed as its level; nothing is sent as a name.
@@ -636,7 +646,7 @@ describe("adding a rule", () => {
 
     expect(chipIds(modal)).toEqual([USER_ALEX]);
 
-    fireEvent.change(ringInput(modal), { target: { value: "20" } });
+    fireEvent.change(ringInput(modal), { target: { value: "25" } });
 
     await submit(modal, "Add Escalation Rule");
 
@@ -648,7 +658,7 @@ describe("adding a rule", () => {
 
     expect(idOf(request.model.userId)).toBe(USER_ALEX);
     expect(request.model.onCallDutyPolicyScheduleId).toBeUndefined();
-    expect(Number(request.model.escalateAfterSeconds)).toBe(20);
+    expect(Number(request.model.escalateAfterSeconds)).toBe(25);
   });
 
   test("lists the project's people to call, not only whoever is adding the rule", async () => {
@@ -694,6 +704,36 @@ describe("adding a rule", () => {
       ),
     ).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("starts a new rule at 20 seconds while an older rule in the list keeps its 30", async () => {
+    const [first] = (await renderPage()) as [HTMLElement];
+
+    expect(cardField(first, "Ring for")).toBe("30 seconds");
+
+    const modal: HTMLElement = await openAddDialog();
+
+    expect(ringInput(modal).value).toBe(
+      String(DEFAULT_INCOMING_CALL_RING_SECONDS),
+    );
+    expect(ringInput(modal).value).not.toBe("30");
+  });
+
+  test("sends the ring time left as it is: the 20 seconds it starts with", async () => {
+    await renderPage();
+    const modal: HTMLElement = await openAddDialog();
+
+    await pick(modal, "Alex Chen");
+    await submit(modal, "Add Escalation Rule");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    // The form sends it, so the rule rings for 20 whatever the server's default.
+    expect(sentRequest().model.escalateAfterSeconds).toBe(
+      DEFAULT_INCOMING_CALL_RING_SECONDS,
+    );
   });
 
   test("keeps the ring time inside what Twilio takes", async () => {
@@ -810,6 +850,49 @@ describe("editing a rule", () => {
     expect(Array.isArray(request.model.onCallDutyPolicyScheduleId)).toBe(false);
     expect(idOf(request.model.userId)).toBeNull();
     expect(Number(request.model.escalateAfterSeconds)).toBe(15);
+  });
+
+  test("a rule saved when the default was 30 opens on its 30, and keeps it when only its name changes", async () => {
+    const [first] = (await renderPage()) as [HTMLElement];
+    const modal: HTMLElement = await openEditDialog(first);
+
+    // Its own ring time, not the 20 a new rule starts with.
+    expect(ringInput(modal).value).toBe("30");
+
+    fireEvent.click(advancedHeader(modal));
+    fireEvent.change(within(modal).getByPlaceholderText("Level 1"), {
+      target: { value: "Primary on-call" },
+    });
+
+    await submit(modal, "Save Changes");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = sentRequest();
+
+    expect(request.formType).toBe(FormType.Update);
+    expect(idOf(request.model._id)).toBe(RULE_ONE);
+    expect(request.model.name).toBe("Primary on-call");
+    expect(Number(request.model.escalateAfterSeconds)).toBe(30);
+  });
+
+  test("a rule saved when the default was 30 can be moved to 20 by hand", async () => {
+    const [first] = (await renderPage()) as [HTMLElement];
+    const modal: HTMLElement = await openEditDialog(first);
+
+    fireEvent.change(ringInput(modal), {
+      target: { value: String(DEFAULT_INCOMING_CALL_RING_SECONDS) },
+    });
+
+    await submit(modal, "Save Changes");
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(Number(sentRequest().model.escalateAfterSeconds)).toBe(20);
   });
 
   test("after an edit, adding a rule names it after the end of the list again", async () => {

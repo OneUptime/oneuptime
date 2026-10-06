@@ -1631,7 +1631,7 @@ describe("how long each rule rings an engineer's phone", () => {
     expectEveryCallClosed();
   });
 
-  test("is 30 seconds for a rule added with the form's default", async () => {
+  test("is 20 seconds for a rule added with the form's default", async () => {
     givenPolicy({
       rules: [makeRule(1, ALICE, DEFAULT_INCOMING_CALL_RING_SECONDS)],
     });
@@ -1639,7 +1639,55 @@ describe("how long each rule rings an engineer's phone", () => {
 
     clockAt(0);
     const greeting: TwimlReply = await call.arrive();
-    expect(greeting.dial).toMatchObject({ timeoutSeconds: 30 });
+    expect(greeting.xml).toContain('timeout="20"');
+    expect(greeting.dial).toMatchObject({ timeoutSeconds: 20 });
+  });
+
+  test("is 20 seconds for a rule the API created without a ring time: the column's default", async () => {
+    const columnDefault: unknown =
+      new IncomingCallPolicyEscalationRule().getTableColumnMetadata(
+        "escalateAfterSeconds",
+      ).defaultValue;
+
+    expect(columnDefault).toBe(20);
+
+    givenPolicy({
+      rules: [makeRule(1, ALICE, columnDefault as number)],
+    });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    expect(greeting.dial).toMatchObject({ timeoutSeconds: 20 });
+  });
+
+  test("is still 30 seconds for a rule saved when 30 was the default, on every dial of the hunt", async () => {
+    givenPolicy({
+      rules: [makeRule(1, ALICE, 30), makeRule(2, BOB, 30)],
+    });
+    const call: InboundCall = new InboundCall();
+
+    clockAt(0);
+    const greeting: TwimlReply = await call.arrive();
+    expect(greeting.xml).toContain('timeout="30"');
+    expect(greeting.dial).toMatchObject({
+      number: ALICE.phone,
+      timeoutSeconds: 30,
+    });
+
+    clockAt(34);
+    const toBob: TwimlReply = await call.dialEnds(greeting.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expect(toBob.dial).toMatchObject({ number: BOB.phone, timeoutSeconds: 30 });
+
+    clockAt(68);
+    await call.dialEnds(toBob.dial, {
+      dialCallStatus: "no-answer",
+      caller: "on the line",
+    });
+    expectEveryCallClosed();
   });
 
   test("stays inside what Twilio takes for a ring time the API stored", async () => {
@@ -1675,5 +1723,6 @@ describe("how long each rule rings an engineer's phone", () => {
     expect(greeting.dial).toMatchObject({
       timeoutSeconds: DEFAULT_INCOMING_CALL_RING_SECONDS,
     });
+    expect(greeting.dial).toMatchObject({ timeoutSeconds: 20 });
   });
 });
