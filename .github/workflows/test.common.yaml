@@ -73,6 +73,10 @@ jobs:
       # BackfillFileOwners1797900000000 on real rows (#4394). It works in a
       # schema of its own, rolled back after each test and dropped after.
       RUN_POSTGRES_FILE_OWNER_BACKFILL_TESTS: "true"
+      # PublishedImages' SQL on real rows: the still-shown check and the two
+      # statements SetFileVisibilityFromPublishedRecords runs. A schema of its
+      # own, rolled back after each test and dropped after.
+      RUN_POSTGRES_PUBLISHED_IMAGES_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
