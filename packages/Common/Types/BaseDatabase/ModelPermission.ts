@@ -23,9 +23,7 @@ export default class ModelPermission {
     if (instanceOfUserTenantAccessPermission(userProjectPermissions)) {
       return HeldPermissionsUtil.holdsAnyOf(
         HeldPermissionsUtil.fromRows({
-          rows: Array.isArray(userProjectPermissions.permissions)
-            ? userProjectPermissions.permissions
-            : [],
+          rows: userProjectPermissions.permissions,
         }),
         modelPermissions || [],
       );

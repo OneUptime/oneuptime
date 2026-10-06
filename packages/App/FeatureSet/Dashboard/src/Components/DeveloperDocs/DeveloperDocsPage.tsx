@@ -42,12 +42,10 @@ import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { getApiReadSelect } from "Common/Utils/DeveloperDocs/ExampleBuilder";
 import {
   addDeveloperDocsLookupResult,
@@ -76,7 +74,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { HOST, HTTP_PROTOCOL, VERSION } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import User from "Common/UI/Utils/User";
 import React, {
@@ -86,6 +83,7 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 /*
  * A Developer page: Terraform, API or AI Assistants, for one resource (its
@@ -121,20 +119,13 @@ const ALWAYS_READABLE_COLUMNS: ReadonlyArray<string> = [
   "updatedAt",
 ];
 
-function getViewerPermissions(): Array<Permission> {
-  return PermissionUtil.getAllPermissions();
-}
-
-// Whether the viewer may read a column (ModelDetail's rule).
+/*
+ * Whether the viewer may read a column (ModelDetail's rule), read the way the
+ * server reads it (PermissionGate): one of the column's read permissions, no
+ * team block on any of them.
+ */
 function canReadColumn(descriptor: TerraformAttributeDescriptor): boolean {
-  if (User.isMasterAdmin()) {
-    return true;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    getViewerPermissions(),
-    descriptor.readPermissions,
-  );
+  return PermissionGate.holdsAnyOf(descriptor.readPermissions);
 }
 
 // Whether the viewer may read a column of any model, by name.
@@ -142,29 +133,16 @@ function canReadModelColumn(
   modelType: DatabaseBaseModelType,
   column: string,
 ): boolean {
-  if (User.isMasterAdmin() || ALWAYS_READABLE_COLUMNS.includes(column)) {
+  if (ALWAYS_READABLE_COLUMNS.includes(column)) {
     return true;
   }
 
-  const access: ColumnAccessControl | null =
-    new modelType().getColumnAccessControlFor(column);
-
-  return PermissionHelper.doesPermissionsIntersect(
-    getViewerPermissions(),
-    access?.read || [],
-  );
+  return PermissionGate.holdsColumnPermission(new modelType(), column, "read");
 }
 
 // Whether the viewer may list a model at all.
 function canReadModel(modelType: DatabaseBaseModelType): boolean {
-  if (User.isMasterAdmin()) {
-    return true;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    getViewerPermissions(),
-    new modelType().readRecordPermissions || [],
-  );
+  return PermissionGate.check(new modelType(), ModelAction.Read).isAllowed;
 }
 
 function toPageKind(page: DeveloperDocsPageType): DeveloperDocsPageKind {

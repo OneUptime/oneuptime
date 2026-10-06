@@ -1,6 +1,5 @@
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "../../Utils/Permission";
 import User from "../../Utils/User";
 import Detail, { DetailStyle } from "../Detail/Detail";
 import DetailField from "../Detail/Field";
@@ -8,13 +7,11 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Loader, { LoaderType } from "../Loader/Loader";
 import Field from "./Field";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { PermissionHelper } from "../../../Types/Permission";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import Select from "../../../Types/BaseDatabase/Select";
@@ -24,6 +21,7 @@ import {
   translationKey,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import PermissionGate from "../../Utils/PermissionGate";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -82,19 +80,11 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     fieldName: string,
   ): boolean => {
-    if (User.isMasterAdmin()) {
-      return true;
-    }
-
-    const accessControl: Dictionary<ColumnAccessControl> =
-      new props.modelType().getColumnAccessControlForAllColumns() || {};
-
-    const fieldPermissions: Array<Permission> =
-      accessControl[fieldName]?.read || [];
-
-    return PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      fieldPermissions,
+    // Read the way the server's column check reads it (PermissionGate).
+    return PermissionGate.holdsColumnPermission(
+      new props.modelType(),
+      fieldName,
+      "read",
     );
   };
 
@@ -182,13 +172,7 @@ const ModelDetail: <TBaseModel extends BaseModel>(
   const getDetailFields: GetDetailFieldsFunction = (): Array<
     DetailField<TBaseModel>
   > => {
-    const userPermissions: Array<Permission> =
-      PermissionUtil.getAllPermissions();
-
     const model: BaseModel = new props.modelType();
-
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns() || {};
 
     const fieldsToSet: Array<DetailField<TBaseModel>> = [];
 
@@ -198,16 +182,12 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       if (keys.length > 0) {
         const key: keyof TBaseModel = keys[0] as keyof TBaseModel;
 
-        let fieldPermissions: Array<Permission> = [];
-
-        fieldPermissions = accessControl[key]?.read || [];
-
-        const hasPermissions: boolean =
-          fieldPermissions &&
-          PermissionHelper.doesPermissionsIntersect(
-            userPermissions,
-            fieldPermissions,
-          );
+        // Read the way the server's column check reads it (PermissionGate).
+        const hasPermissions: boolean = PermissionGate.holdsColumnPermission(
+          model,
+          key as string,
+          "read",
+        );
 
         if (hasPermissions || User.isMasterAdmin()) {
           fieldsToSet.push({

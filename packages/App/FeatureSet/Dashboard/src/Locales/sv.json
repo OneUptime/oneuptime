@@ -25803,5 +25803,6 @@
   "node operations on": "nodoperationer påslagna",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Visar senaste status från {{time}}; den här sidan försöker igen automatiskt.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Senare sammanfattningar följer vid samma tid på dagen. Lämna tomt för att börja kl. 09:00 i sammanfattningens tidszon, i början av nästa vecka, dag eller månad.",
-  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Sammanfattningar skickas vid samma tid på dagen i den här tidszonen hela året, även efter att klockan har ställts om."
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Sammanfattningar skickas vid samma tid på dagen i den här tidszonen hela året, även efter att klockan har ställts om.",
+  "A team you are on blocks {{permissions}}.": "Ett team som du är med i blockerar {{permissions}}."
 }

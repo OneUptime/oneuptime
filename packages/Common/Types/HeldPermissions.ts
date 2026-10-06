@@ -143,7 +143,12 @@ export default class HeldPermissionsUtil {
       add(held.allowedProjectWide, permission);
     }
 
-    for (const row of data.rows || []) {
+    // Rows straight from a request or a stored snapshot: anything else is none.
+    const rows: ReadonlyArray<UserPermission> = Array.isArray(data.rows)
+      ? data.rows
+      : [];
+
+    for (const row of rows) {
       if (!row || !row.permission) {
         continue;
       }

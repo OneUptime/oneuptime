@@ -26,7 +26,6 @@ import TableViewUrlState, {
 import buildQueryFromFilterData, {
   sanitizeFilterData,
 } from "./FilterDataToQuery";
-import PermissionUtil from "../../Utils/Permission";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -120,7 +119,6 @@ import BaseModel, {
 import AccessControlModel from "../../../Models/DatabaseModels/DatabaseBaseModel/AccessControlModel";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
-import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { ListOrderSettings } from "../../../Types/Database/ListOrderColumn";
@@ -142,10 +140,6 @@ import {
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../Types/Permission";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -1563,11 +1557,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     selectFields = props.callbacks.addSlugToSelect(selectFields);
 
-    const userPermissions: Array<Permission> = getUserPermissions();
-
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns();
-
     /*
      * The viewer's layout is applied to the *input* of this loop, never to
      * the finished array: the Actions column is appended below and has to
@@ -1654,21 +1643,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       : [];
 
     for (const moreField of selectMoreFields) {
-      let hasPermissionToSelectField: boolean = true;
-      let fieldPermissions: Array<Permission> = [];
-      fieldPermissions = accessControl[moreField as string]?.read || [];
-
-      if (
-        accessControl[moreField]?.read &&
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          fieldPermissions,
-        )
-      ) {
-        hasPermissionToSelectField = false;
-      }
-
-      if (hasPermissionToSelectField) {
+      if (hasPermissionToReadField(moreField as keyof TBaseModel)) {
         (selectFields as Dictionary<boolean>)[moreField] = true;
       } else {
         Logger.warn(
@@ -2797,79 +2772,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   type HasPermissionToReadFieldFunction = (field: keyof TBaseModel) => boolean;
 
+  /*
+   * Whether a field may be selected: a column that declares no read
+   * permissions is readable, and one that does is read by the rule the
+   * server's column check follows (PermissionGate.holdsColumnPermission) -
+   * one of its permissions held, Public by everyone, no team block on any of
+   * them. A master admin reads every field: secondary fields use this check
+   * when building the request, so they need the same master-admin access as
+   * the visible columns that render them.
+   */
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     field: keyof TBaseModel,
   ): boolean => {
-    /*
-     * Secondary fields use this check when building the request, so they need
-     * the same master-admin access as the visible columns that render them.
-     */
-    if (User.isMasterAdmin()) {
+    if (!field || User.isMasterAdmin()) {
       return true;
     }
 
-    const accessControl: Dictionary<ColumnAccessControl> =
-      model.getColumnAccessControlForAllColumns();
-
-    const userPermissions: Array<Permission> = getUserPermissions();
-
-    const key: keyof TBaseModel = field;
-    // check permissions.
-    let hasPermission: boolean = false;
-
-    if (!key) {
-      hasPermission = true;
+    if (!model.getColumnAccessControlForAllColumns()[field as string]?.read) {
+      return true;
     }
 
-    if (key) {
-      hasPermission = true;
-      let fieldPermissions: Array<Permission> = [];
-      fieldPermissions = accessControl[key as string]?.read || [];
-
-      if (
-        accessControl[key]?.read &&
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          fieldPermissions,
-        )
-      ) {
-        hasPermission = false;
-      }
-    }
-
-    return hasPermission;
+    return PermissionGate.holdsColumnPermission(model, field as string, "read");
   };
-
-  type GetUserPermissionsFunction = () => Array<Permission>;
-
-  const getUserPermissions: GetUserPermissionsFunction =
-    (): Array<Permission> => {
-      /*
-       * A copy - Public is appended below, and pushing into the array the util
-       * handed back mutates the snapshot every other permission check on the
-       * page reads from.
-       */
-      let userPermissions: Array<Permission> = [
-        ...(PermissionUtil.getGlobalPermissions()?.globalPermissions || []),
-      ];
-      if (
-        PermissionUtil.getProjectPermissions() &&
-        PermissionUtil.getProjectPermissions()?.permissions &&
-        PermissionUtil.getProjectPermissions()!.permissions.length > 0
-      ) {
-        userPermissions = userPermissions.concat(
-          PermissionUtil.getProjectPermissions()!.permissions.map(
-            (i: UserPermission) => {
-              return i.permission;
-            },
-          ),
-        );
-      }
-
-      userPermissions.push(Permission.Public);
-
-      return userPermissions;
-    };
 
   useEffect(() => {
     serializeToTableColumns();
@@ -2964,8 +2888,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, [showColumnCustomizationModal, attributeColumnKey]);
 
   const setActionSchema: VoidFunction = () => {
-    const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
-
     const actionsSchema: Array<ActionButtonSchema<TBaseModel>> = [];
 
     if (props.showViewIdButton) {
@@ -3005,155 +2927,151 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
     }
 
-    if (permissions) {
-      if (
-        props.isViewable &&
-        (model.hasReadPermissions(permissions) || User.isMasterAdmin())
-      ) {
-        actionsSchema.push({
-          title: props.viewButtonText
-            ? tx(props.viewButtonText)
-            : translateNamedAction(translator, {
-                template: "View {{itemName}}",
-                itemName: props.singularName || model.singularName || "",
-              }),
-          /*
-           * Drawn when View is in the ⋯ menu - on a table that marks one of
-           * its own actions Primary. On the row it is a label (RowActions).
-           */
-          icon: IconProp.Eye,
-          buttonStyleType: ButtonStyleType.NORMAL,
-          /*
-           * Opening the record is what a row is for, so View is the row's one
-           * button and Edit, Delete and the rest go in the ⋯ menu beside it.
-           * Custom actions are listed ahead of View, so a table that wants one
-           * of its own on the row can still mark it Primary.
-           */
-          placement: ActionButtonPlacement.Primary,
-          onClick: async (
-            item: TBaseModel,
-            onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
-          ) => {
-            try {
-              let baseModel: TBaseModel = item;
-              if (
-                !(item instanceof BaseModel) &&
-                !(item instanceof AnalyticsBaseModel)
-              ) {
-                baseModel = props.callbacks.getModelFromJSON(
-                  item as JSONObject,
-                );
-              }
+    if (
+      props.isViewable &&
+      PermissionGate.check(model, ModelAction.Read).isAllowed
+    ) {
+      actionsSchema.push({
+        title: props.viewButtonText
+          ? tx(props.viewButtonText)
+          : translateNamedAction(translator, {
+              template: "View {{itemName}}",
+              itemName: props.singularName || model.singularName || "",
+            }),
+        /*
+         * Drawn when View is in the ⋯ menu - on a table that marks one of
+         * its own actions Primary. On the row it is a label (RowActions).
+         */
+        icon: IconProp.Eye,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        /*
+         * Opening the record is what a row is for, so View is the row's one
+         * button and Edit, Delete and the rest go in the ⋯ menu beside it.
+         * Custom actions are listed ahead of View, so a table that wants one
+         * of its own on the row can still mark it Primary.
+         */
+        placement: ActionButtonPlacement.Primary,
+        onClick: async (
+          item: TBaseModel,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            let baseModel: TBaseModel = item;
+            if (
+              !(item instanceof BaseModel) &&
+              !(item instanceof AnalyticsBaseModel)
+            ) {
+              baseModel = props.callbacks.getModelFromJSON(item as JSONObject);
+            }
 
-              if (props.onBeforeView) {
-                item = await props.onBeforeView(baseModel);
-              }
+            if (props.onBeforeView) {
+              item = await props.onBeforeView(baseModel);
+            }
 
-              if (props.onViewPage) {
-                const route: Route | URL = await props.onViewPage(baseModel);
-
-                onCompleteAction();
-
-                if (props.onViewComplete) {
-                  props.onViewComplete(baseModel);
-                }
-
-                return Navigation.navigate(route);
-              }
-
-              if (!props.viewPageRoute) {
-                throw new BadDataException("props.viewPageRoute not found");
-              }
+            if (props.onViewPage) {
+              const route: Route | URL = await props.onViewPage(baseModel);
 
               onCompleteAction();
+
               if (props.onViewComplete) {
                 props.onViewComplete(baseModel);
               }
 
-              const id: string = baseModel.id?.toString() || "";
-
-              return Navigation.navigate(
-                new Route(props.viewPageRoute.toString()).addRoute("/" + id),
-              );
-            } catch (err) {
-              onError(err as Error);
+              return Navigation.navigate(route);
             }
-          },
-        });
-      }
 
-      const updateGate: ActionGate = getActionGate(ModelAction.Update);
-
-      if (props.isEditable && updateGate.show) {
-        actionsSchema.push({
-          title: tx(props.editButtonText || "Edit"),
-          icon: IconProp.Edit,
-          buttonStyleType: ButtonStyleType.OUTLINE,
-          disabled: updateGate.disabled,
-          tooltip: updateGate.tooltip,
-          onClick: async (
-            item: TBaseModel,
-            onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
-          ) => {
-            try {
-              if (props.onBeforeEdit) {
-                item = await props.onBeforeEdit(item);
-              }
-
-              setModalType(ModalType.Edit);
-              setShowModal(true);
-              setCurrentEditableItem(item);
-
-              onCompleteAction();
-            } catch (err) {
-              onError(err as Error);
+            if (!props.viewPageRoute) {
+              throw new BadDataException("props.viewPageRoute not found");
             }
-          },
-        });
-      }
 
-      const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
-
-      /* The row action wears the same icon as the bulk one it stands for. */
-      const rowDeleteIcon: IconProp =
-        (props.bulkActions?.deleteVerb?.trim() &&
-          props.bulkActions?.deleteIcon) ||
-        IconProp.Trash;
-
-      if (props.isDeleteable && deleteGate.show) {
-        actionsSchema.push({
-          title: tx(props.deleteButtonText || "Delete"),
-          icon: rowDeleteIcon,
-          buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-          disabled: deleteGate.disabled,
-          tooltip: deleteGate.tooltip,
-          getDisabledReason: props.getDeleteDisabledReason,
-          onClick: async (
-            item: TBaseModel,
-            onCompleteAction: VoidFunction,
-            onError: ErrorFunction,
-          ) => {
-            try {
-              if (props.onBeforeDelete) {
-                item = await props.onBeforeDelete(item);
-              }
-
-              setDeleteConfirmation(
-                props.getDeleteConfirmation
-                  ? await props.getDeleteConfirmation(item)
-                  : null,
-              );
-              setShowDeleteConfirmModal(true);
-              setCurrentDeleteableItem(item);
-              onCompleteAction();
-            } catch (err) {
-              onError(err as Error);
+            onCompleteAction();
+            if (props.onViewComplete) {
+              props.onViewComplete(baseModel);
             }
-          },
-        });
-      }
+
+            const id: string = baseModel.id?.toString() || "";
+
+            return Navigation.navigate(
+              new Route(props.viewPageRoute.toString()).addRoute("/" + id),
+            );
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      });
+    }
+
+    const updateGate: ActionGate = getActionGate(ModelAction.Update);
+
+    if (props.isEditable && updateGate.show) {
+      actionsSchema.push({
+        title: tx(props.editButtonText || "Edit"),
+        icon: IconProp.Edit,
+        buttonStyleType: ButtonStyleType.OUTLINE,
+        disabled: updateGate.disabled,
+        tooltip: updateGate.tooltip,
+        onClick: async (
+          item: TBaseModel,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            if (props.onBeforeEdit) {
+              item = await props.onBeforeEdit(item);
+            }
+
+            setModalType(ModalType.Edit);
+            setShowModal(true);
+            setCurrentEditableItem(item);
+
+            onCompleteAction();
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      });
+    }
+
+    const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
+
+    /* The row action wears the same icon as the bulk one it stands for. */
+    const rowDeleteIcon: IconProp =
+      (props.bulkActions?.deleteVerb?.trim() &&
+        props.bulkActions?.deleteIcon) ||
+      IconProp.Trash;
+
+    if (props.isDeleteable && deleteGate.show) {
+      actionsSchema.push({
+        title: tx(props.deleteButtonText || "Delete"),
+        icon: rowDeleteIcon,
+        buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+        disabled: deleteGate.disabled,
+        tooltip: deleteGate.tooltip,
+        getDisabledReason: props.getDeleteDisabledReason,
+        onClick: async (
+          item: TBaseModel,
+          onCompleteAction: VoidFunction,
+          onError: ErrorFunction,
+        ) => {
+          try {
+            if (props.onBeforeDelete) {
+              item = await props.onBeforeDelete(item);
+            }
+
+            setDeleteConfirmation(
+              props.getDeleteConfirmation
+                ? await props.getDeleteConfirmation(item)
+                : null,
+            );
+            setShowDeleteConfirmModal(true);
+            setCurrentDeleteableItem(item);
+            onCompleteAction();
+          } catch (err) {
+            onError(err as Error);
+          }
+        },
+      });
     }
 
     setActionButtonSchema(actionsSchema);
@@ -3714,8 +3632,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * a layout change nobody asked for. The gate above still decides
            * whether the action, once present, is locked and what it says.
            */
-          const userCanDelete: boolean = model.hasDeletePermissions(
-            PermissionUtil.getAllPermissions(),
+          const userCanDelete: boolean = PermissionGate.snapshotAllows(
+            model,
+            ModelAction.Delete,
           );
 
           const sourceButtons: Array<

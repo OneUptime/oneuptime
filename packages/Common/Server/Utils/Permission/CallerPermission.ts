@@ -58,8 +58,11 @@ export interface PermissionListModel {
 }
 
 export default class CallerPermission {
-  // The caller's permission rows in the project (none when not a member).
-  public static getRows(
+  /*
+   * The caller's permission rows in the project (none when not a member).
+   * Private: they are only ever read through the rule (getHeld).
+   */
+  private static getRows(
     carrier: PermissionCarrier,
     projectId?: ObjectID | null | undefined,
   ): Array<UserPermission> {

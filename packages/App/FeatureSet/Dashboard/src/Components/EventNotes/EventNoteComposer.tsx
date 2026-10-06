@@ -12,7 +12,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -150,7 +150,10 @@ function EventNoteComposer<TNote extends BaseModel>(
   }, [kind.modelType]);
 
   const isPublic: boolean = kind.visibility === "public";
-  const userPermissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  // What the viewer holds, and what a team of theirs blocks.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+  const userPermissions: Array<Permission> = heldPermissions.allowed;
+  const blockedPermissions: Array<Permission> = heldPermissions.blocked;
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string) => boolean = (column: string): boolean => {
@@ -161,6 +164,7 @@ function EventNoteComposer<TNote extends BaseModel>(
         column,
         action: "create",
         userPermissions,
+        blockedPermissions,
         isMasterAdmin,
       })
     );

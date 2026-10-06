@@ -4,15 +4,27 @@ import {
 } from "../Components/Dropdown/Dropdown";
 import LocalStorage from "./LocalStorage";
 import { JSONObject } from "../../Types/JSON";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../Types/HeldPermissions";
 import Permission, {
   PermissionGroup,
   PermissionHelper,
   PermissionProps,
   UserGlobalAccessPermission,
-  UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 
+/*
+ * The signed-in user's permission snapshot, as the API's permission headers
+ * leave it in storage: their global permissions and their rows in the
+ * current project.
+ *
+ * Whether the user may do something is decided by PermissionGate
+ * (holdsAnyOf, check, canReadColumn), which reads this snapshot by the rule
+ * the server follows (Types/HeldPermissions). Nothing else decides from the
+ * raw rows (Tests/UI/Utils/PermissionGateGuard).
+ */
 export default class PermissionUtil {
   public static getGlobalPermissions(): UserGlobalAccessPermission | null {
     if (!LocalStorage.getItem("global_permissions")) {
@@ -25,29 +37,26 @@ export default class PermissionUtil {
     return globalPermissions as UserGlobalAccessPermission;
   }
 
+  /*
+   * What the user holds, read by the one rule (HeldPermissionsUtil): their
+   * global permissions, every allow row, and what their blocks take away.
+   */
+  public static getHeldPermissions(): HeldPermissions {
+    return HeldPermissionsUtil.fromRows({
+      rows: this.getProjectPermissions()?.permissions || [],
+      globalPermissions: this.getGlobalPermissions()?.globalPermissions || [],
+    });
+  }
+
+  /*
+   * The permissions the user holds, as a flat list: what their allow rows
+   * (and global permissions) grant, less what a block with no labels takes
+   * away. A block row is never in it. Empty until the snapshot has loaded.
+   */
   public static getAllPermissions(): Array<Permission> {
-    let permissions: Array<Permission> = [];
-
-    const globalPermissions: UserGlobalAccessPermission | null =
-      this.getGlobalPermissions();
-
-    if (globalPermissions) {
-      permissions = [...globalPermissions.globalPermissions];
-    }
-
-    const projectPermissions: UserTenantAccessPermission | null =
-      this.getProjectPermissions();
-
-    if (projectPermissions) {
-      permissions = [
-        ...permissions,
-        ...projectPermissions.permissions.map((i: UserPermission) => {
-          return i.permission;
-        }),
-      ];
-    }
-
-    return permissions;
+    return HeldPermissionsUtil.getUnblockedPermissions(
+      this.getHeldPermissions(),
+    );
   }
 
   public static getProjectPermissions(): UserTenantAccessPermission | null {

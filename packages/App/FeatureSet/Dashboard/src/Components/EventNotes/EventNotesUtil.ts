@@ -8,7 +8,10 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "Common/Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationResend, {
   SubscriberNotificationResendAction,
@@ -613,15 +616,62 @@ export function getNotesCopy(
 }
 
 /*
+ * Whether the viewer holds one of a column's permissions for an operation,
+ * read the way the server's column check reads it (HeldPermissionsUtil): one
+ * of the permissions held - Public by everyone - no team block on any of
+ * them, and the table's operational-resource wildcard for a column that
+ * admits everyone its table does.
+ */
+function holdsColumnPermission(data: {
+  model: BaseModel;
+  operation: "create" | "read" | "update";
+  columnPermissions: Array<Permission>;
+  userPermissions: Array<Permission>;
+  blockedPermissions?: Array<Permission> | undefined;
+}): boolean {
+  const allowed: Array<Permission> = [
+    ...data.userPermissions,
+    Permission.Public,
+  ];
+
+  const held: HeldPermissions = {
+    allowed: allowed,
+    allowedProjectWide: allowed,
+    blocked: data.blockedPermissions || [],
+    blockedForSomeLabels: [],
+  };
+
+  let tablePermissions: Array<Permission> = data.model.getUpdatePermissions();
+
+  if (data.operation === "create") {
+    tablePermissions = data.model.getCreatePermissions();
+  } else if (data.operation === "read") {
+    tablePermissions = data.model.getReadPermissions();
+  }
+
+  return HeldPermissionsUtil.holdsAnyOf(held, data.columnPermissions, {
+    wildcard: HeldPermissionsUtil.getColumnWildcard({
+      isOperationalResource: data.model.isOperationalResource,
+      operation: data.operation,
+      tablePermissions: tablePermissions || [],
+      columnPermissions: data.columnPermissions,
+    }),
+  });
+}
+
+/*
  * Whether the viewer may read one column. Mirrors the notes table this feed
  * replaced: a column with no read rule is readable, and one with a rule needs
- * a matching permission. Asking for a column the viewer cannot read fails the
- * whole list request, so the feed only selects what passes this.
+ * a matching permission that no team of the viewer's blocks
+ * (holdsColumnPermission). Asking for a column the viewer cannot read fails
+ * the whole list request, so the feed only selects what passes this.
  */
 export function canReadNoteColumn(data: {
   model: BaseModel;
   column: string;
   userPermissions: Array<Permission>;
+  // What a team of the viewer's blocks (PermissionGate.getHeldPermissions).
+  blockedPermissions?: Array<Permission> | undefined;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
@@ -638,10 +688,13 @@ export function canReadNoteColumn(data: {
     return true;
   }
 
-  return PermissionHelper.doesPermissionsIntersect(
-    [...data.userPermissions, Permission.Public],
-    readPermissions,
-  );
+  return holdsColumnPermission({
+    model: data.model,
+    operation: "read",
+    columnPermissions: readPermissions,
+    userPermissions: data.userPermissions,
+    blockedPermissions: data.blockedPermissions,
+  });
 }
 
 /*
@@ -660,6 +713,7 @@ export function buildNotesSelect(data: {
   visibility: NoteVisibility;
   isAttachmentsEnabled: boolean;
   userPermissions: Array<Permission>;
+  blockedPermissions?: Array<Permission> | undefined;
   isMasterAdmin: boolean;
 }): JSONObject {
   const candidates: JSONObject = {
@@ -709,6 +763,7 @@ export function buildNotesSelect(data: {
         model: data.model,
         column,
         userPermissions: data.userPermissions,
+        blockedPermissions: data.blockedPermissions,
         isMasterAdmin: data.isMasterAdmin,
       })
     ) {
@@ -724,15 +779,18 @@ export type ColumnAction = "create" | "update";
 /*
  * Whether the viewer may write one column of a note, the same way the model
  * forms decide which fields to show: a master admin always may, anyone else
- * needs one of the permissions the column declares for the action. The
- * create form used to drop a column the viewer could not write; the composer
- * does the same by not offering the control at all.
+ * needs one of the permissions the column declares for the action, with no
+ * team block on any of them. The create form used to drop a column the
+ * viewer could not write; the composer does the same by not offering the
+ * control at all.
  */
 export function canWriteNoteColumn(data: {
   model: BaseModel;
   column: string;
   action: ColumnAction;
   userPermissions: Array<Permission>;
+  // What a team of the viewer's blocks (PermissionGate.getHeldPermissions).
+  blockedPermissions?: Array<Permission> | undefined;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
@@ -749,10 +807,13 @@ export function canWriteNoteColumn(data: {
     return false;
   }
 
-  return PermissionHelper.doesPermissionsIntersect(
-    [...data.userPermissions, Permission.Public],
-    columnPermissions,
-  );
+  return holdsColumnPermission({
+    model: data.model,
+    operation: data.action,
+    columnPermissions: columnPermissions,
+    userPermissions: data.userPermissions,
+    blockedPermissions: data.blockedPermissions,
+  });
 }
 
 /*
