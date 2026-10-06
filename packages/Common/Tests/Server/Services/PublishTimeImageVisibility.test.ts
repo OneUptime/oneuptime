@@ -62,7 +62,6 @@ interface IconCase {
   build: () => Probe | AIAgent;
 }
 
-
 type CallHookFunction = (
   service: unknown,
   name: string,

@@ -4614,9 +4614,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * showing. See PublishedImages.
        */
       if (PublishedImages.isWrittenBy(this.model.tableName, dataKeys)) {
-        for (const column of PublishedImages.getColumns(
-          this.model.tableName,
-        )) {
+        for (const column of PublishedImages.getColumns(this.model.tableName)) {
           (selectColumns as Dictionary<unknown>)[column] = true;
         }
       }

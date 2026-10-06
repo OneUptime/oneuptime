@@ -558,12 +558,9 @@ describe("FileService.getFileAccess: who may see each file", () => {
       },
     ]);
 
-    const facts: Map<string, FileAccessFacts> =
-      await FileService.getFileAccess([
-        new ObjectID(FILE_ID.toString().toUpperCase()),
-        SECOND_FILE_ID,
-        FILE_ID,
-      ]);
+    const facts: Map<string, FileAccessFacts> = await FileService.getFileAccess(
+      [new ObjectID(FILE_ID.toString().toUpperCase()), SECOND_FILE_ID, FILE_ID],
+    );
 
     expect(recording.calls).toEqual([
       ["createQueryBuilder", ["file"]],
@@ -601,8 +598,9 @@ describe("FileService.getFileAccess: who may see each file", () => {
       { _id: SECOND_FILE_ID.toString(), projectId: null, isPublic: null },
     ]);
 
-    const facts: Map<string, FileAccessFacts> =
-      await FileService.getFileAccess([FILE_ID, SECOND_FILE_ID]);
+    const facts: Map<string, FileAccessFacts> = await FileService.getFileAccess(
+      [FILE_ID, SECOND_FILE_ID],
+    );
 
     expect(facts.get(FILE_ID.toString())?.isPublic).toBe(false);
     expect(facts.get(SECOND_FILE_ID.toString())?.isPublic).toBe(false);
@@ -640,9 +638,9 @@ describe("FileService.setVisibilityFromPublishedRecords: files from before the r
       manager: { query },
     } as never);
 
-    await expect(FileService.setVisibilityFromPublishedRecords()).resolves.toEqual(
-      { madePublic: 3, madePrivate: 5 },
-    );
+    await expect(
+      FileService.setVisibilityFromPublishedRecords(),
+    ).resolves.toEqual({ madePublic: 3, madePrivate: 5 });
 
     expect(
       query.mock.calls.map((call: [string]): string => {
@@ -660,8 +658,8 @@ describe("FileService.setVisibilityFromPublishedRecords: files from before the r
       },
     } as never);
 
-    await expect(FileService.setVisibilityFromPublishedRecords()).resolves.toEqual(
-      { madePublic: 0, madePrivate: 0 },
-    );
+    await expect(
+      FileService.setVisibilityFromPublishedRecords(),
+    ).resolves.toEqual({ madePublic: 0, madePrivate: 0 });
   });
 });

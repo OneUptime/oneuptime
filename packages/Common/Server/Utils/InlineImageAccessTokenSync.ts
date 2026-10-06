@@ -2,7 +2,9 @@ import FileService from "../Services/FileService";
 import File from "../../Models/DatabaseModels/File";
 import ObjectID from "../../Types/ObjectID";
 import FileOwnership from "./File/FileOwnership";
-import PublishedImages, { extractImageAccessTokens } from "./File/PublishedImages";
+import PublishedImages, {
+  extractImageAccessTokens,
+} from "./File/PublishedImages";
 import logger from "./Logger";
 
 /*

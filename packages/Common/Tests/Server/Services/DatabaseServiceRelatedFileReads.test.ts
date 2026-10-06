@@ -25,6 +25,8 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import fs from "fs";
+import path from "path";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -481,8 +483,7 @@ describe("GUARD: every model's files reach a caller only when they may see them"
         row._id = isUser ? USER_ID.toString() : ObjectID.generate().toString();
 
         if (!isUser) {
-          (row as unknown as Record<string, unknown>)["projectId"] =
-            PROJECT_ID;
+          (row as unknown as Record<string, unknown>)["projectId"] = PROJECT_ID;
         }
 
         (row as unknown as Record<string, unknown>)[column.relationColumn] =
@@ -531,6 +532,81 @@ describe("GUARD: every model's files reach a caller only when they may see them"
       };
 
       expect(rows.map(filesOf)).toEqual([[OWN_FILE_ID], []]);
+    },
+  );
+});
+
+/*
+ * GUARD: no read path around DatabaseService's. The check above lives in
+ * DatabaseService's one read path; a service of a model with File columns
+ * that answered reads on its own - overriding the finds, or querying its
+ * repository - would hand files back unchecked. And the workflow steps
+ * that read records as OneUptime itself, with a select their author wrote,
+ * hold the files they read to the workflow's project.
+ */
+describe("GUARD: every read of a record's files goes through the check", () => {
+  const SERVICES_DIR: string = path.resolve(
+    __dirname,
+    "../../../Server/Services",
+  );
+  const WORKFLOW_DIR: string = path.resolve(
+    __dirname,
+    "../../../Server/Types/Workflow/Components/BaseModel",
+  );
+
+  const tablesWithFiles: Array<string> = Array.from(
+    new Set<string>(
+      FILE_COLUMN_CASES.map((entry: FileColumnCase): string => {
+        return entry.table;
+      }),
+    ),
+  ).sort();
+
+  test.each(tablesWithFiles)(
+    "%sService answers reads only through DatabaseService",
+    (table: string) => {
+      const servicePath: string = path.join(SERVICES_DIR, `${table}Service.ts`);
+
+      expect(fs.existsSync(servicePath)).toBe(true);
+
+      const source: string = fs.readFileSync(servicePath, "utf8");
+
+      for (const pattern of [
+        /override\s+async\s+(findBy|findOneBy|findOneById|findAllBy)\s*\(/,
+        /getRepository\(\)\s*\.\s*(find|findOne|findBy|findOneBy|createQueryBuilder)\s*\(/,
+      ]) {
+        expect({ table, match: source.match(pattern)?.[0] || null }).toEqual({
+          table,
+          match: null,
+        });
+      }
+    },
+  );
+
+  test("DatabaseService checks the files of every read made for a caller", () => {
+    const source: string = fs.readFileSync(
+      path.join(SERVICES_DIR, "DatabaseService.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain(
+      "const fileReader: RelatedFileReader | null = RelatedFileAccess.getReader(",
+    );
+    expect(source).toContain("await RelatedFileAccess.keepReadableFiles({");
+  });
+
+  test.each(["FindOneBaseModel", "FindManyBaseModel", "OnTriggerBaseModel"])(
+    "the workflow step %s holds what it reads to the workflow's project",
+    (component: string) => {
+      const source: string = fs.readFileSync(
+        path.join(WORKFLOW_DIR, `${component}.ts`),
+        "utf8",
+      );
+
+      expect(source).toContain("await RelatedFileAccess.keepReadableFiles({");
+      expect(source).toContain(
+        "reader: RelatedFileAccess.getProjectReader(options.projectId),",
+      );
     },
   );
 });

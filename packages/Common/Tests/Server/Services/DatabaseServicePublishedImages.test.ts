@@ -262,9 +262,9 @@ beforeEach(() => {
   jest
     .spyOn(InlineImageAccessTokenSync, "setImageVisibility")
     .mockImplementation(setImageVisibility as never);
-  jest.spyOn(FileService, "getFileOwners").mockResolvedValue(
-    new Map<string, FileOwners>() as never,
-  );
+  jest
+    .spyOn(FileService, "getFileOwners")
+    .mockResolvedValue(new Map<string, FileOwners>() as never);
   jest
     .spyOn(AuditLogService, "recordCreate")
     .mockResolvedValue(undefined as never);

@@ -44,7 +44,8 @@ import { normalizeFileId } from "./FileOwnership";
  */
 
 // The address of an inline image in markdown, and the token it carries.
-const ACCESS_TOKEN_REGEX: RegExp = /\/file\/image\/access-token\/([a-fA-F0-9]+)/g;
+const ACCESS_TOKEN_REGEX: RegExp =
+  /\/file\/image\/access-token\/([a-fA-F0-9]+)/g;
 
 // What a token may hold: the hex FileService generates.
 const TOKEN_REGEX: RegExp = /^[a-fA-F0-9]+$/;
@@ -212,16 +213,17 @@ const getShownWhereSql: (source: PublishedMarkdown) => string = (
  * Every image token the published records show, with the project of the
  * record showing it - one scan of each table, its markdown read as one text.
  */
-const getShownTokensSql: (sources: ReadonlyArray<PublishedMarkdown>) => string =
-  (sources: ReadonlyArray<PublishedMarkdown>): string => {
-    return sources
-      .map((source: PublishedMarkdown): string => {
-        const text: string = getTextSql(source);
+const getShownTokensSql: (
+  sources: ReadonlyArray<PublishedMarkdown>,
+) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  return sources
+    .map((source: PublishedMarkdown): string => {
+      const text: string = getTextSql(source);
 
-        return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source)} AND ${text} LIKE '%/file/image/access-token/%'`;
-      })
-      .join(" UNION ALL ");
-  };
+      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getShownWhereSql(source)} AND ${text} LIKE '%/file/image/access-token/%'`;
+    })
+    .join(" UNION ALL ");
+};
 
 // Every file id the published records show by its id address.
 const getShownFileIdsSql: (
@@ -287,7 +289,9 @@ export default class PublishedImages {
    * The columns that decide what a table's records show to everyone: their
    * markdown and their switches. Empty for a table that shows nothing.
    */
-  public static getColumns(tableName: string | null | undefined): Array<string> {
+  public static getColumns(
+    tableName: string | null | undefined,
+  ): Array<string> {
     const columns: Set<string> = new Set<string>();
 
     for (const source of this.getSources(tableName)) {
@@ -572,13 +576,27 @@ export default class PublishedImages {
 
     const setImageVisibility: SetImageVisibility = this.getSetImageVisibility();
 
-    for (const token of data.publish) {
-      await setImageVisibility(token, true, new ObjectID(projectId));
-    }
+    const wanted: Array<[string, boolean]> = [
+      ...Array.from(data.publish).map((token: string): [string, boolean] => {
+        return [token, true];
+      }),
+      ...Array.from(data.unpublish)
+        .filter((token: string): boolean => {
+          return !data.publish.has(token);
+        })
+        .map((token: string): [string, boolean] => {
+          return [token, false];
+        }),
+    ];
 
-    for (const token of data.unpublish) {
-      if (!data.publish.has(token)) {
-        await setImageVisibility(token, false, new ObjectID(projectId));
+    // One image that cannot be set leaves the rest to be set all the same.
+    for (const [token, isPublic] of wanted) {
+      try {
+        await setImageVisibility(token, isPublic, new ObjectID(projectId));
+      } catch (err) {
+        logger.error(
+          `Failed to make an image ${isPublic ? "public" : "private"}: ${String(err)}`,
+        );
       }
     }
   }

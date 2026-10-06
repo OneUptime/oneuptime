@@ -39,8 +39,7 @@ function readPage(relativePath: string): string {
 const NAMED_AS: Record<string, string> = {
   "Incident.description":
     "the incident's description while the incident is **Visible on Status Page**",
-  "Incident.postmortemNote":
-    "its postmortem once that is published there too",
+  "Incident.postmortemNote": "its postmortem once that is published there too",
   "IncidentPublicNote.note": "a public note",
   "IncidentEpisodePublicNote.note": "a public note",
   "ScheduledMaintenancePublicNote.note": "a public note",

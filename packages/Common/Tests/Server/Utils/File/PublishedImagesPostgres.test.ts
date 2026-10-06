@@ -82,7 +82,9 @@ function createTablesSql(): Array<string> {
     const columns: Set<string> = tables.get(source.tableName)!;
 
     for (const column of source.markdownColumns) {
-      columns.add(`"${column}" ${column === "customFields" ? "jsonb" : "text"}`);
+      columns.add(
+        `"${column}" ${column === "customFields" ? "jsonb" : "text"}`,
+      );
     }
 
     for (const column of source.shownWhen) {
@@ -203,8 +205,7 @@ describePostgres("PublishedImages against Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["PUBLISHED_IMAGES_TEST_DATABASE_HOST"] || "localhost",
+      host: process.env["PUBLISHED_IMAGES_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["PUBLISHED_IMAGES_TEST_DATABASE_PORT"] || "5400",
       ),

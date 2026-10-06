@@ -1,4 +1,7 @@
-import { RunOptions, RunReturnType } from "../../../../../Server/Types/Workflow/ComponentCode";
+import {
+  RunOptions,
+  RunReturnType,
+} from "../../../../../Server/Types/Workflow/ComponentCode";
 import FindManyBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/FindManyBaseModel";
 import FindOneBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/FindOneBaseModel";
 import OnTriggerBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel";
@@ -177,17 +180,16 @@ describe("Find Many", () => {
 
     jest.spyOn(service, "findBy").mockResolvedValue([note] as never);
 
-    const result: RunReturnType = await new FindManyBaseModel<IncidentPublicNote>(
-      service,
-    ).run(
-      {
-        query: {},
-        select: { note: true, attachments: { _id: true, file: true } },
-        limit: 10,
-        skip: 0,
-      },
-      options(),
-    );
+    const result: RunReturnType =
+      await new FindManyBaseModel<IncidentPublicNote>(service).run(
+        {
+          query: {},
+          select: { note: true, attachments: { _id: true, file: true } },
+          limit: 10,
+          skip: 0,
+        },
+        options(),
+      );
 
     const models: JSONArray = result.returnValues["models"] as JSONArray;
 

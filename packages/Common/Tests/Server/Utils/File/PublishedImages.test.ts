@@ -14,7 +14,14 @@ import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { Mock } from "jest-mock";
 import fs from "fs";
 import path from "path";
@@ -302,12 +309,10 @@ describe("PublishedImages.getColumns / isWrittenBy", () => {
     expect(
       PublishedImages.isWrittenBy("Incident", ["showPostmortemOnStatusPage"]),
     ).toBe(true);
-    expect(PublishedImages.isWrittenBy("Incident", ["title", "rootCause"])).toBe(
-      false,
-    );
-    expect(PublishedImages.isWrittenBy("Monitor", ["description"])).toBe(
-      false,
-    );
+    expect(
+      PublishedImages.isWrittenBy("Incident", ["title", "rootCause"]),
+    ).toBe(false);
+    expect(PublishedImages.isWrittenBy("Monitor", ["description"])).toBe(false);
   });
 });
 
@@ -318,10 +323,9 @@ describe("PublishedImages.getShownTokens: what a record shows to everyone", () =
       isVisibleOnStatusPage: true,
     };
 
-    expect(Array.from(PublishedImages.getShownTokens("Incident", row))).toEqual([
-      "aaa111",
-      "bbb222",
-    ]);
+    expect(Array.from(PublishedImages.getShownTokens("Incident", row))).toEqual(
+      ["aaa111", "bbb222"],
+    );
 
     for (const isVisibleOnStatusPage of [false, null, undefined, "true"]) {
       expect(
@@ -641,6 +645,18 @@ describe("PublishedImages.afterUpdate", () => {
     expect(setImageVisibility).not.toHaveBeenCalled();
   });
 
+  test("one image that cannot be set leaves the others to be set", async () => {
+    setImageVisibility.mockRejectedValueOnce(new Error("db down"));
+
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [SHOWN_INCIDENT],
+      written: { isVisibleOnStatusPage: false },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
   test("never fails the update it follows", async () => {
     setImageVisibility.mockRejectedValue(new Error("db down"));
 
@@ -766,7 +782,9 @@ describe("the SQL the still-shown check and the data migration run", () => {
   });
 
   test("PUBLISH_SHOWN_IMAGES_SQL makes public only private images of the showing record's own project", () => {
-    expect(PUBLISH_SHOWN_IMAGES_SQL).toMatch(/^UPDATE "File" AS "file" SET "isPublic" = true FROM \(/);
+    expect(PUBLISH_SHOWN_IMAGES_SQL).toMatch(
+      /^UPDATE "File" AS "file" SET "isPublic" = true FROM \(/,
+    );
     expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(
       `"file"."projectId" = "shown"."projectId"`,
     );
