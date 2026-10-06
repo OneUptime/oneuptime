@@ -81,6 +81,9 @@ import MonitorStepDockerSwarmMonitor, {
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "./MonitorStepCephMonitor";
+import MonitorStepStorageArrayMonitor, {
+  MonitorStepStorageArrayMonitorUtil,
+} from "./MonitorStepStorageArrayMonitor";
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
 } from "./MonitorStepIoTMonitor";
@@ -246,6 +249,9 @@ export interface MonitorStepType {
   // Ceph monitor
   cephMonitor?: MonitorStepCephMonitor | undefined;
 
+  // Storage array monitor
+  storageArrayMonitor?: MonitorStepStorageArrayMonitor | undefined;
+
   // IoT monitor
   iotMonitor?: MonitorStepIoTMonitor | undefined;
 }
@@ -297,6 +303,7 @@ export default class MonitorStep extends DatabaseProperty {
       vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
+      storageArrayMonitor: undefined,
       iotMonitor: undefined,
     };
   }
@@ -386,6 +393,7 @@ export default class MonitorStep extends DatabaseProperty {
       vmwareMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
+      storageArrayMonitor: undefined,
       iotMonitor: undefined,
     };
 
@@ -420,7 +428,8 @@ export default class MonitorStep extends DatabaseProperty {
       data.podmanMonitor?.metricViewConfig ||
       data.proxmoxMonitor?.metricViewConfig ||
       data.vmwareMonitor?.metricViewConfig ||
-      data.cephMonitor?.metricViewConfig
+      data.cephMonitor?.metricViewConfig ||
+      data.storageArrayMonitor?.metricViewConfig
     );
   }
 
@@ -725,6 +734,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setStorageArrayMonitor(
+    storageArrayMonitor: MonitorStepStorageArrayMonitor,
+  ): MonitorStep {
+    this.data!.storageArrayMonitor = storageArrayMonitor;
+    return this;
+  }
+
   public setIoTMonitor(iotMonitor: MonitorStepIoTMonitor): MonitorStep {
     this.data!.iotMonitor = iotMonitor;
     return this;
@@ -773,6 +789,7 @@ export default class MonitorStep extends DatabaseProperty {
         vmwareMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
+        storageArrayMonitor: undefined,
         iotMonitor: undefined,
       },
     };
@@ -1065,6 +1082,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.StorageArray) {
+      if (!value.data.storageArrayMonitor) {
+        return "Storage array monitor configuration is required";
+      }
+
+      if (!value.data.storageArrayMonitor.arrayIdentifier) {
+        return "Storage array is required";
+      }
+    }
+
     if (monitorType === MonitorType.IoTDevice) {
       if (!value.data.iotMonitor) {
         return "IoT monitor configuration is required";
@@ -1195,6 +1222,11 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           cephMonitor: this.data.cephMonitor
             ? MonitorStepCephMonitorUtil.toJSON(this.data.cephMonitor)
+            : undefined,
+          storageArrayMonitor: this.data.storageArrayMonitor
+            ? MonitorStepStorageArrayMonitorUtil.toJSON(
+                this.data.storageArrayMonitor,
+              )
             : undefined,
           iotMonitor: this.data.iotMonitor
             ? MonitorStepIoTMonitorUtil.toJSON(this.data.iotMonitor)
@@ -1409,6 +1441,9 @@ export default class MonitorStep extends DatabaseProperty {
       cephMonitor: json["cephMonitor"]
         ? (json["cephMonitor"] as JSONObject)
         : undefined,
+      storageArrayMonitor: json["storageArrayMonitor"]
+        ? (json["storageArrayMonitor"] as JSONObject)
+        : undefined,
       iotMonitor: json["iotMonitor"]
         ? (json["iotMonitor"] as JSONObject)
         : undefined,
@@ -1470,6 +1505,7 @@ export default class MonitorStep extends DatabaseProperty {
         vmwareMonitor: Zod.any().optional(),
         dockerSwarmMonitor: Zod.any().optional(),
         cephMonitor: Zod.any().optional(),
+        storageArrayMonitor: Zod.any().optional(),
         iotMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",

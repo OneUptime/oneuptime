@@ -186,6 +186,24 @@ export function keyForCephCluster(
 }
 
 /**
+ * `storage.array.name` is the storage array identity (matches the
+ * StorageArray row's `name`, the project-unique join key written by
+ * `findOrCreateByName`; the ingest resolver is name-only — `storage.system`
+ * and the array's own reported name are descriptive, never identity). Pass
+ * `StorageArray.name`.
+ */
+export function keyForStorageArray(
+  projectId: string,
+  arrayName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.StorageArray,
+    identifyingAttributes: { "storage.array.name": arrayName },
+  });
+}
+
+/**
  * `docker.swarm.cluster.name` is the cluster identity (matches the
  * DockerSwarmCluster row's `name`, the project-unique join key written by
  * `findOrCreateByName`; the ingest resolver is name-only — see

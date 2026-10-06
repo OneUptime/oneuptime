@@ -53,6 +53,7 @@ export enum CreateFromRecordKind {
   ProxmoxCluster = "ProxmoxCluster",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
+  StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
@@ -307,6 +308,29 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         },
         [CreatedRecordKind.ScheduledMaintenance]: {
           page: PageMap.CEPH_CLUSTER_VIEW_SCHEDULED_MAINTENANCE,
+          title: SCHEDULED_MAINTENANCE_TAB_TITLE,
+        },
+      },
+    },
+    {
+      kind: CreateFromRecordKind.StorageArray,
+      queryParam: "storageArrayId",
+      listTitle: "Storage Arrays",
+      listPage: PageMap.STORAGE_ARRAYS,
+      viewTitle: "View Storage Array",
+      viewPage: PageMap.STORAGE_ARRAY_VIEW,
+      field: namedRecords("storageArrays"),
+      tabs: {
+        [CreatedRecordKind.Incident]: {
+          page: PageMap.STORAGE_ARRAY_VIEW_INCIDENTS,
+          title: INCIDENTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.Alert]: {
+          page: PageMap.STORAGE_ARRAY_VIEW_ALERTS,
+          title: ALERTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.ScheduledMaintenance]: {
+          page: PageMap.STORAGE_ARRAY_VIEW_SCHEDULED_MAINTENANCE,
           title: SCHEDULED_MAINTENANCE_TAB_TITLE,
         },
       },

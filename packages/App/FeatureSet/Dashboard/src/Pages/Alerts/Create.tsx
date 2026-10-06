@@ -20,6 +20,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -81,8 +82,8 @@ const advancedSection: FormFieldCollapsibleSection<Alert> =
 /*
  * Every resource type besides the monitor that an alert can affect: what
  * the alert's own Edit offers, so an alert created from a Proxmox cluster's,
- * a vCenter's, a Ceph or Docker Swarm cluster's or an IoT fleet's Alerts tab
- * keeps it picked (Components/CreateFromRecord).
+ * a vCenter's, a Ceph or Docker Swarm cluster's, a storage array's or an IoT
+ * fleet's Alerts tab keeps it picked (Components/CreateFromRecord).
  */
 const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "Host",
@@ -92,6 +93,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -351,6 +353,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
                         cephClusters={values.cephClusters as Array<CephCluster>}
+                        storageArrays={
+                          values.storageArrays as Array<StorageArray>
+                        }
                         dockerSwarmClusters={
                           values.dockerSwarmClusters as Array<DockerSwarmCluster>
                         }
@@ -383,6 +388,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           proxmoxClusters: payload.proxmoxClusters,
                           vmwareVCenters: payload.vmwareVCenters,
                           cephClusters: payload.cephClusters,
+                          storageArrays: payload.storageArrays,
                           dockerSwarmClusters: payload.dockerSwarmClusters,
                           iotFleets: payload.iotFleets,
                           databaseServers: payload.databaseServers,
@@ -425,6 +431,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       item.proxmoxClusters,
                       item.vmwareVCenters,
                       item.cephClusters,
+                      item.storageArrays,
                       item.dockerSwarmClusters,
                       item.iotFleets,
                       item.databaseServers,
@@ -457,6 +464,9 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           item.vmwareVCenters as Array<VMwareVCenter>
                         }
                         cephClusters={item.cephClusters as Array<CephCluster>}
+                        storageArrays={
+                          item.storageArrays as Array<StorageArray>
+                        }
                         dockerSwarmClusters={
                           item.dockerSwarmClusters as Array<DockerSwarmCluster>
                         }
@@ -476,10 +486,10 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/proxmoxClusters/
-                 * vmwareVCenters/cephClusters/dockerSwarmClusters/iotFleets/
-                 * databaseServers/services. (hosts is already the picker's
-                 * anchor field above so it doesn't need an extra
-                 * registration.)
+                 * vmwareVCenters/cephClusters/storageArrays/
+                 * dockerSwarmClusters/iotFleets/databaseServers/services.
+                 * (hosts is already the picker's anchor field above so it
+                 * doesn't need an extra registration.)
                  */
                 {
                   field: { kubernetesClusters: true },
@@ -533,6 +543,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 {
                   field: { cephClusters: true },
+                  stepId: "on-call",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { storageArrays: true },
                   stepId: "on-call",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

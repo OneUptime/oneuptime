@@ -253,7 +253,8 @@ export default class MonitorStepViewModel {
       data.podmanMonitor?.rollingTime ||
       data.proxmoxMonitor?.rollingTime ||
       data.vmwareMonitor?.rollingTime ||
-      data.cephMonitor?.rollingTime
+      data.cephMonitor?.rollingTime ||
+      data.storageArrayMonitor?.rollingTime
     );
   }
 
@@ -272,6 +273,7 @@ export default class MonitorStepViewModel {
       MonitorType.VMware,
       MonitorType.DockerSwarm,
       MonitorType.Ceph,
+      MonitorType.StorageArray,
       MonitorType.IoTDevice,
     ].includes(monitorType);
   }
@@ -440,6 +442,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getDockerSwarmRows(data);
       case MonitorType.Ceph:
         return MonitorStepViewModel.getCephRows(data);
+      case MonitorType.StorageArray:
+        return MonitorStepViewModel.getStorageArrayRows(data);
       case MonitorType.IoTDevice:
         return MonitorStepViewModel.getIoTRows(data);
       default:
@@ -1803,6 +1807,81 @@ export default class MonitorStepViewModel {
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: cephMonitor?.metricViewConfig,
         rollingTime: cephMonitor?.rollingTime,
+      }),
+    ]);
+  }
+
+  private static getStorageArrayRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const storageArrayMonitor: MonitorStepType["storageArrayMonitor"] =
+      data.storageArrayMonitor;
+
+    /*
+     * One row per StorageArrayResourceFilters key. There is no scope row:
+     * Pure's series name their object in a datapoint label (`name`,
+     * `host`, `component_name`), so the filters below ARE the scope.
+     */
+    return compact([
+      {
+        key: "arrayIdentifier",
+        title: "Storage Array",
+        description: "The storage array this monitor watches.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.arrayIdentifier),
+        placeholder: "No storage array selected",
+      },
+      optional({
+        key: "storageArrayVolumeName",
+        title: "Volume",
+        description: "Only this FlashArray volume is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.volumeName),
+        placeholder: "All volumes",
+      }),
+      optional({
+        key: "storageArrayHostName",
+        title: "Host",
+        description: "Only this host defined on the FlashArray is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.hostName),
+        placeholder: "All hosts",
+      }),
+      optional({
+        key: "storageArrayPodName",
+        title: "Pod",
+        description: "Only this pod is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.podName),
+        placeholder: "All pods",
+      }),
+      optional({
+        key: "storageArrayComponentName",
+        title: "Hardware Component",
+        description: "Only this hardware part is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.componentName),
+        placeholder: "All hardware components",
+      }),
+      optional({
+        key: "storageArrayFileSystemName",
+        title: "File System",
+        description: "Only this FlashBlade file system is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.fileSystemName),
+        placeholder: "All file systems",
+      }),
+      optional({
+        key: "storageArrayBucketName",
+        title: "Bucket",
+        description: "Only this FlashBlade bucket is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(storageArrayMonitor?.resourceFilters?.bucketName),
+        placeholder: "All buckets",
+      }),
+      ...MonitorStepViewModel.getMetricConfigRows(data, {
+        metricViewConfig: storageArrayMonitor?.metricViewConfig,
+        rollingTime: storageArrayMonitor?.rollingTime,
       }),
     ]);
   }

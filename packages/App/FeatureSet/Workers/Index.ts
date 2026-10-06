@@ -261,6 +261,9 @@ import "./Jobs/VMware/CleanupStaleResources";
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";
 
+// Storage array disconnection sweeper + inventory cleanup.
+import "./Jobs/StorageArray/CleanupStaleResources";
+
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
 

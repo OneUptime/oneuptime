@@ -293,7 +293,7 @@ export const getPodmanHostConnectionGuide: (
   );
 };
 
-// ---- Compose-based agents: Docker Swarm, Proxmox, Ceph, VMware ------------
+// ---- Compose-based agents: Swarm, Proxmox, Ceph, VMware, storage arrays ----
 
 interface ComposeAgent {
   resourceNoun: string; // "cluster"
@@ -447,6 +447,24 @@ export const getCephClusterConnectionGuide: (
       troubleshootScriptUrl: troubleshootScript("CephAgent"),
     },
     clusterName,
+  );
+};
+
+export const getStorageArrayConnectionGuide: (
+  arrayName: string,
+) => ResourceConnectionGuide = (arrayName: string): ResourceConnectionGuide => {
+  return getComposeAgentConnectionGuide(
+    {
+      resourceNoun: translationKey("storage array"),
+      agentName: "OneUptime Storage Array Agent",
+      containerName: "oneuptime-storage-array-agent",
+      nameVariable: "STORAGE_ARRAY_NAME",
+      installDescription: translationKey(
+        'Run the install script from the setup guide on a machine that can reach the array\'s management address. When it asks for the storage array name, enter "{{name}}" — or, with Docker Compose, put this in the .env file:',
+      ),
+      troubleshootScriptUrl: troubleshootScript("StorageArrayAgent"),
+    },
+    arrayName,
   );
 };
 

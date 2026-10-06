@@ -66,6 +66,7 @@ import AffectedResourcesPicker, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -221,6 +222,7 @@ const ALL_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -426,6 +428,7 @@ describe("toItems", () => {
       proxmoxClusters: [],
       vmwareVCenters: [],
       cephClusters: [],
+      storageArrays: [],
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: [],
@@ -541,6 +544,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       ProxmoxCluster: ProxmoxCluster,
       VMwareVCenter: VMwareVCenter,
       CephCluster: CephCluster,
+      StorageArray: StorageArray,
       DockerSwarmCluster: DockerSwarmCluster,
       IoTFleet: IoTFleet,
       DatabaseServer: DatabaseServer,
@@ -566,6 +570,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       proxmoxClusters: idFor("ProxmoxCluster"),
       vmwareVCenters: idFor("VMwareVCenter"),
       cephClusters: idFor("CephCluster"),
+      storageArrays: idFor("StorageArray"),
       dockerSwarmClusters: idFor("DockerSwarmCluster"),
       iotFleets: idFor("IoTFleet"),
       databaseServers: idFor("DatabaseServer"),

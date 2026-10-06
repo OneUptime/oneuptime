@@ -386,7 +386,7 @@ export default class CriteriaFilterUtil {
      * MetricMonitorCriteria: the metric-only types this form already pins
      * to CheckOn.MetricValue (Metrics, Kubernetes, and the infrastructure
      * types Docker / Host / Podman / Docker Swarm / Proxmox / VMware /
-     * Ceph), plus
+     * Ceph / Storage Array), plus
      * IoT Device, which MonitorCriteriaEvaluator routes down the same path
      * but which is not metric-only here, so it still draws the full
      * criteria UI. All of them alert on one thing - an ingested metric.
@@ -1225,6 +1225,7 @@ export default class CriteriaFilterUtil {
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.StorageArray ||
       monitorType === MonitorType.Metrics
     );
   }

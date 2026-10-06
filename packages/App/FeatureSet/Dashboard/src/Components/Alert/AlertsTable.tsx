@@ -734,6 +734,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          storageArrays: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           dockerSwarmClusters: {
             name: true,
             _id: true,
@@ -929,6 +934,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              storageArrays: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               dockerSwarmClusters: {
                 name: true,
                 _id: true,
@@ -984,6 +994,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                   proxmoxClusters={item.proxmoxClusters || []}
                   vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
+                  storageArrays={item.storageArrays || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}

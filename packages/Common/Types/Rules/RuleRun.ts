@@ -103,6 +103,8 @@ export enum RuleRunType {
   StatusPageLabelRule = "StatusPageLabelRule",
   StatusPageOwnerRule = "StatusPageOwnerRule",
   StatusPageMonitorRule = "StatusPageMonitorRule",
+  StorageArrayLabelRule = "StorageArrayLabelRule",
+  StorageArrayOwnerRule = "StorageArrayOwnerRule",
   VMwareVCenterLabelRule = "VMwareVCenterLabelRule",
   VMwareVCenterOwnerRule = "VMwareVCenterOwnerRule",
   WorkflowLabelRule = "WorkflowLabelRule",
@@ -356,6 +358,16 @@ export const RULE_RUN_TYPE_METADATA: Readonly<
     RuleRunAction.SyncStatusPageMonitors,
     "monitor",
     "monitors",
+  ),
+  [RuleRunType.StorageArrayLabelRule]: metadata(
+    Labels,
+    "storage array",
+    "storage arrays",
+  ),
+  [RuleRunType.StorageArrayOwnerRule]: metadata(
+    Owners,
+    "storage array",
+    "storage arrays",
   ),
   [RuleRunType.VMwareVCenterLabelRule]: metadata(
     Labels,

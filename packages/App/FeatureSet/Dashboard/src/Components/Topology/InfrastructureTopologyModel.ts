@@ -938,6 +938,7 @@ const PASS_THROUGH_TYPES: Set<string> = new Set<string>([
   EntityType.VMwareVCenter,
   EntityType.VMwareCluster,
   EntityType.CephCluster,
+  EntityType.StorageArray,
   EntityType.DockerSwarmCluster,
 ]);
 

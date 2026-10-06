@@ -103,6 +103,8 @@ beforeAll(async () => {
       PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.Ceph]:
       PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.StorageArray]:
+      PageMap.STORAGE_ARRAY_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.IoTDevice]:
       PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.RumApplication]:

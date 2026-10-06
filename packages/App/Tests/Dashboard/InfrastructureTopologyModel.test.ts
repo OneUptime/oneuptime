@@ -799,3 +799,31 @@ describe("robustness", () => {
     expect(model.resourceCount).toBe(0);
   });
 });
+
+describe("a storage array", () => {
+  /*
+   * An array is filed with the other storage clusters (Inventory's Clusters
+   * category) and, like a Ceph cluster, is a grouping level the map looks
+   * through when something is placed inside it. On its own it is a single
+   * appliance, so the map draws it as one card.
+   */
+  test("is an infrastructure type filed beside the Ceph cluster", () => {
+    expect(isInfrastructureType(EntityType.StorageArray)).toBe(true);
+    expect(categoryForType(EntityType.StorageArray)).toEqual(
+      categoryForType(EntityType.CephCluster),
+    );
+    expect(collectionName(EntityType.StorageArray)).toBe("Storage Arrays");
+  });
+
+  test("a lone array is drawn as one card", () => {
+    const model: InfrastructureTopologyModel = buildInfrastructureTopologyModel(
+      [entity("fa", EntityType.StorageArray, "fa-prod-01")],
+      [],
+      { rangeStart: RANGE_START },
+    );
+
+    expect(isContainerNode(node(model, "fa"))).toBe(false);
+    expect(collectMapCards(model, null)).toEqual(["fa"]);
+    expect(describeInfrastructureNode(node(model, "fa"))).toBe("Storage Array");
+  });
+});

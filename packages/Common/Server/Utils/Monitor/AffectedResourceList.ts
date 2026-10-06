@@ -7,8 +7,9 @@ import RootCauseList, {
 /*
  * The "Affected Resources" block of a platform monitor's root cause.
  *
- * Kubernetes, Proxmox, VMware, Docker Swarm and Ceph monitors each attach a
- * per-resource breakdown to the incident / alert they open, and each one
+ * Kubernetes, Proxmox, VMware, Docker Swarm, Ceph and Storage Array monitors
+ * each attach a per-resource breakdown to the incident / alert they open, and
+ * each one
  * used to render it as a GitHub-flavoured table: up to six columns of long,
  * unbreakable identifiers (pod names, node names, pool paths). That table
  * is read in three places, and it read badly in all of them:

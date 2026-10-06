@@ -14,6 +14,7 @@ export enum AIResourceType {
   ProxmoxCluster = "ProxmoxCluster",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
+  StorageArray = "StorageArray",
   ServerlessFunction = "ServerlessFunction",
   CloudResource = "CloudResource",
   IoTFleet = "IoTFleet",
@@ -50,6 +51,10 @@ export enum AIResourceSubresourceKind {
   Cluster = "Cluster",
   Osd = "Osd",
   Pool = "Pool",
+  Hardware = "Hardware",
+  Directory = "Directory",
+  FileSystem = "FileSystem",
+  Bucket = "Bucket",
   Device = "Device",
   Process = "Process",
   WindowsService = "WindowsService",
@@ -78,6 +83,7 @@ const RESOURCE_FACET_KEYS: Record<AIResourceType, string> = {
   [AIResourceType.ProxmoxCluster]: "proxmoxClusterId",
   [AIResourceType.VMwareVCenter]: "vmwareVCenterId",
   [AIResourceType.CephCluster]: "cephClusterId",
+  [AIResourceType.StorageArray]: "storageArrayId",
   [AIResourceType.ServerlessFunction]: "serverlessFunctionId",
   [AIResourceType.CloudResource]: "cloudResourceId",
   [AIResourceType.IoTFleet]: "iotFleetId",
@@ -183,6 +189,21 @@ export const AI_RESOURCE_SUBRESOURCE_KINDS: Readonly<
   [AIResourceType.CephCluster]: [
     AIResourceSubresourceKind.Osd,
     AIResourceSubresourceKind.Pool,
+  ],
+  /*
+   * The objects of the StorageArrayResource inventory a page can be about:
+   * FlashArray volumes, hosts, pods (replication), hardware (components,
+   * drives, controllers) and directories; FlashBlade file systems and
+   * buckets.
+   */
+  [AIResourceType.StorageArray]: [
+    AIResourceSubresourceKind.Volume,
+    AIResourceSubresourceKind.Host,
+    AIResourceSubresourceKind.Pod,
+    AIResourceSubresourceKind.Hardware,
+    AIResourceSubresourceKind.Directory,
+    AIResourceSubresourceKind.FileSystem,
+    AIResourceSubresourceKind.Bucket,
   ],
   [AIResourceType.IoTFleet]: [AIResourceSubresourceKind.Device],
   [AIResourceType.ServerlessFunction]: [AIResourceSubresourceKind.Instance],

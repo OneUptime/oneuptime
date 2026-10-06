@@ -24,6 +24,9 @@ import MonitorStepPodmanMonitor, {
 import MonitorStepProxmoxMonitor, {
   MonitorStepProxmoxMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
+import MonitorStepStorageArrayMonitor, {
+  MonitorStepStorageArrayMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
@@ -33,16 +36,19 @@ import { describe, expect, it } from "@jest/globals";
 
 /*
  * The infrastructure monitor-step types (Host, Docker, Podman, Kubernetes,
- * Ceph, IoT, Docker Swarm, Proxmox, VMware) each ship a small `*Util` class with
- * getDefault / fromJSON / toJSON. getDefault seeds the monitor-step editor
+ * Ceph, IoT, Docker Swarm, Proxmox, VMware, Storage Array) each ship a small
+ * `*Util` class with getDefault / fromJSON / toJSON. getDefault seeds the
+ * monitor-step editor
  * when a user first picks that monitor type, so two things it does are
  * load-bearing and neither is obvious from the (near-identity) code:
  *
  *   1. THE DEFAULT ROLLING WINDOW. Every infra step whose agent scrapes
- *      every 30 s defaults to RollingTime.Past1Minute. VMware is the one
- *      exception: its agent polls vCenter every 2 minutes
- *      (VCENTER_COLLECTION_INTERVAL) and emits one sample per object per
- *      collection, so it defaults to Past5Minutes — a 1-minute window
+ *      every 30 s defaults to RollingTime.Past1Minute. VMware and Storage
+ *      Array are the two exceptions: VMware's agent polls vCenter every 2
+ *      minutes (VCENTER_COLLECTION_INTERVAL) and emits one sample per
+ *      object per collection, and the Storage Array Agent reads the array
+ *      endpoint every 60 seconds and volumes, hosts and pods every 2
+ *      minutes, so both default to Past5Minutes — a 1-minute window
  *      would be empty every other evaluation and flap. That value is what
  *      a freshly created metric monitor evaluates over until the user
  *      changes it; a silent change to it would change the meaning of every
@@ -127,7 +133,16 @@ const CASES: Array<InfraCase> = [
     identifierField: "vcenterIdentifier",
     defaultRollingTime: RollingTime.Past5Minutes,
   },
+  {
+    name: "StorageArray",
+    util: MonitorStepStorageArrayMonitorUtil as InfraMonitorUtil<MonitorStepStorageArrayMonitor>,
+    identifierField: "arrayIdentifier",
+    defaultRollingTime: RollingTime.Past5Minutes,
+  },
 ];
+
+// The types whose agents collect less often than every 30 seconds.
+const SLOW_COLLECTION_TYPES: Array<string> = ["VMware", "StorageArray"];
 
 describe("Infrastructure monitor-step getDefault contract", () => {
   for (const testCase of CASES) {
@@ -172,14 +187,14 @@ describe("Infrastructure monitor-step getDefault contract", () => {
 });
 
 describe("Infrastructure monitor-step default rolling window", () => {
-  it("only VMware departs from the 1-minute window, and only upward", () => {
+  it("only VMware and Storage Array depart from the 1-minute window, and only upward", () => {
     /*
      * Guards the table itself: a new product copy-pasted from VMware must
-     * not inherit the 5-minute window without the 2-minute-collection
-     * justification, and VMware must never slide back to 1 minute.
+     * not inherit the 5-minute window without a slow-collection
+     * justification, and neither slow collector may slide back to 1 minute.
      */
     for (const testCase of CASES) {
-      if (testCase.name === "VMware") {
+      if (SLOW_COLLECTION_TYPES.includes(testCase.name)) {
         expect(testCase.defaultRollingTime).toBe(RollingTime.Past5Minutes);
       } else {
         expect(testCase.defaultRollingTime).toBe(RollingTime.Past1Minute);
@@ -187,6 +202,9 @@ describe("Infrastructure monitor-step default rolling window", () => {
     }
 
     expect(MonitorStepVMwareMonitorUtil.getDefault().rollingTime).toBe(
+      RollingTime.Past5Minutes,
+    );
+    expect(MonitorStepStorageArrayMonitorUtil.getDefault().rollingTime).toBe(
       RollingTime.Past5Minutes,
     );
   });

@@ -195,6 +195,11 @@ const RECORD_TABS: Array<RecordTabShape> = [
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
   ...kindTabs(
+    "StorageArray",
+    CreateFromRecordKind.StorageArray,
+    INCIDENTS_ALERTS_AND_MAINTENANCE,
+  ),
+  ...kindTabs(
     "DockerSwarm",
     CreateFromRecordKind.DockerSwarmCluster,
     INCIDENTS_ALERTS_AND_MAINTENANCE,

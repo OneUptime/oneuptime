@@ -47,6 +47,7 @@ import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmCluster
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
+import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ObjectID from "Common/Types/ObjectID";
@@ -63,15 +64,15 @@ import {
 } from "@jest/globals";
 
 /*
- * Hosts, Proxmox, Ceph and VMware show an agent version, with a sign when a
- * newer one is out, only if the server stores the oneuptime.agent.version
- * their collectors now stamp. This walks the ingest boundary with the
- * attributes those collectors really send - read from the agents' own
- * configs, not typed here - and checks the version reaches each resource's
- * updateLastSeen (the write ResourceHeartbeat gates; VMwareVCenterService.
- * test and CollectorAgentVersionHeartbeat.test cover that it lands on the
- * row). The Docker Swarm agent, which stamped its version first, is the
- * reference the others follow.
+ * Hosts, Proxmox, Ceph, VMware and storage arrays show an agent version, with
+ * a sign when a newer one is out, only if the server stores the
+ * oneuptime.agent.version their collectors now stamp. This walks the ingest
+ * boundary with the attributes those collectors really send - read from the
+ * agents' own configs, not typed here - and checks the version reaches each
+ * resource's updateLastSeen (the write ResourceHeartbeat gates;
+ * VMwareVCenterService.test and CollectorAgentVersionHeartbeat.test cover
+ * that it lands on the row). The Docker Swarm agent, which stamped its
+ * version first, is the reference the others follow.
  *
  * An agent installed before the pin stamps nothing, and the version must
  * then stay unset - never blank, never a made-up value - so the page reads
@@ -96,9 +97,12 @@ function stringAttribute(key: string, value: string): JSONObject {
 }
 
 // The oneuptime.agent.version an agent's shipped config stamps.
-function stampOf(agentDir: string): string {
+function stampOf(
+  agentDir: string,
+  configFile: string = "otel-collector-config.yaml",
+): string {
   const config: string = fs.readFileSync(
-    path.join(REPO_ROOT, "agents", agentDir, "otel-collector-config.yaml"),
+    path.join(REPO_ROOT, "agents", agentDir, configFile),
     "utf8",
   );
   const stamp: string | undefined = config.match(
@@ -139,6 +143,31 @@ const CASES: Array<DiscoverCase> = [
     service: CephClusterService,
     version: (): string => {
       return stampOf("CephAgent");
+    },
+  },
+  {
+    /*
+     * One agent per array, running whichever of its three configs .env
+     * names: they stamp the same version, so the array shows it whatever
+     * kind of array it is.
+     */
+    name: "a storage array",
+    method: "autoDiscoverStorageArray",
+    identity: [
+      stringAttribute("storage.array.name", "fa-prod-01"),
+      stringAttribute("storage.system", "purestorage.flasharray"),
+    ] as JSONArray,
+    service: StorageArrayService,
+    version: (): string => {
+      const stamps: Array<string> = [
+        "otel-collector-config.yaml",
+        "otel-collector-config.flasharray-exporter.yaml",
+        "otel-collector-config.flashblade.yaml",
+      ].map((configFile: string): string => {
+        return stampOf("StorageArrayAgent", configFile);
+      });
+      expect(new Set(stamps).size).toBe(1);
+      return stamps[0]!;
     },
   },
   {

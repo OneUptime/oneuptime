@@ -29,6 +29,12 @@ export enum MonitorRecommendationResourceType {
   Proxmox = "Proxmox",
   VMware = "VMware",
   Ceph = "Ceph",
+  /*
+   * A storage array (the StorageArray model). Its recommendation set depends
+   * on its platform — FlashArray and FlashBlade templates read different
+   * metrics — see `MonitorRecommendationContext`.
+   */
+  StorageArray = "StorageArray",
   IoTDevice = "IoTDevice",
   /*
    * A RUM (browser) application. Its recommendation set gains the session
@@ -124,6 +130,16 @@ export interface MonitorRecommendationContext {
    * a finite number above 0 is a budget; 0, blank and anything else is none.
    */
   sessionReplayMonthlyBudgetInGB?: number | null | undefined;
+  /*
+   * A storage array's platform — its `storageSystem`, a StorageSystem value
+   * such as "purestorage.flasharray". It selects the templates whose metrics
+   * that platform exports (`getStorageArrayAlertTemplatesForSystem`): a
+   * FlashBlade never sends a purefa_* series, so a FlashArray template on it
+   * would never fire. Like a database's engine there is no platform-agnostic
+   * subset, so `null` / `undefined` (not reported yet) and a platform
+   * OneUptime ships no templates for are offered nothing.
+   */
+  storageSystem?: string | null | undefined;
 }
 
 /*
@@ -142,6 +158,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   vcenterIdentifier -> VMware
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice
+ *   arrayIdentifier   -> Storage array
  *   rumApplicationId  -> RUM application
  *   serviceId         -> APM service
  *   databaseServerId  -> Database server

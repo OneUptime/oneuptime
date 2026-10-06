@@ -825,6 +825,28 @@ export default class InventoryItem {
     },
 
     /*
+     * storage.array — storage.array.name only, mirroring ceph.cluster.
+     * `storage.system` (the platform, e.g. purestorage.flasharray) is
+     * descriptive, not identity: the typed Postgres row (StorageArray) and
+     * the read side (`EntityKey.keyForStorageArray`) are name-based, and an
+     * agent may omit the platform (ingest also detects it from the
+     * purefa_ / purefb_ metric names). Volumes, hosts and the other objects
+     * inside an array are StorageArrayResource inventory rows, not entities.
+     */
+    (attrs: EntityAttributes) => {
+      const name: string | null = InventoryItem.str(
+        attrs,
+        "storage.array.name",
+      );
+      return name
+        ? {
+            entityType: EntityType.StorageArray,
+            id: { "storage.array.name": name },
+          }
+        : null;
+    },
+
+    /*
      * docker.swarm.cluster — docker.swarm.cluster.name only, mirroring the
      * proxmox/ceph/vmware root identity: the typed Postgres row
      * (DockerSwarmCluster) and the read side
@@ -1157,6 +1179,7 @@ export default class InventoryItem {
     ],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
     [EntityType.CephCluster]: ["ceph.cluster.fsid"],
+    [EntityType.StorageArray]: ["storage.system"],
     /*
      * VMware: the cluster an ESXi host sits in and the host / name / pool a
      * VM currently has are exactly the things vSphere moves or renames

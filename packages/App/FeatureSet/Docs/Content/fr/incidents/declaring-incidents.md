@@ -46,7 +46,7 @@ Les moniteurs viennent en premier, à part : les pages de statut voient un incid
 
 - **Moniteurs** — un champ de recherche qui rattache les moniteurs concernés par l'incident (`monitors`). Une page de statut affiche l'incident, et prévient ses abonnés, lorsqu'elle répertorie l'un de ces moniteurs.
 - **Changer le statut du moniteur en** — facultatif, et affiché seulement dès qu'au moins un moniteur est choisi. Applique un statut à chaque moniteur de l'incident, de sorte que déclarer l'incident et marquer ses moniteurs comme dégradés se fasse en une seule action. Le statut d'un modèle apparaît dès que vous choisissez un moniteur ; sans moniteur choisi, aucun statut n'est enregistré.
-- **Autres ressources affectées** — un second champ de recherche pour tout le reste de ce que l'incident touche : hôtes, clusters Kubernetes, hôtes Docker et Podman, clusters Proxmox, Ceph et Docker Swarm, vCenters, flottes IoT, bases de données et services. Ce sont des relations distinctes de l'incident (`hosts`, `kubernetesClusters`, `services` et d'autres).
+- **Autres ressources affectées** — un second champ de recherche pour tout le reste de ce que l'incident touche : hôtes, clusters Kubernetes, hôtes Docker et Podman, clusters Proxmox, Ceph et Docker Swarm, vCenters, baies de stockage, flottes IoT, bases de données et services. Ce sont des relations distinctes de l'incident (`hosts`, `kubernetesClusters`, `services` et d'autres).
 
 La carte **Ressources affectées** de l'incident pose les mêmes questions quand vous la modifiez plus tard.
 

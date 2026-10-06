@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -19,6 +20,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import CephClusterElement from "../Ceph/CephClusterElement";
+import StorageArrayElement from "../StorageArray/StorageArrayElement";
 import DatabaseServerElement from "../DatabaseServer/DatabaseServerElement";
 import DockerHostElement from "../DockerHost/DockerHost";
 import DockerSwarmClusterElement from "../DockerSwarm/DockerSwarmClusterElement";
@@ -42,6 +44,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
+  storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
@@ -68,6 +71,7 @@ export interface ComponentProps {
   hideProxmoxClusters?: boolean | undefined;
   hideVMwareVCenters?: boolean | undefined;
   hideCephClusters?: boolean | undefined;
+  hideStorageArrays?: boolean | undefined;
   hideDockerSwarmClusters?: boolean | undefined;
   hideIoTFleets?: boolean | undefined;
   hideDatabaseServers?: boolean | undefined;
@@ -313,6 +317,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const proxmoxClusters: Array<ProxmoxCluster> = props.proxmoxClusters || [];
   const vmwareVCenters: Array<VMwareVCenter> = props.vmwareVCenters || [];
   const cephClusters: Array<CephCluster> = props.cephClusters || [];
+  const storageArrays: Array<StorageArray> = props.storageArrays || [];
   const dockerSwarmClusters: Array<DockerSwarmCluster> =
     props.dockerSwarmClusters || [];
   const iotFleets: Array<IoTFleet> = props.iotFleets || [];
@@ -333,6 +338,8 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const showVMware: boolean =
     !props.hideVMwareVCenters && vmwareVCenters.length > 0;
   const showCeph: boolean = !props.hideCephClusters && cephClusters.length > 0;
+  const showStorageArrays: boolean =
+    !props.hideStorageArrays && storageArrays.length > 0;
   const showSwarm: boolean =
     !props.hideDockerSwarmClusters && dockerSwarmClusters.length > 0;
   const showIoTFleets: boolean = !props.hideIoTFleets && iotFleets.length > 0;
@@ -353,6 +360,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showProxmox &&
     !showVMware &&
     !showCeph &&
+    !showStorageArrays &&
     !showSwarm &&
     !showIoTFleets &&
     !showDatabases &&
@@ -411,6 +419,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showProxmox ? proxmoxClusters.length : 0) +
     (showVMware ? vmwareVCenters.length : 0) +
     (showCeph ? cephClusters.length : 0) +
+    (showStorageArrays ? storageArrays.length : 0) +
     (showSwarm ? dockerSwarmClusters.length : 0) +
     (showIoTFleets ? iotFleets.length : 0) +
     (showDatabases ? databaseServers.length : 0) +
@@ -426,6 +435,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showProxmox ? 1 : 0) +
     (showVMware ? 1 : 0) +
     (showCeph ? 1 : 0) +
+    (showStorageArrays ? 1 : 0) +
     (showSwarm ? 1 : 0) +
     (showIoTFleets ? 1 : 0) +
     (showDatabases ? 1 : 0) +
@@ -572,6 +582,19 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={cephClusters}
             renderItem={(cluster: CephCluster) => {
               return <CephClusterElement cephCluster={cluster} />;
+            }}
+          />
+        )}
+        {showStorageArrays && (
+          <CategorySection<StorageArray>
+            className={sectionClassName}
+            icon={IconProp.StorageArray}
+            label="Storage Arrays"
+            iconBgClass="bg-pink-50"
+            iconColorClass="text-pink-600"
+            items={storageArrays}
+            renderItem={(storageArray: StorageArray) => {
+              return <StorageArrayElement storageArray={storageArray} />;
             }}
           />
         )}

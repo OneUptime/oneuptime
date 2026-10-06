@@ -83,6 +83,7 @@ const METRIC_BACKED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Proxmox,
   MonitorType.VMware,
   MonitorType.Ceph,
+  MonitorType.StorageArray,
   MonitorType.IoTDevice,
 ];
 
@@ -99,6 +100,8 @@ const NEWLY_SEEDED_MONITOR_TYPES: Array<MonitorType> = [
   MonitorType.Proxmox,
   MonitorType.VMware,
   MonitorType.Ceph,
+  // Added after this change, on the same metric-backed defaults from day one.
+  MonitorType.StorageArray,
   MonitorType.IoTDevice,
   MonitorType.Profiles,
 ];

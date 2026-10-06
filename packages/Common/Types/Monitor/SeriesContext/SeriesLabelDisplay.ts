@@ -145,6 +145,24 @@ const FriendlyLabelNames: Record<string, string> = {
   pool: "Pool",
   osd: "OSD",
 
+  /*
+   * --- Storage arrays ---
+   *
+   * Pure Storage FlashArray / FlashBlade keep object identity in DATAPOINT
+   * labels (stored unprefixed): `name` on volumes, pods, directories and
+   * every FlashBlade object, `host` on FlashArray hosts, `component_name`
+   * on FlashArray hardware and drives, `local_pod` on pod replica links,
+   * `summary` on open alerts. The agent stamps `storage.array.name` and
+   * `storage.system` on the resource.
+   */
+  "storage.array.name": "Storage Array",
+  "storage.system": "Storage Platform",
+  name: "Name",
+  host: "Host",
+  component_name: "Component",
+  local_pod: "Pod",
+  summary: "Alert Summary",
+
   // --- IoT ---
   "iot.fleet.name": "Fleet",
   "device.id": "Device",
@@ -216,6 +234,16 @@ const LabelPriority: Record<string, number> = {
   "docker.swarm.service.name": 25,
   ceph_daemon: 25,
   pool_id: 25,
+  /*
+   * Storage arrays: the object that breached (a volume, file system,
+   * bucket, hardware component, pod or open alert), then the host, then
+   * the array that merely scopes it.
+   */
+  name: 25,
+  component_name: 25,
+  local_pod: 25,
+  summary: 25,
+  host: 30,
   "device.id": 25,
   "device.name": 25,
   "proxmox.vm.name": 25,
@@ -291,6 +319,8 @@ const LabelPriority: Record<string, number> = {
   "docker.swarm.cluster.name": 80,
   "proxmox.cluster.name": 80,
   "ceph.cluster.name": 80,
+  "storage.array.name": 80,
+  "storage.system": 85,
   "iot.fleet.name": 80,
   "k8s.pod.uid": 95,
   "container.id": 95,
