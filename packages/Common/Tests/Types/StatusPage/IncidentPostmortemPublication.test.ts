@@ -856,6 +856,36 @@ describe("IncidentPostmortemPublication.isShownByUpdate", () => {
     ).toBe(false);
   });
 
+  /*
+   * Private as the update leaves it, by the visibility rule itself
+   * (StatusPageVisibility.isPrivateAfterWrite): a value that is neither off
+   * nor unset hides the incident, as every status page read treats it.
+   */
+  test("a Private written as a value that is neither off nor unset leaves it hidden", () => {
+    for (const isPrivate of ["maybe", 2] as Array<unknown>) {
+      expect(
+        IncidentPostmortemPublication.isShownByUpdate({
+          stored: {
+            ...shown(),
+            isVisibleOnStatusPage: false,
+            isPrivate: false,
+          },
+          written: { isVisibleOnStatusPage: true, isPrivate: isPrivate },
+        }),
+      ).toBe(false);
+    }
+
+    // Written off in any form the database reads as off: shown.
+    for (const isPrivate of [false, "false", "no", 0] as Array<unknown>) {
+      expect(
+        IncidentPostmortemPublication.isShownByUpdate({
+          stored: { ...shown(), isVisibleOnStatusPage: false, isPrivate: true },
+          written: { isVisibleOnStatusPage: true, isPrivate: isPrivate },
+        }),
+      ).toBe(true);
+    }
+  });
+
   test("a private incident switched on and made not private in one update is shown", () => {
     expect(
       IncidentPostmortemPublication.isShownByUpdate({

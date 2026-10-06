@@ -462,6 +462,30 @@ export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (S
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
+// The rows of a source a switch hides (hiddenWhen), not deleted.
+const getHiddenWhereSql: (source: PublishedMarkdown) => string = (
+  source: PublishedMarkdown,
+): string => {
+  const isHidden: string = (source.hiddenWhen || [])
+    .map((column: string): string => {
+      return `${quote(column)} IS TRUE`;
+    })
+    .join(" OR ");
+
+  return `${quote("deletedAt")} IS NULL AND (${isHidden})`;
+};
+
+// The sources a switch can hide (hiddenWhen: a private incident or episode).
+const getHideableSources: (
+  sources: ReadonlyArray<PublishedMarkdown>,
+) => Array<PublishedMarkdown> = (
+  sources: ReadonlyArray<PublishedMarkdown>,
+): Array<PublishedMarkdown> => {
+  return sources.filter((source: PublishedMarkdown): boolean => {
+    return (source.hiddenWhen || []).length > 0;
+  });
+};
+
 /*
  * Every image token a record a switch hides (hiddenWhen: a private incident
  * or episode) holds in the markdown it would otherwise show, with the
@@ -470,40 +494,58 @@ export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (S
 const getHiddenTokensSql: (
   sources: ReadonlyArray<PublishedMarkdown>,
 ) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
-  return sources
-    .filter((source: PublishedMarkdown): boolean => {
-      return (source.hiddenWhen || []).length > 0;
-    })
+  return getHideableSources(sources)
     .map((source: PublishedMarkdown): string => {
       const text: string = getTextSql(source);
-      const isHidden: string = (source.hiddenWhen || [])
-        .map((column: string): string => {
-          return `${quote(column)} IS TRUE`;
-        })
-        .join(" OR ");
 
-      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("deletedAt")} IS NULL AND (${isHidden}) AND ${text} LIKE '%/file/image/access-token/%'`;
+      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getHiddenWhereSql(source)} AND ${text} LIKE '%/file/image/access-token/%'`;
     })
     .join(" UNION ALL ");
+};
+
+/*
+ * Every file id such a record holds by its id address (/file/image/<id>,
+ * markdown written by hand), with the record's project.
+ */
+const getHiddenFileIdsSql: (
+  sources: ReadonlyArray<PublishedMarkdown>,
+) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  return getHideableSources(sources)
+    .map((source: PublishedMarkdown): string => {
+      const text: string = getTextSql(source);
+
+      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${getHiddenWhereSql(source)} AND ${text} LIKE '%/file/image/%'`;
+    })
+    .join(" UNION ALL ");
+};
+
+// A file of the record's own project, or of no project, as the record holds it.
+const getSameProjectOrNoneSql: (alias: string) => string = (
+  alias: string,
+): string => {
+  return `(${quote("file")}.${quote("projectId")} IS NULL OR ${quote(alias)}.${quote("projectId")} = ${quote("file")}.${quote("projectId")})`;
 };
 
 /*
  * Once, for images made public before a private record stopped showing
  * them: an incident or an episode stored private with Visible on Status Page
  * still on showed its description, postmortem and custom fields as published
- * then, so their images were made public. Each such image of the record's
- * own project, or of no project (a file from before File.projectId was
- * stamped), becomes private - unless a published record of any project
+ * then, so their images were made public, or kept public when addressed by
+ * the file's id. Each such image of the record's own project, or of no
+ * project (a file from before File.projectId was stamped), held by its token
+ * or by its id, becomes private - unless a published record of any project
  * still shows it, by its token or by its id, or it is an icon, exactly as
  * HIDE_UNSHOWN_FILES_SQL keeps them. Nothing else moves.
  */
 export const HIDE_PRIVATE_RECORD_IMAGES_SQL: string = `WITH ${quote("hiddenToken")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${getHiddenTokensSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("hidden")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
+)}) AS ${quote("hidden")}), ${quote("hiddenId")} AS (SELECT ${quote("projectId")}, ${quote("fileId")} FROM (${getHiddenFileIdsSql(
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+)}) AS ${quote("hiddenIds")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND (${quote("file")}.${quote("projectId")} IS NULL OR ${quote("hiddenToken")}.${quote("projectId")} = ${quote("file")}.${quote("projectId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND (EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${getSameProjectOrNoneSql("hiddenToken")}) OR EXISTS (SELECT 1 FROM ${quote("hiddenId")} WHERE ${quote("hiddenId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text AND ${getSameProjectOrNoneSql("hiddenId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 // The published rows of a table a delete of its parent takes with it.
 export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (

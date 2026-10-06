@@ -410,17 +410,17 @@ export default class IncidentPostmortemPublication {
     written: Record<string, unknown>;
   }): boolean {
     const writtenVisibility: unknown = data.written["isVisibleOnStatusPage"];
-    const writtenPrivate: unknown = data.written["isPrivate"];
 
     const isShownAfterUpdate: boolean = this.isIncidentShown({
       isVisibleOnStatusPage:
         writtenVisibility !== undefined
           ? this.isSwitchedOn(writtenVisibility)
           : data.stored?.isVisibleOnStatusPage === true,
-      isPrivate:
-        writtenPrivate !== undefined
-          ? this.isSwitchedOn(writtenPrivate)
-          : this.isSwitchedOn(data.stored?.isPrivate),
+      // Private as the update leaves it, by the one rule (StatusPageVisibility).
+      isPrivate: StatusPageVisibility.isPrivateAfterWrite({
+        written: data.written,
+        stored: data.stored,
+      }),
     });
 
     return isShownAfterUpdate && !this.isIncidentShown(data.stored);

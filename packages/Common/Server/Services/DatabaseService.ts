@@ -4747,10 +4747,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       // What the service decides each row's own write by. See the hook.
-      if (!updateBy.props.ignoreHooks) {
-        for (const column of this.getColumnsForRowWriteOverrides(data)) {
-          (selectColumns as Dictionary<unknown>)[column] = true;
-        }
+      const rowWriteColumns: Array<string> = updateBy.props.ignoreHooks
+        ? []
+        : this.getColumnsForRowWriteOverrides(data);
+
+      for (const column of rowWriteColumns) {
+        (selectColumns as Dictionary<unknown>)[column] = true;
       }
 
       /*
@@ -4845,6 +4847,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * primary key, INSERTs instead of updating, and dies on the first
          * NOT NULL column.
          */
+        /*
+         * The columns the service decides this row's write by
+         * (getColumnsForRowWriteOverrides), read again right before the
+         * write: the rows before it took their own writes, workflows and
+         * audit entries, so a change landing meanwhile - a privacy rule - is
+         * what decides this one. Onto the row as the update read it, so what
+         * is recorded of the row agrees with what decided its write.
+         */
+        if (rowWriteColumns.length > 0) {
+          const stored: Record<string, unknown> | null =
+            await this.readStoredColumns(item, rowWriteColumns);
+
+          for (const column of rowWriteColumns) {
+            if (stored && stored[column] !== undefined) {
+              (item as unknown as Record<string, unknown>)[column] =
+                stored[column];
+            }
+          }
+        }
+
         /*
          * What the service writes to this row in place of the update's own
          * values (getRowWriteOverrides), decided on the row as just read:

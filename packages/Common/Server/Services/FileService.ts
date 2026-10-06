@@ -292,22 +292,25 @@ export class Service extends DatabaseService<File> {
     madePublic: number;
     madePrivate: number;
   }> {
-    const countOf: (result: unknown) => number = (result: unknown): number => {
-      // An UPDATE answers [rows, affected count].
-      return Array.isArray(result) && typeof result[1] === "number"
-        ? result[1]
-        : 0;
-    };
-
-    const madePublic: number = countOf(
-      await this.getRepository().manager.query(PUBLISH_SHOWN_IMAGES_SQL),
+    const madePublic: number = await this.countUpdatedBy(
+      PUBLISH_SHOWN_IMAGES_SQL,
     );
 
-    const madePrivate: number = countOf(
-      await this.getRepository().manager.query(HIDE_UNSHOWN_FILES_SQL),
+    const madePrivate: number = await this.countUpdatedBy(
+      HIDE_UNSHOWN_FILES_SQL,
     );
 
     return { madePublic, madePrivate };
+  }
+
+  // Runs one UPDATE statement and returns how many rows it moved.
+  private async countUpdatedBy(sql: string): Promise<number> {
+    const result: unknown = await this.getRepository().manager.query(sql);
+
+    // An UPDATE answers [rows, affected count].
+    return Array.isArray(result) && typeof result[1] === "number"
+      ? result[1]
+      : 0;
   }
 
   /**
@@ -320,14 +323,7 @@ export class Service extends DatabaseService<File> {
    */
   @CaptureSpan()
   public async hideImagesOfPrivateRecords(): Promise<number> {
-    const result: unknown = await this.getRepository().manager.query(
-      HIDE_PRIVATE_RECORD_IMAGES_SQL,
-    );
-
-    // An UPDATE answers [rows, affected count].
-    return Array.isArray(result) && typeof result[1] === "number"
-      ? result[1]
-      : 0;
+    return await this.countUpdatedBy(HIDE_PRIVATE_RECORD_IMAGES_SQL);
   }
 
   /**

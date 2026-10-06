@@ -167,7 +167,8 @@ export default class IncidentStatusPageScope {
    * that did not select it (or selected it a while ago) cannot widen the
    * reach. An incident that is no longer found reaches nothing, and neither
    * does a private one: a private member of an episode does not take the
-   * episode to the pages its monitors are on.
+   * episode to the pages its monitors are on, nor make it count as limited
+   * to pages (isScoped).
    *
    * includePrivateIncidents resolves a private incident as if it were not
    * private: only for a summary that reports privacy on its own and sends
@@ -205,19 +206,20 @@ export default class IncidentStatusPageScope {
     for (const incident of data.incidents) {
       const incidentId: string = this.getIncidentId(incident)!;
 
+      /*
+       * Not found: deleted since, not readable, or private. It reaches no
+       * page, and is left out altogether, so it does not count as limited
+       * to pages either (isScoped): an episode's other members reach what
+       * they reach, sent as they would be without it.
+       */
+      if (!Object.prototype.hasOwnProperty.call(scopes, incidentId)) {
+        continue;
+      }
+
       reaches.push({
         incidentId: incidentId,
         monitorIds: this.getMonitorIds(incident.monitors),
-        /*
-         * Not found: deleted since, or not readable. Scoped to nothing, so it
-         * reaches no page.
-         */
-        scopedStatusPageIds: Object.prototype.hasOwnProperty.call(
-          scopes,
-          incidentId,
-        )
-          ? (scopes[incidentId] as Array<string> | null)
-          : [],
+        scopedStatusPageIds: scopes[incidentId] as Array<string> | null,
       });
     }
 

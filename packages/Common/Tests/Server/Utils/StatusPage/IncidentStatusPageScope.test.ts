@@ -423,6 +423,71 @@ describe("IncidentStatusPageScope.resolvePagesForIncidents", () => {
     expect(reachedPageNames(resolved)).toEqual(["Site 02"]);
   });
 
+  /*
+   * A member that reaches nothing - private, or no longer found - is left
+   * out, so it does not make the episode count as limited to pages: its
+   * other members' subscribers are sent to as they would be without it
+   * (isScoped decides whether an address hears once or once per page).
+   */
+  test.each([
+    [
+      "a private member, scoped",
+      [
+        {
+          id: INCIDENT_B,
+          isScopedToStatusPages: true,
+          statusPageIds: [sitePageId(5)],
+          isPrivate: true,
+        },
+      ],
+    ],
+    [
+      "a private member, unscoped",
+      [{ id: INCIDENT_B, isScopedToStatusPages: false, isPrivate: true }],
+    ],
+    ["a member no longer found", []],
+  ] as Array<[string, Array<IncidentScopeFixture>]>)(
+    "%s does not make an episode with an unscoped member count as limited to pages",
+    async (_label: string, others: Array<IncidentScopeFixture>) => {
+      useTenSitePages();
+      storedScopes = [
+        { id: INCIDENT_A, isScopedToStatusPages: false },
+        ...others,
+      ];
+
+      const resolved: ResolvedIncidentStatusPages =
+        await IncidentStatusPageScope.resolvePagesForIncidents({
+          incidents: [
+            incidentOn(INCIDENT_A, [SHARED_MONITOR]),
+            incidentOn(INCIDENT_B, [SHARED_MONITOR]),
+          ],
+        });
+
+      expect(resolved.isScoped).toBe(false);
+      expect(reachedPageNames(resolved)).toHaveLength(10);
+    },
+  );
+
+  test("a private incident on its own reaches nothing and counts as limited to no page", async () => {
+    useTenSitePages();
+    storedScopes = [
+      {
+        id: INCIDENT_B,
+        isScopedToStatusPages: true,
+        statusPageIds: [sitePageId(5)],
+        isPrivate: true,
+      },
+    ];
+
+    const resolved: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [incidentOn(INCIDENT_B, [SHARED_MONITOR])],
+      });
+
+    expect(resolved.statusPages).toEqual([]);
+    expect(resolved.isScoped).toBe(false);
+  });
+
   test("an unscoped incident on a monitor shared by ten pages reaches all ten, in name order", async () => {
     useTenSitePages();
     storedScopes = [{ id: INCIDENT_A, isScopedToStatusPages: false }];

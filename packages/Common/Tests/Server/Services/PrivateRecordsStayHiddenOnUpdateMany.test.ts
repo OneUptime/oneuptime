@@ -86,6 +86,12 @@ interface FakeTable {
    * writes - a privacy rule landing - applied right before that read.
    */
   beforeWriteRead: Array<(rows: Map<string, StoredRow>) => void>;
+  /*
+   * What changes once the update has written a row and before it writes the
+   * next - a privacy rule landing while it works through them - applied
+   * after the next repository write.
+   */
+  afterNextWrite: Array<(rows: Map<string, StoredRow>) => void>;
 }
 
 // The ids a query's _id condition names: one id, or a list (In / any).
@@ -130,6 +136,7 @@ function fakeTable(
     auditedUpdates: [],
     arrivingAtWrite: new Set<string>(),
     beforeWriteRead: [],
+    afterNextWrite: [],
   };
 
   const stubbable: StubbableService = service as unknown as StubbableService;
@@ -192,6 +199,10 @@ function fakeTable(
     }
 
     table.repositoryWrites.push({ id: id, data: set });
+
+    for (const change of table.afterNextWrite.splice(0)) {
+      change(table.rows);
+    }
 
     return { affected: 1 };
   }) as never);
@@ -560,6 +571,36 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
       [PUBLIC_ID]: true,
     });
   });
+  test("an incident made private while the update writes the ones before it is written hidden: each row is read again right before its own write", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [incidentRow(PUBLIC_ID, false), incidentRow(PRIVATE_ID, false)],
+    );
+
+    // A privacy rule lands once the first incident is written.
+    table.afterNextWrite.push((rows: Map<string, StoredRow>): void => {
+      rows.get(PRIVATE_ID)!["isPrivate"] = true;
+    });
+
+    await updateManyIncidents({ isVisibleOnStatusPage: true });
+
+    expect(visibilityOf(table)).toEqual({
+      [PUBLIC_ID]: true,
+      [PRIVATE_ID]: false,
+    });
+
+    // Its workflow is never told it was shown.
+    for (const trigger of table.workflowTriggers) {
+      if (trigger.id === PRIVATE_ID) {
+        expect(
+          (trigger.updatedFields as Record<string, unknown>)[
+            "isVisibleOnStatusPage"
+          ],
+        ).not.toBe(true);
+      }
+    }
+  });
 });
 
 describe("Update Many on episodes turns their Status Pages switch on", () => {
@@ -693,6 +734,25 @@ describe("Update Many on episodes turns their Status Pages switch on", () => {
     expect(visibilityOf(table)).toEqual({
       [PRIVATE_ID]: false,
       [PUBLIC_ID]: true,
+    });
+  });
+
+  test("an episode made private while the update writes the ones before it is written hidden", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentEpisodeService as unknown as DatabaseService<BaseModel>,
+      IncidentEpisode as unknown as { new (): BaseModel },
+      [episodeRow(PUBLIC_ID, false), episodeRow(PRIVATE_ID, false)],
+    );
+
+    table.afterNextWrite.push((rows: Map<string, StoredRow>): void => {
+      rows.get(PRIVATE_ID)!["isPrivate"] = true;
+    });
+
+    await updateManyEpisodes({ isVisibleOnStatusPage: true });
+
+    expect(visibilityOf(table)).toEqual({
+      [PUBLIC_ID]: true,
+      [PRIVATE_ID]: false,
     });
   });
 });

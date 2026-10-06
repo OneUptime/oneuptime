@@ -948,6 +948,69 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await isPublic(linkedByIdFileId)).toBe(true);
     });
 
+    test("makes private an image a private record holds by its id, as hand-written markdown addresses it", async () => {
+      const byIdFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+      const unownedByIdFileId: string = await insertFile({
+        projectId: null,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: `${byId(byIdFileId)} ${byId(unownedByIdFileId.toUpperCase())}`,
+        isPrivate: true,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(2);
+      expect(await isPublic(byIdFileId)).toBe(false);
+      expect(await isPublic(unownedByIdFileId)).toBe(false);
+    });
+
+    test("by its id too, moves nothing else: another project's image, one a published record still shows, a hidden record's", async () => {
+      const foreignFileId: string = await insertFile({
+        projectId: PROJECT_B,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+      const stillShownFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+      const onHiddenFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: `${byId(foreignFileId)} ${byId(stillShownFileId)}`,
+        isPrivate: true,
+      });
+      await insertRecord(sourceOf("StatusPageAnnouncement", "description"), {
+        projectId: PROJECT_A,
+        description: byId(stillShownFileId),
+      });
+      // Hidden, but not private: left to the switch, as before.
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byId(onHiddenFileId),
+        isVisibleOnStatusPage: false,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+
+      for (const fileId of [foreignFileId, stillShownFileId, onHiddenFileId]) {
+        expect(await isPublic(fileId)).toBe(true);
+      }
+    });
+
     test("makes private an image of no project a private record holds: a file from before files had a project", async () => {
       const unowned: string = token();
       const unownedFileId: string = await insertFile({
