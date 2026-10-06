@@ -16,6 +16,11 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import {
+  DEFAULT_INCOMING_CALL_RING_SECONDS,
+  MAX_INCOMING_CALL_RING_SECONDS,
+  MIN_INCOMING_CALL_RING_SECONDS,
+} from "../../Types/IncomingCall/IncomingCallRingTime";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -361,6 +366,11 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
   })
   public order?: number = undefined;
 
+  /*
+   * How long the phone rings before the call moves on to the next rule: the
+   * timeout of Twilio's <Dial>. A new rule rings for 20 seconds; rules made
+   * when the default was 30 keep the 30 they hold (IncomingCallRingTime).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -394,13 +404,13 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
     isDefaultValueColumn: true,
     type: TableColumnType.Number,
     title: "Escalate After (Seconds)",
-    description: "Seconds before escalating to next rule",
-    defaultValue: 30,
+    description: `How long, in seconds, the phone rings before the call moves on to the next rule. ${DEFAULT_INCOMING_CALL_RING_SECONDS} when left out; a time below ${MIN_INCOMING_CALL_RING_SECONDS} or above ${MAX_INCOMING_CALL_RING_SECONDS} rings for ${MIN_INCOMING_CALL_RING_SECONDS} or ${MAX_INCOMING_CALL_RING_SECONDS}, the limits Twilio takes.`,
+    defaultValue: DEFAULT_INCOMING_CALL_RING_SECONDS,
   })
   @Column({
     nullable: false,
     type: ColumnType.Number,
-    default: 30,
+    default: DEFAULT_INCOMING_CALL_RING_SECONDS,
   })
   public escalateAfterSeconds?: number = undefined;
 

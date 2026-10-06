@@ -34,6 +34,7 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Recurring from "../../Types/Events/Recurring";
 import EventInterval from "../../Types/Events/EventInterval";
 import { JSONValue } from "../../Types/JSON";
+import { DEFAULT_INCOMING_CALL_RING_SECONDS } from "../../Types/IncomingCall/IncomingCallRingTime";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import RestrictionTimes from "../../Types/OnCallDutyPolicy/RestrictionTimes";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -1511,8 +1512,7 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     recipes: [
       {
         title: "Route calls to a schedule",
-        description:
-          "Rings whoever is on call in one of your schedules, for 30 seconds before the next rule.",
+        description: `Rings whoever is on call in one of your schedules, for ${DEFAULT_INCOMING_CALL_RING_SECONDS} seconds before the next rule.`,
         scopes: ["view"],
         blocks: [
           {
@@ -1522,7 +1522,10 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
               field("incomingCallPolicyId", THIS),
               field("name", literal("On-call engineer")),
               field("onCallDutyPolicyScheduleId", live()),
-              field("escalateAfterSeconds", literal(30)),
+              field(
+                "escalateAfterSeconds",
+                literal(DEFAULT_INCOMING_CALL_RING_SECONDS),
+              ),
             ],
           },
         ],
@@ -1545,7 +1548,10 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
               field("incomingCallPolicyId", ref("policy")),
               field("name", literal("On-call engineer")),
               field("onCallDutyPolicyScheduleId", live()),
-              field("escalateAfterSeconds", literal(30)),
+              field(
+                "escalateAfterSeconds",
+                literal(DEFAULT_INCOMING_CALL_RING_SECONDS),
+              ),
             ],
           },
         ],
