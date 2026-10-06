@@ -32,6 +32,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
@@ -235,6 +236,12 @@ function getEntityModelDef(
     case EntityFilterModelType.CephCluster:
       return {
         modelType: CephCluster as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+      };
+    case EntityFilterModelType.StorageArray:
+      return {
+        modelType: StorageArray as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
       };

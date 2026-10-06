@@ -116,6 +116,10 @@ import CephMonitorStepForm from "./CephMonitor/CephMonitorStepForm";
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
+import StorageArrayMonitorStepForm from "./StorageArrayMonitor/StorageArrayMonitorStepForm";
+import MonitorStepStorageArrayMonitor, {
+  MonitorStepStorageArrayMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import Link from "Common/UI/Components/Link/Link";
 import TinyFormDocumentation from "Common/UI/Components/TinyFormDocumentation/TinyFormDocumentation";
 import ExceptionMonitorStepForm from "./ExceptionMonitor/ExceptionMonitorStepForm";
@@ -1712,6 +1716,33 @@ return {
             }
             onChange={(value: MonitorStepCephMonitor) => {
               monitorStep.setCephMonitor(value);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onMonitorCriteriaChange={(criteria: MonitorCriteria) => {
+              monitorStep.setMonitorCriteria(criteria);
+              props.onChange?.(MonitorStep.clone(monitorStep));
+            }}
+            onlineMonitorStatusId={props.onlineMonitorStatusId}
+            offlineMonitorStatusId={props.offlineMonitorStatusId}
+            defaultIncidentSeverityId={props.defaultIncidentSeverityId}
+            defaultAlertSeverityId={props.defaultAlertSeverityId}
+            monitorName={props.monitorName}
+          />
+        </Card>
+      )}
+
+      {props.monitorType === MonitorType.StorageArray && (
+        <Card
+          title="Storage Array Monitor Configuration"
+          description="Configure your storage array monitoring — capacity, latency, hardware, volumes, hosts, replication, file systems and buckets — using templates, curated metrics, or the advanced query builder."
+        >
+          <StorageArrayMonitorStepForm
+            monitorStepStorageArrayMonitor={
+              monitorStep.data?.storageArrayMonitor ||
+              MonitorStepStorageArrayMonitorUtil.getDefault()
+            }
+            onChange={(value: MonitorStepStorageArrayMonitor) => {
+              monitorStep.setStorageArrayMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             onMonitorCriteriaChange={(criteria: MonitorCriteria) => {

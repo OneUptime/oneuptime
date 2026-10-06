@@ -54,6 +54,8 @@ import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeLis
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
+import DashboardStorageArrayVolumeListComponent from "./DashboardStorageArrayVolumeListComponent";
+import DashboardStorageArrayHardwareListComponent from "./DashboardStorageArrayHardwareListComponent";
 import DashboardNetworkMapComponent from "./DashboardNetworkMapComponent";
 import DashboardHtmlComponent from "./DashboardHtmlComponent";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -200,6 +202,10 @@ const WIDGET_BY_TYPE: Partial<
     DashboardDockerSwarmServiceListComponent,
   [DashboardComponentType.CephOsdList]: DashboardCephOsdListComponent,
   [DashboardComponentType.CephPoolList]: DashboardCephPoolListComponent,
+  [DashboardComponentType.StorageArrayVolumeList]:
+    DashboardStorageArrayVolumeListComponent,
+  [DashboardComponentType.StorageArrayHardwareList]:
+    DashboardStorageArrayHardwareListComponent,
   [DashboardComponentType.NetworkMap]: DashboardNetworkMapComponent,
   [DashboardComponentType.Html]: DashboardHtmlComponent,
 };

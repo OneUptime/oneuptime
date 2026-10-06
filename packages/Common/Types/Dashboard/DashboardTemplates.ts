@@ -24,6 +24,10 @@ import SloMetricTypeUtil, {
   SLO_METRIC_SLO_NAME_ATTRIBUTE,
 } from "../../Utils/Slo/SloMetricType";
 import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../Utils/Slo/SloListWidgetFormat";
+import {
+  getStorageArrayMetricById,
+  StorageArrayMetricDefinition,
+} from "../Monitor/StorageArrayMetricCatalog";
 
 /*
  * Trace / Exception / Profiles entries are intentionally not in this
@@ -48,6 +52,7 @@ export enum DashboardTemplateType {
   Proxmox = "Proxmox",
   VMware = "VMware",
   Ceph = "Ceph",
+  StorageArray = "StorageArray",
   DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
   Rum = "Rum",
@@ -188,6 +193,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     category: DashboardTemplateCategory.Infrastructure,
   },
   {
+    type: DashboardTemplateType.StorageArray,
+    name: "Storage Array Dashboard",
+    description:
+      "Volume and hardware inventories, capacity used and data reduction, read and write latency, IOPS and bandwidth, open alerts, and array logs for Pure Storage FlashArray.",
+    icon: IconProp.StorageArray,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
     type: DashboardTemplateType.DockerSwarm,
     name: "Docker Swarm Dashboard",
     description:
@@ -270,22 +283,48 @@ interface MetricConfig {
    * rather than bytes-since-boot.
    */
   transformAsRate?: boolean;
+  /*
+   * Datapoint attribute filters that make the series mean what the widget
+   * title says. Pure Storage puts read, write and queue latency (and read
+   * and write IOPS / bandwidth) on ONE metric name, told apart only by the
+   * `dimension` label, so a storage array widget pins one dimension rather
+   * than averaging a 200µs read with a 4ms queue figure. Left out, the
+   * query matches every series of the metric, as before.
+   */
+  attributes?: Record<string, string>;
 }
 
-function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
+/*
+ * The metric variable of each query on a multi-query chart: "a" for the
+ * primary query, then "b", "c", ... for the additional ones, as the metric
+ * explorer names them.
+ */
+function getMetricVariable(queryIndex: number): string {
+  return String.fromCharCode("a".charCodeAt(0) + queryIndex);
+}
+
+function buildMetricFilterData(config: MetricConfig): Record<string, unknown> {
+  return {
+    metricName: config.metricName,
+    aggegationType: config.aggregationType,
+    ...(config.attributes ? { attributes: { ...config.attributes } } : {}),
+  };
+}
+
+function buildMetricQueryConfig(
+  config: MetricConfig,
+  metricVariable: string = getMetricVariable(0),
+): Record<string, unknown> {
   return {
     metricAliasData: {
-      metricVariable: "a",
+      metricVariable: metricVariable,
       title: undefined,
       description: undefined,
       legend: config.legend ?? undefined,
       legendUnit: config.legendUnit ?? undefined,
     },
     metricQueryData: {
-      filterData: {
-        metricName: config.metricName,
-        aggegationType: config.aggregationType,
-      },
+      filterData: buildMetricFilterData(config),
       /*
        * groupByAttributeKeys alone drives per-series grouping — the
        * fetch layer compiles it to `GROUP BY attributes['<key>']`.
@@ -304,10 +343,7 @@ function buildMetricQueryConfig(config: MetricConfig): Record<string, unknown> {
 function buildMetricQueryData(config: MetricConfig): Record<string, unknown> {
   return {
     metricQueryData: {
-      filterData: {
-        metricName: config.metricName,
-        aggegationType: config.aggregationType,
-      },
+      filterData: buildMetricFilterData(config),
       groupBy: undefined,
     },
   };
@@ -390,6 +426,12 @@ function createChartComponent(data: {
   width: number;
   height: number;
   metricConfig?: MetricConfig;
+  /*
+   * Further series drawn on the same chart (queries "b", "c", ...), for a
+   * chart that compares two sides of one measure — read against write
+   * latency — on one set of axes.
+   */
+  additionalMetricConfigs?: Array<MetricConfig>;
 }): DashboardBaseComponent {
   return {
     _type: ObjectType.DashboardComponent,
@@ -419,6 +461,22 @@ function createChartComponent(data: {
               groupBy: undefined,
             },
           },
+      ...(data.additionalMetricConfigs &&
+      data.additionalMetricConfigs.length > 0
+        ? {
+            metricQueryConfigs: data.additionalMetricConfigs.map(
+              (
+                config: MetricConfig,
+                index: number,
+              ): Record<string, unknown> => {
+                return buildMetricQueryConfig(
+                  config,
+                  getMetricVariable(index + 1),
+                );
+              },
+            ),
+          }
+        : {}),
     },
   };
 }
@@ -917,6 +975,63 @@ function createCephPoolListComponent(data: {
     arguments: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createStorageArrayVolumeListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.StorageArrayVolumeList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createStorageArrayHardwareListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  viewMode?: string;
+  kindFilter?: string;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.StorageArrayHardwareList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 50,
+      // The hardware wall — honeycomb is the view operators scan.
+      viewMode: data.viewMode ?? "honeycomb",
+      kindFilter: data.kindFilter,
+      statusFilter: data.statusFilter,
     },
   };
 }
@@ -4301,6 +4416,270 @@ function createCephDashboardConfig(): DashboardViewConfig {
   };
 }
 
+/*
+ * A metric widget's query, taken from the Storage Array metric catalog by id
+ * so the template reads exactly the series — metric name, dimension filter
+ * and aggregation — that the monitor picker and the alert templates read.
+ * An unknown id throws: a renamed catalog entry must fail the template's
+ * tests rather than ship a widget that silently queries nothing.
+ */
+function storageArrayMetricConfig(
+  catalogId: string,
+  overrides?: Partial<MetricConfig>,
+): MetricConfig {
+  const definition: StorageArrayMetricDefinition | undefined =
+    getStorageArrayMetricById(catalogId);
+
+  if (!definition) {
+    throw new Error(`Unknown storage array metric: ${catalogId}`);
+  }
+
+  return {
+    metricName: definition.metricName,
+    aggregationType: definition.defaultAggregation,
+    ...(definition.attributes
+      ? { attributes: { ...definition.attributes } }
+      : {}),
+    ...overrides,
+  };
+}
+
+function createStorageArrayDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout and metric notes:
+   *
+   * - The volume list and the hardware wall read the Postgres inventory
+   *   (StorageArrayResource), so their headers show true current counts —
+   *   the same reasoning the Ceph / Kubernetes templates use for their
+   *   inventory widgets.
+   *
+   * - Every metric widget reads a FlashArray series (purefa_*) built by
+   *   storageArrayMetricConfig from the catalog. Pure puts read, write and
+   *   queue figures on ONE metric name, told apart only by the `dimension`
+   *   label, so every query pins its dimension, and read and write share a
+   *   chart as two queries rather than being two charts of one series.
+   *
+   * - Every series is a gauge the array computes itself — latency in µs per
+   *   operation, IOPS and bandwidth per second, capacity in bytes — so
+   *   nothing is transformAsRate'd (unlike the Ceph template's cumulative
+   *   ceph_pool_*_bytes counters) and nothing Sums a gauge.
+   *
+   * - purefa_alerts_open is one series per open alert, valued 1, so a Sum
+   *   would count each alert once per scrape in the bucket. The alerts
+   *   chart takes the Max per severity instead: 1 while at least one alert
+   *   of that severity is open — the reading the critical and warning alert
+   *   templates fire on.
+   *
+   * - purefa_array_space_utilization is already a percent (0-100), not a
+   *   [0, 1] fraction, and the data reduction ratio is the N of "N:1".
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Storage Array Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 1-4: Live inventory from the Postgres snapshot
+    createStorageArrayVolumeListComponent({
+      title: "Volumes",
+      top: 1,
+      left: 0,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+    }),
+    createStorageArrayHardwareListComponent({
+      title: "Hardware",
+      top: 1,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 100,
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Capacity",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 6: Capacity stats
+    createValueComponent({
+      title: "Capacity Used (%)",
+      top: 6,
+      left: 0,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-utilization"),
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Data Reduction Ratio",
+      top: 6,
+      left: 3,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-data-reduction"),
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+    createValueComponent({
+      title: "Usable Capacity",
+      top: 6,
+      left: 6,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-capacity"),
+    }),
+    createValueComponent({
+      title: "Free Capacity",
+      top: 6,
+      left: 9,
+      width: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-empty"),
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+
+    // Rows 7-9: Capacity trends
+    createChartComponent({
+      title: "Capacity Used Over Time",
+      chartType: DashboardChartType.Area,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-space-utilization", {
+        legend: "Capacity used",
+        legendUnit: "%",
+      }),
+    }),
+    createChartComponent({
+      title: "Data Reduction Over Time",
+      chartType: DashboardChartType.Line,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-data-reduction", {
+        legend: "Data reduction",
+      }),
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Performance & Alerts",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Rows 11-16: Read against write, then the array's own open alerts
+    createChartComponent({
+      title: "Read & Write Latency",
+      chartType: DashboardChartType.Line,
+      top: 11,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-read-latency", {
+        legend: "Read",
+        legendUnit: "µs",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-array-write-latency", {
+          legend: "Write",
+          legendUnit: "µs",
+        }),
+      ],
+    }),
+    createChartComponent({
+      title: "Read & Write IOPS",
+      chartType: DashboardChartType.Area,
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-read-iops", {
+        legend: "Read",
+        legendUnit: "ops/s",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-array-write-iops", {
+          legend: "Write",
+          legendUnit: "ops/s",
+        }),
+      ],
+    }),
+    createChartComponent({
+      title: "Read & Write Bandwidth",
+      chartType: DashboardChartType.Area,
+      top: 14,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-array-read-bandwidth", {
+        legend: "Read",
+        legendUnit: "bytes/s",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-array-write-bandwidth", {
+          legend: "Write",
+          legendUnit: "bytes/s",
+        }),
+      ],
+    }),
+    createChartComponent({
+      title: "Open Alerts",
+      chartType: DashboardChartType.Line,
+      top: 14,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: storageArrayMetricConfig("purefa-alerts-open", {
+        attributes: { severity: "critical" },
+        legend: "Critical",
+      }),
+      additionalMetricConfigs: [
+        storageArrayMetricConfig("purefa-alerts-open", {
+          attributes: { severity: "warning" },
+          legend: "Warning",
+        }),
+      ],
+    }),
+
+    // Rows 17-19: Logs (arrays forward syslog to the agent)
+    createLogStreamComponent({
+      title: "Array Logs",
+      top: 17,
+      left: 0,
+      width: 12,
+      height: 3,
+    }),
+  ];
+
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "array",
+      label: "Storage Array",
+      attributeKey: "resource.storage.array.name",
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 20),
+  };
+}
+
 function createNetworkDashboardConfig(): DashboardViewConfig {
   /*
    * Layout and metric notes:
@@ -4643,6 +5022,8 @@ export function getTemplateConfig(
       return createVMwareDashboardConfig();
     case DashboardTemplateType.Ceph:
       return createCephDashboardConfig();
+    case DashboardTemplateType.StorageArray:
+      return createStorageArrayDashboardConfig();
     case DashboardTemplateType.DockerSwarm:
       return createDockerSwarmDashboardConfig();
     case DashboardTemplateType.Metrics:

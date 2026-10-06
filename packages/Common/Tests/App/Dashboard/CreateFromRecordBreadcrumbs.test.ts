@@ -62,6 +62,7 @@ import {
   getScheduleMaintenanceBreadcrumbs,
   getServiceBreadcrumbs,
   getStatusPagesBreadcrumbs,
+  getStorageArrayBreadcrumbs,
   getVMwareBreadcrumbs,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs";
 import { getNetworkSiteBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Utils/Breadcrumbs";
@@ -88,6 +89,7 @@ const PRODUCT_BREADCRUMBS: Record<CreateFromRecordKind, GetBreadcrumbs> = {
   [CreateFromRecordKind.ProxmoxCluster]: getProxmoxBreadcrumbs,
   [CreateFromRecordKind.VMwareVCenter]: getVMwareBreadcrumbs,
   [CreateFromRecordKind.CephCluster]: getCephBreadcrumbs,
+  [CreateFromRecordKind.StorageArray]: getStorageArrayBreadcrumbs,
   [CreateFromRecordKind.DockerSwarmCluster]: getDockerSwarmBreadcrumbs,
   [CreateFromRecordKind.IoTFleet]: getIoTBreadcrumbs,
   [CreateFromRecordKind.DatabaseServer]: getDatabaseBreadcrumbs,

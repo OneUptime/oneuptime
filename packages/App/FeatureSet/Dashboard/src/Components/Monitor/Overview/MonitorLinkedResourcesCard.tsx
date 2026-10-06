@@ -72,6 +72,10 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
                 name: true,
                 _id: true,
               },
+              storageArrays: {
+                name: true,
+                _id: true,
+              },
               dockerSwarmClusters: {
                 name: true,
                 _id: true,
@@ -102,6 +106,7 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
                   proxmoxClusters={item.proxmoxClusters || []}
                   vmwareVCenters={item.vmwareVCenters || []}
                   cephClusters={item.cephClusters || []}
+                  storageArrays={item.storageArrays || []}
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}

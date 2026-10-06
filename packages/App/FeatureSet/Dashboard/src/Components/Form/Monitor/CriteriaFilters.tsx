@@ -104,6 +104,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Proxmox ||
             props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Ceph ||
+            props.monitorType === MonitorType.StorageArray ||
             props.monitorType === MonitorType.Metrics
               ? "Add Rule"
               : "Add Filter"
@@ -142,6 +143,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Proxmox ||
             props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Ceph ||
+            props.monitorType === MonitorType.StorageArray ||
             props.monitorType === MonitorType.Metrics
               ? `At least one alert rule is required. If you don't need rules, you can delete the entire criteria instead.`
               : `We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`
@@ -155,6 +157,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
             props.monitorType === MonitorType.Proxmox ||
             props.monitorType === MonitorType.VMware ||
             props.monitorType === MonitorType.Ceph ||
+            props.monitorType === MonitorType.StorageArray ||
             props.monitorType === MonitorType.Metrics
               ? `Cannot delete last remaining rule.`
               : `Cannot delete last remaining filter.`

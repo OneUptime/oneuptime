@@ -62,6 +62,8 @@ const ID_RELATIONS: Array<[string, string]> = [
   ["vmwareVCenterIds", "vmwareVCenters"],
   ["cephClusterId", "cephClusters"],
   ["cephClusterIds", "cephClusters"],
+  ["storageArrayId", "storageArrays"],
+  ["storageArrayIds", "storageArrays"],
   ["dockerSwarmClusterId", "dockerSwarmClusters"],
   ["dockerSwarmClusterIds", "dockerSwarmClusters"],
   ["iotFleetId", "iotFleets"],
@@ -87,6 +89,7 @@ const NAME_RELATIONS: Array<[string, string, string]> = [
   ["proxmox.cluster.name", "proxmoxClusters", "name"],
   ["vmware.vcenter.name", "vmwareVCenters", "name"],
   ["ceph.cluster.name", "cephClusters", "name"],
+  ["storage.array.name", "storageArrays", "name"],
   ["docker.swarm.cluster.name", "dockerSwarmClusters", "name"],
   ["iot.fleet.name", "iotFleets", "name"],
   // Not oneuptime.database.server.name: see "database overlays match by id".
@@ -244,6 +247,7 @@ describe("event overlay resource scope", () => {
     [ServiceType.ProxmoxCluster, "proxmoxClusters"],
     [ServiceType.VMwareVCenter, "vmwareVCenters"],
     [ServiceType.CephCluster, "cephClusters"],
+    [ServiceType.StorageArray, "storageArrays"],
     [ServiceType.DockerSwarmCluster, "dockerSwarmClusters"],
     [ServiceType.IoTDevice, "iotFleets"],
     [ServiceType.DatabaseServer, "databaseServers"],
@@ -666,6 +670,14 @@ describe("event overlay resource scope", () => {
     ["resource.iot.fleet.name", "iotFleets", "id", "device-101"],
     ["resource.ceph.cluster.name", "cephClusters", "ceph_daemon", "osd.3"],
     ["resource.ceph.cluster.name", "cephClusters", "pool_id", "3"],
+    ["resource.storage.array.name", "storageArrays", "name", "vg1/db-data"],
+    ["resource.storage.array.name", "storageArrays", "host", "esx-01"],
+    [
+      "resource.storage.array.name",
+      "storageArrays",
+      "component_name",
+      "CH0.BAY4",
+    ],
     [
       "resource.vmware.vcenter.name",
       "vmwareVCenters",
@@ -703,6 +715,19 @@ describe("event overlay resource scope", () => {
       expect(result.alertQueries).toEqual(result.incidentQueries);
     },
   );
+
+  test("reads a storage array's object labels only while the array is in scope", () => {
+    /*
+     * `name`, `host` and `component_name` are generic keys: without the
+     * array they are not a storage array's objects at all, and must not
+     * become series-label predicates.
+     */
+    for (const childKey of ["name", "host", "component_name"]) {
+      const result: EventOverlayScope = scope({ [childKey]: "x" });
+      expect(result.incidentQueries).toEqual([{}]);
+      expect(result.alertQueries).toEqual([{}]);
+    }
+  });
 
   test("retains project-wide events only for genuinely unscoped metrics", () => {
     const unscoped: EventOverlayScope = {

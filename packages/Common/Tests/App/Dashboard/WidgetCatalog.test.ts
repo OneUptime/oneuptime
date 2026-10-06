@@ -211,6 +211,7 @@ describe("WidgetCatalog", () => {
         "Proxmox",
         "VMware",
         "Ceph",
+        "Storage Arrays",
         "Network",
       ]) {
         expect(getCategory(name).group).toBe(
@@ -283,6 +284,7 @@ describe("WidgetCatalog", () => {
         "Proxmox",
         "VMware",
         "Ceph",
+        "Storage Arrays",
         "Network",
       ]);
     });

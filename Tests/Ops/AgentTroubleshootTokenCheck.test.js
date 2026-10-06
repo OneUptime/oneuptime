@@ -20,10 +20,10 @@
  *    "Token ACCEPTED".
  *
  * One matrix, run through every script that carries this check: the Ceph,
- * Proxmox, VMware and Docker Swarm agents (docker compose; probes run as
- * `docker run curl` in the agent's network namespace) and the Kubernetes
- * agent chart's (probes run as `kubectl run curl` in the cluster). The
- * Database Agent's differs in shape and has its own tests in
+ * Proxmox, VMware, Storage Array and Docker Swarm agents (docker compose;
+ * probes run as `docker run curl` in the agent's network namespace) and the
+ * Kubernetes agent chart's (probes run as `kubectl run curl` in the
+ * cluster). The Database Agent's differs in shape and has its own tests in
  * DatabaseAgentScripts.test.js.
  */
 
@@ -278,7 +278,8 @@ const CASES = [
  * container's environment from container.env, and answers each OneUptime
  * probe from <probe>.out (body, then the OUSTATUS line curl's -w appends),
  * exiting with <probe>.exit as `docker run` passes curl's exit code on.
- * Anything else it is asked to fetch (a scrape target, the collector's own
+ * Anything else it is asked to fetch (a scrape target — a Ceph mgr, a
+ * Proxmox exporter, a FlashArray's metrics endpoint — or the collector's own
  * metrics) gets a plausible healthy answer.
  */
 function dockerStub(bin) {
@@ -310,7 +311,7 @@ case "$1" in
       */fluentd/v1/logs*) probe_answer fluentd ;;
       *127.0.0.1:8888/metrics*)
         printf 'otelcol_receiver_accepted_metric_points 10\\notelcol_exporter_sent_metric_points 10\\notelcol_exporter_send_failed_metric_points 0\\n' ;;
-      *) printf 'ceph_health_status 0\\npve_up 1\\n\\nOUSTATUS:200\\n' ;;
+      *) printf 'ceph_health_status 0\\npve_up 1\\npurefa_info{array_name="fa-prod",os="Purity//FA",system_id="0b6a4e39",version="6.7.3"} 1\\n\\nOUSTATUS:200\\n' ;;
     esac
     exit 0 ;;
 esac
@@ -360,6 +361,19 @@ const DOCKER_AGENTS = [
       "VCENTER_ENDPOINT=https://vcsa.example.com",
       "VCENTER_USERNAME=monitor@vsphere.local",
       "VCENTER_PASSWORD=secret",
+    ],
+  },
+  {
+    agent: "StorageArrayAgent",
+    env: [
+      `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
+      "STORAGE_ARRAY_NAME=fa-prod",
+      "STORAGE_SYSTEM=purestorage.flasharray",
+      "STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.yaml",
+      "COMPOSE_PROFILES=",
+      "PURE_FA_ENDPOINT=fa-prod.example.com",
+      "PURE_FA_API_TOKEN=11111111-1111-1111-1111-111111111111",
+      "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true",
     ],
   },
   {

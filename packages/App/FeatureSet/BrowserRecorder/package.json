@@ -46,5 +46,10 @@
     "jest-environment-jsdom": "^30.5.2",
     "ts-jest": "^29.4.7",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

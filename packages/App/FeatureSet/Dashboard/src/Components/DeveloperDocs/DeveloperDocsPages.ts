@@ -328,6 +328,16 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       tableName: "CephCluster",
     },
     {
+      pageKey: PageMap.STORAGE_ARRAYS,
+      scope: DeveloperDocsScope.List,
+      tableName: "StorageArray",
+    },
+    {
+      pageKey: PageMap.STORAGE_ARRAY_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "StorageArray",
+    },
+    {
       pageKey: PageMap.HOSTS,
       scope: DeveloperDocsScope.List,
       tableName: "Host",

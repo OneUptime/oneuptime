@@ -66,6 +66,8 @@ import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Co
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
+import DashboardStorageArrayVolumeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardStorageArrayVolumeListComponent";
+import DashboardStorageArrayHardwareListComponentUtil from "Common/Utils/Dashboard/Components/DashboardStorageArrayHardwareListComponent";
 import DashboardNetworkMapComponentUtil from "Common/Utils/Dashboard/Components/DashboardNetworkMapComponent";
 import DashboardHtmlComponentUtil from "Common/Utils/Dashboard/Components/DashboardHtmlComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -978,6 +980,18 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.CephPoolList) {
             newComponent =
               DashboardCephPoolListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.StorageArrayVolumeList) {
+            newComponent =
+              DashboardStorageArrayVolumeListComponentUtil.getDefaultComponent();
+          }
+
+          if (
+            componentType === DashboardComponentType.StorageArrayHardwareList
+          ) {
+            newComponent =
+              DashboardStorageArrayHardwareListComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.NetworkMap) {

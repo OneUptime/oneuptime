@@ -50,6 +50,7 @@ import ServerlessFunctionOwnerUserService from "../../Services/ServerlessFunctio
 import ServiceLevelObjectiveOwnerUserService from "../../Services/ServiceLevelObjectiveOwnerUserService";
 import ServiceOwnerUserService from "../../Services/ServiceOwnerUserService";
 import StatusPageOwnerUserService from "../../Services/StatusPageOwnerUserService";
+import StorageArrayOwnerUserService from "../../Services/StorageArrayOwnerUserService";
 import VMwareVCenterOwnerUserService from "../../Services/VMwareVCenterOwnerUserService";
 import WorkflowOwnerUserService from "../../Services/WorkflowOwnerUserService";
 import Query from "../../Types/Database/Query";
@@ -192,6 +193,7 @@ export default class ProjectLeaveResourceCleanup {
       ),
       ownerUserTable(ServiceOwnerUserService, "serviceId"),
       ownerUserTable(StatusPageOwnerUserService, "statusPageId"),
+      ownerUserTable(StorageArrayOwnerUserService, "storageArrayId"),
       ownerUserTable(VMwareVCenterOwnerUserService, "vmwareVCenterId"),
       ownerUserTable(WorkflowOwnerUserService, "workflowId"),
     ];

@@ -66,6 +66,8 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "ServiceOwnerRule",
   "StatusPageLabelRule",
   "StatusPageOwnerRule",
+  "StorageArrayLabelRule",
+  "StorageArrayOwnerRule",
   "VMwareVCenterLabelRule",
   "VMwareVCenterOwnerRule",
   "WorkflowLabelRule",
@@ -114,8 +116,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(80);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(80);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(82);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(82);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(

@@ -57,6 +57,7 @@ describe("MonitorTypeHelper", () => {
       MonitorType.Proxmox,
       MonitorType.VMware,
       MonitorType.Ceph,
+      MonitorType.StorageArray,
     ])("returns true for %s", (monitorType: MonitorType) => {
       expect(MonitorTypeHelper.isTelemetryMonitor(monitorType)).toBe(true);
     });

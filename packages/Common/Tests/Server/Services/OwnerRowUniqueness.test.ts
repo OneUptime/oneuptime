@@ -125,6 +125,9 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1796700000000-AddMessageQueueTables
   "MessageQueueOwnerTeam",
   "MessageQueueOwnerUser",
+  // 1798700000000-AddStorageArrayTables
+  "StorageArrayOwnerTeam",
+  "StorageArrayOwnerUser",
 ];
 
 const MIGRATED_OWNER_MODELS: Array<OwnerModel> = OWNER_MODELS.filter(

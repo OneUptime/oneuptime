@@ -443,6 +443,7 @@ describe("reconcileEntityRegistryThrottled — topology edges", () => {
       entities: [
         entity(EntityType.Host, "host"),
         entity(EntityType.CephCluster, "ceph"),
+        entity(EntityType.StorageArray, "array"),
       ],
     });
 

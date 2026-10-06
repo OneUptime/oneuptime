@@ -5,6 +5,7 @@ import PodmanHost from "./PodmanHost";
 import ProxmoxCluster from "./ProxmoxCluster";
 import VMwareVCenter from "./VMwareVCenter";
 import CephCluster from "./CephCluster";
+import StorageArray from "./StorageArray";
 import DockerSwarmCluster from "./DockerSwarmCluster";
 import IoTFleet from "./IoTFleet";
 import DatabaseServer from "./DatabaseServer";
@@ -1164,6 +1165,61 @@ export default class Monitor extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StorageArray,
+    title: "Storage Arrays",
+    description:
+      "Storage arrays this monitor watches. Incidents and alerts it creates are linked to them.",
+  })
+  @ManyToMany(
+    () => {
+      return StorageArray;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorStorageArray",
+    inverseJoinColumn: {
+      name: "storageArrayId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+  })
+  public storageArrays?: Array<StorageArray> = undefined;
 
   @ColumnAccessControl({
     create: [

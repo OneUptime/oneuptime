@@ -1,0 +1,226 @@
+receivers:
+  # Pure Storage FlashArray running a Purity//FA release WITHOUT the native
+  # OpenMetrics endpoint (older than 6.7, see README.md): the collector
+  # scrapes Pure's pure-fa-openmetrics-exporter, which docker-compose.yml
+  # runs as the `pure-fa-exporter` service
+  # (COMPOSE_PROFILES=flasharray-exporter). The exporter logs in to the
+  # array's REST API with the API token it receives on every scrape and
+  # answers with the same metric names and labels as the native endpoint, so
+  # everything downstream is identical. Pure has deprecated this exporter in
+  # favour of the native endpoint: once the array serves
+  # https://<array>/metrics/array?namespace=purefa, switch to
+  # otel-collector-config.yaml.
+  #
+  # The `endpoint` parameter tells the exporter which array to read; the
+  # API token (of a dedicated array user holding the readonly role, see
+  # README.md) travels as a Bearer token from the collector to the exporter
+  # over the compose network only — the exporter's port is never published.
+  # The exporter does not verify the array's TLS certificate (its own
+  # default), so STORAGE_ARRAY_INSECURE_SKIP_VERIFY does not apply here.
+  #
+  # Every job labels its series `scrape_endpoint: <endpoint>`. Each endpoint
+  # also exports purefa_info, so OneUptime knows which families a batch is
+  # the COMPLETE list of — that is how a deleted volume, host or pod leaves
+  # the inventory instead of lingering. Keep the labels as shipped.
+  prometheus:
+    config:
+      scrape_configs:
+        # Array identity (purefa_info), capacity, performance, open alerts,
+        # hardware components, controllers, drives and network interfaces.
+        - job_name: purefa-array
+          scheme: http
+          metrics_path: /metrics/array
+          params:
+            # The array's management address: host name or IP, no scheme.
+            endpoint: ["${env:PURE_FA_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FA_API_TOKEN}"
+          scrape_interval: 60s
+          scrape_timeout: 50s
+          static_configs:
+            - targets: ["pure-fa-exporter:9490"]
+              labels:
+                scrape_endpoint: array
+
+        # Per-volume performance, space and data reduction.
+        - job_name: purefa-volumes
+          scheme: http
+          metrics_path: /metrics/volumes
+          params:
+            endpoint: ["${env:PURE_FA_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FA_API_TOKEN}"
+          scrape_interval: 120s
+          scrape_timeout: 100s
+          static_configs:
+            - targets: ["pure-fa-exporter:9490"]
+              labels:
+                scrape_endpoint: volumes
+          # Each volume's latency is exported in up to sixteen `dimension`s.
+          # Keep the three a host actually waits on (usec_per_read_op,
+          # usec_per_write_op, usec_per_mirrored_write_op) and drop the
+          # breakdown (QoS rate limit, queue, SAN and service time) — it
+          # multiplies the series count of a large array several times over,
+          # and the same breakdown stays available for the whole array on
+          # purefa_array_performance_latency_usec. Delete this rule to keep
+          # the per-volume breakdown too.
+          metric_relabel_configs:
+            - source_labels: [__name__, dimension]
+              regex: purefa_(volume|host)_performance_latency_usec;(qos_rate_limit|queue|san|service)_usec_per_.*
+              action: drop
+
+        # Per-host performance, space, connectivity and volume connections.
+        - job_name: purefa-hosts
+          scheme: http
+          metrics_path: /metrics/hosts
+          params:
+            endpoint: ["${env:PURE_FA_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FA_API_TOKEN}"
+          scrape_interval: 120s
+          scrape_timeout: 100s
+          static_configs:
+            - targets: ["pure-fa-exporter:9490"]
+              labels:
+                scrape_endpoint: hosts
+          # The same latency breakdown drop as the volumes job, for hosts.
+          metric_relabel_configs:
+            - source_labels: [__name__, dimension]
+              regex: purefa_(volume|host)_performance_latency_usec;(qos_rate_limit|queue|san|service)_usec_per_.*
+              action: drop
+
+        # ActiveCluster / ActiveDR pods: performance, space, replica link lag.
+        - job_name: purefa-pods
+          scheme: http
+          metrics_path: /metrics/pods
+          params:
+            endpoint: ["${env:PURE_FA_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FA_API_TOKEN}"
+          scrape_interval: 120s
+          scrape_timeout: 100s
+          static_configs:
+            - targets: ["pure-fa-exporter:9490"]
+              labels:
+                scrape_endpoint: pods
+
+        # File directories (FlashArray File Services). Expensive for the
+        # array to compute, so Pure recommends reading it rarely.
+        - job_name: purefa-directories
+          scheme: http
+          metrics_path: /metrics/directories
+          params:
+            endpoint: ["${env:PURE_FA_ENDPOINT}"]
+          authorization:
+            type: Bearer
+            credentials: "${env:PURE_FA_API_TOKEN}"
+          scrape_interval: 30m
+          scrape_timeout: 15m
+          static_configs:
+            - targets: ["pure-fa-exporter:9490"]
+              labels:
+                scrape_endpoint: directories
+
+  # Optional: receive the syslog the array forwards (alerts and audit
+  # events) — this is what powers the Logs tab of the storage array. Off by
+  # default because it needs a listening port published on this machine. To
+  # enable it:
+  #   1. Uncomment the two `syslog/*` receivers below, the `logs` pipeline at
+  #      the bottom of this file, and the port mapping in docker-compose.yml.
+  #   2. On the array, add a syslog server udp://<agent-host>:5514 or
+  #      tcp://<agent-host>:5514 (FlashArray: Settings → System → Syslog
+  #      Servers; see README.md).
+  # Purity sends classic BSD syslog (RFC 3164), whose timestamps carry no
+  # time zone: set `location` to the array's time zone unless its clock runs
+  # on UTC. The resource processor below stamps storage.array.name on these
+  # logs too, so they land on this array. A syslog receiver honours only one
+  # of `tcp:` / `udp:`, so TCP and UDP are two named receivers — uncomment
+  # both to accept either transport.
+  # syslog/tcp:
+  #   tcp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  #   location: UTC
+  # syslog/udp:
+  #   udp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  #   location: UTC
+
+processors:
+  # Stamp every metric with the array's identity. OneUptime auto-registers
+  # the storage array from `storage.array.name`, and every Storage Arrays
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Storage Arrays section of the dashboard. Keep it
+  # stable: changing it later registers a brand-new array.
+  resource:
+    attributes:
+      - key: storage.array.name
+        value: "${env:STORAGE_ARRAY_NAME}"
+        action: upsert
+      # The platform: purestorage.flasharray or purestorage.flashblade.
+      - key: storage.system
+        value: "${env:STORAGE_SYSTEM}"
+        action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Optional: promote resource attributes to project labels on the
+      # array — oneuptime.label.<dimension>=<value> becomes the label
+      # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
+      # - key: oneuptime.label.env
+      #   value: production
+      #   action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, e.g. "purefa-volumes") and service.instance.id on every batch
+      # per the Prometheus->OTLP compatibility spec. Drop them: OneUptime
+      # routes batches by service.name first, so leaving them in would
+      # register phantom "purefa-*" Services instead of routing this data to
+      # the storage array discovered from `storage.array.name` (which would
+      # also break per-array retention settings). Do not remove these two
+      # deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    # Large enough to hold a whole scrape of a big array. There is
+    # deliberately NO send_batch_max_size: a scrape must never be split
+    # across exports, because OneUptime reads a whole endpoint per request
+    # to rebuild the inventory (volume, host and pod counts, hardware health,
+    # open alerts) — a split scrape would make objects vanish and counts
+    # drop until the next one.
+    send_batch_size: 8192
+  memory_limiter:
+    check_interval: 5s
+    # A FlashArray with thousands of volumes returns a large scrape; 512 MiB
+    # leaves ample headroom.
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp]
+    # Uncomment together with the syslog receivers above to ship the
+    # array's syslog (powers the Logs tab of the storage array):
+    # logs:
+    #   receivers: [syslog/tcp, syslog/udp]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]

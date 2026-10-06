@@ -99,5 +99,10 @@
     "bugs": {
         "url": "https://gitlab.com/oneuptime/app/issues"
     },
-    "homepage": "https://gitlab.com/oneuptime/app#readme"
+    "homepage": "https://gitlab.com/oneuptime/app#readme",
+    "overrides": {
+        "@istanbuljs/load-nyc-config": {
+            "js-yaml": "^4.3.2"
+        }
+    }
 }

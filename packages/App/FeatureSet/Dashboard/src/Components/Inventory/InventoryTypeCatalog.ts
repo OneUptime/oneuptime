@@ -291,6 +291,14 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     icon: IconProp.Ceph,
     description: "A Ceph storage cluster.",
   },
+  [EntityType.StorageArray]: {
+    label: "Storage Array",
+    pluralLabel: "Storage Arrays",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.StorageArray,
+    description:
+      "A storage array, such as a Pure Storage FlashArray or FlashBlade.",
+  },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",
     pluralLabel: "Swarm Clusters",

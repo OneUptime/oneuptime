@@ -39,6 +39,7 @@ export const MONITOR_LINKED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "VMwareVCenter",
   "CephCluster",
+  "StorageArray",
   "DockerSwarmCluster",
   "IoTFleet",
   "DatabaseServer",
@@ -53,6 +54,7 @@ export type MonitorLinkedResourceKey =
   | "proxmoxClusters"
   | "vmwareVCenters"
   | "cephClusters"
+  | "storageArrays"
   | "dockerSwarmClusters"
   | "iotFleets"
   | "databaseServers"
@@ -67,6 +69,7 @@ export const MONITOR_LINKED_RESOURCE_KEYS: Array<MonitorLinkedResourceKey> = [
   "proxmoxClusters",
   "vmwareVCenters",
   "cephClusters",
+  "storageArrays",
   "dockerSwarmClusters",
   "iotFleets",
   "databaseServers",
@@ -100,6 +103,7 @@ export const MONITOR_LINKED_RESOURCES_SELECT: Record<
   proxmoxClusters: { _id: true, name: true },
   vmwareVCenters: { _id: true, name: true },
   cephClusters: { _id: true, name: true },
+  storageArrays: { _id: true, name: true },
   dockerSwarmClusters: { _id: true, name: true },
   iotFleets: { _id: true, name: true },
   databaseServers: { _id: true, name: true },
@@ -235,6 +239,7 @@ export function buildPrefillPayload(data: {
     proxmoxClusters: undefined,
     vmwareVCenters: undefined,
     cephClusters: undefined,
+    storageArrays: undefined,
     dockerSwarmClusters: undefined,
     iotFleets: undefined,
     databaseServers: undefined,

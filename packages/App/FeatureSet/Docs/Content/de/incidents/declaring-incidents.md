@@ -46,7 +46,7 @@ Die Monitore kommen zuerst und für sich: Statusseiten sehen einen Vorfall über
 
 - **Monitore** – ein Suchfeld, das die vom Vorfall betroffenen Monitore anhängt (`monitors`). Eine Statusseite zeigt den Vorfall und benachrichtigt ihre Abonnenten, wenn sie einen dieser Monitore auflistet.
 - **Monitor-Status ändern in** – optional und erst sichtbar, sobald mindestens ein Monitor ausgewählt ist. Setzt jeden Monitor des Vorfalls auf einen Monitor-Status, sodass den Vorfall zu melden und seine Monitore als beeinträchtigt zu markieren ein Handgriff ist. Der Status einer Vorlage erscheint, sobald Sie einen Monitor auswählen; ohne ausgewählten Monitor wird kein Status gespeichert.
-- **Andere betroffene Ressourcen** – ein zweites Suchfeld für alles andere, was der Vorfall betrifft: Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Proxmox-, Ceph- und Docker-Swarm-Cluster, vCenter, IoT-Flotten, Datenbanken und Dienste. Es sind getrennte Beziehungen am Vorfall (`hosts`, `kubernetesClusters`, `services` und weitere).
+- **Andere betroffene Ressourcen** – ein zweites Suchfeld für alles andere, was der Vorfall betrifft: Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Proxmox-, Ceph- und Docker-Swarm-Cluster, vCenter, Storage-Arrays, IoT-Flotten, Datenbanken und Dienste. Es sind getrennte Beziehungen am Vorfall (`hosts`, `kubernetesClusters`, `services` und weitere).
 
 Die Karte **Betroffene Ressourcen** des Vorfalls fragt beim späteren Bearbeiten genauso.
 

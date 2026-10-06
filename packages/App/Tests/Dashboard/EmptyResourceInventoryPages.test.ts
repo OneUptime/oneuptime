@@ -100,6 +100,14 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     documentationCard: "CephDocumentationCard",
   },
   {
+    label: "storage arrays",
+    relativePath: "StorageArray/StorageArrays.tsx",
+    modelType: "StorageArray",
+    countState: "arrayCount",
+    countSetter: "setArrayCount",
+    documentationCard: "StorageArrayDocumentationCard",
+  },
+  {
     label: "hosts",
     relativePath: "Host/Hosts.tsx",
     modelType: "Host",
@@ -214,7 +222,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(14);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(15);
     expect(discoveredPages).toEqual(testedPages);
   });
 

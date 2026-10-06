@@ -31,10 +31,10 @@ import {
  * Every product with labels and owners has a Label Rules and an Owner Rules
  * page under its Settings - Monitors, Incidents (and their episodes),
  * Alerts (and theirs), Scheduled Maintenance, Status Pages, Hosts,
- * Kubernetes, Docker, Docker Swarm, Podman, Proxmox, VMware, Ceph, Cloud,
- * Serverless, Databases, Queues, IoT, Network Devices, RUM, Services,
- * Dashboards, On-Call, Runbooks, SLOs and Workflows. Each page used to
- * write out the same three-step form by hand: "Basic Info" first, asking
+ * Kubernetes, Docker, Docker Swarm, Podman, Proxmox, VMware, Ceph, Storage
+ * Arrays, Cloud, Serverless, Databases, Queues, IoT, Network Devices, RUM,
+ * Services, Dashboards, On-Call, Runbooks, SLOs and Workflows. Each page used
+ * to write out the same three-step form by hand: "Basic Info" first, asking
  * for a name before anyone had said what the rule was for (and, on an
  * owner rule, whether to notify owners, two steps away from the owners),
  * then "Match Criteria", and only on the third step what the rule does -

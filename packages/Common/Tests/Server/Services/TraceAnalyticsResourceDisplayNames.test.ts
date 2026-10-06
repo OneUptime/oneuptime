@@ -55,6 +55,7 @@ const hostId: string = ObjectID.generate().toString();
 const proxmoxClusterId: string = ObjectID.generate().toString();
 const vmwareVCenterId: string = ObjectID.generate().toString();
 const cephClusterId: string = ObjectID.generate().toString();
+const storageArrayId: string = ObjectID.generate().toString();
 const dockerSwarmClusterId: string = ObjectID.generate().toString();
 const iotFleetId: string = ObjectID.generate().toString();
 const serviceEntityId: string = ObjectID.generate().toString();
@@ -740,6 +741,59 @@ describe("TraceAggregationService.getAnalyticsTable (resource display names)", (
     expect(params).toContain("DockerSwarmCluster");
     // IoT fleet telemetry is stamped with the IoTDevice type (fleet id).
     expect(params).toContain("IoTDevice");
+  });
+
+  test("storageArrayId is a resource dimension — read from primaryEntityId under the StorageArray discriminator and resolved", async () => {
+    /*
+     * Storage arrays joined the catalog after the keys above, so this pins
+     * that a new catalog type needs no aggregation-service change: it
+     * selects toString(primaryEntityId) under its own key, is scoped by its
+     * own primaryEntityType and resolves in the same batched call as Ceph.
+     */
+    const querySpy: jest.SpyInstance = stubQuery({
+      main: [
+        {
+          storageArrayId: storageArrayId,
+          cephClusterId: cephClusterId,
+          cnt: "3",
+        },
+      ],
+    });
+    const resolveSpy: jest.SpyInstance = stubResolver({
+      storageArrayId: [
+        { value: storageArrayId, count: 1, displayName: "pure-prod-01" },
+      ],
+      cephClusterId: [
+        { value: cephClusterId, count: 1, displayName: "ceph-prod" },
+      ],
+    });
+
+    const rows: Array<TraceAnalyticsTableRow> =
+      await TraceAggregationService.getAnalyticsTable(
+        analyticsRequest({
+          chartType: "table",
+          groupBy: ["storageArrayId", "cephClusterId"],
+        }),
+      );
+
+    expect(rows).toHaveLength(1);
+    expect(valuesFor(rows, "storageArrayId")).toEqual(["pure-prod-01"]);
+    expect(valuesFor(rows, "cephClusterId")).toEqual(["ceph-prod"]);
+    expect(resolveSpy).toHaveBeenCalledTimes(1);
+    expect(
+      specsPassedTo(resolveSpy).map((spec: ResourceFacetSpec): string => {
+        return spec.facetKey;
+      }),
+    ).toEqual(["storageArrayId", "cephClusterId"]);
+
+    const statement: Statement = querySpy.mock.calls[0]![0] as Statement;
+    expect(statement.query).toContain(
+      "toString(primaryEntityId) AS storageArrayId",
+    );
+    expect(statement.query).not.toContain("attr_0_storageArrayId");
+    const params: Array<unknown> = Object.values(statement.query_params);
+    expect(params).toContain("StorageArray");
+    expect(params).toContain("CephCluster");
   });
 
   test("primaryEntityId / serviceId are resolvable but are NOT resource dimensions here — left alone", async () => {
