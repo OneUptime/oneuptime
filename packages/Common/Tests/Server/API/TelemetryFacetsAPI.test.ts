@@ -354,6 +354,40 @@ describe("telemetry facet endpoints (list first)", () => {
     return recorded;
   }
 
+  /*
+   * Stubs the per-resource count the LOGS endpoint uses for resource facets
+   * (issue #3251): one countIf column per listed resource, matching id OR
+   * entity key OR resource attribute, instead of a single GROUP BY over
+   * primaryEntityId that only saw rows primary-keyed on the resource.
+   * Records the facet keys it was asked to count; keys in `failing` reject.
+   */
+  function stubResourceCounts(
+    values: Record<string, Array<{ value: string; count: number }>>,
+    failing: Array<string> = [],
+  ): { counted: Array<string> } {
+    const recorded: { counted: Array<string> } = { counted: [] };
+
+    spyOn(
+      LogAggregationService,
+      "getResourceFacetValueCounts",
+    ).mockImplementation(
+      async (
+        request: JSONObject,
+      ): Promise<Array<{ value: string; count: number }>> => {
+        const facetKey: string = request["facetKey"] as string;
+        recorded.counted.push(facetKey);
+
+        if (failing.includes(facetKey)) {
+          throw new Error(`ClickHouse timeout for ${facetKey}`);
+        }
+
+        return values[facetKey] || [];
+      },
+    );
+
+    return recorded;
+  }
+
   describe("POST /telemetry/logs/facets", () => {
     test("counts only the resource types that have rows; the rest answer [] with no ClickHouse query", async () => {
       listedRows = {
@@ -371,6 +405,10 @@ describe("telemetry facet endpoints (list first)", () => {
           kubernetesClusterId: [{ value: "k8s-2", count: 9 }],
         },
       );
+      const resourceCounts: { counted: Array<string> } = stubResourceCounts({
+        primaryEntityId: [{ value: "svc-1", count: 40 }],
+        kubernetesClusterId: [{ value: "k8s-2", count: 9 }],
+      });
 
       const result: CallResult = await callRoute({
         uri: LOGS_ROUTE,
@@ -385,8 +423,13 @@ describe("telemetry facet endpoints (list first)", () => {
       });
 
       expect(result.thrownToNext).toBeUndefined();
-      expect(counts.counted.sort()).toEqual(
-        ["kubernetesClusterId", "primaryEntityId", "severityText"].sort(),
+      /*
+       * Resource facets are counted from their listed rows (per-resource
+       * countIf), so only the plain facet reaches getFacetValues.
+       */
+      expect(counts.counted.sort()).toEqual(["severityText"]);
+      expect(resourceCounts.counted.sort()).toEqual(
+        ["kubernetesClusterId", "primaryEntityId"].sort(),
       );
 
       expect(Object.keys(result.facets!).sort()).toEqual(
@@ -627,6 +670,7 @@ describe("telemetry facet endpoints (list first)", () => {
     interface TraceSpies {
       sample: Spy;
       resourceCounts: Spy;
+      resourceValueCounts: Spy;
       rootSpan: Spy;
       hasException: Spy;
     }
@@ -635,6 +679,11 @@ describe("telemetry facet endpoints (list first)", () => {
       serviceCounts?: Array<[string, number]>;
       statusCounts?: Array<[string, number]>;
       failResourceCounts?: boolean;
+      resourceValueCounts?: Record<
+        string,
+        Array<{ value: string; count: number }>
+      >;
+      failResourceValueCounts?: boolean;
     }): TraceSpies {
       const sample: Spy = spyOn(
         TraceAggregationService,
@@ -672,6 +721,29 @@ describe("telemetry facet endpoints (list first)", () => {
         },
       );
 
+      /*
+       * Per-resource count used by the traces endpoint for resource facets
+       * (issue #3251): counted from each listed row's own scope, not from the
+       * shared primaryEntityId projection.
+       */
+      const resourceValueCounts: Spy = spyOn(
+        TraceAggregationService,
+        "getResourceFacetValueCounts",
+      );
+      resourceValueCounts.mockImplementation(
+        async (
+          request: JSONObject,
+        ): Promise<Array<{ value: string; count: number }>> => {
+          if (data.failResourceValueCounts) {
+            throw new Error("value count query timed out");
+          }
+
+          return (
+            data.resourceValueCounts?.[request["facetKey"] as string] || []
+          );
+        },
+      );
+
       const rootSpan: Spy = spyOn(TraceAggregationService, "getRootSpanCounts");
       rootSpan.mockImplementation(
         async (): Promise<{ rootCount: number; nonRootCount: number }> => {
@@ -692,7 +764,13 @@ describe("telemetry facet endpoints (list first)", () => {
         },
       );
 
-      return { sample, resourceCounts, rootSpan, hasException };
+      return {
+        sample,
+        resourceCounts,
+        resourceValueCounts,
+        rootSpan,
+        hasException,
+      };
     }
 
     test("skips the shared resource count query when no statusCode is requested and no resource type has rows", async () => {
@@ -747,16 +825,16 @@ describe("telemetry facet endpoints (list first)", () => {
       expect(result.facets!["hostId"]).toEqual([]);
     });
 
-    test("runs the shared count query once as soon as any resource type has rows, and merges it into each", async () => {
+    test("counts each listed resource from its own scope, not the shared projection", async () => {
       listedRows = {
         primaryEntityId: [{ id: "svc-1", displayName: "checkout" }],
         iotFleetId: [{ id: "fleet-1", displayName: "sensors" }],
       };
       const spies: TraceSpies = stubTraceCounts({
-        serviceCounts: [
-          ["svc-1", 30],
-          ["fleet-1", 2],
-        ],
+        resourceValueCounts: {
+          primaryEntityId: [{ value: "svc-1", count: 30 }],
+          iotFleetId: [{ value: "fleet-1", count: 2 }],
+        },
       });
 
       const result: CallResult = await callRoute({
@@ -767,7 +845,12 @@ describe("telemetry facet endpoints (list first)", () => {
         },
       });
 
-      expect(spies.resourceCounts.mock.calls).toHaveLength(1);
+      /*
+       * One per-resource count query per facet that listed a row, and the
+       * shared primaryEntityId projection is not consulted at all.
+       */
+      expect(spies.resourceValueCounts.mock.calls).toHaveLength(2);
+      expect(spies.resourceCounts.mock.calls).toHaveLength(0);
       expect(spies.sample.mock.calls).toHaveLength(0);
       expect(result.facets).toEqual({
         primaryEntityId: [
@@ -780,7 +863,10 @@ describe("telemetry facet endpoints (list first)", () => {
 
     test("a failing count query keeps listed rows at count 0", async () => {
       listedRows = { hostId: [{ id: "h1", displayName: "web-1" }] };
-      stubTraceCounts({ failResourceCounts: true });
+      stubTraceCounts({
+        failResourceCounts: true,
+        failResourceValueCounts: true,
+      });
 
       const result: CallResult = await callRoute({
         uri: TRACES_ROUTE,

@@ -64,7 +64,16 @@ export interface ResourceEntityScope {
   entityKeys: Array<string>;
   attributeKey?: string | undefined;
   attributeValues?: Array<string> | undefined;
+  /**
+   * Scalar per-type column (see AddScalarEntityKeysToTelemetryTables) that
+   * holds the same key as `entityKeys` on rows written since it shipped.
+   * Only the count path reads it: a scalar equality is far cheaper to scan
+   * than `hasAny(entityKeys)` or the attributes map (ResourceFacetCountQuery).
+   */
+  entityKeyColumn?: ScalarEntityKeyColumn | undefined;
 }
+
+export type ScalarEntityKeyColumn = "hostEntityKey" | "k8sClusterEntityKey";
 
 interface ResourceFacetDefinition {
   /**
@@ -81,17 +90,20 @@ interface ResourceFacetDefinition {
   entityKeyFor?:
     | ((projectId: string, identifier: string) => string)
     | undefined;
-  findIdentifiers?:
-    | ((data: {
-        projectId: ObjectID;
-        ids: Array<ObjectID>;
-      }) => Promise<Array<string>>)
-    | undefined;
+  /** Scalar column ingest stamps `entityKeyFor`'s key into, when one exists. */
+  entityKeyColumn?: ScalarEntityKeyColumn | undefined;
+  /**
+   * Postgres table + column holding the identifying value. The ONE place a
+   * facet names its identifier: selection (resolveOne) and counting
+   * (resolveCountScopes) both read it, so a new resource type cannot filter
+   * correctly yet count zero.
+   */
+  identifierSource?: ResourceFacetIdentifierSource | undefined;
   /**
    * The selected rows' complete entity-key set, for a type whose telemetry
    * is not named by one identifier per row (a Database owns several
    * endpoints plus the pods / containers it runs as). Takes precedence over
-   * `findIdentifiers`; the scope is then `id OR entity keys`.
+   * `identifierSource`; the scope is then `id OR entity keys`.
    */
   resolveEntityKeys?:
     | ((data: {
@@ -109,32 +121,38 @@ interface IdentifierLookupService {
   findBy: (findBy: FindBy<any>) => Promise<Array<any>>;
 }
 
+interface ResourceFacetIdentifierSource {
+  service: IdentifierLookupService;
+  column: string;
+}
+
 /*
  * The project-scoped `id -> identifying column` lookup every definition
- * shares. Scoping by `projectId` is load-bearing: an id from another tenant
- * must resolve to nothing, never to that tenant's identifier.
+ * shares, one query for the whole id set. Scoping by `projectId` is
+ * load-bearing: an id from another tenant must resolve to nothing, never to
+ * that tenant's identifier.
  */
-function findIdentifierColumn(
-  service: IdentifierLookupService,
-  column: string,
-): ResourceFacetDefinition["findIdentifiers"] {
-  return async (data: {
-    projectId: ObjectID;
-    ids: Array<ObjectID>;
-  }): Promise<Array<string>> => {
-    const rows: Array<Record<string, unknown>> = await service.findBy({
-      query: { projectId: data.projectId, _id: new Includes(data.ids) },
-      select: { [column]: true },
-      limit: new PositiveNumber(data.ids.length),
-      skip: new PositiveNumber(0),
-      props: { isRoot: true },
-    });
+async function findIdentifiers(
+  source: ResourceFacetIdentifierSource,
+  data: { projectId: ObjectID; ids: Array<ObjectID> },
+): Promise<Array<{ id: string; identifier: string }>> {
+  const rows: Array<Record<string, unknown>> = await source.service.findBy({
+    query: { projectId: data.projectId, _id: new Includes(data.ids) },
+    select: { _id: true, [source.column]: true },
+    limit: new PositiveNumber(data.ids.length),
+    skip: new PositiveNumber(0),
+    props: { isRoot: true },
+  });
 
-    return rows.map((row: Record<string, unknown>): string => {
-      const value: unknown = row[column];
-      return typeof value === "string" ? value : "";
-    });
-  };
+  return rows.map(
+    (row: Record<string, unknown>): { id: string; identifier: string } => {
+      const value: unknown = row[source.column];
+      return {
+        id: row["_id"] ? String(row["_id"]) : "",
+        identifier: typeof value === "string" ? value : "",
+      };
+    },
+  );
 }
 
 /*
@@ -312,51 +330,55 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
     hostId: {
       attributeKey: "resource.host.name",
       entityKeyFor: keyForHost,
-      findIdentifiers: findIdentifierColumn(HostService, "hostIdentifier"),
+      entityKeyColumn: "hostEntityKey",
+      identifierSource: { service: HostService, column: "hostIdentifier" },
     },
     dockerHostId: {
       attributeKey: "resource.host.name",
       entityKeyFor: keyForHost,
-      findIdentifiers: findIdentifierColumn(
-        DockerHostService,
-        "hostIdentifier",
-      ),
+      entityKeyColumn: "hostEntityKey",
+      identifierSource: {
+        service: DockerHostService,
+        column: "hostIdentifier",
+      },
     },
     podmanHostId: {
       attributeKey: "resource.host.name",
       entityKeyFor: keyForHost,
-      findIdentifiers: findIdentifierColumn(
-        PodmanHostService,
-        "hostIdentifier",
-      ),
+      entityKeyColumn: "hostEntityKey",
+      identifierSource: {
+        service: PodmanHostService,
+        column: "hostIdentifier",
+      },
     },
     kubernetesClusterId: {
       attributeKey: "resource.k8s.cluster.name",
       entityKeyFor: keyForKubernetesCluster,
-      findIdentifiers: findIdentifierColumn(
-        KubernetesClusterService,
-        "clusterIdentifier",
-      ),
+      entityKeyColumn: "k8sClusterEntityKey",
+      identifierSource: {
+        service: KubernetesClusterService,
+        column: "clusterIdentifier",
+      },
     },
     dockerSwarmClusterId: {
       attributeKey: "resource.docker.swarm.cluster.name",
       entityKeyFor: keyForDockerSwarmCluster,
-      findIdentifiers: findIdentifierColumn(DockerSwarmClusterService, "name"),
+      identifierSource: { service: DockerSwarmClusterService, column: "name" },
     },
     proxmoxClusterId: {
       attributeKey: "resource.proxmox.cluster.name",
       entityKeyFor: keyForProxmoxCluster,
-      findIdentifiers: findIdentifierColumn(ProxmoxClusterService, "name"),
+      identifierSource: { service: ProxmoxClusterService, column: "name" },
     },
     vmwareVCenterId: {
       attributeKey: "resource.vmware.vcenter.name",
       entityKeyFor: keyForVMwareVCenter,
-      findIdentifiers: findIdentifierColumn(VMwareVCenterService, "name"),
+      identifierSource: { service: VMwareVCenterService, column: "name" },
     },
     cephClusterId: {
       attributeKey: "resource.ceph.cluster.name",
       entityKeyFor: keyForCephCluster,
-      findIdentifiers: findIdentifierColumn(CephClusterService, "name"),
+      identifierSource: { service: CephClusterService, column: "name" },
     },
     storageArrayId: {
       attributeKey: "resource.storage.array.name",
@@ -365,14 +387,14 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
     },
     serverlessFunctionId: {
       attributeKey: "resource.faas.name",
-      findIdentifiers: findIdentifierColumn(
-        ServerlessFunctionService,
-        "functionIdentifier",
-      ),
+      identifierSource: {
+        service: ServerlessFunctionService,
+        column: "functionIdentifier",
+      },
     },
     iotFleetId: {
       attributeKey: "resource.iot.fleet.name",
-      findIdentifiers: findIdentifierColumn(IoTFleetService, "name"),
+      identifierSource: { service: IoTFleetService, column: "name" },
     },
     databaseServerId: {
       resolveEntityKeys: resolveDatabaseServerEntityKeys,
@@ -380,6 +402,110 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
   };
 
   return facetDefinitions;
+}
+
+/**
+ * Render one resolved scope as the membership predicate a signal row must
+ * satisfy: `(primaryEntityId IN (...) OR hasAny(entityKeys, [...]) OR
+ * attributes['resource.x'] IN (...))`. Same branches, same order and same
+ * parameter types as `appendResourceScopeFilters`, but returned as a
+ * parenthesized fragment so it can sit inside a `countIf(...)` instead of
+ * being appended after a leading ` AND `. Null when the scope has no usable
+ * branch, mirroring that function's "never emit an empty IN ()" rule.
+ */
+export function renderResourceScope(
+  scope: ResourceEntityScope | undefined,
+  options?: { keyedOnly?: boolean | undefined },
+): Statement | null {
+  if (!scope) {
+    return null;
+  }
+
+  const branches: Array<Statement> = [];
+
+  const entityIds: Array<string> = (scope.entityIds || []).filter(
+    (id: string): boolean => {
+      return typeof id === "string" && id.length > 0;
+    },
+  );
+
+  if (entityIds.length > 0) {
+    branches.push(
+      SQL`primaryEntityId IN (${{
+        type: TableColumnType.ObjectID,
+        value: new Includes(entityIds),
+      }})`,
+    );
+  }
+
+  const entityKeys: Array<string> = (scope.entityKeys || []).filter(
+    (entityKey: string): boolean => {
+      return typeof entityKey === "string" && entityKey.length > 0;
+    },
+  );
+
+  /*
+   * keyedOnly: the cheap half of a count (see ResourceFacetCountQuery) —
+   * the scalar key column when the type has one, and no attribute branch
+   * when a key exists (the attribute only matters for rows that predate
+   * the keys, which the count's legacy pass handles).
+   */
+  const keyedOnly: boolean = Boolean(options?.keyedOnly);
+
+  if (entityKeys.length > 0 && keyedOnly && scope.entityKeyColumn) {
+    branches.push(
+      new Statement().append(scope.entityKeyColumn).append(
+        SQL` IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(entityKeys),
+        }})`,
+      ),
+    );
+  } else if (entityKeys.length > 0) {
+    branches.push(
+      SQL`hasAny(entityKeys, ${{
+        type: TableColumnType.ArrayText,
+        value: entityKeys,
+      }})`,
+    );
+  }
+
+  const attributeValues: Array<string> = (scope.attributeValues || []).filter(
+    (attributeValue: string): boolean => {
+      return typeof attributeValue === "string" && attributeValue.length > 0;
+    },
+  );
+
+  if (
+    scope.attributeKey &&
+    attributeValues.length > 0 &&
+    !(keyedOnly && entityKeys.length > 0)
+  ) {
+    branches.push(
+      SQL`attributes[${{
+        type: TableColumnType.Text,
+        value: scope.attributeKey,
+      }}] IN (${{
+        type: TableColumnType.Text,
+        value: new Includes(attributeValues),
+      }})`,
+    );
+  }
+
+  if (branches.length === 0) {
+    return null;
+  }
+
+  const statement: Statement = new Statement();
+  statement.append(SQL`(`);
+  for (const [index, branch] of branches.entries()) {
+    if (index > 0) {
+      statement.append(SQL` OR `);
+    }
+    statement.append(branch);
+  }
+  statement.append(SQL`)`);
+  return statement;
 }
 
 /**
@@ -530,6 +656,150 @@ export default class ResourceEntityFilter {
   }
 
   /**
+   * Per-id scopes for the COUNT path: one scope per listed resource id, so a
+   * facet's ClickHouse counts can be computed as `countIf(<that row's scope>)`
+   * — the exact membership test selection uses, per resource.
+   *
+   * `resolveScopes` deliberately folds every id of a facet into ONE scope
+   * (`primaryEntityId IN (all ids) OR hasAny(entityKeys, all keys)`), which
+   * answers "how many rows does this facet select" but cannot attribute them
+   * back to individual resources. Counting needs that attribution, hence this
+   * separate method rather than a flag on the other one.
+   *
+   * The identifier lookup is batched (one query per facet, not per id) and
+   * best-effort: an id whose identifier no longer resolves keeps its
+   * `entityIds` branch and drops the key/attribute ones. That degrades to the
+   * old primaryEntityId-only count for that row instead of dropping the
+   * constraint, so a transient Postgres failure under-reports rather than
+   * inventing counts.
+   */
+  @CaptureSpan()
+  public static async resolveCountScopes(data: {
+    projectId: ObjectID;
+    facetKey: string;
+    ids: Array<string>;
+  }): Promise<Map<string, ResourceEntityScope>> {
+    const scopes: Map<string, ResourceEntityScope> = new Map<
+      string,
+      ResourceEntityScope
+    >();
+
+    const ids: Array<string> = Array.from(
+      new Set(
+        (data.ids || []).filter((id: string): boolean => {
+          return typeof id === "string" && id.length > 0;
+        }),
+      ),
+    );
+
+    if (ids.length === 0) {
+      return scopes;
+    }
+
+    const definition: ResourceFacetDefinition | undefined =
+      getFacetDefinitions()[data.facetKey];
+
+    const idOnlyScope: (id: string) => ResourceEntityScope = (
+      id: string,
+    ): ResourceEntityScope => {
+      return { entityIds: [id], entityKeys: [] };
+    };
+
+    /*
+     * No definition (Cloud resource / RUM application) — and the Services
+     * facet, whose value list is the Service table and whose rows are always
+     * primary-keyed on the service — keeps the id branch alone. That is
+     * exactly what selection does for these facets (see getFacetDefinitions).
+     */
+    if (!definition) {
+      for (const id of ids) {
+        scopes.set(id, idOnlyScope(id));
+      }
+      return scopes;
+    }
+
+    const source: ResourceFacetIdentifierSource | undefined =
+      definition.identifierSource;
+
+    /*
+     * Database: the row's telemetry set is several entity keys resolved from
+     * its endpoints and members, and the resolver answers for a given id set
+     * only. Asked per id so each database still counts its own rows.
+     */
+    if (!source) {
+      for (const id of ids) {
+        try {
+          scopes.set(
+            id,
+            await ResourceEntityFilter.resolveOne({
+              projectId: data.projectId,
+              facetKey: data.facetKey,
+              ids: [id],
+            }),
+          );
+        } catch {
+          scopes.set(id, idOnlyScope(id));
+        }
+      }
+      return scopes;
+    }
+
+    const identifiersById: Map<string, string> = new Map<string, string>();
+
+    try {
+      const rows: Array<{ id: string; identifier: string }> =
+        await findIdentifiers(source, {
+          projectId: data.projectId,
+          ids: ids.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        });
+      for (const row of rows) {
+        if (row.id) {
+          identifiersById.set(row.id, row.identifier);
+        }
+      }
+    } catch (err: unknown) {
+      logger.warn(
+        `Could not resolve ${data.facetKey} identifiers for the facet counts; counting primaryEntityId only: ${err}`,
+      );
+      for (const id of ids) {
+        scopes.set(id, idOnlyScope(id));
+      }
+      return scopes;
+    }
+
+    const projectIdString: string = data.projectId.toString();
+
+    for (const id of ids) {
+      const identifier: string = (identifiersById.get(id) || "").trim();
+
+      if (!identifier) {
+        scopes.set(id, idOnlyScope(id));
+        continue;
+      }
+
+      const scope: ResourceEntityScope = idOnlyScope(id);
+
+      if (definition.entityKeyFor) {
+        scope.entityKeys = [
+          definition.entityKeyFor(projectIdString, identifier),
+        ];
+        scope.entityKeyColumn = definition.entityKeyColumn;
+      }
+
+      if (definition.attributeKey) {
+        scope.attributeKey = definition.attributeKey;
+        scope.attributeValues = [identifier];
+      }
+
+      scopes.set(id, scope);
+    }
+
+    return scopes;
+  }
+
+  /**
    * Query key the client puts the raw selected ids under, and the key the
    * compiled scopes are written to. Kept together so the rewrite below is
    * the only thing that has to know the pair.
@@ -640,16 +910,20 @@ export default class ResourceEntityFilter {
       return scope;
     }
 
-    if (!definition.findIdentifiers) {
+    if (!definition.identifierSource) {
       return scope;
     }
 
     let identifiers: Array<string> = [];
 
     try {
-      identifiers = await definition.findIdentifiers({
-        projectId: data.projectId,
-        ids,
+      identifiers = (
+        await findIdentifiers(definition.identifierSource, {
+          projectId: data.projectId,
+          ids,
+        })
+      ).map((row: { id: string; identifier: string }): string => {
+        return row.identifier;
       });
     } catch (err: unknown) {
       logger.warn(
@@ -683,6 +957,7 @@ export default class ResourceEntityFilter {
           }),
         ),
       );
+      scope.entityKeyColumn = definition.entityKeyColumn;
     }
 
     if (definition.attributeKey) {

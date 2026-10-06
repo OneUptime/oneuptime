@@ -18,10 +18,14 @@ import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
-import {
+import ResourceEntityFilter, {
   appendResourceScopeFilters,
   ResourceEntityScope,
 } from "../Utils/Telemetry/ResourceEntityFilter";
+import {
+  buildResourceFacetCountStatement,
+  readResourceFacetCounts,
+} from "../Utils/Telemetry/ResourceFacetCountQuery";
 import ResourceFacetResolver, {
   ResolvedFacetValue,
   ResourceFacetSpec,
@@ -217,6 +221,15 @@ export interface FacetRequest extends TraceFilters {
   endTime: Date;
   facetKey: string;
   limit?: number | undefined;
+}
+
+/*
+ * A resource facet's count request: the facet, the Postgres ids the sidebar
+ * listed for it, and the same filters a plain facet count carries. See
+ * getResourceFacetValueCounts.
+ */
+export interface ResourceFacetCountRequest extends FacetRequest {
+  entityIds: Array<string>;
 }
 
 export interface MultiFacetRequest extends TraceFilters {
@@ -557,12 +570,10 @@ export class TraceAggregationService {
    *      bounded by max_execution_time.
    *
    * primaryEntityId is intentionally NOT disambiguated by primaryEntityType
-   * here. Resource IDs are globally unique, so a single primaryEntityId ->
-   * count map correctly serves the service facet and every resource facet
-   * once merged against each Postgres source-of-truth list (a host id
-   * never collides with a service id, so an unrelated entry is simply never
-   * looked up). Omitting the primaryEntityType predicate keeps the query
-   * projection-eligible.
+   * here: this query now only feeds the statusCode facet (resource facets
+   * count through getResourceFacetValueCounts). Keeping primaryEntityId in
+   * the GROUP BY and omitting a primaryEntityType predicate preserves the
+   * existing projection shape.
    */
   @CaptureSpan()
   public static async getResourceFacetCounts(
@@ -1015,6 +1026,93 @@ export class TraceAggregationService {
     );
 
     return statement;
+  }
+
+  /*
+   * Per-resource counts for a resource facet, computed from the Postgres rows
+   * the sidebar already listed for it. Each listed resource is counted by its
+   * own resolved scope — `primaryEntityId = id OR hasAny(entityKeys, [key]) OR
+   * attributes['resource.x'] = identifier` — the same membership test
+   * selection uses, so the number beside a value and the rows clicking it
+   * returns agree (issue #3251).
+   *
+   * Every resource facet, Services included, counts here.
+   * getResourceFacetCounts stays the cheap, projection-eligible GROUP BY that
+   * now only feeds the statusCode facet.
+   */
+  @CaptureSpan()
+  public static async getResourceFacetValueCounts(
+    request: ResourceFacetCountRequest,
+  ): Promise<Array<FacetValue>> {
+    const entityIds: Array<string> = Array.from(
+      new Set(
+        (request.entityIds || []).filter((id: string): boolean => {
+          return typeof id === "string" && id.length > 0;
+        }),
+      ),
+    );
+
+    if (entityIds.length === 0) {
+      return [];
+    }
+
+    const scopes: Map<string, ResourceEntityScope> =
+      await ResourceEntityFilter.resolveCountScopes({
+        projectId: request.projectId,
+        facetKey: request.facetKey,
+        ids: entityIds,
+      });
+
+    const statement: Statement = buildResourceFacetCountStatement({
+      ids: entityIds,
+      scopes,
+      appendFromWhere: (fromWhere: Statement): void => {
+        fromWhere.append(
+          SQL` FROM ${TraceAggregationService.TABLE_NAME} WHERE projectId = ${{
+            type: TableColumnType.ObjectID,
+            value: request.projectId,
+          }} AND startTime >= ${{
+            type: TableColumnType.Date,
+            value: request.startTime,
+          }} AND startTime <= ${{
+            type: TableColumnType.Date,
+            value: request.endTime,
+          }}`,
+        );
+
+        fromWhere.append(TraceAggregationService.RETENTION_FILTER);
+
+        TraceAggregationService.appendCommonFilters(fromWhere, request);
+      },
+    });
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: 45,
+        /*
+         * Resource facet counts must not treat an interrupted query as an
+         * exact zero: "break" returns zero rows on timeout, which reads as
+         * count 0 for every resource. "throw" fails, and the planner keeps
+         * the listed resources visible.
+         */
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const rows: Array<JSONObject> = response.data || [];
+
+    return readResourceFacetCounts(rows[0], entityIds).map(
+      (value: { value: string; count: number }): FacetValue => {
+        return { value: value.value, count: value.count };
+      },
+    );
   }
 
   /*
