@@ -24,9 +24,7 @@ const KEY: string = "dropUnlinkedClientCalls";
 
 describe("kubernetes-agent docs: ebpf.dropUnlinkedClientCalls", () => {
   test("values.yaml ships it off", () => {
-    expect(read(CHART_VALUES)).toMatch(
-      new RegExp(`\\n  ${KEY}: false\\n`),
-    );
+    expect(read(CHART_VALUES)).toMatch(new RegExp(`\\n  ${KEY}: false\\n`));
   });
 
   test("the schema takes a boolean and says it is off by default", () => {

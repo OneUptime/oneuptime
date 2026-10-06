@@ -1178,8 +1178,8 @@ ebpf:
   #     without its root: it no longer shows in the Traces list's root-span
   #     view, and the service map loses the traced edge between the two
   #     (OBI's service graph metrics still draw it, without latency). On the
-  #     cluster this was measured on, about one in ten of the calls this
-  #     drops were such roots.
+  #     cluster this was measured on, between one in twenty and one in ten
+  #     of the calls this drops were such roots, depending on the hour.
   #   - The service map reads these calls. A service or endpoint that only
   #     background work calls (an external API a worker syncs with) is then
   #     drawn from OBI's service graph metrics alone — under the name OBI gives

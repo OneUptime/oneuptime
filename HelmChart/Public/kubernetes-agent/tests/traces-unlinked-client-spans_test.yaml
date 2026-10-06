@@ -3,16 +3,17 @@
 #
 # After OBI v0.14 linked request traces, what still arrived as one-span
 # "traces" on the test cluster were calls made outside any request: a worker's
-# HTTP queries to ClickHouse (`POST /`, ~57k an hour), KEDA renewing its lease
-# (`PUT /apis/*/.../leases/*`), the agent polling for AI jobs. They are about
-# 2% of what OBI sent there.
+# HTTP queries to ClickHouse (`POST /`, ~57-59k an hour), KEDA renewing its
+# lease (`PUT /apis/*/.../leases/*`), the agent polling for AI jobs. They are
+# about 2% of what OBI sent there.
 #
 # Off by default because a stateless filter cannot see what hangs under a
-# span: about one in ten of those calls were the ROOT of a trace (a probe or
-# a worker calling the API on the same node, which OBI links under the call),
-# and dropping them leaves those traces without a root. The service map also
-# reads these calls (ServiceDependencyDiscovery). Database calls belong to
-# filter/ebpf-unlinked-db; messaging and GenAI calls are always kept.
+# span: one in twenty to one in ten of those calls, depending on the hour,
+# were the ROOT of a trace (a probe or a worker calling the API on the same
+# node, which OBI links under the call), and dropping them leaves those traces
+# without a root. The service map also reads these calls
+# (ServiceDependencyDiscovery). Database calls belong to filter/ebpf-unlinked-db;
+# messaging and GenAI calls are always kept.
 #
 # These tests pin the switch (off by default and when the key is missing, as
 # after --reuse-values), the condition text (its behaviour against a real
