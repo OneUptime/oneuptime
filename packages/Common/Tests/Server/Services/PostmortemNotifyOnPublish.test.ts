@@ -1390,6 +1390,14 @@ describe("showing a hidden incident sends the postmortem that waits for it", () 
     expect(postmortemNotificationsQueued()).toEqual([]);
   });
 
+  test("the Settings form's save of a hidden incident - both switches, Private Incident off - reads nothing of the postmortem and sends nothing", async () => {
+    await update({ isVisibleOnStatusPage: false, isPrivate: false });
+
+    expect(visibilityReads()).toEqual([]);
+    expect(readsAfterTheWrite()).toEqual([]);
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
   test("made private in the same update, the incident stays hidden: nothing is read for the postmortem or sent", async () => {
     await update({ isVisibleOnStatusPage: true, isPrivate: true });
 

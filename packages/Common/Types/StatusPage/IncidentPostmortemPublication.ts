@@ -365,8 +365,12 @@ export default class IncidentPostmortemPublication {
    * Whether an update may show the incident, and so has the incident's
    * visibility read before the write: it switches Visible on Status Page on
    * (true, or a hand-written "true"; isSwitchedOn), or writes Private
-   * Incident as off. An update that makes the incident private hides it
-   * instead: IncidentService switches Visible on Status Page off with it.
+   * Incident as off. An update that writes Visible on Status Page as off
+   * leaves the incident hidden, whatever else it writes - the incident's
+   * Settings form sends both switches with every save, so saving a hidden
+   * incident reads nothing for this. An update that makes the incident
+   * private hides it too: IncidentService switches Visible on Status Page
+   * off with it.
    */
   public static mayShowIncident(
     written: Record<string, unknown> | undefined | null,
@@ -375,10 +379,15 @@ export default class IncidentPostmortemPublication {
       return false;
     }
 
+    const writtenVisibility: unknown = written["isVisibleOnStatusPage"];
+
+    if (writtenVisibility !== undefined) {
+      return this.isSwitchedOn(writtenVisibility);
+    }
+
     return (
-      this.isSwitchedOn(written["isVisibleOnStatusPage"]) ||
-      (written["isPrivate"] !== undefined &&
-        !this.isSwitchedOn(written["isPrivate"]))
+      written["isPrivate"] !== undefined &&
+      !this.isSwitchedOn(written["isPrivate"])
     );
   }
 

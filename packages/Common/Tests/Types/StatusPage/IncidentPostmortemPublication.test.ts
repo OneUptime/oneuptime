@@ -732,10 +732,6 @@ describe("IncidentPostmortemPublication.mayShowIncident", () => {
       "the Settings form's save, showing it",
       { isVisibleOnStatusPage: true, isPrivate: false },
     ],
-    [
-      "the Settings form's save, hiding it",
-      { isVisibleOnStatusPage: false, isPrivate: false },
-    ],
   ] as Array<[string, Record<string, unknown>]>)(
     "%s may show the incident",
     (_label: string, written: Record<string, unknown>) => {
@@ -747,6 +743,20 @@ describe("IncidentPostmortemPublication.mayShowIncident", () => {
     [
       "Visible on Status Page written as false",
       { isVisibleOnStatusPage: false },
+    ],
+    // A switch written as null is stored as null, which reads as off.
+    ["Visible on Status Page written as null", { isVisibleOnStatusPage: null }],
+    /*
+     * The Settings form sends both switches with every save: saving a hidden
+     * incident, even one made not private, leaves it hidden.
+     */
+    [
+      "the Settings form's save, keeping it hidden",
+      { isVisibleOnStatusPage: false, isPrivate: false },
+    ],
+    [
+      "Visible on Status Page written as null with Private Incident off",
+      { isVisibleOnStatusPage: null, isPrivate: false },
     ],
     ["Private Incident written as true", { isPrivate: true }],
     [
@@ -791,6 +801,7 @@ describe("IncidentPostmortemPublication.isComparedBy", () => {
     for (const written of [
       { title: "Renamed" },
       { isVisibleOnStatusPage: false },
+      { isVisibleOnStatusPage: false, isPrivate: false },
       { notifySubscribersOnPostmortemPublished: true },
       {},
     ]) {
