@@ -69,7 +69,6 @@ const sectionLine: (page: Page, name: string) => Locator = (
   );
 };
 
-// A navbar link, by the start of its name, as the other navbar specs find them.
 // What a folded section's row says it holds.
 const sectionProducts: (page: Page, name: string) => Locator = (
   page: Page,
@@ -106,6 +105,7 @@ const boxOf: (locator: Locator) => Promise<Box> = async (
 // One line of text at the menu's sizes: 20px, with a pixel of slack.
 const ONE_LINE: number = 21;
 
+// A navbar link, by the start of its name, as the other navbar specs find them.
 const navLink: (scope: Locator, title: string) => Locator = (
   scope: Locator,
   title: string,
