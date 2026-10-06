@@ -215,7 +215,12 @@ describe("the SMS log never keeps an unsubscribe link's token", () => {
       ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
     ).mock.calls[0]![2] as string;
 
-    expect(body).not.toContain("<a href");
+    // No link from the SMS text: the one link is the email's own.
+    expect(body).not.toContain('<a href="https://evil.example"');
+    expect(body.match(/<a href=/g)).toHaveLength(1);
+    expect(body).toMatch(
+      /<a href="[^"]*\/settings\/notification-settings">/,
+    );
     expect(body).toContain(
       "Incident &lt;a href=&quot;https://evil.example&quot;&gt;Verify billing&lt;/a&gt; &amp; more on Site 03.",
     );

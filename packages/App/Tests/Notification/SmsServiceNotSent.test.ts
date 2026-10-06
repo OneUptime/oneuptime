@@ -4,6 +4,11 @@ import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
+import { DashboardClientUrl } from "Common/Server/EnvironmentConfig";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
@@ -212,7 +217,10 @@ describe("an SMS the Notification service does not send", () => {
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as BadDataException).message).toBe(
-        "SMS not sent: SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.",
+        `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
+      );
+      expect((error as BadDataException).message).toBe(
+        "SMS not sent: SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
       );
       // The tenant's setting, not a defect.
       expect(declaredErrorClass(error)).toEqual({
@@ -235,6 +243,44 @@ describe("an SMS the Notification service does not send", () => {
       await rejectionOf(send({ failIfNotSent: true }));
 
       expect(ProjectService.sendEmailToProjectOwners).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The log is read by anyone who may read the project's SMS logs, most of
+     * whom may not turn SMS on: it says who can, and where.
+     */
+    test("the SMS log says SMS is off and who can turn it on", async () => {
+      await send({});
+
+      expect(loggedRows()[0]!.statusMessage).toBe(
+        getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
+      );
+      expect(loggedRows()[0]!.statusMessage).toContain(
+        "A project owner or someone with Manage Billing",
+      );
+    });
+
+    /*
+     * The owners may turn SMS on, so their email tells them to, if it should
+     * be on, and links straight to the switch.
+     */
+    test("the owners' email links straight to the switch on Notification Settings", async () => {
+      project!.notEnabledSmsOrCallNotificationSentToOwners = false;
+
+      await send({});
+
+      const call: Array<unknown> = (
+        ProjectService.sendEmailToProjectOwners as unknown as jest.Mock
+      ).mock.calls[0]!;
+      const body: string = call[2] as string;
+      const link: string = `${DashboardClientUrl.toString()}/${PROJECT_ID.toString()}/settings/notification-settings`;
+
+      expect(call[0]).toEqual(PROJECT_ID);
+      expect(body).toContain(
+        "This SMS was not sent. SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+      );
+      expect(body).toContain(`<a href="${link}">${link}</a>`);
+      expect(body).not.toContain("Please enable");
     });
 
     test("failIfNotSent: false is the quiet return", async () => {

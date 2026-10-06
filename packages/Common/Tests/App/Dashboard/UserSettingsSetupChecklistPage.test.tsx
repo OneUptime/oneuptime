@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -149,6 +150,8 @@ import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotifica
 import UserSMS from "../../../Models/DatabaseModels/UserSMS";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import SetupChecklist from "../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/SetupChecklist";
@@ -758,7 +761,17 @@ describe("setup checklist page - acting on a step", () => {
     fireEvent.click(step);
 
     expect(navigateMock).not.toHaveBeenCalled();
-    expect(screen.getByText("Needs an admin")).toBeInTheDocument();
+    /*
+     * Labelled by who is needed without naming a role the row's own detail
+     * could contradict; the detail says exactly who.
+     */
+    expect(screen.getByText("Needs someone else")).toBeInTheDocument();
+    expect(screen.queryByText("Needs an admin")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("setup-checklist-detail-channels-enabled"),
+    ).toHaveTextContent(
+      "A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings",
+    );
   });
 
   test("an outstanding step is reachable by keyboard", async (): Promise<void> => {
@@ -1330,9 +1343,9 @@ describe("setup checklist page - blocked steps are reconciled with the bar", () 
     renderChecklist();
     await settle();
 
-    expect(
-      screen.getByTestId("setup-checklist-blocked-note"),
-    ).toHaveTextContent("1 more step needs a project admin");
+    expect(screen.getByTestId("setup-checklist-blocked-note").textContent).toBe(
+      "1 more step needs a project owner or someone with Manage Billing, so it is not counted here.",
+    );
   });
 
   test("says nothing about blocked steps when there are none", async (): Promise<void> => {
@@ -1341,6 +1354,149 @@ describe("setup checklist page - blocked steps are reconciled with the bar", () 
 
     expect(
       screen.queryByTestId("setup-checklist-blocked-note"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("setup checklist page - who can turn a channel on", () => {
+  /*
+   * Only a project owner or someone with Manage Billing may switch a
+   * project's SMS, call, WhatsApp or Telegram channel on - the step used to
+   * say "Ask a project admin", who may not. So someone who may is sent
+   * straight to the switches, and everyone else is told exactly who can.
+   */
+  const ONLY_SMS_VERIFIED: JSONObject = readinessJson({
+    status: "NotReachable",
+    methods: [
+      {
+        methodId: "method-sms",
+        methodType: "SMS",
+        maskedIdentifier: "+44 ••• ••• 0123",
+        isVerified: true,
+      },
+    ],
+  });
+
+  type SignInFunction = (
+    permissions: Array<Permission>,
+    isMasterAdmin?: boolean,
+  ) => void;
+
+  const signInWith: SignInFunction = (
+    permissions: Array<Permission>,
+    isMasterAdmin: boolean = false,
+  ): void => {
+    jest.spyOn(PermissionUtil, "getAllPermissions").mockReturnValue([
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+      ...permissions,
+    ]);
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(isMasterAdmin);
+  };
+
+  test.each([
+    ["a project owner", [Permission.ProjectOwner], false],
+    ["someone with Manage Billing", [Permission.ManageProjectBilling], false],
+    ["a master admin", [], true],
+  ] as Array<[string, Array<Permission>, boolean]>)(
+    "%s gets the step as their own, opening Project Settings → Notification Settings",
+    async (
+      _who: string,
+      permissions: Array<Permission>,
+      isMasterAdmin: boolean,
+    ): Promise<void> => {
+      signInWith(permissions, isMasterAdmin);
+      respondWithReadiness(ONLY_SMS_VERIFIED);
+
+      renderChecklist();
+      await settle();
+
+      const step: HTMLElement = screen.getByTestId(
+        "setup-checklist-step-channels-enabled",
+      );
+
+      expect(step).toHaveAttribute("data-status", "Incomplete");
+      expect(step).toHaveAttribute("role", "button");
+      expect(step).toHaveTextContent(
+        "Go to Project Settings → Notification Settings →",
+      );
+      expect(
+        screen.getByTestId("setup-checklist-detail-channels-enabled")
+          .textContent,
+      ).toBe(
+        "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.",
+      );
+
+      // Nothing is somebody else's to do, so nothing is said about it.
+      expect(
+        screen.queryByTestId("setup-checklist-blocked-note"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Needs someone else")).not.toBeInTheDocument();
+
+      fireEvent.click(step);
+
+      expect(String(navigateMock.mock.calls[0]![0])).toBe(
+        String(
+          RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+          ),
+        ),
+      );
+    },
+  );
+
+  test.each([
+    ["a project admin", [Permission.ProjectAdmin]],
+    ["someone who may edit the project", [Permission.EditProject]],
+    ["a project member", [Permission.ProjectMember]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s is told exactly who can turn it on, with no link",
+    async (_who: string, permissions: Array<Permission>): Promise<void> => {
+      signInWith(permissions);
+      respondWithReadiness(ONLY_SMS_VERIFIED);
+
+      renderChecklist();
+      await settle();
+
+      const step: HTMLElement = screen.getByTestId(
+        "setup-checklist-step-channels-enabled",
+      );
+
+      expect(step).toHaveAttribute("data-status", "Blocked");
+      expect(step).not.toHaveAttribute("role", "button");
+
+      const detail: string =
+        screen.getByTestId("setup-checklist-detail-channels-enabled")
+          .textContent || "";
+
+      expect(detail).toBe(
+        "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.",
+      );
+      expect(detail.toLowerCase()).not.toContain("admin");
+      expect(within(step).getByText("Needs someone else")).toBeInTheDocument();
+      expect(screen.getByTestId("setup-checklist-blocked-note").textContent).toBe(
+        "1 more step needs a project owner or someone with Manage Billing, so it is not counted here.",
+      );
+
+      fireEvent.click(step);
+
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a usable channel is done, whoever reads it", async (): Promise<void> => {
+    signInWith([Permission.ProjectAdmin]);
+    respondWithProject({ enableSms: true });
+
+    renderChecklist();
+    await settle();
+
+    expect(
+      screen.getByTestId("setup-checklist-step-channels-enabled"),
+    ).toHaveAttribute("data-status", "Complete");
+    expect(
+      screen.queryByTestId("setup-checklist-detail-channels-enabled"),
     ).not.toBeInTheDocument();
   });
 });

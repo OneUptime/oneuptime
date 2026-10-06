@@ -298,7 +298,7 @@ export default class CallService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "Call notifications not enabled for " + (project.name || ""),
-              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${await ProjectNotificationChannelOwnerNotice.getHtml(
+              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${ProjectNotificationChannelOwnerNotice.getHtml(
                 {
                   channel: ProjectNotificationChannel.Call,
                   projectId: project.id!,

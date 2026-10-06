@@ -328,7 +328,7 @@ export default class SmsService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "SMS notifications not enabled for " + (project.name || ""),
-              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent. ${await ProjectNotificationChannelOwnerNotice.getHtml(
+              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent. ${ProjectNotificationChannelOwnerNotice.getHtml(
                 {
                   channel: ProjectNotificationChannel.SMS,
                   projectId: project.id!,

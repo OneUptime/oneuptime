@@ -1,4 +1,4 @@
-import DatabaseConfig from "../DatabaseConfig";
+import { DashboardClientUrl } from "../EnvironmentConfig";
 import logger from "./Logger";
 import URL from "../../Types/API/URL";
 import ObjectID from "../../Types/ObjectID";
@@ -17,13 +17,19 @@ import {
  * They may turn the channel on (owners hold the columns' update permission,
  * see Utils/Project/NotificationChannels), so this tells them to, if it
  * should be on, and links straight to the page with the switch.
+ *
+ * The link is built from the configured dashboard address
+ * (EnvironmentConfig.DashboardClientUrl, as the billing emails' links are),
+ * so sending the notice reads nothing from the database.
  */
 export default class ProjectNotificationChannelOwnerNotice {
   // The project's Notification Settings page in the dashboard.
-  public static async getSettingsLink(projectId: ObjectID): Promise<URL> {
-    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+  public static getSettingsLink(projectId: ObjectID): URL {
+    if (!DashboardClientUrl) {
+      throw new Error("The dashboard's address is not configured.");
+    }
 
-    return URL.fromString(dashboardUrl.toString()).addRoute(
+    return URL.fromString(DashboardClientUrl.toString()).addRoute(
       `/${projectId.toString()}/${PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH}`,
     );
   }
@@ -33,20 +39,18 @@ export default class ProjectNotificationChannelOwnerNotice {
    * info block): the sentence, then the link on a line of its own. Without
    * a link to give, the sentence alone - it says where the switch is.
    */
-  public static async getHtml(data: {
+  public static getHtml(data: {
     channel: ProjectNotificationChannel;
     projectId: ObjectID;
-  }): Promise<string> {
+  }): string {
     const sentence: string = SafeHtml.escape(
       getProjectNotificationChannelOffOwnerSentence(data.channel),
     );
 
     try {
       const link: string = SafeHtml.escape(
-        (
-          await ProjectNotificationChannelOwnerNotice.getSettingsLink(
-            data.projectId,
-          )
+        ProjectNotificationChannelOwnerNotice.getSettingsLink(
+          data.projectId,
         ).toString(),
       );
 

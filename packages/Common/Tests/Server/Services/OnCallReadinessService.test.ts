@@ -1933,7 +1933,7 @@ describe("status", () => {
 
       expect(readiness.status).toBe(ReadinessStatus.NotReachable);
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on SMS, Call, and this project has those channels switched off - that is a project setting, not something this user can fix",
+        "Every method they have verified is on SMS, Call, and this project has those channels switched off - a project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings",
       );
     });
 
@@ -1954,10 +1954,15 @@ describe("status", () => {
       /*
        * "Add and verify a notification method" is the WRONG instruction here -
        * they have done that, and doing it again on the same channel changes
-       * nothing. The sentence has to send an admin to the project settings.
+       * nothing. The sentence has to say it is a project setting, and who may
+       * change it: a project owner or someone with Manage Billing - not a
+       * project admin, who may not.
        */
       expect(readiness.reasons[1]).toContain("WhatsApp");
-      expect(readiness.reasons[1]).toContain("project setting");
+      expect(readiness.reasons[1]).toContain(
+        "a project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
+      );
+      expect(readiness.reasons[1].toLowerCase()).not.toContain("admin");
       expect(
         readiness.reasons.some((reason: string): boolean => {
           return reason.includes("add and verify");
@@ -2935,7 +2940,7 @@ describe("notification channels", () => {
         "No usable notification method - cannot be paged",
       );
       expect(readiness.reasons[1]).toBe(
-        "Every method they have verified is on Telegram, and this project has that channel switched off - that is a project setting, not something this user can fix",
+        "Every method they have verified is on Telegram, and this project has that channel switched off - a project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings",
       );
     });
 

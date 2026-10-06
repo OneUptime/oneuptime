@@ -195,7 +195,7 @@ export default class TelegramService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               `Telegram notifications not enabled for ${project.name || ""}`,
-              `A Telegram notification was not sent. ${await ProjectNotificationChannelOwnerNotice.getHtml(
+              `A Telegram notification was not sent. ${ProjectNotificationChannelOwnerNotice.getHtml(
                 {
                   channel: ProjectNotificationChannel.Telegram,
                   projectId: project.id!,
