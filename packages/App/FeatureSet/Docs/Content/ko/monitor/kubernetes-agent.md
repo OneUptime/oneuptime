@@ -234,24 +234,19 @@ eBPF 자동 계측도 활성화되어 있는 경우(`ebpf.enabled: true`, 기본
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values`는 기존 구성을 유지합니다; 그 위에 새로운 `--set` 재정의를 전달하십시오.
+`--reset-then-reuse-values`(Helm 3.14 이상)는 직접 설정한 값(프리셋, 클러스터 이름, 필터)을 유지하고 나머지 값은 모두 새 차트에서 가져옵니다. 그 위에 새로운 `--set` 재정의를 전달하세요. Helm 3.13 이하에서는 대신 직접 설정한 값으로 업그레이드하세요:
 
-> **주의: `--reuse-values`는 차트의 새 기본값을 병합하지 않습니다.** Helm은 이전에 렌더링된 값을 그대로 재사용합니다 — 따라서 새 차트 버전에 추가된 새로운 최상위 필드(예: `profiling.*`, `ebpf.features.*`)는 기존 릴리스에서 설정되지 않은 채로 남아 있고, 템플릿은 마치 비활성화한 것처럼 렌더링됩니다.
->
-> **Helm 3.14+** — `--reset-then-reuse-values`로 전환하십시오. 재정의하지 않은 키에 대해 차트 기본값을 다시 읽어옵니다:
->
-> ```bash
-> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->   --namespace oneuptime-kubernetes-agent \
->   --reset-then-reuse-values
-> ```
->
-> **Helm 3.13 이하** — `--reuse-values`를 제거하고 원래의 `--set` 플래그(또는 `-f values.yaml`)를 명시적으로 전달하십시오. 재정의하지 않은 모든 항목에 대해 새 차트 기본값이 적용됩니다.
->
-> 업그레이드 후 새로운 기능의 파드(예: `kubernetes-agent-profiling-*`)가 나타나지 않는다면 거의 항상 이것이 원인입니다. `helm get values <release>`로 Helm이 실제로 가지고 있는 값을 확인할 수 있습니다 — 출력에 누락된 필드는 해당 필드에 대해 기본값이 병합되지 않았음을 의미합니다.
+```bash
+helm repo update
+helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+`--reuse-values`는 사용하지 마세요. 업그레이드 전 차트의 기본값까지 유지하므로 새 차트의 기본값(새 eBPF 이미지 포함)이 적용되지 않습니다. 릴리스가 이전 차트의 기본값으로 실행되면, 설치나 업그레이드 후 Helm이 출력하는 노트 끝에 경고와 이를 해결하는 명령이 표시됩니다.
 
 > **eBPF 스팬 메트릭의 이름이 바뀌었습니다.** `ebpf.features.spanMetrics`는 이제 `traces_spanmetrics_calls_total`과 `traces_spanmetrics_latency` 대신 `traces.span.metrics.calls`와 `traces.span.metrics.duration`(초)을 보냅니다. 시계열은 같고, 이름만 OBI가 유지하는 이름으로 바뀝니다(이전 이름은 OBI에서 지원 중단됨). 이전 이름을 쓰는 대시보드, 차트, 메트릭 모니터는 업그레이드 후 오류 없이 새 데이터를 받지 못하므로 새 이름으로 옮기고, 이전 이름이 들어 있는 `filters.metrics` 항목도 수정하십시오.
 
@@ -271,7 +266,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 

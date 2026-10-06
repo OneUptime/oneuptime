@@ -574,7 +574,7 @@ describe("configuration changes", () => {
       [
         `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent`,
         `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
-        "  --reuse-values",
+        "  --reset-then-reuse-values",
         "  --set logs.enabled=false",
       ].join(" \\\n"),
     );

@@ -73,7 +73,7 @@ To add it to an existing install, refresh the chart index first and then upgrade
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
@@ -103,7 +103,7 @@ Pick how fixes run and, recommended, only the namespaces AI may change:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -116,7 +116,7 @@ Or cluster-wide:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -125,7 +125,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 To turn fixes off again, upgrade with `--set aiAgent.fixes=off`: the write RBAC is removed and the agent refuses every write.
 
-Every namespace you list must already exist. The chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector's workloads included — with `namespaces "api" not found`: create it first, or take it off the list. Take a namespace off the list before you delete it; if it is already gone, drop it from the list on the next upgrade. With `--reuse-values`, leaving the flag out keeps the list stored on the release. To go back to the cluster-wide binding, pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) — not `={}`, which Helm reads as one empty name and the chart's schema rejects. The scoped command above also turns node operations off; set `aiAgent.remediation.nodeOperations=true` to let AI cordon, drain or taint nodes (always with a human approving).
+Every namespace you list must already exist. The chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector's workloads included — with `namespaces "api" not found`: create it first, or take it off the list. Take a namespace off the list before you delete it; if it is already gone, drop it from the list on the next upgrade. Leaving the flag out of an upgrade keeps the list stored on the release. To go back to the cluster-wide binding, pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) — not `={}`, which Helm reads as one empty name and the chart's schema rejects. The scoped command above also turns node operations off; set `aiAgent.remediation.nodeOperations=true` to let AI cordon, drain or taint nodes (always with a human approving).
 
 How fixes run is set with `aiAgent.fixes`:
 
@@ -642,8 +642,25 @@ See [`values.yaml`](./values.yaml) for the exhaustive list, including service me
 ```bash
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reuse-values
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values
 ```
+
+`--reset-then-reuse-values` (Helm 3.14+) keeps the values you set — what `helm get values` lists — and takes every other value from the new chart's `values.yaml`, so what the new chart added or changed there applies. On Helm 3.13 and earlier, upgrade with the values you set instead:
+
+```bash
+helm repo update
+helm get values oneuptime-agent -n oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+Add any `--set` you need to either command: it overrides what the release had.
+
+> ⚠️ **Don't upgrade with `--reuse-values`.** It renders the new chart with the previous release's values, and those include the defaults of the chart you upgrade *from*: Helm puts them in place of the new chart's `values.yaml` ([`reuseValues`](https://github.com/helm/helm/blob/v3.14.0/pkg/action/upgrade.go)). So nothing the new chart changed or added there applies, on this upgrade or any later `--reuse-values` one. A release installed from 14.0.10 and upgraded that way keeps OBI `v0.9.0` instead of this chart's `v0.14.0`, misses the newer eBPF exclusions (`*/chrome_crashpad_handler`), and leaves every newer setting unset.
+>
+> The chart says when this has happened. Its `values.yaml` carries the version of the chart it comes with (`chartDefaultsVersion`, stamped at release), and when that is not the chart's own version, the notes Helm prints after the install or upgrade end with a **WARNING** that names what is stale (the OBI image tag, when it is not this chart's) and the command that fixes it for that release. To check yourself, compare `helm get values <release> -n <namespace> --all | grep chartDefaultsVersion` (nothing, on a chart from before it) with the chart version `helm list -n <namespace>` shows.
+>
+> What it cannot see: a template gets the merged values, never which of them you set. A release on this chart's defaults never warns, so a value you pin on purpose is never reported; a release on an older chart's defaults has its OBI tag named even when you pinned it, and the fix keeps a pinned value as it is. A values file that copies a whole older `values.yaml` (or `helm get values --all`) pins that chart's defaults, `chartDefaultsVersion` among them, and warns on every upgrade: keep only the values you changed in it, and upgrade with `-f` and that file but without `--reuse-values` or `--reset-then-reuse-values`, which would keep the copy the release stored.
 
 > ⚠️ **Self-hosted OneUptime: upgrade the server first, or install the chart version that matches it.** The eBPF tracer this chart runs (OBI v0.14) names a called service in `service.peer.name` and reports a message broker's own Kafka/MQTT/NATS spans as producer/consumer spans; OneUptime servers older than this chart read neither, so the service map loses named peers and Queues count each broker as a producer and consumer of its topics. It also records its own Node.js agent injection as short `GET /json/list` and `GET /*` traces on every Node.js app, which only current servers drop.
 
@@ -657,29 +674,6 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 > Data sent before the upgrade keeps its old name. This applies with `--reuse-values` too, whatever `ebpf.image.tag` the release keeps: every OBI release accepts `application_span_otel` (OBI before v0.11 names the series `traces_span_metrics_duration` and `traces_span_metrics_calls_total`). OneUptime's own pages and the service map do not read these metrics.
 >
 > Earlier versions of this README said the feature also sent request and response sizes. It never did: those come from a separate OBI feature, `application_span_sizes`, which is deprecated too and which this chart has never turned on.
-
-> ⚠️ **`--reuse-values` skips defaults for newly added settings.** When the chart adds a new top-level field (e.g. `profiling.*` in v0.4.x, `ebpf.features.*` in v0.4.x), Helm's `--reuse-values` keeps your old value file as-is and does **not** merge the new defaults — so the new feature stays unset and renders as disabled in the templates. A default that changed keeps its old value the same way: a release upgraded with `--reuse-values` keeps running OBI `v0.13.0` instead of this chart's `v0.14.0`.
->
-> To pick up new defaults:
->
-> - **Helm 3.14+**: use `--reset-then-reuse-values` instead of `--reuse-values`. This re-reads the chart's `values.yaml` for any keys you haven't overridden, while still keeping your `--set` values.
->
->   ```bash
->   helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->     --namespace oneuptime-kubernetes-agent --reset-then-reuse-values
->   ```
->
-> - **Helm 3.13 and earlier**: pass your original `--set` flags (or `-f values.yaml`) without `--reuse-values`. The new defaults apply automatically and your overrides override them.
->
->   ```bash
->   helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->     --namespace oneuptime-kubernetes-agent \
->     --set oneuptime.url=<URL> \
->     --set oneuptime.apiKey=<KEY> \
->     --set clusterName=<NAME>
->   ```
->
-> If you don't see the new feature's pods (e.g. `kubernetes-agent-profiling-*`) after upgrading, it's almost certainly this. Run `helm get values <release>` to see what Helm actually has — fields missing from the output mean Helm didn't merge defaults for them.
 
 ### Upgrading to the Kubernetes AI agent
 
@@ -744,7 +738,7 @@ Cluster-level telemetry about Windows nodes and their pods (node conditions, pod
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -773,7 +767,7 @@ These agents wrap libc `write()` and hold pointers into the caller's stdout buff
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-kubernetes-agent --reuse-values \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
   --set ebpf.logToTraceCorrelation=false
 ```
 
@@ -834,7 +828,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 kubectl rollout restart daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument
 ```
 
-Existing stuck connections do not recover on their own — they were already desynchronized — so restart the clients holding them. `false` is now the shipped default, but an install predating that change, or any upgrade carried forward with `--reuse-values`, is still on `true` — so verify with `helm get values` rather than assuming from your chart version.
+Existing stuck connections do not recover on their own — they were already desynchronized — so restart the clients holding them. `false` is now the shipped default, but an install predating that change, or any upgrade carried forward with `--reuse-values`, is still on `true` — so verify with `helm get values -a` rather than assuming from your chart version.
 
 If you need cross-service trace linking back, prefer instrumenting the services with an OpenTelemetry SDK (which propagates `traceparent` in userspace, with no kernel rewriting) over re-enabling this. If you do re-enable it, do so on a non-production cluster first and verify large transfers through your proxy before rolling it further.
 
@@ -891,7 +885,7 @@ Check what kind of span it is before anything else:
       | grep -E 'instrumenting process.*cmd=[^ ]*node|component=nodejs\.Injector|skipping agent injection'
     ```
 
-    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. OBI v0.14, the chart's default, fixes this. An older tag stays in place if you pinned one, or if you upgraded with `--reuse-values`, which keeps the previous chart's default (`v0.13.0`) even though `helm get values` does not list it. Check with `kubectl get daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument -o jsonpath='{.items[*].spec.template.spec.containers[0].image}'`, and move it to `v0.14.0` or later (`--set ebpf.image.tag=v0.14.0`, or upgrade with `--reset-then-reuse-values` on Helm 3.14+).
+    - `type=rust` on a `node` executable means that OBI cannot identify the Node.js build: Node.js 26 and later contain Rust code, and OBI before v0.14 checked for Rust before checking for Node.js. OBI v0.14, the chart's default, fixes this. An older tag stays in place if you pinned one, or if you upgraded with `--reuse-values`, which keeps the previous chart's default (`v0.9.0` before chart 14.0.12, `v0.13.0` in 14.0.12) even though `helm get values` does not list it; the chart's notes warn about the latter. Check with `kubectl get daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument -o jsonpath='{.items[*].spec.template.spec.containers[0].image}'`, and move it to `v0.14.0` or later (`--set ebpf.image.tag=v0.14.0`, or upgrade with `--reset-then-reuse-values` on Helm 3.14+).
     - `Script successfully injected` means the agent is in. OBI v0.13 logs a `loading NodeJS instrumentation pid=…` line before each attempt; v0.14 logs it at debug only (`--set ebpf.logLevel=debug`).
     - On OBI v0.13, `Node.js process has a custom SIGUSR1 handler, skipping agent injection` means the app uses SIGUSR1 itself, and OBI will not interfere.
     - On OBI v0.14, `skipping Node.js agent injection` comes with a `reason=`: `process has a custom SIGUSR1 handler` or `process source files reference SIGUSR1` (the app uses the signal itself, and OBI will not interfere), `SIGUSR1 is neither caught nor ignored, so it would terminate the process` or `SIGUSR1 handling is unknown`, `the Node.js version could not be read from the executable`, or `Node.js … does not provide AsyncLocalStorage` (older than 12.17, or a 13.x before 13.10).

@@ -150,7 +150,7 @@ jobs:
       #
       # It pulls the image the chart renders, so a tag nobody can pull fails
       # it: a chart pinning such an image puts every node in ImagePullBackOff.
-      # It also pulls OBI v0.13.0, the release a --reuse-values upgrade keeps,
-      # and loads the render for that tag in it.
+      # It also pulls OBI v0.13.0, what a --reuse-values upgrade from chart
+      # 14.0.12 keeps, and loads the render for that tag in it.
       # Last in the job, so a red run here never skips the steps above.
       - run: bash Tests/Ops/agent-obi-config-load.sh

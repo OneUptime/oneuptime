@@ -136,7 +136,7 @@ To also collect logs from pods on Windows nodes, enable hybrid mode:
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -342,24 +342,19 @@ See the [chart's `values.yaml`](https://github.com/OneUptime/oneuptime/blob/mast
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` keeps your existing configuration; pass any new `--set` overrides on top of it.
+`--reset-then-reuse-values` (Helm 3.14+) keeps the values you set (preset, cluster name, filters) and takes every other value from the new chart; pass any new `--set` overrides on top of it. On Helm 3.13 or earlier, upgrade with the values you set instead:
 
-> **Heads up: `--reuse-values` does not merge new defaults from the chart.** Helm reuses your previously rendered values verbatim — so any new top-level field added in a newer chart version (e.g. `profiling.*`, `ebpf.features.*`) stays unset on your existing release and the template renders as if you'd disabled it.
->
-> **Helm 3.14+** — switch to `--reset-then-reuse-values`. It re-reads the chart defaults for keys you haven't overridden:
->
-> ```bash
-> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->   --namespace oneuptime-kubernetes-agent \
->   --reset-then-reuse-values
-> ```
->
-> **Helm 3.13 or earlier** — drop `--reuse-values` and pass your original `--set` flags (or `-f values.yaml`) explicitly. New chart defaults will apply for everything you don't override.
->
-> If a new feature's pods (e.g. `kubernetes-agent-profiling-*`) don't show up after upgrading, this is almost always why. `helm get values <release>` shows what Helm actually has — fields missing from the output mean defaults weren't merged for them.
+```bash
+helm repo update
+helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+Don't use `--reuse-values`: it also keeps the defaults of the chart you upgrade from, so a newer chart's defaults (its eBPF image among them) never apply. When a release runs on an older chart's defaults, the notes Helm prints after the install or upgrade end with a warning and the command that fixes it.
 
 > **eBPF span metrics have new names.** `ebpf.features.spanMetrics` now sends `traces.span.metrics.calls` and `traces.span.metrics.duration` (seconds) instead of `traces_spanmetrics_calls_total` and `traces_spanmetrics_latency`: the same series, under the names OBI keeps (it deprecated the old ones). A dashboard, chart or metric monitor on an old name receives no new data after the upgrade, with no error — move it to the new name, and update any `filters.metrics` entry that names an old one.
 
@@ -379,7 +374,7 @@ Your cluster blocks hostPath. Switch to an API-mode preset:
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 

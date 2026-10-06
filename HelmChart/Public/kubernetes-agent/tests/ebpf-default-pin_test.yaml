@@ -59,3 +59,36 @@ tests:
         notMatchRegex:
           path: data["obi-config.yaml"]
           pattern: "(?m)^attributes:"
+
+  # What `helm upgrade --reuse-values` from 14.0.10 renders: that chart's
+  # values.yaml in place of this one, so its OBI tag and its exclusion list.
+  # The chart has to render it (the notes then warn about it, see
+  # stale-defaults-notes_test.yaml); only --reset-then-reuse-values, or
+  # `helm get values` into -f, gets this chart's pin.
+  - it: keeps the OBI release and exclusions 14.0.10 had on a --reuse-values upgrade from it
+    values:
+      - values/reuse-values-14.0.10.yaml
+    asserts:
+      - template: templates/daemonset-ebpf.yaml
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: otel/ebpf-instrument:v0.9.0
+      - template: templates/configmap-ebpf.yaml
+        matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/chrome\"\\n"
+      - template: templates/configmap-ebpf.yaml
+        notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "chrome_crashpad_handler"
+      - template: templates/configmap-ebpf.yaml
+        notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "(?m)^attributes:"
+
+  - it: excludes Chrome's crash reporter with this chart's own defaults
+    asserts:
+      - template: templates/configmap-ebpf.yaml
+        matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    - exe_path: \"\\*/chrome_crashpad_handler\"\\n"
