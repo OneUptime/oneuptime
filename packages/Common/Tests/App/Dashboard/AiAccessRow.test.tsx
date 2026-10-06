@@ -21,12 +21,18 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
 import IconProp from "../../../Types/Icon/IconProp";
 
+/*
+ * The reader's wordings, by English key: none (English) unless a test sets
+ * them. A jest.mock factory may only read variables named mock*.
+ */
+let mockWordings: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (value: string): string => {
-          return value;
+          return mockWordings[value] ?? value;
         },
       };
     },
@@ -61,6 +67,7 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   consoleErrorSpy = null;
+  mockWordings = {};
 });
 
 describe("a row", () => {
@@ -514,5 +521,203 @@ describe("the to-do panel", () => {
     expect(panel).toHaveTextContent("Give the agent write access");
     expect(panel).toHaveClass("border-amber-200");
     expect(panel).toContainElement(screen.getByTestId("body"));
+  });
+});
+
+/*
+ * Like Card, Pill and Alert, each building block looks up the text it is
+ * handed: a page hands it the English key. They used to draw every text
+ * prop as given, so "Investigation", "Fixes", "On"/"Off", the fixes-mode
+ * summaries and the hints read English in every language. A pseudo-locale
+ * wraps each wording in ‹ ›; text already in the reader's language passes
+ * through unchanged.
+ */
+describe("in the reader's language", () => {
+  function pseudo(...keys: Array<string>): void {
+    mockWordings = {};
+    for (const key of keys) {
+      mockWordings[key] = `‹${key}›`;
+    }
+  }
+
+  test("a row's title, badge and sentence", () => {
+    pseudo("Fixes", "Off", "AI never proposes or runs a fix.");
+    render(
+      <AiAccessRow
+        icon={IconProp.WrenchScrewdriver}
+        title="Fixes"
+        badge={{ text: "Off", tone: "off" }}
+        sentence="AI never proposes or runs a fix."
+        dataTestId="ai-access-fixes"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
+      "‹Fixes›",
+    );
+    expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+      "‹Off›",
+    );
+    expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
+      "‹AI never proposes or runs a fix.›",
+    );
+  });
+
+  test("a badge on its own", () => {
+    pseudo("Connected");
+    render(
+      <AiAccessBadgeElement
+        badge={{ text: "Connected", tone: "on" }}
+        dataTestId="badge"
+      />,
+    );
+
+    expect(screen.getByTestId("badge")).toHaveTextContent("‹Connected›");
+  });
+
+  test("where the settings are set, and its action", () => {
+    pseudo("Chosen on this page.", "Show how");
+    render(
+      <AiAccessSetBy
+        text="Chosen on this page."
+        isSetByAgent={false}
+        actionText="Show how"
+        onAction={(): void => {
+          return undefined;
+        }}
+        dataTestId="set-by"
+      />,
+    );
+
+    expect(screen.getByTestId("set-by-text")).toHaveTextContent(
+      "‹Chosen on this page.›",
+    );
+    expect(screen.getByTestId("set-by-action")).toHaveTextContent(
+      "‹Show how›",
+    );
+  });
+
+  test("the hint", () => {
+    pseudo("Want AI to propose fixes? Click Change and choose Ask for approval.");
+    render(
+      <AiAccessHint
+        text="Want AI to propose fixes? Click Change and choose Ask for approval."
+        dataTestId="hint"
+      />,
+    );
+
+    expect(screen.getByTestId("hint")).toHaveTextContent(
+      "‹Want AI to propose fixes? Click Change and choose Ask for approval.›",
+    );
+  });
+
+  test("the allowlist: its title, its edit action and its own words; never the patterns", () => {
+    pseudo(
+      "kubectl allowlist",
+      "Edit",
+      AI_ACCESS_ALLOWLIST_INTRO_TEXT,
+      AI_ACCESS_ALLOWLIST_EMPTY_TEXT,
+      "kubectl rollout restart *",
+    );
+    render(
+      <>
+        <AiAccessAllowlist
+          title="kubectl allowlist"
+          patterns={["kubectl rollout restart *"]}
+          editText="Edit"
+          onEdit={(): void => {
+            return undefined;
+          }}
+          dataTestId="allowlist"
+        />
+        <AiAccessAllowlist
+          title="kubectl allowlist"
+          patterns={[]}
+          dataTestId="empty-allowlist"
+        />
+      </>,
+    );
+
+    const allowlist: HTMLElement = screen.getByTestId("allowlist");
+    expect(allowlist).toHaveTextContent("‹kubectl allowlist›");
+    expect(allowlist).toHaveTextContent(`‹${AI_ACCESS_ALLOWLIST_INTRO_TEXT}›`);
+    expect(screen.getByTestId("allowlist-edit")).toHaveTextContent("‹Edit›");
+    // A pattern is what the user typed: it is never translated.
+    expect(screen.getByRole("listitem")).toHaveTextContent(
+      /^kubectl rollout restart \*$/,
+    );
+    expect(screen.getByTestId("empty-allowlist")).toHaveTextContent(
+      `‹${AI_ACCESS_ALLOWLIST_EMPTY_TEXT}›`,
+    );
+  });
+
+  test("the every-mode protections: the title and each line", () => {
+    pseudo(AI_ACCESS_PROTECTIONS_TITLE, "Denied commands never run.");
+    render(<AiAccessProtections protections={["Denied commands never run."]} />);
+
+    const details: HTMLElement = screen.getByTestId("ai-access-protections");
+    expect(details).toHaveTextContent(`‹${AI_ACCESS_PROTECTIONS_TITLE}›`);
+    expect(
+      screen.getByTestId("ai-access-protections-list").textContent,
+    ).toBe("‹Denied commands never run.›");
+  });
+
+  test("the admin note and the to-do panel", () => {
+    pseudo(
+      "You can turn investigation on or off.",
+      "Turning fixes on needs Project Owner.",
+      "Give the agent write access",
+    );
+    render(
+      <>
+        <AiAccessPermissionNote
+          canText="You can turn investigation on or off."
+          cannotText="Turning fixes on needs Project Owner."
+          dataTestId="note"
+        />
+        <AiAccessActionPanel
+          title="Give the agent write access"
+          dataTestId="panel"
+        >
+          <p>Body</p>
+        </AiAccessActionPanel>
+      </>,
+    );
+
+    expect(
+      Array.from(screen.getByTestId("note").querySelectorAll("p")).map(
+        (line: Element): string => {
+          return line.textContent || "";
+        },
+      ),
+    ).toEqual([
+      "‹You can turn investigation on or off.›",
+      "‹Turning fixes on needs Project Owner.›",
+    ]);
+    expect(screen.getByTestId("panel")).toHaveTextContent(
+      "‹Give the agent write access›",
+    );
+  });
+
+  // A caller that hands in text already translated gets it back as it is.
+  test("text already in the reader's language passes through", () => {
+    pseudo("Fixes");
+    render(
+      <AiAccessRow
+        icon={IconProp.WrenchScrewdriver}
+        title="‹Fixes›"
+        badge={{ text: "Aus", tone: "off" }}
+        sentence="Die KI schlägt nie einen Fix vor."
+        dataTestId="row"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
+      /^‹Fixes›$/,
+    );
+    expect(screen.getByTestId("row-badge")).toHaveTextContent("Aus");
+    expect(screen.getByTestId("row-value")).toHaveTextContent(
+      "Die KI schlägt nie einen Fix vor.",
+    );
   });
 });

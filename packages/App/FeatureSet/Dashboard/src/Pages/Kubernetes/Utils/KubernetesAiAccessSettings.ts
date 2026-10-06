@@ -20,14 +20,21 @@ import Runner from "Common/Models/DatabaseModels/Runner";
 import type { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { isKubernetesAgentRunnerRow } from "./KubernetesAgentRunner";
-import { formatNameList } from "./KubernetesAiAccessSetup";
-import { joinAiAccessProtections } from "../../../Components/AiAccess/AiAccessModes";
 import {
+  capitalizeFirst,
+  formatNameList,
+  joinAiAccessProtections,
+} from "../../../Components/AiAccess/AiAccessModes";
+import {
+  ComposedValue,
+  composedValue,
+  getGlobalTranslator,
   TranslatableTerm,
   translatableTerm,
   translatePlural,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -39,6 +46,11 @@ import {
  * only for a cluster bound to a Runner outside the chart — which Runners
  * and credentials the pickers offer.
  *
+ * The words are the Dashboard's translation keys (src/Locales/README.md). A
+ * constant or a map's label is the English key, looked up where the page
+ * shows it; a function answers in the reader's language, each sentence
+ * whole with its values in {{placeholders}}.
+ *
  * Import-clean on purpose (Common types, models and policy only; UI types
  * are type-only imports), so the suites read it without a browser.
  */
@@ -48,10 +60,12 @@ export const REMEDIATION_MODE_SHORT_NAMES: Record<
   KubernetesAiRemediationMode,
   string
 > = {
-  [KubernetesAiRemediationMode.Disabled]: "Off",
-  [KubernetesAiRemediationMode.RequireApproval]: "Ask for approval",
-  [KubernetesAiRemediationMode.Automatic]: "Automatic",
-  [KubernetesAiRemediationMode.BypassApproval]: "Bypass approval",
+  [KubernetesAiRemediationMode.Disabled]: translationKey("Off"),
+  [KubernetesAiRemediationMode.RequireApproval]:
+    translationKey("Ask for approval"),
+  [KubernetesAiRemediationMode.Automatic]: translationKey("Automatic"),
+  [KubernetesAiRemediationMode.BypassApproval]:
+    translationKey("Bypass approval"),
 };
 
 /*
@@ -65,13 +79,18 @@ export const REMEDIATION_MODE_SUMMARIES: Record<
   KubernetesAiRemediationMode,
   string
 > = {
-  [KubernetesAiRemediationMode.Disabled]: "AI never proposes or runs a fix.",
-  [KubernetesAiRemediationMode.RequireApproval]:
+  [KubernetesAiRemediationMode.Disabled]: translationKey(
+    "AI never proposes or runs a fix.",
+  ),
+  [KubernetesAiRemediationMode.RequireApproval]: translationKey(
     "AI proposes kubectl fixes. A person approves each one before it runs.",
-  [KubernetesAiRemediationMode.Automatic]:
+  ),
+  [KubernetesAiRemediationMode.Automatic]: translationKey(
     "Safe fixes run on their own. Riskier ones wait for your one-click approval.",
-  [KubernetesAiRemediationMode.BypassApproval]:
+  ),
+  [KubernetesAiRemediationMode.BypassApproval]: translationKey(
     "Every allowed fix runs on its own. Protected namespaces and node drains, taints and patches still ask a person.",
+  ),
 };
 
 // A stored mode the page does not know reads as Off, as the server reads it.
@@ -89,8 +108,9 @@ export function readRemediationMode(
  * What the Investigation row of "What AI may do" says while investigation
  * is on: what AI may run, and that it changes nothing.
  */
-export const INVESTIGATION_ON_SENTENCE: string =
-  "AI may run read-only kubectl on this cluster: get, describe, logs, events, top. It never changes anything.";
+export const INVESTIGATION_ON_SENTENCE: string = translationKey(
+  "AI may run read-only kubectl on this cluster: get, describe, logs, events, top. It never changes anything.",
+);
 
 /*
  * What holds in every mode, Bypass approval included — the canonical
@@ -100,21 +120,41 @@ export const INVESTIGATION_ON_SENTENCE: string =
  * cases in which an unattended run becomes a proposal. The Change modal
  * lists the clauses under "What stays protected in every mode"; the
  * confirmations say them as one sentence.
+ *
+ * In `translator`'s language: the reader's, unless they go into a sentence
+ * as a composedValue() of it.
  */
-export function getEveryModeProtections(): Array<string> {
+export function getEveryModeProtections(
+  translator: Translator = getGlobalTranslator(),
+): Array<string> {
   return [
-    "destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run",
-    `a write in ${formatNameList(
-      PROTECTED_KUBERNETES_NAMESPACES,
-      "or",
-    )}, a node drain, a node taint and a patch of a node always need a human`,
-    "the in-cluster agent never changes its own namespace or anything outside the namespaces its chart may write",
-    "an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
+    translator.translateTemplate(
+      "destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run",
+    ),
+    translator.translateTemplate(
+      "a write in {{namespaces}}, a node drain, a node taint and a patch of a node always need a human",
+      {
+        namespaces: composedValue((sentence: Translator): string => {
+          return formatNameList(PROTECTED_KUBERNETES_NAMESPACES, "or", sentence);
+        }),
+      },
+    ),
+    translator.translateTemplate(
+      "the in-cluster agent never changes its own namespace or anything outside the namespaces its chart may write",
+    ),
+    translator.translateTemplate(
+      "an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
+    ),
   ];
 }
 
-export function getEveryModeProtectionsSentence(): string {
-  return joinAiAccessProtections(getEveryModeProtections());
+export function getEveryModeProtectionsSentence(
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return joinAiAccessProtections(
+    getEveryModeProtections(translator),
+    translator,
+  );
 }
 
 /*
@@ -128,14 +168,18 @@ export const REMEDIATION_MODE_OPTION_DESCRIPTIONS: Record<
   KubernetesAiRemediationMode,
   string
 > = {
-  [KubernetesAiRemediationMode.Disabled]:
+  [KubernetesAiRemediationMode.Disabled]: translationKey(
     "AI never proposes or runs a fix. It can still investigate.",
-  [KubernetesAiRemediationMode.RequireApproval]:
+  ),
+  [KubernetesAiRemediationMode.RequireApproval]: translationKey(
     "AI proposes the exact kubectl fix, and a person approves it with one click before it runs. A follow-up fix asks again.",
-  [KubernetesAiRemediationMode.Automatic]:
+  ),
+  [KubernetesAiRemediationMode.Automatic]: translationKey(
     "Safe changes on one named object (rollout restart or undo, scale above zero, delete a named pod, cordon a node, …) run on their own. Riskier ones (patch, set image, drain, taint, scale to zero, …) wait for one-click approval unless the kubectl allowlist names them.",
-  [KubernetesAiRemediationMode.BypassApproval]:
+  ),
+  [KubernetesAiRemediationMode.BypassApproval]: translationKey(
     "AI does not ask: every change the command policy allows runs on its own, riskier ones and follow-up rounds included. Writes in protected namespaces and node drains, taints and patches still ask a person.",
+  ),
 };
 
 /*
@@ -145,8 +189,9 @@ export const REMEDIATION_MODE_OPTION_DESCRIPTIONS: Record<
  * broad one by the confirmation before saving, and what never runs
  * unattended by the modal's every-mode protections.
  */
-export const KUBECTL_ALLOWLIST_FIELD_DESCRIPTION: string =
-  'One pattern per line. A riskier kubectl command that matches a pattern runs without approval. Patterns are matched word by word: * matches exactly one word, flags must be written out, and a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web.';
+export const KUBECTL_ALLOWLIST_FIELD_DESCRIPTION: string = translationKey(
+  'One pattern per line. A riskier kubectl command that matches a pattern runs without approval. Patterns are matched word by word: * matches exactly one word, flags must be written out, and a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web.',
+);
 
 /*
  * Permission titles, the way PermissionGate names them, read straight from
@@ -212,15 +257,22 @@ export function validateKubectlAllowlistText(text: unknown): string | null {
   const patterns: Array<string> = parseKubectlAllowlistText(text);
 
   if (patterns.length > KUBECTL_ALLOWLIST_MAX_PATTERNS) {
-    return `At most ${KUBECTL_ALLOWLIST_MAX_PATTERNS} patterns; this list has ${patterns.length}.`;
+    return translateTemplate(
+      "At most {{max}} patterns; this list has {{count}}.",
+      { max: KUBECTL_ALLOWLIST_MAX_PATTERNS, count: patterns.length },
+    );
   }
 
   for (let index: number = 0; index < patterns.length; index++) {
     const problem: string | null =
       KubectlPolicy.describeAllowlistPatternProblem(patterns[index]);
 
+    // The policy's own words (Common/Utils) are English.
     if (problem) {
-      return `Pattern ${index + 1}: ${problem}`;
+      return translateTemplate("Pattern {{number}}: {{problem}}", {
+        number: index + 1,
+        problem: problem,
+      });
     }
   }
 
@@ -671,13 +723,17 @@ export function isRemediationModeOpenToEveryEditor(
  *   changes which identity AI reaches the cluster through (the agent may
  *   hold broader write RBAC than the Runner's credential).
  *
- * Each entry names the change for the refusal; empty when nothing loosens.
+ * Each entry names the change for the refusal (getAiAccessLooseningRefusal),
+ * in `translator`'s language; empty when nothing loosens.
  */
-export function getKubernetesAiAccessLooseningChanges(data: {
-  saved: KubernetesAiAccessSavedSettings;
-  changes: JSONObject;
-  hasAiAgent: boolean;
-}): Array<string> {
+export function getKubernetesAiAccessLooseningChanges(
+  data: {
+    saved: KubernetesAiAccessSavedSettings;
+    changes: JSONObject;
+    hasAiAgent: boolean;
+  },
+  translator: Translator = getGlobalTranslator(),
+): Array<string> {
   const loosening: Array<string> = [];
 
   const mode: KubernetesAiRemediationMode | undefined = data.changes[
@@ -690,7 +746,11 @@ export function getKubernetesAiAccessLooseningChanges(data: {
     getRemediationModeAutonomy(mode) >
       getRemediationModeAutonomy(data.saved.aiRemediationMode)
   ) {
-    loosening.push(`switching fixes to ${REMEDIATION_MODE_SHORT_NAMES[mode]}`);
+    loosening.push(
+      translator.translateTemplate("switching fixes to {{mode}}", {
+        mode: translatableTerm(REMEDIATION_MODE_SHORT_NAMES[mode]),
+      }),
+    );
   }
 
   const allowlist: unknown = data.changes["aiKubectlCommandAllowlist"];
@@ -709,11 +769,20 @@ export function getKubernetesAiAccessLooseningChanges(data: {
 
     if (added.length > 0) {
       loosening.push(
-        `adding the kubectl allowlist pattern${added.length === 1 ? "" : "s"} ${added
-          .map((pattern: string): string => {
-            return `"${pattern}"`;
-          })
-          .join(", ")}`,
+        translator.translatePlural(
+          {
+            one: "adding the kubectl allowlist pattern {{patterns}}",
+            other: "adding the kubectl allowlist patterns {{patterns}}",
+          },
+          added.length,
+          {
+            patterns: added
+              .map((pattern: string): string => {
+                return `"${pattern}"`;
+              })
+              .join(", "),
+          },
+        ),
       );
     }
   }
@@ -722,13 +791,17 @@ export function getKubernetesAiAccessLooseningChanges(data: {
     const runnerId: unknown = data.changes["aiAccessRunnerId"];
 
     if (runnerId && String(runnerId) !== data.saved.aiAccessRunnerId) {
-      loosening.push("binding a different Runner");
+      loosening.push(translator.translateTemplate("binding a different Runner"));
     } else if (
       !runnerId &&
       data.saved.aiAccessRunnerId !== null &&
       data.hasAiAgent
     ) {
-      loosening.push("switching this cluster to its Kubernetes AI agent");
+      loosening.push(
+        translator.translateTemplate(
+          "switching this cluster to its Kubernetes AI agent",
+        ),
+      );
     }
   }
 
@@ -739,13 +812,17 @@ export function getKubernetesAiAccessLooseningChanges(data: {
       credentialId &&
       String(credentialId) !== data.saved.aiAccessCredentialId
     ) {
-      loosening.push("binding a Kubernetes credential");
+      loosening.push(
+        translator.translateTemplate("binding a Kubernetes credential"),
+      );
     } else if (
       !credentialId &&
       data.saved.aiAccessCredentialId !== null &&
       data.hasAiAgent
     ) {
-      loosening.push("removing the Kubernetes credential");
+      loosening.push(
+        translator.translateTemplate("removing the Kubernetes credential"),
+      );
     }
   }
 
@@ -773,7 +850,14 @@ export function getKubectlAllowlistRemovalOnlyError(data: {
     const pattern: string = patterns[index]!;
 
     if (!stored.includes(pattern)) {
-      return `Pattern ${index + 1} ("${pattern}") is not in the saved allowlist. You can remove patterns or clear the list; adding or changing one needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}.`;
+      return translateTemplate(
+        'Pattern {{number}} ("{{pattern}}") is not in the saved allowlist. You can remove patterns or clear the list; adding or changing one needs one of these permissions: {{permissions}}.',
+        {
+          number: index + 1,
+          pattern: pattern,
+          permissions: getKubernetesAiAccessAdminPermissionTitles().join(", "),
+        },
+      );
     }
   }
 
@@ -788,6 +872,13 @@ export interface KubernetesAiAccessConfirmation {
 const RISKIER_CHANGE_EXAMPLES: string = translationKey(
   "riskier changes such as kubectl set image, patch, scale to zero and deleting workloads",
 );
+
+// What a sentence calls a Runner or credential whose name it does not know.
+const BOUND_RUNNER: string = translationKey("The bound Runner");
+
+const BOUND_CREDENTIAL: string = translationKey("The bound credential");
+
+const CHOSEN_RUNNER: string = translationKey("the chosen Runner");
 
 /*
  * Saving Bypass approval, or a broad allowlist pattern while Automatic mode
@@ -809,12 +900,13 @@ export function getKubernetesAiAccessConfirmation(data: {
 
   if (newMode === KubernetesAiRemediationMode.BypassApproval) {
     return {
-      title: "Turn on Bypass approval?",
+      // A key: ConfirmModal looks its title up.
+      title: translationKey("Turn on Bypass approval?"),
       description: translateTemplate(
         "With Bypass approval OneUptime AI does not ask: it applies every fix the kubectl policy allows on this cluster on its own — {{examples}} included, in follow-up rounds too. Even so, {{protections}}.",
         {
           examples: translatableTerm(RISKIER_CHANGE_EXAMPLES),
-          protections: getEveryModeProtectionsSentence(),
+          protections: composedValue(getEveryModeProtectionsSentence),
         },
       ),
     };
@@ -868,15 +960,15 @@ export function getKubernetesAiAccessConfirmation(data: {
   const descriptionValues: {
     patterns: string;
     examples: TranslatableTerm;
-    protections: string;
+    protections: ComposedValue;
   } = {
     patterns: quoted,
     examples: translatableTerm(RISKIER_CHANGE_EXAMPLES),
-    protections: getEveryModeProtectionsSentence(),
+    protections: composedValue(getEveryModeProtectionsSentence),
   };
 
   return {
-    title: "Let riskier changes run without approval?",
+    title: translationKey("Let riskier changes run without approval?"),
     description:
       resultingMode === KubernetesAiRemediationMode.Automatic
         ? translatePlural(
@@ -989,7 +1081,7 @@ export function buildKubernetesAiRunnerOptions(data: {
     options.unshift({
       value: data.boundRunnerId,
       label: translateTemplate("{{name}} (currently bound)", {
-        name: data.boundRunnerName || translatableTerm("The bound Runner"),
+        name: data.boundRunnerName || translatableTerm(BOUND_RUNNER),
       }),
     });
   }
@@ -1051,7 +1143,7 @@ export function buildKubernetesAiCredentialOptions(data: {
 }): Array<DropdownOption> {
   const options: Array<DropdownOption> = [];
   const runnerName: string | TranslatableTerm =
-    data.runner.name || translatableTerm("the chosen Runner");
+    data.runner.name || translatableTerm(CHOSEN_RUNNER);
   const isAgentRunner: boolean = isAgentCredentialRunner(data.runner);
 
   for (const credential of data.credentials) {
@@ -1124,7 +1216,7 @@ export function buildKubernetesAiCredentialOptions(data: {
       value: data.boundCredentialId,
       label: translateTemplate("{{name}} (currently bound)", {
         name:
-          data.boundCredentialName || translatableTerm("The bound credential"),
+          data.boundCredentialName || translatableTerm(BOUND_CREDENTIAL),
       }),
     });
   }
@@ -1137,16 +1229,22 @@ export function getKubernetesAiCredentialFieldDescription(
   runner: KubernetesAiCredentialRunner,
 ): string {
   if (runner.id && isAgentCredentialRunner(runner)) {
-    return `No credential can be chosen: "${runner.name}" is an in-cluster Runner installed by the Kubernetes agent chart and is never given a credential.`;
+    return translateTemplate(
+      'No credential can be chosen: "{{runner}}" is an in-cluster Runner installed by the Kubernetes agent chart and is never given a credential.',
+      { runner: runner.name || "" },
+    );
   }
 
   if (!runner.id) {
-    return "Choose the Runner first: only Kubernetes credentials (API server URL + ServiceAccount token) assigned to it are listed.";
+    return translateTemplate(
+      "Choose the Runner first: only Kubernetes credentials (API server URL + ServiceAccount token) assigned to it are listed.",
+    );
   }
 
-  return `The Kubernetes credentials (API server URL + ServiceAccount token) assigned to "${
-    runner.name || "the chosen Runner"
-  }". Assign one under Runbooks → Runner Credentials.`;
+  return translateTemplate(
+    'The Kubernetes credentials (API server URL + ServiceAccount token) assigned to "{{runner}}". Assign one under Runbooks → Runner Credentials.',
+    { runner: runner.name || translatableTerm(CHOSEN_RUNNER) },
+  );
 }
 
 /*
@@ -1167,25 +1265,38 @@ export function getKubernetesAiCredentialAssignmentError(data: {
     return null;
   }
 
-  const credential: string = data.credentialName
-    ? `"${data.credentialName}"`
-    : "The Kubernetes credential";
-
   if (data.runner.id && isAgentCredentialRunner(data.runner)) {
-    return `"${data.runner.name}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Runbooks → Runners.`;
+    return translateTemplate(
+      '"{{runner}}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Runbooks → Runners.',
+      { runner: data.runner.name || "" },
+    );
   }
 
+  // A named credential is quoted; without its name the sentence says which.
+  const credentialName: string = data.credentialName || "";
+
   if (!data.runner.id) {
-    return `${credential} is only used through a Runner it is assigned to: choose that Runner, or clear the credential.`;
+    return translateTemplate(
+      credentialName
+        ? '"{{credential}}" is only used through a Runner it is assigned to: choose that Runner, or clear the credential.'
+        : "The Kubernetes credential is only used through a Runner it is assigned to: choose that Runner, or clear the credential.",
+      { credential: credentialName },
+    );
   }
 
   if (
     data.credentialRunnerIds &&
     !data.credentialRunnerIds.includes(data.runner.id)
   ) {
-    return `${credential} is not assigned to Runner "${
-      data.runner.name || data.runner.id
-    }". Assign it under Runbooks → Runner Credentials, or choose a credential assigned to that Runner.`;
+    return translateTemplate(
+      credentialName
+        ? '"{{credential}}" is not assigned to Runner "{{runner}}". Assign it under Runbooks → Runner Credentials, or choose a credential assigned to that Runner.'
+        : 'The Kubernetes credential is not assigned to Runner "{{runner}}". Assign it under Runbooks → Runner Credentials, or choose a credential assigned to that Runner.',
+      {
+        credential: credentialName,
+        runner: data.runner.name || data.runner.id,
+      },
+    );
   }
 
   return null;
@@ -1301,6 +1412,4 @@ export function getAllowlistInEffect(allowlist: unknown): Array<string> {
     : [];
 }
 
-export function capitalizeFirst(value: string): string {
-  return value.length > 0 ? `${value[0]!.toUpperCase()}${value.slice(1)}` : "";
-}
+export { capitalizeFirst };

@@ -10,6 +10,12 @@ import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "./DocumentationMarkdown";
+import { formatNameList } from "../../../Components/AiAccess/AiAccessModes";
+import {
+  composedValue,
+  translateTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The helm upgrades and the write-access copy the cluster's AI agent page
@@ -19,21 +25,16 @@ import {
  * index before every upgrade, what write access to workloads amounts to,
  * that a listed namespace must already exist and how to reset the list.
  *
- * Import-clean on purpose (Common types and DocumentationMarkdown only):
- * App tests run without a browser, and the page reaches RouteMap and
- * Navigation, which read `window` at load.
+ * The notes are in the reader's language, each one whole key with the
+ * commands and namespaces in {{placeholders}} (src/Locales/README.md).
+ *
+ * Import-clean on purpose (Common types, DocumentationMarkdown and the
+ * shared AI access words only): App tests run without a browser, and the
+ * page reaches RouteMap and Navigation, which read `window` at load.
  */
 
-// "a, b and c" / "a, b or c".
-export function formatNameList(
-  names: ReadonlyArray<string>,
-  conjunction: string,
-): string {
-  if (names.length <= 1) {
-    return names.join("");
-  }
-  return `${names.slice(0, -1).join(", ")} ${conjunction} ${names[names.length - 1]}`;
-}
+// "a, b and c" / "a, b or c", in the reader's language.
+export { formatNameList };
 
 // The example namespaces the scoped write-access command names.
 export const AI_AGENT_EXAMPLE_WRITE_NAMESPACES: string = "{web,api}";
@@ -174,12 +175,21 @@ export function getAiAgentLogsCommand(namespace?: string | undefined): string {
  * AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG, never `=null`.
  */
 export function getAiAgentScopedCommandNote(): string {
-  return `Replace ${AI_AGENT_EXAMPLE_WRITE_NAMESPACES} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use ${AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG} (not =null, which Helm ignores with --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).`;
+  return translateTemplate(
+    "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which Helm ignores with --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
+    {
+      exampleNamespaces: AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
+      clusterWideFlag: AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,
+    },
+  );
 }
 
 // What the page says under the cluster-wide command.
 export function getAiAgentClusterWideCommandNote(): string {
-  return `${AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG} clears any namespace list stored on the release, so the agent may change every namespace (needs Helm 3.10 or later). Node operations keep the release's setting.`;
+  return translateTemplate(
+    "{{clusterWideFlag}} clears any namespace list stored on the release, so the agent may change every namespace (needs Helm 3.10 or later). Node operations keep the release's setting.",
+    { clusterWideFlag: AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG },
+  );
 }
 
 /*
@@ -188,11 +198,21 @@ export function getAiAgentClusterWideCommandNote(): string {
  * the agent may write, not what a write may do.
  */
 export function getAiAgentWriteDisclosure(): string {
-  return `Write access lets the agent patch and update Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Pods and HPAs, create Jobs and HPAs, and delete Pods and Jobs — and, unless aiAgent.remediation.nodeOperations=false, cordon, uncordon, drain and taint every node. In a namespace, that is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets. Without aiAgent.remediation.namespaces it applies cluster-wide — ${formatNameList(
-    PROTECTED_KUBERNETES_NAMESPACES,
-    "and",
-  )} and the agent's own namespace included. There OneUptime still holds the line: a change in ${formatNameList(
-    PROTECTED_KUBERNETES_NAMESPACES,
-    "or",
-  )} always needs a person, and the agent never changes its own namespace.`;
+  return translateTemplate(
+    "Write access lets the agent patch and update Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Pods and HPAs, create Jobs and HPAs, and delete Pods and Jobs — and, unless aiAgent.remediation.nodeOperations=false, cordon, uncordon, drain and taint every node. In a namespace, that is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets. Without aiAgent.remediation.namespaces it applies cluster-wide — {{protectedNamespaces}} and the agent's own namespace included. There OneUptime still holds the line: a change in {{anyProtectedNamespace}} always needs a person, and the agent never changes its own namespace.",
+    {
+      protectedNamespaces: composedValue((translator: Translator): string => {
+        return formatNameList(PROTECTED_KUBERNETES_NAMESPACES, "and", translator);
+      }),
+      anyProtectedNamespace: composedValue(
+        (translator: Translator): string => {
+          return formatNameList(
+            PROTECTED_KUBERNETES_NAMESPACES,
+            "or",
+            translator,
+          );
+        },
+      ),
+    },
+  );
 }

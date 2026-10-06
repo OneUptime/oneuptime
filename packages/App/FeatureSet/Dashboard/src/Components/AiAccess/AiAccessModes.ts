@@ -1,9 +1,14 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { AgentAiSettingsSource } from "Common/Types/AI/AgentAiSettings";
 import {
+  composedValue,
+  getGlobalTranslator,
+  TemplateValues,
   translatableTerm,
   translateTemplate,
+  translateText,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -16,6 +21,11 @@ import {
  * The fixes modes are the same four on both, with the same stored values
  * (KubernetesAiRemediationMode and ResourceAiRemediationMode), so either
  * enum reads as an AiFixesMode.
+ *
+ * The words are the Dashboard's translation keys (src/Locales/README.md): a
+ * constant or a badge's text is the English key, looked up where it is
+ * shown (the AiAccessRow components look up their own text); a function
+ * answers in the reader's language.
  *
  * Import-clean on purpose (Common types and the translation helpers only),
  * so the suites read it without a browser.
@@ -137,14 +147,23 @@ export const AI_FIXES_OFF_AGENT_SET_HINT: string = translationKey(
   "Want AI to propose fixes? Click Change to get the command that turns them on in the agent.",
 );
 
-export const AI_ACCESS_INVESTIGATION_ROW_TITLE: string = "Investigation";
-export const AI_ACCESS_FIXES_ROW_TITLE: string = "Fixes";
+export const AI_ACCESS_INVESTIGATION_ROW_TITLE: string =
+  translationKey("Investigation");
+export const AI_ACCESS_FIXES_ROW_TITLE: string = translationKey("Fixes");
+
+const AI_INVESTIGATION_ON: string = translationKey("On");
+const AI_INVESTIGATION_OFF: string = translationKey("Off");
 
 export function getAiInvestigationBadge(isEnabled: boolean): AiAccessBadge {
-  return isEnabled ? { text: "On", tone: "on" } : { text: "Off", tone: "off" };
+  return isEnabled
+    ? { text: AI_INVESTIGATION_ON, tone: "on" }
+    : { text: AI_INVESTIGATION_OFF, tone: "off" };
 }
 
-// The fixes badge: the mode's short name, in the mode's tone.
+/*
+ * The fixes badge: the mode's short name (a key, looked up where the badge
+ * is drawn), in the mode's tone.
+ */
 export function getAiFixesBadge(data: {
   mode: AiFixesMode;
   shortNames: Readonly<Record<AiFixesMode, string>>;
@@ -160,7 +179,10 @@ export function getAiFixesBadge(data: {
  * ("database server", "cluster").
  */
 export function getAiAccessCardDescription(noun: string): string {
-  return `For incidents and alerts on this ${noun}. Changes apply from the next one.`;
+  return translateTemplate(
+    "For incidents and alerts on this {{noun}}. Changes apply from the next one.",
+    { noun: translatableTerm(noun, { inSentence: true }) },
+  );
 }
 
 /*
@@ -182,14 +204,19 @@ export function getAiInvestigationOffSentence(noun: string): string {
  * everyone else.
  */
 export function getAiFixesOffHint(canTurnOnFixes: boolean): string {
-  return canTurnOnFixes
-    ? "Want AI to propose fixes? Click Change and choose Ask for approval."
-    : "Want AI to propose fixes? Ask a project owner or admin to choose Ask for approval.";
+  return translateTemplate(
+    canTurnOnFixes
+      ? "Want AI to propose fixes? Click Change and choose Ask for approval."
+      : "Want AI to propose fixes? Ask a project owner or admin to choose Ask for approval.",
+  );
 }
 
 // The Change modal's field description above the mode cards.
 export function getAiFixesFieldDescription(noun: string): string {
-  return `What AI does when it finds a fix for a problem on this ${noun}.`;
+  return translateTemplate(
+    "What AI does when it finds a fix for a problem on this {{noun}}.",
+    { noun: translatableTerm(noun, { inSentence: true }) },
+  );
 }
 
 /*
@@ -203,18 +230,40 @@ export function getAiFixesModeCardTitle(data: {
 }): string {
   const name: string = data.shortNames[data.mode];
 
-  return data.mode === data.savedMode ? `${name} (current)` : name;
+  return data.mode === data.savedMode
+    ? translateTemplate("{{mode}} (current)", { mode: translatableTerm(name) })
+    : translateText(name) || name;
 }
 
-export const AI_ACCESS_PROTECTIONS_TITLE: string =
-  "What stays protected in every mode";
+export const AI_ACCESS_PROTECTIONS_TITLE: string = translationKey(
+  "What stays protected in every mode",
+);
 
 // A clause that already ends a sentence keeps its own punctuation.
-const SENTENCE_END_REGEX: RegExp = /[.!?]$/;
+const SENTENCE_END_REGEX: RegExp = /[.!?。！？।؟]$/u;
+
+// Chinese and Japanese end a sentence with 。, Hindi with ।.
+const IDEOGRAPHIC_END_REGEX: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]$/u;
+const DEVANAGARI_END_REGEX: RegExp = /\p{Script=Devanagari}$/u;
+
+// The full stop of the script a clause ends in.
+function getFullStop(clause: string): string {
+  if (IDEOGRAPHIC_END_REGEX.test(clause)) {
+    return "。";
+  }
+
+  if (DEVANAGARI_END_REGEX.test(clause)) {
+    return "।";
+  }
+
+  return ".";
+}
 
 /*
  * The every-mode protections, one clause each, as lines of a list:
- * capitalized and ending with a full stop.
+ * capitalized and ending with a full stop - the full stop of the language
+ * the clause is in, translated or not.
  */
 export function formatAiAccessProtections(
   clauses: ReadonlyArray<string>,
@@ -230,21 +279,174 @@ export function formatAiAccessProtections(
       const capitalized: string = `${clause[0]!.toUpperCase()}${clause.slice(1)}`;
       return SENTENCE_END_REGEX.test(capitalized)
         ? capitalized
-        : `${capitalized}.`;
+        : `${capitalized}${getFullStop(capitalized)}`;
     });
 }
 
 /*
+ * The clauses joined into one, by how many there are: each a whole key, so
+ * a locale sets its own separators and "and" (French puts a space before
+ * the semicolon).
+ */
+const PROTECTIONS_JOINED: Readonly<Record<2 | 3 | 4, string>> = {
+  2: translationKey("{{first}}; and {{second}}"),
+  3: translationKey("{{first}}; {{second}}; and {{third}}"),
+  4: translationKey("{{first}}; {{second}}; {{third}}; and {{fourth}}"),
+};
+
+const PROTECTION_SLOTS: ReadonlyArray<string> = [
+  "first",
+  "second",
+  "third",
+  "fourth",
+];
+
+/*
  * The same clauses as one sentence: "a; b; c; and d". What the Bypass
  * approval confirmation and the broad-allowlist confirmation say after
- * "Even so,".
+ * "Even so,". Built with `translator`: hand it in as a composedValue() of
+ * the sentence it goes into, so it is in that sentence's language.
  */
 export function joinAiAccessProtections(
   clauses: ReadonlyArray<string>,
+  translator: Translator = getGlobalTranslator(),
 ): string {
   if (clauses.length <= 1) {
     return clauses.join("");
   }
 
-  return `${clauses.slice(0, -1).join("; ")}; and ${clauses[clauses.length - 1]}`;
+  // Never more than four today; any more are said together as the first.
+  if (clauses.length > 4) {
+    const together: number = clauses.length - 3;
+
+    return joinAiAccessProtections(
+      [clauses.slice(0, together).join("; "), ...clauses.slice(together)],
+      translator,
+    );
+  }
+
+  const values: TemplateValues = {};
+
+  clauses.forEach((clause: string, index: number): void => {
+    values[PROTECTION_SLOTS[index]!] = clause;
+  });
+
+  return translator.translateTemplate(
+    PROTECTIONS_JOINED[clauses.length as 2 | 3 | 4],
+    values,
+  );
+}
+
+export type NameListConjunction = "and" | "or";
+
+/*
+ * Names joined the way a sentence lists them, by how many there are: each
+ * shape a whole key, so a locale sets its own separator and word.
+ */
+const NAME_LISTS: Readonly<
+  Record<NameListConjunction, Readonly<Record<2 | 3, string>>>
+> = {
+  and: {
+    2: translationKey("{{first}} and {{second}}"),
+    3: translationKey("{{first}}, {{second}} and {{third}}"),
+  },
+  or: {
+    2: translationKey("{{first}} or {{second}}"),
+    3: translationKey("{{first}}, {{second}} or {{third}}"),
+  },
+};
+
+/*
+ * "a, b and c" / "a, b or c". Built with `translator`: hand it in as a
+ * composedValue() of the sentence it goes into, so it is in that sentence's
+ * language.
+ */
+export function formatNameList(
+  names: ReadonlyArray<string>,
+  conjunction: NameListConjunction,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (names.length <= 1) {
+    return names.join("");
+  }
+
+  // Never more than three today; any more are said together as the first.
+  if (names.length > 3) {
+    const together: number = names.length - 2;
+
+    return formatNameList(
+      [names.slice(0, together).join(", "), ...names.slice(together)],
+      conjunction,
+      translator,
+    );
+  }
+
+  const [first, second, third] = names;
+
+  return translator.translateTemplate(
+    NAME_LISTS[conjunction][names.length as 2 | 3],
+    third === undefined
+      ? { first: first!, second: second! }
+      : { first: first!, second: second!, third },
+  );
+}
+
+export function capitalizeFirst(value: string): string {
+  return value.length > 0 ? `${value[0]!.toUpperCase()}${value.slice(1)}` : "";
+}
+
+/*
+ * What a save that loosens what AI may do says to someone without the
+ * permissions it takes: what it would loosen, as clauses built with the
+ * sentence's translator, then the permissions.
+ */
+export function getAiAccessLooseningRefusal(data: {
+  getChanges: (translator: Translator) => Array<string>;
+  permissionTitles: ReadonlyArray<string>;
+}): string {
+  return translateTemplate(
+    "{{changes}} needs one of these permissions: {{permissions}}.",
+    {
+      changes: composedValue((translator: Translator): string => {
+        return capitalizeFirst(data.getChanges(translator).join(", "));
+      }),
+      permissions: data.permissionTitles.join(", "),
+    },
+  );
+}
+
+/*
+ * Why the connection test is locked, for the disabled button's tooltip and
+ * note: it spends the agent's time, so it takes edit access to the place.
+ */
+export function getAiAccessTestPermissionRequirement(
+  data: { noun: string; permissionTitles: ReadonlyArray<string> },
+  translator: Translator = getGlobalTranslator(),
+): string {
+  return translator.translateTemplate(
+    "Testing the connection needs permission to edit this {{noun}} (one of: {{permissions}}).",
+    {
+      noun: translatableTerm(data.noun, { inSentence: true }),
+      permissions: data.permissionTitles.join(", "),
+    },
+  );
+}
+
+/*
+ * What a refused test says. The server's sentence for the route may talk
+ * about CHANGING the place's AI access, which the user did not try.
+ */
+export function getAiAccessTestPermissionMessage(data: {
+  noun: string;
+  permissionTitles: ReadonlyArray<string>;
+}): string {
+  return translateTemplate(
+    "{{requirement}} Nothing on the {{noun}} or in its AI settings was changed.",
+    {
+      requirement: composedValue((translator: Translator): string => {
+        return getAiAccessTestPermissionRequirement(data, translator);
+      }),
+      noun: translatableTerm(data.noun, { inSentence: true }),
+    },
+  );
 }
