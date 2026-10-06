@@ -3,7 +3,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import { NoteTemplateVariables } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 import GenerateFromAIModal from "Common/UI/Components/AI/GenerateFromAIModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -12,7 +11,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -150,7 +149,8 @@ function EventNoteComposer<TNote extends BaseModel>(
   }, [kind.modelType]);
 
   const isPublic: boolean = kind.visibility === "public";
-  const userPermissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  // What the viewer holds, blocks included.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string) => boolean = (column: string): boolean => {
@@ -160,7 +160,7 @@ function EventNoteComposer<TNote extends BaseModel>(
         model,
         column,
         action: "create",
-        userPermissions,
+        held: heldPermissions,
         isMasterAdmin,
       })
     );

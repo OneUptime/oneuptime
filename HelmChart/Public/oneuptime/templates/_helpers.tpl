@@ -786,6 +786,18 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 # excluded here and runs migrations itself.)
 - name: RUN_DATABASE_MIGRATIONS_ON_BOOT
   value: "false"
+# Nor do they start on a schema older than their code: each waits at boot for
+# the migrate Job to apply the schema migrations it needs
+# (migrate.runtimeWaitTimeoutSeconds). Except on an install with migrate.hook:
+# that post-install hook runs only after these pods exist (after they are ready,
+# under `helm install --wait` and Argo CD), so they must not wait for it.
+{{- if and $.Values.migrate.hook $.Release.IsInstall }}
+- name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+  value: "0"
+{{- else if not (kindIs "invalid" $.Values.migrate.runtimeWaitTimeoutSeconds) }}
+- name: DATABASE_MIGRATION_WAIT_TIMEOUT_MS
+  value: {{ mul (int $.Values.migrate.runtimeWaitTimeoutSeconds) 1000 | quote }}
+{{- end }}
 {{- end }}
 
 

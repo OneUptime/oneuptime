@@ -770,6 +770,22 @@ categories (so the alerts carry over), and runs nothing until the
 `CODEQL_ADVANCED_SETUP` repository variable is `true` - GitHub refuses an
 advanced setup's results while default setup is on.
 
+### `JestIgnorePatterns.test.js`
+
+Jest matches `testPathIgnorePatterns`, `modulePathIgnorePatterns`,
+`transformIgnorePatterns`, `coveragePathIgnorePatterns` and
+`watchPathIgnorePatterns` against absolute paths, so an entry written as a
+bare name also matches the directories the checkout lives under: with
+`"dist"`, a worktree at `.claude/worktrees/distracted-dhawan-5e965a` made
+Common's jest find no tests at all, even one named on the command line. The
+suite reads every jest config in the repository (`jest.config.*` and
+`package.json` `"jest"` blocks) and checks that moving the checkout under
+directories whose names merely contain an ignored word changes nothing a
+config ignores, that such a directory inside a package is not ignored either,
+and that each package's build output, its `node_modules` and App's recorder
+suites still are. Write entries as whole path segments: `"/dist/"` for a name
+at any depth, `"<rootDir>/build/"` for one directory of the package.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway

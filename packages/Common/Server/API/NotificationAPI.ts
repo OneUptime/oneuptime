@@ -8,13 +8,24 @@ import Express, {
   OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * Who may add SMS and call balance, charging the project's card. Asked the
+ * way every permission check is (CallerPermission): a team's block row is
+ * no grant, and a block with no labels on either takes it away.
+ */
+export const NOTIFICATION_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ManageProjectBilling,
+];
 
 router.post(
   "/notification/recharge",
@@ -85,17 +96,12 @@ router.post(
         );
       }
 
-      const permissions: Array<Permission> = (
-        req as OneUptimeRequest
-      ).userTenantAccessPermission![projectId.toString()]!.permissions.map(
-        (permission: UserPermission) => {
-          return permission.permission;
-        },
-      );
-
       if (
-        permissions.includes(Permission.ProjectOwner) ||
-        permissions.includes(Permission.ManageProjectBilling)
+        CallerPermission.holdsAnyOf(
+          req as OneUptimeRequest,
+          NOTIFICATION_RECHARGE_PERMISSIONS,
+          { projectId: projectId },
+        )
       ) {
         await NotificationService.rechargeBalance(projectId, amount);
       } else {

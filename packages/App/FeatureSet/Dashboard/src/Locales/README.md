@@ -37,6 +37,13 @@ a language, and the rules the guard test enforces.
   along with the sentence and cased for mid-sentence use in the reader's
   language: "No incidents yet." in English, "Noch keine Vorfälle." in German,
   whose nouns keep their capital. Acronyms and brand names keep their casing.
+- **Values built from translated pieces.** Clauses joined into one sentence,
+  or names joined with "or", go into a sentence as
+  `composedValue((translator) => ...)`, built with the `translator` they are
+  handed. That is the reader's when their language words the sentence, and
+  English otherwise, so a locale that words the pieces but not the sentence
+  still reads one English sentence. A list's separators and its "and"/"or"
+  are keys of their own (`"{{first}}, {{second}} or {{third}}"`).
 - **Numbers** in a plural `{{count}}` are written the reader's way (`1.234` in
   German). Pass your own `count` value to override.
 - **What ships.** The files here keep every key, so the tooling can track
@@ -72,7 +79,8 @@ case:
    own text props: Card `title`/`description`, ModelTable, ModelDetail and form
    field `title`/`description`/`placeholder`, Button `title`, Modal `title` and
    button texts, Pill and StatusBadge `text`, Tooltip `text`, MoreMenuItem,
-   Checkbox, CollapsibleSection, SideOver, Link, EmptyState, and more. Do not
+   Checkbox, CollapsibleSection, SideOver, Link, EmptyState, the "What AI may
+   do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), and more. Do not
    translate a prop before you pass it. Write it as a literal, so the extractor
    sees it. `USER_FACING_PROPS` in `scripts/i18n/ExtractStrings.ts` lists the
    prop names the extractor reads.
@@ -82,7 +90,11 @@ case:
 
 ```tsx
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translatableTerm, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const translator: Translator = useTranslator();
 
@@ -100,6 +112,14 @@ translator.translatePlural(
   { one: "{{count}} monitor selected", other: "{{count}} monitors selected" },
   count,
 );
+
+// A list built from translated pieces, in the sentence's language
+// (formatNameList: Components/AiAccess/AiAccessModes.ts).
+translator.translateTemplate("Changing this needs {{permissions}}.", {
+  permissions: composedValue((sentence: Translator): string => {
+    return formatNameList(permissionTitles, "or", sentence);
+  }),
+});
 ```
 
 `useTranslateValue()` (`Common/UI/Utils/Translation`) has the same helpers

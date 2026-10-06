@@ -416,6 +416,33 @@ describe("a workflow's Terraform page", () => {
     );
   });
 
+  test("Read All Operational Resources reads its configuration too, as the server lets it", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ReadAllOperationalResources]);
+    getItemMock.mockResolvedValue(workflow());
+
+    renderPage({
+      modelType: Workflow,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Terraform,
+    });
+
+    await screen.findByText(/resource "oneuptime_workflow"/);
+
+    const select: JSONObject = lastSelect(getItemMock);
+
+    expect(select).toEqual(
+      expect.objectContaining({
+        name: true,
+        isEnabled: true,
+        graph: true,
+        labels: { _id: true },
+      }),
+    );
+    expect(Object.keys(select)).not.toContain("webhookSecretKey");
+  });
+
   test("a lookup that fails only costs its names: the page still shows the configuration", async () => {
     getItemMock.mockResolvedValue(workflow());
     getListMock.mockRejectedValue(new Error("Labels are down."));

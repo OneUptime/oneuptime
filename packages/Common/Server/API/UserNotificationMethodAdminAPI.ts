@@ -13,14 +13,12 @@ import Express, {
 import Response from "../Utils/Response";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 
 /*
@@ -94,14 +92,11 @@ const MANAGE_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
- * The permission check, read the way the rest of the API reads permissions.
- *
- * getUserPermissions(Allow) rather than indexing userTenantAccessPermission
- * directly, and that is not a stylistic preference. That dictionary's entries
- * hold GRANTS AND DENIALS in one array, discriminated only by
- * `isBlockPermission`, so mapping it raw would count a team's explicit BLOCK of
- * ProjectAdmin as a grant of it — the admin action that restricts a team would
- * be the thing that handed it this endpoint.
+ * The permission check, read the way every permission check reads it
+ * (CallerPermission). A team's explicit BLOCK of ProjectAdmin is a denial,
+ * never a grant of it, and a block with no labels on any of `allowed` takes
+ * the endpoint away - the admin action that restricts a team is never the
+ * thing that hands it this endpoint.
  *
  * Every refusal in this file reuses one sentence, so an under-privileged member
  * cannot tell "you may not do this" apart from "you are not in this project"
@@ -115,18 +110,9 @@ function assertHasAnyPermission(
     return;
   }
 
-  const permissions: Array<Permission> =
-    DatabaseCommonInteractionPropsUtil.getUserPermissions(
-      databaseProps,
-      PermissionType.Allow,
-    ).map((userPermission: UserPermission): Permission => {
-      return userPermission.permission;
-    });
-
-  const isAllowed: boolean = permissions.some(
-    (permission: Permission): boolean => {
-      return allowed.includes(permission);
-    },
+  const isAllowed: boolean = CallerPermission.holdsAnyOf(
+    databaseProps,
+    allowed,
   );
 
   if (!isAllowed) {

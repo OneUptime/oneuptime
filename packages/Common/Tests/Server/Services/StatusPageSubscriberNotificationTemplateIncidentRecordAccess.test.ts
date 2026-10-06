@@ -285,6 +285,19 @@ describe("creating a template that places incident records", () => {
       "Project Owner whose row carries a stray Owned scope",
       [row(Permission.ProjectOwner, { scope: PermissionScope.Owned })],
     ],
+    /*
+     * Incidents are an operational resource: reading every operational
+     * resource reads them, and the columns that let in everyone the incident
+     * table does - as the select check reads them.
+     */
+    [
+      "Status Page Member who may read every operational resource and the custom field definitions",
+      [
+        row(Permission.StatusPageMember),
+        row(Permission.ReadAllOperationalResources),
+        row(Permission.ReadIncidentCustomField),
+      ],
+    ],
   ] as Array<[string, Array<UserPermission>]>)(
     "is allowed for a %s",
     async (_role: string, rows: Array<UserPermission>) => {
@@ -305,10 +318,20 @@ describe("creating a template that places incident records", () => {
       [row(Permission.StatusPageMember), row(Permission.ReadProjectIncident)],
     ],
     [
-      "who may read every operational resource, which reaches no column",
+      "who may read every operational resource, but not the custom field definitions",
       [
         row(Permission.StatusPageMember),
         row(Permission.ReadAllOperationalResources),
+      ],
+    ],
+    [
+      "who may read every operational resource, which a team of theirs blocks",
+      [
+        row(Permission.StatusPageMember),
+        row(Permission.ReadAllOperationalResources),
+        row(Permission.ReadAllOperationalResources, {
+          isBlockPermission: true,
+        }),
         row(Permission.ReadIncidentCustomField),
       ],
     ],
@@ -907,7 +930,6 @@ describe("SubscriberTemplateIncidentRecordAccess.getRequirements", () => {
       expect.arrayContaining([
         Permission.IncidentViewer,
         Permission.ReadProjectIncident,
-        Permission.ReadAllOperationalResources,
       ]),
     );
     expect(values).toEqual(
@@ -926,6 +948,27 @@ describe("SubscriberTemplateIncidentRecordAccess.getRequirements", () => {
       expect(permissions).not.toContain(Permission.StatusPageMember);
       expect(permissions).not.toContain(Permission.StatusPageViewer);
     }
+  });
+
+  test("the incident reads accept the operational-resource wildcard; the field definitions do not", () => {
+    const wildcards: Array<Permission | null> =
+      SubscriberTemplateIncidentRecordAccess.getRequirements([
+        "incident.customFields.root_cause",
+        "incidentLabels",
+      ]).map((requirement: { wildcard: Permission | null }) => {
+        return requirement.wildcard;
+      });
+
+    expect(wildcards).toEqual([
+      // Incidents.
+      Permission.ReadAllOperationalResources,
+      // Incident.customFields, which lets in everyone the table does.
+      Permission.ReadAllOperationalResources,
+      // The custom field definitions: not an operational resource.
+      null,
+      // Incident.labels.
+      Permission.ReadAllOperationalResources,
+    ]);
   });
 
   test("a custom field needs the same permissions whichever name it is written by", () => {

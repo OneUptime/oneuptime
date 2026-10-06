@@ -31,6 +31,11 @@ import i18next from "i18next";
  * wholly in English, never English words around a translated name or the
  * other way round.
  *
+ * A value built from other translated strings - clauses joined into one,
+ * names joined with "or" - is passed as a composedValue(), which builds it
+ * with the translator the sentence is filled with: the reader's when their
+ * language words the sentence, English otherwise.
+ *
  * Where i18next is not set up (a front end without locales, a unit test) the
  * English template is filled in directly, so a placeholder is never shown.
  */
@@ -47,7 +52,18 @@ export interface TranslatableTerm {
   readonly inSentence: boolean;
 }
 
-export type TemplateValue = string | number | TranslatableTerm;
+/*
+ * A value put together from other translated strings: the protections
+ * clauses as one sentence, a list of names joined with "or". `compose` is
+ * called with the translator the sentence is filled with, so the value is in
+ * the sentence's language - English while the reader's language has no
+ * wording of the sentence, even where it has wordings of the pieces.
+ */
+export interface ComposedValue {
+  readonly compose: (translator: Translator) => string;
+}
+
+export type TemplateValue = string | number | TranslatableTerm | ComposedValue;
 
 export type TemplateValues = Record<string, TemplateValue>;
 
@@ -96,6 +112,24 @@ export const isTranslatableTerm: (
     typeof value === "object" &&
     value !== null &&
     typeof (value as TranslatableTerm).translatableTerm === "string"
+  );
+};
+
+export const composedValue: (
+  compose: (translator: Translator) => string,
+) => ComposedValue = (
+  compose: (translator: Translator) => string,
+): ComposedValue => {
+  return { compose };
+};
+
+export const isComposedValue: (value: unknown) => value is ComposedValue = (
+  value: unknown,
+): value is ComposedValue => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as ComposedValue).compose === "function"
   );
 };
 
@@ -262,6 +296,10 @@ const englishValue: (value: TemplateValue) => string = (
       : value.translatableTerm.trim();
   }
 
+  if (isComposedValue(value)) {
+    return value.compose(getEnglishTranslator());
+  }
+
   return String(value);
 };
 
@@ -383,11 +421,15 @@ export const createTranslator: (
     for (const key of Object.keys(values)) {
       const value: TemplateValue = values[key] as TemplateValue;
 
-      result[key] = isTranslatableTerm(value)
-        ? translateTerm(value.translatableTerm, {
-            inSentence: value.inSentence,
-          })
-        : String(value);
+      if (isTranslatableTerm(value)) {
+        result[key] = translateTerm(value.translatableTerm, {
+          inSentence: value.inSentence,
+        });
+      } else if (isComposedValue(value)) {
+        result[key] = value.compose(translator);
+      } else {
+        result[key] = String(value);
+      }
     }
 
     return result;
@@ -484,7 +526,8 @@ export const createTranslator: (
     });
   };
 
-  return {
+  // A composed value in a translated sentence is built with this translator.
+  const translator: Translator = {
     language: activeLanguage,
     translateText,
     hasTranslation,
@@ -493,6 +536,22 @@ export const createTranslator: (
     translateTerm,
     formatNumber,
   };
+
+  return translator;
+};
+
+/*
+ * The translator an English sentence's composed values are built with: no
+ * lookup, so every piece is English too.
+ */
+let englishTranslator: Translator | null = null;
+
+const getEnglishTranslator: () => Translator = (): Translator => {
+  if (!englishTranslator) {
+    englishTranslator = createTranslator(undefined, DEFAULT_LANGUAGE);
+  }
+
+  return englishTranslator;
 };
 
 /*

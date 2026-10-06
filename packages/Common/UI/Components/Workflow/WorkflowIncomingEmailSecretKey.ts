@@ -1,5 +1,4 @@
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "../../Utils/Permission";
 import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
@@ -9,7 +8,7 @@ import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Select from "../../../Types/BaseDatabase/Select";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { PermissionHelper } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 
 /*
  * A workflow's incoming email secret key: what its Incoming Email trigger's
@@ -99,17 +98,17 @@ export const getIncomingEmailSecretKeyResetGate: GetIncomingEmailSecretKeyResetG
       return { isAllowed: false };
     }
 
-    const userPermissions: Array<Permission> =
-      options?.permissions ?? PermissionUtil.getAllPermissions();
-
-    if (userPermissions.length === 0) {
+    if (!PermissionGate.hasPermissionSnapshot(options)) {
       return { isAllowed: false };
     }
 
+    // The column's update, read the way the server's column check reads it.
     if (
-      PermissionHelper.doesPermissionsIntersect(
-        userPermissions,
-        columnPermissions,
+      PermissionGate.holdsColumnPermission(
+        new Workflow(),
+        INCOMING_EMAIL_SECRET_KEY_COLUMN,
+        "update",
+        options,
       )
     ) {
       return { isAllowed: true };

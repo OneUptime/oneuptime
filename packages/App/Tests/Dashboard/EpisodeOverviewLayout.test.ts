@@ -53,7 +53,11 @@ interface EpisodePage {
   changeStatePath: string;
   feedPath: string;
   memberModel: string;
+  // The episode's own key, as the feed and timelines take it.
   episodeIdField: string;
+  // What says which members the episode holds, and its model.
+  membership: string;
+  membershipModel: string;
   memberSortField: string;
   countLabel: string;
   countField: string;
@@ -76,6 +80,8 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     feedPath: "Components/IncidentEpisode/IncidentEpisodeFeed.tsx",
     memberModel: "Incident",
     episodeIdField: "incidentEpisodeId",
+    membership: "INCIDENT_EPISODE_MEMBERSHIP",
+    membershipModel: "IncidentEpisodeMember",
     memberSortField: "declaredAt",
     countLabel: "Incidents",
     countField: "incidentCount",
@@ -98,6 +104,8 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     feedPath: "Components/AlertEpisode/AlertEpisodeFeed.tsx",
     memberModel: "Alert",
     episodeIdField: "alertEpisodeId",
+    membership: "ALERT_EPISODE_MEMBERSHIP",
+    membershipModel: "AlertEpisodeMember",
     memberSortField: "createdAt",
     countLabel: "Alerts",
     countField: "alertCount",
@@ -231,7 +239,7 @@ describe("episode overview layout", () => {
       );
       const members: number = indexOfOrFail(
         source,
-        `<EpisodeMembersCard<${page.memberModel}>`,
+        `<EpisodeMembersCard<${page.memberModel}, ${page.membershipModel}>`,
       );
       const telemetry: number = indexOfOrFail(
         source,
@@ -258,7 +266,7 @@ describe("episode overview layout", () => {
       const source: string = readSquashed(page.pagePath);
 
       expect(source).toContain(`modelType={${page.memberModel}}`);
-      expect(source).toContain(`episodeIdField="${page.episodeIdField}"`);
+      expect(source).toContain(`membership={${page.membership}}`);
       expect(source).toContain(`sortField="${page.memberSortField}"`);
       expect(source).toContain(`select={${page.memberSelect}}`);
       expect(source).toContain(`toRow={${page.memberRow}}`);
@@ -266,6 +274,36 @@ describe("episode overview layout", () => {
       expect(source).toContain(`RouteMap[${page.viewAllPage}] as Route`);
       expect(source).toContain(`RouteMap[${page.memberViewPage}] as Route`);
       expect(source).toContain("refreshToken={contentRefreshToken}");
+    },
+  );
+
+  test.each(EPISODE_PAGES)(
+    "$name reads its members by the episode's membership, never by their episode column",
+    (page: EpisodePage) => {
+      const source: string = readSquashed(page.pagePath);
+
+      /*
+       * A member's own incidentEpisodeId / alertEpisodeId names only the
+       * latest episode it is in, so a list by it misses every member that
+       * joined a later episode too. Neither the card nor the telemetry
+       * snapshot's first member may read it.
+       */
+      expect(source).not.toContain(
+        `modelType: ${page.memberModel}, query: { ${page.episodeIdField}`,
+      );
+      expect(source).not.toContain(`episodeIdField="${page.episodeIdField}"`);
+      expect(source).toContain(
+        `fetchEpisodeMembers<${page.memberModel}, ${page.membershipModel}>({ episodeId: modelId, membership: ${page.membership}, modelType: ${page.memberModel},`,
+      );
+
+      const card: string = readSquashed(
+        "Components/EpisodeView/EpisodeMembersCard.tsx",
+      );
+
+      expect(card).toContain(
+        "await fetchEpisodeMembers< TMember, TMembership >({ episodeId: props.episodeId, membership: props.membership,",
+      );
+      expect(card).not.toContain("ModelAPI");
     },
   );
 

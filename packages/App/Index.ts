@@ -59,8 +59,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       serviceName: APP_NAME,
     });
 
-    const statusCheck: PromiseVoidFunction = async (): Promise<void> => {
-      // Check the status of infrastructure components
+    const readyCheck: PromiseVoidFunction = async (): Promise<void> => {
+      // Ready only while Postgres, Valkey and ClickHouse are all reachable.
       return await InfrastructureStatus.checkStatusWithRetry({
         checkClickhouseStatus: true,
         checkPostgresStatus: true,
@@ -144,8 +144,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     await App.init({
       appName: APP_NAME,
       statusOptions: {
-        liveCheck: statusCheck,
-        readyCheck: statusCheck,
+        // Liveness must not depend on a datastore: see StatusAPIOptions.
+        liveCheck: async () => {},
+        readyCheck: readyCheck,
         globalCacheCheck: globalCacheCheck,
         analyticsDatabaseCheck: analyticsDatabaseCheck,
         databaseCheck: databaseCheck,

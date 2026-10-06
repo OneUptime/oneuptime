@@ -21,7 +21,6 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import BadRequestException from "../../../Types/Exception/BadRequestException";
 import GenericObject from "../../../Types/GenericObject";
 import ObjectID from "../../../Types/ObjectID";
-import { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -298,49 +297,6 @@ describe("BaseAPI", () => {
         });
       });
     }
-  });
-
-  describe("BaseAPI.getPermissionsForTenant", () => {
-    it("should return empty permissions if userTenantAccessPermission is not set", async () => {
-      jest
-        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-        .mockResolvedValueOnce({});
-      const permissions: UserPermission[] =
-        await baseApiInstance.getPermissionsForTenant(emptyRequest);
-      expect(permissions).toEqual([]);
-    });
-
-    it("should return permissions if userTenantAccessPermission is set and tenantId is available", async () => {
-      // eslint-disable-next-line @typescript-eslint/typedef
-      const mockPermissions = [{ permission: "granted" }];
-      jest
-        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-        .mockResolvedValueOnce({
-          userTenantAccessPermission: {
-            tenantId: { permissions: mockPermissions },
-          },
-          tenantId: "tenantId",
-        } as any);
-
-      const permissions: UserPermission[] =
-        await baseApiInstance.getPermissionsForTenant(emptyRequest);
-      expect(permissions).toEqual(mockPermissions);
-    });
-
-    it("should return empty permissions if tenantId is not available", async () => {
-      jest
-        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-        .mockResolvedValueOnce({
-          userTenantAccessPermission: {
-            tenantId: { permissions: [{ doesnt: "matter" }] },
-          },
-          tenantId: null,
-        } as any);
-
-      const permissions: UserPermission[] =
-        await baseApiInstance.getPermissionsForTenant(emptyRequest);
-      expect(permissions).toEqual([]);
-    });
   });
 
   describe("getTenantId", () => {

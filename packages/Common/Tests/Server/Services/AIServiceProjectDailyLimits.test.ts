@@ -963,7 +963,9 @@ describe("AIService.executeWithLogging and the project's daily spend limit", () 
       projectRow({ aiCurrentBalanceInUSDCents: 0, aiDailySpendLimitInUSD: 25 }),
     );
 
-    await expect(execute()).rejects.toThrow(/Insufficient AI balance/);
+    await expect(execute()).rejects.toThrow(
+      /This project's AI credits are used up\./,
+    );
     expect(writtenLog().status).toBe(LlmLogStatus.InsufficientBalance);
   });
 });

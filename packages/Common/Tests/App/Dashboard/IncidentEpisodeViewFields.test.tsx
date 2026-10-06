@@ -160,10 +160,12 @@ import IncidentEpisodeView from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
@@ -386,6 +388,65 @@ const listCallsFor: CallsForModelFunction = (
 ): Array<Array<any>> => {
   return getListMock.mock.calls.filter((call: Array<any>): boolean => {
     return call[0]?.modelType === modelType;
+  });
+};
+
+const MEMBER_ID: string = "88888888-8888-4888-8888-888888888888";
+
+type ServeMemberFunction = (title: string) => void;
+
+/*
+ * One member, served the way the API serves it: the episode's membership row,
+ * then the incident it names. Every other read is empty.
+ */
+const serveMember: ServeMemberFunction = (title: string): void => {
+  const membership: IncidentEpisodeMember = new IncidentEpisodeMember();
+  membership.incidentEpisodeId = new ObjectID(EPISODE_ID);
+  membership.incidentId = new ObjectID(MEMBER_ID);
+
+  const member: Incident = new Incident();
+  member.id = new ObjectID(MEMBER_ID);
+  member.title = title;
+  member.declaredAt = new Date("2026-01-01T00:05:00.000Z");
+
+  getListMock.mockImplementation((...args: Array<any>) => {
+    const modelType: unknown = args[0]?.modelType;
+
+    if (modelType === IncidentEpisodeMember) {
+      return Promise.resolve({
+        data: [membership],
+        count: 1,
+        skip: 0,
+        limit: 1,
+      });
+    }
+
+    if (modelType === Incident) {
+      return Promise.resolve({ data: [member], count: 1, skip: 0, limit: 1 });
+    }
+
+    return Promise.resolve(emptyList());
+  });
+};
+
+type FailNextReadFunction = (modelType: unknown, message: string) => void;
+
+// The next read of this model fails; every other read answers as before.
+const failNextRead: FailNextReadFunction = (
+  modelType: unknown,
+  message: string,
+): void => {
+  const answer: ((...args: Array<any>) => any) | undefined =
+    getListMock.getMockImplementation();
+  let hasFailed: boolean = false;
+
+  getListMock.mockImplementation((...args: Array<any>) => {
+    if (!hasFailed && args[0]?.modelType === modelType) {
+      hasFailed = true;
+      return Promise.reject(new Error(message));
+    }
+
+    return answer ? answer(...args) : Promise.resolve(emptyList());
   });
 };
 
@@ -716,15 +777,37 @@ describe("Incident Episode overview: loading and layout", () => {
     expect(screen.queryByText("Episode Severity")).toBeNull();
     expect(changeStateProps.current).toBeNull();
 
-    // All four requests are in flight together rather than one after another.
-    expect(listCallsFor(Incident)).toHaveLength(1);
+    /*
+     * All four requests are in flight together rather than one after another.
+     * The first member's snapshot starts with the episode's membership; its
+     * incident read follows that one.
+     */
+    expect(listCallsFor(IncidentEpisodeMember)).toHaveLength(1);
+    expect(listCallsFor(Incident)).toHaveLength(0);
     expect(listCallsFor(IncidentEpisodeStateTimeline)).toHaveLength(1);
     expect(listCallsFor(IncidentState)).toHaveLength(1);
     expect(getItemMock).toHaveBeenCalledTimes(1);
   });
 
-  test("still reads the first member's telemetry snapshot, earliest declared", async () => {
+  test("reads the first member's telemetry snapshot by the membership, earliest declared", async () => {
+    serveMember("First member");
+
     await renderPage({});
+
+    await waitFor((): void => {
+      expect(
+        listCallsFor(Incident).find((call: Array<any>): boolean => {
+          return call[0].limit === 1;
+        }),
+      ).toBeDefined();
+    });
+
+    const membershipCall: Array<any> = listCallsFor(IncidentEpisodeMember)[0]!;
+
+    expect(membershipCall[0].query.incidentEpisodeId.toString()).toBe(
+      EPISODE_ID,
+    );
+    expect(membershipCall[0].select).toEqual({ incidentId: true });
 
     const firstMemberCall: Array<any> = listCallsFor(Incident).find(
       (call: Array<any>): boolean => {
@@ -732,17 +815,49 @@ describe("Incident Episode overview: loading and layout", () => {
       },
     )!;
 
-    expect(firstMemberCall[0].query.incidentEpisodeId.toString()).toBe(
-      EPISODE_ID,
-    );
+    /*
+     * By id, from the membership: the incident's own incidentEpisodeId names only the
+     * latest episode it is in.
+     */
+    expect(Object.keys(firstMemberCall[0].query)).toEqual(["_id"]);
+    expect(firstMemberCall[0].query._id).toBeInstanceOf(Includes);
+    expect(firstMemberCall[0].query._id.values).toEqual([MEMBER_ID]);
     expect(firstMemberCall[0].select).toEqual({
       _id: true,
       telemetryQuery: true,
       seriesLabels: true,
+      declaredAt: true,
     });
     expect(firstMemberCall[0].sort).toEqual({
       declaredAt: SortOrder.Ascending,
     });
+  });
+
+  test("a membership the reader may not read leaves out only the snapshot", async () => {
+    getListMock.mockImplementation((...args: Array<any>) => {
+      if (args[0]?.modelType === IncidentEpisodeMember) {
+        return Promise.reject(new Error("No permission to read memberships"));
+      }
+
+      return Promise.resolve(emptyList());
+    });
+
+    // The page loads: the details card only renders on a loaded page.
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    expect(
+      screen.getByRole("group", { name: "Episode timing" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Couldn't refresh episode timings/)).toBeNull();
+    expect(listCallsFor(Incident)).toHaveLength(0);
+
+    // The member card, which cannot do without it, says why.
+    await waitFor((): void => {
+      expect(
+        screen.getByText("No permission to read memberships"),
+      ).toBeInTheDocument();
+    });
+    expectNoCrash();
   });
 
   test("renders the header, a four-cell stat bar and the member list", async () => {
@@ -766,14 +881,37 @@ describe("Incident Episode overview: loading and layout", () => {
       ).toBeInTheDocument();
     });
 
+    // The page's snapshot and the member card each read the membership.
+    expect(listCallsFor(IncidentEpisodeMember)).toHaveLength(2);
+
+    for (const call of listCallsFor(IncidentEpisodeMember)) {
+      expect(call[0].query.incidentEpisodeId.toString()).toBe(EPISODE_ID);
+    }
+
+    // No members, so no incidents to read.
+    expect(listCallsFor(Incident)).toHaveLength(0);
+    expectNoCrash();
+  });
+
+  test("the member list shows the newest members by the membership", async () => {
+    serveMember("Grouped incident");
+
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    await screen.findByRole("link", { name: "Grouped incident" });
+
     const memberCall: Array<any> = listCallsFor(Incident).find(
       (call: Array<any>): boolean => {
         return call[0].limit === 8;
       },
     )!;
 
-    expect(memberCall[0].query.incidentEpisodeId.toString()).toBe(EPISODE_ID);
+    expect(Object.keys(memberCall[0].query)).toEqual(["_id"]);
+    expect(memberCall[0].query._id.values).toEqual([MEMBER_ID]);
     expect(memberCall[0].sort).toEqual({ declaredAt: SortOrder.Descending });
+    expect(screen.getByTestId("episode-members-count")).toHaveTextContent(
+      "1 incident",
+    );
     expectNoCrash();
   });
 
@@ -848,13 +986,11 @@ describe("Incident Episode overview: loading and layout", () => {
   });
 
   test("a state change refreshes the page in place instead of unmounting it", async () => {
+    serveMember("Member before the change");
+
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
-    await waitFor((): void => {
-      expect(
-        screen.getByText("No incidents in this episode yet"),
-      ).toBeInTheDocument();
-    });
+    await screen.findByRole("link", { name: "Member before the change" });
 
     const timelineCallsBefore: number = listCallsFor(
       IncidentEpisodeStateTimeline,
@@ -904,7 +1040,7 @@ describe("Incident Episode overview: loading and layout", () => {
 
   test("a failed first load offers a retry that recovers", async () => {
     getItemMock.mockResolvedValue(buildEpisode({}) as never);
-    getListMock.mockRejectedValueOnce(new Error("Episode service down"));
+    failNextRead(IncidentEpisodeStateTimeline, "Episode service down");
 
     render(<IncidentEpisodeView {...pageProps} />);
 
@@ -924,7 +1060,7 @@ describe("Incident Episode overview: loading and layout", () => {
   test("a failed refresh keeps the page and says so inline", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
-    getListMock.mockRejectedValueOnce(new Error("Timeline unavailable"));
+    failNextRead(IncidentEpisodeStateTimeline, "Timeline unavailable");
 
     await act(async () => {
       await changeStateProps.current!["onActionComplete"]();

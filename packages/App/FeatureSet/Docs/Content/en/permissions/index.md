@@ -57,6 +57,8 @@ The **Owners** and **Admin** teams are deliberately locked: their permissions ca
 
 Turning SMS, phone calls, WhatsApp or Telegram on or off for the project counts as billing, because every message costs money. Only `ProjectOwner` and the `ManageProjectBilling` permission (**Manage Billing**) can change those switches, on **Project Settings > Notifications > Notification Settings** — not `ProjectAdmin`.
 
+Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Settings**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a project owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a project admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.
+
 Create as many additional teams as you like — "Frontend On-Call", "Support", "Read-Only Auditors" — and give each the permissions it needs.
 
 **Creating a team** asks for a name and its **Access**, what the team's members can do:
@@ -109,7 +111,7 @@ Both are on the team's **Permissions** page. Few teams need a block, so block pe
 
 A permission cannot carry restriction labels in both lists at once; OneUptime rejects the second one with an explanation.
 
-Because a user's access is the union across all their teams, a block on one team does **not** cancel an allow on another team. Blocks restrict the team they are set on. If somebody has more access than you expect, check every team they belong to.
+A user's allow entries add up across all their teams, but a block applies to everything the user does: a block with no labels on one team takes the capability away even where another team allows it, and a block entry never grants anything. If somebody has less access than you expect, check each of their teams for a block; if they have more, check each team for an allow.
 
 ## Scope: how far an allow permission reaches
 
@@ -179,12 +181,16 @@ For a signed-in user, in order:
 
 1. Find the teams the user belongs to in this project, counting only accepted invitations.
 2. Collect every permission row on those teams — allow and block, each with its labels and scope.
-3. Check the block list first. A matching block with no labels rejects the request outright.
-4. Check the allow list. The request needs at least one permission that the target table accepts for this operation.
+3. Check the block list first. A block with no labels on any permission the target table accepts for this operation rejects the request outright, whichever team it is on.
+4. Check the allow list. The request needs at least one permission that the target table accepts for this operation. On an operational resource — a monitor, an incident, a dashboard and the like — the matching **All Operational Resources** permission (Create, Read, Edit or Delete) counts too, unless it is blocked itself.
 5. Apply scope. Owned-scoped grants narrow the query to owned resources; label-scoped grants narrow it to matching labels. If any other grant for the same operation is broader, the broader one wins.
 6. Apply label blocks. A block with labels rejects the request if the target resource carries one of them.
 
 Every field of a record is read with the record's own read permission: a permission for another kind of record never opens it. Some fields are narrower on purpose. Secrets are read only by people who may edit or administer the record they belong to, such as a monitor's incoming request and incoming email keys and its server agent key, or a workflow's webhook and incoming email keys. Watching a session replay's recording takes **Watch Session Replays**, not just **List Session Replays**. Telemetry is read signal by signal: **Read Telemetry Service Log** reads logs, **Read Telemetry Service Traces** reads traces, and **Read Telemetry Service Metrics** reads metrics, metric charts included.
+
+Fields follow the same rule. A block with no labels on a field's permission takes the field away, and on an operational resource the matching **All Operational Resources** permission opens every field that everyone who may read or change the record may open — but not a field that is narrower on purpose, such as a secret key.
+
+The same rule decides everything else that asks whether you hold a permission: actions that are not a plain read or write, such as adding SMS, call or AI credit, paying an invoice or testing a notification rule, and the buttons OneUptime shows you. A button you may not use is shown locked and says why; when a block on one of your teams is the reason, it names the blocked permission.
 
 Every logged-in user additionally holds a small set of automatic permissions that cover things like reading their own profile and their own notification rules. These are not admin permissions and do not unlock anyone else's data.
 

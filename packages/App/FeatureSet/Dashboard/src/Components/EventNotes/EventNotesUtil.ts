@@ -8,7 +8,10 @@ import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "Common/Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberNotificationResend, {
   SubscriberNotificationResendAction,
@@ -613,35 +616,61 @@ export function getNotesCopy(
 }
 
 /*
- * Whether the viewer may read one column. Mirrors the notes table this feed
- * replaced: a column with no read rule is readable, and one with a rule needs
- * a matching permission. Asking for a column the viewer cannot read fails the
- * whole list request, so the feed only selects what passes this.
+ * Whether the viewer holds one of a column's permissions for an operation,
+ * by the server's column rule (HeldPermissionsUtil.holdsColumnPermission):
+ * one of the permissions held - Public by everyone - no team block on any of
+ * them, the table's operational-resource wildcard for a column that admits
+ * everyone its table does, and a column that names no permission closed.
+ */
+function holdsColumnPermission(data: {
+  model: BaseModel;
+  column: string;
+  operation: "create" | "read" | "update";
+  held: HeldPermissions;
+}): boolean {
+  const accessControl: Dictionary<ColumnAccessControl> =
+    data.model.getColumnAccessControlForAllColumns();
+
+  let tablePermissions: Array<Permission> = data.model.getUpdatePermissions();
+
+  if (data.operation === "create") {
+    tablePermissions = data.model.getCreatePermissions();
+  } else if (data.operation === "read") {
+    tablePermissions = data.model.getReadPermissions();
+  }
+
+  return HeldPermissionsUtil.holdsColumnPermission(data.held, {
+    isOperationalResource: data.model.isOperationalResource,
+    operation: data.operation,
+    tablePermissions: tablePermissions || [],
+    columnPermissions: accessControl[data.column]?.[data.operation] || [],
+  });
+}
+
+/*
+ * Whether the viewer may read one column, by the rule every select follows
+ * (HeldPermissionsUtil.canSelectColumn, which PermissionGate.canReadColumn
+ * asks too). Asking for a column the viewer cannot read fails the whole list
+ * request, so the feed only selects what passes this.
  */
 export function canReadNoteColumn(data: {
   model: BaseModel;
   column: string;
-  userPermissions: Array<Permission>;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  const accessControl: Dictionary<ColumnAccessControl> =
-    data.model.getColumnAccessControlForAllColumns();
-
-  const readPermissions: Array<Permission> | undefined =
-    accessControl[data.column]?.read;
-
-  if (!readPermissions) {
-    return true;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    [...data.userPermissions, Permission.Public],
-    readPermissions,
-  );
+  return HeldPermissionsUtil.canSelectColumn(data.held, {
+    column: data.column,
+    isOperationalResource: data.model.isOperationalResource,
+    tablePermissions: data.model.getReadPermissions() || [],
+    readPermissions:
+      data.model.getColumnAccessControlForAllColumns()[data.column]?.read,
+  });
 }
 
 /*
@@ -659,7 +688,8 @@ export function buildNotesSelect(data: {
   model: BaseModel;
   visibility: NoteVisibility;
   isAttachmentsEnabled: boolean;
-  userPermissions: Array<Permission>;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): JSONObject {
   const candidates: JSONObject = {
@@ -692,7 +722,7 @@ export function buildNotesSelect(data: {
 
   const select: JSONObject = {};
   const isPermissionSnapshotLoaded: boolean =
-    data.isMasterAdmin || data.userPermissions.length > 0;
+    data.isMasterAdmin || HeldPermissionsUtil.isLoaded(data.held);
 
   for (const column of Object.keys(candidates)) {
     const isKnownColumn: boolean =
@@ -708,7 +738,7 @@ export function buildNotesSelect(data: {
       canReadNoteColumn({
         model: data.model,
         column,
-        userPermissions: data.userPermissions,
+        held: data.held,
         isMasterAdmin: data.isMasterAdmin,
       })
     ) {
@@ -724,35 +754,29 @@ export type ColumnAction = "create" | "update";
 /*
  * Whether the viewer may write one column of a note, the same way the model
  * forms decide which fields to show: a master admin always may, anyone else
- * needs one of the permissions the column declares for the action. The
- * create form used to drop a column the viewer could not write; the composer
- * does the same by not offering the control at all.
+ * needs one of the permissions the column declares for the action, with no
+ * team block on any of them. The create form used to drop a column the
+ * viewer could not write; the composer does the same by not offering the
+ * control at all.
  */
 export function canWriteNoteColumn(data: {
   model: BaseModel;
   column: string;
   action: ColumnAction;
-  userPermissions: Array<Permission>;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  const accessControl: Dictionary<ColumnAccessControl> =
-    data.model.getColumnAccessControlForAllColumns();
-
-  const columnPermissions: Array<Permission> =
-    accessControl[data.column]?.[data.action] || [];
-
-  if (columnPermissions.length === 0) {
-    return false;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    [...data.userPermissions, Permission.Public],
-    columnPermissions,
-  );
+  return holdsColumnPermission({
+    model: data.model,
+    column: data.column,
+    operation: data.action,
+    held: data.held,
+  });
 }
 
 /*

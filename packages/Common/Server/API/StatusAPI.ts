@@ -13,8 +13,30 @@ import Exception from "../../Types/Exception/Exception";
 import ServerException from "../../Types/Exception/ServerException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+/**
+ * The checks behind the Kubernetes probes. The Helm chart points the
+ * readinessProbe at /status/ready, and the livenessProbe and startupProbe at
+ * /status/live. A check fails its probe by throwing.
+ */
 export interface StatusAPIOptions {
+  /**
+   * Readiness: can this pod serve its traffic right now? Check the datastores
+   * the service needs (InfrastructureStatus.checkStatusWithRetry) and throw
+   * while one is unreachable. Kubernetes then stops routing to the pod until
+   * the datastore is back, and a rolling update does not replace working pods
+   * with ones that cannot reach it.
+   */
   readyCheck: () => Promise<void>;
+  /**
+   * Liveness: is this process still up and answering HTTP? It must not depend
+   * on Postgres, Valkey or ClickHouse. A failed liveness probe restarts the
+   * container, and a restart cannot fix a datastore. In an outage every pod
+   * would fail together and restart together, then crash-loop, because the App
+   * exits on boot when it cannot connect. The crash-loop backoff keeps pods
+   * down for up to five minutes after the datastore is back. The clients
+   * reconnect on their own, so a pod that lost a datastore needs no restart,
+   * and readiness keeps traffic away from it in the meantime.
+   */
   liveCheck: () => Promise<void>;
   globalCacheCheck?: (() => Promise<void>) | undefined;
   analyticsDatabaseCheck?: (() => Promise<void>) | undefined;
