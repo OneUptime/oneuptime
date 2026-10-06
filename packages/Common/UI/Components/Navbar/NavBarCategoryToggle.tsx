@@ -26,9 +26,30 @@ export enum NavBarCategoryToggleLayout {
  * The columns of the desktop menu's list of categories, which its rows take
  * as a subgrid: icon, name, products, count, chevron. The name takes the
  * width of the longest one; the products take what is left and give way.
+ *
+ * Below sm there is no room for the products beside the names, so there are
+ * four columns, the products go on a second line under the name, and the
+ * icon, count and chevron sit across both lines (COLUMN_PLACEMENT). The
+ * Dashboard shows its phone menu there instead, but the dialog itself still
+ * holds together in a narrow window.
  */
 export const CATEGORY_LIST_COLUMNS: string =
-  "grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]";
+  "grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]";
+
+// Where each part of a row sits on the list's columns, narrow and from sm up.
+export const COLUMN_PLACEMENT: {
+  icon: string;
+  name: string;
+  products: string;
+  count: string;
+  chevron: string;
+} = {
+  icon: "col-start-1 row-start-1 row-end-3 sm:row-end-2",
+  name: "col-start-2 row-start-1",
+  products: "col-start-2 row-start-2 sm:col-start-3 sm:row-start-1",
+  count: "col-start-3 row-start-1 row-end-3 sm:col-start-4 sm:row-end-2",
+  chevron: "col-start-4 row-start-1 row-end-3 sm:col-start-5 sm:row-end-2",
+};
 
 // The icon of a category the caller gave none: the products menu's own.
 export const DEFAULT_CATEGORY_ICON: IconProp = IconProp.Squares;
@@ -99,7 +120,7 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
       aria-hidden="true"
       className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ring-1 transition-colors duration-150 ${
         isActive ? "bg-white ring-indigo-200" : "bg-gray-50 ring-gray-200"
-      }`}
+      } ${COLUMN_PLACEMENT.icon}`}
     >
       <Icon
         icon={icon}
@@ -111,7 +132,9 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
   const heading: ReactElement = (
     <h3
       id={props.headingId}
-      className={`min-w-0 ${isColumns ? "pr-3" : "flex items-center"}`}
+      className={`min-w-0 ${
+        isColumns ? `sm:pr-3 ${COLUMN_PLACEMENT.name}` : "flex items-center"
+      }`}
     >
       {!isColumns && (
         <Icon
@@ -151,7 +174,9 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
     <span
       id={summaryId}
       className={`min-w-0 truncate text-gray-500 ${
-        isColumns ? "col-start-3 text-sm" : "block pl-5 text-xs leading-4"
+        isColumns
+          ? `text-sm ${COLUMN_PLACEMENT.products}`
+          : "block pl-5 text-xs leading-4"
       }`}
     >
       <span className="sr-only">
@@ -163,7 +188,11 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
           count,
         )}
       </span>{" "}
-      {names}
+      {/*
+       * A block of its own, cut off at the column's edge, so the box of the
+       * names is the box drawn, not the width of the whole list.
+       */}
+      <span className="block truncate">{names}</span>
     </span>
   );
 
@@ -173,7 +202,7 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
       aria-hidden="true"
       className={`flex-shrink-0 rounded-full px-2 text-xs font-medium tabular-nums leading-5 transition-colors duration-150 ${
         isActive ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-600"
-      } ${isColumns ? "col-start-4 justify-self-end" : ""}`}
+      } ${isColumns ? `justify-self-end ${COLUMN_PLACEMENT.count}` : ""}`}
     >
       {translator.formatNumber(count)}
     </span>
@@ -183,7 +212,7 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
   const chevron: ReactElement = (
     <div
       className={`flex flex-shrink-0 items-center ${
-        isColumns ? "col-start-5" : ""
+        isColumns ? COLUMN_PLACEMENT.chevron : ""
       }`}
     >
       <Icon

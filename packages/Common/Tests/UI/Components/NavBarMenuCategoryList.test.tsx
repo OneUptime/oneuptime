@@ -137,7 +137,11 @@ function group(category: string): HTMLElement {
 function categoryLists(): Array<HTMLElement> {
   return Array.from(listbox().querySelectorAll<HTMLElement>("div")).filter(
     (element: HTMLElement): boolean => {
-      return element.classList.contains(CATEGORY_LIST_COLUMNS);
+      return CATEGORY_LIST_COLUMNS.split(" ").every(
+        (token: string): boolean => {
+          return element.classList.contains(token);
+        },
+      );
     },
   );
 }
@@ -295,9 +299,9 @@ describe("the list's columns line every row up", () => {
       const parts: Array<Element> = Array.from(row(category).children);
 
       expect([category, parts.length]).toEqual([category, 5]);
-      expect(parts[2]).toHaveClass("col-start-3");
-      expect(parts[3]).toHaveClass("col-start-4");
-      expect(parts[4]).toHaveClass("col-start-5");
+      expect(parts[2]).toHaveClass("sm:col-start-3");
+      expect(parts[3]).toHaveClass("sm:col-start-4");
+      expect(parts[4]).toHaveClass("sm:col-start-5");
     }
   });
 

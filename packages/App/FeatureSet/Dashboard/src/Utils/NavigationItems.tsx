@@ -875,8 +875,10 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
 
   /*
    * A folded category is a row of the menu's list of categories, drawn with
-   * an icon of its own: one that names the whole category, and is not the
-   * icon of any one product inside it.
+   * an icon of its own: one that names the whole category and is not drawn
+   * like any product in the menu, so a row never passes for a product. AI
+   * is the one exception: it wears the sparkles that mark AI across the
+   * app, as the AI / LLM product does.
    */
   const moreMenuCategoryIcons: Dictionary<IconProp> = {
     [observabilityCategory]: IconProp.PresentationChartLine,
@@ -884,7 +886,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     [codeCategory]: IconProp.Code,
     [resourcesCategory]: IconProp.Layers,
     [infrastructureCategory]: IconProp.ServerStack,
-    [analyticsAutomationCategory]: IconProp.Automation,
+    [analyticsAutomationCategory]: IconProp.Layout,
     // A gear, but not Project Settings' own.
     [settingsCategory]: IconProp.Cog8Tooth,
   };

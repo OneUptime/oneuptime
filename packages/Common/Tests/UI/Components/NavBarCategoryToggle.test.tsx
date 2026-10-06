@@ -7,6 +7,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../../../UI/Components/Icon/Icon";
 import NavBarCategoryToggle, {
   CATEGORY_LIST_COLUMNS,
+  COLUMN_PLACEMENT,
   ComponentProps,
   DEFAULT_CATEGORY_ICON,
   NavBarCategoryToggleLayout,
@@ -269,13 +270,15 @@ describe("in the desktop menu's list (columns)", () => {
     expect(row()).not.toHaveClass("flex");
   });
 
-  test("the list's columns are icon, name, products, count and chevron", () => {
-    expect(CATEGORY_LIST_COLUMNS).toBe(
-      "grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]",
-    );
+  test("from sm up the list's columns are icon, name, products, count and chevron", () => {
+    expect(CATEGORY_LIST_COLUMNS.split(" ")).toEqual([
+      // Narrower: icon, name over products, count, chevron.
+      "grid-cols-[auto_minmax(0,1fr)_auto_auto]",
+      "sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]",
+    ]);
   });
 
-  test("its parts are in that order, and each one past the name is placed in its own column", () => {
+  test("its parts are in that order, and every one is placed on the list's columns", () => {
     columnsRow({ icon: IconProp.ServerStack });
 
     const parts: Array<Element> = Array.from(row().children);
@@ -284,15 +287,72 @@ describe("in the desktop menu's list (columns)", () => {
     // The icon's tile.
     expect(parts[0]).toHaveClass("h-8", "w-8", "rounded-lg", "ring-1");
     expect(parts[0]).toHaveAttribute("aria-hidden", "true");
+    expect(parts[0]).toHaveClass(COLUMN_PLACEMENT.icon);
     // The name.
     expect(parts[1]!.tagName).toBe("H3");
+    expect(parts[1]).toHaveClass(COLUMN_PLACEMENT.name);
     // The products, the count and the chevron, pinned to their columns.
     expect(parts[2]).toBe(summary());
-    expect(parts[2]).toHaveClass("col-start-3", "min-w-0", "truncate");
+    expect(parts[2]).toHaveClass(
+      COLUMN_PLACEMENT.products,
+      "min-w-0",
+      "truncate",
+    );
     expect(parts[3]).toBe(countPill());
-    expect(parts[3]).toHaveClass("col-start-4", "justify-self-end");
-    expect(parts[4]).toHaveClass("col-start-5");
+    expect(parts[3]).toHaveClass(COLUMN_PLACEMENT.count, "justify-self-end");
+    expect(parts[4]).toHaveClass(COLUMN_PLACEMENT.chevron);
     expect(parts[4]).toContainElement(chevron() as unknown as HTMLElement);
+  });
+
+  test("from sm up, the row is one line: each part in its own column of the first row", () => {
+    expect(COLUMN_PLACEMENT).toEqual({
+      icon: expect.stringContaining("sm:row-end-2"),
+      name: "col-start-2 row-start-1",
+      products: expect.stringContaining("sm:col-start-3 sm:row-start-1"),
+      count: expect.stringContaining("sm:col-start-4 sm:row-end-2"),
+      chevron: expect.stringContaining("sm:col-start-5 sm:row-end-2"),
+    });
+  });
+
+  test("narrower, the products go under the name, and the icon, count and chevron sit across both lines", () => {
+    const narrow: (placement: string) => Array<string> = (
+      placement: string,
+    ): Array<string> => {
+      return placement.split(" ").filter((token: string): boolean => {
+        return !token.startsWith("sm:");
+      });
+    };
+
+    expect(narrow(COLUMN_PLACEMENT.icon)).toEqual([
+      "col-start-1",
+      "row-start-1",
+      "row-end-3",
+    ]);
+    expect(narrow(COLUMN_PLACEMENT.name)).toEqual([
+      "col-start-2",
+      "row-start-1",
+    ]);
+    expect(narrow(COLUMN_PLACEMENT.products)).toEqual([
+      "col-start-2",
+      "row-start-2",
+    ]);
+    expect(narrow(COLUMN_PLACEMENT.count)).toEqual([
+      "col-start-3",
+      "row-start-1",
+      "row-end-3",
+    ]);
+    expect(narrow(COLUMN_PLACEMENT.chevron)).toEqual([
+      "col-start-4",
+      "row-start-1",
+      "row-end-3",
+    ]);
+  });
+
+  test("every part is placed by both its column and its row, so none is left to auto-placement", () => {
+    for (const placement of Object.values(COLUMN_PLACEMENT)) {
+      expect(placement).toMatch(/(^|\s)col-start-\d/);
+      expect(placement).toMatch(/(^|\s)row-start-\d/);
+    }
   });
 
   test("open, the count and the chevron keep their columns where the products were", () => {
@@ -302,20 +362,30 @@ describe("in the desktop menu's list (columns)", () => {
 
     expect(parts).toHaveLength(4);
     expect(parts[2]).toBe(countPill());
-    expect(parts[2]).toHaveClass("col-start-4");
-    expect(parts[3]).toHaveClass("col-start-5");
+    expect(parts[2]).toHaveClass(COLUMN_PLACEMENT.count);
+    expect(parts[3]).toHaveClass(COLUMN_PLACEMENT.chevron);
   });
 
-  test("the name keeps some room before the products column", () => {
+  test("from sm up the name keeps some room before the products column; narrower, it needs it for itself", () => {
     columnsRow();
 
-    expect(screen.getByRole("heading", { level: 3 })).toHaveClass("pr-3");
+    const heading: HTMLElement = screen.getByRole("heading", { level: 3 });
+
+    expect(heading).toHaveClass("sm:pr-3");
+    expect(heading).not.toHaveClass("pr-3");
   });
 
   test("the products are one line, cut off with an ellipsis", () => {
     columnsRow();
 
     expect(summary()).toHaveClass("truncate", "text-sm", "text-gray-500");
+    /*
+     * The names are a block cut off at the column's edge, so the box a
+     * click or a test finds is the box drawn, not the whole list's width.
+     */
+    const names: HTMLElement = screen.getByText("Hosts, Kubernetes, Docker");
+    expect(names.parentElement).toBe(summary());
+    expect(names).toHaveClass("block", "truncate");
   });
 
   test("the row has no corners or border of its own: the list draws the frame and the rules", () => {

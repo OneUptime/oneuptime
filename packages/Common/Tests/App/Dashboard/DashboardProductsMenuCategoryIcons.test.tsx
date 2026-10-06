@@ -71,7 +71,7 @@ const EXPECTED_ICONS: Record<string, IconProp> = {
   Code: IconProp.Code,
   Resources: IconProp.Layers,
   Infrastructure: IconProp.ServerStack,
-  "Dashboards & Automation": IconProp.Automation,
+  "Dashboards & Automation": IconProp.Layout,
   Settings: IconProp.Cog8Tooth,
 };
 
@@ -100,6 +100,95 @@ function glyphOf(icon: IconProp): string {
   const markup: string = container.querySelector("svg")?.innerHTML ?? "";
   unmount();
   return markup;
+}
+
+// Each command of an svg path and how many numbers it takes.
+const PATH_ARGUMENTS: Record<string, number> = {
+  m: 2,
+  l: 2,
+  h: 1,
+  v: 1,
+  c: 6,
+  s: 4,
+  q: 4,
+  t: 2,
+  a: 7,
+  z: 0,
+};
+
+/*
+ * A path's drawing, whatever notation it is written in: "M1 2 3 4" is
+ * "M1 2L3 4", "-.5" is "-0.5", and the arc flags of "a4 4 0 00-3 3" are
+ * "a4 4 0 0 0-3 3". Two icons can be written apart and draw the same thing.
+ */
+function canonicalPath(d: string): string {
+  const parts: Array<string> = [];
+  let at: number = 0;
+  let command: string = "";
+  let index: number = 0;
+
+  const skipSeparators: () => void = (): void => {
+    while (at < d.length && /[\s,]/.test(d[at]!)) {
+      at++;
+    }
+  };
+
+  while (true) {
+    skipSeparators();
+    if (at >= d.length) {
+      break;
+    }
+
+    const char: string = d[at]!;
+
+    if (/[a-zA-Z]/.test(char)) {
+      command = char;
+      index = 0;
+      // "z" and "Z" both close the path.
+      parts.push(command === "z" ? "Z" : command);
+      at++;
+      continue;
+    }
+
+    const lower: string = command.toLowerCase();
+    const count: number = PATH_ARGUMENTS[lower]!;
+
+    if (index > 0 && index % count === 0) {
+      // The command repeats; after a moveto, it repeats as a lineto.
+      if (lower === "m") {
+        command = command === "m" ? "l" : "L";
+      }
+      parts.push(command);
+    }
+
+    const position: number = index % count;
+
+    if (lower === "a" && (position === 3 || position === 4)) {
+      // An arc's flags are one digit each, often written run together.
+      parts.push(char);
+      at++;
+    } else {
+      const match: RegExpExecArray | null =
+        /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/.exec(d.slice(at));
+      expect(match).not.toBeNull();
+      parts.push(String(Number(match![0])));
+      at += match![0].length;
+    }
+
+    index++;
+  }
+
+  return parts.join(" ");
+}
+
+// What <Icon icon={icon} /> draws, in any notation: see canonicalPath.
+function drawingOf(icon: IconProp): string {
+  return glyphOf(icon).replace(
+    /\sd="([^"]*)"/g,
+    (_whole: string, d: string): string => {
+      return ` d="${canonicalPath(d)}"`;
+    },
+  );
 }
 
 // The glyph a category's row draws for it: the first svg in its row.
@@ -152,14 +241,33 @@ describe("the Dashboard's catalog gives every folded category an icon", () => {
     expect(catalog().moreMenuCategoryIcons).toEqual(EXPECTED_ICONS);
   });
 
+  test("drawings are compared by what they draw, not by how the path is written", () => {
+    // Brain is the sparkles, written in another notation.
+    expect(glyphOf(IconProp.Brain)).not.toBe(glyphOf(IconProp.Sparkles));
+    expect(drawingOf(IconProp.Brain)).toBe(drawingOf(IconProp.Sparkles));
+    // Automation is the processor chip.
+    expect(drawingOf(IconProp.Automation)).toBe(drawingOf(IconProp.CPUChip));
+    // And different icons stay different.
+    expect(drawingOf(IconProp.Cog8Tooth)).not.toBe(
+      drawingOf(IconProp.Settings),
+    );
+    expect(canonicalPath("M1 2 3 4")).toBe(canonicalPath("M1,2L3,4"));
+    expect(canonicalPath("a4.5 4.5 0 00-3.09 3")).toBe(
+      canonicalPath("a4.5 4.5 0 0 0 -3.09 3"),
+    );
+    expect(canonicalPath("l-.5 .25")).toBe(canonicalPath("l-0.5 0.25"));
+    expect(canonicalPath("M1 2h3z")).toBe(canonicalPath("M1 2h3Z"));
+    expect(canonicalPath("M1 2 3 4")).not.toBe(canonicalPath("M1 2 3 5"));
+  });
+
   test("no two categories are drawn alike, and none with the menu's generic icon", () => {
     // By what is drawn: two IconProp names can draw the same glyph.
-    const glyphs: Array<string> = Object.values(
+    const drawings: Array<string> = Object.values(
       catalog().moreMenuCategoryIcons,
-    ).map(glyphOf);
+    ).map(drawingOf);
 
-    expect(new Set(glyphs).size).toBe(glyphs.length);
-    expect(glyphs).not.toContain(glyphOf(DEFAULT_CATEGORY_ICON));
+    expect(new Set(drawings).size).toBe(drawings.length);
+    expect(drawings).not.toContain(drawingOf(DEFAULT_CATEGORY_ICON));
   });
 
   test("Icon draws every one of them", () => {
@@ -170,24 +278,45 @@ describe("the Dashboard's catalog gives every folded category an icon", () => {
     }
   });
 
-  test("no category is drawn as a product it holds is, so the row names the whole category", () => {
+  test("no category is drawn as a product it holds is", () => {
     const items: DashboardNavigationItems = catalog();
 
     for (const [category, icon] of Object.entries(
       items.moreMenuCategoryIcons,
     )) {
-      const productGlyphs: Array<string> = items.moreMenuItems
+      const held: Array<string> = items.moreMenuItems
         .filter((item: MoreMenuItem): boolean => {
           return categoryOf(item) === category;
         })
         .map((item: MoreMenuItem): string => {
-          return glyphOf(item.icon);
+          return drawingOf(item.icon);
         });
 
-      expect(productGlyphs.length).toBeGreaterThan(0);
-      expect([category, productGlyphs.includes(glyphOf(icon))]).toEqual([
+      expect(held.length).toBeGreaterThan(0);
+      expect([category, held.includes(drawingOf(icon))]).toEqual([
         category,
         false,
+      ]);
+    }
+  });
+
+  test("no category is drawn as any product in the menu is, but AI, whose sparkles mark AI across the app", () => {
+    const items: DashboardNavigationItems = catalog();
+    // Every product's drawing, whichever category it is in.
+    const products: Map<string, Array<string>> = new Map();
+    for (const item of items.moreMenuItems) {
+      const drawing: string = drawingOf(item.icon);
+      products.set(drawing, [...(products.get(drawing) || []), item.title]);
+    }
+
+    expect(products.size).toBeGreaterThan(20);
+    for (const [category, icon] of Object.entries(
+      items.moreMenuCategoryIcons,
+    )) {
+      expect([category, products.get(drawingOf(icon))]).toEqual([
+        category,
+        // The AI / LLM product, in Observability, wears the same mark.
+        category === "AI" ? ["AI / LLM"] : undefined,
       ]);
     }
   });
@@ -213,7 +342,11 @@ describe("the desktop products menu draws them", () => {
     const lists: Array<HTMLElement> = Array.from(
       dialog.querySelectorAll<HTMLElement>("div"),
     ).filter((element: HTMLElement): boolean => {
-      return element.classList.contains(CATEGORY_LIST_COLUMNS);
+      return CATEGORY_LIST_COLUMNS.split(" ").every(
+        (token: string): boolean => {
+          return element.classList.contains(token);
+        },
+      );
     });
 
     expect(lists).toHaveLength(1);
