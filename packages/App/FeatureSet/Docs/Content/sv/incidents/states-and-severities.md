@@ -146,6 +146,8 @@ Avisering begärs per tidslinjerad med **Meddela statussideprenumeranter** (`sho
 
 **En sak till som ändrar utfallet.** Om du skriver in en **Offentlig anteckning** i dialogen för tillståndsändring markeras tidslinjeraden som redan aviserad i stället för att köas. Det är anteckningen själv som når prenumeranterna, så de får ett meddelande i stället för två. Det meddelandet nämner det nya tillståndet i varje kanal, så som tillståndsändringsmeddelandet skulle ha gjort: till exempel `[Resolved Incident] <title>` i e-postens ämnesrad och `**Status:** Resolved` i Slack och Microsoft Teams. Anteckningen kräver behörighet att skapa offentliga anteckningar: utan den erbjuder dialogen inte anteckningen, och en tillståndsändring som skickas med en anteckning avvisas, så tillståndet förblir oförändrat. Händelsetypen bakom det rena tillståndsändringsmeddelandet är `Subscriber Incident State Changed`.
 
+Larm, larmepisoder och incidentepisoder erbjuder i stället en privat anteckning vid ett tillståndsbyte (**Lägg till en privat anteckning**), och den fungerar på samma sätt: anteckningen kräver sin egen behörighet (**Create Alert Internal Note**, **Create Alert Episode Internal Note** eller **Create Incident Episode Internal Note** i en egen roll; de inbyggda larm-, incident- och projektrollerna har dem), och ett tillståndsbyte som någon utan den skickar med en privat anteckning avvisas helt, så tillståndet förblir oförändrat.
+
 För vilka som tar emot dem och hur mallarna väljs, se [Prenumeranter och meddelanden](/docs/status-pages/subscribers).
 
 ## Hålla en incident borta från statussidan

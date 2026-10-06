@@ -144,7 +144,7 @@ Adicione quem pode entrar em **Páginas de status → sua página → Segurança
 
 Para uma página privada ligada ao seu provedor de identidade, **Páginas de status → sua página → Segurança → SSO** configura o SAML (você informa a URL de login, o issuer e o certificado x509, e os métodos de assinatura e de digest são preenchidos em **Mais campos**) e **Páginas de status → sua página → Segurança → OIDC** configura o OpenID Connect: você informa o issuer, o client ID e o secret, e a URL de descoberta, os escopos e os nomes de claims são preenchidos em **Mais campos**. O **SCIM** provisiona usuários privados a partir do IdP automaticamente. No OneUptime Cloud, os três exigem o plano Scale ou superior. Em uma instalação auto-hospedada, SSO e OIDC fazem parte de todas as edições, e o SCIM exige a [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Um cartão **Configurações de SSO** expõe **Forçar SSO para login** (`requireSsoForLogin`, desativado por padrão). Teste sua configuração de SSO antes de ativá-lo — se não funcionar, você se tranca para fora da própria página de status.
+Um cartão **Configurações de SSO** expõe **Forçar SSO para login** (`requireSsoForLogin`, desativado por padrão). Teste sua configuração de SSO antes de ativá-lo — se não funcionar, você se tranca para fora da própria página de status. No OneUptime Cloud, ativá-lo exige o plano **Scale**, e desativá-lo funciona em qualquer plano. Uma página que ainda exige SSO quando termina um teste do Scale, ou depois de mudar para um plano inferior, continua exigindo até que alguém o desative: as páginas **SSO** e **OIDC** dela mostram a chave sob a oferta do plano para isso.
 
 ### Lista de permissões de IP
 
