@@ -755,9 +755,17 @@ export function getAiAgentAttentionTitle(
   );
 }
 
-// The cluster's agent, as a step names it: "Install the {{agent}} …".
+/*
+ * The cluster's agent, as a step names it: "Install the {{agent}} …". Cased
+ * for the middle of a sentence, where French writes "l'agent IA
+ * Kubernetes" and its card title "Agent IA Kubernetes".
+ */
 function getAgentValues(): TemplateValues {
-  return { agent: translatableTerm(KUBERNETES_AI_AGENT_DISPLAY_NAME) };
+  return {
+    agent: translatableTerm(KUBERNETES_AI_AGENT_DISPLAY_NAME, {
+      inSentence: true,
+    }),
+  };
 }
 
 // The server's own words, for a gap this page has none for.

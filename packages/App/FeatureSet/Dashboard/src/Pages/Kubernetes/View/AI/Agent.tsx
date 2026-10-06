@@ -750,7 +750,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
               {
                 runner:
-                  saved.aiAccessRunnerName || translatableTerm(UNNAMED_BOUND_RUNNER),
+                  saved.aiAccessRunnerName ||
+                  translatableTerm(UNNAMED_BOUND_RUNNER),
                 permissions: getKubernetesRunnerPermissionTitles().join(", "),
               },
             )
@@ -758,7 +759,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               "Bound now: {{runner}}. Unbinding stops OneUptime AI from running kubectl on this cluster until it has an AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
               {
                 runner:
-                  saved.aiAccessRunnerName || translatableTerm(UNNAMED_BOUND_RUNNER),
+                  saved.aiAccessRunnerName ||
+                  translatableTerm(UNNAMED_BOUND_RUNNER),
                 permissions: getKubernetesRunnerPermissionTitles().join(", "),
               },
             ),
