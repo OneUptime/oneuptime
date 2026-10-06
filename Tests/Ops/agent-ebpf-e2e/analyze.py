@@ -44,6 +44,9 @@ OBI_DISTRO = 'opentelemetry-ebpf-instrumentation'
 # The collector processor ebpf.dropUnlinkedClientCalls adds to the traces
 # pipeline.
 CLIENT_CALL_FILTER = 'filter/ebpf-unlinked-client'
+# The call apps/app.js makes on a timer, outside any request: a CLIENT span
+# with no parent, which that processor drops.
+BACKGROUND_CALL = 'GET /tick'
 
 
 # --------------------------------------------------------------------- helpers
@@ -239,11 +242,11 @@ def is_db_span(s):
 
 def is_unlinked_client_call(s):
     """A span filter/ebpf-unlinked-client drops: OBI's, CLIENT, no parent, and
-    no database (filter/ebpf-unlinked-db's), messaging or GenAI call."""
+    no database (filter/ebpf-unlinked-db's), messaging, GenAI or MCP call."""
     a = s['a']
     return (s['res'].get('telemetry.distro.name') == OBI_DISTRO and s['kind'] == 'CLIENT' and not s['parent']
             and not is_db_span(s) and 'messaging.system' not in a
-            and 'gen_ai.operation.name' not in a and 'gen_ai.system' not in a)
+            and 'gen_ai.operation.name' not in a and 'gen_ai.system' not in a and 'mcp.method.name' not in a)
 
 
 # ---------------------------------------------------------------------- checks
@@ -429,22 +432,25 @@ def main():
     C.add('TR-12', not sleeper and not plumbing,
           'no spans from the excluded executable or the excluded namespaces',
           {'sleeper': len(sleeper), 'sink/loadgen/kube-system': len(plumbing)}, 0)
-    # ebpf.dropUnlinkedClientCalls is off by default, and then what it would
-    # drop is only reported; E2E_HELM_ARGS='--set ebpf.dropUnlinkedClientCalls=true'
-    # makes this a check.
+    # ebpf.dropUnlinkedClientCalls, off by default. Off, the app's background
+    # call must arrive as a span the switch would drop: that is what shows the
+    # check on (E2E_HELM_ARGS='--set ebpf.dropUnlinkedClientCalls=true') has
+    # something to find, and that OBI's real spans match is_unlinked_client_call.
     unlinked_client = [s for s in via if is_unlinked_client_call(s)]
+    background = [s for s in unlinked_client if s['ns'] == 'shop' and s['wl'] == 'app' and s['name'] == BACKGROUND_CALL]
     client_filter = renders_client_call_filter(out)
     R['unlinkedClientCalls'] = {
-        'filterRendered': client_filter, 'spans': len(unlinked_client),
+        'filterRendered': client_filter, 'spans': len(unlinked_client), 'appBackgroundCalls': len(background),
         'top': dict(collections.Counter('%s %s' % (s['wl'], s['name']) for s in unlinked_client).most_common(5))}
     if client_filter:
         C.add('TR-13', not unlinked_client,
-              'no parentless OBI CLIENT spans but database, messaging and GenAI calls at the sink '
+              'no parentless OBI CLIENT spans but database, messaging, GenAI and MCP calls at the sink '
               '(ebpf.dropUnlinkedClientCalls)', R['unlinkedClientCalls'], 0)
     else:
-        C.add('TR-13', 'info',
-              'parentless OBI CLIENT spans but database, messaging and GenAI calls at the sink '
-              '(ebpf.dropUnlinkedClientCalls off: what it would drop)', R['unlinkedClientCalls'], 'report only')
+        C.add('TR-13', bool(background),
+              "the app's background %s reaches the sink as a parentless OBI CLIENT span "
+              '(ebpf.dropUnlinkedClientCalls off; on, it must not)' % BACKGROUND_CALL,
+              R['unlinkedClientCalls'], '>=1 app %s' % BACKGROUND_CALL)
 
     # --- profiling -------------------------------------------------------------------
     if args.profiling != 'true':

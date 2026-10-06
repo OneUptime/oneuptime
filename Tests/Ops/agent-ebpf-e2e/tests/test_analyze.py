@@ -32,9 +32,8 @@ EXCLUDE = ['*/sh', '*/bash', '*/busybox', '*/otelcol*', '*/obi']
 # or renamed fails test_every_check_reports.
 ALL_CHECKS = (['OBI-%d' % i for i in range(1, 10)] + ['TR-%d' % i for i in range(1, 14)] +
               ['PR-%d' % i for i in range(1, 8)])
-# Reported, never failed, by a healthy capture of the chart's defaults: PR-7
-# always, TR-13 while ebpf.dropUnlinkedClientCalls is off (its default).
-INFO_CHECKS = {'PR-7', 'TR-13'}
+# Reported, never failed, by a healthy capture.
+INFO_CHECKS = {'PR-7'}
 OBI_DISTRO = 'opentelemetry-ebpf-instrumentation'
 # The traces pipeline as the chart renders it with
 # ebpf.dropUnlinkedClientCalls=true, indented as inside the ConfigMap.
@@ -143,6 +142,18 @@ class Capture:
                                        {'traceId': t, 'spanId': hexid(rng, 8), 'parentSpanId': c['spanId'],
                                         'name': 'GET /ping', 'kind': 2,
                                         'attributes': [kv('http.request.method', 'GET')]}))
+        # apps/app.js's background GET /tick, outside any request: a CLIENT
+        # span with no parent, and downstream's server span OBI links under
+        # it (same node). ebpf.dropUnlinkedClientCalls drops the call, and
+        # the server span stays, pointing at it.
+        for _ in range(10):
+            tick = unlinked_client_call(name='GET /tick')
+            tick.update(traceId=hexid(rng, 16), spanId=hexid(rng, 8))
+            if not client_filter:
+                self.spans.append((self.resource('shop', 'app'), tick))
+            self.spans.append((self.resource('shop', 'downstream'),
+                               {'traceId': tick['traceId'], 'spanId': hexid(rng, 8), 'parentSpanId': tick['spanId'],
+                                'name': 'GET /tick', 'kind': 2, 'attributes': [kv('http.request.method', 'GET')]}))
         # an OBI metric (http.server.request.duration) per resource
         self.metric_resources = [self.resource('shop', 'app'), self.resource('', '')]
         self.metric_names = ['http.server.request.duration']
@@ -281,7 +292,7 @@ class Healthy(unittest.TestCase):
     def test_kind_without_the_host_profiler_skips_only_the_sample_link(self):
         rc, status, outp = run(Capture(), host_profiler='false')
         self.assertEqual(rc, 0, outp)
-        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-5', 'PR-6', 'PR-7', 'TR-13'}, outp)
+        self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-5', 'PR-6', 'PR-7'}, outp)
         self.assertEqual({status[k] for k in ('PR-5', 'PR-6', 'PR-7')}, {'SKIP'}, outp)
 
     def test_k3s_passes_everything(self):
@@ -305,27 +316,38 @@ class Healthy(unittest.TestCase):
         self.assertEqual({k for k, v in status.items() if v != 'PASS'}, {'PR-7'}, outp)
 
     def test_unlinked_client_calls_reported_while_the_switch_is_off(self):
-        # the chart's default: what the switch would drop is measured, not failed
+        # the chart's default: what the switch would drop is measured, the
+        # app's background call among it, and nothing else fails
         c = Capture()
         c.spans.append((Capture.resource('shop', 'app'), unlinked_client_call()))
         rc, status, outp = run(c)
         self.assertEqual(rc, 0, outp)
-        self.assertEqual(status['TR-13'], 'INFO', outp)
-        self.assertIn('"spans": 1', outp)
-        self.assertIn('"app GET /ping"', outp)
+        self.assertEqual(status['TR-13'], 'PASS', outp)
+        self.assertIn('"spans": 11, "appBackgroundCalls": 10', outp)
+        self.assertIn('"app GET /tick": 10, "app GET /ping": 1', outp)
 
     def test_switch_on_ignores_the_spans_the_filter_keeps(self):
-        # messaging (PRODUCER / CONSUMER, and a receive OBI v0.14 types
-        # CLIENT), GenAI calls on either key, calls inside a trace, and spans
-        # an app pushes from its own SDK or another distro
+        # spans of another kind, messaging (PRODUCER / CONSUMER, and a receive
+        # OBI v0.14 types CLIENT), GenAI calls on either key, MCP calls, calls
+        # inside a trace, and spans an app pushes from its own SDK or another
+        # distro
         c = Capture(client_filter=True)
         app = Capture.resource('shop', 'app')
         c.spans += [
+            # not CLIENT: INTERNAL, UNSPECIFIED and PRODUCER, with no messaging key
+            (app, unlinked_client_call(name='work', kind=1, attrs=[])),
+            (app, unlinked_client_call(kind=0)),
+            (app, unlinked_client_call(name='POST /hook', kind=4, attrs=[kv('http.request.method', 'POST')])),
             (app, unlinked_client_call(name='publish orders', kind=4, attrs=[kv('messaging.system', 'kafka')])),
             (app, unlinked_client_call(name='process orders', kind=5, attrs=[kv('messaging.system', 'kafka')])),
             (app, unlinked_client_call(name='receive orders', attrs=[kv('messaging.system', 'nats')])),
             (app, unlinked_client_call(name='chat gpt-4o', attrs=[kv('gen_ai.operation.name', 'chat')])),
             (app, unlinked_client_call(name='chat gpt-4o', attrs=[kv('gen_ai.system', 'openai')])),
+            # MCP: OBI v0.14 sets gen_ai.operation.name on tools/call only
+            (app, unlinked_client_call(name='prompts/get summarize',
+                                       attrs=[kv('mcp.method.name', 'prompts/get'),
+                                              kv('gen_ai.prompt.name', 'summarize')])),
+            (app, unlinked_client_call(name='tools/list', attrs=[kv('mcp.method.name', 'tools/list')])),
             (app, unlinked_client_call(parent='c' * 16)),
             (Capture.resource('shop', 'app', distro=None), unlinked_client_call()),
             (Capture.resource('shop', 'app', distro='some-other-distro'), unlinked_client_call()),
@@ -336,14 +358,15 @@ class Healthy(unittest.TestCase):
 
     def test_filter_named_only_outside_a_pipeline_is_not_the_switch(self):
         # its definition and a comment name it too; only a pipeline entry
-        # means the collector runs it
+        # means the collector runs it (and then the background calls would
+        # fail TR-13)
         c = Capture()
         c.render += ('  filter/ebpf-unlinked-client:\n    error_mode: ignore\n'
                      '        # see filter/ebpf-unlinked-client\n')
-        c.spans.append((Capture.resource('shop', 'app'), unlinked_client_call()))
         rc, status, outp = run(c)
         self.assertEqual(rc, 0, outp)
-        self.assertEqual(status['TR-13'], 'INFO', outp)
+        self.assertEqual(status['TR-13'], 'PASS', outp)
+        self.assertIn('"filterRendered": false', outp)
 
     def test_torn_last_line_is_tolerated(self):
         # the file exporter may be mid-write when the sink files are copied
@@ -525,6 +548,38 @@ class EachFaultFailsItsCheck(unittest.TestCase):
         # outside any request
         c = Capture(client_filter=True)
         c.spans.append((Capture.resource('shop', 'app'), unlinked_client_call()))
+        self.assertOnlyFails(c, ['TR-13'])
+
+    def _background_calls(self, c):
+        return [(r, s) for r, s in c.spans if s['kind'] == 3 and s['name'] == 'GET /tick']
+
+    def test_no_background_call_with_the_switch_off(self):
+        # the workload stopped making it: with the switch on, TR-13 would then
+        # pass without anything to drop. Another workload's is not the app's.
+        c = Capture()
+        c.spans = [x for x in c.spans if x not in self._background_calls(c)]
+        c.spans.append((Capture.resource('shop', 'downstream'), unlinked_client_call(name='GET /tick')))
+        self.assertOnlyFails(c, ['TR-13'])
+
+    def test_background_call_inside_a_trace_with_the_switch_off(self):
+        # it has a parent: not what the switch drops
+        c = Capture()
+        for _, s in self._background_calls(c):
+            s['parentSpanId'] = 'c' * 16
+        self.assertOnlyFails(c, ['TR-13'])
+
+    def test_background_call_without_the_obi_distro_with_the_switch_off(self):
+        # the filter matches telemetry.distro.name; a sink that never sees it
+        # would let TR-13 pass with the switch on without checking anything
+        c = Capture()
+        bare = Capture.resource('shop', 'app', distro=None)
+        c.spans = [(bare, s) if (r, s) in self._background_calls(c) else (r, s) for r, s in c.spans]
+        self.assertOnlyFails(c, ['TR-13'])
+
+    def test_background_call_reaches_the_sink_with_the_switch_on(self):
+        # what ebpf.dropUnlinkedClientCalls exists to drop got through
+        c = Capture(client_filter=True)
+        c.spans += self._background_calls(Capture())
         self.assertOnlyFails(c, ['TR-13'])
 
     def test_parentless_grpc_and_failed_calls_with_the_switch_on(self):
