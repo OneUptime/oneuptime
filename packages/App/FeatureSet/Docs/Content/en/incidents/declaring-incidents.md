@@ -217,7 +217,7 @@ The create call does more than write a row. In order:
 Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, or with `currentIncidentStateId` from the API, Terraform or a workflow — records an incident that someone is already handling, or that is already over. It is not treated as a new emergency:
 
 - **At or past your acknowledged state** — **Acknowledged**, or any state placed below it at **Incidents → Settings → Incident States** — no on-call policy runs, so no one is paged. The incident still lists its policies, the ones you picked and the ones on-call rules add, and its feed says why in one line: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Its SLA, if a rule gives it one, starts already responded to. Everything else below runs as for any new incident.
-- **In your resolved state** — **Resolved**, or whatever you have renamed it to — the incident is over, so on top of that nothing that answers a live incident runs:
+- **At or past your resolved state** — **Resolved**, or any state placed below it — the incident is over, so on top of that nothing that answers a live incident runs:
   - it is not grouped into an episode, which could page again;
   - no runbook rule and no auto-remediation rule acts on it;
   - OneUptime AI does not investigate it — its **AI Investigation** card says it was created already resolved, and **Ask OneUptime AI** below it still answers questions about it;

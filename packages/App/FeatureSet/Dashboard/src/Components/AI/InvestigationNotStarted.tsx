@@ -206,19 +206,17 @@ export function getSettingsAction(
     };
   }
 
+  /*
+   * No setting would have changed these, so there is no page to send anyone
+   * to - a record created already resolved among them: the reason's own next
+   * step says what to do.
+   */
   if (
     code === "budget_check_failed" ||
     code === "enqueue_failed" ||
-    code === "eligibility_check_failed"
+    code === "eligibility_check_failed" ||
+    code === "created_resolved"
   ) {
-    return null;
-  }
-
-  /*
-   * Created already resolved: no setting would have changed it, so there is
-   * no page to send anyone to. The reason's own next step says what to do.
-   */
-  if (code === "created_resolved") {
     return null;
   }
 

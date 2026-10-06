@@ -35,29 +35,45 @@ import {
  * status page subscribers are still told when it is shown to them: a record
  * that is already over is still news.
  *
- * Which state counts as which is what the rest of a record's life already
- * reads, so a record never starts as one thing and lives as another:
+ * Which state counts as which is the comparison OneUptime makes on the
+ * project's ordered state list (getStateListReachedBuiltIn), and what the
+ * state settings pages show as "Counts as":
  *
- *   - Resolved: the state is flagged resolved (isResolvedState) - the flag
- *     the state timelines read to stamp an episode's resolvedAt, to give an
- *     incident's monitors back, to draft its postmortem and grade its AI
- *     investigation. A state of the project's own placed after the resolved
- *     state, without the flag, is not resolved by any of those, so it is not
- *     resolved here either.
- *   - Acknowledged: any other state at or below the acknowledged state in
- *     the project's ordered list (getStateListReachedBuiltIn), or flagged
- *     acknowledged - the comparison on-call escalation makes to stop paging
- *     (isIncidentAcknowledged and the like).
+ *   - Resolved: at or below the resolved state, or flagged resolved - as
+ *     isIncidentResolved reads it for reminders, monitor edits and Slack,
+ *     and status pages for what they still show as active. A record that
+ *     starts there has no later resolve to give its monitors back or close
+ *     its SLA, so it takes neither.
+ *   - Acknowledged: at or below the acknowledged state, or flagged
+ *     acknowledged - as on-call escalation reads it to stop paging.
  *   - Open: the created state, and any state of the project's own above the
  *     acknowledged one: its record pages.
+ *
+ * A few readers look at the resolved flag alone: an episode's resolvedAt,
+ * which its create stamps exactly as its first timeline row writes it
+ * (StartingState.flaggedResolved), and the Active badges. For the project's
+ * resolved state they agree. A state of the project's own placed after it,
+ * without the flag (new states never go there: they go above it), starts
+ * resolved here and stays unresolved by the flag there - as a record moved
+ * into that state later does.
  */
 export enum StartingStage {
   // The created state, or a state before the acknowledged one.
   Open = "Open",
-  // At or past the acknowledged state, and not flagged resolved.
+  // At or past the acknowledged state, before the resolved one.
   Acknowledged = "Acknowledged",
-  // A state flagged resolved.
+  // At or past the resolved state.
   Resolved = "Resolved",
+}
+
+// Where a record starts, as one read of its project's states places it.
+export interface StartingState {
+  stage: StartingStage;
+  /*
+   * Whether the state carries the resolved flag: what an episode's first
+   * timeline row reads to stamp its resolvedAt, so what its create stamps.
+   */
+  flaggedResolved: boolean;
 }
 
 /*
@@ -68,6 +84,19 @@ export interface StartingStageCarryForward {
   startingStage: StartingStage;
 }
 
+/*
+ * How the alert and incident grouping engines may group a record
+ * (processAlert, processIncident). An episode a rule opens starts in the
+ * created state and runs its own on-call policies, and one it reopens goes
+ * back to the created state, live again, with its owners told so. Neither
+ * fits a record somebody is already on: one that pages nobody
+ * (StartingStageUtil.pagesOnCall) may only join an episode that is open.
+ */
+export interface GroupingOptions {
+  // Unset, a rule may open or reopen an episode for the record, as always.
+  mayOpenEpisode?: boolean | undefined;
+}
+
 const ACKNOWLEDGED_STATE_FLAG: string = "isAcknowledgedState";
 const RESOLVED_STATE_FLAG: string = "isResolvedState";
 
@@ -75,17 +104,17 @@ const STARTING_STAGES: Array<string> = Object.values(StartingStage);
 
 export default class StartingStageUtil {
   /*
-   * The stage a record starts at in `stateId`, read off its project's states
-   * (the models, or their JSON: id, place and the built-in flags). Null when
+   * Where a record starts in `stateId`, read off its project's states (the
+   * models, or their JSON: id, place and the built-in flags). Null when
    * `stateId` is none of them - another project's state, or no state at
    * all - so one read of the project's states both places a state and tells
    * whether the project has it.
    */
-  public static getStage(data: {
+  public static getStartingState(data: {
     definition: StateListDefinition;
     states: Array<unknown>;
     stateId: ObjectID | string;
-  }): StartingStage | null {
+  }): StartingState | null {
     const rows: Array<StateListRow> = data.states.map(
       (state: unknown): StateListRow => {
         return toStateListRow(data.definition, state);
@@ -108,9 +137,7 @@ export default class StartingStageUtil {
       return null;
     }
 
-    if (row.flags.includes(RESOLVED_STATE_FLAG)) {
-      return StartingStage.Resolved;
-    }
+    const flaggedResolved: boolean = row.flags.includes(RESOLVED_STATE_FLAG);
 
     const reached: string | null = getStateListReachedBuiltIn(
       data.definition,
@@ -118,15 +145,33 @@ export default class StartingStageUtil {
       row,
     );
 
-    if (
-      reached === ACKNOWLEDGED_STATE_FLAG ||
-      reached === RESOLVED_STATE_FLAG ||
-      row.flags.includes(ACKNOWLEDGED_STATE_FLAG)
-    ) {
-      return StartingStage.Acknowledged;
+    if (flaggedResolved || reached === RESOLVED_STATE_FLAG) {
+      return {
+        stage: StartingStage.Resolved,
+        flaggedResolved: flaggedResolved,
+      };
     }
 
-    return StartingStage.Open;
+    if (
+      reached === ACKNOWLEDGED_STATE_FLAG ||
+      row.flags.includes(ACKNOWLEDGED_STATE_FLAG)
+    ) {
+      return {
+        stage: StartingStage.Acknowledged,
+        flaggedResolved: false,
+      };
+    }
+
+    return { stage: StartingStage.Open, flaggedResolved: false };
+  }
+
+  // The stage alone (getStartingState): null for a state the list does not hold.
+  public static getStage(data: {
+    definition: StateListDefinition;
+    states: Array<unknown>;
+    stateId: ObjectID | string;
+  }): StartingStage | null {
+    return this.getStartingState(data)?.stage || null;
   }
 
   // Whether the record's on-call policies run: only one that starts open.

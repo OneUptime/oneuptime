@@ -10,7 +10,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
-import StartingStageUtil, { StartingStage } from "../../Utils/StartingStage";
+import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -219,18 +219,19 @@ export class Service extends DatabaseService<IncidentState> {
   }
 
   /*
-   * How far along an incident or an incident episode starts when it is
-   * created in `incidentStateId` (StartingStage): open, acknowledged or
-   * resolved, and so what its create sets off - no on-call from
-   * acknowledged on, nothing that answers a live problem once resolved. One
-   * read of the project's whole list, as OneUptime, which only holds the
-   * project's own states: null when `incidentStateId` is not one of them.
+   * Where an incident or an incident episode starts when it is created in
+   * `incidentStateId` (StartingStage): open, acknowledged or resolved, and
+   * so what its create sets off - no on-call from acknowledged on, nothing
+   * that answers a live problem once resolved. One read of the project's
+   * whole list, as OneUptime, which only holds the project's own states:
+   * null when `incidentStateId` is not one of them, which also checks that
+   * it is.
    */
   @CaptureSpan()
-  public async getStartingStage(data: {
+  public async getStartingState(data: {
     projectId: ObjectID;
     incidentStateId: ObjectID;
-  }): Promise<StartingStage | null> {
+  }): Promise<StartingState | null> {
     const incidentStates: Array<IncidentState> =
       await this.getAllIncidentStates({
         projectId: data.projectId,
@@ -239,7 +240,7 @@ export class Service extends DatabaseService<IncidentState> {
         },
       });
 
-    return StartingStageUtil.getStage({
+    return StartingStageUtil.getStartingState({
       definition: STATE_LISTS[StateListType.IncidentState],
       states: incidentStates,
       stateId: data.incidentStateId,

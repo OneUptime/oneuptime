@@ -310,7 +310,7 @@ describe.each(SERVICES)(
       expect(onBeforeCreate).toBeDefined();
       const text: string = onBeforeCreate!.getText(source);
 
-      expect(text).toMatch(/StateService\.getStartingStage\(/);
+      expect(text).toMatch(/StateService\.getStartingState\(/);
       expect(text).toMatch(/startingStage: startingStage/);
       // No comparison of its own: the rule lives in StartingStage.
       expect(text).not.toMatch(/\.order\b/);
@@ -544,14 +544,14 @@ describe.each(SERVICES)(
 );
 
 describe.each(["AlertEpisodeService.ts", "IncidentEpisodeService.ts"])(
-  "%s: resolvedAt follows the stage",
+  "%s: resolvedAt follows the resolved flag",
   (file: string) => {
-    test("onBeforeCreate stamps resolvedAt exactly when the episode starts resolved, with no lookup of its own", () => {
+    test("onBeforeCreate stamps resolvedAt exactly when the state is flagged resolved, as the first timeline row does, with no lookup of its own", () => {
       const source: ts.SourceFile = parse(file);
       const text: string = methodOf(source, "onBeforeCreate")!.getText(source);
 
       expect(text).toMatch(
-        /if \(startingStage === StartingStage\.Resolved\) \{\s*createBy\.data\.resolvedAt = /,
+        /if \(pickedStart\?\.flaggedResolved\) \{\s*createBy\.data\.resolvedAt = /,
       );
       expect(text).not.toMatch(/isResolved\w*State\(/);
     });

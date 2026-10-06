@@ -39,6 +39,7 @@ import IncidentTemplateService from "../../../Server/Services/IncidentTemplateSe
 import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import RunbookRuleEngineService from "../../../Server/Services/RunbookRuleEngineService";
 import UserService from "../../../Server/Services/UserService";
 import logger from "../../../Server/Utils/Logger";
@@ -101,16 +102,17 @@ jest.mock("../../../Server/Utils/Logger");
  *     and its feed says so in one line, naming the policies. A grouping rule
  *     may still put it into an episode that is open, but never opens or
  *     reopens one for it: that episode's own on-call policies would page.
- *   - Created in a resolved state (the state flagged resolved, which is
- *     what the rest of a record's life reads as resolved): also not grouped
- *     into an episode, no runbook or auto-remediation rule acts on it, no AI
- *     investigation is queued (its AI card says why, unless something
- *     stops OneUptime AI for the whole project, which it names instead), no
- *     war-room channel is opened, and an incident leaves its monitors and
- *     their monitoring alone - its first state gives them nothing back
- *     either - and starts no SLA. A state of the project's own placed after
- *     the resolved state, without the flag, is not resolved anywhere else,
- *     so here it is acknowledged.
+ *   - Created at or past the resolved state, or in a state flagged
+ *     resolved: also not grouped into an episode, no runbook or
+ *     auto-remediation rule acts on it, no AI investigation is queued (its
+ *     AI card says why, unless something stops OneUptime AI for the whole
+ *     project, which it names instead), no war-room channel is opened, and
+ *     an incident leaves its monitors and their monitoring alone - its first
+ *     state gives them nothing back either - and starts no SLA. A state of
+ *     the project's own placed after the resolved state counts as resolved
+ *     here, as isIncidentResolved and the state settings read it: nothing is
+ *     taken that no later resolve would give back. An episode's resolvedAt
+ *     still follows the flag alone, as its first timeline row writes it.
  *   - Its owners, its created feed entry, its first timeline row and its
  *     rules (privacy, owners, labels, on-call) still happen: a record that
  *     is already over is still news.
@@ -1722,41 +1724,38 @@ describe("an incident declared resolved from alerts still links and announces th
 describe.each(KINDS)(
   "an $name created in a state of the project's own placed after resolved, without the resolved flag",
   (kind: Kind) => {
-    test("is acknowledged, as everything after its create reads it: it pages nobody and says so", async () => {
+    test("counts as resolved, as the state settings and isIncidentResolved read it: it pages nobody and says so", async () => {
       const { probes, carryForward } = await create(kind, CLOSED);
 
       expect(
         (carryForward as { startingStage: StartingStage }).startingStage,
-      ).toBe(StartingStage.Acknowledged);
+      ).toBe(StartingStage.Resolved);
       expect(probes.paged).toEqual([]);
       expect(onCallNotRunLines(kind, probes)).toHaveLength(1);
       expect(
         String(onCallNotRunLines(kind, probes)[0]!["feedInfoInMarkdown"]),
-      ).toContain("was created already acknowledged");
+      ).toContain("was created already resolved");
     });
 
-    test("everything else runs as for a live record, and grouping may only join an open episode", async () => {
+    test("nothing that answers a live problem runs: nothing is taken that no later resolve would give back", async () => {
       const { probes } = await create(kind, CLOSED);
 
-      expect(probes.warRoom).toHaveLength(1);
-      expect(probes.groupingOptions).toEqual(
-        kind.has.grouping ? [{ mayOpenEpisode: false }] : [],
-      );
-      expect(probes.runbooks).toHaveLength(kind.has.runbooks ? 1 : 0);
-      expect(probes.remediated).toHaveLength(kind.has.remediation ? 1 : 0);
+      expect(probes.warRoom).toEqual([]);
+      expect(probes.grouped).toEqual([]);
+      expect(probes.runbooks).toEqual([]);
+      expect(probes.remediated).toEqual([]);
       expect(toldCreatedResolved(probes)).toEqual(
-        kind.has.investigation ? [false] : [],
+        kind.has.investigation ? [true] : [],
       );
-      expect(probes.monitorStatus).toHaveLength(kind.has.monitorStatus ? 1 : 0);
-      expect(probes.monitoringPaused).toHaveLength(
-        kind.has.monitorStatus ? 1 : 0,
-      );
+      expect(probes.monitorStatus).toEqual([]);
+      expect(probes.monitoringPaused).toEqual([]);
+      expect(probes.sla).toEqual([]);
       expect(probes.firstRows).toEqual([CLOSED]);
       expect(chainErrors()).toEqual([]);
     });
 
     if (kind === ALERT_EPISODE || kind === INCIDENT_EPISODE) {
-      test("an episode in it is not resolved from the moment it exists: no resolvedAt, whatever the write sent", async () => {
+      test("an episode in it gets no resolvedAt, whatever the write sent: its first timeline row reads the flag alone and would write none", async () => {
         const { record } = await create(kind, CLOSED, [PRIMARY_POLICY_ID], {
           values: { resolvedAt: new Date("2026-10-01T00:00:00.000Z") },
         });
@@ -1807,13 +1806,18 @@ describe("an incident's first state gives its monitors nothing back only when it
     expect(probes.firstRowNeverHeld).toEqual([true]);
   });
 
+  test("created in a state of its own after resolved: the same, it never held them", async () => {
+    const { probes } = await create(INCIDENT, CLOSED);
+
+    expect(probes.firstRowNeverHeld).toEqual([true]);
+  });
+
   test.each([
     ["no state picked", null],
     ["the created state", CREATED],
     ["a state before acknowledged", INVESTIGATING],
     ["the acknowledged state", ACKNOWLEDGED],
     ["a state after acknowledged", MONITORING],
-    ["a state of its own after resolved, without the flag", CLOSED],
   ] as Array<[string, string | null]>)(
     "%s: it holds its monitors, so a resolve gives them back as always",
     async (_name: string, state: string | null) => {
@@ -1909,6 +1913,68 @@ describe("an incident's picked state, or its template's, is read once - where it
     expect(stateReads).toBe(1);
   });
 });
+
+/*
+ * The state a create picks is checked by the one read that places it: that
+ * read holds only the project's own states. A state it finds is not sent to
+ * the shared reference check as well; one it does not find is, so it is
+ * refused with the record's other references and in the same words (pinned
+ * in InitialStateHonoured.test.ts).
+ */
+describe.each(KINDS)(
+  "an $name: the state picked is checked by the read that places it",
+  (kind: Kind) => {
+    const stateTitle: string =
+      kind.idColumn === "currentAlertStateId"
+        ? "Alert State"
+        : "Incident State";
+
+    async function checkedModels(state: string | null): Promise<Array<string>> {
+      const checked: Array<string> = [];
+      const check: (data: {
+        references: Array<{ modelName: string }>;
+      }) => Promise<void> =
+        ProjectScopedReferenceValidator.validateReferencesBelongToProject.bind(
+          ProjectScopedReferenceValidator,
+        ) as unknown as (data: {
+          references: Array<{ modelName: string }>;
+        }) => Promise<void>;
+
+      await create(kind, state, [PRIMARY_POLICY_ID], {
+        extraStubs: () => {
+          jest
+            .spyOn(
+              ProjectScopedReferenceValidator,
+              "validateReferencesBelongToProject",
+            )
+            .mockImplementation((async (data: {
+              references: Array<{ modelName: string }>;
+            }): Promise<void> => {
+              for (const reference of data.references) {
+                checked.push(reference.modelName);
+              }
+              return check(data);
+            }) as never);
+        },
+      });
+
+      return checked;
+    }
+
+    test.each([
+      ["the acknowledged state", ACKNOWLEDGED],
+      ["the resolved state", RESOLVED],
+    ] as Array<[string, string]>)(
+      "%s, the project's own: read once, and not checked again",
+      async (_name: string, state: string) => {
+        const checked: Array<string> = await checkedModels(state);
+
+        expect(checked).not.toContain(stateTitle);
+        expect(stateListReads).toBe(1);
+      },
+    );
+  },
+);
 
 describe("a live record still pages every policy, its rules' included", () => {
   test.each([

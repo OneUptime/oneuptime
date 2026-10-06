@@ -106,6 +106,7 @@ import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
   StartingStage,
   StartingStageCarryForward,
+  StartingState,
 } from "../../Utils/StartingStage";
 
 /*
@@ -704,17 +705,23 @@ export class Service extends ProjectReferencesService<Model> {
    * write names, each by both of its names (getWrittenRelationReferences):
    * every name that holds an id is a reference to check, and two names that
    * disagree are refused. On a create, the state is the one the write
-   * picked, if any (onBeforeCreate).
+   * picked, if any, and only when where it starts did not already find it
+   * among the project's states (onBeforeCreate).
    */
-  private getWrittenReferences(data: unknown): Array<ProjectScopedReference> {
+  private getWrittenReferences(
+    data: unknown,
+    options: { withState: boolean } = { withState: true },
+  ): Array<ProjectScopedReference> {
     return [
-      ...getWrittenRelationReferences({
-        payload: data,
-        idColumn: "currentAlertStateId",
-        relation: "currentAlertState",
-        modelName: "Alert State",
-        service: AlertStateService,
-      }),
+      ...(options.withState
+        ? getWrittenRelationReferences({
+            payload: data,
+            idColumn: "currentAlertStateId",
+            relation: "currentAlertState",
+            modelName: "Alert State",
+            service: AlertStateService,
+          })
+        : []),
       ...getWrittenRelationReferences({
         payload: data,
         idColumn: "alertSeverityId",
@@ -807,16 +814,36 @@ export class Service extends ProjectReferencesService<Model> {
      * The state the alert starts in, when the write picks one: the Create
      * Alert form's Initial State sends the relation, the API, Terraform and
      * workflows the ID column. Either name, and the two must agree. The pick
-     * is checked against the project with the alert's other references
-     * below, so a state of another project is refused like any of them.
-     * With none picked, the alert starts in the project's created state,
-     * where every alert a monitor raises starts.
+     * is checked against the project below, and a state of another project
+     * is refused like any of the alert's other references. With none
+     * picked, the alert starts in the project's created state, where every
+     * alert a monitor raises starts.
      */
     const pickedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
       createData,
       ALERT_STATE_KEYS,
       "Alert State",
     );
+
+    /*
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * alert recorded already acknowledged pages nobody, and one recorded
+     * resolved also sets off nothing that answers a live problem. The read
+     * holds only the project's own states, so it also checks the state
+     * picked: one it finds needs no other check below. With none picked the
+     * alert starts in the created state - open, as every alert a monitor
+     * raises - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedAlertStateId
+      ? await AlertStateService.getStartingState({
+          projectId: projectId,
+          alertStateId: pickedAlertStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
 
     /*
      * The state picked, the severity and the monitor status stamped on the
@@ -840,10 +867,15 @@ export class Service extends ProjectReferencesService<Model> {
       subject: "alert",
       references: [
         /*
-         * The state as the write picked it, if it did: the created state
-         * stamped below is the project's own and needs no check.
+         * The state as the write picked it, unless the read above found it
+         * among the project's states: one it did not find is refused here,
+         * with the alert's other references and in the same words. The
+         * created state stamped below is the project's own and needs no
+         * check.
          */
-        ...this.getWrittenReferences(createBy.data),
+        ...this.getWrittenReferences(createBy.data, {
+          withState: !pickedStart,
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -865,24 +897,6 @@ export class Service extends ProjectReferencesService<Model> {
         serviceLevelObjectives: createBy.data.serviceLevelObjectives,
       },
     );
-
-    /*
-     * How far along it starts (StartingStage): read once, here, and handed
-     * to onCreateSuccess, which decides on it what the create sets off. An
-     * alert recorded already acknowledged pages nobody, and one recorded
-     * resolved also sets off nothing that answers a live problem. The state
-     * picked was checked against the project above, with the alert's other
-     * references. With none picked it starts in the created state - open, as
-     * every alert a monitor raises - and there is nothing to read.
-     */
-    const pickedStage: StartingStage | null = pickedAlertStateId
-      ? await AlertStateService.getStartingStage({
-          projectId: projectId,
-          alertStateId: pickedAlertStateId,
-        })
-      : null;
-
-    const startingStage: StartingStage = pickedStage || StartingStage.Open;
 
     /*
      * The state it starts in, under the ID column alone: stamp leaves no

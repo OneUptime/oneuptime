@@ -160,7 +160,7 @@ A chamada de criação faz bem mais do que gravar uma linha. Em ordem:
 5. **Regras de rótulos rodam**, adicionando os rótulos que correspondem ao incidente.
 6. **Regras de plantão rodam.** Toda regra habilitada em **Incidentes → Regras → Regras de Plantão** cujos critérios correspondam soma suas políticas ao incidente. Não há ordem de prioridade nem curto-circuito — todas as regras correspondentes disparam e as políticas são deduplicadas.
 7. **Regras de runbook rodam**, anexando e iniciando os runbooks correspondentes. Veja [Runbooks](/docs/runbooks/index).
-8. **Políticas de plantão são executadas.** Toda política no incidente — escolhida no assistente, herdada de um modelo, ou adicionada por uma regra — é executada em paralelo com o tipo de evento `IncidentCreated`. Uma política falhar não interrompe as demais.
+8. **Políticas de plantão são executadas.** Toda política no incidente — escolhida no assistente, herdada de um modelo, ou adicionada por uma regra — é executada em paralelo com o tipo de evento `IncidentCreated`. Uma política falhar não interrompe as demais. Um incidente declarado já confirmado ou resolvido não executa nenhuma delas: ninguém é acionado, e o feed dele informa isso, citando-as.
 9. **Assinantes entram na fila**, se **Notificar assinantes da página de status** tiver ficado ativado e o incidente estiver visível na página de status. A entrega fica a cargo de um job em segundo plano, não da sua requisição.
 10. **Workflows disparam.** O gatilho **On Create Incident** inicia qualquer workflow construído sobre ele. Veja [Visão geral dos workflows](/docs/workflows/index).
 

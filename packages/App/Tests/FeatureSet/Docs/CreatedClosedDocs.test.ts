@@ -85,16 +85,14 @@ describe("the declare page says what a create in a later state sets off", () => 
     expect(text).toContain(`_${written}_`);
   });
 
-  test("in the resolved state: nothing that answers a live incident runs", () => {
-    expect(text).toContain(
-      "**In your resolved state** — **Resolved**, or whatever you have renamed it to",
-    );
+  test("at or past resolved: nothing that answers a live incident runs", () => {
     /*
-     * Only the resolved state itself is resolved: a state placed below it
-     * without the flag is covered by the acknowledged bullet, as the
-     * server's StartingStage reads it.
+     * A state placed below the resolved one counts as resolved too, as the
+     * server's StartingStage and the state settings' Counts as read it.
      */
-    expect(text).not.toContain("**At or past your resolved state**");
+    expect(text).toContain(
+      "**At or past your resolved state** — **Resolved**, or any state placed below it",
+    );
 
     for (const sentence of [
       "it is not grouped into an episode",
@@ -160,9 +158,10 @@ describe("the Persian declare page keeps the section in step", () => {
     expect(page.split(inPageLink).length - 1).toBeGreaterThanOrEqual(3);
   });
 
-  test("it names the resolved state itself, not every state after it, as the English does", () => {
-    expect(text).toContain("**در وضعیت برطرف‌شده پروژه‌تان** — **Resolved**");
-    expect(text).not.toContain("**در وضعیت برطرف‌شده پروژه‌تان یا پس از آن**");
+  test("it names the resolved state and every state below it, as the English does", () => {
+    expect(text).toContain(
+      "**در وضعیت برطرف‌شده پروژه‌تان یا پس از آن** — **Resolved**",
+    );
   });
 });
 
@@ -230,5 +229,135 @@ describe("the other pages a reader checks", () => {
     );
     expect(text).toContain("Records created in the created state");
     expect(text).toContain(EN_LINK);
+  });
+});
+
+/*
+ * The escalation rules page is kept in step in every docs language, so each
+ * says it too: its own paragraph, right after the one that walks Level 1,
+ * Level 2 and the repeat - not inside it. The declare page's on-call step
+ * says it in the languages whose page has no section on it yet; English and
+ * Persian link to their section from there.
+ */
+const ESCALATION_SENTENCES: Record<string, string> = {
+  en: "An incident, alert or episode that is created already acknowledged or resolved — recorded after the fact — runs none of its policies: no one is paged, and its feed says so, naming them.",
+  fa: "رخداد، هشدار یا اپیزودی که از پیش تأییدشده یا برطرف‌شده ساخته شود — یعنی پس از رخ دادن ثبت شود — هیچ‌کدام از سیاست‌هایش را اجرا نمی‌کند: کسی خبر نمی‌شود، و فید آن با نام بردن از آن‌ها همین را می‌گوید.",
+  da: "En hændelse, en advarsel eller en episode, der oprettes allerede bekræftet eller løst — registreret bagefter — udfører ingen af sine politikker: ingen tilkaldes, og dens feed siger det og nævner dem ved navn.",
+  de: "Ein Vorfall, eine Warnung oder eine Episode, die bereits bestätigt oder behoben erstellt wird – also nachträglich erfasst –, führt keine ihrer Richtlinien aus: Niemand wird alarmiert, und ihr Feed vermerkt das und nennt die Richtlinien.",
+  es: "Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto —registrado a posteriori— no ejecuta ninguna de sus políticas: no se avisa a nadie, y su feed lo indica, nombrándolas.",
+  fr: "Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu — enregistré après coup — n'exécute aucune de ses politiques : personne n'est alerté, et son fil d'activité l'indique en les nommant.",
+  hi: "जो घटना, अलर्ट या एपिसोड पहले से स्वीकार की गई या सुलझाई गई स्थिति में बनाया जाता है — यानी बाद में दर्ज किया जाता है — वह अपनी कोई भी नीति नहीं चलाता: किसी को पेज नहीं किया जाता, और उसका feed नीतियों के नाम के साथ यही बताता है।",
+  it: "Un incidente, un avviso o un episodio creato già riconosciuto o risolto — registrato a posteriori — non esegue nessuna delle sue policy: nessuno viene avvisato, e il suo feed lo indica nominandole.",
+  ja: "すでに確認済みまたは解決済みの状態で作成されたインシデント、アラート、エピソード（後から記録したもの）は、どのポリシーも実行しません。誰も呼び出されず、そのフィードにポリシー名とともにその旨が記録されます。",
+  ko: "이미 인지됨 또는 해결됨 상태로 생성된 인시던트, 알림, 에피소드(사후에 기록한 것)는 어떤 정책도 실행하지 않습니다. 아무도 호출되지 않으며, 피드에 정책 이름과 함께 그 사실이 남습니다.",
+  nl: "Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt — achteraf vastgelegd — voert geen enkel beleid uit: niemand wordt opgeroepen, en de feed meldt dat, met de namen van het beleid erbij.",
+  no: "En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn.",
+  pt: "Um incidente, alerta ou episódio criado já confirmado ou resolvido — registrado depois do fato — não executa nenhuma de suas políticas: ninguém é acionado, e o feed dele informa isso, citando-as.",
+  ru: "Инцидент, оповещение или эпизод, созданные уже подтверждёнными или устранёнными, — то есть записанные задним числом, — не запускают ни одной своей политики: никого не оповещают, а их Feed сообщает об этом и называет эти политики.",
+  sv: "En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn.",
+  "zh-CN":
+    "以已确认或已解决状态创建的事件、告警或片段（即事后补录的）不会执行任何策略：不会呼叫任何人，其 Feed 会记录这一点并列出这些策略。",
+  "zh-TW":
+    "以已確認或已解決狀態建立的事件、警示或片段（即事後補登的）不會執行任何策略：不會呼叫任何人，其 Feed 會記下這一點並列出這些策略。",
+};
+
+describe("the escalation rules page says it in every docs language, in a paragraph of its own", () => {
+  test("every docs language has a sentence for it", () => {
+    const languages: Array<string> = fs
+      .readdirSync(CONTENT_DIR)
+      .filter((language: string): boolean => {
+        return fs.existsSync(
+          path.join(CONTENT_DIR, language, "on-call/escalation-rules.md"),
+        );
+      })
+      .sort();
+
+    expect(languages).toEqual(Object.keys(ESCALATION_SENTENCES).sort());
+  });
+
+  test.each(Object.keys(ESCALATION_SENTENCES))(
+    "%s: right after the levels paragraph, not inside it",
+    (language: string) => {
+      const lines: Array<string> = read(
+        language,
+        "on-call/escalation-rules",
+      ).split("\n");
+
+      /*
+       * The levels paragraph opens the page's third section ("How the levels
+       * page people"), whose outline every language keeps.
+       */
+      const headings: Array<number> = lines
+        .map((line: string, index: number): number => {
+          return line.startsWith("## ") ? index : -1;
+        })
+        .filter((index: number): boolean => {
+          return index >= 0;
+        });
+      const levels: number = headings[2]! + 2;
+
+      expect(lines[levels]).toContain("**Level 1**");
+      expect(lines[levels]).toContain("**Level 2**");
+      expect(lines[levels]).not.toContain(ESCALATION_SENTENCES[language]!);
+      expect(lines[levels + 1]).toBe("");
+      expect(
+        lines[levels + 2]!.startsWith(ESCALATION_SENTENCES[language]!),
+      ).toBe(true);
+    },
+  );
+
+  test("English and Persian link to their section; the others, whose declare page has no section yet, do not", () => {
+    for (const language of Object.keys(ESCALATION_SENTENCES)) {
+      const page: string = read(language, "on-call/escalation-rules");
+
+      if (language === "en") {
+        expect(page).toContain(`${ESCALATION_SENTENCES["en"]!} See [`);
+        expect(page).toContain(EN_LINK);
+      } else if (language === "fa") {
+        expect(page).toContain(
+          `(/docs/incidents/declaring-incidents#${anchorOf(FA_HEADING)})`,
+        );
+      } else {
+        expect(page).not.toContain(
+          "#declared-already-acknowledged-or-resolved",
+        );
+      }
+    }
+  });
+});
+
+describe("the declare page's on-call step says it in every docs language", () => {
+  test.each(
+    fs
+      .readdirSync(CONTENT_DIR)
+      .filter((language: string): boolean => {
+        return fs.existsSync(
+          path.join(CONTENT_DIR, language, `${DECLARING}.md`),
+        );
+      })
+      .sort(),
+  )("%s", (language: string) => {
+    const step: string | undefined = read(language, DECLARING)
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("8. ") && line.includes("`IncidentCreated`");
+      });
+
+    expect(step).toBeDefined();
+
+    // The step's own words before, the new sentence after: one more sentence.
+    const sentences: number = step!
+      .split(/[.。।:：؛]\s*/)
+      .filter((part: string): boolean => {
+        return part.trim().length > 0;
+      }).length;
+
+    expect(sentences).toBeGreaterThan(3);
+
+    if (language === "en") {
+      expect(step).toContain(
+        "An incident declared already acknowledged or resolved runs none of them",
+      );
+    }
   });
 });

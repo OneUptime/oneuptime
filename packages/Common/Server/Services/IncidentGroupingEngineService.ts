@@ -35,6 +35,7 @@ import { Green500 } from "../../Types/BrandColors";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 export interface GroupingResult {
@@ -42,18 +43,6 @@ export interface GroupingResult {
   episodeId?: ObjectID;
   isNewEpisode?: boolean;
   wasReopened?: boolean;
-}
-
-/*
- * How the record may be grouped. An episode a rule opens starts in the
- * created state and runs its own on-call policies, and one it reopens goes
- * back to the created state, live again, with its owners told so. Neither
- * fits a record somebody is already on (one created already acknowledged,
- * Common/Utils/StartingStage): it may only join an episode that is open.
- */
-export interface GroupingOptions {
-  // Unset, a rule may open or reopen an episode for the record, as always.
-  mayOpenEpisode?: boolean | undefined;
 }
 
 type ReplaceAllLiterallyFunction = (

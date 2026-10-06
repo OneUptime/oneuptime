@@ -160,7 +160,7 @@ Opprettelseskallet gjør mer enn å skrive en rad. I rekkefølge:
 5. **Etikettregler kjører**, og legger til etikettene som passer hendelsen.
 6. **Vaktregler kjører.** Hver aktivert regel på **Hendelser → Regler → Vaktregler** hvis kriterier treffer, legger sine policyer på hendelsen. Det finnes ingen prioritetsrekkefølge og ingen kortslutning — alle regler som treffer utløses, og policyene dedupliseres.
 7. **Runbook-regler kjører**, og knytter til og starter runbooks som treffer. Se [Runbooks](/docs/runbooks/index).
-8. **Vaktpolicyer kjøres.** Hver policy på hendelsen — valgt i veiviseren, arvet fra en mal, eller lagt til av en regel — kjøres parallelt med hendelsestypen `IncidentCreated`. At én policy feiler, stopper ikke de andre.
+8. **Vaktpolicyer kjøres.** Hver policy på hendelsen — valgt i veiviseren, arvet fra en mal, eller lagt til av en regel — kjøres parallelt med hendelsestypen `IncidentCreated`. At én policy feiler, stopper ikke de andre. En hendelse som erklæres allerede bekreftet eller løst, kjører ingen av dem: ingen varsles, og feeden sier det og nevner dem ved navn.
 9. **Abonnenter køes**, hvis **Varsle statussideabonnenter** ble stående på og hendelsen er synlig på statussiden. Utsendelsen håndteres av en bakgrunnsjobb, ikke inline med forespørselen din.
 10. **Arbeidsflyter utløses.** Triggeren **On Create Incident** starter enhver arbeidsflyt som er bygget på den. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 

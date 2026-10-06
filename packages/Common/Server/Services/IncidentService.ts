@@ -165,6 +165,7 @@ import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
   StartingStage,
   StartingStageCarryForward,
+  StartingState,
 } from "../../Utils/StartingStage";
 
 /*
@@ -2406,12 +2407,15 @@ export class Service extends ProjectReferencesService<Model> {
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
     /*
-     * How far along the incident starts (StartingStage), read with the state
-     * it starts in: one read of the project's states both places a picked
+     * Where the incident starts (StartingStage), read with the state it
+     * starts in: one read of the project's states both places a picked
      * state, or a template's, and tells whether it is the project's own.
      * Open for the created state, where it starts when neither names one.
      */
     let startingStage: StartingStage = StartingStage.Open;
+
+    // Whether that read found the state among the project's own.
+    let isStatePlacedByStartingRead: boolean = false;
 
     // Declared from a template whose status pages were all deleted.
     let isScopedToNothingByTemplate: boolean = false;
@@ -2442,19 +2446,20 @@ export class Service extends ProjectReferencesService<Model> {
       initialIncidentStateId = pickedIncidentStateId;
 
       // It has to be one of the project's states.
-      const pickedStage: StartingStage | null =
-        await IncidentStateService.getStartingStage({
+      const pickedStart: StartingState | null =
+        await IncidentStateService.getStartingState({
           projectId: projectId,
           incidentStateId: pickedIncidentStateId,
         });
 
-      if (!pickedStage) {
+      if (!pickedStart) {
         throw new BadDataException(
           "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
 
-      startingStage = pickedStage;
+      startingStage = pickedStart.stage;
+      isStatePlacedByStartingRead = true;
     } else if (incidentTemplateId) {
       /*
        * Created from a template — pull every field we may want to
@@ -2501,15 +2506,16 @@ export class Service extends ProjectReferencesService<Model> {
          * One deleted since, or never the project's, leaves the incident to
          * start in the created state.
          */
-        const templateStage: StartingStage | null =
-          await IncidentStateService.getStartingStage({
+        const templateStart: StartingState | null =
+          await IncidentStateService.getStartingState({
             projectId: projectId,
             incidentStateId: incidentTemplate.initialIncidentStateId,
           });
 
-        if (templateStage) {
+        if (templateStart) {
           initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-          startingStage = templateStage;
+          startingStage = templateStart.stage;
+          isStatePlacedByStartingRead = true;
         }
       }
 
@@ -2726,11 +2732,19 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       subject: "incident",
       references: [
-        {
-          modelName: "Incident State",
-          id: initialIncidentStateId,
-          service: IncidentStateService,
-        },
+        /*
+         * The state it starts in - unless the read of where it starts found
+         * it among the project's states: a state picked or a template's.
+         */
+        ...(isStatePlacedByStartingRead
+          ? []
+          : [
+              {
+                modelName: "Incident State",
+                id: initialIncidentStateId,
+                service: IncidentStateService,
+              },
+            ]),
         ...getWrittenRelationReferences({
           payload: createBy.data,
           idColumn: "incidentSeverityId",

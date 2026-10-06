@@ -260,9 +260,10 @@ beforeEach(() => {
    * the incident sets off what any new one does (StartingStage has its own
    * suite, CreatedClosedNoAutomations).
    */
-  jest
-    .spyOn(IncidentStateService, "getStartingStage")
-    .mockResolvedValue(StartingStage.Open as never);
+  jest.spyOn(IncidentStateService, "getStartingState").mockResolvedValue({
+    stage: StartingStage.Open,
+    flaggedResolved: false,
+  } as never);
   jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
     .mockResolvedValue(undefined as never);

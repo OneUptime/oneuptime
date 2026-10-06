@@ -6,7 +6,10 @@ import {
   StateListDefinition,
   StateListType,
 } from "../../Utils/StateOrder";
-import StartingStageUtil, { StartingStage } from "../../Utils/StartingStage";
+import StartingStageUtil, {
+  StartingStage,
+  StartingState,
+} from "../../Utils/StartingStage";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -16,15 +19,18 @@ import { describe, expect, test } from "@jest/globals";
  * acknowledged pages nobody; one that starts resolved also sets off nothing
  * that answers a live problem.
  *
- * Each is what the rest of a record's life reads, so a record never starts
- * as one thing and lives as another:
+ * Each is the comparison OneUptime makes on the project's ordered state
+ * list (getStateListReachedBuiltIn) - its place, not its name - and what the
+ * state settings pages show as "Counts as":
  *
- *   - resolved is the state's resolved flag, which the state timelines read
- *     to stamp an episode's resolvedAt, to give an incident's monitors back,
- *     to draft its postmortem and grade its AI investigation;
- *   - acknowledged is any other state at or below the acknowledged state in
- *     the project's order (getStateListReachedBuiltIn), as on-call
- *     escalation reads it to stop paging - its place, not its name.
+ *   - resolved: at or below the resolved state, or flagged resolved, as
+ *     isIncidentResolved reads it for reminders, monitor edits and Slack;
+ *   - acknowledged: at or below the acknowledged state, or flagged
+ *     acknowledged, as on-call escalation reads it to stop paging.
+ *
+ * Alongside the stage it says whether the state carries the resolved flag
+ * (flaggedResolved): what an episode's first timeline row reads to stamp its
+ * resolvedAt, and so what its create stamps.
  */
 
 const INCIDENT_STATES: StateListDefinition =
@@ -81,7 +87,7 @@ function stageOf(
   });
 }
 
-describe("StartingStageUtil.getStage - where a record starts, by its state's flag and place", () => {
+describe("StartingStageUtil.getStage - where a record starts, by its state's place", () => {
   test.each([
     [
       "a state the project put above the created state",
@@ -102,8 +108,8 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
     ],
     ["the resolved state", StartingStage.Resolved, RESOLVED],
     [
-      "a state the project put after resolved, without the resolved flag,",
-      StartingStage.Acknowledged,
+      "a state the project put after resolved, which counts as resolved,",
+      StartingStage.Resolved,
       POSTMORTEM,
     ],
   ] as Array<[string, StartingStage, string]>)(
@@ -120,7 +126,7 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
     );
     expect(stageOf(RESOLVED, ROWS, ALERT_STATES)).toBe(StartingStage.Resolved);
     expect(stageOf(POSTMORTEM, ROWS, ALERT_STATES)).toBe(
-      StartingStage.Acknowledged,
+      StartingStage.Resolved,
     );
   });
 
@@ -138,7 +144,7 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
     expect(stageOf(MITIGATED, shuffled)).toBe(StartingStage.Acknowledged);
     expect(stageOf(INVESTIGATING, shuffled)).toBe(StartingStage.Open);
     expect(stageOf(RESOLVED, shuffled)).toBe(StartingStage.Resolved);
-    expect(stageOf(POSTMORTEM, shuffled)).toBe(StartingStage.Acknowledged);
+    expect(stageOf(POSTMORTEM, shuffled)).toBe(StartingStage.Resolved);
   });
 
   test("gaps in the numbering change nothing", () => {
@@ -185,11 +191,12 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
     expect(stageOf("   ", withoutId)).toBeNull();
   });
 
-  test("only the resolved flag makes a state resolved, wherever it sits", () => {
+  test("the resolved flag makes a state resolved wherever it sits", () => {
     /*
      * The resolved state dragged above acknowledged (the settings page
      * refuses that order, but a list read from the database is taken as it
-     * is): still resolved, and the acknowledged state below it acknowledged.
+     * is): still resolved by its flag. The acknowledged state below it sits
+     * past the resolved state, so it counts as resolved too.
      */
     const resolvedFirst: Array<Row> = [
       { _id: IDENTIFIED, name: "Identified", order: 1, isCreatedState: true },
@@ -203,9 +210,7 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
     ];
 
     expect(stageOf(RESOLVED, resolvedFirst)).toBe(StartingStage.Resolved);
-    expect(stageOf(ACKNOWLEDGED, resolvedFirst)).toBe(
-      StartingStage.Acknowledged,
-    );
+    expect(stageOf(ACKNOWLEDGED, resolvedFirst)).toBe(StartingStage.Resolved);
   });
 
   test("a state flagged both acknowledged and resolved is resolved", () => {
@@ -216,15 +221,16 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
     expect(stageOf(ACKNOWLEDGED, both)).toBe(StartingStage.Resolved);
   });
 
-  test("with two states flagged resolved, each is resolved and a state of the project's own between them is acknowledged", () => {
+  test("with two states flagged resolved, the first one from the top is the resolved state: everything from it down is resolved", () => {
     const twice: Array<Row> = [
       ...ROWS,
       { _id: ELSEWHERE, name: "Closed", order: 8, isResolvedState: true },
     ];
 
     expect(stageOf(RESOLVED, twice)).toBe(StartingStage.Resolved);
-    expect(stageOf(POSTMORTEM, twice)).toBe(StartingStage.Acknowledged);
+    expect(stageOf(POSTMORTEM, twice)).toBe(StartingStage.Resolved);
     expect(stageOf(ELSEWHERE, twice)).toBe(StartingStage.Resolved);
+    expect(stageOf(MITIGATED, twice)).toBe(StartingStage.Acknowledged);
   });
 
   test("the id is read in any letter case, as an ObjectID or a string", () => {
@@ -313,6 +319,65 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
 
     expect(stageOf(TRIAGE, twice)).toBe(StartingStage.Acknowledged);
     expect(stageOf(IDENTIFIED, twice)).toBe(StartingStage.Open);
+  });
+});
+
+describe("StartingStageUtil.getStartingState - the stage, and whether the state is flagged resolved", () => {
+  function startOf(
+    stateId: string,
+    rows: Array<unknown> = ROWS,
+  ): StartingState | null {
+    return StartingStageUtil.getStartingState({
+      definition: INCIDENT_STATES,
+      states: rows,
+      stateId: stateId,
+    });
+  }
+
+  test.each([
+    ["the created state", IDENTIFIED, StartingStage.Open, false],
+    ["the acknowledged state", ACKNOWLEDGED, StartingStage.Acknowledged, false],
+    [
+      "a state of its own between acknowledged and resolved",
+      MITIGATED,
+      StartingStage.Acknowledged,
+      false,
+    ],
+    ["the resolved state", RESOLVED, StartingStage.Resolved, true],
+    /*
+     * Resolved by its place, but not flagged: an episode's first timeline
+     * row writes no resolvedAt for it, so its create stamps none either.
+     */
+    [
+      "a state of its own placed after resolved",
+      POSTMORTEM,
+      StartingStage.Resolved,
+      false,
+    ],
+  ] as Array<[string, string, StartingStage, boolean]>)(
+    "%s: %s, flagged resolved %s",
+    (
+      _name: string,
+      stateId: string,
+      stage: StartingStage,
+      flaggedResolved: boolean,
+    ) => {
+      expect(startOf(stateId)).toEqual({
+        stage: stage,
+        flaggedResolved: flaggedResolved,
+      });
+    },
+  );
+
+  test("a state the list does not hold has none", () => {
+    expect(startOf(ELSEWHERE)).toBeNull();
+    expect(startOf(RESOLVED, [])).toBeNull();
+  });
+
+  test("getStage is the stage of getStartingState, for every row", () => {
+    for (const row of ROWS) {
+      expect(stageOf(row._id)).toBe(startOf(row._id)!.stage);
+    }
   });
 });
 

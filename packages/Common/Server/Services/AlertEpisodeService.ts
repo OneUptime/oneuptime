@@ -64,6 +64,7 @@ import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
 import StartingStageUtil, {
   StartingStage,
   StartingStageCarryForward,
+  StartingState,
 } from "../../Utils/StartingStage";
 
 /*
@@ -202,21 +203,42 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * The state picked, if any, and the severity: a state or a severity of
-     * another project is refused, with the same words as one that does not
-     * exist, before a number is used.
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * episode recorded already acknowledged pages nobody, and one recorded
+     * resolved opens no channel either. The read holds only the project's
+     * own states, so it also checks the state picked. With none picked the
+     * episode starts in the created state - open, as every episode a
+     * grouping rule opens - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedAlertStateId
+      ? await AlertStateService.getStartingState({
+          projectId: projectId,
+          alertStateId: pickedAlertStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
+
+    /*
+     * The state picked, unless the read above found it, and the severity: a
+     * state or a severity of another project is refused, with the same
+     * words as one that does not exist, before a number is used.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "alert episode",
       references: [
-        ...getWrittenRelationReferences({
-          payload: createBy.data,
-          idColumn: "currentAlertStateId",
-          relation: "currentAlertState",
-          modelName: "Alert State",
-          service: AlertStateService,
-        }),
+        ...(pickedStart
+          ? []
+          : getWrittenRelationReferences({
+              payload: createBy.data,
+              idColumn: "currentAlertStateId",
+              relation: "currentAlertState",
+              modelName: "Alert State",
+              service: AlertStateService,
+            })),
         ...getWrittenRelationReferences({
           payload: createBy.data,
           idColumn: "alertSeverityId",
@@ -242,28 +264,10 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * How far along it starts (StartingStage): read once, here, and handed
-     * to onCreateSuccess, which decides on it what the create sets off. An
-     * episode recorded already acknowledged pages nobody, and one recorded
-     * resolved opens no channel either. The state picked was checked against
-     * the project above, with the severity. With none picked it starts in
-     * the created state - open, as every episode a grouping rule opens - and
-     * there is nothing to read.
-     */
-    const pickedStage: StartingStage | null = pickedAlertStateId
-      ? await AlertStateService.getStartingStage({
-          projectId: projectId,
-          alertStateId: pickedAlertStateId,
-        })
-      : null;
-
-    const startingStage: StartingStage = pickedStage || StartingStage.Open;
-
-    /*
-     * resolvedAt follows the state the episode starts in, as its first
-     * timeline row writes it (AlertEpisodeStateTimelineService): set for a
-     * state flagged resolved - which is what starts it resolved. One
-     * recorded as already resolved is resolved from the moment it exists:
+     * resolvedAt follows the state the episode starts in exactly as its
+     * first timeline row writes it (AlertEpisodeStateTimelineService): set
+     * for a state flagged resolved. One recorded as already resolved is
+     * resolved from the moment it exists:
      * grouping, auto-resolve and the unresolved episode lists read
      * resolvedAt, which the first timeline row would otherwise set only once
      * onCreateSuccess reaches it, after the workspace channels - and sets
@@ -271,7 +275,7 @@ export class Service extends ProjectReferencesService<Model> {
      * yet, whatever the write sent: the first timeline row would clear it
      * anyway.
      */
-    if (startingStage === StartingStage.Resolved) {
+    if (pickedStart?.flaggedResolved) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];

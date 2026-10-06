@@ -119,12 +119,14 @@ beforeEach(() => {
    * create sets off (StartingStage), not which name of the state is kept:
    * open here.
    */
-  jest
-    .spyOn(IncidentStateService, "getStartingStage")
-    .mockResolvedValue(StartingStage.Open as never);
-  jest
-    .spyOn(AlertStateService, "getStartingStage")
-    .mockResolvedValue(StartingStage.Open as never);
+  jest.spyOn(IncidentStateService, "getStartingState").mockResolvedValue({
+    stage: StartingStage.Open,
+    flaggedResolved: false,
+  } as never);
+  jest.spyOn(AlertStateService, "getStartingState").mockResolvedValue({
+    stage: StartingStage.Open,
+    flaggedResolved: false,
+  } as never);
 
   jest
     .spyOn(CustomFieldMappingService, "restampAfterMultiRowUpdate")

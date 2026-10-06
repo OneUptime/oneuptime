@@ -10,7 +10,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
-import StartingStageUtil, { StartingStage } from "../../Utils/StartingStage";
+import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -212,18 +212,18 @@ export class Service extends DatabaseService<AlertState> {
   }
 
   /*
-   * How far along an alert or an alert episode starts when it is created in
+   * Where an alert or an alert episode starts when it is created in
    * `alertStateId` (StartingStage): open, acknowledged or resolved, and so
    * what its create sets off - no on-call from acknowledged on, nothing that
    * answers a live problem once resolved. One read of the project's whole
    * list, as OneUptime, which only holds the project's own states: null
-   * when `alertStateId` is not one of them.
+   * when `alertStateId` is not one of them, which also checks that it is.
    */
   @CaptureSpan()
-  public async getStartingStage(data: {
+  public async getStartingState(data: {
     projectId: ObjectID;
     alertStateId: ObjectID;
-  }): Promise<StartingStage | null> {
+  }): Promise<StartingState | null> {
     const alertStates: Array<AlertState> = await this.getAllAlertStates({
       projectId: data.projectId,
       props: {
@@ -231,7 +231,7 @@ export class Service extends DatabaseService<AlertState> {
       },
     });
 
-    return StartingStageUtil.getStage({
+    return StartingStageUtil.getStartingState({
       definition: STATE_LISTS[StateListType.AlertState],
       states: alertStates,
       stateId: data.alertStateId,

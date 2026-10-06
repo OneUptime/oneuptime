@@ -35,7 +35,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
-import { StartingStage } from "../../../Utils/StartingStage";
+import { StartingStage, StartingState } from "../../../Utils/StartingStage";
 import {
   afterEach,
   beforeEach,
@@ -257,7 +257,7 @@ function stateModelOf(kind: Kind, row: StateRow): StateModel {
 /*
  * The project's states, answered the way the database would: pinned to the
  * project, one by id or by the created-state flag, or the whole list in its
- * order - which is how where a record starts is read (getStartingStage).
+ * order - which is how where a record starts is read (getStartingState).
  */
 function stubStateLookups(kind: Kind): void {
   jest
@@ -954,7 +954,7 @@ describe("the first timeline row is the state the record starts in", () => {
 
 /*
  * The lookups the create hooks share, on the state services: the project's
- * created state, and how far along a state is (getStartingStage, which the
+ * created state, and how far along a state is (getStartingState, which the
  * StartingStage suites cover in full). Each is pinned to the project and
  * reads only what it needs.
  */
@@ -982,9 +982,11 @@ describe("the state services' starting-state lookups", () => {
         projectId: ObjectID,
         stateId: ObjectID,
       ): Promise<StartingStage | null> => {
-        return AlertStateService.getStartingStage({
+        return AlertStateService.getStartingState({
           projectId: projectId,
           alertStateId: stateId,
+        }).then((start: StartingState | null): StartingStage | null => {
+          return start?.stage || null;
         });
       },
       stateModel: AlertState,
@@ -1001,9 +1003,11 @@ describe("the state services' starting-state lookups", () => {
         projectId: ObjectID,
         stateId: ObjectID,
       ): Promise<StartingStage | null> => {
-        return IncidentStateService.getStartingStage({
+        return IncidentStateService.getStartingState({
           projectId: projectId,
           incidentStateId: stateId,
+        }).then((start: StartingState | null): StartingStage | null => {
+          return start?.stage || null;
         });
       },
       stateModel: IncidentState,
@@ -1078,7 +1082,7 @@ describe("the state services' starting-state lookups", () => {
     },
   );
 
-  // The project's whole list, as getStartingStage reads it.
+  // The project's whole list, as getStartingState reads it.
   function stubListReads(lookup: Lookup): Array<{
     query: Record<string, unknown>;
     select: Record<string, unknown>;
