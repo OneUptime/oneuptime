@@ -25,7 +25,7 @@ import { TableColumnMetadata } from "../../../../../Types/Database/TableColumn";
 import Dictionary from "../../../../../Types/Dictionary";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
-import { JSONObject } from "../../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
@@ -1014,7 +1014,10 @@ describe("on OneUptime Cloud (billing on), whole records at the create check", (
         continue;
       }
 
-      record.setColumnValue(gated.column, defaultValuesOf(gated.metadata)[0]);
+      record.setColumnValue(
+        gated.column,
+        defaultValuesOf(gated.metadata)[0] as JSONValue,
+      );
     }
 
     return record;

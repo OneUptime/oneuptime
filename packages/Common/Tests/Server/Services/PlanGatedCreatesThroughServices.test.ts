@@ -9,7 +9,7 @@ import Form from "../../../Models/DatabaseModels/Form";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
@@ -154,7 +154,7 @@ const createStatusPage: (
   page.projectId = PROJECT_ID;
 
   for (const [column, value] of Object.entries(settings)) {
-    page.setColumnValue(column, value);
+    page.setColumnValue(column, value as JSONValue);
   }
 
   return outcome(() => {
@@ -179,7 +179,7 @@ const createDashboard: (
   dashboard.projectId = PROJECT_ID;
 
   for (const [column, value] of Object.entries(settings)) {
-    dashboard.setColumnValue(column, value);
+    dashboard.setColumnValue(column, value as JSONValue);
   }
 
   return outcome(() => {
@@ -204,7 +204,7 @@ const createForm: (
   form.projectId = PROJECT_ID;
 
   for (const [column, value] of Object.entries(settings)) {
-    form.setColumnValue(column, value);
+    form.setColumnValue(column, value as JSONValue);
   }
 
   return outcome(() => {

@@ -26,6 +26,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
@@ -221,7 +222,7 @@ const createProject: (
 
 const savedPlanEnvironment: Record<string, string | undefined> = {};
 
-let save: jest.Mock;
+let save: Mock<() => Promise<never>>;
 
 beforeAll(() => {
   for (const key of Object.keys(process.env)) {
