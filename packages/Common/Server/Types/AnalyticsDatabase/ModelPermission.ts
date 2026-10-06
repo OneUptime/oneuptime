@@ -16,7 +16,6 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import Includes from "../../../Types/BaseDatabase/Includes";
 import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Columns from "../../../Types/Database/Columns";
@@ -35,6 +34,10 @@ import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
 import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../Types/HeldPermissions";
+import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../../Utils/Telemetry/TelemetryReadScope";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
@@ -49,14 +52,16 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
  * `props` goes out of scope at request end, so there's no stale data
  * between requests.
  *
- * Caches two things:
- *   - `ownedIds`: Service IDs the user owns (one set per request — the
- *     inputs are userId + teamIds + tenantId, all stable for one props).
- *   - `labeledIds`: a map keyed by the sorted-label-IDs string, since
+ * Caches two things, each keyed by the resource types asked about (every
+ * telemetry-owning type, or a few - session replays read RUM applications
+ * only):
+ *   - `ownedIds`: the resource IDs the user owns (the inputs are userId +
+ *     teamIds + tenantId, all stable for one props).
+ *   - `labeledIds`: keyed by the sorted-label-IDs string as well, since
  *     different model permission rows may carry different label sets.
  */
 interface ScopeResolveCacheEntry {
-  ownedIds?: Set<string>;
+  ownedIds: Map<string, Set<string>>;
   labeledIds: Map<string, Set<string>>;
 }
 
@@ -70,7 +75,7 @@ function getScopeCacheBucket(
 ): ScopeResolveCacheEntry {
   let bucket: ScopeResolveCacheEntry | undefined = scopeResolveCache.get(props);
   if (!bucket) {
-    bucket = { labeledIds: new Map() };
+    bucket = { ownedIds: new Map(), labeledIds: new Map() };
     scopeResolveCache.set(props, bucket);
   }
   return bucket;
@@ -96,8 +101,8 @@ export default class ModelPermission {
         DatabaseRequestType.Delete,
       );
       query = await this.addTenantScopeToQuery(modelType, query, null, props);
-      // Owned scope: restrict deletes to telemetry from accessible services.
-      query = await this.addOwnedScopeToQuery(
+      // Deletes reach only the telemetry of resources the caller may delete.
+      query = await this.addReadScopeToQuery(
         modelType,
         query,
         props,
@@ -303,12 +308,11 @@ export default class ModelPermission {
         );
 
         /*
-         * Apply the `Owned` permission scope filter for telemetry models
-         * (Log/Span/Metric). Resolves the user's accessible Service IDs
-         * once and constrains the ClickHouse query with `serviceId IN (...)`.
-         * See Internal/Docs/PermissionsSimplification.md.
+         * Narrow telemetry reads (Log, Span, Metric, ...) to the resources
+         * the caller may read: their label and Owned scope, less what a
+         * block with labels takes away (getReadScope).
          */
-        query = await this.addOwnedScopeToQuery(
+        query = await this.addReadScopeToQuery(
           modelType,
           query,
           props,
@@ -730,286 +734,252 @@ export default class ModelPermission {
   }
 
   /*
-   * Scope filter for analytics models (Log, Span, Metric, ...). For each
-   * applicable user permission row we resolve allowed parent resource IDs
-   * based on its scope (`Owned` → ServiceOwner* tables; `Labels` → parent
-   * resources matching the user's labels), union them, and inject
-   * `serviceId IN (...)` into the ClickHouse query.
+   * WHOSE TELEMETRY THE CALLER MAY READ, for one analytics model and
+   * operation: the scope the model reads apply (addReadScopeToQuery) and the
+   * one the /telemetry/* routes and the AI tools that build their own SQL
+   * apply (Server/Utils/Telemetry/TelemetryReadAccess), worked out in this
+   * one place so they cannot drift apart. See TelemetryReadScope for what
+   * the scope means.
    *
-   * Telemetry's serviceId is polymorphic — comment in Metric.ts says it
-   * "can be the monitor id or the telemetry service id" — so Labels-scope
-   * resolution walks both Service.labels (ServiceLabel join) and
-   * Monitor.labels (MonitorLabel join). Owned-scope keeps the original
-   * single-source ServiceOwner* lookup since that's what's wired today.
-   *
-   * The operational per-row owner-join from the Postgres path doesn't
-   * scale to telemetry volume; one Postgres roundtrip + one indexed
-   * predicate does. See Internal/Docs/PermissionsSimplification.md.
+   * A model whose rows name no owning resource (no @OwnedThrough) has
+   * nothing to scope by, so its reads are only the table check's business:
+   * the whole project.
    */
-  /*
-   * Resolves the owned-scope decision for an analytics model without touching
-   * a query. Returns `null` when no ownership filter applies (root/master,
-   * creates, models without @OwnedThrough, no applicable permission rows, or
-   * an unrestricted grant) — i.e. the caller has full access. Otherwise
-   * returns the FK column plus the exact set of parent resource IDs the user
-   * may read (possibly empty, meaning "access to nothing").
-   *
-   * This is the single source of truth for owned-scope resolution:
-   * addOwnedScopeToQuery injects it into a ClickHouse query, and
-   * getAccessibleServiceIdsForAnalyticsModel exposes it to callers that build
-   * their own aggregation SQL (e.g. the AI toolbox), so the two can never
-   * drift apart.
-   */
-  private static async resolveOwnedScope<TBaseModel extends BaseModel>(
+  public static async getReadScope<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
-    type: DatabaseRequestType,
-  ): Promise<{ fkColumn: string; allowedResourceIds: Set<string> } | null> {
+    type: DatabaseRequestType = DatabaseRequestType.Read,
+  ): Promise<TelemetryReadScope> {
     if (props.isRoot || props.isMasterAdmin) {
-      return null;
+      return TelemetryReadScopeUtil.getUnrestrictedScope();
     }
 
-    if (type === DatabaseRequestType.Create) {
-      return null;
+    const model: TBaseModel = new modelType();
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      ModelPermission.getOwnedThrough(model);
+
+    if (!ownedThrough) {
+      return TelemetryReadScopeUtil.getUnrestrictedScope();
     }
 
-    /*
-     * Only applies to analytics models that declare @OwnedThrough — today
-     * Log, Span, Metric all do (to Service via serviceId). Anything without
-     * it can't have ownership filtering applied, so we leave the query alone.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const model: any = new modelType();
-    if (!model.ownedThrough) {
-      return null;
-    }
-
-    const modelPermissions: Array<Permission> = this.getModelPermissions(
-      modelType,
-      type,
-    );
-    const effectivePermissions: Array<Permission> =
-      this.getEffectiveModelPermissions(
-        modelType,
-        modelPermissions,
+    return await this.getReadScopeForPermissions({
+      props: props,
+      permissions: this.getModelPermissions(
+        modelType as unknown as AnalyticsBaseModelType,
         type,
-        props,
-      );
+      ),
+      wildcard: HeldPermissionsUtil.getModelWildcard({
+        isOperationalResource: model.isOperationalResource,
+        operation: type,
+      }),
+      includeProjectScope: ownedThrough.includeProjectScope,
+      recordName: model.singularName,
+      operation: type,
+    });
+  }
 
-    const userPermissions: Array<UserPermission> =
+  /*
+   * The same scope for a list of permissions a route accepts on its own
+   * (session replay reads, whose list, payload and identity grants are
+   * narrower than the RumSession model's table list), by the rule every
+   * permission check follows (HeldPermissionsUtil):
+   *
+   *   1. A block with no labels on any of `permissions` refuses the read.
+   *   2. The rows that grant it are allow rows for one of `permissions`, or
+   *      for the wildcard (unless a block with no labels takes the wildcard
+   *      away). None: the caller reads no resource at all.
+   *   3. A grant that reaches the whole project (HeldPermissionsUtil
+   *      .isProjectWideRow) reads every resource. Otherwise the caller reads
+   *      the resources their Owned grants own and their label grants'
+   *      labels are on (any telemetry-owning resource type, see
+   *      OwnerTableRegistry.canOwnTelemetry), and, with includeProjectScope,
+   *      an Owned grant also reads the project's unattributed bucket (rows
+   *      carrying the project id in place of a resource id).
+   *   4. A block with labels on any of `permissions` takes away the
+   *      resources carrying those labels, whatever else the caller holds -
+   *      as a block with labels leaves out the records carrying them on the
+   *      CRUD path (ReadPermission.checkReadBlockPermission). A block on the
+   *      wildcard takes away the wildcard, not the read.
+   */
+  public static async getReadScopeForPermissions(data: {
+    props: DatabaseCommonInteractionProps;
+    permissions: ReadonlyArray<Permission>;
+    wildcard?: Permission | null | undefined;
+    includeProjectScope?: boolean | undefined;
+    /*
+     * The telemetry-owning resource types whose rows the read covers, by
+     * model name (OwnerTableRegistry keys): session replays belong to RUM
+     * applications only. Absent: every type (a log's primaryEntityId can
+     * name a service, a host, a monitor, ...).
+     */
+    resourceTypes?: ReadonlyArray<string> | undefined;
+    // What the refusal names: "read Log", "read session replays".
+    recordName?: string | undefined;
+    operation?: DatabaseRequestType | undefined;
+  }): Promise<TelemetryReadScope> {
+    const props: DatabaseCommonInteractionProps = data.props;
+
+    if (props.isRoot || props.isMasterAdmin) {
+      return TelemetryReadScopeUtil.getUnrestrictedScope();
+    }
+
+    const held: HeldPermissions = ModelPermission.getHeldPermissions(props);
+
+    const tableWideBlock: Permission | undefined = data.permissions.find(
+      (permission: Permission): boolean => {
+        return held.blocked.includes(permission);
+      },
+    );
+
+    if (tableWideBlock) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${(
+          data.operation || DatabaseRequestType.Read
+        ).toLowerCase()} ${
+          data.recordName || "this telemetry"
+        } because ${tableWideBlock} is in your team's permission block list.`,
+      );
+    }
+
+    const blockedIds: Array<string> = await this.resolveBlockedResourceIds(
+      data.permissions,
+      props,
+      data.resourceTypes,
+    );
+
+    const grantingPermissions: Array<Permission> =
+      HeldPermissionsUtil.getGrantingPermissions(held, {
+        modelPermissions: [...data.permissions],
+        wildcard: data.wildcard,
+      });
+
+    const grantingRows: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
         props,
         PermissionType.Allow,
-      );
+      ).filter((row: UserPermission): boolean => {
+        return grantingPermissions.includes(row.permission);
+      });
 
-    const applicableRows: Array<UserPermission> = userPermissions.filter(
-      (p: UserPermission) => {
-        return effectivePermissions.includes(p.permission);
-      },
-    );
-
-    if (applicableRows.length === 0) {
-      return null;
+    if (grantingRows.length === 0) {
+      // Nothing grants the read: the caller reads no resource at all.
+      return { readableIds: [], blockedIds: blockedIds };
     }
 
-    /*
-     * If any applicable row grants unrestricted access (scope=All, or the
-     * legacy Labels/unset scope with no labelIds), the broader grant wins
-     * and no filter is applied. Owned and label-restricted rows narrow
-     * access; an unrestricted row coexisting with them widens it back to
-     * full access.
-     */
-    const hasUnrestrictedGrant: boolean = applicableRows.some(
-      (p: UserPermission) => {
-        if (p.scope === PermissionScope.All) {
-          return true;
-        }
-        if (p.scope === PermissionScope.Owned) {
-          return false;
-        }
-        // scope === Labels or undefined (legacy default)
-        return !p.labelIds || p.labelIds.length === 0;
-      },
-    );
-    if (hasUnrestrictedGrant) {
-      return null;
-    }
-
-    const allowedResourceIds: Set<string> = new Set<string>();
-
-    const hasOwnedGrant: boolean = applicableRows.some((p: UserPermission) => {
-      return p.scope === PermissionScope.Owned;
-    });
-    if (hasOwnedGrant) {
-      const ownedIds: Set<string> = await this.resolveOwnedParentIds(props);
-      for (const id of ownedIds) {
-        allowedResourceIds.add(id);
-      }
-    }
-
-    const labelScopedRows: Array<UserPermission> = applicableRows.filter(
-      (p: UserPermission) => {
-        const isLabelsScope: boolean =
-          p.scope === PermissionScope.Labels || p.scope === undefined;
-        return isLabelsScope && Boolean(p.labelIds && p.labelIds.length > 0);
-      },
-    );
-    if (labelScopedRows.length > 0) {
-      const labelIdSet: Set<string> = new Set<string>();
-      for (const row of labelScopedRows) {
-        for (const labelId of row.labelIds) {
-          labelIdSet.add(labelId.toString());
-        }
-      }
-      const labelIds: Array<ObjectID> = Array.from(labelIdSet).map(
-        (id: string) => {
-          return new ObjectID(id);
-        },
-      );
-      const labeledIds: Set<string> = await this.resolveLabeledParentIds(
-        labelIds,
-        props,
-      );
-      for (const id of labeledIds) {
-        allowedResourceIds.add(id);
-      }
-    }
-
-    /*
-     * Telemetry with no owning resource (the unattributed "Unknown"
-     * bucket) is tagged with the projectId in place of a resource id. It
-     * belongs to the project, not any owner, so an Owned-scoped user
-     * (project-level catch-all access) sees it. Gated on hasOwnedGrant:
-     * a purely Labels-scoped user asked for label-matching telemetry, and
-     * the unattributed bucket carries no labels, so it stays excluded for
-     * them.
-     */
     if (
-      hasOwnedGrant &&
-      model.ownedThrough.includeProjectScope &&
-      props.tenantId
+      grantingRows.some((row: UserPermission): boolean => {
+        return HeldPermissionsUtil.isProjectWideRow(row);
+      })
     ) {
-      allowedResourceIds.add(props.tenantId.toString());
+      return { readableIds: null, blockedIds: blockedIds };
     }
 
-    return { fkColumn: model.ownedThrough.fkColumn, allowedResourceIds };
+    const readableIds: Set<string> = new Set<string>();
+
+    const hasOwnedGrant: boolean = grantingRows.some(
+      (row: UserPermission): boolean => {
+        return row.scope === PermissionScope.Owned;
+      },
+    );
+
+    if (hasOwnedGrant) {
+      for (const id of await this.resolveOwnedParentIds(
+        props,
+        data.resourceTypes,
+      )) {
+        readableIds.add(id);
+      }
+
+      /*
+       * Telemetry with no owning resource (the unattributed "Unknown"
+       * bucket) is tagged with the project id in place of a resource id.
+       * It belongs to the project, not any owner, so an Owned grant
+       * (project-level catch-all access) reads it. A grant limited to
+       * labels asked for label-matching telemetry, and the bucket carries
+       * no labels, so it stays out for them.
+       */
+      if (data.includeProjectScope && props.tenantId) {
+        readableIds.add(props.tenantId.toString());
+      }
+    }
+
+    const grantedLabelIds: Array<ObjectID> = this.getLabelIdsOfRows(
+      grantingRows.filter((row: UserPermission): boolean => {
+        return row.scope !== PermissionScope.Owned;
+      }),
+    );
+
+    if (grantedLabelIds.length > 0) {
+      for (const id of await this.resolveLabeledParentIds(
+        grantedLabelIds,
+        props,
+        data.resourceTypes,
+      )) {
+        readableIds.add(id);
+      }
+    }
+
+    return {
+      readableIds: Array.from(readableIds).filter((id: string): boolean => {
+        return !blockedIds.includes(id);
+      }),
+      blockedIds: blockedIds,
+    };
   }
 
   /*
-   * The set of parent resource (Service) IDs the user may read for an analytics
-   * model, for callers that bypass findBy() and build aggregation SQL directly
-   * (e.g. the AI toolbox's log_histogram / query_traces, which call the
-   * aggregation services with a raw projectId). Pass the result as the
-   * aggregation's `serviceIds` filter.
-   *
-   * `null` means no ownership restriction applies — do NOT constrain (the user
-   * has project-wide access). A returned array (even empty) means the user is
-   * label/owned-restricted: constrain to exactly these IDs, and treat an empty
-   * array as "no accessible services" (match nothing), NEVER as "no filter".
+   * The resources a block with labels on any of `permissions` takes away:
+   * those carrying one of the blocks' labels.
    */
-  public static async getAccessibleServiceIdsForAnalyticsModel<
-    TBaseModel extends BaseModel,
-  >(
-    modelType: { new (): TBaseModel },
+  private static async resolveBlockedResourceIds(
+    permissions: ReadonlyArray<Permission>,
     props: DatabaseCommonInteractionProps,
-    type: DatabaseRequestType,
-  ): Promise<Array<ObjectID> | null> {
-    const scope: {
-      fkColumn: string;
-      allowedResourceIds: Set<string>;
-    } | null = await this.resolveOwnedScope(modelType, props, type);
+    resourceTypes: ReadonlyArray<string> | undefined,
+  ): Promise<Array<string>> {
+    const blockedLabelIds: Array<ObjectID> = this.getLabelIdsOfRows(
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ).filter((row: UserPermission): boolean => {
+        return permissions.includes(row.permission);
+      }),
+    );
 
-    if (!scope) {
-      return null;
+    if (blockedLabelIds.length === 0) {
+      return [];
     }
 
-    return Array.from(scope.allowedResourceIds).map((id: string) => {
-      return new ObjectID(id);
-    });
-  }
-
-  private static async addOwnedScopeToQuery<TBaseModel extends BaseModel>(
-    modelType: { new (): TBaseModel },
-    query: Query<TBaseModel>,
-    props: DatabaseCommonInteractionProps,
-    type: DatabaseRequestType,
-  ): Promise<Query<TBaseModel>> {
-    const scope: {
-      fkColumn: string;
-      allowedResourceIds: Set<string>;
-    } | null = await this.resolveOwnedScope(modelType, props, type);
-
-    if (!scope) {
-      return query;
-    }
-
-    const fkColumn: string = scope.fkColumn;
-    const allowedResourceIds: Set<string> = scope.allowedResourceIds;
-    const sentinelNoMatch: Array<string> = [
-      ObjectID.getZeroObjectID().toString(),
-    ];
-    let idList: Array<string> =
-      allowedResourceIds.size > 0
-        ? Array.from(allowedResourceIds)
-        : sentinelNoMatch;
-
-    /*
-     * Intersect with any caller-supplied FK filter (e.g. a per-service
-     * telemetry page querying primaryEntityId) instead of overwriting it —
-     * overwriting would widen the query to every allowed resource. The FK
-     * is a scalar column, so set intersection is exact.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existingFkFilter: unknown = (query as any)[fkColumn];
-    if (existingFkFilter instanceof Includes) {
-      const requestedIds: Set<string> = new Set<string>(
-        existingFkFilter.values.map((value: string | ObjectID | number) => {
-          return value.toString();
-        }),
-      );
-      idList = idList.filter((id: string) => {
-        return requestedIds.has(id);
-      });
-    } else if (
-      typeof existingFkFilter === "string" ||
-      existingFkFilter instanceof ObjectID
-    ) {
-      const requestedId: string = existingFkFilter.toString();
-      idList = idList.filter((id: string) => {
-        return id === requestedId;
-      });
-    }
-
-    if (idList.length === 0) {
-      idList = sentinelNoMatch;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (query as any)[fkColumn] = new Includes(idList);
-
-    return query;
+    return Array.from(
+      await this.resolveLabeledParentIds(blockedLabelIds, props, resourceTypes),
+    );
   }
 
   /*
-   * Resolves Service IDs the user owns via ServiceOwnerUser /
-   * ServiceOwnerTeam in Postgres. Lazy-required to avoid circular deps
-   * with services that extend DatabaseService. Returns string IDs to
-   * make set-union with other resolvers straightforward.
-   *
-   * Cached per request via the WeakMap on `props` — the inputs (userId,
-   * teamIds, tenantId) are stable for the lifetime of one props object,
-   * so repeated calls within the same request reuse the first result.
+   * The cache key for a set of resource types: every telemetry-owning type
+   * when none is named.
    */
-  private static async resolveOwnedParentIds(
-    props: DatabaseCommonInteractionProps,
-  ): Promise<Set<string>> {
-    const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
-    if (cache.ownedIds) {
-      return cache.ownedIds;
-    }
+  private static getResourceTypesKey(
+    resourceTypes: ReadonlyArray<string> | undefined,
+  ): string {
+    return resourceTypes ? [...resourceTypes].sort().join(",") : "*";
+  }
 
-    const result: Set<string> = new Set<string>();
-
+  /*
+   * The telemetry-owning entries of the owner table registry the read
+   * covers: every one flagged canOwnTelemetry, or only those named.
+   */
+  private static getTelemetryOwnerEntries(
+    resourceTypes: ReadonlyArray<string> | undefined,
+  ): Array<{
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ownerUserService: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ownerTeamService: any;
+    fkColumn: string;
+    canOwnTelemetry?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    modelService?: any;
+  }> {
     const ownerTableRegistry: Map<
       string,
       {
@@ -1026,20 +996,136 @@ export default class ModelPermission {
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("../Database/Permissions/OwnerTableRegistry").default;
 
-    /*
-     * Telemetry serviceId is polymorphic — it can reference any resource
-     * type flagged `canOwnTelemetry` in the registry (Service, Monitor,
-     * Host, DockerHost, KubernetesCluster). Resolve ownership across all of
-     * them so a user who owns any such resource sees its telemetry, not
-     * just owned Services. The polymorphic set lives only in the registry
-     * (single source of truth); the resolved union is the same for every
-     * telemetry analytics model, so the single per-request `ownedIds`
-     * cache slot still holds it.
-     */
-    for (const entry of ownerTableRegistry.values()) {
-      if (!entry.canOwnTelemetry) {
-        continue;
+    return Array.from(ownerTableRegistry.entries())
+      .filter(
+        ([name, entry]: [
+          string,
+          {
+            canOwnTelemetry?: boolean;
+          },
+        ]): boolean => {
+          return (
+            Boolean(entry.canOwnTelemetry) &&
+            (!resourceTypes || resourceTypes.includes(name))
+          );
+        },
+      )
+      .map(
+        ([, entry]: [
+          string,
+          {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ownerUserService: any;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ownerTeamService: any;
+            fkColumn: string;
+            canOwnTelemetry?: boolean;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            modelService?: any;
+          },
+        ]) => {
+          return entry;
+        },
+      );
+  }
+
+  // The distinct label ids on `rows`, in a stable order.
+  private static getLabelIdsOfRows(
+    rows: Array<UserPermission>,
+  ): Array<ObjectID> {
+    const labelIds: Set<string> = new Set<string>();
+
+    for (const row of rows) {
+      for (const labelId of row.labelIds || []) {
+        labelIds.add(labelId.toString());
       }
+    }
+
+    return Array.from(labelIds)
+      .sort()
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+  }
+
+  /*
+   * Narrows a model read (or delete) to the caller's scope on the column
+   * that names the row's resource (@OwnedThrough). Root, master admins,
+   * creates and models without @OwnedThrough are left alone.
+   */
+  private static async addReadScopeToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Promise<Query<TBaseModel>> {
+    if (props.isRoot || props.isMasterAdmin) {
+      return query;
+    }
+
+    if (type === DatabaseRequestType.Create) {
+      return query;
+    }
+
+    const ownedThrough: OwnedThroughMetadata | undefined =
+      ModelPermission.getOwnedThrough(new modelType());
+
+    if (!ownedThrough) {
+      return query;
+    }
+
+    const scope: TelemetryReadScope = await this.getReadScope(
+      modelType,
+      props,
+      type,
+    );
+
+    return TelemetryReadScopeUtil.applyToQuery(
+      query,
+      ownedThrough.fkColumn,
+      scope,
+    );
+  }
+
+  // The column that names a row's owning resource (@OwnedThrough), if any.
+  private static getOwnedThrough(
+    model: BaseModel,
+  ): OwnedThroughMetadata | undefined {
+    return (model as unknown as { ownedThrough?: OwnedThroughMetadata })
+      .ownedThrough;
+  }
+
+  /*
+   * Resolves the IDs of telemetry-owning resources the user owns, through
+   * each type's *OwnerUser / *OwnerTeam tables in Postgres. Lazy-required to
+   * avoid circular deps with services that extend DatabaseService. Returns
+   * string IDs to make set-union with other resolvers straightforward.
+   *
+   * Telemetry's primaryEntityId is polymorphic - it can reference any
+   * resource type flagged `canOwnTelemetry` in the registry (Service,
+   * Monitor, Host, DockerHost, KubernetesCluster, RUM application, ...) -
+   * so ownership is resolved across all of them unless the read names the
+   * types it covers (session replays: RUM applications). The polymorphic set
+   * lives only in the registry (single source of truth).
+   *
+   * Cached per request via the WeakMap on `props` - the inputs (userId,
+   * teamIds, tenantId) are stable for the lifetime of one props object, so
+   * repeated calls within the same request reuse the first result.
+   */
+  private static async resolveOwnedParentIds(
+    props: DatabaseCommonInteractionProps,
+    resourceTypes?: ReadonlyArray<string> | undefined,
+  ): Promise<Set<string>> {
+    const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
+    const cacheKey: string = this.getResourceTypesKey(resourceTypes);
+    const cached: Set<string> | undefined = cache.ownedIds.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const result: Set<string> = new Set<string>();
+
+    for (const entry of this.getTelemetryOwnerEntries(resourceTypes)) {
       const fkColumn: string = entry.fkColumn;
 
       if (props.userId) {
@@ -1083,26 +1169,27 @@ export default class ModelPermission {
       }
     }
 
-    cache.ownedIds = result;
+    cache.ownedIds.set(cacheKey, result);
     return result;
   }
 
   /*
-   * Resolves parent IDs whose labels intersect the given labelIds. Walks
-   * both TelemetryService (`ServiceLabel`) and Monitor (`MonitorLabel`)
-   * because telemetry's serviceId is polymorphic between the two. The
+   * Resolves the IDs of telemetry-owning resources whose labels intersect
+   * the given labelIds - across every type flagged `canOwnTelemetry` in the
+   * registry (each carries labels), or only the types the read names. The
    * Postgres findBy passes labels through QueryUtil, which turns the
-   * EntityArray filter into a many-to-many subquery against the join
-   * table — see QueryUtil.ts ~line 528.
+   * EntityArray filter into a many-to-many subquery against the join table.
+   * Keeping the set of types in the registry means a new telemetry-owning
+   * resource is picked up here automatically.
    *
-   * Cached per request via the WeakMap on `props`, keyed by the sorted
-   * label IDs joined into a string. Different model permission rows can
-   * carry different label sets, so we key by the actual labelIds rather
-   * than a single per-request slot.
+   * Cached per request via the WeakMap on `props`, keyed by the types and
+   * the sorted label IDs: different permission rows (grants and blocks) can
+   * carry different label sets.
    */
   private static async resolveLabeledParentIds(
     labelIds: Array<ObjectID>,
     props: DatabaseCommonInteractionProps,
+    resourceTypes?: ReadonlyArray<string> | undefined,
   ): Promise<Set<string>> {
     const result: Set<string> = new Set<string>();
 
@@ -1110,12 +1197,14 @@ export default class ModelPermission {
       return result;
     }
 
-    const cacheKey: string = labelIds
+    const cacheKey: string = `${this.getResourceTypesKey(
+      resourceTypes,
+    )}|${labelIds
       .map((id: ObjectID) => {
         return id.toString();
       })
       .sort()
-      .join(",");
+      .join(",")}`;
     const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
     const cached: Set<string> | undefined = cache.labeledIds.get(cacheKey);
     if (cached) {
@@ -1126,32 +1215,8 @@ export default class ModelPermission {
       ? { projectId: props.tenantId }
       : {};
 
-    const ownerTableRegistry: Map<
-      string,
-      {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ownerUserService: any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ownerTeamService: any;
-        fkColumn: string;
-        canOwnTelemetry?: boolean;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        modelService?: any;
-      }
-    > =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../Database/Permissions/OwnerTableRegistry").default;
-
-    /*
-     * Telemetry serviceId is polymorphic across every resource type
-     * flagged `canOwnTelemetry` in the registry (Service, Monitor, Host,
-     * DockerHost, KubernetesCluster), each of which carries labels. Find
-     * rows of each whose labels intersect the user's. Keeping this set in
-     * the registry (single source of truth) means a new telemetry-owning
-     * resource is picked up here automatically — no edits needed.
-     */
-    for (const entry of ownerTableRegistry.values()) {
-      if (!entry.canOwnTelemetry || !entry.modelService) {
+    for (const entry of this.getTelemetryOwnerEntries(resourceTypes)) {
+      if (!entry.modelService) {
         continue;
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

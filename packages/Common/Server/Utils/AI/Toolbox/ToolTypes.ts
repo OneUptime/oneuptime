@@ -2,6 +2,10 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+  TelemetryServiceFilter,
+} from "../../Telemetry/TelemetryReadScope";
 import OneUptimeDate from "../../../../Types/Date";
 import Permission from "../../../../Types/Permission";
 import {
@@ -150,37 +154,26 @@ export class ToolArgs {
   }
 
   /*
-   * Combines the caller's optional serviceId filter with the user's owned-scope
-   * access (from ModelPermission.getAccessibleServiceIdsForAnalyticsModel) into
-   * the `serviceIds` filter to hand an aggregation service.
+   * Combines the tool's optional serviceId argument with whose telemetry the
+   * user may read (TelemetryReadAccess.getScope) into the serviceIds and
+   * excludedServiceIds to hand an aggregation service
+   * (TelemetryReadScope.toServiceFilter):
    *
-   * `allowed === null` means the user has project-wide access: pass only the
-   * caller's own filter (or undefined for no filter). Otherwise the user is
-   * label/owned-restricted: intersect with any requested service and NEVER
-   * return undefined or an empty array — an empty result is forced to a
-   * no-match sentinel, because the aggregation services treat a missing/empty
-   * serviceIds as "no filter" (which would leak the whole project).
+   *   - project-wide access: only the requested service, or no filter;
+   *   - label / Owned access: the requested service if the user may read it,
+   *     else every service they may read - NEVER undefined or an empty list
+   *     (forced to a no-match sentinel), because the aggregation services
+   *     read a missing or empty serviceIds as "the whole project";
+   *   - a block with labels: those services are left out either way.
    */
   public static scopeServiceIds(
-    allowed: Array<ObjectID> | null,
+    scope: TelemetryReadScope,
     requested: ObjectID | undefined,
-  ): Array<ObjectID> | undefined {
-    if (allowed === null) {
-      return requested ? [requested] : undefined;
-    }
-
-    let effective: Array<ObjectID> = allowed;
-    if (requested) {
-      effective = allowed.filter((id: ObjectID) => {
-        return id.toString() === requested.toString();
-      });
-    }
-
-    if (effective.length === 0) {
-      return [ObjectID.getZeroObjectID()];
-    }
-
-    return effective;
+  ): TelemetryServiceFilter {
+    return TelemetryReadScopeUtil.toServiceFilter(
+      scope,
+      requested ? [requested] : undefined,
+    );
   }
 
   /*

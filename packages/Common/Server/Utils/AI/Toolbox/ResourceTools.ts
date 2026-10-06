@@ -69,8 +69,11 @@ import TraceAggregationService, {
 } from "../../../Services/TraceAggregationService";
 import FindBy from "../../../Types/Database/FindBy";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
-import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
+import {
+  TelemetryReadScope,
+  TelemetryServiceFilter,
+} from "../../Telemetry/TelemetryReadScope";
 import ResourceEntityFilter, {
   ResourceEntityScope,
 } from "../../Telemetry/ResourceEntityFilter";
@@ -938,23 +941,15 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       });
     }
     /*
-     * These aggregators bypass the model query layer. Intersect their parent
-     * resource scope with the same allowed primary-entity IDs as that layer.
+     * These aggregators bypass the model query layer. Narrow them to the
+     * services this user may read, as that layer does (TelemetryReadAccess).
      */
-    const allowedIds: Array<ObjectID> | null =
+    const telemetryScope: TelemetryReadScope =
       signal === "logs"
-        ? await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-            Log,
-            ctx.props,
-            DatabaseRequestType.Read,
-          )
-        : await ModelPermission.getAccessibleServiceIdsForAnalyticsModel(
-            Span,
-            ctx.props,
-            DatabaseRequestType.Read,
-          );
-    const serviceIds: Array<ObjectID> | undefined = ToolArgs.scopeServiceIds(
-      allowedIds,
+        ? await TelemetryReadAccess.getScope(Log, ctx.props)
+        : await TelemetryReadAccess.getScope(Span, ctx.props);
+    const serviceFilter: TelemetryServiceFilter = ToolArgs.scopeServiceIds(
+      telemetryScope,
       undefined,
     );
     if (signal === "logs") {
@@ -983,7 +978,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
             1,
             Math.ceil((endTime.getTime() - startTime.getTime()) / 60000 / 48),
           ),
-          serviceIds,
+          ...serviceFilter,
           resourceScopes: scope.resourceScopes,
           attributes: scope.attributes,
           severityTexts: severity ? [severity] : undefined,
@@ -1029,7 +1024,7 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
         metric: "count",
         groupBy: ["name"],
         limit,
-        serviceIds,
+        ...serviceFilter,
         resourceScopes: scope.resourceScopes,
         attributes: scope.attributes,
         rootOnly: ToolArgs.getBoolean(args, "rootOnly"),

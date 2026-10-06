@@ -926,6 +926,22 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     /*
+     * Only a delete that names its entities (one id, or an Includes of ids)
+     * cascades. A delete narrowed by exclusion - the deleter's scope leaving
+     * out the resources a block with labels takes away
+     * (TelemetryReadScope.applyToQuery) - would, with the other filters
+     * dropped below, empty the rollups of every other entity of the project.
+     */
+    const primaryEntityId: unknown = queryRecord["primaryEntityId"];
+    if (
+      typeof primaryEntityId !== "string" &&
+      !(primaryEntityId instanceof ObjectID) &&
+      !(primaryEntityId instanceof Includes)
+    ) {
+      return null;
+    }
+
+    /*
      * Only project the keys the MV target tables actually expose.
      * `time`, `attributes`, `primaryEntityType`, and the metric-payload
      * columns don't exist on the MV schema and would either fail

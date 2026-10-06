@@ -8,6 +8,7 @@ import TelemetryType from "../../../../Types/Telemetry/TelemetryType";
 import MetricTypeService from "../../../Services/MetricTypeService";
 import ServiceService from "../../../Services/ServiceService";
 import TelemetryAttributeService from "../../../Services/TelemetryAttributeService";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
@@ -155,10 +156,20 @@ export const LookupContextTool: ObservabilityTool = {
         );
       }
 
+      /*
+       * Keys only from the rows the user may read of that signal - the same
+       * scope the attribute pickers on the /telemetry routes apply.
+       */
       const attributes: Array<string> =
         await TelemetryAttributeService.fetchAttributes({
           projectId: ctx.projectId,
           telemetryType: telemetryTypeString as TelemetryType,
+          serviceFilter: await TelemetryReadAccess.getServiceFilter({
+            modelType: TelemetryReadAccess.getModelForTelemetryType(
+              telemetryTypeString as TelemetryType,
+            ),
+            props: ctx.props,
+          }),
         });
 
       const filtered: Array<string> = nameSearch

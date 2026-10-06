@@ -21,6 +21,8 @@ import RumApplicationService from "../../Services/RumApplicationService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import CaptureSpan from "./CaptureSpan";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import TelemetryReadScopeUtil, { TelemetryReadScope } from "./TelemetryReadScope";
 
 /*
  * Facet keys whose values are entity IDs backed by a Postgres source-of-truth
@@ -50,6 +52,11 @@ export interface ResourceFacetListSpec {
   facetKey: string;
   searchText?: string | undefined;
   limit?: number | undefined;
+  /*
+   * Whose telemetry the caller may read (TelemetryReadScope): only those
+   * resources are listed. Absent: every resource of the project.
+   */
+  scope?: TelemetryReadScope | undefined;
 }
 
 export interface ResourceFacetSpec extends ResourceFacetListSpec {
@@ -311,6 +318,29 @@ export default class ResourceFacetResolver {
 
     const query: Record<string, unknown> = { projectId };
     const select: Record<string, boolean> = { _id: true, name: true };
+
+    /*
+     * A caller whose telemetry read is limited to some resources lists only
+     * those: the sidebar names the resources whose rows they may read, not
+     * every resource of the project.
+     */
+    if (spec.scope && !TelemetryReadScopeUtil.isProjectWide(spec.scope)) {
+      if (spec.scope.readableIds !== null) {
+        const readableIds: Array<string> =
+          TelemetryReadScopeUtil.filterReadableIds(
+            spec.scope,
+            spec.scope.readableIds,
+          );
+
+        if (readableIds.length === 0) {
+          return [];
+        }
+
+        query["_id"] = QueryHelper.any(readableIds);
+      } else {
+        query["_id"] = QueryHelper.notIn([...spec.scope.blockedIds]);
+      }
+    }
 
     if (identifierField) {
       select[identifierField] = true;

@@ -8,6 +8,7 @@ import ObjectID from "../../Types/ObjectID";
 import Includes from "../../Types/BaseDatabase/Includes";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 
 // --- Interfaces ---
@@ -28,6 +29,8 @@ export interface FlamegraphRequest {
   startTime?: Date;
   endTime?: Date;
   serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
   /**
    * Single profile type to filter on. Kept for backwards compat. When
    * `profileTypes` is also supplied, `profileTypes` wins.
@@ -86,6 +89,8 @@ export interface FunctionListRequest {
   startTime?: Date;
   endTime?: Date;
   serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
   profileType?: string;
   profileTypes?: Array<string>;
   /** See FlamegraphRequest.traceId. */
@@ -126,6 +131,10 @@ export interface ServiceActivityRequest {
    * agents actually emit (e.g. ["cpu", "samples"]).
    */
   profileTypes?: Array<string>;
+  // The services the caller may read (TelemetryReadScope).
+  serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
 }
 
 export interface ServiceActivityItem {
@@ -142,6 +151,8 @@ export interface DiffFlamegraphRequest {
   comparisonStartTime: Date;
   comparisonEndTime: Date;
   serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
   profileType?: string;
   profileTypes?: Array<string>;
 }
@@ -184,6 +195,8 @@ export interface FunctionFocusRequest {
   startTime?: Date;
   endTime?: Date;
   serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
   profileType?: string;
   profileTypes?: Array<string>;
   /** See FlamegraphRequest.traceId. */
@@ -227,6 +240,10 @@ export interface TracePresenceRequest {
   projectId: ObjectID;
   traceId: string;
   spanIds?: Array<string>;
+  // The services the caller may read (TelemetryReadScope).
+  serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
 }
 
 export interface TracePresenceResult {
@@ -248,6 +265,8 @@ export interface BreakdownRequest {
    */
   breakdownBy: string;
   serviceIds?: Array<ObjectID>;
+  // Resources whose rows are left out whatever else matches.
+  excludedServiceIds?: Array<ObjectID>;
   profileType?: string;
   profileTypes?: Array<string>;
   limit?: number;
@@ -438,6 +457,9 @@ export class ProfileAggregationService {
       ...(request.serviceIds !== undefined && {
         serviceIds: request.serviceIds,
       }),
+      ...(request.excludedServiceIds !== undefined && {
+        excludedServiceIds: request.excludedServiceIds,
+      }),
       ...(request.profileType !== undefined && {
         profileType: request.profileType,
       }),
@@ -596,6 +618,9 @@ export class ProfileAggregationService {
       ...(request.endTime !== undefined && { endTime: request.endTime }),
       ...(request.serviceIds !== undefined && {
         serviceIds: request.serviceIds,
+      }),
+      ...(request.excludedServiceIds !== undefined && {
+        excludedServiceIds: request.excludedServiceIds,
       }),
       ...(request.profileType !== undefined && {
         profileType: request.profileType,
@@ -889,6 +914,9 @@ export class ProfileAggregationService {
         ...(request.serviceIds !== undefined && {
           serviceIds: request.serviceIds,
         }),
+        ...(request.excludedServiceIds !== undefined && {
+          excludedServiceIds: request.excludedServiceIds,
+        }),
         ...(request.profileType !== undefined && {
           profileType: request.profileType,
         }),
@@ -902,6 +930,9 @@ export class ProfileAggregationService {
         endTime: request.comparisonEndTime,
         ...(request.serviceIds !== undefined && {
           serviceIds: request.serviceIds,
+        }),
+        ...(request.excludedServiceIds !== undefined && {
+          excludedServiceIds: request.excludedServiceIds,
         }),
         ...(request.profileType !== undefined && {
           profileType: request.profileType,
@@ -1323,6 +1354,8 @@ export class ProfileAggregationService {
      */
     statement.append(" AND retentionDate >= now()");
 
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
+
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: 45,
@@ -1364,25 +1397,7 @@ export class ProfileAggregationService {
 
     statement.append(" AND retentionDate >= now()");
 
-    /*
-     * profileTypes (array) wins over profileType (single) so the UI
-     * can OR together every raw type string in a category.
-     */
-    if (request.profileTypes && request.profileTypes.length > 0) {
-      statement.append(
-        SQL` AND profileType IN (${{
-          type: TableColumnType.Text,
-          value: new Includes(request.profileTypes),
-        }})`,
-      );
-    } else if (request.profileType) {
-      statement.append(
-        SQL` AND profileType = ${{
-          type: TableColumnType.Text,
-          value: request.profileType,
-        }}`,
-      );
-    }
+    ProfileAggregationService.appendCommonFilters(statement, request);
 
     statement.append(
       SQL` GROUP BY primaryEntityId
@@ -1593,21 +1608,10 @@ export class ProfileAggregationService {
     statement: Statement,
     request: Pick<
       FlamegraphRequest,
-      "serviceIds" | "profileType" | "profileTypes"
+      "serviceIds" | "excludedServiceIds" | "profileType" | "profileTypes"
     >,
   ): void {
-    if (request.serviceIds && request.serviceIds.length > 0) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: new Includes(
-            request.serviceIds.map((id: ObjectID) => {
-              return id.toString();
-            }),
-          ),
-        }})`,
-      );
-    }
+    TelemetryReadScopeUtil.appendServiceFilter(statement, request);
 
     /*
      * profileTypes (array) wins over profileType (single) so the UI can

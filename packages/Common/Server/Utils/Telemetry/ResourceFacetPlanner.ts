@@ -5,6 +5,7 @@ import ResourceFacetResolver, {
   ResourceFacetListSpec,
 } from "./ResourceFacetResolver";
 import CaptureSpan from "./CaptureSpan";
+import { TelemetryReadScope } from "./TelemetryReadScope";
 
 /*
  * Orchestrates a telemetry facets request that mixes resource facets (value
@@ -46,6 +47,11 @@ export interface ResourceFacetListRequest {
   // Per-facet sidebar search, applied to the Postgres lookup.
   facetSearchText?: Record<string, string> | undefined;
   limit: number;
+  /*
+   * Whose telemetry the caller may read: only those resources are listed
+   * (TelemetryReadAccess.getScope). Absent: every resource of the project.
+   */
+  scope?: TelemetryReadScope | undefined;
 }
 
 export interface PerFacetCountRequest extends ResourceFacetListRequest {
@@ -90,6 +96,7 @@ export default class ResourceFacetPlanner {
               facetKey,
               searchText: request.facetSearchText?.[facetKey],
               limit: request.limit,
+              scope: request.scope,
             };
           },
         );
