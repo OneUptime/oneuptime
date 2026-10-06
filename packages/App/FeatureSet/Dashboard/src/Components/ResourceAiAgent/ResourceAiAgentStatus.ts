@@ -36,6 +36,7 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { ADD_AI_CREDITS_STEP } from "../ProjectBalance/ProjectBalanceCopy";
 
 /*
  * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
@@ -776,8 +777,14 @@ export function getResourceAiAttentionStepText(
       return "Turn on AI for this project.";
     case "llm_provider_missing":
       return "Add an AI provider for this project, or use OneUptime AI credits.";
+    /*
+     * Not "or turn on auto-recharge": AI credits are recharged after a call
+     * they paid for, so a balance that is used up stays used up until
+     * someone adds credits. Who can is the step's action
+     * (ProjectBalance/ProjectBalanceAccess).
+     */
     case "ai_balance_insufficient":
-      return "Add AI credits to this project, or turn on auto-recharge.";
+      return translateTemplate(ADD_AI_CREDITS_STEP);
     default:
       return gap.nextStep || gap.title;
   }

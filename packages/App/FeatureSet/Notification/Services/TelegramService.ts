@@ -16,6 +16,13 @@ import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTi
 import TelegramLogService from "Common/Server/Services/TelegramLogService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
+import SafeHtml from "Common/Types/SafeHtml";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
 import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
@@ -221,14 +228,30 @@ export default class TelegramService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (
-            !project.smsOrCallCurrentBalanceInUSDCents ||
-            project.smsOrCallCurrentBalanceInUSDCents < messageCost * 100
-          ) {
+          /*
+           * Nothing left, or less than this message costs. The log (which
+           * the project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance).
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          const shortfall: {
+            channel: ProjectNotificationChannel;
+            balanceInUSDCents: number;
+            costInUSDCents: number;
+          } = {
+            channel: ProjectNotificationChannel.Telegram,
+            balanceInUSDCents: balanceInUSDCents,
+            costInUSDCents: Math.round(messageCost * 100),
+          };
+
+          if (!balanceInUSDCents || balanceInUSDCents < messageCost * 100) {
             telegramLog.status = TelegramStatus.LowBalance;
-            telegramLog.statusMessage = `Project does not have enough balance to send Telegram message. Current balance is ${
-              (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-            } USD. Required balance is ${messageCost} USD.`;
+            telegramLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             logger.error(telegramLog.statusMessage);
 
             await TelegramLogService.create({
@@ -249,12 +272,20 @@ export default class TelegramService {
                 },
               });
 
+              /*
+               * Like the email about Telegram being off, this leaves out the
+               * chat and the message: alert payloads can carry incident
+               * secrets, and the owners' email has other readers.
+               */
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 `Low Telegram message balance for ${project.name || ""}`,
-                `We tried to send a Telegram message to chat ${message.to} with message:<br/><br/>${messageSummary}<br/><br/>The message was not sent because your project does not have enough balance for Telegram messages. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD. Required balance is ${messageCost} USD. Please enable auto recharge or recharge manually.`,
+                `A Telegram notification was not sent. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
             return;

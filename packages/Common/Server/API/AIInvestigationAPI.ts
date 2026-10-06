@@ -35,7 +35,9 @@ import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigg
 import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
 import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
-import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
+import KubernetesClusterAiAccessService, {
+  AI_BALANCE_INSUFFICIENT_NEXT_STEP,
+} from "../Services/KubernetesClusterAiAccessService";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -574,8 +576,17 @@ const PROJECT_LEVEL_GAP_CODES: ReadonlyArray<KubernetesAiAccessGapCode> = [
   "ai_balance_insufficient",
 ];
 
-// The next step a viewer who cannot read the cluster sees for a gap.
+/*
+ * The next step a viewer who cannot read the cluster sees for a gap. An
+ * empty AI balance keeps its own step: it names nothing of the cluster, and
+ * says who can add credits - a project owner or someone with Manage
+ * Billing, which a project admin is not.
+ */
 export function getRestrictedGapNextStep(code: string): string {
+  if (code === "ai_balance_insufficient") {
+    return AI_BALANCE_INSUFFICIENT_NEXT_STEP;
+  }
+
   return PROJECT_LEVEL_GAP_CODES.includes(code as KubernetesAiAccessGapCode)
     ? RESTRICTED_PROJECT_GAP_NEXT_STEP
     : RESTRICTED_GAP_NEXT_STEP;

@@ -84,9 +84,17 @@ export default class InvestigationEligibility {
         description: recorded
           ? `This project had no AI credits left when this ${kind} was created, so its automatic investigation did not start.`
           : "This project is currently out of AI credits, so new automatic investigations cannot start.",
+        /*
+         * What happens once credits are added, and where - not who: the
+         * dashboard offers the AI Credits link to those who may add them
+         * and names who can to everyone else (InvestigationNotStarted).
+         * Not "turn on auto-recharge": AI credits are recharged after a
+         * call they paid for, so an empty balance stays empty until
+         * someone adds credits.
+         */
         nextStep: recorded
-          ? "Review AI credits under Project Settings → AI Credits, or turn on auto-recharge. Adding credits later does not retry this record."
-          : "Add AI credits under Project Settings → AI Credits, or turn on auto-recharge. Existing records are not automatically retried.",
+          ? `New ${kind}s are investigated once AI credits are added in Project Settings → AI Credits. Adding credits later does not retry this ${kind}.`
+          : `New ${kind}s can be investigated once AI credits are added in Project Settings → AI Credits. Existing records are not automatically retried.`,
       },
       project_daily_limit_reached: {
         title: recorded

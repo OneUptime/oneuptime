@@ -1,12 +1,27 @@
 import CustomCallSMSTable from "../../Components/CallSMS/CallSMSConfigTable";
 import CustomSMTPTable from "../../Components/CustomSMTP/CustomSMTPTable";
 import ProjectNotificationChannelsCard from "../../Components/NotificationMethods/ProjectNotificationChannelsCard";
+import {
+  getProjectBalanceAccess,
+  getProjectBalanceCardDescription,
+  getRechargeBalanceButtons,
+  ProjectBalanceAccess,
+} from "../../Components/ProjectBalance/ProjectBalanceAccess";
+import {
+  getProjectColumnsEditGate,
+  ProjectColumnsEditGate,
+} from "./ProjectColumnEditGate";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -23,7 +38,22 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * Project Settings -> Notification Settings: the balance SMS, calls,
+ * WhatsApp and Telegram are paid from (billing only), the four channel
+ * switches, Auto Recharge (billing only), and the project's own SMTP and
+ * Twilio configs.
+ *
+ * Only a project owner or someone with Manage Billing may add to the
+ * balance or change Auto Recharge (Common/Utils/Project/ProjectBalance). So
+ * the balance card asks them to recharge it and offers the button; everyone
+ * else is told who can, and the button stays locked, saying why - it used
+ * to open a form whose save the server then refused. Auto Recharge's Edit is
+ * gated on its own columns rather than the Project table's wider update
+ * list, for the same reason.
+ */
 const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showRechargeBalanceModal, setShowRechargeBalanceModal] =
     useState<boolean>(false);
   const [isRechargeBalanceLoading, setIsRechargeBalanceLoading] =
@@ -32,27 +62,40 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     string | null
   >(null);
 
+  /*
+   * Read on every render rather than remembered: the permission snapshot
+   * arrives on a response header, and may land after the first paint.
+   */
+  const balanceAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.SmsOrCall,
+  );
+  const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
+    fields: [
+      ...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.SmsOrCall],
+    ],
+    buttonTitle: "Edit Auto Recharge",
+  });
+
   return (
     <Fragment>
-      {/* API Key View  */}
       {BILLING_ENABLED ? (
         <CardModelDetail
           name="Current Balance"
           cardProps={{
             title: "Current Balance",
-            description:
-              "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
-            buttons: [
-              {
-                title: "Recharge Balance",
-                icon: IconProp.Add,
-                onClick: () => {
-                  setShowRechargeBalanceModal(true);
-                  setRechargeBalanceError(null);
-                  setIsRechargeBalanceLoading(false);
-                },
+            description: getProjectBalanceCardDescription(
+              ProjectBalanceType.SmsOrCall,
+              balanceAccess,
+            ),
+            buttons: getRechargeBalanceButtons({
+              access: balanceAccess,
+              translator: translator,
+              onRecharge: () => {
+                setShowRechargeBalanceModal(true);
+                setRechargeBalanceError(null);
+                setIsRechargeBalanceLoading(false);
               },
-            ],
+            }),
           }}
           isEditable={false}
           modelDetailProps={{
@@ -90,8 +133,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Auto Recharge",
             description:
               "Enable Auto Recharge for SMS, Call, and WhatsApp balance. This will make sure you always have enough balance for sending notifications.",
+            buttons: autoRechargeGate.lockedButtons,
           }}
-          isEditable={true}
+          isEditable={autoRechargeGate.isEditable}
           editButtonText="Edit Auto Recharge"
           formFields={[
             {

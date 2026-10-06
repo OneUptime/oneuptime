@@ -76,6 +76,12 @@ import {
   getResourceAiAgentWriteDisclosure,
 } from "./ResourceAiAgentInstall";
 import {
+  getProjectBalanceAccess,
+  ProjectBalanceAccess,
+} from "../ProjectBalance/ProjectBalanceAccess";
+import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
+import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
+import {
   canChangeProjectAiSettingsForResource,
   canConfigureUnattendedResourceAiAccess,
   canResetResourceAiAgent,
@@ -1112,6 +1118,13 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
     getResourceAccessTestPermissionGate(descriptor);
   const canChangeProjectSettings: boolean =
     canChangeProjectAiSettingsForResource();
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing
+   * - not a project admin - so their step has its own gate.
+   */
+  const aiCreditsAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.AI,
+  );
 
   const agent: ResourceAiAgentSummary | null = status.agent;
   const pill: ResourceAiAgentStatusPill = getResourceAiAgentStatusPill(status);
@@ -1245,9 +1258,27 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
             )
           : renderAsk();
       case "open_ai_credits":
-        return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_CREDITS, "Open AI Credits")
-          : renderAsk();
+        /*
+         * The link only for someone who may add credits; everyone else is
+         * told who can. Nothing while the permissions are on their way.
+         */
+        if (aiCreditsAccess === ProjectBalanceAccess.Yes) {
+          return renderSettingsLink(
+            PageMap.SETTINGS_AI_CREDITS,
+            "Open AI Credits",
+          );
+        }
+
+        return aiCreditsAccess === ProjectBalanceAccess.No ? (
+          <p
+            className="text-xs font-medium text-gray-500"
+            data-testid="ai-agent-gap-who-can-add-ai-credits"
+          >
+            {translator.translateText(WHO_CAN_ADD_AI_CREDITS)}
+          </p>
+        ) : (
+          <></>
+        );
       case "test_connection":
         return testGate.isAllowed ? (
           <Button
