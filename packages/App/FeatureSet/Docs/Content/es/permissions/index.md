@@ -157,6 +157,8 @@ Para un usuario que ha iniciado sesión, en orden:
 5. Aplicar el alcance. Las concesiones con alcance Propios acotan la consulta a los recursos propios; las de etiquetas la acotan a las etiquetas que coincidan. Si cualquier otra concesión para la misma operación es más amplia, gana la más amplia.
 6. Aplicar los bloqueos por etiquetas. Un bloqueo con etiquetas rechaza la petición si el recurso de destino lleva una de ellas.
 
+Quien puede leer un registro puede leer todos sus campos, con dos excepciones deliberadas. Los secretos solo los leen las personas que pueden editar el registro al que pertenecen: las claves de solicitudes entrantes y de correo entrante de un monitor, su dirección de correo entrante personalizada y la clave de su agente de servidor, y las claves de webhook y de correo entrante de un flujo de trabajo. Y ver la grabación de una reproducción de sesión requiere **Watch Session Replays**, no solo **List Session Replays**. La telemetría se lee señal por señal: **Read Telemetry Service Log** lee los logs, **Read Telemetry Service Traces** lee las trazas y **Read Telemetry Service Metrics** lee las métricas, incluidos los gráficos de métricas.
+
 Todo usuario con sesión iniciada tiene además un pequeño conjunto de permisos automáticos que cubren cosas como leer su propio perfil y sus propias reglas de notificación. No son permisos de administración y no dan acceso a los datos de nadie más.
 
 Los permisos resueltos se almacenan en caché por usuario y proyecto, y se refrescan cuando cambia la pertenencia a equipos o los permisos de equipo. Si cambia permisos y un usuario no ve el cambio de inmediato, pídale que recargue.

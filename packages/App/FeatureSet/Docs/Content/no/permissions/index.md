@@ -157,6 +157,8 @@ For en innlogget bruker, i rekkefølge:
 5. Bruk omfanget. Tildelinger med omfanget Eide snevrer spørringen inn til eide ressurser; etikettbaserte snevrer inn til treffende etiketter. Er en annen tildeling for samme operasjon bredere, vinner den bredere.
 6. Bruk etikettblokkeringer. En blokkering med etiketter avviser forespørselen hvis målressursen bærer én av dem.
 
+Den som kan lese en post, kan lese alle feltene i den, med to bevisste unntak. Hemmeligheter leses bare av personer som kan redigere posten de hører til: en monitors nøkler for innkommende forespørsler og innkommende e-post, dens egen innkommende e-postadresse og dens serveragentnøkkel, og et arbeidsflyts webhook- og e-postnøkler. Og å se opptaket av en øktavspilling krever **Watch Session Replays**, ikke bare **List Session Replays**. Telemetri leses signal for signal: **Read Telemetry Service Log** leser logger, **Read Telemetry Service Traces** leser sporinger, og **Read Telemetry Service Metrics** leser metrikker, metrikkdiagrammer inkludert.
+
 Enhver innlogget bruker har i tillegg et lite sett automatiske tillatelser som dekker ting som å lese sin egen profil og sine egne varslingsregler. Dette er ikke administratorrettigheter, og de gir ikke tilgang til andres data.
 
 Løste tillatelser bufres per bruker og prosjekt, og oppdateres når teammedlemskap eller teamtillatelser endres. Endrer du tillatelser og en bruker ikke ser endringen med én gang, be vedkommende laste siden på nytt.

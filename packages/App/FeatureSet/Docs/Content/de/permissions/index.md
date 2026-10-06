@@ -157,6 +157,8 @@ Für einen angemeldeten Benutzer, der Reihe nach:
 5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere.
 6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt.
 
+Wer einen Datensatz lesen darf, liest alle seine Felder – mit zwei bewussten Ausnahmen. Geheimnisse lesen nur Personen, die den Datensatz bearbeiten dürfen, zu dem sie gehören: die Schlüssel eines Monitors für eingehende Anfragen und eingehende E-Mails, seine eigene eingehende E-Mail-Adresse und sein Server-Agent-Schlüssel sowie die Webhook- und E-Mail-Schlüssel eines Workflows. Und die Aufzeichnung einer Session-Wiedergabe anzusehen braucht **Watch Session Replays**, nicht nur **List Session Replays**. Telemetrie wird Signal für Signal gelesen: **Read Telemetry Service Log** liest Logs, **Read Telemetry Service Traces** liest Traces und **Read Telemetry Service Metrics** liest Metriken, Metrikdiagramme eingeschlossen.
+
 Jeder angemeldete Benutzer hält zusätzlich einen kleinen Satz automatischer Berechtigungen, die etwa das Lesen des eigenen Profils und der eigenen Benachrichtigungsregeln abdecken. Das sind keine Admin-Berechtigungen und sie geben keinen Zugriff auf fremde Daten.
 
 Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert und aktualisiert, wenn sich Teamzugehörigkeit oder Teamberechtigungen ändern. Sieht ein Benutzer eine Änderung nicht sofort, lassen Sie ihn neu laden.
