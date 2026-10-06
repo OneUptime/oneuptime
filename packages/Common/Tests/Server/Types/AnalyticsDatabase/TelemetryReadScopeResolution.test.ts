@@ -722,3 +722,280 @@ describe("Model reads apply the scope", () => {
     ]);
   });
 });
+
+describe("Looking resources up", () => {
+  test("a read over some kinds of resource and a read over all of them share what either looked up", async () => {
+    ownedByUser("Service", [OWNED_SERVICE_ID]);
+
+    const props: DatabaseCommonInteractionProps = propsFor([
+      row(Permission.ProjectMember, { scope: PermissionScope.Owned }),
+    ]);
+
+    const servicesOnly: TelemetryReadScope =
+      await AnalyticsModelPermission.getReadScopeForPermissions({
+        props: props,
+        permissions: [Permission.ProjectMember],
+        resourceTypes: ["Service"],
+        recordName: "metric types",
+      });
+    const everyKind: TelemetryReadScope = await scopeOf(props, Log);
+
+    expect(servicesOnly.readableIds).toEqual([OWNED_SERVICE_ID.toString()]);
+    expect(everyKind.readableIds).toContain(OWNED_SERVICE_ID.toString());
+    // Services were looked up once, for both reads.
+    expect(lookups("Service").user).toHaveBeenCalledTimes(1);
+    expect(lookups("Host").user).toHaveBeenCalledTimes(1);
+  });
+
+  test("reads running at the same time share one lookup", async () => {
+    ownedByUser("Service", [OWNED_SERVICE_ID]);
+
+    const props: DatabaseCommonInteractionProps = propsFor([
+      row(Permission.ProjectMember, { scope: PermissionScope.Owned }),
+    ]);
+
+    await Promise.all([scopeOf(props, Log), scopeOf(props, Span)]);
+
+    expect(lookups("Service").user).toHaveBeenCalledTimes(1);
+  });
+
+  test("a long list is read to its end: a block with labels takes every resource carrying them away", async () => {
+    const pageSize: number = 10000;
+    const lastBlocked: ObjectID = ObjectID.generate();
+
+    lookups("Service").model.mockImplementation((async (request: {
+      skip: number;
+    }) => {
+      // A full first page, then the one resource left over.
+      if (request.skip === 0) {
+        return Array.from({ length: pageSize }, () => {
+          return { _id: ObjectID.generate().toString() };
+        });
+      }
+      return [{ _id: lastBlocked.toString() }];
+    }) as never);
+
+    const scope: TelemetryReadScope = await scopeOf(
+      propsFor([
+        row(Permission.ProjectMember, { scope: PermissionScope.All }),
+        row(Permission.ProjectMember, {
+          labelIds: [BLOCKED_LABEL_ID],
+          isBlockPermission: true,
+        }),
+      ]),
+    );
+
+    expect(scope.blockedIds).toHaveLength(pageSize + 1);
+    expect(scope.blockedIds).toContain(lastBlocked.toString());
+    expect(TelemetryReadScopeUtil.isReadable(scope, lastBlocked)).toBe(false);
+    expect(lookups("Service").model).toHaveBeenCalledTimes(2);
+  });
+
+  test("a long list of owned resources is read to its end too", async () => {
+    const pageSize: number = 10000;
+    const lastOwned: ObjectID = ObjectID.generate();
+    const fkColumn: string = fkColumnOf("Service");
+
+    lookups("Service").user.mockImplementation((async (request: {
+      skip: number;
+    }) => {
+      if (request.skip === 0) {
+        return Array.from({ length: pageSize }, () => {
+          return { [fkColumn]: ObjectID.generate() };
+        });
+      }
+      return [{ [fkColumn]: lastOwned }];
+    }) as never);
+
+    const scope: TelemetryReadScope = await scopeOf(
+      propsFor([
+        row(Permission.ProjectMember, { scope: PermissionScope.Owned }),
+      ]),
+    );
+
+    expect(TelemetryReadScopeUtil.isReadable(scope, lastOwned)).toBe(true);
+  });
+});
+
+/*
+ * The same rule for one resource, decided from the resource's labels and -
+ * only when an Owned grant has to be weighed - its owners, without looking
+ * every readable resource up (a session replay's application, on every page
+ * of a playback).
+ */
+describe("Deciding for one resource", () => {
+  const RESOURCE_ID: string = ObjectID.generate().toString();
+
+  async function decide(
+    permissions: Array<UserPermission>,
+    resource: {
+      labelIds?: Array<ObjectID>;
+      ownerUserIds?: Array<ObjectID>;
+      ownerTeamIds?: Array<ObjectID>;
+    } = {},
+  ): Promise<{ readable: boolean; ownersAsked: number }> {
+    let ownersAsked: number = 0;
+
+    const readable: boolean =
+      await AnalyticsModelPermission.isResourceReadableForPermissions({
+        props: propsFor(permissions),
+        permissions: [Permission.ReadRumSessionReplay],
+        resourceTypes: ["RumApplication"],
+        recordName: "session replays",
+        resource: {
+          id: RESOURCE_ID,
+          labelIds: (resource.labelIds || []).map((id: ObjectID) => {
+            return id.toString();
+          }),
+          getOwners: async () => {
+            ownersAsked++;
+            return {
+              userIds: (resource.ownerUserIds || []).map((id: ObjectID) => {
+                return id.toString();
+              }),
+              teamIds: (resource.ownerTeamIds || []).map((id: ObjectID) => {
+                return id.toString();
+              }),
+            };
+          },
+        },
+      });
+
+    return { readable, ownersAsked };
+  }
+
+  function grant(
+    data: { scope?: PermissionScope; labelIds?: Array<ObjectID> } = {},
+  ): UserPermission {
+    return row(Permission.ReadRumSessionReplay, data);
+  }
+
+  function block(labelIds: Array<ObjectID> = []): UserPermission {
+    return row(Permission.ReadRumSessionReplay, {
+      labelIds: labelIds,
+      isBlockPermission: true,
+    });
+  }
+
+  test("a grant over the whole project reads it, and its owners are not asked", async () => {
+    expect(
+      await decide([grant({ scope: PermissionScope.All })], {
+        labelIds: [GRANTED_LABEL_ID],
+      }),
+    ).toEqual({ readable: true, ownersAsked: 0 });
+  });
+
+  test("a label grant reads it when it carries one of the labels, in any case", async () => {
+    expect(
+      await decide(
+        [
+          grant({
+            scope: PermissionScope.Labels,
+            labelIds: [GRANTED_LABEL_ID],
+          }),
+        ],
+        {
+          labelIds: [new ObjectID(GRANTED_LABEL_ID.toString().toUpperCase())],
+        },
+      ),
+    ).toEqual({ readable: true, ownersAsked: 0 });
+
+    expect(
+      (
+        await decide(
+          [
+            grant({
+              scope: PermissionScope.Labels,
+              labelIds: [GRANTED_LABEL_ID],
+            }),
+          ],
+          { labelIds: [BLOCKED_LABEL_ID] },
+        )
+      ).readable,
+    ).toBe(false);
+  });
+
+  test("an Owned grant reads it when the caller or one of their teams owns it", async () => {
+    const owned: Array<UserPermission> = [
+      grant({ scope: PermissionScope.Owned }),
+    ];
+
+    expect(await decide(owned, { ownerUserIds: [USER_ID] })).toEqual({
+      readable: true,
+      ownersAsked: 1,
+    });
+    expect((await decide(owned, { ownerTeamIds: [TEAM_ID] })).readable).toBe(
+      true,
+    );
+    expect(
+      (await decide(owned, { ownerUserIds: [ObjectID.generate()] })).readable,
+    ).toBe(false);
+  });
+
+  test("a block with labels takes it away whatever else the caller holds", async () => {
+    expect(
+      await decide(
+        [grant({ scope: PermissionScope.All }), block([BLOCKED_LABEL_ID])],
+        { labelIds: [BLOCKED_LABEL_ID] },
+      ),
+    ).toEqual({ readable: false, ownersAsked: 0 });
+
+    // A resource without those labels stays readable.
+    expect(
+      (
+        await decide(
+          [grant({ scope: PermissionScope.All }), block([BLOCKED_LABEL_ID])],
+          { labelIds: [GRANTED_LABEL_ID] },
+        )
+      ).readable,
+    ).toBe(true);
+  });
+
+  test("a caller with no grant does not read it", async () => {
+    expect((await decide([])).readable).toBe(false);
+  });
+
+  test("a block with no labels refuses, as the scope does", async () => {
+    await expect(
+      decide([grant({ scope: PermissionScope.All }), block()]),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  test("nothing is looked up", async () => {
+    await decide([grant({ scope: PermissionScope.Owned })], {
+      ownerUserIds: [USER_ID],
+    });
+
+    expect(lookupCallCount()).toBe(0);
+  });
+
+  test("whether the caller reads every resource is known without a lookup", () => {
+    function readsEvery(permissions: Array<UserPermission>): boolean {
+      return AnalyticsModelPermission.readsEveryResourceForPermissions({
+        props: propsFor(permissions),
+        permissions: [Permission.ReadRumSessionReplay],
+        recordName: "session replays",
+      });
+    }
+
+    expect(readsEvery([grant({ scope: PermissionScope.All })])).toBe(true);
+    expect(
+      readsEvery([
+        grant({ scope: PermissionScope.All }),
+        block([BLOCKED_LABEL_ID]),
+      ]),
+    ).toBe(false);
+    expect(
+      readsEvery([
+        grant({
+          scope: PermissionScope.Labels,
+          labelIds: [GRANTED_LABEL_ID],
+        }),
+      ]),
+    ).toBe(false);
+    expect(() => {
+      return readsEvery([grant({ scope: PermissionScope.All }), block()]);
+    }).toThrow(NotAuthorizedException);
+    expect(lookupCallCount()).toBe(0);
+  });
+});

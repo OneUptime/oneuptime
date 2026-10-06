@@ -593,13 +593,28 @@ describe("Session replay playback API", () => {
     });
   }
 
-  /* The RUM applications the caller owns, as the owner tables list them. */
+  /*
+   * The RUM applications the caller owns, as the owner tables list them:
+   * asked for the caller (which applications do they own?) or for one
+   * application (who owns it?).
+   */
   function mockOwnedApplications(applicationIds: Array<ObjectID>): void {
-    ownerUserFindBySpy.mockResolvedValue(
-      applicationIds.map((rumApplicationId: ObjectID) => {
-        return { rumApplicationId: rumApplicationId };
-      }) as never,
-    );
+    ownerUserFindBySpy.mockImplementation((async (findBy: {
+      query: JSONObject;
+    }) => {
+      const forApplication: unknown = findBy.query["rumApplicationId"];
+
+      return applicationIds
+        .filter((rumApplicationId: ObjectID): boolean => {
+          return (
+            forApplication === undefined ||
+            String(forApplication) === rumApplicationId.toString()
+          );
+        })
+        .map((rumApplicationId: ObjectID) => {
+          return { rumApplicationId: rumApplicationId, userId: userId };
+        });
+    }) as never);
   }
 
   function mockSessionHeader(rumApplicationId: ObjectID): void {
@@ -1096,12 +1111,98 @@ describe("Session replay playback API", () => {
       expect(result.thrownToNext).toBeUndefined();
       expect(result.deniedWith).toBeUndefined();
       expect(recordViewSpy).toHaveBeenCalled();
-      // Ownership is looked up for the caller, in this project.
-      const ownerQuery: JSONObject = (
-        ownerUserFindBySpy.mock.calls[0]![0] as { query: JSONObject }
-      ).query;
-      expect(String(ownerQuery["userId"])).toBe(userId.toString());
-      expect(String(ownerQuery["projectId"])).toBe(projectId.toString());
+      /*
+       * The recording's application is the one decided on: who owns it is
+       * looked up for it, rather than every application the caller owns.
+       */
+      const ownerQueries: Array<JSONObject> = ownerUserFindBySpy.mock.calls.map(
+        (call: Array<unknown>): JSONObject => {
+          return (call[0] as { query: JSONObject }).query;
+        },
+      );
+      expect(ownerQueries).toHaveLength(1);
+      expect(String(ownerQueries[0]!["rumApplicationId"])).toBe(
+        applicationAId.toString(),
+      );
+    });
+
+    test("the playback's pages ask nothing more of the database once the owners are known", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownedPrincipal(Permission.ReadRumSessionReplayPayload);
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockOwnedApplications([applicationAId]);
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+        ]) as never,
+      );
+
+      for (const chunkIndex of [0, 1, 2]) {
+        const page: CallResult = await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: principal.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [chunkIndex],
+          },
+        });
+
+        expect(page.thrownToNext).toBeUndefined();
+      }
+
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(3);
+      // One application load, one owners lookup, and no project-wide scan.
+      expect(findOneBySpy).toHaveBeenCalledTimes(1);
+      expect(ownerUserFindBySpy).toHaveBeenCalledTimes(1);
+      expect(findBySpy).not.toHaveBeenCalled();
+    });
+
+    test("a label-scoped viewer's pages are decided from the application's own labels", async () => {
+      const viewer: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      mockProps(viewer.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      chunkQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          { chunkIndex: 0, servedPayload: "[1]", isServed: 1 },
+        ]) as never,
+      );
+
+      for (const chunkIndex of [0, 1, 2]) {
+        const page: CallResult = await callRoute({
+          uri: CHUNKS_ROUTE,
+          request: viewer.request,
+          body: {
+            sessionId: "session-1",
+            tabId: "tab-1",
+            chunkIndexes: [chunkIndex],
+          },
+        });
+
+        expect(page.thrownToNext).toBeUndefined();
+      }
+
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(3);
+      // Neither the labelled applications nor the owners are looked up.
+      expect(findBySpy).not.toHaveBeenCalled();
+      expect(ownerUserFindBySpy).not.toHaveBeenCalled();
     });
 
     test("an Owned-scoped list grant that owns nothing reads no exception's sessions, never the whole project's", async () => {

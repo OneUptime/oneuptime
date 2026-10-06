@@ -19,8 +19,15 @@ import { FindOperator } from "typeorm";
  * The explorers' resource facets (Service, Host, Kubernetes cluster, ...)
  * list the project's resources from Postgres, so a resource with no
  * telemetry in the window still shows. A caller whose telemetry read is
- * limited lists only the resources whose rows they may read, and a block
- * with labels takes its resources off the list too.
+ * limited:
+ *
+ *   - lists, in the Services facet (the resource a row belongs to, which the
+ *     scope is about), only the resources whose rows they may read, a block
+ *     with labels taking its resources off the list too;
+ *   - keeps, in every other resource facet (a host, a cluster ... that a
+ *     row names), the resources their rows name and the ones whose own
+ *     telemetry they may read - so a team limited to a service can still
+ *     filter that service's logs by the host they ran on.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -134,10 +141,58 @@ describe("resource facet listings follow the caller's read scope", () => {
     ).toEqual([]);
     expect(serviceFind.mock.calls.length).toBe(0);
   });
+});
 
-  test("every resource type lists the same way", async () => {
-    await list({ readableIds: [serviceB], blockedIds: [] }, "hostId");
+describe("a host or cluster facet offers what the caller's rows name", () => {
+  const hostA: string = ObjectID.generate().toString();
+  const hostB: string = ObjectID.generate().toString();
+  const hostC: string = ObjectID.generate().toString();
 
-    expect(boundIds(idFilter(hostFind)!)).toEqual([serviceB]);
+  const hosts: Array<ResourceFacetEntity> = [
+    { id: hostA, displayName: "web-1" },
+    { id: hostB, displayName: "web-2" },
+    { id: hostC, displayName: "db-1" },
+  ];
+
+  function kept(
+    counts: Map<string, number>,
+    scope: TelemetryReadScope | undefined,
+  ): Array<string> {
+    return ResourceFacetResolver.mergeCounts(hosts, counts, scope)
+      .map((value: { value: string }): string => {
+        return value.value;
+      })
+      .sort();
+  }
+
+  test("is listed from the project's resources, whatever the caller's scope", async () => {
+    await list({ readableIds: [serviceA], blockedIds: [] }, "hostId");
+
+    expect(idFilter(hostFind)).toBeUndefined();
+    const request: { query: Record<string, unknown> } = hostFind.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
+    expect(request.query["projectId"]).toEqual(projectId);
+  });
+
+  test("a limited caller keeps the hosts their rows name and the ones they may read", () => {
+    expect(
+      kept(new Map([[hostA, 12]]), { readableIds: [hostB], blockedIds: [] }),
+    ).toEqual([hostA, hostB].sort());
+  });
+
+  test("a block with labels drops its hosts unless the caller's rows name them", () => {
+    expect(kept(new Map(), { readableIds: null, blockedIds: [hostC] })).toEqual(
+      [hostA, hostB].sort(),
+    );
+    expect(
+      kept(new Map([[hostC, 3]]), { readableIds: null, blockedIds: [hostC] }),
+    ).toEqual([hostA, hostB, hostC].sort());
+  });
+
+  test("a caller who reads every resource keeps every host, counted or not", () => {
+    expect(kept(new Map(), { readableIds: null, blockedIds: [] })).toEqual(
+      [hostA, hostB, hostC].sort(),
+    );
+    expect(kept(new Map(), undefined)).toEqual([hostA, hostB, hostC].sort());
   });
 });

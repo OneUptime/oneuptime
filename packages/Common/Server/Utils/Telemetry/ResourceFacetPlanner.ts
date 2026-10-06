@@ -48,8 +48,9 @@ export interface ResourceFacetListRequest {
   facetSearchText?: Record<string, string> | undefined;
   limit: number;
   /*
-   * Whose telemetry the caller may read: only those resources are listed
-   * (TelemetryReadAccess.getScope). Absent: every resource of the project.
+   * Whose telemetry the caller may read (TelemetryReadAccess.getScope): what
+   * each resource facet lists and keeps (ResourceFacetResolver). Absent:
+   * every resource of the project.
    */
   scope?: TelemetryReadScope | undefined;
 }
@@ -148,6 +149,8 @@ export default class ResourceFacetPlanner {
     facetKeys: Array<string>;
     listed: ListedResourceFacets;
     countsFor: (facetKey: string) => Map<string, number>;
+    // The caller's scope (see ResourceFacetResolver.mergeCounts).
+    scope?: TelemetryReadScope | undefined;
   }): Record<string, Array<ResolvedFacetValue>> {
     const merged: Record<string, Array<ResolvedFacetValue>> = {};
 
@@ -161,6 +164,7 @@ export default class ResourceFacetPlanner {
         ? ResourceFacetResolver.mergeCounts(
             data.listed[facetKey] || [],
             data.countsFor(facetKey),
+            data.scope,
           )
         : [];
     }
@@ -224,6 +228,7 @@ export default class ResourceFacetPlanner {
               ResourceFacetResolver.mergeCounts(
                 listed[facetKey] || [],
                 ResourceFacetPlanner.toCountMap(values),
+                request.scope,
               ),
             ] as const;
           },

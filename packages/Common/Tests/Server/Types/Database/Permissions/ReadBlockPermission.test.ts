@@ -6,6 +6,9 @@ import MetricType from "../../../../../Models/DatabaseModels/MetricType";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../../../../Models/DatabaseModels/StatusPageAnnouncement";
+import RumSessionPin from "../../../../../Models/DatabaseModels/RumSessionPin";
+import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryException";
+import OnCallDutyPolicyTimeLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyTimeLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../../Types/BaseDatabase/IncludesAnyOfGroups";
@@ -448,10 +451,12 @@ describe("ReadPermission.checkReadBlockPermission", () => {
 
 /*
  * A block with labels takes away the records carrying those labels. On a
- * model whose records carry no labels of their own it reaches a record only
- * through the labelled record it belongs to (canAccessIfCanReadOn), and a
- * record that belongs to no labelled record is not affected - the read never
- * fails because of a block it could not apply.
+ * model whose records carry no labels of their own it reaches a record
+ * through the labelled records it belongs to - the parent the model names
+ * (canAccessIfCanReadOn), else the resource its owner key names
+ * (@OwnedThrough), else every labelled record it points to - and a record
+ * that belongs to no labelled record is not affected: the read never fails
+ * because of a block it could not apply.
  */
 describe("ReadPermission.checkReadBlockPermission on models without labels", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -514,6 +519,17 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
             joinTableName: "AnnouncementStatusPage",
             ownerColumnName: "announcementId",
             relationColumnName: "statusPageId",
+          };
+        }
+
+        // Every other labelled model keeps its labels in "<Table>Label".
+        if (column === "labels") {
+          const tableName: string = new modelType().tableName;
+
+          return {
+            joinTableName: `${tableName}Label`,
+            ownerColumnName: `${tableName.charAt(0).toLowerCase()}${tableName.slice(1)}Id`,
+            relationColumnName: "labelId",
           };
         }
 
@@ -622,6 +638,122 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
     );
 
     expect(result.query).toEqual({ projectId });
+  });
+
+  /*
+   * A pin names no parent, so it belongs to every labelled record it points
+   * to: its recording's application, and the incident or alert it is pinned
+   * to. A pin pointing at none of them stays.
+   */
+  it("leaves out the rows that point to a labelled record carrying a blocked label", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      RumSessionPin,
+      { projectId } as any,
+      propsWithBlock(Permission.ReadRumSessionReplay),
+    );
+
+    for (const [foreignKey, joinTable] of [
+      ["rumApplicationId", "RumApplicationLabel"],
+      ["incidentId", "IncidentLabel"],
+      ["alertId", "AlertLabel"],
+    ] as Array<[string, string]>) {
+      const sql: string = rawSql(result.query[foreignKey], "pinKey");
+      expect([foreignKey, sql]).toEqual([
+        foreignKey,
+        expect.stringContaining("pinKey IS NULL OR pinKey NOT IN"),
+      ]);
+      expect(sql).toContain(`FROM "${joinTable}"`);
+      expect(boundValues(result.query[foreignKey])).toEqual([
+        blockedLabel.toString(),
+      ]);
+    }
+
+    // The pin's own id and the session it records are left alone.
+    expect(result.query._id).toBeUndefined();
+    expect(result.query.projectId).toBe(projectId);
+  });
+
+  /*
+   * An exception group belongs to the resource its owner key names - a
+   * service, a host, a cluster ... - so a block with labels leaves it out
+   * when that resource, whichever kind it is, carries one of them. Groups
+   * of unattributed telemetry (the key holds the project id) stay.
+   */
+  it("follows the owner key to every kind of resource it can name", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      TelemetryException,
+      { projectId } as any,
+      propsWithBlock(Permission.ReadTelemetryException),
+    );
+
+    const ownerKey: any = result.query.primaryEntityId;
+    expect(ownerKey).toBeInstanceOf(FindOperator);
+
+    // One condition per kind of resource, all of which must hold.
+    const conditionsSql: (operator: any) => string = (
+      operator: any,
+    ): string => {
+      return operator.type === "and"
+        ? operator.value.map(conditionsSql).join(" AND ")
+        : rawSql(operator, "entityId");
+    };
+
+    const sql: string = conditionsSql(ownerKey);
+    for (const joinTable of [
+      "ServiceLabel",
+      "HostLabel",
+      "DockerHostLabel",
+      "KubernetesClusterLabel",
+      "RumApplicationLabel",
+      "DatabaseServerLabel",
+    ]) {
+      expect([joinTable, sql.includes(`FROM "${joinTable}"`)]).toEqual([
+        joinTable,
+        true,
+      ]);
+    }
+    expect(sql).toContain("entityId IS NULL OR entityId NOT IN");
+  });
+
+  it("follows an owner key that is not a relation (an on-call time log's policy)", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      OnCallDutyPolicyTimeLog,
+      { projectId } as any,
+      propsWithBlock(Permission.ReadOnCallDutyPolicyTimeLog),
+    );
+
+    const sql: string = rawSql(result.query.onCallDutyPolicyId, "policyId");
+    expect(sql).toContain("policyId IS NULL OR policyId NOT IN");
+    expect(sql).toContain('FROM "OnCallDutyPolicyLabel"');
+  });
+
+  it("keeps the caller's own filter on the owner key next to the block", async () => {
+    const serviceId: ObjectID = ObjectID.generate();
+
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      TelemetryException,
+      { projectId, primaryEntityId: serviceId } as any,
+      propsWithBlock(Permission.ReadTelemetryException),
+    );
+
+    const combined: any = result.query.primaryEntityId;
+    expect(combined).toBeInstanceOf(FindOperator);
+    expect(combined.type).toBe("and");
+    expect(JSON.stringify(combined)).toContain(serviceId.toString());
+  });
+
+  it("refuses a model that names a parent it does not have", async () => {
+    class NoteNamingAMissingParent extends IncidentInternalNote {}
+    NoteNamingAMissingParent.prototype.canAccessIfCanReadOn =
+      "incidentThatIsNotARelation";
+
+    await expect(
+      ReadPermission.checkReadBlockPermission(
+        NoteNamingAMissingParent,
+        { projectId } as any,
+        propsWithBlock(Permission.IncidentViewer),
+      ),
+    ).rejects.toThrow("access-control relation metadata");
   });
 
   it("refuses when the labelled record's labels cannot be resolved", async () => {

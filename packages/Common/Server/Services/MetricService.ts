@@ -859,11 +859,19 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
    * remove there — skip them.
    */
   public override async deleteBy(deleteBy: DeleteBy<Metric>): Promise<void> {
+    /*
+     * What the caller asked to delete, before the deleter's scope is written
+     * onto deleteBy.query: whether the rollups go too is the caller's
+     * question (did they name the resources?), not the scope's.
+     */
+    const requested: Query<Metric> = { ...(deleteBy.query || {}) };
+
     await super.deleteBy(deleteBy);
 
-    const cascadeQuery: Query<Metric> | null = this.buildMVCascadeQuery(
-      deleteBy.query,
-    );
+    const cascadeQuery: Query<Metric> | null = this.buildMVCascadeQuery({
+      requested: requested,
+      deleted: deleteBy.query,
+    });
     if (!cascadeQuery) {
       return;
     }
@@ -901,12 +909,31 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
   }
 
-  private buildMVCascadeQuery(query: Query<Metric>): Query<Metric> | null {
-    if (!query || typeof query !== "object") {
+  /*
+   * The rollup rows to delete with a delete of metrics: only for a delete
+   * whose caller NAMED the resources it removes (one id, or a list of ids) -
+   * the scope a deleter's permissions add (TelemetryReadScope.applyToQuery)
+   * names resources too, but a delete the caller did not aim at resources
+   * must not empty the rollups of every resource the deleter may reach. The
+   * resources are taken from the delete as it ran (`deleted`), so the
+   * rollups go only for the resources whose metrics went.
+   */
+  private buildMVCascadeQuery(data: {
+    requested: Query<Metric>;
+    deleted: Query<Metric>;
+  }): Query<Metric> | null {
+    if (
+      !data.requested ||
+      typeof data.requested !== "object" ||
+      !data.deleted ||
+      typeof data.deleted !== "object"
+    ) {
       return null;
     }
 
-    const queryRecord: Record<string, unknown> = query as unknown as Record<
+    const requested: Record<string, unknown> =
+      data.requested as unknown as Record<string, unknown>;
+    const deleted: Record<string, unknown> = data.deleted as unknown as Record<
       string,
       unknown
     >;
@@ -918,26 +945,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * rows and risk removing data that belongs to other entities sharing
      * the same project.
      */
-    if (
-      queryRecord["primaryEntityId"] === undefined ||
-      queryRecord["primaryEntityId"] === null
-    ) {
-      return null;
-    }
-
-    /*
-     * Only a delete that names its entities (one id, or an Includes of ids)
-     * cascades. A delete narrowed by exclusion - the deleter's scope leaving
-     * out the resources a block with labels takes away
-     * (TelemetryReadScope.applyToQuery) - would, with the other filters
-     * dropped below, empty the rollups of every other entity of the project.
-     */
-    const primaryEntityId: unknown = queryRecord["primaryEntityId"];
-    if (
-      typeof primaryEntityId !== "string" &&
-      !(primaryEntityId instanceof ObjectID) &&
-      !(primaryEntityId instanceof Includes)
-    ) {
+    if (!this.namesResources(requested["primaryEntityId"])) {
       return null;
     }
 
@@ -954,13 +962,32 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     ];
     const out: Record<string, unknown> = {};
     for (const key of allowedKeys) {
-      const value: unknown = queryRecord[key];
+      const value: unknown = deleted[key];
       if (value !== undefined) {
         out[key] = value;
       }
     }
 
     return out as unknown as Query<Metric>;
+  }
+
+  // A filter that names resources outright: one id, a list of ids, or an Includes of ids.
+  private namesResources(filter: unknown): boolean {
+    if (typeof filter === "string" || filter instanceof ObjectID) {
+      return true;
+    }
+
+    if (filter instanceof Includes) {
+      return filter.values.length > 0;
+    }
+
+    return (
+      Array.isArray(filter) &&
+      filter.length > 0 &&
+      filter.every((element: unknown): boolean => {
+        return typeof element === "string" || element instanceof ObjectID;
+      })
+    );
   }
 
   /**

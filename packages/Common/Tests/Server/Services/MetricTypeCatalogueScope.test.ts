@@ -371,7 +371,7 @@ describe("a read across the caller's projects", () => {
     const parameters: Array<string> = parametersOf(query["_id"]);
 
     // Project P reaches every service: all its metric types.
-    expect(sql).toContain('"MetricType"."projectId" IN (:...mtWide_');
+    expect(sql).toContain('"MetricType"."projectId" IN (:...scopeWide_');
     expect(parameters).toContain(projectP.toString());
     // Project Q is limited: its metric types a readable service reports, or none does.
     expect(parameters).toContain(projectQ.toString());

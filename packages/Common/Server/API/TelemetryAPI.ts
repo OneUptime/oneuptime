@@ -120,6 +120,12 @@ import ResourceEntityFilter, {
 import { ResourceEntityFacetSelections } from "../../Types/Telemetry/ResourceEntityFacet";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
+import RumApplicationOwnerUserService from "../Services/RumApplicationOwnerUserService";
+import RumApplicationOwnerTeamService from "../Services/RumApplicationOwnerTeamService";
+import RumApplicationOwnerUser from "../../Models/DatabaseModels/RumApplicationOwnerUser";
+import RumApplicationOwnerTeam from "../../Models/DatabaseModels/RumApplicationOwnerTeam";
+import Label from "../../Models/DatabaseModels/Label";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
 import SessionReplayIdentity from "../Utils/SessionReplay/SessionReplayIdentity";
@@ -1516,6 +1522,7 @@ router.post(
         countsFor: (): Map<string, number> => {
           return serviceCounts;
         },
+        scope,
       });
 
       for (const key of Object.keys(resourceFacets)) {
@@ -4013,19 +4020,49 @@ const assertSessionReplayPlan: AssertSessionReplayPlanFunction = (
  * <tenantId>`, so the id cannot come from another project.
  */
 type IsApplicationInSessionReplayScopeFunction = (data: {
-  scope: TelemetryReadScope;
+  databaseProps: DatabaseCommonInteractionProps;
+  permissions: Array<Permission>;
   application: RumApplication;
-}) => boolean;
+}) => Promise<boolean>;
 
 const isApplicationInSessionReplayScope: IsApplicationInSessionReplayScopeFunction =
-  (data: {
-    scope: TelemetryReadScope;
+  async (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    permissions: Array<Permission>;
     application: RumApplication;
-  }): boolean => {
-    return Boolean(
-      data.application.id &&
-        TelemetryReadScopeUtil.isReadable(data.scope, data.application.id),
-    );
+  }): Promise<boolean> => {
+    const application: RumApplication = data.application;
+
+    if (!application.id) {
+      return false;
+    }
+
+    /*
+     * Decided from the application itself - its labels, which the
+     * short-lived cache below holds with it, and its owners, looked up only
+     * for an Owned grant - by the rule every telemetry read follows
+     * (TelemetryReadAccess), so a page of playback asks nothing of the
+     * database for a decision it can make from what it already has.
+     */
+    return await TelemetryReadAccess.isResourceReadableForPermissions({
+      props: data.databaseProps,
+      permissions: data.permissions,
+      resourceTypes: ["RumApplication"],
+      recordName: "session replays",
+      resource: {
+        id: application.id.toString(),
+        labelIds: (application.labels || [])
+          .map((label: Label): string => {
+            return label.id ? label.id.toString() : "";
+          })
+          .filter((labelId: string): boolean => {
+            return labelId.length > 0;
+          }),
+        getOwners: (): Promise<RumApplicationOwners> => {
+          return getRumApplicationOwners(application);
+        },
+      },
+    });
   };
 
 /*
@@ -4146,6 +4183,90 @@ const loadRumApplicationForAccess: LoadRumApplicationForAccessFunction =
     return application;
   };
 
+/*
+ * The users and teams that own a RUM application, for an Owned grant's
+ * decision. Looked up the first time a decision needs them and kept with
+ * the application object - which the cache above holds for its TTL - so a
+ * playback looks them up once, not once per page.
+ */
+interface RumApplicationOwners {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
+const rumApplicationOwners: WeakMap<
+  RumApplication,
+  Promise<RumApplicationOwners>
+> = new WeakMap<RumApplication, Promise<RumApplicationOwners>>();
+
+type GetRumApplicationOwnersFunction = (
+  application: RumApplication,
+) => Promise<RumApplicationOwners>;
+
+const getRumApplicationOwners: GetRumApplicationOwnersFunction = (
+  application: RumApplication,
+): Promise<RumApplicationOwners> => {
+  const cached: Promise<RumApplicationOwners> | undefined =
+    rumApplicationOwners.get(application);
+
+  if (cached) {
+    return cached;
+  }
+
+  const pending: Promise<RumApplicationOwners> =
+    (async (): Promise<RumApplicationOwners> => {
+      const rumApplicationId: ObjectID = new ObjectID(
+        application.id!.toString(),
+      );
+
+      const [ownerUsers, ownerTeams]: [
+        Array<RumApplicationOwnerUser>,
+        Array<RumApplicationOwnerTeam>,
+      ] = await Promise.all([
+        RumApplicationOwnerUserService.findBy({
+          query: { rumApplicationId: rumApplicationId },
+          select: { userId: true },
+          props: { isRoot: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+        }),
+        RumApplicationOwnerTeamService.findBy({
+          query: { rumApplicationId: rumApplicationId },
+          select: { teamId: true },
+          props: { isRoot: true },
+          skip: 0,
+          limit: LIMIT_MAX,
+        }),
+      ]);
+
+      return {
+        userIds: ownerUsers
+          .map((owner: RumApplicationOwnerUser): string => {
+            return owner.userId ? owner.userId.toString() : "";
+          })
+          .filter((id: string): boolean => {
+            return id.length > 0;
+          }),
+        teamIds: ownerTeams
+          .map((owner: RumApplicationOwnerTeam): string => {
+            return owner.teamId ? owner.teamId.toString() : "";
+          })
+          .filter((id: string): boolean => {
+            return id.length > 0;
+          }),
+      };
+    })();
+
+  rumApplicationOwners.set(application, pending);
+  pending.catch((): void => {
+    if (rumApplicationOwners.get(application) === pending) {
+      rumApplicationOwners.delete(application);
+    }
+  });
+
+  return pending;
+};
+
 type AssertSessionReplayApplicationAccessFunction = (data: {
   projectId: ObjectID;
   rumApplicationId: ObjectID;
@@ -4163,10 +4284,17 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
     permissions: Array<Permission>;
     allowCached?: boolean | undefined;
   }): Promise<RumApplication> => {
-    const scope: TelemetryReadScope = await getSessionReplayScope(
-      data.databaseProps,
-      data.permissions,
-    );
+    /*
+     * A block with no labels on these permissions refuses before anything
+     * is looked up; a grant over the whole project with no block with
+     * labels reads every application.
+     */
+    const readsEveryApplication: boolean =
+      TelemetryReadAccess.readsEveryResourceForPermissions({
+        props: data.databaseProps,
+        permissions: data.permissions,
+        recordName: "session replays",
+      });
 
     const application: RumApplication | null =
       await loadRumApplicationForAccess({
@@ -4187,10 +4315,12 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
     }
 
     if (
-      !isApplicationInSessionReplayScope({
-        scope: scope,
+      !readsEveryApplication &&
+      !(await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: data.permissions,
         application: application,
-      })
+      }))
     ) {
       throw new NotAuthorizedException(
         "You do not have access to session replays for this application.",
@@ -4221,13 +4351,12 @@ const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction =
     databaseProps: DatabaseCommonInteractionProps;
     application: RumApplication;
   }): Promise<boolean> => {
-    let scope: TelemetryReadScope;
-
     try {
-      scope = await getSessionReplayScope(
-        data.databaseProps,
-        SESSION_REPLAY_IDENTITY_PERMISSIONS,
-      );
+      return await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_IDENTITY_PERMISSIONS,
+        application: data.application,
+      });
     } catch {
       /*
        * A block refuses the identity grant. For an optional column the right
@@ -4236,11 +4365,6 @@ const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction =
        */
       return false;
     }
-
-    return isApplicationInSessionReplayScope({
-      scope: scope,
-      application: data.application,
-    });
   };
 
 type CanReadSessionReplayListMetadataFunction = (data: {
@@ -4260,21 +4384,15 @@ const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction
     databaseProps: DatabaseCommonInteractionProps;
     application: RumApplication;
   }): Promise<boolean> => {
-    let scope: TelemetryReadScope;
-
     try {
-      scope = await getSessionReplayScope(
-        data.databaseProps,
-        SESSION_REPLAY_LIST_PERMISSIONS,
-      );
+      return await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        application: data.application,
+      });
     } catch {
       return false;
     }
-
-    return isApplicationInSessionReplayScope({
-      scope: scope,
-      application: data.application,
-    });
   };
 
 /*
@@ -4376,20 +4494,19 @@ const isApplicationInSessionReplayScopeById: IsApplicationInSessionReplayScopeBy
     rumApplicationId: string;
     databaseProps: DatabaseCommonInteractionProps;
   }): Promise<boolean> => {
-    let scope: TelemetryReadScope;
-
     try {
-      scope = await getSessionReplayScope(
-        data.databaseProps,
-        SESSION_REPLAY_PAYLOAD_PERMISSIONS,
-      );
+      if (
+        TelemetryReadAccess.readsEveryResourceForPermissions({
+          props: data.databaseProps,
+          permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+          recordName: "session replays",
+        })
+      ) {
+        return true;
+      }
     } catch {
       /* A refused grant is refused here too, never widened. */
       return false;
-    }
-
-    if (TelemetryReadScopeUtil.isProjectWide(scope)) {
-      return true;
     }
 
     if (!ObjectID.isValidUUID(data.rumApplicationId)) {
@@ -4407,10 +4524,15 @@ const isApplicationInSessionReplayScopeById: IsApplicationInSessionReplayScopeBy
       return false;
     }
 
-    return isApplicationInSessionReplayScope({
-      scope: scope,
-      application: application,
-    });
+    try {
+      return await isApplicationInSessionReplayScope({
+        databaseProps: data.databaseProps,
+        permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+        application: application,
+      });
+    } catch {
+      return false;
+    }
   };
 
 type ExplainMissingSessionFunction = (data: {

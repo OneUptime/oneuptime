@@ -819,6 +819,58 @@ describe.each(ROUTE_CASES)("$uri", (routeCase: RouteCase) => {
   }
 });
 
+/*
+ * The *AllOperationalResources wildcard is a grant over the whole project on
+ * every telemetry model (Log, Span, Metric, ExceptionInstance, Profile,
+ * ProfileSample are operational resources), so a caller holding only it
+ * reads every service - on each route whose guard lets it in. Security
+ * events are not operational resources: their routes do not take it.
+ */
+describe("a caller holding only the operational-resource wildcard", () => {
+  const WILDCARD_CASES: Array<RouteCase> = ROUTE_CASES.filter(
+    (routeCase: RouteCase): boolean => {
+      return !routeCase.uri.startsWith("/telemetry/security-events/");
+    },
+  );
+
+  test("is checked on every route but the security event ones", () => {
+    expect(WILDCARD_CASES.length).toBe(ROUTE_CASES.length - 2);
+    expect(
+      WILDCARD_CASES.some((routeCase: RouteCase): boolean => {
+        return routeCase.uri.startsWith("/telemetry/profiles/");
+      }),
+    ).toBe(true);
+  });
+
+  test.each(
+    WILDCARD_CASES.map((routeCase: RouteCase) => {
+      return [routeCase.uri, routeCase] as [string, RouteCase];
+    }),
+  )("%s reads every service", async (_uri: string, routeCase: RouteCase) => {
+    currentPrincipal = principalFor(
+      "project-wide",
+      Permission.ReadAllOperationalResources,
+    );
+    const read: Spy = routeCase.stub();
+
+    const result: CallResult = await callRoute({
+      uri: routeCase.uri,
+      principal: currentPrincipal,
+      body: routeCase.body,
+    });
+
+    expect(result.thrownToNext).toBeUndefined();
+    expect(result.errorResponse).toBeUndefined();
+    expect(read.mock.calls.length).toBeGreaterThan(0);
+
+    for (const call of read.mock.calls) {
+      expect(filterOf(routeCase.filterFrom(call))).toEqual(
+        EXPECTED["project-wide"],
+      );
+    }
+  });
+});
+
 describe("resource facet listings follow the same scope", () => {
   test.each(PRINCIPALS)(
     "the services listed to a %s reader are the ones they may read",
@@ -1097,6 +1149,7 @@ describe("every /telemetry/* route", () => {
     "scopeErrorPatternFilters",
     "getProfileServiceFilter",
     "getSessionReplayScope",
+    "isApplicationInSessionReplayScope",
     "isApplicationInSessionReplayScopeById",
     "assertSessionReplayApplicationAccess",
     "canReadSessionReplayListMetadata",
@@ -1163,6 +1216,86 @@ describe("every /telemetry/* route", () => {
     }
 
     expect([...reaching].sort()).toEqual([...SCOPE_HELPERS].sort());
+  });
+
+  /*
+   * /telemetry/* routes registered outside TelemetryAPI.ts. Each one that
+   * reads telemetry asks TelemetryReadAccess itself; one that reads no
+   * telemetry row is named here with what it reads instead.
+   */
+  const READ_NO_TELEMETRY: Record<string, string> = {
+    "App/FeatureSet/BaseAPI/API/ServiceOperationalStatus.ts":
+      "the active incidents and alerts of services, read through the model layer with the caller's props",
+  };
+
+  function serverSourceFiles(directory: string): Array<string> {
+    const files: Array<string> = [];
+
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath: string = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        if (
+          ["node_modules", "build", "dist", "src", "Tests"].includes(entry.name)
+        ) {
+          continue;
+        }
+        files.push(...serverSourceFiles(entryPath));
+      } else if (entry.name.endsWith(".ts")) {
+        files.push(entryPath);
+      }
+    }
+
+    return files;
+  }
+
+  test("registered outside TelemetryAPI.ts read through TelemetryReadAccess too", () => {
+    const packagesRoot: string = path.join(__dirname, "../../../..");
+    const routePattern: RegExp =
+      /\.(?:get|post|put|delete)\(\s*"(\/telemetry\/[^"]+)"/g;
+
+    const found: Array<string> = [];
+    const unscoped: Array<string> = [];
+
+    for (const file of [
+      ...serverSourceFiles(path.join(packagesRoot, "Common/Server")),
+      ...serverSourceFiles(path.join(packagesRoot, "App/FeatureSet")),
+    ]) {
+      const relative: string = path
+        .relative(packagesRoot, file)
+        .split(path.sep)
+        .join("/");
+
+      if (relative === "Common/Server/API/TelemetryAPI.ts") {
+        continue;
+      }
+
+      const source: string = fs.readFileSync(file, "utf8");
+
+      if (!routePattern.test(source)) {
+        routePattern.lastIndex = 0;
+        continue;
+      }
+      routePattern.lastIndex = 0;
+
+      found.push(relative);
+
+      if (
+        !source.includes("TelemetryReadAccess.") &&
+        !READ_NO_TELEMETRY[relative]
+      ) {
+        unscoped.push(relative);
+      }
+    }
+
+    expect(found).toContain(
+      "App/FeatureSet/BaseAPI/API/ServiceDependencyTimeseries.ts",
+    );
+    expect(unscoped).toEqual([]);
+    // Every file named as reading no telemetry still registers a route.
+    for (const named of Object.keys(READ_NO_TELEMETRY)) {
+      expect(found).toContain(named);
+    }
   });
 
   test("reads through TelemetryReadAccess or a helper that does", () => {

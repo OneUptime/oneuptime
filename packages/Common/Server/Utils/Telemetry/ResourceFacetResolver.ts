@@ -55,8 +55,11 @@ export interface ResourceFacetListSpec {
   searchText?: string | undefined;
   limit?: number | undefined;
   /*
-   * Whose telemetry the caller may read (TelemetryReadScope): only those
-   * resources are listed. Absent: every resource of the project.
+   * Whose telemetry the caller may read (TelemetryReadScope). The Services
+   * facet - the resource a row belongs to, which the scope is about - lists
+   * only those; every other resource facet lists the project's resources,
+   * and mergeCounts keeps the ones the caller's rows name or whose own
+   * telemetry they may read. Absent: every resource of the project.
    */
   scope?: TelemetryReadScope | undefined;
 }
@@ -277,10 +280,29 @@ export default class ResourceFacetResolver {
   public static mergeCounts(
     entities: Array<ResourceFacetEntity>,
     counts: Map<string, number>,
+    /*
+     * The caller's scope, for a caller whose read is limited: a resource is
+     * kept when the rows they may read name it (it has a count) or its own
+     * telemetry is theirs to read, so the sidebar offers the resources the
+     * caller's rows can be filtered by, and not every resource of the
+     * project. Absent or project-wide: every listed resource is kept.
+     */
+    scope?: TelemetryReadScope | undefined,
   ): Array<ResolvedFacetValue> {
+    const isLimited: boolean = Boolean(
+      scope && !TelemetryReadScopeUtil.isProjectWide(scope),
+    );
+
     const out: Array<ResolvedFacetValue> = entities
       .filter((e: ResourceFacetEntity): boolean => {
         return e.id.length > 0;
+      })
+      .filter((e: ResourceFacetEntity): boolean => {
+        return (
+          !isLimited ||
+          (counts.get(e.id) || 0) > 0 ||
+          TelemetryReadScopeUtil.isReadable(scope as TelemetryReadScope, e.id)
+        );
       })
       .map((e: ResourceFacetEntity): ResolvedFacetValue => {
         return {
@@ -322,11 +344,17 @@ export default class ResourceFacetResolver {
     const select: Record<string, boolean> = { _id: true, name: true };
 
     /*
-     * A caller whose telemetry read is limited to some resources lists only
-     * those: the sidebar names the resources whose rows they may read, not
-     * every resource of the project.
+     * The Services facet filters on the resource a row belongs to - the very
+     * thing the caller's scope limits - so a caller whose telemetry read is
+     * limited lists only the resources whose rows they may read. (A host or
+     * cluster facet filters on what a readable row names, which can be any
+     * resource of the project: see mergeCounts.)
      */
-    if (spec.scope && !TelemetryReadScopeUtil.isProjectWide(spec.scope)) {
+    if (
+      spec.scope &&
+      SERVICE_FACET_KEYS.includes(spec.facetKey) &&
+      !TelemetryReadScopeUtil.isProjectWide(spec.scope)
+    ) {
       const readableIds: Array<string> | null =
         TelemetryReadScopeUtil.getReadableIds(spec.scope);
 

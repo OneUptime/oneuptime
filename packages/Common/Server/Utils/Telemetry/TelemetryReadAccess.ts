@@ -110,6 +110,60 @@ export default class TelemetryReadAccess {
   }
 
   /*
+   * The same rule for ONE resource a route reads again and again (a session
+   * replay's application, on every page of a playback), decided from the
+   * resource's labels and - only when an Owned grant has to be weighed - its
+   * owners, rather than by looking up every resource the caller may read.
+   * Refuses as getScopeForPermissions does.
+   */
+  @CaptureSpan()
+  public static async isResourceReadableForPermissions(data: {
+    props: DatabaseCommonInteractionProps;
+    permissions: ReadonlyArray<Permission>;
+    wildcard?: Permission | null | undefined;
+    resourceTypes?: ReadonlyArray<string> | undefined;
+    recordName: string;
+    resource: {
+      id: string;
+      labelIds: ReadonlyArray<string>;
+      getOwners: () => Promise<{
+        userIds: ReadonlyArray<string>;
+        teamIds: ReadonlyArray<string>;
+      }>;
+    };
+  }): Promise<boolean> {
+    return await ModelPermission.isResourceReadableForPermissions({
+      props: data.props,
+      permissions: data.permissions,
+      wildcard: data.wildcard,
+      resourceTypes: data.resourceTypes,
+      recordName: data.recordName,
+      operation: DatabaseRequestType.Read,
+      resource: data.resource,
+    });
+  }
+
+  /*
+   * Whether the caller reads every resource under a list of permissions (a
+   * grant over the whole project, no block with labels), without looking
+   * anything up. Refuses as getScopeForPermissions does.
+   */
+  public static readsEveryResourceForPermissions(data: {
+    props: DatabaseCommonInteractionProps;
+    permissions: ReadonlyArray<Permission>;
+    wildcard?: Permission | null | undefined;
+    recordName: string;
+  }): boolean {
+    return ModelPermission.readsEveryResourceForPermissions({
+      props: data.props,
+      permissions: data.permissions,
+      wildcard: data.wildcard,
+      recordName: data.recordName,
+      operation: DatabaseRequestType.Read,
+    });
+  }
+
+  /*
    * The serviceIds and excludedServiceIds an aggregation request of this
    * model takes for the caller, given the services they asked for (none:
    * every service they may read). See TelemetryReadScope.toServiceFilter.

@@ -1,7 +1,8 @@
 import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
-import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
+import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
-import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import AnalyticsModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import { TelemetryReadScope } from "../../../Server/Utils/Telemetry/TelemetryReadScope";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
@@ -93,7 +94,10 @@ beforeEach(() => {
       return fakeQueryBuilder();
     }) as never);
 
-  scopeSpy = jest.spyOn(TelemetryReadAccess, "getScope") as unknown as ScopeSpy;
+  scopeSpy = jest.spyOn(
+    AnalyticsModelPermission,
+    "getReadScopeForPermissions",
+  ) as unknown as ScopeSpy;
 });
 
 afterEach(() => {
@@ -123,12 +127,18 @@ function resourceConditions(): Array<WhereCall> {
 }
 
 describe("the exceptions overview counts only what the caller may read", () => {
-  test("its scope is the exception occurrences' scope, for this caller", async () => {
+  test("its scope is the one every read of exception groups follows, for this caller", async () => {
     await summarise({ readableIds: null, blockedIds: [] });
 
-    expect(TelemetryReadAccess.getScope).toHaveBeenCalledWith(
-      ExceptionInstance,
-      props,
+    expect(
+      AnalyticsModelPermission.getReadScopeForPermissions,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        props: props,
+        permissions: new TelemetryException().readRecordPermissions,
+        includeProjectScope: true,
+        operation: DatabaseRequestType.Read,
+      }),
     );
   });
 

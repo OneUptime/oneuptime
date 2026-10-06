@@ -2,7 +2,6 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/MetricType";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -22,7 +21,8 @@ import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../Utils/Telemetry/TelemetryReadScope";
 import { combineWithPrivacyClause } from "../Utils/PrivacyFilterUtil";
-import { FindOperator, Raw } from "typeorm";
+import PerProjectReadScope from "../Utils/Telemetry/PerProjectReadScope";
+import { Raw } from "typeorm";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -123,12 +123,25 @@ export class Service extends ProjectReferencesService<Model> {
       return query;
     }
 
-    const isAcrossProjects: boolean =
-      !props.tenantId || Boolean(props.isMultiTenantRequest);
-
-    const clause: FindWhereProperty<any> | null = isAcrossProjects
-      ? await this.getCatalogueScopeClauseAcrossProjects(props, operation)
-      : await this.getCatalogueScopeClauseInProject(props, operation);
+    /*
+     * A read across the caller's projects follows the caller's scope in each
+     * project on its own (PerProjectReadScope).
+     */
+    const clause: FindWhereProperty<any> | null =
+      PerProjectReadScope.isAcrossProjects(props)
+        ? await PerProjectReadScope.getClauseAcrossProjects({
+            props: props,
+            tableName: new Model().tableName || "MetricType",
+            getClauseInProject: (
+              projectProps: DatabaseCommonInteractionProps,
+            ): Promise<FindWhereProperty<any> | null> => {
+              return this.getCatalogueScopeClauseInProject(
+                projectProps,
+                operation,
+              );
+            },
+          })
+        : await this.getCatalogueScopeClauseInProject(props, operation);
 
     if (!clause) {
       return query;
@@ -208,121 +221,6 @@ export class Service extends ProjectReferencesService<Model> {
       recordName: model.pluralName || "Metric Types",
       operation: operation,
     });
-  }
-
-  /*
-   * A read across the caller's projects (no project, or a multi-project
-   * request): each project's metric types follow the caller's scope in
-   * THAT project, as the table check weighs each project's grants on its
-   * own. A project whose grants refuse the read outright adds nothing (the
-   * table check leaves it out too). Null when every project reaches every
-   * service, or when the caller names no project at all (nothing to read).
-   */
-  private async getCatalogueScopeClauseAcrossProjects(
-    props: DatabaseCommonInteractionProps,
-    operation: DatabaseRequestType,
-  ): Promise<FindWhereProperty<any> | null> {
-    const projectIds: Array<ObjectID> =
-      props.userGlobalAccessPermission?.projectIds || [];
-
-    if (projectIds.length === 0) {
-      return null;
-    }
-
-    type ProjectClause =
-      | { projectId: string; isRefused: true }
-      | {
-          projectId: string;
-          isRefused: false;
-          clause: FindWhereProperty<any> | null;
-        };
-
-    // Every project's condition at once: the lookups of one do not wait on another's.
-    const projectClauses: Array<ProjectClause> = await Promise.all(
-      projectIds.map(async (projectId: ObjectID): Promise<ProjectClause> => {
-        try {
-          return {
-            projectId: projectId.toString(),
-            isRefused: false,
-            clause: await this.getCatalogueScopeClauseInProject(
-              { ...props, tenantId: projectId, isMultiTenantRequest: false },
-              operation,
-            ),
-          };
-        } catch (err) {
-          if (err instanceof NotAuthorizedException) {
-            return { projectId: projectId.toString(), isRefused: true };
-          }
-          throw err;
-        }
-      }),
-    );
-
-    const wideProjectIds: Array<string> = [];
-    const limitedClauses: Array<{
-      projectId: string;
-      clause: FindWhereProperty<any>;
-    }> = [];
-
-    for (const projectClause of projectClauses) {
-      if (projectClause.isRefused) {
-        continue;
-      }
-
-      if (projectClause.clause) {
-        limitedClauses.push({
-          projectId: projectClause.projectId,
-          clause: projectClause.clause,
-        });
-      } else {
-        wideProjectIds.push(projectClause.projectId);
-      }
-    }
-
-    if (limitedClauses.length === 0) {
-      return null;
-    }
-
-    const table: string = (new Model().tableName || "MetricType").replace(
-      /"/g,
-      '""',
-    );
-    const inProjects: (alias: string, parameter: string) => string = (
-      alias: string,
-      parameter: string,
-    ): string => {
-      return `${alias} IN (SELECT "${table}"."_id" FROM "${table}" WHERE "${table}"."projectId" IN (:...${parameter}))`;
-    };
-
-    const parameters: Record<string, unknown> = {};
-    const parts: Array<(alias: string) => string> = [];
-
-    if (wideProjectIds.length > 0) {
-      const wideRid: string = "mtWide_" + Text.generateRandomText(10);
-      parameters[wideRid] = wideProjectIds;
-      parts.push((alias: string): string => {
-        return inProjects(alias, wideRid);
-      });
-    }
-
-    for (const limited of limitedClauses) {
-      const projectRid: string = "mtProject_" + Text.generateRandomText(10);
-      parameters[projectRid] = [limited.projectId];
-      const operator: FindOperator<unknown> =
-        limited.clause as FindOperator<unknown>;
-      Object.assign(parameters, operator.objectLiteralParameters || {});
-      parts.push((alias: string): string => {
-        return `(${inProjects(alias, projectRid)} AND ${operator.getSql!(alias)})`;
-      });
-    }
-
-    return Raw((alias: string): string => {
-      return `(${parts
-        .map((part: (alias: string) => string): string => {
-          return part(alias);
-        })
-        .join(" OR ")})`;
-    }, parameters);
   }
 
   /*
