@@ -8,6 +8,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import WorkspaceNotificationSummaryService from "../../../Server/Services/WorkspaceNotificationSummaryService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { OneUptimeRequest } from "../../../Server/Utils/Express";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
@@ -887,10 +888,96 @@ describe("a test of a setting: what switching it on asks of that record", () => 
 
     expect(answer).toBeInstanceOf(PaymentRequiredException);
     expect((answer as Error).message).toBe(GROWTH_REFUSAL);
+    // The plan is asked first: the page is not even read.
+    expect(service.findOneById).not.toHaveBeenCalled();
     expect(permittedRead).not.toHaveBeenCalled();
     expect(
       new StatusPage().getColumnBillingAccessControl("isReportEnabled").update,
     ).toBe(PlanType.Growth);
+  });
+
+  test("below the plan, a role that may not change the page is told about the plan first, as the Dashboard tells it", async () => {
+    currentPlan = PlanType.Free;
+
+    const answer: TestSendCaller | Error = await askToSendReport(
+      requestFrom(VIEWER),
+    );
+
+    expect(answer).toBeInstanceOf(PaymentRequiredException);
+    expect((answer as Error).message).toBe(GROWTH_REFUSAL);
+  });
+
+  test.each([PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+    "on %s the owner is let through",
+    async (plan: PlanType) => {
+      currentPlan = plan;
+
+      expect(await askToSendReport(requestFrom(OWNER))).not.toBeInstanceOf(
+        Error,
+      );
+    },
+  );
+
+  test("an unpaid subscription is refused before the page is read", async () => {
+    isSubscriptionUnpaid = true;
+
+    const answer: TestSendCaller | Error = await askToSendReport(
+      requestFrom(OWNER),
+    );
+
+    expect(answer).toBeInstanceOf(PaymentRequiredException);
+    expect((answer as Error).message).toContain("unpaid");
+    expect(service.findOneById).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "the page's labels",
+      "checkUpdatePermissionByModel",
+      new NotAuthorizedException(
+        "You do not have permission to update this Status Page. You need to have one of the following labels: Public.",
+      ),
+    ],
+    [
+      "a team's block",
+      "checkUpdatePermissionByModel",
+      new NotAuthorizedException(
+        "You are not authorized to update this Status Page because Edit Status Page is in your team's permission block list.",
+      ),
+    ],
+    [
+      "the report switch's own permission",
+      "checkUpdateQueryPermissions",
+      new BadDataException(
+        "User is not allowed to update on isReportEnabled column of Status Page",
+      ),
+    ],
+  ])(
+    "refused by %s: one sentence, the report's own",
+    async (_why: string, check: string, refusal: Error) => {
+      getJestSpyOn(
+        ModelPermission,
+        check as "checkUpdatePermissionByModel",
+      ).mockRejectedValue(refusal as never);
+
+      const answer: TestSendCaller | Error = await askToSendReport(
+        requestFrom(OWNER),
+      );
+
+      expect(answer).toBeInstanceOf(NotAuthorizedException);
+      expect((answer as Error).message).toBe(REPORT_REFUSAL);
+    },
+  );
+
+  test("anything other than a refusal is not dressed up as one", async () => {
+    const failure: Error = new Error("The database is not reachable.");
+
+    getJestSpyOn(
+      ModelPermission,
+      "checkUpdateQueryPermissions",
+    ).mockRejectedValue(failure as never);
+
+    expect(await askToSendReport(requestFrom(OWNER))).toBe(failure);
   });
 
   test("with billing off no plan is asked", async () => {
@@ -1029,6 +1116,84 @@ describe("a test the caller sends to themselves", () => {
       NotAuthorizedException,
     );
   });
+});
+
+describe("a test sent to oneself, through a method of a project", () => {
+  const senderMemberOf: (
+    projectIds: Array<ObjectID> | undefined,
+  ) => TestSendToSelfCaller = (
+    projectIds: Array<ObjectID> | undefined,
+  ): TestSendToSelfCaller => {
+    return {
+      userId: USER_ID,
+      props: {
+        userId: USER_ID,
+        userGlobalAccessPermission: projectIds
+          ? {
+              _type: "UserGlobalAccessPermission",
+              projectIds: projectIds,
+              globalPermissions: [],
+            }
+          : undefined,
+      },
+    };
+  };
+
+  const askMembership: (
+    sender: TestSendToSelfCaller,
+    projectId: ObjectID | undefined | null,
+  ) => Error | "member" = (
+    sender: TestSendToSelfCaller,
+    projectId: ObjectID | undefined | null,
+  ): Error | "member" => {
+    try {
+      TestSendAccess.assertSenderIsMemberOf({
+        sender: sender,
+        projectId: projectId,
+      });
+      return "member";
+    } catch (err) {
+      return err as Error;
+    }
+  };
+
+  test("a member of the method's project is let through", () => {
+    expect(
+      askMembership(senderMemberOf([OTHER_PROJECT_ID, PROJECT_ID]), PROJECT_ID),
+    ).toBe("member");
+  });
+
+  test("the same project id, read back as a different object, still matches", () => {
+    expect(
+      askMembership(
+        senderMemberOf([new ObjectID(PROJECT_ID.toString())]),
+        new ObjectID(PROJECT_ID.toString()),
+      ),
+    ).toBe("member");
+  });
+
+  test.each([
+    ["a project they have left", [OTHER_PROJECT_ID], PROJECT_ID],
+    ["no project at all", [], PROJECT_ID],
+    ["no list of projects", undefined, PROJECT_ID],
+    ["a method that names no project", [PROJECT_ID], undefined],
+    ["a method whose project is empty", [PROJECT_ID], null],
+  ])(
+    "%s: refused like another project's data",
+    (
+      _why: string,
+      memberOf: Array<ObjectID> | undefined,
+      projectId: ObjectID | undefined | null,
+    ) => {
+      const answer: Error | "member" = askMembership(
+        senderMemberOf(memberOf),
+        projectId,
+      );
+
+      expect(answer).toBeInstanceOf(NotAuthorizedException);
+      expect((answer as Error).message).toBe(NOT_THIS_PROJECTS);
+    },
+  );
 });
 
 describe("the refusal's words", () => {

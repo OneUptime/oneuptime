@@ -278,6 +278,12 @@ export default class UserPushAPI extends BaseAPI<
             );
           }
 
+          // Sent in the device's project: only while the caller is a member.
+          TestSendAccess.assertSenderIsMemberOf({
+            sender: sender,
+            projectId: device.projectId,
+          });
+
           if (!device.isVerified) {
             return Response.sendErrorResponse(
               req,

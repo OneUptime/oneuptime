@@ -180,6 +180,13 @@ const KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
   },
 ];
 
+// The calls that send a test to the caller's own method.
+const SELF_TEST_SENDS: ReadonlyArray<string> = [
+  "sendDirectMessageToUser(",
+  "deliverTestWebhook(",
+  "sendPushNotification(",
+];
+
 // The directories whose sources register API routes.
 const SCANNED_ROOTS: ReadonlyArray<string> = [
   "packages/Common/Server/API",
@@ -393,10 +400,40 @@ describe("every route that sends a test asks the one rule", () => {
     (route: KnownTestRoute) => {
       const source: string = sourceOf(route);
 
-      expect(
-        countOf(source, "TestSendAccess.assertMaySendTestToSelf(") +
-          countOf(source, "TestSendAccess.getCaller("),
-      ).toBe(1);
+      const asksToSelf: number = countOf(
+        source,
+        "TestSendAccess.assertMaySendTestToSelf(",
+      );
+
+      expect(asksToSelf + countOf(source, "TestSendAccess.getCaller(")).toBe(1);
+
+      if (asksToSelf === 0) {
+        // getCaller: a member of the project the request names already.
+        return;
+      }
+
+      /*
+       * A method of the caller's own is sent in its project: after the
+       * method is read, and before anything is sent, the caller must still
+       * be a member there.
+       */
+      expect(countOf(source, "TestSendAccess.assertSenderIsMemberOf(")).toBe(1);
+
+      const readAt: number = source.indexOf("findOneById(");
+      const memberAt: number = source.indexOf(
+        "TestSendAccess.assertSenderIsMemberOf(",
+      );
+      const sendAt: number = Math.min(
+        ...SELF_TEST_SENDS.map((send: string): number => {
+          const at: number = source.indexOf(send);
+          return at === -1 ? Number.MAX_SAFE_INTEGER : at;
+        }),
+      );
+
+      expect(readAt).toBeGreaterThan(-1);
+      expect(memberAt).toBeGreaterThan(readAt);
+      expect(sendAt).toBeLessThan(Number.MAX_SAFE_INTEGER);
+      expect(memberAt).toBeLessThan(sendAt);
     },
   );
 

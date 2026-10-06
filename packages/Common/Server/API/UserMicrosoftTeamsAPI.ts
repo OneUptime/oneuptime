@@ -77,6 +77,12 @@ export default class UserMicrosoftTeamsAPI extends BaseAPI<
             );
           }
 
+          // Sent in the method's project: only while the caller is a member.
+          TestSendAccess.assertSenderIsMemberOf({
+            sender: sender,
+            projectId: item.projectId,
+          });
+
           if (!item.microsoftTeamsUserId || !item.isVerified) {
             return Response.sendErrorResponse(
               req,

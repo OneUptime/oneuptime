@@ -67,7 +67,9 @@ jest.mock("../../../Server/Utils/Logger");
  * .assertMaySendTestToSelf): a signed-in person, on a credential that may
  * make changes. A credential issued for reading only never sends anything,
  * and is refused before the method is even read. Whose method it is, each
- * route checks against the record, as it did.
+ * route checks against the record, as it did - and, since the test is sent
+ * in the method's project as a real notification would be, that the caller
+ * is still a member there (TestSendAccess.assertSenderIsMemberOf).
  */
 
 const USER_ID: ObjectID = new ObjectID("7f000000-0000-4000-8000-000000000001");
@@ -78,6 +80,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "7f000000-0000-4000-8000-000000000003",
 );
 const ITEM_ID: ObjectID = new ObjectID("7f000000-0000-4000-8000-000000000004");
+const ANOTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "7f000000-0000-4000-8000-000000000006",
+);
 
 type Answer = "sent" | Error;
 
@@ -179,12 +184,19 @@ const ROUTES: Array<SelfTestRoute> = [
   },
 ];
 
+interface RequestOptions {
+  readOnlyCredential?: boolean | undefined;
+  anonymous?: boolean | undefined;
+  // The projects the person is a member of; the method's own by default.
+  memberOf?: Array<ObjectID> | undefined;
+}
+
 const requestFrom: (
   route: SelfTestRoute,
-  options?: { readOnlyCredential?: boolean | undefined; anonymous?: boolean },
+  options?: RequestOptions,
 ) => OneUptimeRequest = (
   route: SelfTestRoute,
-  options?: { readOnlyCredential?: boolean | undefined; anonymous?: boolean },
+  options?: RequestOptions,
 ): OneUptimeRequest => {
   if (options?.anonymous) {
     return {
@@ -203,6 +215,12 @@ const requestFrom: (
     query: {},
     userType: UserType.User,
     userAuthorization: { userId: USER_ID, isMasterAdmin: false },
+    // What UserMiddleware loads for every signed-in person.
+    userGlobalAccessPermission: {
+      _type: "UserGlobalAccessPermission",
+      projectIds: options?.memberOf || [PROJECT_ID],
+      globalPermissions: [],
+    },
   };
 
   if (options?.readOnlyCredential !== undefined) {
@@ -327,6 +345,45 @@ describe.each(ROUTES)("$name", (route: SelfTestRoute) => {
     const sendSpy: ReturnType<typeof getJestSpyOn> = route.stubSend();
 
     expect(await send(route, requestFrom(route))).toBeInstanceOf(Error);
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  test("their own method, in a project they have left, is refused like another project's data, and nothing is sent", async () => {
+    route.stubRead(USER_ID);
+    const sendSpy: ReturnType<typeof getJestSpyOn> = route.stubSend();
+
+    const answer: Answer = await send(
+      route,
+      requestFrom(route, { memberOf: [ANOTHER_PROJECT_ID] }),
+    );
+
+    expect(answer).toBeInstanceOf(NotAuthorizedException);
+    expect((answer as Error).message).toBe(
+      "You are not authorized to access this project's data.",
+    );
+    expect(sendSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member of the method's project among others sends it", async () => {
+    route.stubRead(USER_ID);
+    const sendSpy: ReturnType<typeof getJestSpyOn> = route.stubSend();
+
+    expect(
+      await send(
+        route,
+        requestFrom(route, { memberOf: [ANOTHER_PROJECT_ID, PROJECT_ID] }),
+      ),
+    ).toBe("sent");
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a person who is a member of no project sends nothing", async () => {
+    route.stubRead(USER_ID);
+    const sendSpy: ReturnType<typeof getJestSpyOn> = route.stubSend();
+
+    expect(
+      await send(route, requestFrom(route, { memberOf: [] })),
+    ).toBeInstanceOf(NotAuthorizedException);
     expect(sendSpy).not.toHaveBeenCalled();
   });
 });

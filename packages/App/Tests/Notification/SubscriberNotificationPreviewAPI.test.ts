@@ -439,7 +439,11 @@ describe("POST /preview", () => {
     expect((args["projectId"] as ObjectID).toString()).toBe(
       PROJECT_ID.toString(),
     );
-    expect(args["props"]).toBe(callerProps);
+    // The caller's own props, read for their one project.
+    expect(args["props"]).toEqual({
+      ...callerProps,
+      isMultiTenantRequest: false,
+    });
     expect(args["onlyStatusPageId"]).toBeUndefined();
     expect(args["request"]).toEqual({
       event: SubscriberNotificationPreviewEvent.IncidentPublicNoteCreated,
@@ -471,6 +475,23 @@ describe("POST /preview", () => {
     expect(text).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/);
     expect(text).not.toContain("smtpConfig");
     expect(text).not.toContain(SMTP_CONFIG["_id"] as string);
+  });
+
+  test("the preview is built for the caller's one project, never a multi-tenant read", async () => {
+    callerProps = { ...memberProps(PROJECT_ID), isMultiTenantRequest: true };
+
+    await post(PREVIEW_ROUTE, NOTE_BODY);
+
+    const buildArgs: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    } = buildSpy.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    expect(buildArgs.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(buildArgs.props.isMultiTenantRequest).toBe(false);
   });
 
   test("a request that is not one is refused before anything is built", async () => {

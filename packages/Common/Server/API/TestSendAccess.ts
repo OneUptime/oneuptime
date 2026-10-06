@@ -1,3 +1,4 @@
+import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "../Types/Database/Permissions/BillingPermission";
 import ModelPermission from "../Types/Database/Permissions/Index";
@@ -11,8 +12,13 @@ import DatabaseBaseModel, {
 } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
+import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../Types/ObjectID";
 
 /*
@@ -128,10 +134,13 @@ export default class TestSendAccess {
   /*
    * The rule for a test of a setting of a record - a status page's email
    * report, which is switched on rather than created: what writing
-   * `switchOn` to that one record asks of the caller. That is the record's
-   * edit permission - team blocks, labels and owned scope counted, as the
-   * update itself counts them - and the column's own permission and plan
-   * (ColumnPermission), on a credential that may make changes.
+   * `switchOn` to that one record asks of the caller, in the same order.
+   * The plan first: the table's own for an update, and the plan of each
+   * column switched on (ColumnBillingAccessControl). Then the record's edit
+   * permission - team blocks, labels and owned scope counted, as the update
+   * itself counts them - and the column's own permission, on a credential
+   * that may make changes. A caller who may not make that change is told
+   * `errorMessage`, whichever of these refused them.
    */
   public static async assertMaySendTestOfSetting<
     TBaseModel extends DatabaseBaseModel,
@@ -148,6 +157,13 @@ export default class TestSendAccess {
     const service: DatabaseService<TBaseModel> = data.record.service;
     const model: TBaseModel = service.getModel();
     const modelType: { new (): TBaseModel } = service.modelType;
+
+    TestSendAccess.assertSwitchOnIsOnPlan({
+      model: model,
+      modelType: modelType,
+      switchOn: data.switchOn,
+      props: caller.props,
+    });
 
     // May the caller change this kind of record at all, before any read.
     CommonAPI.assertPermittedInProject({
@@ -187,22 +203,24 @@ export default class TestSendAccess {
       projectId: caller.projectId,
     });
 
-    // Its labels' team blocks and grants, as an update of it is checked.
-    await ModelPermission.checkUpdatePermissionByModel({
-      modelType: modelType,
-      fetchModelWithAccessControlIds: async (): Promise<TBaseModel> => {
-        return tested!;
-      },
-      props: caller.props,
-      updateData: data.switchOn,
-    });
+    let permittedQuery: Query<TBaseModel>;
 
-    /*
-     * The rows the caller may write `switchOn` to - narrowed by labels and
-     * owned scope - and the column's own permission and plan.
-     */
-    const permittedQuery: Query<TBaseModel> =
-      await ModelPermission.checkUpdateQueryPermissions(
+    try {
+      // Its labels' team blocks and grants, as an update of it is checked.
+      await ModelPermission.checkUpdatePermissionByModel({
+        modelType: modelType,
+        fetchModelWithAccessControlIds: async (): Promise<TBaseModel> => {
+          return tested!;
+        },
+        props: caller.props,
+        updateData: data.switchOn,
+      });
+
+      /*
+       * The rows the caller may write `switchOn` to - narrowed by labels and
+       * owned scope - and the column's own permission.
+       */
+      permittedQuery = await ModelPermission.checkUpdateQueryPermissions(
         modelType,
         {
           _id: data.record.id,
@@ -211,6 +229,21 @@ export default class TestSendAccess {
         data.switchOn,
         caller.props,
       );
+    } catch (error) {
+      /*
+       * Whether labels, a team's block or the column's own permission said
+       * no, the caller may not make this change: one sentence for all of
+       * them. A refusal of the column is a BadDataException there.
+       */
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof BadDataException
+      ) {
+        throw new NotAuthorizedException(data.errorMessage);
+      }
+
+      throw error;
+    }
 
     const permitted: TBaseModel | null = await service.findOneBy({
       query: permittedQuery,
@@ -233,7 +266,8 @@ export default class TestSendAccess {
    * The rule for a test the caller sends to themselves - their own
    * notification method, their own verified inbox: a signed-in person, on a
    * credential that may make changes. Whose method it is, the route checks
-   * against the record it reads.
+   * against the record it reads, and then asks assertSenderIsMemberOf of
+   * the project the method belongs to.
    */
   public static async assertMaySendTestToSelf(
     req: ExpressRequest,
@@ -246,6 +280,86 @@ export default class TestSendAccess {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
     return { props: props, userId: userId };
+  }
+
+  /*
+   * A method of the caller's own belongs to a project - a Slack or
+   * Microsoft Teams account linked through that project's workspace, a
+   * webhook, a device - and a test through it is sent in that project, as a
+   * real notification through it would be. Only the project's members are
+   * notified for real, so the test asks that the caller still is one: a
+   * method left behind in a project they have left, or one that names no
+   * project, is refused like another project's data.
+   */
+  public static assertSenderIsMemberOf(data: {
+    sender: TestSendToSelfCaller;
+    projectId: ObjectID | undefined | null;
+  }): void {
+    const projectId: string | undefined = data.projectId?.toString();
+
+    const memberOf: Array<ObjectID> =
+      data.sender.props.userGlobalAccessPermission?.projectIds || [];
+
+    const isMember: boolean = memberOf.some(
+      (memberProjectId: ObjectID): boolean => {
+        return memberProjectId.toString() === projectId;
+      },
+    );
+
+    if (!projectId || !isMember) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
+  }
+
+  /*
+   * Step 3 for a setting: the plan the record's table names for an update,
+   * and the plan of each column `switchOn` writes, asked before any
+   * permission or read - as the Dashboard asks it first, and as a test of
+   * something created asks its create plan first. A project below it is
+   * refused with that plan's name. Nothing is asked where billing is off or
+   * the plan is not known, as everywhere else.
+   */
+  private static assertSwitchOnIsOnPlan<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
+    model: TBaseModel;
+    modelType: { new (): TBaseModel };
+    switchOn: QueryDeepPartialEntity<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    BillingPermissions.checkFeatureIsOnPlan(
+      data.modelType as DatabaseBaseModelType,
+      data.props,
+      DatabaseRequestType.Update,
+    );
+
+    const currentPlan: PlanType | undefined = data.props.currentPlan;
+
+    if (!IsBillingEnabled || !currentPlan) {
+      return;
+    }
+
+    for (const column of Object.keys(data.switchOn)) {
+      const requiredPlan: PlanType | undefined =
+        data.model.getColumnBillingAccessControl(column)?.update;
+
+      if (
+        requiredPlan &&
+        !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+          requiredPlan,
+          currentPlan,
+          getAllEnvVars(),
+        )
+      ) {
+        throw new PaymentRequiredException(
+          "Please upgrade your plan to " +
+            requiredPlan +
+            " to access this feature",
+        );
+      }
+    }
   }
 
   // The project a record read here belongs to.

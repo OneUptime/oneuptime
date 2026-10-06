@@ -71,6 +71,12 @@ export default class UserWebhookAPI extends BaseAPI<
             );
           }
 
+          // Sent in the method's project: only while the caller is a member.
+          TestSendAccess.assertSenderIsMemberOf({
+            sender: sender,
+            projectId: item.projectId,
+          });
+
           const payload: JSONObject = {
             eventType: "test",
             timestamp: new Date().toISOString(),

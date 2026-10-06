@@ -79,13 +79,20 @@ const NOTHING_SENT_MESSAGES: Record<
     "Nothing would be sent: no status page that lists these monitors will show this incident.",
 };
 
-// The caller, as a signed-in member of the project in the tenant header.
+/*
+ * The caller of a preview, as a signed-in member of the project in the
+ * tenant header, read for that one project - as the test send below reads
+ * it (TestSendAccess.getCaller). A preview sends nothing, so unlike a test it
+ * stays open to a credential issued for reading only.
+ */
 async function getCaller(req: ExpressRequest): Promise<{
   props: DatabaseCommonInteractionProps;
   projectId: ObjectID;
 }> {
-  const props: DatabaseCommonInteractionProps =
-    await CommonAPI.getDatabaseCommonInteractionProps(req);
+  const props: DatabaseCommonInteractionProps = {
+    ...(await CommonAPI.getDatabaseCommonInteractionProps(req)),
+    isMultiTenantRequest: false,
+  };
 
   const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(props);
 
