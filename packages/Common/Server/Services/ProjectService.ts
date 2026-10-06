@@ -82,9 +82,12 @@ import { CREATED_BY_USER_KEYS } from "../Utils/Database/CreatedByUser";
 import Permission from "../../Types/Permission";
 import DataResidencyUtil from "../../Utils/Project/DataResidency";
 import ProjectAiDailyLimits, {
+  PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
   PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
   PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+  ProjectAiDailyLimit,
   ProjectAiDailyLimitColumn,
+  ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import NumberPrefixUtil, {
@@ -3190,6 +3193,38 @@ These are no longer recorded against the project and have to be cancelled by han
     };
     this.currentPlanCache.set(cacheKey, result, 60_000);
     return result;
+  }
+
+  /*
+   * Record that one of the project's own daily AI limits stopped OneUptime
+   * AI at `now`, if it had not yet that UTC day. True only for the one call
+   * that writes it - the first of the day for that limit - which is the
+   * caller that tells the project's owners (ProjectAiDailyLimitOwnerNotice):
+   * everyone else gets false, whatever moment of the day they ask.
+   *
+   * One statement: the condition and the write are a single UPDATE, so two
+   * servers refusing AI calls at the same moment cannot both win. A passive
+   * bookkeeping write - no hooks, no version or updatedAt bump - on a column
+   * the API never reads.
+   */
+  @CaptureSpan()
+  public async markAiDailyLimitReached(data: {
+    projectId: ObjectID;
+    limit: ProjectAiDailyLimit;
+    now: Date;
+  }): Promise<boolean> {
+    const column: ProjectAiDailyLimitReachedAtColumn =
+      PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS[data.limit];
+
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "${column}" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND ("${column}" IS NULL OR "${column}" < $3) RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+      ProjectAiDailyLimits.getDayStart(data.now),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
   }
 
   @CaptureSpan()

@@ -50,6 +50,8 @@ export default class AIIncidentPostmortemRunner {
         enableAutomaticPostmortemDraft: true,
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });
