@@ -120,7 +120,8 @@ const REASONS: Array<ReasonExample> = [
     title: "The project is out of AI credits",
     description:
       "The project uses OneUptime's AI provider and has no AI credits left.",
-    nextStep: "Add AI credits or turn on auto-recharge.",
+    nextStep:
+      "Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this incident.",
   },
   {
     code: "project_daily_limit_reached",
@@ -779,7 +780,9 @@ describe("investigation settings actions", () => {
 
     expect(screen.getByText("The project is out of AI credits")).toBeVisible();
     expect(
-      screen.getByText("Add AI credits or turn on auto-recharge."),
+      screen.getByText(
+        "Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this incident.",
+      ),
     ).toBeVisible();
     expect(
       screen.getByRole("link", { name: "Add AI credits" }),

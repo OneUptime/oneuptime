@@ -415,6 +415,7 @@ describe("the descriptors", () => {
         descriptor.commandsCardTitle,
         descriptor.writeExamples,
         descriptor.riskierExamples,
+        descriptor.riskierChanges,
       ]) {
         expect(value.trim().length).toBeGreaterThan(0);
       }
@@ -1357,10 +1358,8 @@ describe("Needs attention's steps", () => {
       "llm_provider_missing",
       "Add an AI provider for this project, or use OneUptime AI credits.",
     ],
-    [
-      "ai_balance_insufficient",
-      "Add AI credits to this project, or turn on auto-recharge.",
-    ],
+    // Not "or turn on auto-recharge": that does not refill used-up credits.
+    ["ai_balance_insufficient", "Add AI credits to this project."],
     // Retired: Enable AI covers it, so it asks for the same thing.
     ["auto_remediation_disabled_for_project", "Turn on AI for this project."],
   ])("%s: %s", (code: string, text: string) => {

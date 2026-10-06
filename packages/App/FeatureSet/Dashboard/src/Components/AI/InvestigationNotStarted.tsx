@@ -6,6 +6,8 @@ import InvestigationNotStartedReason, {
 } from "Common/Types/AI/InvestigationNotStartedReason";
 import Project from "Common/Models/DatabaseModels/Project";
 import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
+import { PROJECT_BALANCE_RECHARGE_PERMISSIONS } from "Common/Utils/Project/ProjectBalance";
+import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
@@ -162,16 +164,15 @@ export function getSettingsAction(
   /*
    * Only produced when billing is on, which is exactly when AI Credits is
    * in the settings menu. Recharging takes the permissions AIBillingAPI's
-   * /ai/recharge checks.
+   * /ai/recharge checks (Utils/Project/ProjectBalance), and everyone else is
+   * told who has them.
    */
   if (code === "insufficient_ai_balance") {
     return {
       label: "Add AI credits",
       page: PageMap.SETTINGS_AI_CREDITS,
-      permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-      whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can add AI credits.",
-      ),
+      permissions: [...PROJECT_BALANCE_RECHARGE_PERMISSIONS],
+      whoCanAct: WHO_CAN_ADD_AI_CREDITS,
     };
   }
 

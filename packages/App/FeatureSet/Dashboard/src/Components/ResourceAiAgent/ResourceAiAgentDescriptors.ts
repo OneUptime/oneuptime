@@ -81,7 +81,14 @@ export interface ResourceAiAgentDescriptor {
   // What fixes may change, and the changes that always ask a person.
   writeExamples: string;
   alwaysHumanExamples: string | null;
+  /*
+   * A few riskier changes, as a phrase of their own ("riskier changes such
+   * as stopping, killing or updating a container") and as the changes
+   * alone, for a sentence that says "such as" itself. Each is a key, so a
+   * locale words both.
+   */
   riskierExamples: string;
+  riskierChanges: string;
   // The table and preference keys of the commands table.
   commandsTableId: string;
 }
@@ -118,6 +125,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as stopping, killing or updating a container",
     ),
+    riskierChanges: translationKey("stopping, killing or updating a container"),
     commandsTableId: "docker-host-ai-commands",
   },
   [AiResourceType.PodmanHost]: {
@@ -141,6 +149,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as stopping, killing or updating a container",
     ),
+    riskierChanges: translationKey("stopping, killing or updating a container"),
     commandsTableId: "podman-host-ai-commands",
   },
   [AiResourceType.DockerSwarmCluster]: {
@@ -163,6 +172,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     alwaysHumanExamples: translationKey("draining or pausing a node"),
     riskierExamples: translationKey(
       "riskier changes such as scaling a service to zero or changing its image",
+    ),
+    riskierChanges: translationKey(
+      "scaling a service to zero or changing its image",
     ),
     commandsTableId: "docker-swarm-cluster-ai-commands",
   },
@@ -190,6 +202,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as shutting down, stopping or resetting a guest",
     ),
+    riskierChanges: translationKey(
+      "shutting down, stopping or resetting a guest",
+    ),
     commandsTableId: "proxmox-cluster-ai-commands",
   },
   [AiResourceType.VMwareVCenter]: {
@@ -214,6 +229,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     ),
     riskierExamples: translationKey(
       "riskier changes such as powering a VM off, resetting or suspending it",
+    ),
+    riskierChanges: translationKey(
+      "powering a VM off, resetting or suspending it",
     ),
     commandsTableId: "vmware-vcenter-ai-commands",
   },
@@ -240,6 +258,9 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as marking an OSD out, setting noout or repairing a PG",
     ),
+    riskierChanges: translationKey(
+      "marking an OSD out, setting noout or repairing a PG",
+    ),
     commandsTableId: "ceph-cluster-ai-commands",
   },
   [AiResourceType.DatabaseServer]: {
@@ -260,6 +281,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     writeExamples: translationKey("cancel a running query and end one session"),
     alwaysHumanExamples: null,
     riskierExamples: translationKey("riskier changes such as ending a session"),
+    riskierChanges: translationKey("ending a session"),
     commandsTableId: "database-server-ai-commands",
   },
   [AiResourceType.Host]: {
@@ -285,6 +307,7 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     riskierExamples: translationKey(
       "riskier changes such as stopping a unit or vacuuming the journal",
     ),
+    riskierChanges: translationKey("stopping a unit or vacuuming the journal"),
     commandsTableId: "host-ai-commands",
   },
 };

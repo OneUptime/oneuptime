@@ -85,6 +85,12 @@ import {
   validateKubectlAllowlistText,
 } from "../../Utils/KubernetesAiAccessSettings";
 import {
+  getProjectBalanceAccess,
+  ProjectBalanceAccess,
+} from "../../../../Components/ProjectBalance/ProjectBalanceAccess";
+import { WHO_CAN_ADD_AI_CREDITS } from "../../../../Components/ProjectBalance/ProjectBalanceCopy";
+import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
+import {
   KubernetesAiAccessEditCapabilities,
   canChangeProjectAiSettings,
   canConfigureUnattendedKubernetesAiAccess,
@@ -1370,6 +1376,13 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const canConfigureUnattended: boolean =
     canConfigureUnattendedKubernetesAiAccess();
   const canChangeProjectSettings: boolean = canChangeProjectAiSettings();
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing
+   * - not a project admin - so their step has its own gate.
+   */
+  const aiCreditsAccess: ProjectBalanceAccess = getProjectBalanceAccess(
+    ProjectBalanceType.AI,
+  );
 
   const aiAgent: KubernetesAiAgentSummary | null = getAiAgentSummary(status);
   const pill: AiAgentStatusPill = getAiAgentStatusPill(status);
@@ -1510,12 +1523,27 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             )
           : renderAsk();
       case "open_ai_credits":
-        return canChangeProjectSettings
-          ? renderSettingsLink(
-              PageMap.SETTINGS_AI_CREDITS,
-              translationKey("Open AI Credits"),
-            )
-          : renderAsk();
+        /*
+         * The link only for someone who may add credits; everyone else is
+         * told who can. Nothing while the permissions are on their way.
+         */
+        if (aiCreditsAccess === ProjectBalanceAccess.Yes) {
+          return renderSettingsLink(
+            PageMap.SETTINGS_AI_CREDITS,
+            translationKey("Open AI Credits"),
+          );
+        }
+
+        return aiCreditsAccess === ProjectBalanceAccess.No ? (
+          <p
+            className="text-xs font-medium text-gray-500"
+            data-testid="ai-agent-gap-who-can-add-ai-credits"
+          >
+            {translator.translateText(WHO_CAN_ADD_AI_CREDITS)}
+          </p>
+        ) : (
+          <></>
+        );
       case "view_runner":
         return status.runner && canPickKubernetesRunner() ? (
           <Link

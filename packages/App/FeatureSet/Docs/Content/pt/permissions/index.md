@@ -56,6 +56,8 @@ As equipes **Owners** e **Admin** são travadas de propósito: suas permissões 
 
 Ligar ou desligar SMS, chamadas telefônicas, WhatsApp ou Telegram para o projeto conta como faturamento, porque cada mensagem custa dinheiro. Somente `ProjectOwner` e a permissão `ManageProjectBilling` (**Manage Billing**) podem alterar essas chaves, em **Configurações do projeto > Notificações > Configurações de notificação** — não `ProjectAdmin`.
 
+Recarregar os saldos pré-pagos do projeto também conta como faturamento. No OneUptime Cloud, SMS, chamadas telefônicas, WhatsApp e Telegram são pagos pelo saldo em **Configurações do projeto > Notificações > Configurações de notificação**, e a IA pelos créditos de IA em **Configurações do projeto > IA > Créditos de IA**. Somente um proprietário do projeto ou alguém com **Manage Billing** pode recarregá-los ou alterar a **Recarga automática** deles — um administrador do projeto não pode. Uma mensagem sobre um saldo que está acabando diz quem pode recarregá-lo, e só essas pessoas recebem um botão **Recarregar Saldo** que funciona ou um link para a página.
+
 Crie quantas equipes adicionais quiser — "Plantão do Frontend", "Suporte", "Auditores somente leitura" — e dê a cada uma as permissões de que ela precisa.
 
 Onde encontrar: **Configurações → Equipes**. Abra uma equipe para chegar a **Members** e **Permissions**; **Block Permissions** fica em **More settings**, no fim da página Permissions.

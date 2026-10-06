@@ -228,13 +228,15 @@ describe("the words for each mode", () => {
         /a person approves it with one click before it runs\. A follow-up fix asks again\.$/,
       );
 
-      // Automatic names this type's riskier changes, without the prefix.
-      const riskier: string = descriptor.riskierExamples.replace(
-        /^riskier changes such as /,
-        "",
+      /*
+       * Automatic names this type's riskier changes, without the prefix:
+       * the words riskierExamples has after it, kept as a key of their own.
+       */
+      expect(descriptor.riskierExamples).toBe(
+        `riskier changes such as ${descriptor.riskierChanges}`,
       );
-      expect(descriptions[ResourceAiRemediationMode.Automatic]).toContain(
-        `Riskier ones, such as ${riskier}, wait for one-click approval unless the command allowlist names them.`,
+      expect(descriptions[ResourceAiRemediationMode.Automatic]).toBe(
+        `Safe changes, each on one named object, run on their own. Riskier ones, such as ${descriptor.riskierChanges}, wait for one-click approval unless the command allowlist names them.`,
       );
       expect(descriptions[ResourceAiRemediationMode.Automatic]).not.toContain(
         "riskier changes such as",
@@ -274,6 +276,16 @@ describe("the words for each mode", () => {
       ),
     ).toBe(
       "AI may run read-only db diagnostics on this database server: sessions, locks, long-running queries, replication, sizes, settings. They never change anything.",
+    );
+  });
+
+  test("a Docker host's Automatic card, in full", () => {
+    expect(
+      getResourceRemediationModeOptionDescriptions(DOCKER)[
+        ResourceAiRemediationMode.Automatic
+      ],
+    ).toBe(
+      "Safe changes, each on one named object, run on their own. Riskier ones, such as stopping, killing or updating a container, wait for one-click approval unless the command allowlist names them.",
     );
   });
 
@@ -1167,6 +1179,64 @@ describe("in the reader's language", () => {
     ]) {
       expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
     }
+  });
+
+  test("every type's riskier changes are keys in en.json, with and without the prefix", () => {
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      for (const key of [
+        descriptor.riskierChanges,
+        descriptor.riskierExamples,
+      ]) {
+        expect({ type, english: ENGLISH[key] }).toEqual({ type, english: key });
+      }
+    }
+  });
+
+  /*
+   * The mode cards name the changes as terms, translated along with them.
+   * Automatic's riskier changes used to be riskierExamples with "riskier
+   * changes such as " cut off: words no locale had a key for, so they
+   * stayed English inside a translated sentence.
+   */
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "%s: every mode card is looked up whole, the changes it names with it",
+    async (type: AiResourceType) => {
+      await i18next.changeLanguage("xx");
+
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const descriptions: Record<ResourceAiRemediationMode, string> =
+        getResourceRemediationModeOptionDescriptions(descriptor);
+
+      for (const mode of Object.values(ResourceAiRemediationMode)) {
+        expect({ mode, description: descriptions[mode] }).toEqual({
+          mode,
+          description: expect.stringMatching(LOOKED_UP),
+        });
+      }
+
+      expect(descriptions[ResourceAiRemediationMode.Automatic]).toBe(
+        `‹Safe changes, each on one named object, run on their own. Riskier ones, such as ‹${descriptor.riskierChanges}›, wait for one-click approval unless the command allowlist names them.›`,
+      );
+      if (descriptor.alwaysHumanExamples) {
+        expect(
+          descriptions[ResourceAiRemediationMode.BypassApproval],
+        ).toContain(
+          `Changes such as ‹${descriptor.alwaysHumanExamples}› still ask a person.`,
+        );
+      }
+    },
+  );
+
+  test("the Bypass approval confirmation names them with the prefix, looked up too", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(getResourceAiAccessConfirmation(toBypass)!.description).toContain(
+      "on its own — ‹riskier changes such as stopping, killing or updating a container› included",
+    );
   });
 
   test("every resource's protections, one by one and as one sentence", async () => {

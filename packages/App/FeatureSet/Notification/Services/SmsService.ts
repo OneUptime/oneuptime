@@ -24,10 +24,16 @@ import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import ProjectBalanceOwnerNotice from "Common/Server/Utils/ProjectBalanceOwnerNotice";
 import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "Common/Utils/Project/NotificationChannels";
+import {
+  getProjectBalanceMessageNotSentReason,
+  getProjectBalanceShortfallSentence,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
@@ -173,17 +179,19 @@ export default class SmsService {
       const loggedMessage: string =
         StatusPageSubscriberUnsubscribe.redactCredentials(message);
 
-      /*
-       * The same copy as it goes into the owners' email, whose message is
-       * placed as HTML: the text is plain - incident titles, resource names,
-       * custom field values - so any markup in it is shown, not rendered.
-       */
-      const loggedMessageHtml: string = SafeHtml.escape(loggedMessage);
-
       smsLog.smsText =
         options && options.isSensitive
           ? "This message is sensitive and is not logged"
           : loggedMessage;
+
+      /*
+       * The same copy as it goes into the owners' email - a sensitive one
+       * (a verification code) stays out of it, as it stays out of the log -
+       * whose message is placed as HTML: the text is plain - incident
+       * titles, resource names, custom field values - so any markup in it is
+       * shown, not rendered.
+       */
+      const loggedMessageHtml: string = SafeHtml.escape(smsLog.smsText);
       smsLog.smsCostInUSDCents = 0;
 
       if (options.projectId) {
@@ -353,9 +361,30 @@ export default class SmsService {
 
           project.smsOrCallCurrentBalanceInUSDCents = updatedBalance;
 
-          if (!project.smsOrCallCurrentBalanceInUSDCents) {
+          /*
+           * Nothing left, or less than this SMS costs. The log (which the
+           * project's members read, as they read a person's on-call
+           * timeline) says who can add balance and where; the owners, who
+           * may, are told to, with a link - once, until the balance is
+           * topped up again (Utils/Project/ProjectBalance).
+           */
+          const balanceInUSDCents: number =
+            project.smsOrCallCurrentBalanceInUSDCents || 0;
+
+          if (!balanceInUSDCents || balanceInUSDCents < smsCost * 100) {
+            const shortfall: {
+              channel: ProjectNotificationChannel;
+              balanceInUSDCents: number;
+              costInUSDCents: number;
+            } = {
+              channel: ProjectNotificationChannel.SMS,
+              balanceInUSDCents: balanceInUSDCents,
+              costInUSDCents: Math.round(smsCost * 100),
+            };
+
             smsLog.status = SmsStatus.LowBalance;
-            smsLog.statusMessage = `Project ${options.projectId.toString()} does not have enough SMS balance.`;
+            smsLog.statusMessage =
+              getProjectBalanceMessageNotSentReason(shortfall);
             // Tenant billing state, not a defect — the owners get emailed below.
             logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
             await SmsLogService.create({
@@ -378,43 +407,12 @@ export default class SmsService {
               await ProjectService.sendEmailToProjectOwners(
                 project.id!,
                 "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/>This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                  (project.smsOrCallCurrentBalanceInUSDCents || 0) / 100
-                } USD cents. Required balance to send this SMS should is ${smsCost} USD. Please enable auto recharge or recharge manually.`,
-              );
-            }
-            return smsLog.statusMessage!;
-          }
-
-          if (project.smsOrCallCurrentBalanceInUSDCents < smsCost * 100) {
-            smsLog.status = SmsStatus.LowBalance;
-            smsLog.statusMessage = `Project does not have enough balance to send SMS. Current balance is ${
-              project.smsOrCallCurrentBalanceInUSDCents / 100
-            } USD. Required balance is ${smsCost} USD to send this SMS.`;
-            // Tenant billing state, not a defect — the owners get emailed below.
-            logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
-            await SmsLogService.create({
-              data: smsLog,
-              props: {
-                isRoot: true,
-              },
-            });
-            if (!project.lowCallAndSMSBalanceNotificationSentToOwners) {
-              await ProjectService.updateOneById({
-                data: {
-                  lowCallAndSMSBalanceNotificationSentToOwners: true,
-                },
-                id: project.id!,
-                props: {
-                  isRoot: true,
-                },
-              });
-              await ProjectService.sendEmailToProjectOwners(
-                project.id!,
-                "Low SMS and Call Balance for " + (project.name || ""),
-                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent because project does not have enough balance to send SMS. Current balance is ${
-                  project.smsOrCallCurrentBalanceInUSDCents / 100
-                } USD. Required balance is ${smsCost} USD to send this SMS. Please enable auto recharge or recharge manually.`,
+                `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent. ${SafeHtml.escape(
+                  getProjectBalanceShortfallSentence(shortfall),
+                )} ${ProjectBalanceOwnerNotice.getHtml({
+                  balance: ProjectBalanceType.SmsOrCall,
+                  projectId: project.id!,
+                })}`,
               );
             }
             return smsLog.statusMessage!;

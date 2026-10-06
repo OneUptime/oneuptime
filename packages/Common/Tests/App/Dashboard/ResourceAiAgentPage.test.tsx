@@ -1034,9 +1034,7 @@ describe("Needs attention", () => {
     expect(
       within(steps[0]!).getByTestId("ai-agent-gap-number"),
     ).toHaveTextContent("1.");
-    expect(steps[0]).toHaveTextContent(
-      "Add AI credits to this project, or turn on auto-recharge.",
-    );
+    expect(steps[0]).toHaveTextContent("Add AI credits to this project.");
     expect(steps[1]).toHaveAttribute(
       "data-testid",
       "ai-agent-gap-llm_provider_missing",
@@ -1376,7 +1374,6 @@ describe("Needs attention", () => {
     const expected: Array<[string, string, string]> = [
       ["ai_disabled_for_project", "Open AI Features", "settings/ai-features"],
       ["llm_provider_missing", "Open LLM Providers", "settings/llm-providers"],
-      ["ai_balance_insufficient", "Open AI Credits", "settings/ai-credits"],
     ];
     for (const [code, linkText, path] of expected) {
       const row: HTMLElement = await findTestId(`ai-agent-gap-${code}`);
@@ -1384,6 +1381,106 @@ describe("Needs attention", () => {
         within(row).getByText(linkText).closest("a")?.getAttribute("href"),
       ).toBe(`/dashboard/${PROJECT_ID}/${path}`);
     }
+
+    // AI credits are not an admin's to add: who can, instead of a link.
+    const credits: HTMLElement = await findTestId(
+      "ai-agent-gap-ai_balance_insufficient",
+    );
+    expect(
+      within(credits).queryByText("Open AI Credits"),
+    ).not.toBeInTheDocument();
+    expect(credits).toHaveTextContent(
+      "A project owner or someone with Manage Billing can add AI credits.",
+    );
+  });
+
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing
+   * - not a project admin, whose recharge the server refuses. So the AI
+   * Credits link is for exactly those people; everyone else is told who
+   * can, and nobody is told anything while the permissions are on their
+   * way.
+   */
+  test.each([
+    ["a project owner", Permission.ProjectOwner],
+    ["someone with Manage Billing", Permission.ManageProjectBilling],
+  ])(
+    "out of AI credits: %s is linked to AI Credits",
+    async (_who: string, permission: Permission) => {
+      grant([...BASE_PERMISSIONS, permission]);
+      serve(
+        makeStatus({
+          isInvestigationReady: false,
+          gaps: [gap("ai_balance_insufficient")],
+        }),
+      );
+      openAgentPage();
+
+      const row: HTMLElement = await findTestId(
+        "ai-agent-gap-ai_balance_insufficient",
+      );
+      expect(
+        within(row)
+          .getByText("Open AI Credits")
+          .closest("a")
+          ?.getAttribute("href"),
+      ).toBe(`/dashboard/${PROJECT_ID}/settings/ai-credits`);
+      expect(
+        within(row).queryByTestId("ai-agent-gap-who-can-add-ai-credits"),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test.each([
+    ["a project admin", ADMIN_PERMISSIONS],
+    ["a member", MEMBER_PERMISSIONS],
+  ])(
+    "out of AI credits: %s is told who can add them - not linked, not sent to an admin",
+    async (_who: string, permissions: Array<Permission>) => {
+      grant(permissions);
+      serve(
+        makeStatus({
+          isInvestigationReady: false,
+          gaps: [gap("ai_balance_insufficient")],
+        }),
+      );
+      openAgentPage();
+
+      const row: HTMLElement = await findTestId(
+        "ai-agent-gap-ai_balance_insufficient",
+      );
+      expect(
+        within(row).getByTestId("ai-agent-gap-who-can-add-ai-credits"),
+      ).toHaveTextContent(
+        "A project owner or someone with Manage Billing can add AI credits.",
+      );
+      expect(
+        within(row).queryByText("Open AI Credits"),
+      ).not.toBeInTheDocument();
+      expect(row).not.toHaveTextContent("Ask a project owner or admin.");
+      expect(row).toHaveTextContent("Add AI credits to this project.");
+      expect(row).not.toHaveTextContent(/auto-recharge/i);
+    },
+  );
+
+  test("out of AI credits: before the permissions arrive, neither a link nor who can", async () => {
+    grant([]);
+    serve(
+      makeStatus({
+        isInvestigationReady: false,
+        gaps: [gap("ai_balance_insufficient")],
+      }),
+    );
+    openAgentPage();
+
+    const row: HTMLElement = await findTestId(
+      "ai-agent-gap-ai_balance_insufficient",
+    );
+    expect(within(row).queryByText("Open AI Credits")).not.toBeInTheDocument();
+    expect(
+      within(row).queryByTestId("ai-agent-gap-who-can-add-ai-credits"),
+    ).not.toBeInTheDocument();
+    expect(row).not.toHaveTextContent("Ask a project owner or admin.");
   });
 
   test("project-level gaps tell a member who to ask", async () => {

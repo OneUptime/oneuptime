@@ -56,6 +56,8 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 
 为项目开启或关闭短信、语音电话、WhatsApp 或 Telegram 属于账单事务，因为每条消息都要花钱。只有 `ProjectOwner` 和 `ManageProjectBilling` 权限（**Manage Billing**）可以在 **项目设置 > 通知 > 通知设置** 中更改这些开关，`ProjectAdmin` 不行。
 
+为项目的预付余额充值同样属于账单事务。在 OneUptime Cloud 上，短信、语音电话、WhatsApp 和 Telegram 从 **项目设置 > 通知 > 通知设置** 中的余额支付，AI 从 **项目设置 > 人工智能 > AI 积分** 中的 AI 积分支付。只有项目所有者或拥有 **Manage Billing** 权限的用户才能为它们充值或更改它们的 **自动充值**，项目管理员不行。关于余额不足的消息会说明谁可以充值，只有这些人才会看到可用的 **充值余额** 按钮或页面链接。
+
 你可以创建任意多个额外团队——"前端待命"、"支持"、"只读审计"——并给每个团队它需要的权限。
 
 位置：**设置 → 团队**。打开团队即可进入 **Members** 和 **Permissions**；**Block Permissions** 位于 Permissions 页面底部的 **More settings** 中。
