@@ -65,8 +65,14 @@ const AlertsTeamsPage: FunctionComponent<
   return (
     <WorkspacePlanLeftoverGate
       workspaceType={WorkspaceType.MicrosoftTeams}
-      eventTypes={[NotificationRuleEventType.Alert, NotificationRuleEventType.AlertEpisode]}
-      summaryTypes={[WorkspaceNotificationSummaryType.Alert, WorkspaceNotificationSummaryType.AlertEpisode]}
+      eventTypes={[
+        NotificationRuleEventType.Alert,
+        NotificationRuleEventType.AlertEpisode,
+      ]}
+      summaryTypes={[
+        WorkspaceNotificationSummaryType.Alert,
+        WorkspaceNotificationSummaryType.AlertEpisode,
+      ]}
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
         <Tabs

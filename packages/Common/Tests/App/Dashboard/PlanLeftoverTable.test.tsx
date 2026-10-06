@@ -102,45 +102,43 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         { "data-testid": "stand-in-table" },
         react.createElement("h2", null, props.cardProps.title),
         react.createElement("p", null, props.cardProps.description),
-        ...mockTable.rows.map(
-          (row: Record<string, unknown>): ReactElement => {
-            return react.createElement(
-              "div",
-              {
-                key: String(row["_id"]),
-                "data-testid": `row-${String(row["_id"])}`,
-              },
-              String(row["name"]),
-              ...props.actionButtons
-                .filter((action: RecordedAction): boolean => {
-                  return !action.isVisible || action.isVisible(row) !== false;
-                })
-                .map((action: RecordedAction): ReactElement => {
-                  return react.createElement(
-                    "button",
-                    {
-                      key: action.title,
-                      type: "button",
-                      disabled: Boolean(action.disabled),
-                      title: action.tooltip,
-                      onClick: () => {
-                        action.onClick(
-                          row,
-                          () => {
-                            return undefined;
-                          },
-                          () => {
-                            return undefined;
-                          },
-                        );
-                      },
+        ...mockTable.rows.map((row: Record<string, unknown>): ReactElement => {
+          return react.createElement(
+            "div",
+            {
+              key: String(row["_id"]),
+              "data-testid": `row-${String(row["_id"])}`,
+            },
+            String(row["name"]),
+            ...props.actionButtons
+              .filter((action: RecordedAction): boolean => {
+                return !action.isVisible || action.isVisible(row) !== false;
+              })
+              .map((action: RecordedAction): ReactElement => {
+                return react.createElement(
+                  "button",
+                  {
+                    key: action.title,
+                    type: "button",
+                    disabled: Boolean(action.disabled),
+                    title: action.tooltip,
+                    onClick: () => {
+                      action.onClick(
+                        row,
+                        () => {
+                          return undefined;
+                        },
+                        () => {
+                          return undefined;
+                        },
+                      );
                     },
-                    action.title,
-                  );
-                }),
-            );
-          },
-        ),
+                  },
+                  action.title,
+                );
+              }),
+          );
+        }),
       );
     },
   };
@@ -246,7 +244,11 @@ async function renderApiKeys(): Promise<void> {
         title={PlanLeftoverTitle.apiKeys}
         columns={[
           { field: { name: true }, title: "Name", type: FieldType.Text },
-          { field: { expiresAt: true }, title: "Expires", type: FieldType.Date },
+          {
+            field: { expiresAt: true },
+            title: "Expires",
+            type: FieldType.Date,
+          },
         ]}
       />,
     );
@@ -305,7 +307,9 @@ describe("nothing left draws nothing: the page above is the page", () => {
 
     expect(screen.queryByTestId("stand-in-table")).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId(getPlanLeftoverTableTestId("project-saml-providers")),
+      screen.queryByTestId(
+        getPlanLeftoverTableTestId("project-saml-providers"),
+      ),
     ).not.toBeInTheDocument();
   });
 

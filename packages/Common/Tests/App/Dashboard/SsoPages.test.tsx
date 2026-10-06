@@ -1708,7 +1708,10 @@ describe("Status page > SSO below Scale: Require SSO for Login stays reachable w
       // No "test with the link above": the link is not on this page.
       expect(requireSso).toHaveAttribute("data-card-description", "");
       // It starts from the status page already read for it.
-      expect(requireSso).toHaveAttribute("data-initial-item-id", STATUS_PAGE_ID);
+      expect(requireSso).toHaveAttribute(
+        "data-initial-item-id",
+        STATUS_PAGE_ID,
+      );
       expect(requireSso).toHaveAttribute("data-initial-value", "true");
 
       // The project's switch is not on a status page's page.

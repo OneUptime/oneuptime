@@ -65,8 +65,14 @@ const IncidentsTeamsPage: FunctionComponent<
   return (
     <WorkspacePlanLeftoverGate
       workspaceType={WorkspaceType.MicrosoftTeams}
-      eventTypes={[NotificationRuleEventType.Incident, NotificationRuleEventType.IncidentEpisode]}
-      summaryTypes={[WorkspaceNotificationSummaryType.Incident, WorkspaceNotificationSummaryType.IncidentEpisode]}
+      eventTypes={[
+        NotificationRuleEventType.Incident,
+        NotificationRuleEventType.IncidentEpisode,
+      ]}
+      summaryTypes={[
+        WorkspaceNotificationSummaryType.Incident,
+        WorkspaceNotificationSummaryType.IncidentEpisode,
+      ]}
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
         <Tabs

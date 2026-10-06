@@ -102,6 +102,8 @@ function readLocale(locale: string): Record<string, unknown> {
 }
 
 const SOURCE_FILE: RegExp = /\.tsx?$/;
+const WORKSPACE_PAGE_FILE: RegExp =
+  /WorkspaceConnection(Slack|MicrosoftTeams)\.tsx$/;
 const PLACEHOLDER: RegExp = /\{\{\w+\}\}/g;
 
 function listSources(directory: string): Array<string> {
@@ -182,7 +184,9 @@ describe("the Scale pages draw what is left under their upsell", () => {
       expect(source).toContain(
         `import { ${leftover} } from "${page.startsWith("Pages/Settings") ? "../.." : "../../.."}/Components/Billing/IdentityPlanLeftovers";`,
       );
-      expect(source).toMatch(new RegExp(`belowPlan=\\{ ?(<> )?.*<${leftover} />`));
+      expect(source).toMatch(
+        new RegExp(`belowPlan=\\{ ?(<> )?.*<${leftover} />`),
+      );
     },
   );
 
@@ -220,7 +224,9 @@ describe("the Scale pages draw what is left under their upsell", () => {
         next === -1 ? source.length : next,
       );
 
-      expect(body).toContain(`<PlanLeftoverTable<${model}> modelType={${model}}`);
+      expect(body).toContain(
+        `<PlanLeftoverTable<${model}> modelType={${model}}`,
+      );
       expect(body).toContain(`requiredPlan={${plan}}`);
       expect(body).toContain("projectId: ProjectUtil.getCurrentProjectId()!");
     },
@@ -239,7 +245,13 @@ describe("the Scale pages draw what is left under their upsell", () => {
 
 describe("the Growth pages become the plan note below the plan", () => {
   test.each([
-    ["Pages/Settings/APIKeys.tsx", "API_KEY_PLAN", "ApiKeysLeftover", "APIKeysPage", "APIKeys"],
+    [
+      "Pages/Settings/APIKeys.tsx",
+      "API_KEY_PLAN",
+      "ApiKeysLeftover",
+      "APIKeysPage",
+      "APIKeys",
+    ],
     [
       "Pages/OnCallDuty/OnCallDutySchedules.tsx",
       "ON_CALL_SCHEDULE_PLAN",
@@ -264,7 +276,9 @@ describe("the Growth pages become the plan note below the plan", () => {
       expect(source).toContain(`export default ${exported};`);
       // The plan is the model's own: the one the server asks.
       expect(source).toMatch(
-        new RegExp(`const ${plan}: PlanType = new \\w+\\(\\)\\.getCreateBillingPlan\\(\\) \\|\\| PlanType\\.Growth;`),
+        new RegExp(
+          `const ${plan}: PlanType = new \\w+\\(\\)\\.getCreateBillingPlan\\(\\) \\|\\| PlanType\\.Growth;`,
+        ),
       );
     },
   );
@@ -273,7 +287,11 @@ describe("the Growth pages become the plan note below the plan", () => {
     [];
 
   for (const [folder, events, summaries] of [
-    ["Incidents", ["Incident", "IncidentEpisode"], ["Incident", "IncidentEpisode"]],
+    [
+      "Incidents",
+      ["Incident", "IncidentEpisode"],
+      ["Incident", "IncidentEpisode"],
+    ],
     ["Alerts", ["Alert", "AlertEpisode"], ["Alert", "AlertEpisode"]],
     ["ScheduledMaintenanceEvents", ["ScheduledMaintenance"], []],
     ["OnCallDuty", ["OnCallDutyPolicy"], []],
@@ -297,7 +315,10 @@ describe("the Growth pages become the plan note below the plan", () => {
       events: Array<string>,
       summaries: Array<string>,
     ) => {
-      const source: string = readDashboard(page);
+      // Arrays as `[a, b]`, however the formatter wrapped them.
+      const source: string = readDashboard(page)
+        .replace(/\[ /g, "[")
+        .replace(/,? \]/g, "]");
 
       const expectedProps: string = [
         `workspaceType={WorkspaceType.${workspace}}`,
@@ -329,7 +350,7 @@ describe("the Growth pages become the plan note below the plan", () => {
   test("every product's Slack and Microsoft Teams page is covered", () => {
     const pages: Array<string> = listSources(path.join(DASHBOARD_SRC, "Pages"))
       .filter((file: string): boolean => {
-        return /WorkspaceConnection(Slack|MicrosoftTeams)\.tsx$/.test(file);
+        return WORKSPACE_PAGE_FILE.test(file);
       })
       .map((file: string): string => {
         return path.relative(DASHBOARD_SRC, file).split(path.sep).join("/");
@@ -374,14 +395,16 @@ describe("what is left is only ever drawn below the plan", () => {
 
 describe("the new sentences", () => {
   test("are written once, in PlanLeftoverCopy", () => {
-    const copy: string = readDashboard("Components/Billing/PlanLeftoverCopy.ts");
+    const copy: string = readDashboard(
+      "Components/Billing/PlanLeftoverCopy.ts",
+    );
 
     for (const sentence of NEW_SENTENCES) {
-      expect([sentence, copy.includes(`translationKey( "${sentence}"`) ||
-        copy.includes(`translationKey("${sentence}"`)]).toEqual([
+      expect([
         sentence,
-        true,
-      ]);
+        copy.includes(`translationKey( "${sentence}"`) ||
+          copy.includes(`translationKey("${sentence}"`),
+      ]).toEqual([sentence, true]);
     }
   });
 

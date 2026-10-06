@@ -97,11 +97,9 @@ export const isPlanGatedTableSwitchOff: (
     return false;
   }
 
-  return writtenColumns.every(
-    ([column, value]: [string, unknown]): boolean => {
-      return column === switchColumn && value === false;
-    },
-  );
+  return writtenColumns.every(([column, value]: [string, unknown]): boolean => {
+    return column === switchColumn && value === false;
+  });
 };
 
 /*

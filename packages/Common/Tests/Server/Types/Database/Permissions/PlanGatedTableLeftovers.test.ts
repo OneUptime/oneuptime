@@ -348,8 +348,10 @@ describe("the plan-gated tables", () => {
 
       const readPlan: PlanType | null = table.plans[DatabaseRequestType.Read];
 
-      expect([table.name, Boolean(readPlan && readPlan !== PlanType.Free)])
-        .toEqual([table.name, true]);
+      expect([
+        table.name,
+        Boolean(readPlan && readPlan !== PlanType.Free),
+      ]).toEqual([table.name, true]);
     }
   });
 
@@ -413,8 +415,7 @@ describe.each(GATED_TABLE_CASES)("%s", (_name: string, table: GatedTable) => {
   const readStaysGated: boolean = READ_STAYS_GATED_TABLES.includes(table.name);
 
   test("below the create plan, creating is refused with the plan's name", () => {
-    const createPlan: PlanType | null =
-      table.plans[DatabaseRequestType.Create];
+    const createPlan: PlanType | null = table.plans[DatabaseRequestType.Create];
 
     for (const plan of plansBelow(createPlan)) {
       expect([
@@ -493,13 +494,11 @@ describe.each(GATED_TABLE_CASES)("%s", (_name: string, table: GatedTable) => {
         // Without the data, the switch-off cannot be recognised (fail closed).
         expect([plan, answer()]).toEqual([plan, refused]);
         expect([plan, answer({ isEnabled: true })]).toEqual([plan, refused]);
-        expect([plan, answer({ isEnabled: "false" })]).toEqual([
+        expect([plan, answer({ isEnabled: "false" })]).toEqual([plan, refused]);
+        expect([plan, answer({ isEnabled: false, name: "Renamed" })]).toEqual([
           plan,
           refused,
         ]);
-        expect([plan, answer({ isEnabled: false, name: "Renamed" })]).toEqual(
-          [plan, refused],
-        );
         expect([plan, answer({ name: "Renamed" })]).toEqual([plan, refused]);
         expect([plan, answer({})]).toEqual([plan, refused]);
       }

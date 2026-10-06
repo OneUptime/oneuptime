@@ -31,7 +31,11 @@ function sectionOf(page: string, heading: string): string {
 
   const level: string = heading.split(" ")[0] as string;
   const rest: string = page.slice(start + marker.length);
-  const stops: Array<number> = ["\n# ", "\n## ", level === "###" ? "\n### " : ""]
+  const stops: Array<number> = [
+    "\n# ",
+    "\n## ",
+    level === "###" ? "\n### " : "",
+  ]
     .filter((stop: string): boolean => {
       return Boolean(stop);
     })
@@ -140,19 +144,22 @@ describe("the Slack and Microsoft Teams guides", () => {
   it.each([
     ["en/workspace-connections/slack.md", "Slack"],
     ["en/workspace-connections/microsoft-teams.md", "Microsoft Teams"],
-  ])("%s says the rules and summaries still post, and what can be done with them", (page: string, name: string) => {
-    const section: string = sectionOf(
-      readPage(page),
-      "## Notification rules below the Growth plan",
-    );
+  ])(
+    "%s says the rules and summaries still post, and what can be done with them",
+    (page: string, name: string) => {
+      const section: string = sectionOf(
+        readPage(page),
+        "## Notification rules below the Growth plan",
+      );
 
-    expect(section).toContain(
-      `A project below it keeps the rules and summaries it already has, and they keep posting to ${name}.`,
-    );
-    expect(section).toContain(
-      "(**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.",
-    );
-  });
+      expect(section).toContain(
+        `A project below it keeps the rules and summaries it already has, and they keep posting to ${name}.`,
+      );
+      expect(section).toContain(
+        "(**Notification rules still set up**, **Summaries still set up**): delete a rule, or turn a summary off or delete it. Adding or changing rules and summaries needs **Growth**.",
+      );
+    },
+  );
 });
 
 describe("the on-call schedules guide", () => {

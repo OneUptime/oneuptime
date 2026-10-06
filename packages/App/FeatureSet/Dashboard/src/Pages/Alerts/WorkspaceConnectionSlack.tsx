@@ -84,8 +84,14 @@ When you react with a pin emoji, OneUptime will automatically save the message c
   return (
     <WorkspacePlanLeftoverGate
       workspaceType={WorkspaceType.Slack}
-      eventTypes={[NotificationRuleEventType.Alert, NotificationRuleEventType.AlertEpisode]}
-      summaryTypes={[WorkspaceNotificationSummaryType.Alert, WorkspaceNotificationSummaryType.AlertEpisode]}
+      eventTypes={[
+        NotificationRuleEventType.Alert,
+        NotificationRuleEventType.AlertEpisode,
+      ]}
+      summaryTypes={[
+        WorkspaceNotificationSummaryType.Alert,
+        WorkspaceNotificationSummaryType.AlertEpisode,
+      ]}
     >
       <WorkspaceConnectionGate workspaceType={WorkspaceType.Slack}>
         <Tabs

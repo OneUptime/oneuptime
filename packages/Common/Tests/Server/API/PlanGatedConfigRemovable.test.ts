@@ -277,9 +277,9 @@ const response: () => ExpressResponse = (): ExpressResponse => {
 };
 
 // What a route answers: "done", or the refusal's message.
-const call: (
+const call: (run: () => Promise<void>) => Promise<string> = async (
   run: () => Promise<void>,
-) => Promise<string> = async (run: () => Promise<void>): Promise<string> => {
+): Promise<string> => {
   try {
     await run();
     return "done";
@@ -346,7 +346,9 @@ const create: (target: Subject, data: JSONObject) => Promise<string> = async (
 ): Promise<string> => {
   return await call(async () => {
     await target.api.createItem(
-      request({ body: { data: { projectId: PROJECT_ID.toString(), ...data } } }),
+      request({
+        body: { data: { projectId: PROJECT_ID.toString(), ...data } },
+      }),
       response(),
     );
   });
@@ -432,12 +434,14 @@ beforeEach(() => {
   for (const target of ALL_SUBJECTS) {
     stubRepository(target);
 
-    getJestSpyOn(target.service as never, "onTriggerWorkflow").mockResolvedValue(
-      undefined as never,
-    );
-    getJestSpyOn(target.service as never, "onTriggerRealtime").mockResolvedValue(
-      undefined as never,
-    );
+    getJestSpyOn(
+      target.service as never,
+      "onTriggerWorkflow",
+    ).mockResolvedValue(undefined as never);
+    getJestSpyOn(
+      target.service as never,
+      "onTriggerRealtime",
+    ).mockResolvedValue(undefined as never);
   }
 
   /*
@@ -449,12 +453,11 @@ beforeEach(() => {
       return { deleteBy: deleteBy, carryForward: null };
     },
   );
-  getJestSpyOn(
-    SCHEDULE.service as never,
-    "onDeleteSuccess",
-  ).mockImplementation(async (onDelete: unknown): Promise<unknown> => {
-    return onDelete;
-  });
+  getJestSpyOn(SCHEDULE.service as never, "onDeleteSuccess").mockImplementation(
+    async (onDelete: unknown): Promise<unknown> => {
+      return onDelete;
+    },
+  );
 
   getJestSpyOn(AuditLogService, "recordUpdate").mockResolvedValue(
     undefined as never,
