@@ -7,6 +7,7 @@ import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmClu
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
@@ -43,6 +44,7 @@ import {
   keyForProxmoxCluster,
   keyForVMwareVCenter,
   keyForCephCluster,
+  keyForStorageArray,
 } from "../../../../Utils/Telemetry/EntityKey";
 import HostService from "../../../Services/HostService";
 import DockerHostService from "../../../Services/DockerHostService";
@@ -52,6 +54,7 @@ import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterServi
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import CephClusterService from "../../../Services/CephClusterService";
+import StorageArrayService from "../../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
 import IoTFleetService from "../../../Services/IoTFleetService";
@@ -236,6 +239,28 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     identifier: "name",
     attributeKey: "resource.ceph.cluster.name",
     keyFor: keyForCephCluster,
+  },
+  [AIResourceType.StorageArray]: {
+    model: StorageArray,
+    findBy: (data: FindBy<BaseModel>) => {
+      return StorageArrayService.findBy(data as never);
+    },
+    fields: [
+      "storageSystem",
+      "osVersion",
+      "healthStatus",
+      "capacityUsedPercent",
+      "openAlertCount",
+      "criticalAlertCount",
+      "volumeCount",
+      "hostCount",
+      "fileSystemCount",
+      "bucketCount",
+      "unhealthyHardwareCount",
+    ],
+    identifier: "name",
+    attributeKey: "resource.storage.array.name",
+    keyFor: keyForStorageArray,
   },
   [AIResourceType.ServerlessFunction]: {
     model: ServerlessFunction,

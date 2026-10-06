@@ -253,6 +253,7 @@ describe("the Edit modal of an incident's Affected Resources card", () => {
       "proxmoxClusters",
       "vmwareVCenters",
       "cephClusters",
+      "storageArrays",
       "dockerSwarmClusters",
       "iotFleets",
       "databaseServers",

@@ -46,7 +46,7 @@ I monitor vengono per primi, a parte: le pagine di stato vedono un incidente att
 
 - **Monitor** — una casella di ricerca che collega i monitor interessati dall'incidente (`monitors`). Una pagina di stato mostra l'incidente, e avvisa i suoi iscritti, quando elenca uno di questi monitor.
 - **Cambia lo stato del monitor in** — facoltativo, e mostrato solo quando è scelto almeno un monitor. Applica uno stato a ogni monitor dell'incidente, così dichiarare l'incidente e segnare i monitor come degradati è un'unica azione. Lo stato di un modello compare appena scegliete un monitor; senza monitor scelti non viene salvato alcuno stato.
-- **Altre risorse interessate** — una seconda casella di ricerca per tutto il resto che l'incidente interessa: host, cluster Kubernetes, host Docker e Podman, cluster Proxmox, Ceph e Docker Swarm, vCenter, flotte IoT, database e servizi. Sono relazioni distinte dell'incidente (`hosts`, `kubernetesClusters`, `services` e altre).
+- **Altre risorse interessate** — una seconda casella di ricerca per tutto il resto che l'incidente interessa: host, cluster Kubernetes, host Docker e Podman, cluster Proxmox, Ceph e Docker Swarm, vCenter, array di storage, flotte IoT, database e servizi. Sono relazioni distinte dell'incidente (`hosts`, `kubernetesClusters`, `services` e altre).
 
 La scheda **Risorse interessate** dell'incidente chiede allo stesso modo quando la modificate in seguito.
 

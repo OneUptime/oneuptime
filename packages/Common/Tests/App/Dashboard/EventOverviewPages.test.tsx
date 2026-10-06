@@ -3197,6 +3197,7 @@ describe("alert-only behaviour", () => {
         "proxmoxClusters",
         "vmwareVCenters",
         "cephClusters",
+        "storageArrays",
         "dockerSwarmClusters",
         "iotFleets",
         "databaseServers",

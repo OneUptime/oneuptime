@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import StorageArray from "./StorageArray";
 import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
@@ -1188,6 +1189,60 @@ export default class Incident extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StorageArray,
+    title: "Storage Arrays",
+    description: "List of storage arrays affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return StorageArray;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentStorageArray",
+    inverseJoinColumn: {
+      name: "storageArrayId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public storageArrays?: Array<StorageArray> = undefined;
 
   @ColumnAccessControl({
     create: [

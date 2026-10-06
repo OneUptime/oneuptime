@@ -17,6 +17,7 @@ import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaIn
 import { CriteriaIncident } from "../../../../Types/Monitor/CriteriaIncident";
 import { CriteriaAlert } from "../../../../Types/Monitor/CriteriaAlert";
 import { getDatabaseEnginesWithAlertTemplates } from "../../../../Types/Monitor/DatabaseAlertTemplates";
+import { StorageSystemUtil } from "../../../../Types/StorageArray/StorageSystem";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -174,6 +175,31 @@ describe("MonitorRecommendationUtil", () => {
             return MonitorRecommendationUtil.getMonitorName({
               recommendation: recommendation,
               resourceDisplayName: "PostgreSQL db.prod:5432",
+            });
+          });
+
+        expect(names.length).toBeGreaterThan(0);
+        expect(new Set(names).size).toBe(names.length);
+      }
+    });
+
+    it("produces distinct names within the set one storage array is offered, for every platform", () => {
+      /*
+       * An array's set is empty without its platform, so the context-free
+       * loop above proves nothing for it. Per platform is the unit that
+       * matters: one array only ever renders its own platform's
+       * recommendations ("Critical Array Alert" repeats across FlashArray and
+       * FlashBlade on purpose).
+       */
+      for (const storageSystem of StorageSystemUtil.getAllSystems()) {
+        const names: Array<string> =
+          MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.StorageArray,
+            { storageSystem: storageSystem },
+          ).map((recommendation: MonitorRecommendation) => {
+            return MonitorRecommendationUtil.getMonitorName({
+              recommendation: recommendation,
+              resourceDisplayName: "pure-prod-01",
             });
           });
 

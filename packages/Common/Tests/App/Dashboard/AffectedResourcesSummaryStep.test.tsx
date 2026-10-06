@@ -102,6 +102,7 @@ import IncidentCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Incid
 import ScheduledMaintenanceCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Create";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -151,6 +152,7 @@ const RESOURCE_PROPS: Record<ResourceProp, ResourceModelType> = {
   proxmoxClusters: ProxmoxCluster,
   vmwareVCenters: VMwareVCenter,
   cephClusters: CephCluster,
+  storageArrays: StorageArray,
   dockerSwarmClusters: DockerSwarmCluster,
   iotFleets: IoTFleet,
   databaseServers: DatabaseServer,
@@ -342,11 +344,23 @@ const PAGES: Array<PageUnderTest> = [
       {
         nothingSelectedMessage: "No monitors affected by this incident.",
         mustOffer: ["monitors"],
-        mustNotOffer: ["hosts", "podmanHosts", "databaseServers", "services"],
+        mustNotOffer: [
+          "hosts",
+          "podmanHosts",
+          "storageArrays",
+          "databaseServers",
+          "services",
+        ],
       },
       {
         nothingSelectedMessage: "No other resources affected by this incident.",
-        mustOffer: ["hosts", "podmanHosts", "databaseServers", "services"],
+        mustOffer: [
+          "hosts",
+          "podmanHosts",
+          "storageArrays",
+          "databaseServers",
+          "services",
+        ],
         mustNotOffer: ["monitors"],
       },
     ],
@@ -367,6 +381,7 @@ const PAGES: Array<PageUnderTest> = [
         mustNotOffer: [
           "hosts",
           "podmanHosts",
+          "storageArrays",
           "databaseServers",
           "networkSites",
           "services",
@@ -378,6 +393,7 @@ const PAGES: Array<PageUnderTest> = [
         mustOffer: [
           "hosts",
           "podmanHosts",
+          "storageArrays",
           "databaseServers",
           "networkSites",
           "services",

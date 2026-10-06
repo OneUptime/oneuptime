@@ -78,6 +78,7 @@ export const DEFAULT_ENTITY_BUDGET: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.ProxmoxNode, 1000],
   [EntityType.ProxmoxGuest, 5000],
   [EntityType.CephCluster, 10000],
+  [EntityType.StorageArray, 10000],
   [EntityType.VMwareVCenter, 10000],
   [EntityType.VMwareCluster, 1000],
   [EntityType.VMwareHost, 2000],

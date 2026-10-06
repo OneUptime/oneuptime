@@ -243,9 +243,9 @@ describe("AffectedResourcesDisplay in the dark theme", () => {
       },
     );
 
-    // One tile per category: fourteen of them.
-    expect(tints).toHaveLength(14);
-    expect(icons).toHaveLength(14);
+    // One tile per category: fifteen of them.
+    expect(tints).toHaveLength(15);
+    expect(icons).toHaveLength(15);
 
     for (const tint of tints) {
       expect({ tint, remapped: isRemapped(tint) }).toEqual({

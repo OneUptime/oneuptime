@@ -409,6 +409,7 @@ describe("getTelemetryEntityTypeLabel", () => {
     [ServiceType.KubernetesCluster, "Kubernetes Cluster"],
     [ServiceType.ProxmoxCluster, "Proxmox Cluster"],
     [ServiceType.CephCluster, "Ceph Cluster"],
+    [ServiceType.StorageArray, "Storage Array"],
     [ServiceType.DockerSwarmCluster, "Docker Swarm Cluster"],
     [ServiceType.VMwareVCenter, "vCenter"],
     [ServiceType.IoTDevice, "IoT Fleet"],

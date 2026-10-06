@@ -425,6 +425,7 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   proxmoxClusterId: "Proxmox clusters",
   vmwareVCenterId: "vCenters",
   cephClusterId: "Ceph clusters",
+  storageArrayId: "storage arrays",
   serverlessFunctionId: "serverless functions",
   cloudResourceId: "cloud resources",
   rumApplicationId: "RUM applications",

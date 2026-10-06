@@ -73,6 +73,7 @@ const AUTO_DISCOVERY_MOCKS_RETURNING_NULL: Array<string> = [
   "autoDiscoverPodmanHost",
   "autoDiscoverVMwareVCenter",
   "autoDiscoverCephCluster",
+  "autoDiscoverStorageArray",
   "autoDiscoverDockerSwarmCluster",
   "autoDiscoverIoTFleet",
   "autoDiscoverHost",

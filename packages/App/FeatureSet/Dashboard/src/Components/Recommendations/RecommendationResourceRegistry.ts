@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -13,6 +14,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
+import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import {
   DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
   fetchDatabaseEngineMetricsArrived,
@@ -140,6 +142,8 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *   VMware      name               VMwareVCenter.name IS the agent-stamped
  *                                  `vmware.vcenter.name` attribute
  *   Ceph        name               model has no identifier column
+ *   StorageArray name              StorageArray.name IS the agent-stamped
+ *                                  `storage.array.name` attribute
  *   IoTDevice   name               IoTFleet has no identifier column
  *   RUM         _id                Metric/Span/Exception.primaryEntityId is
  *                                  the RumApplication row id
@@ -149,7 +153,7 @@ function readSessionReplayMonthlyBudgetInGB(value: unknown): number | null {
  *                                  every template query filters on is the
  *                                  DatabaseServer row id
  *
- * The five `name` rows mean renaming one of those resources orphans its
+ * The six `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
  * pre-existing behaviour inherited from the per-page wiring, faithfully
  * preserved here rather than quietly changed: switching them to a different
@@ -203,6 +207,55 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     modelType: CephCluster,
     identifierFieldName: "name",
     displayNameFieldName: "name",
+  },
+  /*
+   * A storage array's recommendations depend on its platform: FlashArray
+   * and FlashBlade export different metric families (purefa_* and
+   * purefb_*), and a template over the other platform's series would never
+   * fire (getStorageArrayAlertTemplatesForSystem). Ingest writes
+   * `storageSystem` from the array's first batch; until then — or for a
+   * platform OneUptime has no templates for — nothing is offered, as for a
+   * database with no engine recorded.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.StorageArray,
+    modelType: StorageArray,
+    identifierFieldName: "name",
+    displayNameFieldName: "name",
+    contextFieldNames: ["storageSystem"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const storageSystem: unknown = (
+        model as unknown as Record<string, unknown>
+      )["storageSystem"];
+
+      return {
+        storageSystem:
+          typeof storageSystem === "string" && storageSystem.trim()
+            ? storageSystem.trim()
+            : null,
+      };
+    },
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      if (!context.storageSystem) {
+        return translateTemplate(
+          "This storage array has not reported its platform yet, and every recommended storage array monitor reads one platform's own metrics, so none are offered until its agent sends data.",
+        );
+      }
+
+      if (!StorageSystemUtil.isKnownSystem(context.storageSystem)) {
+        return translateTemplate(
+          "OneUptime has no recommended monitors for this storage array's platform ({{platform}}): each one reads a supported platform's own metrics.",
+          { platform: context.storageSystem },
+        );
+      }
+
+      return translateTemplate(
+        "This storage array is a {{platform}}, so the recommendations below are the ones its metrics support.",
+        { platform: StorageSystemUtil.getDisplayName(context.storageSystem) },
+      );
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.IoTDevice,

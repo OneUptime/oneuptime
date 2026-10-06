@@ -46,7 +46,7 @@ De monitoren komen eerst, apart: statuspagina's zien een incident via zijn monit
 
 - **Monitoren** — een zoekveld dat de monitoren koppelt die het incident raakt (`monitors`). Een statuspagina toont het incident, en informeert haar abonnees, als ze een van deze monitoren vermeldt.
 - **Monitorstatus wijzigen naar** — optioneel, en pas zichtbaar zodra er minstens één monitor is gekozen. Zet elke monitor van het incident op een monitorstatus, zodat het incident melden en de monitoren als verstoord markeren één handeling is. De status van een sjabloon verschijnt zodra je een monitor kiest; zonder gekozen monitor wordt er geen status opgeslagen.
-- **Andere getroffen resources** — een tweede zoekveld voor al het andere dat het incident raakt: hosts, Kubernetes-clusters, Docker- en Podman-hosts, Proxmox-, Ceph- en Docker Swarm-clusters, vCenters, IoT-vloten, databases en services. Het zijn aparte relaties van het incident (`hosts`, `kubernetesClusters`, `services` en meer).
+- **Andere getroffen resources** — een tweede zoekveld voor al het andere dat het incident raakt: hosts, Kubernetes-clusters, Docker- en Podman-hosts, Proxmox-, Ceph- en Docker Swarm-clusters, vCenters, storage-arrays, IoT-vloten, databases en services. Het zijn aparte relaties van het incident (`hosts`, `kubernetesClusters`, `services` en meer).
 
 De kaart **Getroffen resources** van het incident vraagt het op dezelfde manier als je die later bewerkt.
 

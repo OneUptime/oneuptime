@@ -34,6 +34,7 @@ interface RecommendationMonitorStepConfig {
   vcenterIdentifier?: string | undefined;
   hostIdentifier?: string | undefined;
   fleetIdentifier?: string | undefined;
+  arrayIdentifier?: string | undefined;
   telemetryServiceIds?: Array<ObjectID | string> | undefined;
   metricViewConfig?: MetricsViewConfig | undefined;
   rollingTime?: unknown;
@@ -391,6 +392,7 @@ export default class MonitorRecommendationUtil {
       config.vcenterIdentifier ||
       config.hostIdentifier ||
       config.fleetIdentifier ||
+      config.arrayIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
       this.getAttributeScopedResourceIdentifier(config) ||
       "";
@@ -469,6 +471,7 @@ export default class MonitorRecommendationUtil {
       "proxmoxMonitor",
       "vmwareMonitor",
       "cephMonitor",
+      "storageArrayMonitor",
       "iotMonitor",
       "metricMonitor",
       "traceMonitor",

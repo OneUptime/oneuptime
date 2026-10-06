@@ -67,6 +67,7 @@ import DockerSwarmClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src
 import PodmanHostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Feed";
 import ProxmoxClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Feed";
 import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Feed";
+import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Feed";
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
@@ -103,6 +104,9 @@ import ProxmoxClusterFeed, {
 import CephClusterFeed, {
   CephClusterFeedEventType,
 } from "../../../Models/DatabaseModels/CephClusterFeed";
+import StorageArrayFeed, {
+  StorageArrayFeedEventType,
+} from "../../../Models/DatabaseModels/StorageArrayFeed";
 import VMwareVCenterFeed, {
   VMwareVCenterFeedEventType,
 } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
@@ -267,6 +271,16 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "cephClusterId",
     eventTypeColumn: "cephClusterFeedEventType",
     enumObject: CephClusterFeedEventType,
+  },
+  {
+    product: "Storage Arrays",
+    file: "Pages/StorageArray/View/Feed.tsx",
+    Page: StorageArrayFeedPage,
+    route: RouteMap[PageMap.STORAGE_ARRAY_VIEW_FEED] as Route,
+    modelType: StorageArrayFeed,
+    resourceIdColumn: "storageArrayId",
+    eventTypeColumn: "storageArrayFeedEventType",
+    enumObject: StorageArrayFeedEventType,
   },
   {
     product: "VMware",

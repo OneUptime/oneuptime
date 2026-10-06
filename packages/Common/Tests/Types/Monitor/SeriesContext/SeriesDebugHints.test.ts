@@ -585,6 +585,93 @@ describe("SeriesDebugHints", () => {
     });
   });
 
+  describe("storage arrays (Purity//FA CLI)", () => {
+    test("a hardware component gets the open alerts first, then the component", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { component_name: "CT0.FAN0" },
+        }),
+      ).toEqual([
+        "purealert list --filter \"state='open'\"",
+        "purehw list CT0.FAN0",
+      ]);
+    });
+
+    test("a host gets the volumes connected to it", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { host: "esx-01" },
+        }),
+      ).toEqual([
+        "purealert list --filter \"state='open'\"",
+        "purehost list --connect esx-01",
+      ]);
+    });
+
+    test("a pod's replica link gets the replica link list", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { local_pod: "pod-a" },
+        }),
+      ).toEqual([
+        "purealert list --filter \"state='open'\"",
+        "purepod replica-link list",
+      ]);
+    });
+
+    test("the open alerts command appears once however many objects the series names", () => {
+      const commands: Array<string> = getCommandStrings({
+        monitorType: MonitorType.StorageArray,
+        seriesLabels: {
+          component_name: "CH0.BAY3",
+          host: "esx-01",
+          local_pod: "pod-a",
+        },
+      });
+
+      expect(
+        commands.filter((command: string) => {
+          return command === "purealert list --filter \"state='open'\"";
+        }),
+      ).toHaveLength(1);
+      expect(commands).toHaveLength(4);
+    });
+
+    test.each([
+      [{ name: "vol-db-01" }],
+      [{ name: "fs-home" }],
+      [{ summary: "Controller failed" }],
+      [{ "resource.storage.array.name": "pure-prod-01" }],
+    ])(
+      "%j names no FlashArray-only object, so it gets no command",
+      (seriesLabels: JSONObject) => {
+        /*
+         * `name` is a volume on a FlashArray and a file system or bucket
+         * on a FlashBlade — a different CLI — and the labels cannot say
+         * which.
+         */
+        expect(
+          getCommandStrings({
+            monitorType: MonitorType.StorageArray,
+            seriesLabels: seriesLabels,
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    test("a hostile host name is quoted into an inert argument", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.StorageArray,
+          seriesLabels: { host: "esx-01; rm -rf /" },
+        }),
+      ).toContain("purehost list --connect 'esx-01; rm -rf /'");
+    });
+  });
+
   describe("types with no universally safe command", () => {
     test.each([
       MonitorType.Metrics,
@@ -691,6 +778,14 @@ describe("SeriesDebugHints", () => {
       {
         monitorType: MonitorType.Ceph,
         seriesLabels: { ceph_daemon: "osd.12", pool_id: "3" },
+      },
+      {
+        monitorType: MonitorType.StorageArray,
+        seriesLabels: {
+          component_name: "CT0.FAN0",
+          host: "esx-01",
+          local_pod: "pod-a",
+        },
       },
     ];
 

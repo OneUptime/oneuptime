@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -295,6 +296,51 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
       },
     ],
   },
+  /*
+   * Pods are listed on the array's Replication page, and hardware
+   * components, drives and controllers on its Hardware page; neither has a
+   * page per object, nor do directories.
+   */
+  [AIResourceType.StorageArray]: {
+    listPage: PageMap.STORAGE_ARRAYS,
+    detailPage: PageMap.STORAGE_ARRAY_VIEW,
+    modelType: StorageArray,
+    noun: translationKey("storage array"),
+    subresources: [
+      {
+        kind: AIResourceSubresourceKind.Volume,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_VOLUMES,
+        detailPage: PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.Host,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_HOSTS,
+        detailPage: PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.Pod,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_REPLICATION,
+      },
+      {
+        kind: AIResourceSubresourceKind.Hardware,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_HARDWARE,
+      },
+      {
+        kind: AIResourceSubresourceKind.Directory,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES,
+      },
+      {
+        kind: AIResourceSubresourceKind.FileSystem,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS,
+        detailPage: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.Bucket,
+        collectionPage: PageMap.STORAGE_ARRAY_VIEW_BUCKETS,
+        detailPage: PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL,
+      },
+    ],
+  },
   [AIResourceType.ServerlessFunction]: {
     listPage: PageMap.SERVERLESS_FUNCTIONS,
     detailPage: PageMap.SERVERLESS_FUNCTION_VIEW,
@@ -399,6 +445,10 @@ const SUBRESOURCE_LABELS: Record<AIResourceSubresourceKind, string> = {
   [AIResourceSubresourceKind.Cluster]: translationKey("cluster"),
   [AIResourceSubresourceKind.Osd]: translationKey("OSD"),
   [AIResourceSubresourceKind.Pool]: translationKey("pool"),
+  [AIResourceSubresourceKind.Hardware]: translationKey("hardware component"),
+  [AIResourceSubresourceKind.Directory]: translationKey("directory"),
+  [AIResourceSubresourceKind.FileSystem]: translationKey("file system"),
+  [AIResourceSubresourceKind.Bucket]: translationKey("bucket"),
   [AIResourceSubresourceKind.Device]: translationKey("device"),
   [AIResourceSubresourceKind.Process]: translationKey("process"),
   [AIResourceSubresourceKind.WindowsService]: translationKey("Windows service"),

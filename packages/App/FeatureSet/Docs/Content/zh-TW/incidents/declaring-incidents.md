@@ -46,7 +46,7 @@
 
 - **監測器** —— 用來附加受事件影響之監測器的搜尋框（`monitors`）。狀態頁面列出其中任一監測器時，就會顯示該事件並通知其訂閱者。
 - **將監測器狀態變更為** —— 選填，只有在至少選擇一個監測器後才會顯示。它會把事件的每個監測器設為某個監測器狀態，因此宣告事件與把監測器標記為降級只需一個動作。範本的狀態會在你選擇監測器後立即顯示；若沒有選擇任何監測器，則不會儲存任何狀態。
-- **其他受影響的資源** —— 第二個搜尋框，用於事件影響的其他一切：主機、Kubernetes 叢集、Docker 與 Podman 主機、Proxmox、Ceph 與 Docker Swarm 叢集、vCenter、IoT 機群、資料庫與服務。它們是事件上各自獨立的關聯（`hosts`、`kubernetesClusters`、`services` 等）。
+- **其他受影響的資源** —— 第二個搜尋框，用於事件影響的其他一切：主機、Kubernetes 叢集、Docker 與 Podman 主機、Proxmox、Ceph 與 Docker Swarm 叢集、vCenter、儲存陣列、IoT 機群、資料庫與服務。它們是事件上各自獨立的關聯（`hosts`、`kubernetesClusters`、`services` 等）。
 
 之後編輯時，事件的 **受影響的資源** 卡片也以相同方式詢問。
 

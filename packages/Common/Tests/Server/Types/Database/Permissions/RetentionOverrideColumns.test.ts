@@ -38,6 +38,7 @@ import ProxmoxCluster from "../../../../../Models/DatabaseModels/ProxmoxCluster"
 import RumApplication from "../../../../../Models/DatabaseModels/RumApplication";
 import ServerlessFunction from "../../../../../Models/DatabaseModels/ServerlessFunction";
 import Service from "../../../../../Models/DatabaseModels/Service";
+import StorageArray from "../../../../../Models/DatabaseModels/StorageArray";
 import TelemetryUsageBilling from "../../../../../Models/DatabaseModels/TelemetryUsageBilling";
 import VMwareVCenter from "../../../../../Models/DatabaseModels/VMwareVCenter";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -110,6 +111,7 @@ const RESOURCE_MODELS: ReadonlyArray<[string, ModelType]> = [
   ["KubernetesCluster", KubernetesCluster],
   ["ProxmoxCluster", ProxmoxCluster],
   ["CephCluster", CephCluster],
+  ["StorageArray", StorageArray],
   ["VMwareVCenter", VMwareVCenter],
   ["IoTFleet", IoTFleet],
   ["CloudResource", CloudResource],

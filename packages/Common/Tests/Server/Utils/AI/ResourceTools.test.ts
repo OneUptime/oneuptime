@@ -8,6 +8,7 @@ import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmCl
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
+import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import ServerlessFunctionService from "../../../../Server/Services/ServerlessFunctionService";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import IoTFleetService from "../../../../Server/Services/IoTFleetService";
@@ -67,6 +68,7 @@ import {
   keyForProxmoxCluster,
   keyForVMwareVCenter,
   keyForCephCluster,
+  keyForStorageArray,
 } from "../../../../Utils/Telemetry/EntityKey";
 
 const projectId: ObjectID = new ObjectID(
@@ -184,6 +186,15 @@ const cases: Array<ResourceCase> = [
     type: AIResourceType.DatabaseServer,
     service: DatabaseServerService,
     read: Permission.ReadDatabaseServer,
+  },
+  // Appended last: the Cloud tests below address cases[9] by position.
+  {
+    type: AIResourceType.StorageArray,
+    service: StorageArrayService,
+    identifier: "name",
+    attribute: "resource.storage.array.name",
+    keyFor: keyForStorageArray,
+    read: Permission.ReadStorageArray,
   },
 ];
 

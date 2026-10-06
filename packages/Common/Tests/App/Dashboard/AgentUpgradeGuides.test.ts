@@ -16,6 +16,8 @@ import {
 import {
   SetupGuideContent,
   SetupGuideOption,
+  SetupGuideStep,
+  SetupGuideStepVariant,
   SetupGuideTopic,
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
@@ -102,6 +104,17 @@ import {
   getVMwareAgentUpgradeCommand,
   getVMwareSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  STORAGE_ARRAY_AGENT_FILES,
+  STORAGE_ARRAY_AGENT_INSTALL_DIR,
+  STORAGE_ARRAY_AGENT_RAW_URL,
+  STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
+  STORAGE_ARRAY_PLATFORMS,
+  StorageArrayPlatform,
+  getStorageArrayAgentDownloadCommand,
+  getStorageArrayAgentUpgradeCommand,
+  getStorageArraySetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import {
   HOST_COLLECTOR_METHODS,
   HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
@@ -983,6 +996,177 @@ describe("VMware agent: the install script again, or the files again", () => {
     expect(VMWARE_AGENT_RECREATE_COMMAND).toBe(
       "docker compose pull\ndocker compose up -d --force-recreate",
     );
+  });
+});
+
+/*
+ * The Storage Array agent's install script, like the VMware agent's, reuses
+ * the .env it finds and recreates the containers, so running it again is
+ * the upgrade (it keeps a file the reader edited as <file>.bak.<timestamp>).
+ * One agent reads one array, so a second array's agent lives in a folder of
+ * its own: the script tab says how to point the script there. A Docker
+ * Compose install takes the compose file and all three collector configs
+ * again itself. The guide asks which array it is for, so every platform's
+ * guide shows the same upgrade.
+ */
+describe("Storage Array agent: the install script again, or every file again", () => {
+  const guide: AgentUpgradeGuide = guideFor(AgentKind.StorageArrayAgent);
+
+  const PLATFORMS: Array<StorageArrayPlatform> = STORAGE_ARRAY_PLATFORMS.map(
+    (option: SetupGuideOption<StorageArrayPlatform>): StorageArrayPlatform => {
+      return option.key;
+    },
+  );
+
+  function setupGuideFor(platform: StorageArrayPlatform): SetupGuideContent {
+    return getStorageArraySetupGuide({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      hasApiKey: true,
+      platform: platform,
+    });
+  }
+
+  test("the tabs are the setup guide's own install tabs, in its order", () => {
+    const install: SetupGuideStep | undefined = setupGuideFor(
+      "flasharray",
+    ).steps.find((step: SetupGuideStep): boolean => {
+      return step.title === "Install the agent";
+    });
+    expect(labelsOf(guide)).toEqual(
+      (install?.variants || []).map(
+        (variant: SetupGuideStepVariant): string => {
+          return variant.label;
+        },
+      ),
+    );
+    expect(labelsOf(guide)).toEqual(["Install script", "Docker Compose"]);
+  });
+
+  test.each(
+    PLATFORMS.map((platform: StorageArrayPlatform) => {
+      return [platform];
+    }),
+  )(
+    "the %s guide: every command is the guide's own upgrade block",
+    (platform: string) => {
+      const setupGuide: SetupGuideContent = setupGuideFor(
+        platform as StorageArrayPlatform,
+      );
+      for (const method of guide.methods) {
+        expectCommandsFromGuide(method, setupGuide);
+        expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
+          expect.arrayContaining(codesOf(method)),
+        );
+      }
+    },
+  );
+
+  test("the script tab runs the install script with nothing in its environment: it reuses the .env", () => {
+    const script: AgentUpgradeMethod = methodLabelled(guide, "Install script");
+    expect(
+      script.steps.map((step: AgentUpgradeStep) => {
+        return step.title;
+      }),
+    ).toEqual(["Run the install script again"]);
+    expect(codesOf(script)).toEqual([getStorageArrayAgentUpgradeCommand()]);
+    expect(getStorageArrayAgentUpgradeCommand()).toBe(
+      `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
+    );
+    /*
+     * A key, a URL, a name or a config on the command would override what
+     * .env holds - the install guide's own command carries the platform.
+     */
+    expect(getStorageArrayAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
+    expect(getStorageArrayAgentUpgradeCommand()).not.toContain(
+      "STORAGE_ARRAY_",
+    );
+    // Nothing here needs a key, so nothing sends the reader to the guide.
+    expect(
+      guide.methods.some((method: AgentUpgradeMethod): boolean => {
+        return method.steps.some((step: AgentUpgradeStep): boolean => {
+          return Boolean(step.needsSetupGuide);
+        });
+      }),
+    ).toBe(false);
+  });
+
+  test("the script tab says how to upgrade an agent in a folder of its own", () => {
+    const script: AgentUpgradeMethod = methodLabelled(guide, "Install script");
+    expect(script.note).toBe(
+      "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.",
+    );
+    expect(script.noteValues).toEqual({
+      directory: STORAGE_ARRAY_AGENT_INSTALL_DIR,
+    });
+    // The setup guide installs a second array's agent the same way.
+    expect(getSetupGuideMarkdown(setupGuideFor("flasharray"))).toContain(
+      `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 bash install.sh`,
+    );
+  });
+
+  test("the install script reuses the .env, keeps an edited file and recreates the containers it starts", () => {
+    const script: string = fs.readFileSync(
+      path.join(REPO_ROOT, "agents/StorageArrayAgent/install.sh"),
+      "utf8",
+    );
+    expect(script).toContain("reusing it.");
+    expect(script).toContain('backup="$INSTALL_DIR/$file.bak.');
+    expect(script).toMatch(
+      /^if ! docker compose up -d --force-recreate; then$/m,
+    );
+    expect(script).toContain(
+      `INSTALL_DIR="\${INSTALL_DIR:-${STORAGE_ARRAY_AGENT_INSTALL_DIR}}"`,
+    );
+  });
+
+  test("the Compose tab downloads the compose file and every config, then pulls and recreates", () => {
+    const compose: AgentUpgradeMethod = methodLabelled(guide, "Docker Compose");
+    expect(codesOf(compose)).toEqual([
+      getStorageArrayAgentDownloadCommand(),
+      STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
+    ]);
+    expect(
+      compose.steps.map((step: AgentUpgradeStep) => {
+        return step.title;
+      }),
+    ).toEqual([
+      "Download the latest files",
+      "Pull the latest images and recreate the agent",
+    ]);
+    expect(getStorageArrayAgentDownloadCommand()).toBe(
+      STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
+        return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
+      }).join("\n"),
+    );
+    expect(STORAGE_ARRAY_AGENT_FILES).toEqual([
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+    ]);
+    expect(STORAGE_ARRAY_AGENT_RECREATE_COMMAND).toBe(
+      "docker compose pull\ndocker compose up -d --force-recreate",
+    );
+    // The same files the guide's own Compose install downloads.
+    for (const platform of PLATFORMS) {
+      expect(getSetupGuideMarkdown(setupGuideFor(platform))).toContain(
+        `mkdir oneuptime-storage-array-agent && cd oneuptime-storage-array-agent\n${getStorageArrayAgentDownloadCommand()}`,
+      );
+    }
+  });
+
+  test("the Compose tab names every config the reader may have edited", () => {
+    const download: AgentUpgradeStep = methodLabelled(guide, "Docker Compose")
+      .steps[0]!;
+    expect(download.description).toBe(
+      "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
+    );
+    for (const file of STORAGE_ARRAY_AGENT_FILES) {
+      if (file !== "docker-compose.yml") {
+        expect(file).toMatch(/^otel-collector-config.*\.yaml$/);
+      }
+    }
   });
 });
 

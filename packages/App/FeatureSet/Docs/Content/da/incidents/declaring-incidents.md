@@ -46,7 +46,7 @@ Monitorerne kommer først, for sig selv: statussider ser en hændelse gennem den
 
 - **Monitorer** — et søgefelt, der tilknytter de monitorer, hændelsen påvirker (`monitors`). En statusside viser hændelsen og giver sine abonnenter besked, når den viser en af disse monitorer.
 - **Skift overvågningsstatus til** — valgfri, og vises først, når mindst én monitor er valgt. Sætter hver monitor i hændelsen til en overvågningsstatus, så det at erklære hændelsen og markere dens monitorer som forringede er én handling. En skabelons status vises, så snart du vælger en monitor; uden nogen valgt monitor gemmes der ingen status.
-- **Andre berørte ressourcer** — et andet søgefelt til alt andet, hændelsen påvirker: værter, Kubernetes-klynger, Docker- og Podman-værter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, IoT-flåder, databaser og tjenester. Det er separate relationer på hændelsen (`hosts`, `kubernetesClusters`, `services` med flere).
+- **Andre berørte ressourcer** — et andet søgefelt til alt andet, hændelsen påvirker: værter, Kubernetes-klynger, Docker- og Podman-værter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentre, storage-arrays, IoT-flåder, databaser og tjenester. Det er separate relationer på hændelsen (`hosts`, `kubernetesClusters`, `services` med flere).
 
 Hændelsens kort **Berørte ressourcer** spørger på samme måde, når du redigerer det senere.
 

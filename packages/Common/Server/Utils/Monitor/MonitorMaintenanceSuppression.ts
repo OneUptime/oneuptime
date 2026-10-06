@@ -47,6 +47,13 @@ export interface MaintainedResourceKeys {
   vmwareVCenters: ResourceKeySet;
   cephClusters: ResourceKeySet;
   /*
+   * Storage arrays, like Proxmox/Ceph clusters, have no `oneuptime.*.id`
+   * label stamp (the Storage Array Agent stamps `storage.array.name`
+   * only), so only the name set is ever matched; the id set exists for
+   * shape parity.
+   */
+  storageArrays: ResourceKeySet;
+  /*
    * Docker Swarm clusters, like Proxmox/Ceph clusters, have no
    * `oneuptime.*.id` label stamp, so only the name set is ever matched;
    * the id set exists for shape parity.
@@ -104,7 +111,7 @@ export interface MonitorMaintenanceSuppressionResult {
  * other 90 hosts keep alerting. It covers every resource type a
  * maintenance event can attach to AND a series can identify: Host,
  * DockerHost, KubernetesCluster, ProxmoxCluster, VMwareVCenter,
- * CephCluster, DatabaseServer, and Service.
+ * CephCluster, StorageArray, DatabaseServer, and Service.
  */
 export default class MonitorMaintenanceSuppression {
   /*
@@ -264,6 +271,7 @@ export default class MonitorMaintenanceSuppression {
       { ids: resolved.proxmoxClusterIds, keys: maintained.proxmoxClusters },
       { ids: resolved.vmwareVCenterIds, keys: maintained.vmwareVCenters },
       { ids: resolved.cephClusterIds, keys: maintained.cephClusters },
+      { ids: resolved.storageArrayIds, keys: maintained.storageArrays },
       {
         ids: resolved.dockerSwarmClusterIds,
         keys: maintained.dockerSwarmClusters,
@@ -409,6 +417,10 @@ export default class MonitorMaintenanceSuppression {
           input.maintained.cephClusters.names,
         ) ||
         this.intersects(
+          refs.storageArrayNames,
+          input.maintained.storageArrays.names,
+        ) ||
+        this.intersects(
           refs.dockerSwarmClusterNames,
           input.maintained.dockerSwarmClusters.names,
         ) ||
@@ -455,6 +467,8 @@ export default class MonitorMaintenanceSuppression {
       maintained.vmwareVCenters.names.size > 0 ||
       maintained.cephClusters.ids.size > 0 ||
       maintained.cephClusters.names.size > 0 ||
+      maintained.storageArrays.ids.size > 0 ||
+      maintained.storageArrays.names.size > 0 ||
       maintained.dockerSwarmClusters.ids.size > 0 ||
       maintained.dockerSwarmClusters.names.size > 0 ||
       maintained.iotFleets.ids.size > 0 ||
@@ -468,7 +482,8 @@ export default class MonitorMaintenanceSuppression {
   /*
    * Collect the ids + identifiers of every Host / DockerHost /
    * PodmanHost / KubernetesCluster / ProxmoxCluster / VMwareVCenter /
-   * CephCluster / DockerSwarmCluster / IoTFleet / Service / DatabaseServer
+   * CephCluster / StorageArray / DockerSwarmCluster / IoTFleet / Service /
+   * DatabaseServer
    * attached to an ongoing maintenance event in this project. Monitors
    * attached to the event are intentionally not collected here — those are
    * already handled upstream by the whole-monitor disable flag, which
@@ -485,6 +500,7 @@ export default class MonitorMaintenanceSuppression {
       proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
       vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
       cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+      storageArrays: { ids: new Set<string>(), names: new Set<string>() },
       dockerSwarmClusters: {
         ids: new Set<string>(),
         names: new Set<string>(),
@@ -511,6 +527,7 @@ export default class MonitorMaintenanceSuppression {
           proxmoxClusters: { _id: true, name: true },
           vmwareVCenters: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
+          storageArrays: { _id: true, name: true },
           dockerSwarmClusters: { _id: true, name: true },
           iotFleets: { _id: true, name: true },
           services: { _id: true, name: true },
@@ -564,6 +581,13 @@ export default class MonitorMaintenanceSuppression {
       }
       for (const cephCluster of event.cephClusters || []) {
         this.addKey(maintained.cephClusters, cephCluster._id, cephCluster.name);
+      }
+      for (const storageArray of event.storageArrays || []) {
+        this.addKey(
+          maintained.storageArrays,
+          storageArray._id,
+          storageArray.name,
+        );
       }
       for (const swarmCluster of event.dockerSwarmClusters || []) {
         this.addKey(

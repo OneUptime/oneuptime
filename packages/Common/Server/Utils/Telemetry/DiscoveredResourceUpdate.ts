@@ -20,9 +20,10 @@ import ObjectID from "../../../Types/ObjectID";
  * column. Hosts, Docker and Podman hosts and Kubernetes clusters have an
  * identifier of their own for it (hostIdentifier holds host.name,
  * clusterIdentifier the agent's clusterName). Ceph, Proxmox and Docker
- * Swarm clusters, vCenters, IoT fleets and services are matched by their
- * name (ceph.cluster.name, proxmox.cluster.name, docker.swarm.cluster.name,
- * vmware.vcenter.name, iot.fleet.name, service.name).
+ * Swarm clusters, vCenters, storage arrays, IoT fleets and services are
+ * matched by their name (ceph.cluster.name, proxmox.cluster.name,
+ * docker.swarm.cluster.name, vmware.vcenter.name, storage.array.name,
+ * iot.fleet.name, service.name).
  *
  * That column is edited in one place: the details card at the top of the
  * resource's Settings page (the identifier folded under Advanced, a matched
@@ -83,7 +84,7 @@ export interface MatchedOnNameOptions {
 
 /**
  * A resource whose telemetry is matched by its name: Ceph, Proxmox and
- * Docker Swarm clusters, vCenters, IoT fleets and services.
+ * Docker Swarm clusters, vCenters, storage arrays, IoT fleets and services.
  */
 export const matchedOnName: (options: MatchedOnNameOptions) => MatchColumn = (
   options: MatchedOnNameOptions,

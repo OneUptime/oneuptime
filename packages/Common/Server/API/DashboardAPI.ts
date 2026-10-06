@@ -63,6 +63,7 @@ import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import VMwareResource from "../../Models/DatabaseModels/VMwareResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
+import StorageArrayResource from "../../Models/DatabaseModels/StorageArrayResource";
 import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
 import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
@@ -81,6 +82,7 @@ import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import VMwareResourceService from "../Services/VMwareResourceService";
 import CephResourceService from "../Services/CephResourceService";
+import StorageArrayResourceService from "../Services/StorageArrayResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import NetworkSiteService from "../Services/NetworkSiteService";
 import ServiceLevelObjectiveService from "../Services/ServiceLevelObjectiveService";
@@ -106,6 +108,7 @@ import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import InBetween from "../../Types/BaseDatabase/InBetween";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import { STORAGE_ARRAY_HARDWARE_WIDGET_KINDS } from "../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 import FileOwnership from "../Utils/File/FileOwnership";
 
 /*
@@ -127,11 +130,12 @@ const SERVED_IMAGE_SELECT: {
  * Registry of the non-metric widgets a public dashboard may render.
  *
  * - `widgets` lists the dashboard widgets that render this resource, mapped
- *   to the `kind` each one shows (null when the model is not partitioned by
- *   kind). The dashboard must actually contain one of these widgets before
- *   the endpoint will serve the resource at all, and the query is pinned to
- *   the kinds those widgets render. Adding a widget to a public dashboard is
- *   therefore the owner's explicit — and only — opt-in to exposing this data.
+ *   to the `kind` each one shows (the kinds, for a widget that lists several;
+ *   null when the model is not partitioned by kind). The dashboard must
+ *   actually contain one of these widgets before the endpoint will serve the
+ *   resource at all, and the query is pinned to the kinds those widgets
+ *   render. Adding a widget to a public dashboard is therefore the owner's
+ *   explicit — and only — opt-in to exposing this data.
  * Query, select, sort and pagination policy are rebuilt from the exact stored
  * widget by PublicDashboardResourceListPolicy. Client copies of those fields
  * are never authoritative on this unauthenticated route.
@@ -141,7 +145,9 @@ interface PublicDashboardResourceConfig {
   service: {
     findBy: (findBy: any) => Promise<Array<BaseModel | AnalyticsDataModel>>;
   };
-  widgets: Partial<Record<DashboardComponentType, string | null>>;
+  widgets: Partial<
+    Record<DashboardComponentType, string | ReadonlyArray<string> | null>
+  >;
 }
 
 /*
@@ -302,6 +308,15 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.CephOsdList]: "Osd",
       [DashboardComponentType.CephPoolList]: "Pool",
+    },
+  },
+  "storage-array-resource": {
+    modelType: StorageArrayResource,
+    service: StorageArrayResourceService,
+    widgets: {
+      [DashboardComponentType.StorageArrayVolumeList]: "Volume",
+      [DashboardComponentType.StorageArrayHardwareList]:
+        STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
     },
   },
   "docker-swarm-resource": {

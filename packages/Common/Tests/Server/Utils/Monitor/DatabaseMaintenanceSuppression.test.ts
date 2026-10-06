@@ -92,6 +92,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
     vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+    storageArrays: { ids: new Set<string>(), names: new Set<string>() },
     dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
@@ -254,6 +255,34 @@ describe("MonitorMaintenanceSuppression.getSuppressingDatabaseServerIds (pure)",
         resolved: resolved({
           databaseServerIds: [ORDERS_DB],
           serviceIds: [CHECKOUT_SERVICE],
+        }),
+        maintained: maintained,
+      }),
+    ).toEqual([ORDERS_DB]);
+  });
+
+  test("a storage array the monitor also names must be under maintenance too", () => {
+    const STORAGE_ARRAY: string = "a0000000-0000-4000-8000-000000000001";
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.databaseServers.ids.add(ORDERS_DB);
+
+    expect(
+      MonitorMaintenanceSuppression.getSuppressingDatabaseServerIds({
+        resolved: resolved({
+          databaseServerIds: [ORDERS_DB],
+          storageArrayIds: [STORAGE_ARRAY],
+        }),
+        maintained: maintained,
+      }),
+    ).toEqual([]);
+
+    maintained.storageArrays.ids.add(STORAGE_ARRAY);
+
+    expect(
+      MonitorMaintenanceSuppression.getSuppressingDatabaseServerIds({
+        resolved: resolved({
+          databaseServerIds: [ORDERS_DB],
+          storageArrayIds: [STORAGE_ARRAY],
         }),
         maintained: maintained,
       }),

@@ -31,15 +31,21 @@ import {
   VMwareFiltersSection,
   getVMwareCommonArguments,
 } from "../../../Utils/Dashboard/Components/DashboardVMwareResourceListShared";
+import {
+  StorageArrayDisplaySection,
+  StorageArrayFiltersSection,
+  getStorageArrayCommonArguments,
+} from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 
 /*
  * The per-provider argument builders behind the infrastructure list widgets.
  *
- * Ceph, Docker Swarm, Proxmox and VMware are the same widget five times over
- * — the files are identical but for the provider's name (VMware filters on
- * vCenters rather than clusters) — and Kubernetes is that shape plus a
- * namespace filter. They were written by copying one another,
- * which is fine, and it is also exactly why they drift: a fix or an addition
+ * Ceph, Docker Swarm, Proxmox, VMware and Storage Arrays are the same widget
+ * over and over — the files are identical but for the provider's name
+ * (VMware filters on vCenters and Storage Arrays on arrays rather than
+ * clusters) — and Kubernetes is that shape plus a namespace filter. They
+ * were written by copying one another, which is fine, and it is also
+ * exactly why they drift: a fix or an addition
  * made to one has no reason to fail anywhere else, so the widgets slowly stop
  * behaving alike and nobody finds out until an operator asks why the Proxmox
  * list has no honeycomb view.
@@ -99,6 +105,14 @@ const WIDGETS: Array<ProviderWidget> = [
     filtersSection: VMwareFiltersSection,
     clusterArgumentId: "vmwareVCenterIds",
     clusterEntityType: EntityFilterModelType.VMwareVCenter,
+  },
+  {
+    provider: "Storage Arrays",
+    args: getStorageArrayCommonArguments<DashboardBaseComponent>(),
+    displaySection: StorageArrayDisplaySection,
+    filtersSection: StorageArrayFiltersSection,
+    clusterArgumentId: "storageArrayIds",
+    clusterEntityType: EntityFilterModelType.StorageArray,
   },
   {
     provider: "Kubernetes",

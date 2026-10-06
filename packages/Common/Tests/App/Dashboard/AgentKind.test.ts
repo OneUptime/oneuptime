@@ -13,6 +13,7 @@ import {
   HOST_COLLECTOR_VERSION,
   ONEUPTIME_AGENT_PLACEHOLDER_VERSION,
   PROXMOX_AGENT_VERSION,
+  STORAGE_ARRAY_AGENT_VERSION,
   VMWARE_AGENT_VERSION,
   getAgentLatestVersion,
   getAgentVersionState,
@@ -32,6 +33,11 @@ import {
   VMWARE_AGENT_COLLECTOR_CONFIG,
   VMWARE_AGENT_COMPOSE_FILE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  STORAGE_ARRAY_COLLECTOR_CONFIGS,
+  STORAGE_ARRAY_PLATFORM_SETTINGS,
+  StorageArrayPlatform,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import {
   HOST_COLLECTOR_METHODS,
   HostCollectorMethod,
@@ -88,6 +94,7 @@ const PINNED_COLLECTOR: Array<AgentKind> = [
   AgentKind.ProxmoxAgent,
   AgentKind.CephAgent,
   AgentKind.VMwareAgent,
+  AgentKind.StorageArrayAgent,
 ];
 
 /*
@@ -426,34 +433,75 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
   });
 });
 
+// A collector config an agent ships: otel-collector-config.yaml and kin.
+const COLLECTOR_CONFIG_FILE: RegExp = /^otel-collector-config.*\.yaml$/;
+
 /*
- * The Proxmox, Ceph and VMware agents are the stock collector plus a config:
- * the compose file pins the collector, and the config reports that pin as
- * oneuptime.agent.version. Both files, the Dashboard's embedded copy of the
- * config and the kind's pin must agree, or the sign compares the wrong
- * number.
+ * The Storage Array agent ships one collector config per kind of array and
+ * runs the one .env names: every one of them reports the version, so the
+ * Dashboard's embedded copies are listed by the file each one is.
  */
-describe("the Proxmox, Ceph and VMware agents report the collector their compose file pins", () => {
-  const AGENTS: Array<[string, AgentKind, string, string]> = [
+const STORAGE_ARRAY_EMBEDDED_CONFIGS: Record<string, string> = {};
+for (const platform of Object.keys(
+  STORAGE_ARRAY_PLATFORM_SETTINGS,
+) as Array<StorageArrayPlatform>) {
+  STORAGE_ARRAY_EMBEDDED_CONFIGS[
+    STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile
+  ] = STORAGE_ARRAY_COLLECTOR_CONFIGS[platform];
+}
+
+/*
+ * The Proxmox, Ceph, VMware and Storage Array agents are the stock collector
+ * plus a config: the compose file pins the collector, and the config reports
+ * that pin as oneuptime.agent.version. Both files, the Dashboard's embedded
+ * copy of the config and the kind's pin must agree, or the sign compares the
+ * wrong number.
+ */
+describe("the Proxmox, Ceph, VMware and Storage Array agents report the collector their compose file pins", () => {
+  // The agent's folder, its kind, its pin, and its configs by file name.
+  const AGENTS: Array<[string, AgentKind, string, Record<string, string>]> = [
     [
       "ProxmoxAgent",
       AgentKind.ProxmoxAgent,
       PROXMOX_AGENT_VERSION,
-      PROXMOX_AGENT_COLLECTOR_CONFIG,
+      { "otel-collector-config.yaml": PROXMOX_AGENT_COLLECTOR_CONFIG },
     ],
     [
       "CephAgent",
       AgentKind.CephAgent,
       CEPH_AGENT_VERSION,
-      CEPH_AGENT_COLLECTOR_CONFIG,
+      { "otel-collector-config.yaml": CEPH_AGENT_COLLECTOR_CONFIG },
     ],
     [
       "VMwareAgent",
       AgentKind.VMwareAgent,
       VMWARE_AGENT_VERSION,
-      VMWARE_AGENT_COLLECTOR_CONFIG,
+      { "otel-collector-config.yaml": VMWARE_AGENT_COLLECTOR_CONFIG },
+    ],
+    [
+      "StorageArrayAgent",
+      AgentKind.StorageArrayAgent,
+      STORAGE_ARRAY_AGENT_VERSION,
+      STORAGE_ARRAY_EMBEDDED_CONFIGS,
     ],
   ];
+
+  test.each(AGENTS)(
+    "every collector config in agents/%s is one the Dashboard embeds",
+    (
+      dir: string,
+      _kind: AgentKind,
+      _pin: string,
+      configs: Record<string, string>,
+    ) => {
+      const shipped: Array<string> = fs
+        .readdirSync(path.join(REPO_ROOT, "agents", dir))
+        .filter((name: string): boolean => {
+          return COLLECTOR_CONFIG_FILE.test(name);
+        });
+      expect(shipped.sort()).toEqual(Object.keys(configs).sort());
+    },
+  );
 
   test.each(AGENTS)(
     "agents/%s runs the pinned collector, never :latest",
@@ -476,40 +524,55 @@ describe("the Proxmox, Ceph and VMware agents report the collector their compose
 
   test.each(AGENTS)(
     "agents/%s's config stamps exactly that pin as oneuptime.agent.version",
-    (dir: string, kind: AgentKind, pin: string) => {
-      const config: string = readRepoFile(
-        "agents",
-        dir,
-        "otel-collector-config.yaml",
-      );
-      expect(stampIn(config)).toBe(pin);
-      // An upsert in the resource processor every pipeline runs.
-      const parsed: {
-        processors: {
-          resource: {
-            attributes: Array<{ key: string; value?: string; action: string }>;
+    (
+      dir: string,
+      kind: AgentKind,
+      pin: string,
+      configs: Record<string, string>,
+    ) => {
+      for (const file of Object.keys(configs)) {
+        const config: string = readRepoFile("agents", dir, file);
+        expect({ file, stamp: stampIn(config) }).toEqual({ file, stamp: pin });
+        // An upsert in the resource processor every pipeline runs.
+        const parsed: {
+          processors: {
+            resource: {
+              attributes: Array<{
+                key: string;
+                value?: string;
+                action: string;
+              }>;
+            };
+          };
+          service: {
+            pipelines: Record<string, { processors: Array<string> }>;
+          };
+        } = yaml.load(config) as {
+          processors: {
+            resource: {
+              attributes: Array<{
+                key: string;
+                value?: string;
+                action: string;
+              }>;
+            };
+          };
+          service: {
+            pipelines: Record<string, { processors: Array<string> }>;
           };
         };
-        service: { pipelines: Record<string, { processors: Array<string> }> };
-      } = yaml.load(config) as {
-        processors: {
-          resource: {
-            attributes: Array<{ key: string; value?: string; action: string }>;
-          };
-        };
-        service: { pipelines: Record<string, { processors: Array<string> }> };
-      };
-      expect(
-        parsed.processors.resource.attributes.filter(
-          (attribute: { key: string }): boolean => {
-            return attribute.key === "oneuptime.agent.version";
-          },
-        ),
-      ).toEqual([
-        { key: "oneuptime.agent.version", value: pin, action: "upsert" },
-      ]);
-      for (const pipeline of Object.values(parsed.service.pipelines)) {
-        expect(pipeline.processors).toContain("resource");
+        expect(
+          parsed.processors.resource.attributes.filter(
+            (attribute: { key: string }): boolean => {
+              return attribute.key === "oneuptime.agent.version";
+            },
+          ),
+        ).toEqual([
+          { key: "oneuptime.agent.version", value: pin, action: "upsert" },
+        ]);
+        for (const pipeline of Object.values(parsed.service.pipelines)) {
+          expect(pipeline.processors).toContain("resource");
+        }
       }
       expect(AGENT_KINDS[kind].pinnedVersion).toBe(pin);
       expect(AGENT_KINDS[kind].latestVersionSource).toBe(
@@ -520,11 +583,16 @@ describe("the Proxmox, Ceph and VMware agents report the collector their compose
 
   test.each(AGENTS)(
     "the Dashboard's copy of agents/%s's config is the shipped file, stamp included",
-    (dir: string, _kind: AgentKind, pin: string, embedded: string) => {
-      expect(embedded).toBe(
-        readRepoFile("agents", dir, "otel-collector-config.yaml"),
-      );
-      expect(stampIn(embedded)).toBe(pin);
+    (
+      dir: string,
+      _kind: AgentKind,
+      pin: string,
+      configs: Record<string, string>,
+    ) => {
+      for (const [file, embedded] of Object.entries(configs)) {
+        expect(embedded).toBe(readRepoFile("agents", dir, file));
+        expect(stampIn(embedded)).toBe(pin);
+      }
     },
   );
 
@@ -640,6 +708,7 @@ describe("an install from before the pin reports no version, and is never called
     [AgentKind.ProxmoxAgent],
     [AgentKind.CephAgent],
     [AgentKind.VMwareAgent],
+    [AgentKind.StorageArrayAgent],
   ])("%s", (kind: AgentKind) => {
     for (const version of [undefined, null, "", "   "]) {
       expect(stateOf(kind, version)).toEqual({

@@ -51,6 +51,7 @@ export enum LinkedAffectedResourceType {
   ProxmoxCluster = "ProxmoxCluster",
   VMwareVCenter = "VMwareVCenter",
   CephCluster = "CephCluster",
+  StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
@@ -140,6 +141,12 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       type: LinkedAffectedResourceType.CephCluster,
       label: "Ceph Cluster",
       dashboardRoute: "ceph",
+    },
+    {
+      column: "storageArrays",
+      type: LinkedAffectedResourceType.StorageArray,
+      label: "Storage Array",
+      dashboardRoute: "storage-arrays",
     },
     {
       column: "dockerSwarmClusters",

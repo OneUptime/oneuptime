@@ -361,6 +361,7 @@ describe("TracesViewer — a facet for every resource type", () => {
       "proxmoxClusterId",
       "vmwareVCenterId",
       "cephClusterId",
+      "storageArrayId",
       "serverlessFunctionId",
       "cloudResourceId",
       "rumApplicationId",

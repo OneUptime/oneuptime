@@ -158,6 +158,7 @@ export default class MonitorResourceContextUtil {
       dockerSwarmClusterIds: [],
       iotFleetIds: [],
       databaseServerIds: [],
+      storageArrayIds: [],
     };
   }
 }
@@ -173,6 +174,7 @@ const LINKED_RESOURCE_KEYS: Partial<
   [LinkedAffectedResourceType.ProxmoxCluster]: "proxmoxClusterIds",
   [LinkedAffectedResourceType.VMwareVCenter]: "vmwareVCenterIds",
   [LinkedAffectedResourceType.CephCluster]: "cephClusterIds",
+  [LinkedAffectedResourceType.StorageArray]: "storageArrayIds",
   [LinkedAffectedResourceType.DockerSwarmCluster]: "dockerSwarmClusterIds",
   [LinkedAffectedResourceType.IoTFleet]: "iotFleetIds",
   [LinkedAffectedResourceType.DatabaseServer]: "databaseServerIds",

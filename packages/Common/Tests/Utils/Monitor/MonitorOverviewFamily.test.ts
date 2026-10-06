@@ -33,8 +33,8 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("covers all 34 monitor types", () => {
-    expect(ALL_TYPES).toHaveLength(34);
+  it("covers all 35 monitor types", () => {
+    expect(ALL_TYPES).toHaveLength(35);
   });
 
   it("ProbeCheck matches isProbableMonitor exactly", () => {
@@ -72,7 +72,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
     );
   });
 
-  it("family sizes are 14/2/1/6/9/1/1", () => {
+  it("family sizes are 14/2/1/6/10/1/1", () => {
     expect({
       probeCheck: typesInFamily(MonitorOverviewFamily.ProbeCheck).length,
       heartbeat: typesInFamily(MonitorOverviewFamily.Heartbeat).length,
@@ -87,7 +87,7 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
       heartbeat: 2,
       agent: 1,
       telemetry: 6,
-      infrastructure: 9,
+      infrastructure: 10,
       networkDevice: 1,
       manual: 1,
     });
@@ -112,6 +112,15 @@ describe("MonitorOverviewFamilyUtil.getFamily", () => {
         MonitorType.Profiles,
         MonitorType.SecurityEvents,
       ].sort(),
+    );
+  });
+
+  it("storage arrays get the infrastructure overview, like Ceph clusters", () => {
+    expect(MonitorOverviewFamilyUtil.getFamily(MonitorType.StorageArray)).toBe(
+      MonitorOverviewFamily.Infrastructure,
+    );
+    expect(MonitorOverviewFamilyUtil.getFamily(MonitorType.StorageArray)).toBe(
+      MonitorOverviewFamilyUtil.getFamily(MonitorType.Ceph),
     );
   });
 

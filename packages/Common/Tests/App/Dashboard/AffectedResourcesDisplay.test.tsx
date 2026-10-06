@@ -57,6 +57,7 @@ import AffectedResourcesDisplay, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesDisplay";
 import AffectedResourcesCell from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesCell";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -393,6 +394,7 @@ describe("AffectedResourcesDisplay: category headings", () => {
       proxmoxClusters={[named(ProxmoxCluster, id("2", 1), "pve-lab")]}
       vmwareVCenters={[named(VMwareVCenter, id("3", 1), "vcenter-01")]}
       cephClusters={[named(CephCluster, id("4", 1), "ceph-prod")]}
+      storageArrays={[named(StorageArray, id("8", 1), "fa-prod-01")]}
       dockerSwarmClusters={[named(DockerSwarmCluster, id("5", 1), "swarm-1")]}
       iotFleets={[named(IoTFleet, id("6", 1), "sensors-eu")]}
       databaseServers={[
@@ -421,6 +423,7 @@ describe("AffectedResourcesDisplay: category headings", () => {
     ["Proxmox Clusters", "bg-orange-50", "text-orange-600"],
     ["vCenters", "bg-sky-50", "text-sky-600"],
     ["Ceph Clusters", "bg-rose-50", "text-rose-600"],
+    ["Storage Arrays", "bg-pink-50", "text-pink-600"],
     ["Docker Swarm Clusters", "bg-cyan-50", "text-cyan-600"],
     ["IoT Fleets", "bg-teal-50", "text-teal-600"],
     ["Databases", "bg-purple-50", "text-purple-600"],

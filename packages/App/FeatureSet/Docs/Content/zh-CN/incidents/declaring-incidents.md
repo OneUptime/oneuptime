@@ -46,7 +46,7 @@
 
 - **监视器** —— 用于附加受事件影响的监视器的搜索框（`monitors`）。状态页列出其中任一监视器时，就会显示该事件并通知其订阅者。
 - **将监视器状态更改为** —— 可选，只有在至少选择了一个监视器后才会显示。它把事件的每个监视器设为某个监视器状态，因此声明事件和把监视器标记为降级只需一步。模板的状态会在你选择监视器后立即显示；如果没有选择任何监视器，则不会保存任何状态。
-- **其他受影响的资源** —— 第二个搜索框，用于事件影响的其他一切：主机、Kubernetes 集群、Docker 和 Podman 主机、Proxmox、Ceph 和 Docker Swarm 集群、vCenter、IoT 机群、数据库和服务。它们是事件上各自独立的关系（`hosts`、`kubernetesClusters`、`services` 等）。
+- **其他受影响的资源** —— 第二个搜索框，用于事件影响的其他一切：主机、Kubernetes 集群、Docker 和 Podman 主机、Proxmox、Ceph 和 Docker Swarm 集群、vCenter、存储阵列、IoT 机群、数据库和服务。它们是事件上各自独立的关系（`hosts`、`kubernetesClusters`、`services` 等）。
 
 之后编辑时，事件的 **受影响的资源** 卡片也以同样的方式询问。
 

@@ -3,6 +3,7 @@ import AffectedResourcesPicker, {
 } from "../AffectedResources/AffectedResourcesPicker";
 import { MONITOR_LINKED_RESOURCE_TYPES } from "../AffectedResources/MonitorLinkedResourcesPrefillRules";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -57,6 +58,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
               proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
               vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
               cephClusters={values.cephClusters as Array<CephCluster>}
+              storageArrays={values.storageArrays as Array<StorageArray>}
               dockerSwarmClusters={
                 values.dockerSwarmClusters as Array<DockerSwarmCluster>
               }
@@ -92,6 +94,7 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
                 proxmoxClusters: payload.proxmoxClusters,
                 vmwareVCenters: payload.vmwareVCenters,
                 cephClusters: payload.cephClusters,
+                storageArrays: payload.storageArrays,
                 dockerSwarmClusters: payload.dockerSwarmClusters,
                 iotFleets: payload.iotFleets,
                 databaseServers: payload.databaseServers,
@@ -153,6 +156,15 @@ export const getMonitorLinkedResourcesFormFields: () => Fields<Monitor> =
       },
       {
         field: { cephClusters: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { storageArrays: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

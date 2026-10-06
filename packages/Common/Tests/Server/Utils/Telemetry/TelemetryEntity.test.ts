@@ -21,6 +21,7 @@ import {
   keyForKubernetesCluster,
   keyForProxmoxCluster,
   keyForCephCluster,
+  keyForStorageArray,
   keyForVMwareVCenter,
   keyForKubernetesPod,
   keyForKubernetesDeployment,
@@ -742,6 +743,45 @@ describe("InventoryItem.extractEntities — per type", () => {
     );
   });
 
+  test("storage.array: keyed on name only, ignoring the platform (read side is name-based)", () => {
+    const e: ExtractedEntity | undefined = entityOfType(
+      {
+        "storage.system": "purestorage.flasharray",
+        "storage.array.name": "pure-prod-01",
+      },
+      EntityType.StorageArray,
+    );
+    expect(e!.identifyingAttributes).toEqual({
+      "storage.array.name": "pure-prod-01",
+    });
+  });
+
+  test("storage.array: no array entity from the platform alone", () => {
+    expect(
+      typesFor({ "storage.system": "purestorage.flashblade" }),
+    ).not.toContain(EntityType.StorageArray);
+  });
+
+  test("storage.array: a blank name names no array", () => {
+    expect(typesFor({ "storage.array.name": "   " })).not.toContain(
+      EntityType.StorageArray,
+    );
+  });
+
+  test("storage.array: the array's objects are not entities of their own", () => {
+    /*
+     * Volumes, hosts and hardware are StorageArrayResource inventory rows;
+     * their identity lives in datapoint labels, never resource attributes,
+     * so the resource of an array batch resolves to the array alone.
+     */
+    expect(
+      typesFor({
+        "storage.array.name": "pure-prod-01",
+        "storage.system": "purestorage.flasharray",
+      }),
+    ).toEqual([EntityType.StorageArray]);
+  });
+
   test("container & process flow as membership keys", () => {
     const types: Array<EntityType> = typesFor({
       "container.id": "c-1",
@@ -1146,6 +1186,23 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
       EntityType.CephCluster,
     );
     expect(keyForCephCluster(PROJECT, "ceph-prod")).toBe(stamped!.entityKey);
+  });
+
+  test("keyForStorageArray matches the array entity stamped from storage.array.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "storage.array.name": "pure-prod-01",
+        "storage.system": "purestorage.flasharray",
+      },
+      EntityType.StorageArray,
+    );
+    expect(keyForStorageArray(PROJECT, "pure-prod-01")).toBe(
+      stamped!.entityKey,
+    );
+    // A Ceph cluster of the same name is a different entity.
+    expect(keyForStorageArray(PROJECT, "pure-prod-01")).not.toBe(
+      keyForCephCluster(PROJECT, "pure-prod-01"),
+    );
   });
 
   test("keyForCephCluster still matches when the resource also carries a fsid", () => {
@@ -1736,6 +1793,26 @@ describe("descriptive attributes & labels (never identity-bearing)", () => {
     expect(decorated!.descriptiveAttributes).toEqual({
       "ceph.cluster.fsid": "f-1",
     });
+  });
+
+  test("storage.array: the platform is descriptive when present, key unchanged", () => {
+    const bare: ExtractedEntity | undefined = entityOfType(
+      { "storage.array.name": "pure-prod-01" },
+      EntityType.StorageArray,
+    );
+    const decorated: ExtractedEntity | undefined = entityOfType(
+      {
+        "storage.array.name": "pure-prod-01",
+        "storage.system": "purestorage.flasharray",
+      },
+      EntityType.StorageArray,
+    );
+
+    expect(decorated!.entityKey).toBe(bare!.entityKey);
+    expect(decorated!.descriptiveAttributes).toEqual({
+      "storage.system": "purestorage.flasharray",
+    });
+    expect(bare!.descriptiveAttributes).toBeUndefined();
   });
 
   test("the full membership key set is byte-identical with and without descriptive attrs / labels", () => {
