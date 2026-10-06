@@ -7,6 +7,8 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
+import IncidentStateService from "../../Services/IncidentStateService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
@@ -55,9 +57,10 @@ export async function openDedupedAlerts(data: {
     query: {
       projectId: data.projectId,
       seriesFingerprint: new Includes(fingerprints),
-      currentAlertState: {
-        isResolvedState: false,
-      },
+      // Open: above the project's resolved state (Common/Utils/ResolvedState).
+      currentAlertStateId: new Includes(
+        await AlertStateService.getUnresolvedAlertStateIds(data.projectId),
+      ),
     },
     select: {
       _id: true,
@@ -136,9 +139,12 @@ export async function openDedupedIncidents(data: {
     query: {
       projectId: data.projectId,
       seriesFingerprint: new Includes(fingerprints),
-      currentIncidentState: {
-        isResolvedState: false,
-      },
+      // Open: above the project's resolved state (Common/Utils/ResolvedState).
+      currentIncidentStateId: new Includes(
+        await IncidentStateService.getUnresolvedIncidentStateIds(
+          data.projectId,
+        ),
+      ),
     },
     select: {
       _id: true,

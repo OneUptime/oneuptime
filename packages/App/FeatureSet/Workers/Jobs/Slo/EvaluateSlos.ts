@@ -75,6 +75,8 @@ import SloHistoryService, {
 } from "Common/Server/Services/SloHistoryService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import IncidentStateService from "Common/Server/Services/IncidentStateService";
+import AlertStateService from "Common/Server/Services/AlertStateService";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import SloMetricUtil from "Common/Server/Utils/Slo/SloMetricUtil";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
@@ -2810,9 +2812,12 @@ async function findOpenBurnRateAlert(data: {
     query: {
       projectId: data.context.projectId,
       seriesFingerprint: data.fingerprint,
-      currentAlertState: {
-        isResolvedState: false,
-      },
+      // Open: above the project's resolved state (Common/Utils/ResolvedState).
+      currentAlertStateId: QueryHelper.any(
+        await AlertStateService.getUnresolvedAlertStateIds(
+          data.context.projectId,
+        ),
+      ),
     },
     select: {
       _id: true,
@@ -2831,9 +2836,12 @@ async function findOpenBurnRateIncident(data: {
     query: {
       projectId: data.context.projectId,
       seriesFingerprint: data.fingerprint,
-      currentIncidentState: {
-        isResolvedState: false,
-      },
+      // Open: above the project's resolved state (Common/Utils/ResolvedState).
+      currentIncidentStateId: QueryHelper.any(
+        await IncidentStateService.getUnresolvedIncidentStateIds(
+          data.context.projectId,
+        ),
+      ),
     },
     select: {
       _id: true,

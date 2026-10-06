@@ -25,6 +25,10 @@ import {
 } from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentStateUtil from "../../../Utils/IncidentState";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -89,14 +93,35 @@ const DashboardIncidentListComponentElement: FunctionComponent<
         projectId: projectId,
       } as Query<Incident>;
 
-      if (stateFilter === "unresolved") {
-        (query as Record<string, unknown>)["currentIncidentState"] = {
-          isResolvedState: false,
-        };
-      } else if (stateFilter === "resolved") {
-        (query as Record<string, unknown>)["currentIncidentState"] = {
-          isResolvedState: true,
-        };
+      /*
+       * Unresolved and Resolved are the project's to say: its resolved
+       * state and any state placed after it are resolved
+       * (Common/Utils/ResolvedState). On a public dashboard the server
+       * applies the stored filter itself.
+       */
+      let resolvedFilterStateIds: Array<string> | null = null;
+
+      if (
+        (stateFilter === "unresolved" || stateFilter === "resolved") &&
+        !DashboardResourceList.isPublic() &&
+        projectId
+      ) {
+        const states: Array<IncidentState> =
+          await IncidentStateUtil.getIncidentStates(projectId);
+
+        resolvedFilterStateIds = (
+          stateFilter === "unresolved"
+            ? ResolvedStateUtil.getUnresolvedStateIds({
+                list: StateListType.IncidentState,
+                states: states,
+              })
+            : ResolvedStateUtil.getResolvedStateIds({
+                list: StateListType.IncidentState,
+                states: states,
+              })
+        ).map((stateId: ObjectID) => {
+          return stateId.toString();
+        });
       } else if (stateFilter === "acknowledged") {
         (query as Record<string, unknown>)["currentIncidentState"] = {
           isAcknowledgedState: true,
@@ -111,7 +136,16 @@ const DashboardIncidentListComponentElement: FunctionComponent<
 
       if (stateIds && stateIds.length > 0) {
         (query as Record<string, unknown>)["currentIncidentStateId"] =
-          new Includes(stateIds);
+          new Includes(
+            resolvedFilterStateIds
+              ? stateIds.filter((stateId: string) => {
+                  return resolvedFilterStateIds!.includes(stateId);
+                })
+              : stateIds,
+          );
+      } else if (resolvedFilterStateIds) {
+        (query as Record<string, unknown>)["currentIncidentStateId"] =
+          new Includes(resolvedFilterStateIds);
       }
 
       if (monitorIds && monitorIds.length > 0) {

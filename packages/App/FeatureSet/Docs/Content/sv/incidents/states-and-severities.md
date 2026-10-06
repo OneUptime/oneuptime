@@ -2,7 +2,7 @@
 
 Varje incident bär två klassificeringar: ett **tillstånd** som säger var den befinner sig i ert arbete, och en **allvarlighetsgrad** som säger hur ont det gör. I instrumentpanelen ser de lika ut — båda renderas som färgade etiketter i incidentlistan, båda är projektbundna listor du kan byta namn och färg på. De gör helt olika jobb.
 
-Tillstånd styr beteende. Tre booleanska flaggor på tillståndsraderna avgör vilka incidenter som räknas som aktiva, vilka knappar som visas i incidentens rubrik, när SLA-klockan stannar och när incidenten faller bort från din statussida. Allvarlighetsgrader styr ingenting i sig — de är etiketter som beskriver påverkan, och som andra regler kan matcha på.
+Tillstånd styr beteende. Tre booleanska flaggor på tillståndsraderna avgör, tillsammans med tillståndens ordning, vilka incidenter som räknas som aktiva, vilka knappar som visas i incidentens rubrik, när SLA-klockan stannar och när incidenten faller bort från din statussida. Allvarlighetsgrader styr ingenting i sig — de är etiketter som beskriver påverkan, och som andra regler kan matcha på.
 
 Båda listorna skapas när ditt projekt skapas, och båda redigeras under **Incidenter → Inställningar**. Den sektionen av incidenternas sidomeny är ihopfälld som standard, så fäll ut **Inställningar** innan du börjar leta.
 
@@ -36,7 +36,7 @@ Lägg märke till namnet: det första tillståndet heter **Identifierad**, även
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Tillståndet en incident får när ingen valt något. Om inget tillstånd i projektet bär den här flaggan misslyckas skapandet av en incident med ett fel som säger att du ska lägga till ett skapat incidenttillstånd i inställningarna. |
 | `isAcknowledgedState` | Driver knappen **Acknowledge** och nyckeltalsrutan "<tillståndsnamn> in" på incidentens **Översikt**. Vid en tillståndsändring in i det här tillståndet markeras incidentens SLA som besvarad.      |
-| `isResolvedState`     | Driver knappen **Lös** och nyckeltalsrutan för löst, definierar listan **Aktiva incidenter**, och är det som tar bort incidenten från en statussidas aktiva del. Markerar SLA:t som löst.            |
+| `isResolvedState`     | Markerar projektets lösta tillstånd: det som **Lös** flyttar en incident till och som nyckeltalsrutan för löst visar. En incident i det, eller i ett tillstånd efter det, är löst — den lämnar **Aktiva incidenter** och en statussidas aktiva del, och dess SLA markeras som löst. |
 
 Bara ett tillstånd per projekt förväntas bära var och en av flaggorna — uppslagningarna hämtar en enda rad. De tre flaggade tillstånden kan byta namn, färg och ordning, men inställningssidan vägrar radera dem och visar ett fel som namnger det skapade, det bekräftade och det lösta tillståndet.
 
@@ -44,7 +44,7 @@ Eftersom gränssnittet läser tillståndsnamnen dynamiskt ändrar ett namnbyte v
 
 ## Lägga till egna tillstånd
 
-Gå till **Incidenter → Inställningar → Incidentstatus**. Sidan är en ordnad lista sorterad på stigande `order`, och nya tillstånd läggs till sist. Dra en rad för att ändra dess plats.
+Gå till **Incidenter → Inställningar → Incidentstatus**. Sidan är en ordnad lista sorterad på stigande `order`, och ett nytt tillstånd läggs till precis ovanför det lösta tillståndet. Dra en rad för att ändra dess plats.
 
 **Fält på ett tillstånd:**
 
@@ -54,7 +54,7 @@ Gå till **Incidenter → Inställningar → Incidentstatus**. Sidan är en ordn
 
 Du kan inte sätta de tre flaggorna från det här formuläret — de tillhör de färdiga raderna. Ett tillstånd du lägger till är därför ett oflaggat tillstånd, vilket får två konsekvenser värda att planera för:
 
-- **Det räknas som aktivt.** **Aktiva incidenter** definieras som "aktuellt tillstånd är inte det lösta tillståndet", så allt du lägger till utöver det lösta tillståndet håller kvar incidenten i den aktiva listan och i räknaren i sidomenyn.
+- **Ovanför det lösta tillståndet håller det incidenten aktiv.** **Aktiva incidenter** rymmer incidenterna vars aktuella tillstånd ligger ovanför det lösta tillståndet, så ett tillstånd du lägger till där håller kvar incidenten i den aktiva listan och i räknaren i sidomenyn. Ett tillstånd du drar ned under det lösta tillståndet räknas som löst överallt — i de aktiva listorna, på statussidor, i påminnelser och i SLA:t — och att flytta en incident dit från **Löst** är ingen andra lösning.
 - **Dess övergångsknapp är generisk.** I stället för **Acknowledge** eller **Lös** heter bekräftelsedialogen **Markera incident som `<tillståndsnamn>`** med en skicka-knapp **Markera som `<tillståndsnamn>`**.
 
 En vanlig form är att skjuta in ett triage- eller begränsningssteg mellan det bekräftade och det lösta tillståndet — dra till exempel in ett nytt tillstånd "Begränsad" så att det hamnar efter **Bekräftad** och före **Löst**.
@@ -104,6 +104,15 @@ Det finns fyra sätt en incident byter tillstånd:
 
 Var och en av dem skriver en tidslinjerad. En tillståndsändring gör dessutom några saker du inte behöver be om: den lägger en post i incidentflödet, tilldelar en Incidentansvarig om incidenten inte redan har en, och uppdaterar SLA-klockan. Att återöppna en löst incident startar en ny SLA-post från återöppningstillfället.
 
+## Vad det gör att lösa en incident
+
+En incident löses när den flyttas från ett tillstånd ovanför ert lösta tillstånd till det lösta tillståndet eller till ett tillstånd efter det — på vilket av de fyra sätten ovan som helst. Varje lösning:
+
+- **Lämnar tillbaka de monitorer incidenten håller.** En incident som deklareras öppen håller sina monitorer: den satte dem i sin **Change Monitor Status to**-status, om den anger en, och pausade, om den deklarerades för hand, deras övervakning. En redigering medan den är öppen — nya monitorer eller en ändrad status — gör att den håller dem också. Lösningen återupptar deras övervakning och återställer dem till i drift, om inte en annan öppen incident fortfarande ligger på dem, och därefter håller incidenten ingenting. En incident som deklarerades redan löst lämnar alltså inget tillbaka, och inte heller en andra lösning efter en återöppning: en status som monitorerna fått under tiden — från sina prober, från underhåll eller satt för hand — står kvar.
+- **Markerar SLA:t som löst** och skriver, när OneUptime AI:s utkast till efteranalys är påslagna, ett utkast till efteranalys.
+
+Att gå vidare från **Löst** till ett tillstånd efter det — **Stängd**, till exempel — är ingen andra lösning: inget av detta körs igen, och inget nytt SLA startar. En incident som deklarerades innan OneUptime började registrera detta lämnar tillbaka sina monitorer vid nästa lösning, som förut.
+
 ## Tillståndstidslinjen
 
 Incidentens sida **Tillståndstidslinje** i incidentens sidomeny är revisionsspåret över varje tillstånd incidenten har befunnit sig i. Kortet på den sidan heter **Statustidslinje**, och det sorteras med nyast först.
@@ -125,11 +134,11 @@ Tidslinjerader kan skapas och raderas, men inte redigeras. Att radera fel rad sk
 
 ## Listan Aktiva incidenter
 
-**Incidenter → Aktiva incidenter** är listan du håller ögonen på under ett pass. Dess definition är exakt ett villkor: incidentens aktuella tillstånd är ett tillstånd där `isResolvedState` är falskt. Inget annat vägs in — inte allvarlighetsgrad, inte ålder, inte om någon har bekräftat den.
+**Incidenter → Aktiva incidenter** är listan du håller ögonen på under ett pass. Dess definition är exakt ett villkor: incidentens aktuella tillstånd ligger ovanför ert lösta tillstånd — det första tillståndet i ordningen med flaggan `isResolvedState`. Inget annat vägs in — inte allvarlighetsgrad, inte ålder, inte om någon har bekräftat den.
 
 Posten i sidomenyn bär ett rött antalsmärke som använder samma fråga, så märket och listan är alltid överens. När det inte finns något att se säger sidan det.
 
-Den praktiska följden: varje eget tillstånd du lägger till håller kvar incidenter i den här listan. Det är oftast vad du vill — "Begränsad" är inte "klar" — men det betyder att märket bara nollställs när incidenter faktiskt når det lösta tillståndet.
+Den praktiska följden: ett eget tillstånd du lägger till ovanför det lösta tillståndet håller kvar incidenter i den här listan — "Begränsad" är inte "klar" — och ett du placerar efter det tar bort dem, precis som det lösta tillståndet gör. Varningar och episoder följer samma regel med sina egna tillstånd, och räknarna i sidomenyn, påminnelser, statussidor och mobilappen läser den alla.
 
 ## Berätta för statussidans prenumeranter om en tillståndsändring
 
@@ -156,7 +165,7 @@ Tre skilda saker avgör om en incident över huvud taget syns på den publika si
 
 - **Visa incidenter** (`showIncidentsOnStatusPage`) på statussidan själv.
 - **Synlig på statussidan** (`isVisibleOnStatusPage`) på incidenten — en växel på incidentens sida **Inställningar**. Den är sann som standard och finns inte i deklarationsguiden; ett monitorkriterium kan sätta den med **Visa incident på statussida**.
-- **Det aktuella tillståndet är inte det lösta tillståndet.** Det är det som tar bort en incident från den aktiva delen: statussidans fråga hämtar incidenter vars aktuella tillstånd är vilket olöst tillstånd som helst. Du arkiverar eller stänger inget — du löser den, och den flyttar in i historiken.
+- **Det aktuella tillståndet ligger ovanför det lösta tillståndet.** Det är det som tar bort en incident från den aktiva delen: statussidans fråga hämtar incidenter vars aktuella tillstånd ligger ovanför ert lösta tillstånd, så det lösta tillståndet och varje tillstånd efter det tar bort incidenten. Du arkiverar eller stänger inget — du löser den, och den flyttar in i historiken.
 
 **Privata incidenter dyker aldrig upp.** Att slå på **Privat incident** döljer incidenten från varje statussida, oavsett växlarna ovan, och begränsar den till dess ägare plus projektadministratörer och projektägare.
 

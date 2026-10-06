@@ -25803,5 +25803,6 @@
   "node operations on": "नोड ऑपरेशन चालू",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} {{time}} की अंतिम स्थिति दिखाई जा रही है; यह पेज अपने आप पुनः प्रयास करता है।",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "बाद के सारांश दिन के उसी समय भेजे जाते हैं। इसे खाली छोड़ें ताकि अगले सप्ताह, दिन या महीने की शुरुआत में सारांश के टाइमज़ोन के अनुसार 09:00 बजे शुरू हो।",
-  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "सारांश पूरे साल इस टाइमज़ोन में दिन के उसी समय भेजे जाते हैं, घड़ियाँ बदलने के बाद भी।"
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "सारांश पूरे साल इस टाइमज़ोन में दिन के उसी समय भेजे जाते हैं, घड़ियाँ बदलने के बाद भी।",
+  "Holds Monitors": "मॉनिटर थामे हुए"
 }

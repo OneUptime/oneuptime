@@ -25803,5 +25803,6 @@
   "node operations on": "node operations on",
   "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Showing the last status from {{time}}; this page retries on its own.",
   "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.",
-  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Summaries go out at the same time of day in this timezone all year, also after the clocks change."
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "Summaries go out at the same time of day in this timezone all year, also after the clocks change.",
+  "Holds Monitors": "Holds Monitors"
 }

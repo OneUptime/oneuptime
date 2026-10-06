@@ -329,6 +329,17 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       } as LogAttributes);
     }
 
+    /*
+     * Whether the episode is resolved in this state, by the one rule
+     * (Common/Utils/ResolvedState): the project's resolved state, or a state
+     * placed after it, flagged or not.
+     */
+    const isResolvedState: boolean =
+      await IncidentStateService.isResolvedIncidentState({
+        projectId: createdItem.projectId!,
+        incidentStateId: createdItem.incidentStateId,
+      });
+
     // Update episode's current state if this is the latest timeline entry
     if (!createdItem.endsAt) {
       const updateData: {
@@ -338,23 +349,29 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         currentIncidentStateId: createdItem.incidentStateId,
       };
 
-      // Check if the new state is a resolved state and update resolvedAt accordingly
-      const newIncidentState: IncidentState | null =
-        await IncidentStateService.findOneById({
-          id: createdItem.incidentStateId,
-          select: {
-            isResolvedState: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+      /*
+       * resolvedAt is when the episode was resolved: stamped when it moves
+       * into a resolved state, kept while it moves on from one resolved
+       * state to another ("Resolved" to "Closed"), and cleared when it is
+       * reopened into one that is not. The Active episode lists, grouping
+       * and auto-resolve read it.
+       */
+      if (isResolvedState) {
+        const episode: IncidentEpisode | null =
+          await IncidentEpisodeService.findOneById({
+            id: createdItem.incidentEpisodeId,
+            select: {
+              resolvedAt: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
 
-      if (newIncidentState?.isResolvedState) {
-        // Set resolvedAt when transitioning to resolved state
-        updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+        if (!episode?.resolvedAt) {
+          updateData.resolvedAt = OneUptimeDate.getCurrentDate();
+        }
       } else {
-        // Clear resolvedAt when transitioning away from resolved state
         updateData.resolvedAt = null;
       }
 
@@ -410,7 +427,6 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         },
         select: {
           _id: true,
-          isResolvedState: true,
           isAcknowledgedState: true,
           isCreatedState: true,
           color: true,
@@ -421,7 +437,7 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
     const stateName: string = incidentState?.name || "";
     let stateEmoji: string = "➡️";
 
-    if (incidentState?.isResolvedState) {
+    if (isResolvedState) {
       stateEmoji = "✅";
     } else if (incidentState?.isAcknowledgedState) {
       stateEmoji = "👀";

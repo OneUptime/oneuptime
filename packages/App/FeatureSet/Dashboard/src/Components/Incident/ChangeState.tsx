@@ -49,6 +49,9 @@ import {
   shouldShowAIInvestigationHeaderStatus,
 } from "../AI/AIInvestigationStatus";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import { getEventEndDateForCurrentState } from "../../Utils/EventDuration";
 import {
   translatableTerm,
   TranslatableTerm,
@@ -191,6 +194,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           isCreatedState: true,
           name: true,
           color: true,
+          order: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -341,11 +345,31 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const resolvedState: IncidentState | undefined = incidentStates.find(
-    (state: IncidentState) => {
-      return state.isResolvedState;
+  /*
+   * The project's resolved state - where Resolve moves the incident - and
+   * every state that counts as resolved: it and any state placed after it
+   * (Common/Utils/ResolvedState).
+   */
+  const resolvedState: IncidentState | undefined =
+    ResolvedStateUtil.getResolvedState({
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    }) || undefined;
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.IncidentState,
+      states: incidentStates,
     },
-  );
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isResolvedStateId: (stateId: string | undefined) => boolean = (
+    stateId: string | undefined,
+  ): boolean => {
+    return Boolean(stateId && resolvedStateIds.includes(stateId));
+  };
 
   type GetStateIndexFunction = (state: IncidentState | undefined) => number;
 
@@ -401,26 +425,28 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   let durationEndsAt: Date | undefined = undefined;
   let durationPrefix: string = translationKey("Ongoing for");
 
-  if (currentIncidentState?.isResolvedState && resolvedState) {
-    const resolvedTimeline: IncidentStateTimeline | undefined = [
-      ...incidentStateTimelines,
-    ]
-      .reverse()
-      .find((timeline: IncidentStateTimeline) => {
-        return (
-          timeline.incidentStateId?.toString() === resolvedState.id?.toString()
-        );
-      });
+  /*
+   * Resolved now - in the resolved state, or a state placed after it: the
+   * duration runs to when it was resolved this time.
+   */
+  const resolvedAt: Date | undefined = getEventEndDateForCurrentState(
+    incidentStateTimelines.map((timeline: IncidentStateTimeline) => {
+      return {
+        stateId: timeline.incidentStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    }),
+    resolvedStateIds,
+  );
 
-    if (resolvedTimeline?.startsAt) {
-      durationEndsAt = resolvedTimeline.startsAt;
-      /*
-       * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
-       * while the stat bar's "Resolved in" counts to the FIRST one, so a
-       * reopened incident would show one label with two different numbers.
-       */
-      durationPrefix = translationKey("Lasted");
-    }
+  if (resolvedAt) {
+    durationEndsAt = resolvedAt;
+    /*
+     * "Lasted", not "Resolved in": this runs to the CURRENT resolution,
+     * while the stat bar's "Resolved in" counts to the FIRST one, so a
+     * reopened incident would show one label with two different numbers.
+     */
+    durationPrefix = translationKey("Lasted");
   }
 
   const openModalForState: (stateId: string) => void = (
@@ -488,7 +514,11 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     modalDescription = translationKey(
       "This records an acknowledgement on the incident timeline and stops any on-call escalation for this incident.",
     );
-  } else if (selectedIncidentState?.isResolvedState) {
+  } else if (
+    // A move that resolves it: into a resolved state, from one that is not.
+    isResolvedStateId(selectedIncidentState?.id?.toString()) &&
+    !isResolvedStateId(currentIncidentState?.id?.toString())
+  ) {
     modalTitle = translationKey("Resolve Incident");
     modalSubmitButtonText = translationKey("Resolve");
     modalDescription = translationKey(
