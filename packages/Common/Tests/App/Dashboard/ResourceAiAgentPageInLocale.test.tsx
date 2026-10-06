@@ -22,6 +22,10 @@ import {
   getResourceAiAgentDescriptor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import { RESOURCE_REMEDIATION_MODE_SUMMARIES } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAccessSettingsUtil";
+import {
+  ADD_AI_CREDITS_STEP,
+  WHO_CAN_ADD_AI_CREDITS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -398,13 +402,10 @@ describe("a resource's AI agent page in the reader's language", () => {
       );
 
       expect(creditsRow).toHaveTextContent(
-        wordingIn(code, "Add AI credits to this project."),
+        wordingIn(code, ADD_AI_CREDITS_STEP),
       );
       expect(creditsRow).toHaveTextContent(
-        wordingIn(
-          code,
-          "A project owner or someone with Manage Billing can add AI credits.",
-        ),
+        wordingIn(code, WHO_CAN_ADD_AI_CREDITS),
       );
       expect(
         within(creditsRow).queryByText(wordingIn(code, "Open AI Credits")),
