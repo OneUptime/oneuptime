@@ -12,6 +12,9 @@ import OnCallDutyPolicyTimeLog from "../../../../../Models/DatabaseModels/OnCall
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import InventoryItem from "../../../../../Models/DatabaseModels/InventoryItem";
 import Project from "../../../../../Models/DatabaseModels/Project";
+import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { TableColumnMetadata } from "../../../../../Types/Database/TableColumn";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../../Types/BaseDatabase/IncludesAnyOfGroups";
@@ -788,45 +791,29 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
       propsWithBlock(Permission.ProjectMember),
     );
 
-    const conditions: Array<any> = [];
-    const collect: (operator: any) => void = (operator: any): void => {
-      if (operator.type === "and") {
-        operator.value.forEach(collect);
-        return;
-      }
-      conditions.push(operator);
-    };
-    collect(result.query.resourceId);
+    // One condition, over the label join table of every labelled model.
+    const sql: string = rawSql(result.query.resourceId, "resourceKey");
 
-    const sql: string = conditions
-      .map((condition: any): string => {
-        return rawSql(condition, "resourceKey");
-      })
-      .join(" AND ");
+    const labelledTables: Array<string> = AllModelTypes.filter(
+      (modelType: { new (): BaseModel }): boolean => {
+        return Boolean(new modelType().getAccessControlColumn());
+      },
+    ).map((modelType: { new (): BaseModel }): string => {
+      return `${new modelType().tableName}Label`;
+    });
 
-    for (const joinTable of [
-      "MonitorLabel",
-      "ServiceLabel",
-      "HostLabel",
-      "DockerHostLabel",
-      "KubernetesClusterLabel",
-      "DatabaseServerLabel",
-      "StatusPageLabel",
-    ]) {
+    expect(labelledTables.length).toBeGreaterThan(30);
+    for (const joinTable of labelledTables) {
       expect([joinTable, sql.includes(`FROM "${joinTable}"`)]).toEqual([
         joinTable,
         true,
       ]);
     }
-
-    // One condition per model that carries labels, each keeping empty ids.
-    expect(conditions.length).toBeGreaterThan(30);
-    for (const condition of conditions) {
-      expect(rawSql(condition, "resourceKey")).toContain(
-        "resourceKey IS NULL OR resourceKey NOT IN",
-      );
-      expect(boundValues(condition)).toEqual([blockedLabel.toString()]);
-    }
+    expect(sql.split(" UNION ALL ")).toHaveLength(labelledTables.length);
+    expect(sql).toContain("resourceKey IS NULL OR resourceKey NOT IN (SELECT");
+    expect(boundValues(result.query.resourceId)).toEqual([
+      blockedLabel.toString(),
+    ]);
 
     // Nothing else about the item is narrowed.
     expect(result.query._id).toBeUndefined();
@@ -871,6 +858,84 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
     expect(combined).toBeInstanceOf(FindOperator);
     expect(combined.type).toBe("and");
     expect(JSON.stringify(combined)).toContain(serviceId.toString());
+  });
+
+  /*
+   * A filter on the parent relation by id (`incident: "<id>"`) is written to
+   * the relation's key when the query is serialized; the block's condition
+   * on that key stays next to it.
+   */
+  it("keeps the block when the caller filters the parent relation by id", async () => {
+    const incidentId: string = ObjectID.generate().toString();
+
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      IncidentInternalNote,
+      { projectId, incident: incidentId } as any,
+      propsWithBlock(Permission.IncidentViewer),
+    );
+
+    const serialized: any = QueryUtil.serializeQuery(
+      IncidentInternalNote,
+      result.query,
+    );
+
+    expect(serialized.incident).toBeUndefined();
+
+    const conditions: Array<any> = [];
+    const collect: (operator: any) => void = (operator: any): void => {
+      if (operator.type === "and") {
+        operator.value.forEach(collect);
+        return;
+      }
+      conditions.push(operator);
+    };
+    collect(serialized.incidentId);
+
+    const sql: string = conditions
+      .map((condition: any): string => {
+        return rawSql(condition, "noteIncidentId");
+      })
+      .join(" AND ");
+
+    expect(sql).toContain('FROM "IncidentLabel"');
+    expect(sql).toContain("noteIncidentId = :");
+    expect(JSON.stringify(serialized.incidentId)).toContain(incidentId);
+  });
+
+  it("refuses a model whose parent is not named by a key column", async () => {
+    class NoteWithAKeylessParent extends IncidentInternalNote {}
+
+    const getMetadata: (columnName: string) => TableColumnMetadata =
+      IncidentInternalNote.prototype.getTableColumnMetadata;
+
+    jest
+      .spyOn(NoteWithAKeylessParent.prototype, "getTableColumnMetadata")
+      .mockImplementation(function (
+        this: BaseModel,
+        columnName: string,
+      ): TableColumnMetadata {
+        const metadata: TableColumnMetadata = getMetadata.call(
+          this,
+          columnName,
+        );
+
+        if (columnName !== "incident") {
+          return metadata;
+        }
+
+        // The relation, without the key column that names its record.
+        const keyless: TableColumnMetadata = { ...metadata };
+        delete keyless.manyToOneRelationColumn;
+        return keyless;
+      });
+
+    await expect(
+      ReadPermission.checkReadBlockPermission(
+        NoteWithAKeylessParent,
+        { projectId } as any,
+        propsWithBlock(Permission.IncidentViewer),
+      ),
+    ).rejects.toThrow("access-control relation metadata");
   });
 
   it("refuses a model that names a parent it does not have", async () => {

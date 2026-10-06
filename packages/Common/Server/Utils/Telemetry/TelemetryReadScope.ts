@@ -318,7 +318,8 @@ export default class TelemetryReadScopeUtil {
    *   - any other operator the caller put on the column stays, and the scope
    *     is added next to it (the analytics query ANDs a list of operators
    *     on one column);
-   *   - a caller who asked for nothing gets the scope alone;
+   *   - a caller who asked for nothing - or for an empty list, which the
+   *     analytics query reads as no filter - gets the scope alone;
    *   - a filter of any other shape is refused rather than dropped.
    */
   public static applyToQuery<TQuery>(
@@ -334,7 +335,9 @@ export default class TelemetryReadScopeUtil {
       string,
       unknown
     >;
-    const existing: unknown = record[column];
+    const existing: unknown = TelemetryReadScopeUtil.isEmptyList(record[column])
+      ? undefined
+      : record[column];
     const requestedIds: Array<string> | null =
       TelemetryReadScopeUtil.getRequestedIds(existing);
 
@@ -389,16 +392,30 @@ export default class TelemetryReadScopeUtil {
     return query;
   }
 
+  // An empty list of ids or an empty Includes: names no resource at all.
+  private static isEmptyList(filter: unknown): boolean {
+    return (
+      (Array.isArray(filter) && filter.length === 0) ||
+      (filter instanceof Includes && filter.values.length === 0)
+    );
+  }
+
   /*
-   * The resources a caller's own filter names outright - one id, a list of
-   * ids, or an Includes of ids - or null for any other filter (or none).
+   * The resources a filter names outright - one id, a non-empty list of
+   * ids, or a non-empty Includes of ids - or null for any other filter (or
+   * none). A delete of metrics clears their rollups only for a filter that
+   * names resources (MetricService).
    */
-  private static getRequestedIds(existing: unknown): Array<string> | null {
+  public static getRequestedIds(existing: unknown): Array<string> | null {
     if (typeof existing === "string" || existing instanceof ObjectID) {
       return [existing.toString()];
     }
 
     if (existing instanceof Includes) {
+      if (existing.values.length === 0) {
+        return null;
+      }
+
       return existing.values.map((value: string | ObjectID | number) => {
         return value.toString();
       });

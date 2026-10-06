@@ -90,6 +90,7 @@ import Span from "../../Models/AnalyticsModels/Span";
 import Metric from "../../Models/AnalyticsModels/Metric";
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import PromiseCache from "../Utils/PromiseCache";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
   TelemetryServiceFilter,
@@ -554,6 +555,15 @@ const getAttributes: GetAttributesFunction = async (
         ? (req.body["metricName"] as string)
         : undefined;
 
+    // A signal with no attributes to offer (profiles) has nothing to scope.
+    if (
+      !TelemetryAttributeService.hasAttributeSource(telemetryType, metricName)
+    ) {
+      return Response.sendJsonObjectResponse(req, res, {
+        attributes: [],
+      });
+    }
+
     const serviceFilter: TelemetryServiceFilter =
       await TelemetryReadAccess.getServiceFilter({
         modelType: TelemetryReadAccess.getModelForTelemetryType(telemetryType),
@@ -631,6 +641,15 @@ const getAttributeValues: GetAttributeValuesFunction = async (
       req.body["searchText"] && typeof req.body["searchText"] === "string"
         ? (req.body["searchText"] as string)
         : undefined;
+
+    // A signal with no attributes to offer (profiles) has nothing to scope.
+    if (
+      !TelemetryAttributeService.hasAttributeSource(telemetryType, metricName)
+    ) {
+      return Response.sendJsonObjectResponse(req, res, {
+        values: [],
+      });
+    }
 
     const serviceFilter: TelemetryServiceFilter =
       await TelemetryReadAccess.getServiceFilter({
@@ -4204,31 +4223,20 @@ type GetRumApplicationOwnersFunction = (
 const getRumApplicationOwners: GetRumApplicationOwnersFunction = (
   application: RumApplication,
 ): Promise<RumApplicationOwners> => {
-  const cached: Promise<RumApplicationOwners> | undefined =
-    rumApplicationOwners.get(application);
-
-  if (cached) {
-    return cached;
-  }
-
-  /*
-   * Through the owner table registry, as an Owned grant's scope reads every
-   * application's owners (TelemetryReadAccess.getResourceOwners).
-   */
-  const pending: Promise<RumApplicationOwners> =
-    TelemetryReadAccess.getResourceOwners({
-      resourceType: "RumApplication",
-      resourceId: new ObjectID(application.id!.toString()),
-    });
-
-  rumApplicationOwners.set(application, pending);
-  pending.catch((): void => {
-    if (rumApplicationOwners.get(application) === pending) {
-      rumApplicationOwners.delete(application);
-    }
-  });
-
-  return pending;
+  return PromiseCache.lookUpOnce(
+    rumApplicationOwners,
+    application,
+    (): Promise<RumApplicationOwners> => {
+      /*
+       * Through the owner table registry, as an Owned grant's scope reads
+       * every application's owners (TelemetryReadAccess.getResourceOwners).
+       */
+      return TelemetryReadAccess.getResourceOwners({
+        resourceType: "RumApplication",
+        resourceId: new ObjectID(application.id!.toString()),
+      });
+    },
+  );
 };
 
 type AssertSessionReplayApplicationAccessFunction = (data: {

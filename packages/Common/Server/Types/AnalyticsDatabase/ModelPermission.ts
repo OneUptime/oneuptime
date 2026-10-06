@@ -40,6 +40,7 @@ import type { OwnerTablePair } from "../Database/Permissions/OwnerTableRegistry"
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../../Utils/Telemetry/TelemetryReadScope";
+import PromiseCache from "../../Utils/PromiseCache";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
@@ -61,8 +62,9 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
  *     userId + teamIds + tenantId, all stable for one props).
  *   - `labeledIds`: keyed by the sorted label ids as well, since grants and
  *     blocks can carry different label sets.
- * Each holds the lookup's promise, so reads running at the same time share
- * one lookup rather than racing to make it twice.
+ * Each holds the lookup's promise (PromiseCache.lookUpOnce), so reads
+ * running at the same time share one lookup rather than racing to make it
+ * twice.
  */
 interface ScopeResolveCacheEntry {
   ownedIds: Map<string, Promise<Array<string>>>;
@@ -83,32 +85,6 @@ function getScopeCacheBucket(
     scopeResolveCache.set(props, bucket);
   }
   return bucket;
-}
-
-/*
- * The cached lookup for `key`, starting it if nothing has yet. A lookup
- * that fails is forgotten, so the next read of the request asks again.
- */
-function lookUpOnce(
-  cache: Map<string, Promise<Array<string>>>,
-  key: string,
-  lookUp: () => Promise<Array<string>>,
-): Promise<Array<string>> {
-  const cached: Promise<Array<string>> | undefined = cache.get(key);
-
-  if (cached) {
-    return cached;
-  }
-
-  const pending: Promise<Array<string>> = lookUp();
-  cache.set(key, pending);
-  pending.catch((): void => {
-    if (cache.get(key) === pending) {
-      cache.delete(key);
-    }
-  });
-
-  return pending;
 }
 
 /*
@@ -1271,7 +1247,7 @@ export default class ModelPermission {
         ([resourceType, entry]: [string, OwnerTablePair]): Promise<
           Array<string>
         > => {
-          return lookUpOnce(
+          return PromiseCache.lookUpOnce(
             cache.ownedIds,
             resourceType,
             (): Promise<Array<string>> => {
@@ -1409,7 +1385,7 @@ export default class ModelPermission {
             const modelService: OwnerTablePair["modelService"] =
               entry.modelService;
 
-            return lookUpOnce(
+            return PromiseCache.lookUpOnce(
               cache.labeledIds,
               `${resourceType}|${labelsKey}`,
               (): Promise<Array<string>> => {

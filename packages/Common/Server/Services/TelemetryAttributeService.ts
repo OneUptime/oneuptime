@@ -132,6 +132,18 @@ export class TelemetryAttributeService {
   }
 
   /*
+   * Whether a signal has attribute keys and values to offer. Profiles have
+   * none: a route answers them with nothing, without working out whose
+   * telemetry the caller may read.
+   */
+  public hasAttributeSource(
+    telemetryType: TelemetryType,
+    metricName?: string | undefined,
+  ): boolean {
+    return this.getTelemetrySource(telemetryType, metricName) !== null;
+  }
+
+  /*
    * `serviceFilter` is whose telemetry the caller may read
    * (TelemetryReadAccess.getServiceFilter): keys are read from those
    * resources' rows only, and cached apart from the whole project's.

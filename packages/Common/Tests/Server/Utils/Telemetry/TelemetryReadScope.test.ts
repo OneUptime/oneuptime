@@ -395,6 +395,64 @@ describe("TelemetryReadScope.applyToQuery", () => {
       }).toThrow(BadDataException);
     }
   });
+
+  /*
+   * An empty list names no resource - the analytics query reads it as no
+   * filter (a cleared selection) - so the caller gets the scope alone,
+   * neither a refusal nor more than the scope.
+   */
+  test("an empty list or Includes of the caller's reads as no filter", () => {
+    for (const empty of [[], new Includes([])]) {
+      const limited: any = TelemetryReadScopeUtil.applyToQuery(
+        { [column]: empty },
+        column,
+        scope([serviceA, serviceB], [serviceB]),
+      );
+      expect(limited[column]).toBeInstanceOf(Includes);
+      expect(limited[column].values).toEqual([serviceA]);
+
+      const blocked: any = TelemetryReadScopeUtil.applyToQuery(
+        { [column]: empty },
+        column,
+        scope(null, [serviceB]),
+      );
+      expect(blocked[column]).toBeInstanceOf(IncludesNone);
+      expect(blocked[column].values).toEqual([serviceB]);
+    }
+  });
+});
+
+describe("TelemetryReadScope.getRequestedIds", () => {
+  test("names the resources of one id, a list of ids or an Includes", () => {
+    expect(TelemetryReadScopeUtil.getRequestedIds(serviceA)).toEqual([
+      serviceA,
+    ]);
+    expect(
+      TelemetryReadScopeUtil.getRequestedIds(new ObjectID(serviceA)),
+    ).toEqual([serviceA]);
+    expect(
+      TelemetryReadScopeUtil.getRequestedIds([
+        serviceA,
+        new ObjectID(serviceB),
+      ]),
+    ).toEqual([serviceA, serviceB]);
+    expect(
+      TelemetryReadScopeUtil.getRequestedIds(new Includes([serviceA])),
+    ).toEqual([serviceA]);
+  });
+
+  test("names nothing for an empty list, an operator or no filter", () => {
+    for (const filter of [
+      undefined,
+      null,
+      [],
+      new Includes([]),
+      new NotEqual<string>(serviceA),
+      [serviceA, 42],
+    ]) {
+      expect(TelemetryReadScopeUtil.getRequestedIds(filter)).toBeNull();
+    }
+  });
 });
 
 describe("TelemetryReadScope compares resource ids without case", () => {

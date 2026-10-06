@@ -515,6 +515,69 @@ export default class QueryHelper {
   }
 
   /**
+   * parentLinkedToNoneInManyToMany for a key that can name a record of any
+   * of several models (an inventory item's resource id): matches records
+   * whose key names no record linked, in any of the given join tables, to
+   * one of the provided related entity ids (labels), and records whose key
+   * is empty. One subquery over every join table. An empty values or join
+   * table list matches everything.
+   */
+  @CaptureSpan()
+  public static linkedToNoneInAnyManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTables: Array<{
+      joinTableName: string;
+      ownerColumnName: string;
+      relationColumnName: string;
+    }>;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (values.length === 0 || data.joinTables.length === 0) {
+      return Raw(() => {
+        return `TRUE = TRUE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const quote: (identifier: string) => string = (
+      identifier: string,
+    ): string => {
+      return identifier.replace(/"/g, '""');
+    };
+
+    const linkedRecords: string = data.joinTables
+      .map(
+        (joinTableData: {
+          joinTableName: string;
+          ownerColumnName: string;
+          relationColumnName: string;
+        }): string => {
+          const joinTable: string = quote(joinTableData.joinTableName);
+          const ownerCol: string = quote(joinTableData.ownerColumnName);
+          const relationCol: string = quote(joinTableData.relationColumnName);
+
+          return `SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})`;
+        },
+      )
+      .join(" UNION ALL ");
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IS NULL OR ${alias} NOT IN (${linkedRecords}))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
    * Applied to a record's primary id when it belongs to several parents
    * through a many-to-many join table (an announcement on status pages):
    * matches records linked to *no* parent that is itself linked to any of

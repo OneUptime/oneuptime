@@ -34,8 +34,9 @@ export interface LabelledReferences {
   /*
    * Key columns whose record's kind cannot be told from the column (a
    * resource id several kinds of resource share). Each is weighed against
-   * every model that carries labels: a record id names one record in the
-   * whole database, so it can only match the labels of the record it names.
+   * the labels of every model that carries labels, in one condition: a
+   * record id names one record in the whole database, so it can only match
+   * the labels of the record it names.
    */
   anyKindColumns: Array<string>;
 }
@@ -308,11 +309,17 @@ export default class ReadPermission {
     if (declaredParent) {
       declaredColumn = model.getTableColumnMetadata(declaredParent);
 
+      /*
+       * A parent is one record named by a key column, or several through a
+       * join table. Anything else names nothing the block could follow.
+       */
       if (
         !declaredColumn ||
         !declaredColumn.modelType ||
         (declaredColumn.type !== TableColumnType.Entity &&
-          declaredColumn.type !== TableColumnType.EntityArray)
+          declaredColumn.type !== TableColumnType.EntityArray) ||
+        (declaredColumn.type === TableColumnType.Entity &&
+          !declaredColumn.manyToOneRelationColumn)
       ) {
         throw new BadDataException(
           "Cannot apply read label restrictions without access-control relation metadata.",
@@ -350,6 +357,55 @@ export default class ReadPermission {
         );
       }
     }
+
+    // A record id of any kind, against the labels of every labelled model.
+    for (const column of references.anyKindColumns) {
+      query = this.addAnyKindLabelBlockToQuery(
+        modelType,
+        query,
+        labelIds,
+        column,
+      );
+    }
+
+    return query;
+  }
+
+  /*
+   * Leaves out the records whose `foreignKey` - a record id that can name a
+   * record of any kind - names a record carrying one of `labelIds`, in one
+   * condition over the label join tables of every model that carries
+   * labels. A record whose key is empty, or names a record without those
+   * labels, stays.
+   */
+  private static addAnyKindLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+    foreignKey: string,
+  ): Query<TBaseModel> {
+    const joinTables: Array<ManyToManyMetadata> = [];
+
+    for (const labelledModelType of getLabelledModelTypes()) {
+      const labelsMeta: ManyToManyMetadata | null =
+        this.getLabelsMetadata(labelledModelType);
+
+      if (labelsMeta) {
+        joinTables.push(labelsMeta);
+      }
+    }
+
+    const keyQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      [foreignKey]: (query as any)[foreignKey],
+    } as Query<TBaseModel>);
+
+    (query as any)[foreignKey] = combineWithPrivacyClause(
+      this.getSupportedFilter((keyQuery as any)[foreignKey]),
+      QueryHelper.linkedToNoneInAnyManyToMany({
+        values: labelIds,
+        joinTables: joinTables,
+      }),
+    );
 
     return query;
   }
@@ -459,11 +515,6 @@ export default class ReadPermission {
 
       if (!namedModelType) {
         anyKindColumns.push(columnName);
-
-        for (const labelledModelType of getLabelledModelTypes()) {
-          addKey(columnName, labelledModelType);
-        }
-
         continue;
       }
 

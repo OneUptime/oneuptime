@@ -35,16 +35,18 @@ describe("canAccessIfCanReadOn", () => {
     expect(namingModels.length).toBeGreaterThan(50);
   });
 
-  test("names a relation of the model, to a database model", () => {
+  test("names a relation of the model - one record by its key column, or several - to a database model", () => {
     const broken: Array<string> = namingModels
       .filter((model: BaseModel): boolean => {
         const column: TableColumnMetadata | undefined =
           model.getTableColumnMetadata(model.canAccessIfCanReadOn as string);
 
+        // One record named by a key column, or several through a join table.
         return !(
           column &&
           column.modelType &&
-          (column.type === TableColumnType.Entity ||
+          ((column.type === TableColumnType.Entity &&
+            column.manyToOneRelationColumn) ||
             column.type === TableColumnType.EntityArray)
         );
       })
@@ -105,7 +107,7 @@ describe("records with no labels of their own", () => {
     });
   });
 
-  test("a resource id of any kind is weighed against every model that carries labels", () => {
+  test("a resource id of any kind is weighed on its own, not as a key to one model", () => {
     const references: ReturnType<typeof ReadPermission.getLabelledReferences> =
       ReadPermission.getLabelledReferences(
         labelLess.find((modelType: { new (): BaseModel }): boolean => {
@@ -113,14 +115,12 @@ describe("records with no labels of their own", () => {
         })!,
       );
 
-    const resourceId:
-      | { column: string; modelTypes: Array<{ new (): BaseModel }> }
-      | undefined = references.keys.find((key: { column: string }): boolean => {
-      return key.column === "resourceId";
-    });
-
-    expect(labelled.length).toBeGreaterThan(30);
-    expect(new Set(resourceId?.modelTypes)).toEqual(new Set(labelled));
+    expect(references.anyKindColumns).toEqual(["resourceId"]);
+    expect(
+      references.keys.some((key: { column: string }): boolean => {
+        return key.column === "resourceId";
+      }),
+    ).toBe(false);
   });
 
   /*

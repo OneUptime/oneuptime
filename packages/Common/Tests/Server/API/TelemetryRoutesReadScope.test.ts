@@ -9,6 +9,7 @@ import ProfileAggregationService from "../../../Server/Services/ProfileAggregati
 import ProfileService from "../../../Server/Services/ProfileService";
 import ProfileSampleService from "../../../Server/Services/ProfileSampleService";
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
+import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import TelemetrySourceMapService from "../../../Server/Services/TelemetrySourceMapService";
 import OwnerTableRegistry from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import ResourceFacetResolver, {
@@ -537,8 +538,6 @@ const ROUTE_CASES: Array<RouteCase> = [
     "fetchAttributeValues",
     Permission.SecurityViewer,
   ),
-  attributeCase("/telemetry/profiles/get-attributes", "fetchAttributes"),
-
   // Logs.
   aggregationCase(
     "/telemetry/logs/histogram",
@@ -951,6 +950,43 @@ describe("/telemetry/logs/context", () => {
   );
 });
 
+/*
+ * Profiles have no attribute keys to offer, so their attribute picker
+ * answers with none and works out nothing about the caller's scope.
+ */
+describe("/telemetry/profiles/get-attributes", () => {
+  test.each(PRINCIPALS)(
+    "a %s reader gets no attributes, and nothing is looked up",
+    async (principalName: PrincipalName) => {
+      currentPrincipal = principalFor(principalName, Permission.ProjectMember);
+      const fetchAttributes: Spy = spyOn(
+        TelemetryAttributeService,
+        "fetchAttributes",
+      );
+      const getServiceFilter: Spy = spyOn(
+        TelemetryReadAccess,
+        "getServiceFilter",
+      );
+
+      const result: CallResult = await callRoute({
+        uri: "/telemetry/profiles/get-attributes",
+        principal: currentPrincipal,
+        body: {},
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.errorResponse).toBeUndefined();
+      expect(fetchAttributes.mock.calls.length).toBe(0);
+      expect(getServiceFilter.mock.calls.length).toBe(0);
+
+      const body: JSONObject = (
+        Response.sendJsonObjectResponse as unknown as jest.Mock
+      ).mock.calls[0]![2] as JSONObject;
+      expect(body).toEqual({ attributes: [] });
+    },
+  );
+});
+
 describe("/telemetry/profiles/:profileId/pprof", () => {
   test.each(PRINCIPALS)(
     "a %s reader's profile lookup is narrowed to the services they may read",
@@ -1101,6 +1137,8 @@ describe("every /telemetry/* route", () => {
   const TESTED_ON_THEIR_OWN: Record<string, string> = {
     "/telemetry/logs/context": "this file: the lines around one log",
     "/telemetry/profiles/:profileId/pprof": "this file: one profile's download",
+    "/telemetry/profiles/get-attributes":
+      "this file: profiles have no attributes to scope",
     "/telemetry/exceptions/resolve-stack-trace":
       "this file: frames of a service the caller may not read",
   };

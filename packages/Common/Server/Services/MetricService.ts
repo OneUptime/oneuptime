@@ -28,6 +28,7 @@ import {
   keyForService,
 } from "../../Utils/Telemetry/EntityKey";
 import { keyForContainer } from "../Utils/Telemetry/TelemetryEntity";
+import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -971,23 +972,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     return out as unknown as Query<Metric>;
   }
 
-  // A filter that names resources outright: one id, a list of ids, or an Includes of ids.
+  /*
+   * A filter that names resources outright: one id, a list of ids, or an
+   * Includes of ids - the shapes the read scope narrows the same way
+   * (TelemetryReadScopeUtil.getRequestedIds).
+   */
   private namesResources(filter: unknown): boolean {
-    if (typeof filter === "string" || filter instanceof ObjectID) {
-      return true;
-    }
-
-    if (filter instanceof Includes) {
-      return filter.values.length > 0;
-    }
-
-    return (
-      Array.isArray(filter) &&
-      filter.length > 0 &&
-      filter.every((element: unknown): boolean => {
-        return typeof element === "string" || element instanceof ObjectID;
-      })
-    );
+    return TelemetryReadScopeUtil.getRequestedIds(filter) !== null;
   }
 
   /**

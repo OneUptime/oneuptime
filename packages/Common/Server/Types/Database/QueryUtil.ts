@@ -39,6 +39,59 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
 
 export default class QueryUtil {
+  /*
+   * A relation filtered by a plain id (`incident: "<id>"`) is a filter on
+   * the relation's key (`incidentId`), and is written there. It is added to
+   * whatever the key already holds - the condition a permission check put
+   * on it, the caller's own filter on the key - and never takes its place:
+   * both hold.
+   */
+  private static moveRelationIdToKey<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    relation: string,
+    keyColumn: string,
+  ): void {
+    const record: Record<string, unknown> = query as Record<string, unknown>;
+    const relationId: string = record[relation] as string;
+    delete record[relation];
+
+    const existing: unknown = record[keyColumn];
+
+    if (existing === undefined) {
+      record[keyColumn] = relationId;
+      return;
+    }
+
+    // The key's own filter as this serializes it, whether reached yet or not.
+    const keyFilter: unknown = (
+      QueryUtil.serializeQuery(modelType, {
+        [keyColumn]: existing,
+      } as Query<TBaseModel>) as Record<string, unknown>
+    )[keyColumn];
+
+    const relationFilter: FindOperator<any> = QueryHelper.equalTo(
+      relationId,
+    ) as FindOperator<any>;
+
+    if (typeof keyFilter === Typeof.String) {
+      record[keyColumn] = And(
+        QueryHelper.equalTo(keyFilter as string) as FindOperator<any>,
+        relationFilter,
+      );
+      return;
+    }
+
+    if (keyFilter instanceof FindOperator) {
+      record[keyColumn] = And(keyFilter, relationFilter);
+      return;
+    }
+
+    throw new BadDataException(
+      `Cannot combine the filter on ${relation} with the filter on ${keyColumn}.`,
+    );
+  }
+
   @CaptureSpan()
   public static serializeQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -571,10 +624,12 @@ export default class QueryUtil {
         tableColumnMetadata.manyToOneRelationColumn &&
         typeof query[key] === Typeof.String
       ) {
-        (query as any)[tableColumnMetadata.manyToOneRelationColumn] = query[
-          key
-        ] as string;
-        delete query[key];
+        QueryUtil.moveRelationIdToKey(
+          modelType,
+          query,
+          key,
+          tableColumnMetadata.manyToOneRelationColumn,
+        );
       }
 
       if (
