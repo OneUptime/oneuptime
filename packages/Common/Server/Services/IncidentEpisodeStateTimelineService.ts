@@ -27,6 +27,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeInternalNote from "../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
+import StateChangeNote from "../Utils/StateChangeNote";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   public constructor() {
@@ -64,6 +65,35 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
           incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
         } as LogAttributes);
       }
+
+      /*
+       * The private note that comes with the change, if any (a blank one is
+       * none). It is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the episode's feed. Whether they may post it is asked now, before
+       * anything is read or written, with the check the note's own create
+       * runs: a change whose note they may not post is refused whole, with
+       * one plain message, rather than saved and then answered with an
+       * error (StateChangeNote).
+       */
+      const privateNoteToPost: IncidentEpisodeInternalNote | undefined =
+        StateChangeNote.preparePrivateNote({
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          noteModelType: IncidentEpisodeInternalNote,
+          props: createBy.props,
+          fill: (note: IncidentEpisodeInternalNote, text: string): void => {
+            note.incidentEpisodeId = createBy.data.incidentEpisodeId!;
+            note.note = text;
+            note.createdAt = createBy.data.startsAt!;
+
+            const noteProjectId: ObjectID | undefined =
+              createBy.data.projectId || createBy.props.tenantId;
+
+            if (noteProjectId) {
+              note.projectId = noteProjectId;
+            }
+          },
+        });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
@@ -190,21 +220,12 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
       } as LogAttributes);
 
-      /*
-       * The note a user writes when they change the state. It is not a column
-       * on this model, so it travels alongside the create and becomes an
-       * internal note on the episode once the timeline row exists.
-       */
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
-
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNoteToPost: privateNoteToPost,
           mutex: mutex,
         },
       };
@@ -454,13 +475,14 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
+    /*
+     * The private note that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    if (onCreate.carryForward.privateNoteToPost) {
       const episodeInternalNote: IncidentEpisodeInternalNote =
-        new IncidentEpisodeInternalNote();
-      episodeInternalNote.incidentEpisodeId = createdItem.incidentEpisodeId;
-      episodeInternalNote.note = privateNote;
+        onCreate.carryForward.privateNoteToPost;
       episodeInternalNote.createdAt = createdItem.startsAt!;
       episodeInternalNote.projectId = createdItem.projectId!;
 

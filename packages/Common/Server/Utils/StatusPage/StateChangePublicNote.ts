@@ -1,8 +1,7 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
-import ModelPermission from "../../Types/Database/Permissions/Index";
+import StateChangeNote, { StateChangeNoteType } from "../StateChangeNote";
 
 /*
  * THE PUBLIC NOTE A STATE CHANGE POSTS.
@@ -22,7 +21,9 @@ import ModelPermission from "../../Types/Database/Permissions/Index";
  *    incident feed and in Slack, and a refused note used to leave a change
  *    recorded as sent by a note that never existed: nobody was told. Both
  *    now ask first (assertCallerMayPost), with the very check the note's own
- *    create runs, and refuse the whole change with one plain message.
+ *    create runs, and refuse the whole change with one plain message - the
+ *    rule every state timeline holds its note to, the private notes of
+ *    alerts and episodes included (Server/Utils/StateChangeNote).
  *
  *  - The note names the state the event moved to. It carries the state
  *    (IncidentPublicNote.postedWithIncidentState,
@@ -44,8 +45,6 @@ import ModelPermission from "../../Types/Database/Permissions/Index";
 
 const STATES_OF_NOTES_POSTED_WITH_A_CHANGE: WeakMap<BaseModel, ObjectID> =
   new WeakMap<BaseModel, ObjectID>();
-
-const ENDS_A_SENTENCE: RegExp = /[.!?]$/;
 
 export default class StateChangePublicNote {
   /*
@@ -84,21 +83,12 @@ export default class StateChangePublicNote {
     note: TNote;
     props: DatabaseCommonInteractionProps;
   }): void {
-    try {
-      ModelPermission.checkCreatePermissions(
-        data.noteModelType,
-        data.note,
-        data.props,
-      );
-    } catch (error) {
-      if (error instanceof NotAuthorizedException) {
-        throw new NotAuthorizedException(
-          StateChangePublicNote.getRefusalMessage(error.message),
-        );
-      }
-
-      throw error;
-    }
+    StateChangeNote.assertCallerMayPost({
+      noteType: StateChangeNoteType.Public,
+      noteModelType: data.noteModelType,
+      note: data.note,
+      props: data.props,
+    });
   }
 
   /*
@@ -106,11 +96,6 @@ export default class StateChangePublicNote {
    * refusal, which names the permissions that post one), and what to do.
    */
   public static getRefusalMessage(reason: string): string {
-    const trimmedReason: string = reason.trim();
-    const reasonSentence: string = ENDS_A_SENTENCE.test(trimmedReason)
-      ? trimmedReason
-      : `${trimmedReason}.`;
-
-    return `The state was not changed: it comes with a public note, which you may not post. ${reasonSentence} To change the state, leave the public note out.`;
+    return StateChangeNote.getRefusalMessage(StateChangeNoteType.Public, reason);
   }
 }

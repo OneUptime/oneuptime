@@ -29,6 +29,7 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import StateChangeNote from "../Utils/StateChangeNote";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -90,6 +91,35 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
           alertId: createBy.data.alertId?.toString(),
         } as LogAttributes);
       }
+
+      /*
+       * The private note that comes with the change, if any (a blank one is
+       * none). It is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the alert's feed. Whether they may post it is asked now, before
+       * anything is read or written, with the check the note's own create
+       * runs: a change whose note they may not post is refused whole, with
+       * one plain message, rather than saved and then answered with an
+       * error (StateChangeNote).
+       */
+      const privateNoteToPost: AlertInternalNote | undefined =
+        StateChangeNote.preparePrivateNote({
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          noteModelType: AlertInternalNote,
+          props: createBy.props,
+          fill: (note: AlertInternalNote, text: string): void => {
+            note.alertId = createBy.data.alertId!;
+            note.note = text;
+            note.createdAt = createBy.data.startsAt!;
+
+            const noteProjectId: ObjectID | undefined =
+              createBy.data.projectId || createBy.props.tenantId;
+
+            if (noteProjectId) {
+              note.projectId = noteProjectId;
+            }
+          },
+        });
 
       // Who made the change, under either name of it: see CreatedByUser.
       const changedByUserId: ObjectID | null = CreatedByUser.getId(
@@ -270,16 +300,12 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         });
       }
 
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
-
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNoteToPost: privateNoteToPost,
           mutex: mutex,
         },
       };
@@ -458,12 +484,14 @@ ${createdItem.rootCause}`,
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
-      const alertInternalNote: AlertInternalNote = new AlertInternalNote();
-      alertInternalNote.alertId = createdItem.alertId;
-      alertInternalNote.note = privateNote;
+    /*
+     * The private note that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    if (onCreate.carryForward.privateNoteToPost) {
+      const alertInternalNote: AlertInternalNote =
+        onCreate.carryForward.privateNoteToPost;
       alertInternalNote.createdAt = createdItem.startsAt!;
       alertInternalNote.projectId = createdItem.projectId!;
 
