@@ -37,6 +37,8 @@ import {
   getCloudMonitoredResourceAttributeFilters,
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Overview of a Cloud Resource discovered from cloud monitoring: what
@@ -60,6 +62,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const translator: Translator = useTranslator();
 
   const [cloudResource, setCloudResource] = useState<CloudResource | null>(
     null,
@@ -248,8 +251,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
             />
           ) : (
             <p className="text-sm text-gray-500">
-              No metric attributes are recorded for this resource yet. They are
-              recorded with the next metrics its provider reports about it.
+              {translator.translateText(
+                "No metric attributes are recorded for this resource yet. They are recorded with the next metrics its provider reports about it.",
+              )}
             </p>
           )}
         </Card>
