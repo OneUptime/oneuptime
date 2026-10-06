@@ -533,7 +533,11 @@ export class Service extends ProjectReferencesService<Model> {
       return { cloudResource: existing, created: false };
     }
 
-    if (!(await this.isUnderMonitoredResourceAutoCreateBudgetCached(data.projectId))) {
+    if (
+      !(await this.isUnderMonitoredResourceAutoCreateBudgetCached(
+        data.projectId,
+      ))
+    ) {
       this.warnMonitoredResourceBudgetReached(data.projectId);
       return { cloudResource: null, created: false };
     }
@@ -601,8 +605,9 @@ export class Service extends ProjectReferencesService<Model> {
       otelCollectorStatus: "connected",
     };
 
-    const metadata: PartialEntity<Model> =
-      this.getMonitoredResourceColumns(data.resource);
+    const metadata: PartialEntity<Model> = this.getMonitoredResourceColumns(
+      data.resource,
+    );
 
     await ResourceHeartbeat.write({
       service: this,

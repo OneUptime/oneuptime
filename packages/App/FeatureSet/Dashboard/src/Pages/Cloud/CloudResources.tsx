@@ -45,6 +45,7 @@ import {
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
 import CloudDocumentationCard from "../../Components/Cloud/CloudDocumentationCard";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -85,7 +86,7 @@ const CloudResources: FunctionComponent<
   useEffect(() => {
     ModelAPI.count({
       modelType: CloudResource,
-      query: {},
+      query: { cloudResourceKind: CloudResourceKind.Environment },
     })
       .then(setCount)
       .catch((err: Error) => {
@@ -120,6 +121,11 @@ const CloudResources: FunctionComponent<
         userPreferencesKey="cloud-resources-table"
         query={{
           isArchived: false,
+          /*
+           * The resources discovered from cloud monitoring share the table
+           * and have a list of their own (MonitoredResources).
+           */
+          cloudResourceKind: CloudResourceKind.Environment,
         }}
         onBeforeCreate={(
           item: CloudResource,

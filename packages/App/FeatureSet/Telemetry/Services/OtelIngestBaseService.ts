@@ -2955,7 +2955,9 @@ export default abstract class OtelIngestBaseService {
           );
 
         if (!cloudResourceIdStr) {
-          if (lookups >= this.CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST) {
+          if (
+            lookups >= this.CLOUD_MONITORED_RESOURCE_MAX_LOOKUPS_PER_REQUEST
+          ) {
             continue;
           }
           lookups++;

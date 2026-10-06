@@ -9,12 +9,79 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ObjectID from "Common/Types/ObjectID";
 import { useParams } from "react-router-dom";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { useCloudResourceViewContext } from "./CloudResourceViewContext";
+import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
 const CloudResourceSettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { id } = useParams();
   const modelId: ObjectID = new ObjectID(id || "");
+  const { cloudResourceKind } = useCloudResourceViewContext();
+
+  /*
+   * A resource discovered from cloud monitoring is matched to its metrics by
+   * what its provider reports, which never changes either: shown, never
+   * edited. Its retention and archive work as an environment's do.
+   */
+  if (isCloudResourceKindResource(cloudResourceKind)) {
+    return (
+      <Fragment>
+        <ResourceDetailsCard<CloudResource>
+          modelType={CloudResource}
+          modelId={modelId}
+          id="cloud-resource-details"
+          title="Resource Details"
+          description="How this resource is named, described and labelled everywhere it appears."
+          nameField={{
+            title: "Display Name",
+            description:
+              "Shown everywhere this resource appears. Metrics are not matched by the display name, so renaming is safe.",
+            placeholder: "vm-prod-01",
+          }}
+          descriptionField={{
+            placeholder: "Web tier VM for the checkout stack",
+          }}
+          identityFields={[
+            {
+              column: "cloudResourceType",
+              title: "Resource Type",
+            },
+            {
+              column: "providerResourceId",
+              title: "Provider Resource ID",
+            },
+            {
+              column: "cloudAccountId",
+              title: "Cloud Account ID",
+            },
+            {
+              column: "cloudRegion",
+              title: "Cloud Region",
+            },
+            {
+              column: "cloudResourceGroup",
+              title: "Resource Group",
+            },
+          ]}
+        />
+        <TelemetryResourceRetentionSettings<CloudResource>
+          modelType={CloudResource}
+          modelId={modelId}
+          resourceName="cloud resource"
+          modelDetailIdPrefix="cloud-resource"
+        />
+        <ArchiveResourceCard<CloudResource>
+          modelType={CloudResource}
+          modelId={modelId}
+          singularName="cloud resource"
+          listRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route,
+          )}
+        />
+      </Fragment>
+    );
+  }
 
   return (
     <Fragment>

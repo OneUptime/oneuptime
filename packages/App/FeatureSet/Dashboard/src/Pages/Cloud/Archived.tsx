@@ -13,6 +13,8 @@ import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { getManagedCloudPlatformLabel } from "Common/Types/Cloud/CloudPlatform";
+import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
+import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -40,14 +42,14 @@ const CloudArchivedPage: FunctionComponent<
         bulkActions={{
           buttons: [...unarchiveBulkActions],
         }}
-        name="Archived Cloud Environments"
+        name="Archived Cloud Environments and Resources"
         cardProps={{
-          title: "Archived Cloud Environments",
+          title: "Archived Cloud Environments and Resources",
           description:
-            "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
+            "Cloud environments and resources that are archived: hidden from their lists, but still collecting telemetry. A resource whose provider stopped reporting on it for a week is archived automatically, and comes back by itself when it reports again. Select rows to unarchive them.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No archived cloud environments."}
+        noItemsMessage={"No archived cloud environments or resources."}
         showRefreshButton={true}
         /*
          * View opens the resource's own page. The default view route (this
@@ -69,6 +71,10 @@ const CloudArchivedPage: FunctionComponent<
           cloudAccountId: true,
           cloudPlatform: true,
           cloudRegion: true,
+          cloudResourceKind: true,
+          cloudResourceType: true,
+          cloudProvider: true,
+          autoArchivedAt: true,
         }}
         filters={[]}
         columns={[
@@ -110,22 +116,31 @@ const CloudArchivedPage: FunctionComponent<
             field: {
               cloudPlatform: true,
             },
-            title: "Platform",
+            title: "Platform or Type",
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CloudResource): ReactElement => {
-              const platform: string = (item.cloudPlatform as string) || "";
+              /*
+               * An environment by its platform, a resource discovered from
+               * cloud monitoring by its type.
+               */
+              const platform: string = isCloudResourceKindResource(
+                item.cloudResourceKind,
+              )
+                ? getCloudResourceTypeLabel(
+                    item.cloudProvider as string | undefined,
+                    item.cloudResourceType as string | undefined,
+                  )
+                : getManagedCloudPlatformLabel(
+                    (item.cloudPlatform as string) || "",
+                  );
               const region: string = (item.cloudRegion as string) || "";
               if (!platform && !region) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span>
-                    {platform
-                      ? getManagedCloudPlatformLabel(platform)
-                      : translator.translateText("unknown")}
-                  </span>
+                  <span>{platform || translator.translateText("unknown")}</span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">
                       {region}
@@ -176,6 +191,14 @@ const CloudArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: CloudResource): ReactElement => {
               if (!item["archivedByUser"]) {
+                // The sweep archives a resource that stopped reporting.
+                if (item.autoArchivedAt) {
+                  return (
+                    <span className="text-sm text-gray-500">
+                      {translator.translateText("Automatically")}
+                    </span>
+                  );
+                }
                 return <span className="text-gray-400">—</span>;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
