@@ -13,7 +13,10 @@
  * with `helm package --version <release>`, which sets Chart.yaml's version
  * in the package and leaves values.yaml alone, so it stamps values.yaml
  * itself first. A stamp that is not the chart's version would warn every
- * install; one that never changes would warn nobody.
+ * install; one that never changes would warn nobody. The same step copies
+ * the chart's source to the helm-chart repository, with Chart.yaml's own
+ * version, so it puts the repository's values.yaml back before that copy:
+ * a stamped one beside it would warn every install from the copy.
  *
  * In the repository the stamp equals Chart.yaml's version, so a chart
  * rendered from a checkout (CI, the e2e suites) never warns; the chart's
@@ -126,6 +129,42 @@ describe("the kubernetes-agent chart carries its own version in values.yaml", ()
     expect(stampCommand().replacement).toBe(
       `chartDefaultsVersion: "${RELEASE_VERSION}"`,
     );
+  });
+
+  test("release.yml puts the repository's values.yaml back after packaging, before it copies the chart's source", () => {
+    const lines = packageStepScript()
+      .split("\n")
+      .map((line) => {
+        return line.trim();
+      });
+    const packageLine = lines.findIndex((line) => {
+      return /^helm package\b.*\bkubernetes-agent\b/.test(line);
+    });
+    const restores = lines
+      .map((line, index) => {
+        return { line, index };
+      })
+      .filter((entry) => {
+        return /^git checkout\b/.test(entry.line);
+      });
+    const copy = lines.findIndex((line) => {
+      return /^cp -r \.\/Public\/\* /.test(line);
+    });
+
+    expect(
+      restores.map((entry) => {
+        return entry.line;
+      }),
+    ).toEqual(["git checkout -- kubernetes-agent/values.yaml"]);
+    expect(packageLine).toBeGreaterThan(-1);
+    expect(restores[0].index).toBeGreaterThan(packageLine);
+    expect(copy).toBeGreaterThan(restores[0].index);
+    // It runs where the chart was packaged, so its path is the stamped file.
+    expect(
+      lines.slice(packageLine, restores[0].index).filter((line) => {
+        return /^cd\b/.test(line);
+      }),
+    ).toEqual([]);
   });
 
   test("the stamp sets exactly that one value, and the grep after it accepts the result", () => {

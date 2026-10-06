@@ -249,6 +249,11 @@ jobs:
           helm template kubernetes-agent --values kubernetes-agent/values.yaml --set clusterName=ci-render-check
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg kubernetes-agent --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}
           echo "Kubernetes Agent Helm Chart Package created successfully"
+          # The stamp is for the package only. The chart's source is copied to
+          # the helm-chart repository below with Chart.yaml's own version, and
+          # a stamped values.yaml beside it would warn every install from that
+          # copy, so put back the repository's, which carries that version.
+          git checkout -- kubernetes-agent/values.yaml
           cd ..
           ls
           echo "Copying the package to helm-chart repo"

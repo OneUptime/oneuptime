@@ -33,9 +33,10 @@ What it cannot tell:
     changed and an upgrade takes it with -f and no reuse flag (both keep the
     copy the release stored; the notes say so). A copy from a chart before
     the key does not pin it, and is not caught.
-  - A chart rendered from a source checkout carries Chart.yaml's version
-    (not a release's) on both sides, so an upgrade between two checkouts is
-    never stale.
+  - A chart rendered from a source checkout, or from the copy of the source
+    the helm-chart repository gets, carries Chart.yaml's version (not a
+    release's) on both sides, so an upgrade between two of them is never
+    stale.
 
 Returns JSON:
   stale              bool    the values come from another chart's values.yaml
