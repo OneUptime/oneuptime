@@ -140,16 +140,19 @@ Work through this list to make your OneUptime installation production-ready.
 - [ ] **Confirm the database migration Job is healthy.** With `migrate.enabled:
   true` (the default), schema and data migrations run once per release in a
   dedicated Job rather than on every pod. By default it runs **asynchronously**
-  (`migrate.hook: false`) so deploys never block — which means pods may start
-  before migrations finish, so keep your migrations backward-compatible, or set
-  `migrate.hook: true` to make the deploy wait. Note: with the async default, a
-  brand-new install leaves the app pods unready (CrashLoopBackOff) until the Job
-  creates the schema; for a clean first install run it once with
-  `--set migrate.hook=true` (and a longer timeout, e.g.
-  `helm upgrade --install --timeout 15m`, for a slow first-time CloudNativePG
-  bootstrap), then drop back to the async default. Check the Job with
-  `kubectl get jobs -l app.kubernetes.io/component=migrate` and its logs if a
-  deploy looks wrong.
+  (`migrate.hook: false`) so `helm` never blocks on it, and each new pod waits
+  at boot, unready, until the schema migrations its code needs are applied
+  (`migrate.runtimeWaitTimeoutSeconds`, 15 minutes) while the old pods keep
+  serving — so keep your migrations backward-compatible. A brand-new install
+  works the same way: the pods wait for the Job to create the schema. Set
+  `migrate.hook: true` to make `helm upgrade` itself wait for the Job (with a
+  `--timeout` sized for your migrations). For a fleet of more than three
+  replicas, consider `deployment.updateStrategy.rollingUpdate.maxUnavailable: 0`
+  so the rollout does not take old pods away while the new ones wait. Pods
+  restarting every 15 minutes during a deploy mean the Job has not finished:
+  check it with `kubectl get jobs -l app.kubernetes.io/component=migrate` and
+  its logs. See **New pods and pending schema migrations** in
+  [Postgres.md](../../../Docs/Postgres.md).
 
 ## Availability
 

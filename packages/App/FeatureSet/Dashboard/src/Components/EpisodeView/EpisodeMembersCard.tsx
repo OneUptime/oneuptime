@@ -1,7 +1,5 @@
 import Route from "Common/Types/API/Route";
-import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
-import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Black } from "Common/Types/BrandColors";
 import Exception from "Common/Types/Exception/Exception";
@@ -13,7 +11,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
   MutableRefObject,
   ReactElement,
@@ -25,7 +22,12 @@ import {
   EPISODE_MEMBERS_PREVIEW_LIMIT,
   EpisodeMemberPill,
   EpisodeMemberRow,
+  EpisodeMembership,
 } from "./EpisodeMembers";
+import {
+  FetchedEpisodeMembers,
+  fetchEpisodeMembers,
+} from "./FetchEpisodeMembers";
 import RelativeTime from "./RelativeTime";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -34,12 +36,15 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
-export interface ComponentProps<TMember extends BaseModel> {
+export interface ComponentProps<
+  TMember extends BaseModel,
+  TMembership extends BaseModel,
+> {
   // Incident or Alert.
   modelType: { new (): TMember };
   episodeId: ObjectID;
-  // The member's foreign key to its episode: "incidentEpisodeId" / "alertEpisodeId".
-  episodeIdField: keyof TMember & string;
+  // Which members the episode holds: its IncidentEpisodeMember / AlertEpisodeMember rows.
+  membership: EpisodeMembership<TMembership>;
   select: Select<TMember>;
   // Newest first by this date: "declaredAt" for incidents, "createdAt" for alerts.
   sortField: keyof TMember & string;
@@ -93,13 +98,17 @@ const getStatusPill: PillFunction = (
 /*
  * The core of an episode is the set of incidents (or alerts) it groups, so
  * the overview previews the newest few with their state and severity instead
- * of only a count. Every row links to the member's own page; "View all" opens
- * the full member table.
+ * of only a count. They are read by the episode's membership, as the full
+ * member table lists them (fetchEpisodeMembers says how). Every row links to
+ * the member's own page; "View all" opens the full member table.
  */
-const EpisodeMembersCard: <TMember extends BaseModel>(
-  props: ComponentProps<TMember>,
-) => ReactElement = <TMember extends BaseModel>(
-  props: ComponentProps<TMember>,
+const EpisodeMembersCard: <
+  TMember extends BaseModel,
+  TMembership extends BaseModel,
+>(
+  props: ComponentProps<TMember, TMembership>,
+) => ReactElement = <TMember extends BaseModel, TMembership extends BaseModel>(
+  props: ComponentProps<TMember, TMembership>,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const episodeIdString: string = props.episodeId.toString();
@@ -117,17 +126,17 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
     const requestedEpisodeId: string = episodeIdString;
 
     try {
-      const result: ListResult<TMember> = await ModelAPI.getList<TMember>({
+      const result: FetchedEpisodeMembers<TMember> = await fetchEpisodeMembers<
+        TMember,
+        TMembership
+      >({
+        episodeId: props.episodeId,
+        membership: props.membership,
         modelType: props.modelType,
-        query: {
-          [props.episodeIdField]: props.episodeId,
-        } as unknown as Query<TMember>,
-        limit: limit,
-        skip: 0,
         select: props.select,
-        sort: {
-          [props.sortField]: SortOrder.Descending,
-        } as Sort<TMember>,
+        sortField: props.sortField,
+        sortOrder: SortOrder.Descending,
+        limit: limit,
       });
 
       if (requestId !== requestIdRef.current) {
@@ -136,10 +145,10 @@ const EpisodeMembersCard: <TMember extends BaseModel>(
 
       setLoaded({
         episodeId: requestedEpisodeId,
-        rows: result.data.map((member: TMember): EpisodeMemberRow => {
+        rows: result.members.map((member: TMember): EpisodeMemberRow => {
           return props.toRow(member);
         }),
-        totalCount: Math.max(result.count || 0, result.data.length),
+        totalCount: result.totalCount,
       });
       setError("");
     } catch (err: unknown) {

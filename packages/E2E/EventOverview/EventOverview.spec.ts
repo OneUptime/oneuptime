@@ -7837,10 +7837,19 @@ test.describe("scheduled maintenance overview", () => {
 
 interface EpisodeCase {
   page: EventPage;
-  // How the members card reads its rows.
+  /*
+   * How the members card reads its rows: the episode's membership rows, then
+   * the members they name, by id. A member's own incidentEpisodeId /
+   * alertEpisodeId names only the latest episode it is in, so it is never
+   * asked.
+   */
+  membershipModel: string;
+  memberIdField: string;
   memberModel: string;
   episodeIdField: string;
   sortField: string;
+  // Every member's id, in the order they joined the episode.
+  memberIds: ReadonlyArray<string>;
   membersCard: string;
   count: string;
   viewAll: { name: string; href: string; stubPage: string };
@@ -7855,9 +7864,14 @@ interface EpisodeCase {
 const EPISODES: ReadonlyArray<EpisodeCase> = [
   {
     page: INCIDENT_EPISODE_PAGE,
+    membershipModel: "IncidentEpisodeMember",
+    memberIdField: "incidentId",
     memberModel: "Incident",
     episodeIdField: "incidentEpisodeId",
     sortField: "declaredAt",
+    memberIds: [1038, 1040, 1041, 1042].map((number: number): string => {
+      return uuid("20000000", number);
+    }),
     membersCard: "Incidents in this episode",
     count: "4 incidents",
     viewAll: {
@@ -7885,6 +7899,7 @@ const EPISODES: ReadonlyArray<EpisodeCase> = [
         severity: "SEV-2",
       },
       {
+        // Also in a later episode, which its own incidentEpisodeId names.
         number: "#1038",
         title: "Cart service 5xx rate above 2%",
         href: incidentPath(1038),
@@ -7894,9 +7909,14 @@ const EPISODES: ReadonlyArray<EpisodeCase> = [
   },
   {
     page: ALERT_EPISODE_PAGE,
+    membershipModel: "AlertEpisodeMember",
+    memberIdField: "alertId",
     memberModel: "Alert",
     episodeIdField: "alertEpisodeId",
     sortField: "createdAt",
+    memberIds: [305, 307, 309, 310, 311].map((number: number): string => {
+      return uuid("30000000", number);
+    }),
     membersCard: "Alerts in this episode",
     count: "5 alerts",
     viewAll: {
@@ -7930,6 +7950,7 @@ const EPISODES: ReadonlyArray<EpisodeCase> = [
         severity: "Low",
       },
       {
+        // Also in a later episode, which its own alertEpisodeId names.
         number: "#305",
         title: "Payment webhook latency above 3s",
         href: alertPath(305),
@@ -8012,24 +8033,63 @@ test.describe("episode overviews", () => {
         "members before feed",
       );
 
-      // Newest first, up to eight, filtered to this episode.
-      const list: RecordedModelRequest | undefined = (
-        await fixture(page)
-      ).listRequests.find((request: RecordedModelRequest): boolean => {
-        return (
-          request.modelName === episode.memberModel &&
-          Object.keys(request.query || {}).includes(episode.episodeIdField) &&
-          request.limit === 8
+      const requests: Array<RecordedModelRequest> = (await fixture(page))
+        .listRequests;
+
+      // The episode's membership: the page's snapshot and the card each read it.
+      const membershipReads: Array<RecordedModelRequest> = requests.filter(
+        (request: RecordedModelRequest): boolean => {
+          return request.modelName === episode.membershipModel;
+        },
+      );
+      expect(membershipReads, "membership reads").toHaveLength(2);
+      for (const read of membershipReads) {
+        expect(Object.keys(read.query || {})).toEqual([episode.episodeIdField]);
+        expect(JSON.stringify(read.query)).toContain(
+          eventPage === INCIDENT_EPISODE_PAGE
+            ? INCIDENT_EPISODE_ID
+            : ALERT_EPISODE_ID,
         );
-      });
+        expect(read.select).toEqual({ [episode.memberIdField]: true });
+      }
+
+      // Then the members it names, by id: newest first, up to eight.
+      const list: RecordedModelRequest | undefined = requests.find(
+        (request: RecordedModelRequest): boolean => {
+          return (
+            request.modelName === episode.memberModel && request.limit === 8
+          );
+        },
+      );
       expect(list, "members preview request").toBeDefined();
       expect(list?.skip).toBe(0);
       expect(list?.sort).toEqual({ [episode.sortField]: "DESC" });
-      expect(JSON.stringify(list?.query)).toContain(
-        eventPage === INCIDENT_EPISODE_PAGE
-          ? INCIDENT_EPISODE_ID
-          : ALERT_EPISODE_ID,
+      expect(list?.query).toEqual({
+        _id: { _type: "Includes", value: episode.memberIds },
+      });
+
+      // The telemetry snapshot's first member comes from the same membership.
+      const firstMember: RecordedModelRequest | undefined = requests.find(
+        (request: RecordedModelRequest): boolean => {
+          return (
+            request.modelName === episode.memberModel && request.limit === 1
+          );
+        },
       );
+      expect(firstMember, "first member request").toBeDefined();
+      expect(firstMember?.sort).toEqual({ [episode.sortField]: "ASC" });
+      expect(firstMember?.query).toEqual({
+        _id: { _type: "Includes", value: episode.memberIds },
+      });
+
+      // No read asks for members by their own episode link.
+      for (const request of requests) {
+        if (request.modelName === episode.memberModel) {
+          expect(Object.keys(request.query || {})).not.toContain(
+            episode.episodeIdField,
+          );
+        }
+      }
 
       await viewAll.click();
       await expect(page.getByTestId("stub-page")).toHaveAttribute(

@@ -1,7 +1,9 @@
 import {
+  composedValue,
   createTranslator,
   fillTemplate,
   getPluralCategory,
+  isComposedValue,
   isTranslatableTerm,
   PluralTemplate,
   TextLookup,
@@ -498,5 +500,110 @@ describe("language", () => {
   test("defaults to English", () => {
     expect(nothingSetUp.language).toBe("en");
     expect(german.language).toBe("de");
+  });
+});
+
+/*
+ * A value put together from other translated strings - names joined with
+ * "or", clauses joined into one sentence - goes into a sentence in the
+ * sentence's language. A locale with wordings of the pieces but not of the
+ * sentence still reads one English sentence, and a locale with the sentence
+ * reads the pieces in its own words.
+ */
+describe("composedValue", () => {
+  const NEEDS: string = "Changing this needs {{permissions}}.";
+  const EITHER: string = "{{first}} or {{second}}";
+  const ROWS_NEED: PluralTemplate = {
+    one: "{{count}} row needs {{permissions}}.",
+    other: "{{count}} rows need {{permissions}}.",
+  };
+
+  const either: ReturnType<typeof composedValue> = composedValue(
+    (translator: Translator): string => {
+      return translator.translateTemplate(EITHER, {
+        first: "Project Owner",
+        second: translatableTerm("Incidents"),
+      });
+    },
+  );
+
+  const withSentence: Translator = createTranslator(
+    lookupFrom(
+      {
+        [NEEDS]: "Dafür braucht es {{permissions}}.",
+        [EITHER]: "{{first}} oder {{second}}",
+        [ROWS_NEED.other]: "{{count}} Zeilen brauchen {{permissions}}.",
+        [`${ROWS_NEED.other}_one`]: "{{count}} Zeile braucht {{permissions}}.",
+      },
+      GERMAN,
+      ENGLISH,
+    ),
+    "de",
+  );
+
+  // Has the pieces' wordings, but not the sentence's.
+  const withPiecesOnly: Translator = createTranslator(
+    lookupFrom({ [EITHER]: "{{first}} oder {{second}}" }, GERMAN, ENGLISH),
+    "de",
+  );
+
+  test("isComposedValue tells a composed value from terms and plain values", () => {
+    expect(isComposedValue(either)).toBe(true);
+    expect(isComposedValue(translatableTerm("Incidents"))).toBe(false);
+    expect(isComposedValue("x")).toBe(false);
+    expect(isComposedValue(3)).toBe(false);
+    expect(isComposedValue(null)).toBe(false);
+    expect(isComposedValue({ compose: "x" })).toBe(false);
+  });
+
+  test("a translated sentence builds it in the reader's language", () => {
+    expect(withSentence.translateTemplate(NEEDS, { permissions: either })).toBe(
+      "Dafür braucht es Project Owner oder Vorfälle.",
+    );
+  });
+
+  test("a sentence the locale lacks builds it in English, pieces and all", () => {
+    expect(
+      withPiecesOnly.translateTemplate(NEEDS, { permissions: either }),
+    ).toBe("Changing this needs Project Owner or Incidents.");
+  });
+
+  test("English and fillTemplate build it in English", () => {
+    expect(english.translateTemplate(NEEDS, { permissions: either })).toBe(
+      "Changing this needs Project Owner or Incidents.",
+    );
+    expect(nothingSetUp.translateTemplate(NEEDS, { permissions: either })).toBe(
+      "Changing this needs Project Owner or Incidents.",
+    );
+    expect(fillTemplate(NEEDS, { permissions: either })).toBe(
+      "Changing this needs Project Owner or Incidents.",
+    );
+  });
+
+  test("a count-dependent sentence builds it in the sentence's language too", () => {
+    expect(
+      withSentence.translatePlural(ROWS_NEED, 1, { permissions: either }),
+    ).toBe("1 Zeile braucht Project Owner oder Vorfälle.");
+    expect(
+      withSentence.translatePlural(ROWS_NEED, 3, { permissions: either }),
+    ).toBe("3 Zeilen brauchen Project Owner oder Vorfälle.");
+    expect(
+      withPiecesOnly.translatePlural(ROWS_NEED, 3, { permissions: either }),
+    ).toBe("3 rows need Project Owner or Incidents.");
+  });
+
+  test("it is built with the very translator the sentence is filled with", () => {
+    const languages: Array<string> = [];
+    const value: ReturnType<typeof composedValue> = composedValue(
+      (translator: Translator): string => {
+        languages.push(translator.language);
+        return "x";
+      },
+    );
+
+    withSentence.translateTemplate(NEEDS, { permissions: value });
+    withPiecesOnly.translateTemplate(NEEDS, { permissions: value });
+
+    expect(languages).toEqual(["de", "en"]);
   });
 });

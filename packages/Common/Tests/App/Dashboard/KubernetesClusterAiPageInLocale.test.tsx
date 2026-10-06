@@ -36,6 +36,19 @@ import {
   AUTOMATIC_INVESTIGATION_CONFIRMATIONS,
   AUTOMATIC_INVESTIGATION_LINE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAgentStatus";
+import {
+  INVESTIGATION_ON_SENTENCE,
+  REMEDIATION_MODE_SUMMARIES,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSettings";
+import {
+  AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,
+  AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
+import {
+  AI_ACCESS_PROTECTIONS_TITLE,
+  formatAiAccessProtections,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessModes";
+import { AI_ACCESS_ALLOWLIST_EMPTY_TEXT } from "../../../../App/FeatureSet/Dashboard/src/Components/AiAccess/AiAccessRow";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -51,6 +64,7 @@ import {
   KubernetesClusterAiAccessStatus,
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
+  PROTECTED_KUBERNETES_NAMESPACES,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -142,6 +156,34 @@ function wordingIn(code: string, key: string): string {
   return value;
 }
 
+/*
+ * The locale's value for `key`, which may read the same as the English
+ * (French says "Investigation", French and Italian say "cluster").
+ */
+function valueIn(code: string, key: string): string {
+  const value: string | undefined = LOCALES[code]![key];
+
+  if (!value) {
+    throw new Error(`${code}.json has no "${key}".`);
+  }
+
+  return value;
+}
+
+// A word the locale puts into the middle of a sentence ({{noun}}).
+function termIn(code: string, key: string): string {
+  return toSentenceTerm(valueIn(code, key), code);
+}
+
+// The locale's list of the protected namespaces, joined with "and" or "or".
+function namespacesIn(code: string, conjunction: "and" | "or"): string {
+  return filledIn(code, `{{first}}, {{second}} ${conjunction} {{third}}`, {
+    first: PROTECTED_KUBERNETES_NAMESPACES[0]!,
+    second: PROTECTED_KUBERNETES_NAMESPACES[1]!,
+    third: PROTECTED_KUBERNETES_NAMESPACES[2]!,
+  });
+}
+
 // The locale's sentence for `template`, with the project's name in its slot.
 function sentenceIn(code: string, template: string, project: string): string {
   return wordingIn(code, template).replace("{{project}}", project);
@@ -179,6 +221,7 @@ function patternIn(code: string, template: string): RegExp {
 
 let postSpy: ReturnType<typeof jest.spyOn>;
 let updateByIdSpy: ReturnType<typeof jest.spyOn>;
+let getItemSpy: ReturnType<typeof jest.spyOn>;
 
 function makeAgent(
   overrides: Partial<KubernetesAiAgentSummary> = {},
@@ -357,6 +400,16 @@ beforeEach(() => {
       return new HTTPResponse<JSONObject>(200, {}, {});
     },
   );
+  // The Change modal reads the cluster's saved settings.
+  getItemSpy = jest.spyOn(ModelAPI, "getItem");
+  getItemSpy.mockImplementation(async (): Promise<KubernetesCluster> => {
+    return Object.assign(new KubernetesCluster(), {
+      _id: CLUSTER_ID.toString(),
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+      aiKubectlCommandAllowlist: [],
+    });
+  });
   jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
 });
 
@@ -752,4 +805,250 @@ describe("the AI agent page in the reader's language", () => {
       await findTestId("ai-access-automatic-investigation-ask"),
     ).toHaveTextContent(wordingIn("de", ASK_PROJECT_ADMIN_TEXT));
   });
+});
+
+/*
+ * The "What AI may do" card and its Change modal in the reader's language.
+ * Its rows, badges, mode summaries, hints and the allowlist's words used to
+ * read English in every language: the building blocks drew their text as
+ * given, and the mode maps were keyed by an enum the extractor cannot read.
+ */
+describe("What AI may do, in the reader's language", () => {
+  async function findRow(testId: string): Promise<HTMLElement> {
+    return await findTestId(testId);
+  }
+
+  test.each(LANGUAGES)(
+    "%s: the rows, their badges and sentences, the card's description and the fixes-off hint",
+    async (code: string) => {
+      await setLanguage(code);
+      serve(makeStatus());
+      openAgentPage(acme());
+
+      const investigation: HTMLElement = await findRow(
+        "ai-access-investigation",
+      );
+      expect(within(investigation).getByRole("heading").textContent).toBe(
+        valueIn(code, "Investigation"),
+      );
+      expect(
+        screen.getByTestId("ai-access-investigation-badge"),
+      ).toHaveTextContent(valueIn(code, "On"));
+      expect(
+        screen.getByTestId("ai-access-investigation-value"),
+      ).toHaveTextContent(wordingIn(code, INVESTIGATION_ON_SENTENCE));
+
+      const fixes: HTMLElement = screen.getByTestId("ai-access-fixes");
+      expect(within(fixes).getByRole("heading").textContent).toBe(
+        valueIn(code, "Fixes"),
+      );
+      expect(screen.getByTestId("ai-access-fixes-badge")).toHaveTextContent(
+        wordingIn(code, "Off"),
+      );
+      expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
+        wordingIn(
+          code,
+          REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.Disabled],
+        ),
+      );
+      expect(
+        screen.getByText(
+          filledIn(
+            code,
+            "For incidents and alerts on this {{noun}}. Changes apply from the next one.",
+            { noun: termIn(code, "cluster") },
+          ),
+        ),
+      ).toBeInTheDocument();
+      // An admin may turn fixes on: the hint sends them to Change.
+      expect(screen.getByTestId("ai-access-fixes-off-hint")).toHaveTextContent(
+        wordingIn(
+          code,
+          "Want AI to propose fixes? Click Change and choose Ask for approval.",
+        ),
+      );
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: Automatic mode: its summary and the allowlist in effect",
+    async (code: string) => {
+      await setLanguage(code);
+      serve(
+        makeStatus({ remediationMode: KubernetesAiRemediationMode.Automatic }),
+      );
+      openAgentPage(acme());
+
+      expect(await findTestId("ai-access-fixes-badge")).toHaveTextContent(
+        wordingIn(code, "Automatic"),
+      );
+      expect(screen.getByTestId("ai-access-fixes-value")).toHaveTextContent(
+        wordingIn(
+          code,
+          REMEDIATION_MODE_SUMMARIES[KubernetesAiRemediationMode.Automatic],
+        ),
+      );
+
+      const allowlist: HTMLElement = screen.getByTestId(
+        "kubectl-allowlist-in-effect",
+      );
+      expect(allowlist).toHaveTextContent(wordingIn(code, "kubectl allowlist"));
+      expect(allowlist).toHaveTextContent(
+        wordingIn(code, AI_ACCESS_ALLOWLIST_EMPTY_TEXT),
+      );
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: the write-access panel, its notes and the disclosure, the namespaces listed in the reader's words",
+    async (code: string) => {
+      await setLanguage(code);
+      serve(
+        makeStatus({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        }),
+      );
+      openAgentPage(acme());
+
+      const panel: HTMLElement = await findTestId("ai-access-write-commands");
+      expect(panel).toHaveTextContent(
+        wordingIn(code, "Give the agent write access"),
+      );
+      expect(
+        screen.getByTestId("ai-access-helm-remediation-scoped-note"),
+      ).toHaveTextContent(
+        filledIn(
+          code,
+          "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).",
+          {
+            exampleNamespaces: AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
+            clusterWideFlag: AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,
+          },
+        ),
+      );
+      expect(
+        screen.getByTestId("ai-access-helm-remediation-note"),
+      ).toHaveTextContent(
+        filledIn(
+          code,
+          "{{clusterWideFlag}} clears any namespace list stored on the release, so the agent may change every namespace (needs Helm 3.10 or later). Node operations keep the release's setting.",
+          { clusterWideFlag: AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG },
+        ),
+      );
+      expect(
+        screen.getByTestId("ai-access-write-disclosure"),
+      ).toHaveTextContent(
+        filledIn(
+          code,
+          "Write access lets the agent patch and update Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Pods and HPAs, create Jobs and HPAs, and delete Pods and Jobs — and, unless aiAgent.remediation.nodeOperations=false, cordon, uncordon, drain and taint every node. In a namespace, that is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets. Without aiAgent.remediation.namespaces it applies cluster-wide — {{protectedNamespaces}} and the agent's own namespace included. There OneUptime still holds the line: a change in {{anyProtectedNamespace}} always needs a person, and the agent never changes its own namespace.",
+          {
+            protectedNamespaces: namespacesIn(code, "and"),
+            anyProtectedNamespace: namespacesIn(code, "or"),
+          },
+        ),
+      );
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: the Change modal: the mode cards, the current one marked, the field's help and the protections",
+    async (code: string) => {
+      await setLanguage(code);
+      serve(makeStatus());
+      openAgentPage(acme());
+
+      fireEvent.click(await findTestId("ai-access-change-button"));
+      const dialog: HTMLElement = await screen.findByRole(
+        "dialog",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      const modeField: HTMLElement = await within(dialog).findByTestId(
+        "ai-remediation-mode-field",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(
+        within(modeField)
+          .getAllByRole("radio")
+          .map((card: HTMLElement): string => {
+            return card.querySelector("span.font-semibold")?.textContent || "";
+          }),
+      ).toEqual([
+        filledIn(code, "{{mode}} (current)", { mode: wordingIn(code, "Off") }),
+        wordingIn(code, "Ask for approval"),
+        wordingIn(code, "Automatic"),
+        wordingIn(code, "Bypass approval"),
+      ]);
+      expect(
+        within(dialog).getByText(
+          filledIn(
+            code,
+            "What AI does when it finds a fix for a problem on this {{noun}}.",
+            { noun: termIn(code, "cluster") },
+          ),
+        ),
+      ).toBeInTheDocument();
+
+      const protections: HTMLElement = within(dialog).getByTestId(
+        "ai-access-protections",
+      );
+      expect(protections).toHaveTextContent(
+        wordingIn(code, AI_ACCESS_PROTECTIONS_TITLE),
+      );
+      expect(
+        Array.from(
+          within(protections)
+            .getByTestId("ai-access-protections-list")
+            .querySelectorAll("li"),
+        ).map((item: Element): string => {
+          return item.textContent || "";
+        }),
+      ).toEqual(
+        formatAiAccessProtections([
+          wordingIn(
+            code,
+            "destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run",
+          ),
+          filledIn(
+            code,
+            "a write in {{namespaces}}, a node drain, a node taint and a patch of a node always need a human",
+            { namespaces: namespacesIn(code, "or") },
+          ),
+          wordingIn(
+            code,
+            "the in-cluster agent never changes its own namespace or anything outside the namespaces its chart may write",
+          ),
+          wordingIn(
+            code,
+            "an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
+          ),
+        ]),
+      );
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: someone who may not run the connection test is told why",
+    async (code: string) => {
+      // May read the cluster, not edit it: the test needs edit access.
+      grant([...BASE_PERMISSIONS, Permission.ReadKubernetesCluster]);
+      await setLanguage(code);
+      serve(makeStatus());
+      openAgentPage(acme());
+
+      expect(
+        (await findTestId("ai-agent-test-permission-note")).textContent,
+      ).toMatch(
+        patternIn(
+          code,
+          "Testing the connection needs permission to edit this {{noun}} (one of: {{permissions}}).",
+        ),
+      );
+      expect(
+        screen.getByTestId("ai-agent-test-permission-note"),
+      ).toHaveTextContent(termIn(code, "cluster"));
+    },
+  );
 });

@@ -65,7 +65,6 @@ import {
   buildKubernetesAiCredentialOptions,
   buildKubernetesAiRunnerDirectory,
   buildKubernetesAiRunnerOptions,
-  capitalizeFirst,
   getAllowlistInEffect,
   getEveryModeProtections,
   getKubectlAllowlistRemovalOnlyError,
@@ -112,6 +111,7 @@ import {
   AgentAiSettingsChoice,
   formatAiAccessProtections,
   getAiAccessCardDescription,
+  getAiAccessLooseningRefusal,
   getAiFixesBadge,
   getAiFixesFieldDescription,
   getAiFixesModeCardTitle,
@@ -160,6 +160,7 @@ import {
   KubernetesAiAutomaticInvestigationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -222,6 +223,7 @@ import React, {
 import { Navigate, useParams } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
   translatableTerm,
   translationKey,
   Translator,
@@ -338,23 +340,25 @@ function parseAccessTestResult(data: JSONObject): AccessTestResult {
 
 /*
  * What an editor without the admin set may change here, and what they may
- * not. AiAccessPermissionNote shows its texts as given.
+ * not. AiAccessPermissionNote looks its texts up; the permissions are
+ * listed in the language of the sentence they end.
  */
 function AdminPermissionNote(): ReactElement {
   const translator: Translator = useTranslator();
 
   return (
     <AiAccessPermissionNote
-      canText={translator.translateTemplate(
-        "You can turn investigation on or off, lower fixes and remove allowlist patterns.",
-      )}
+      canText="You can turn investigation on or off, lower fixes and remove allowlist patterns."
       cannotText={translator.translateTemplate(
         "Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs {{permissions}}.",
         {
-          permissions: formatNameList(
-            getKubernetesAiAccessAdminPermissionTitles(),
-            translator.translateTemplate("or"),
-          ),
+          permissions: composedValue((sentence: Translator): string => {
+            return formatNameList(
+              getKubernetesAiAccessAdminPermissionTitles(),
+              "or",
+              sentence,
+            );
+          }),
         },
       )}
       dataTestId="kubernetes-ai-access-admin-note"
@@ -896,14 +900,21 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     }
 
     if (!canConfigureUnattended) {
-      const loosening: Array<string> = getKubernetesAiAccessLooseningChanges({
-        saved,
-        changes,
-        hasAiAgent: props.hasAiAgent,
-      });
-      if (loosening.length > 0) {
+      const getLoosening: (sentence?: Translator) => Array<string> = (
+        sentence?: Translator,
+      ): Array<string> => {
+        return getKubernetesAiAccessLooseningChanges(
+          { saved, changes, hasAiAgent: props.hasAiAgent },
+          sentence,
+        );
+      };
+
+      if (getLoosening().length > 0) {
         setSaveError(
-          `${capitalizeFirst(loosening.join(", "))} needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}.`,
+          getAiAccessLooseningRefusal({
+            getChanges: getLoosening,
+            permissionTitles: getKubernetesAiAccessAdminPermissionTitles(),
+          }),
         );
         return;
       }
@@ -2099,23 +2110,15 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
       >
         {isSetByAgent ? (
           <AiAccessSetBy
-            text={
-              translator.translateText(
-                KUBERNETES_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource],
-              ) || KUBERNETES_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource]
-            }
+            text={KUBERNETES_AI_SETTINGS_SET_BY_TEXT[aiSettingsSource]}
             isSetByAgent={true}
             dataTestId="ai-access-set-by"
           />
         ) : canMoveSettingsToAgent ? (
           <AiAccessSetBy
-            text={
-              translator.translateText(
-                KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime,
-              ) || KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime
-            }
+            text={KUBERNETES_AI_SETTINGS_SET_BY_TEXT.oneuptime}
             isSetByAgent={false}
-            actionText={translator.translateText("Show how")}
+            actionText="Show how"
             onAction={() => {
               openAgentSettingsDialog(false);
             }}
@@ -2184,8 +2187,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
               <AiAccessHint
                 text={
                   isSetByAgent
-                    ? translator.translateText(AI_FIXES_OFF_AGENT_SET_HINT) ||
-                      AI_FIXES_OFF_AGENT_SET_HINT
+                    ? AI_FIXES_OFF_AGENT_SET_HINT
                     : getAiFixesOffHint(
                         settingsGate.isAllowed && canConfigureUnattended,
                       )
@@ -2195,7 +2197,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             ) : null}
             {remediationMode === KubernetesAiRemediationMode.Automatic ? (
               <AiAccessAllowlist
-                title={translator.translateTemplate("kubectl allowlist")}
+                title="kubectl allowlist"
                 patterns={allowlistInEffect}
                 dataTestId="kubectl-allowlist-in-effect"
                 /*
@@ -2207,7 +2209,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   isSetByAgent &&
                   settingsGate.isAllowed &&
                   (canConfigureUnattended || allowlistInEffect.length > 0)
-                    ? translator.translateText("Edit")
+                    ? "Edit"
                     : undefined
                 }
                 onEdit={() => {
@@ -2229,9 +2231,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             ) : null}
             {shouldShowWriteAccessCommands(status) ? (
               <AiAccessActionPanel
-                title={translator.translateTemplate(
-                  "Give the agent write access",
-                )}
+                title="Give the agent write access"
                 dataTestId="ai-access-write-commands"
               >
                 <p className="text-xs leading-5 text-gray-600">
@@ -2299,7 +2299,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
 
       {agentSettingsDialog ? (
         <AgentAiSettingsModal
-          agentName="Kubernetes AI agent"
+          agentName={KUBERNETES_AI_AGENT_DISPLAY_NAME}
           source={aiSettingsSource}
           current={currentChoice}
           turnOnInvestigation={agentSettingsDialog.turnOnInvestigation}

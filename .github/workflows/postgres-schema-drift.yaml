@@ -728,6 +728,24 @@ jobs:
           Tests/Server/Infrastructure/Postgres/SchemaMigrationLockRetryPostgres.test.ts
           --forceExit
 
+      # A runtime process (RUN_DATABASE_MIGRATIONS_ON_BOOT=false) connects while
+      # the migrate Job applies two migrations, the second held back by a long
+      # transaction on its table: connect() must return only once the last one
+      # has committed, give up after its timeout when they never come, and
+      # create nothing while it reads. Its tables live in a schema of their
+      # own; it needs no migrated table.
+      - name: Test runtime processes waiting for schema migrations on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCHEMA_MIGRATION_WAIT_TESTS: "true"
+          SCHEMA_MIGRATION_WAIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCHEMA_MIGRATION_WAIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCHEMA_MIGRATION_WAIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/SchemaMigrationWaitPostgres.test.ts
+          --forceExit
+
       - name: Test the configurable rule criteria migration on migrated Postgres
         working-directory: packages/Common
         env:

@@ -2,6 +2,10 @@ import Database from "../../../Server/Infrastructure/PostgresDatabase";
 import SchemaMigrationRunner, {
   SchemaMigrationLockTimeoutError,
 } from "../../../Server/Infrastructure/Postgres/SchemaMigrationRunner";
+import SchemaMigrationWait, {
+  SchemaMigrationWaitPolicy,
+  SchemaMigrationWaitTimeoutError,
+} from "../../../Server/Infrastructure/Postgres/SchemaMigrationWait";
 import * as MigrationFailureLog from "../../../Server/Utils/Database/MigrationFailureLog";
 import GracefulShutdown from "../../../Server/Utils/GracefulShutdown";
 import logger from "../../../Server/Utils/Logger";
@@ -15,7 +19,12 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { DataSource, DataSourceOptions } from "typeorm";
+import {
+  DataSource,
+  DataSourceOptions,
+  Migration,
+  MigrationExecutor,
+} from "typeorm";
 
 /*
  * Where PostgresDatabase.connect() applies the schema migrations.
@@ -33,7 +42,13 @@ import { DataSource, DataSourceOptions } from "typeorm";
  *
  *  - a process that runs migrations runs them through the runner, after the
  *    pool is up, and never through initialize();
- *  - a runtime pod (a migrate Job owns migrations) does not run them;
+ *  - a runtime pod (a migrate Job owns migrations) does not run them, but
+ *    does not start on a schema older than its code either: it waits for
+ *    them on its pool, and is not connected until they are applied - in
+ *    14.0.13 the new worker pods started on the old schema, and no monitor
+ *    was processed until AddArchiveToMoreResources committed;
+ *  - a wait that runs out fails the boot at once, like a lock timeout, and
+ *    the pod is restarted to wait again rather than started;
  *  - a migration that could not get its locks fails the boot at once - the
  *    runner has already spent its retry window, and three more rounds of it
  *    would only hold the deploy longer - and is recorded for the admin page;
@@ -51,6 +66,12 @@ describe("PostgresDatabase.connect() and the schema migrations", () => {
   let events: Array<string>;
   let runner: SpyInstance<
     (options: DataSourceOptions) => Promise<Array<string>>
+  >;
+  let wait: SpyInstance<
+    (
+      dataSource: DataSource,
+      policy?: SchemaMigrationWaitPolicy,
+    ) => Promise<void>
   >;
   let destroy: SpyInstance<() => Promise<void>>;
   let sleep: SpyInstance<(ms: number) => Promise<void>>;
@@ -99,6 +120,11 @@ describe("PostgresDatabase.connect() and the schema migrations", () => {
         events.push("migrate");
         return [];
       });
+    wait = jest
+      .spyOn(SchemaMigrationWait, "waitForPendingMigrations")
+      .mockImplementation(async () => {
+        events.push("wait");
+      });
     sleep = jest.spyOn(Sleep, "sleep").mockImplementation(async () => {
       return undefined;
     });
@@ -137,13 +163,109 @@ describe("PostgresDatabase.connect() and the schema migrations", () => {
     expect(initialized[0]!.migrationsRun).toBe(false);
   });
 
-  test("a runtime pod does not run them at all", async () => {
-    useOptions(false);
+  test("a process that runs them never waits for them", async () => {
+    useOptions(true);
 
     await Database.connect();
 
-    expect(events).toEqual(["initialize"]);
+    expect(wait).not.toHaveBeenCalled();
+  });
+
+  test("a runtime pod does not run them: it waits for them, on its own pool, after the pool is up", async () => {
+    useOptions(false);
+
+    const dataSource: DataSource = await Database.connect();
+
+    expect(events).toEqual(["initialize", "wait"]);
     expect(runner).not.toHaveBeenCalled();
+    expect(wait).toHaveBeenCalledTimes(1);
+    expect(wait.mock.calls[0]![0]).toBe(dataSource);
+    expect(Database.getDataSource()).toBe(dataSource);
+  });
+
+  test("a runtime pod is not connected while it waits, so it has not started", async () => {
+    useOptions(false);
+    let applied: () => void = () => {
+      return undefined;
+    };
+    wait.mockImplementation(() => {
+      events.push("wait");
+      return new Promise<void>((resolve: () => void) => {
+        applied = resolve;
+      });
+    });
+
+    let connected: boolean = false;
+    const connecting: Promise<DataSource> = Database.connect().then(
+      (dataSource: DataSource) => {
+        connected = true;
+        return dataSource;
+      },
+    );
+
+    // Let initialize() and everything up to the wait run.
+    for (let tick: number = 0; tick < 10; tick++) {
+      await Promise.resolve();
+    }
+
+    expect(events).toEqual(["initialize", "wait"]);
+    expect(connected).toBe(false);
+    expect(Database.isConnected()).toBe(false);
+    expect(Database.getDataSource()).toBeNull();
+
+    applied();
+    const dataSource: DataSource = await connecting;
+
+    expect(connected).toBe(true);
+    expect(Database.getDataSource()).toBe(dataSource);
+  });
+
+  test("a wait that runs out fails the boot at once, without the reconnect retries", async () => {
+    const options: DataSourceOptions = useOptions(false);
+    const failure: SchemaMigrationWaitTimeoutError =
+      new SchemaMigrationWaitTimeoutError({
+        pendingMigrationNames: ["AddArchiveToMoreResources1797200000000"],
+        waitedInMs: 900_000,
+        lastError: null,
+      });
+    wait.mockImplementation(async () => {
+      events.push("wait");
+      throw failure;
+    });
+
+    await expect(Database.connect()).rejects.toBe(failure);
+
+    // Its pool is closed, and it is not retried: that would wait 4 x 15 min.
+    expect(events).toEqual(["initialize", "wait", "destroy"]);
+    expect(wait).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+    expect(Database.getDataSource()).toBeNull();
+    /*
+     * Handed to the failure log as any boot failure is; it records nothing
+     * for a process that does not run migrations (migrationsRun false).
+     */
+    expect(record).toHaveBeenCalledWith(options, failure);
+  });
+
+  test("with the real wait: a runtime pod connects once the migrate Job has applied what its code needs", async () => {
+    useOptions(false);
+    wait.mockRestore();
+    const archive: Migration = {
+      name: "AddArchiveToMoreResources1797200000000",
+    } as Migration;
+    const pending: SpyInstance<() => Promise<Array<Migration>>> = jest
+      .spyOn(MigrationExecutor.prototype, "getPendingMigrations")
+      .mockResolvedValueOnce([archive])
+      .mockResolvedValueOnce([archive])
+      .mockResolvedValue([]);
+
+    const dataSource: DataSource = await Database.connect();
+
+    // Read three times, five seconds apart (the pauses are stubbed).
+    expect(pending).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls).toEqual([[5000], [5000]]);
+    expect(events).toEqual(["initialize"]);
+    expect(Database.getDataSource()).toBe(dataSource);
   });
 
   test("a migration that could not get its locks fails the boot at once, recorded", async () => {

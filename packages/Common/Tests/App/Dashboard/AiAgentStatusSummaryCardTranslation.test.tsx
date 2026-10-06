@@ -61,6 +61,7 @@ function readLocale(locale: string): Record<string, string> {
 }
 
 const JA: Record<string, string> = readLocale("ja");
+const FR: Record<string, string> = readLocale("fr");
 
 let postSpy: ReturnType<typeof jest.spyOn>;
 
@@ -68,7 +69,7 @@ beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "ja",
     fallbackLng: "ja",
-    resources: { ja: { translation: JA } },
+    resources: { ja: { translation: JA }, fr: { translation: FR } },
     interpolation: { escapeValue: false },
     keySeparator: false,
     nsSeparator: false,
@@ -343,5 +344,138 @@ describe("the Overview's AI agent card in Japanese", () => {
         translated: true,
       });
     }
+  });
+});
+
+/*
+ * The Connection sentence holds the agent's name as written on its own.
+ * French writes the Kubernetes agent's as "Agent IA Kubernetes" and keeps
+ * the resource agents' English, so its sentence used to read "Le Agent IA
+ * Kubernetes est connecté.": an article that suits "Docker AI agent" only.
+ * French now words the sentence without an article, for every name.
+ */
+describe("the Overview's AI agent card in French", () => {
+  beforeEach(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("fr");
+    });
+  });
+
+  afterEach(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("ja");
+    });
+  });
+
+  test("the cluster's agent: its French name, with the sentence agreeing", async () => {
+    const lastAliveAt: string = new Date().toISOString();
+    const posture: JSONObject = {
+      clusterIdentifier: "prod",
+      inCluster: true,
+      allowWrites: false,
+      writeNamespaces: [],
+    };
+
+    postSpy.mockImplementation(async (): Promise<HTTPResponse<JSONObject>> => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          clusterId: RESOURCE_ID.toString(),
+          clusterName: "prod",
+          runner: {
+            id: "99999999-0000-4000-8000-000000000009",
+            name: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+            kind: "ai_agent",
+            isOnline: true,
+            lastAliveAt,
+            canRunAiCommands: true,
+            posture,
+          },
+          accessMethod: "in_cluster",
+          aiAgent: {
+            id: "99999999-0000-4000-8000-000000000009",
+            isOnline: true,
+            connectionStatus: "connected",
+            lastAliveAt,
+            posture,
+          },
+          automaticInvestigation: { incidents: false, alerts: false },
+          kubectlAllowlist: [],
+          isInvestigationEnabled: true,
+          isInvestigationReady: true,
+          remediationMode: KubernetesAiRemediationMode.Disabled,
+          isRemediationReady: false,
+          gaps: [],
+          evaluatedAt: lastAliveAt,
+        },
+        {},
+      );
+    });
+
+    render(<KubernetesAiAgentStatusSummaryCard clusterId={RESOURCE_ID} />);
+    await findCard();
+
+    const sentence: string =
+      screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-value`)
+        .textContent || "";
+
+    expect(FR[KUBERNETES_AI_AGENT_DISPLAY_NAME]).toBe("Agent IA Kubernetes");
+    expect(sentence).toBe(
+      FR["The {{agent}} is connected."]!.replace(
+        "{{agent}}",
+        FR[KUBERNETES_AI_AGENT_DISPLAY_NAME]!,
+      ),
+    );
+    expect(sentence.startsWith("Agent IA Kubernetes ")).toBe(true);
+    expect(sentence).not.toMatch(/\bLe Agent\b/);
+  });
+
+  test("a resource's agent: its English name, with the same sentence agreeing", async () => {
+    postSpy.mockImplementation(async (): Promise<HTTPResponse<JSONObject>> => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          resourceType: AiResourceType.DockerHost,
+          resourceId: RESOURCE_ID.toString(),
+          resourceName: "web",
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: ResourceAiRemediationMode.Disabled,
+          aiCommandAllowlist: [],
+          agent: null,
+          gaps: [],
+          isInvestigationReady: false,
+          isRemediationReady: false,
+        },
+        {},
+      );
+    });
+
+    render(
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.DockerHost)}
+        resourceId={RESOURCE_ID}
+      />,
+    );
+    await findCard();
+
+    expect(
+      screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-value`)
+        .textContent,
+    ).toBe(
+      FR["The {{agent}} is not installed yet."]!.replace(
+        "{{agent}}",
+        "Docker AI agent",
+      ),
+    );
+  });
+
+  // Every Connection sentence starts with the name, so no article can clash.
+  test.each([
+    "The {{agent}} is connected.",
+    "The {{agent}} is offline.",
+    "The {{agent}} is not installed yet.",
+    "The {{agent}} is connected, but it could not reach this {{noun}} at its last check.",
+  ])("%s starts with the agent's name in French", (key: string) => {
+    expect(FR[key]!.startsWith("{{agent}} ")).toBe(true);
   });
 });

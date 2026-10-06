@@ -178,6 +178,11 @@ const AgentAiSettingsModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Change what AI may do"
+      /*
+       * The agent by its name as written on its own: a resource agent's
+       * keeps its capitals in English ("Database AI agent"), and each locale
+       * words the intro for every agent's name.
+       */
       description={translator.translateTemplate(
         AGENT_AI_SETTINGS_DIALOG_INTRO[props.source],
         { agent: translatableTerm(props.agentName) },

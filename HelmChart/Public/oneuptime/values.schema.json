@@ -998,6 +998,13 @@
                 "hook": {
                     "type": "boolean"
                 },
+                "runtimeWaitTimeoutSeconds": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 0
+                },
                 "ttlSecondsAfterFinished": {
                     "type": "integer"
                 },

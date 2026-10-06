@@ -16,6 +16,11 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import User from "Common/UI/Utils/User";
+import {
+  getAiAccessTestPermissionMessage,
+  getAiAccessTestPermissionRequirement,
+} from "../../../Components/AiAccess/AiAccessModes";
+import { KUBERNETES_AI_AGENT_NOUN } from "./KubernetesAiAgentStatusSummary";
 
 /*
  * What the signed-in user may do on a cluster's AI pages, read from the
@@ -140,11 +145,19 @@ export function getAccessTestPermissionGate(): PermissionGateResult {
   return PermissionGate.check(new KubernetesCluster(), ModelAction.Update);
 }
 
+// Who may edit the cluster, and so run the test.
+function getAccessTestPermissionTitles(): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new KubernetesCluster().getUpdatePermissions(),
+  );
+}
+
 // Why the test is locked, for the disabled button's tooltip and note.
 export function getAccessTestPermissionRequirement(): string {
-  return `Testing the connection needs permission to edit this cluster (one of: ${PermissionGate.getPermissionTitles(
-    new KubernetesCluster().getUpdatePermissions(),
-  ).join(", ")}).`;
+  return getAiAccessTestPermissionRequirement({
+    noun: KUBERNETES_AI_AGENT_NOUN,
+    permissionTitles: getAccessTestPermissionTitles(),
+  });
 }
 
 /*
@@ -152,7 +165,10 @@ export function getAccessTestPermissionRequirement(): string {
  * about CHANGING the cluster's AI access, which the user did not try.
  */
 export function getAccessTestPermissionMessage(): string {
-  return `${getAccessTestPermissionRequirement()} Nothing on the cluster or in its AI settings was changed.`;
+  return getAiAccessTestPermissionMessage({
+    noun: KUBERNETES_AI_AGENT_NOUN,
+    permissionTitles: getAccessTestPermissionTitles(),
+  });
 }
 
 /*

@@ -178,6 +178,36 @@ const parseClampedIntegerFromEnv: (
   return Math.min(parsePositiveIntegerFromEnv(envKey, fallback), ceiling);
 };
 
+/*
+ * parsePositiveIntegerFromEnv for settings where "0" is a real choice (it
+ * switches the behaviour off) rather than a misconfiguration. Anything else
+ * that is not a whole number of at least 0 still falls back to the default:
+ * parseInt would read "15m" as 15 and "abc" as NaN, which compares false
+ * against every bound and so never runs out.
+ */
+const parseNonNegativeIntegerFromEnv: (
+  envKey: string,
+  fallback: number,
+) => number = (envKey: string, fallback: number): number => {
+  const rawValue: string | undefined = process.env[envKey];
+
+  if (rawValue === undefined || rawValue.trim() === "") {
+    return fallback;
+  }
+
+  const parsedValue: number = Number(rawValue.trim());
+
+  if (
+    !Number.isFinite(parsedValue) ||
+    !Number.isInteger(parsedValue) ||
+    parsedValue < 0
+  ) {
+    return fallback;
+  }
+
+  return parsedValue;
+};
+
 export const IsBillingEnabled: boolean = BillingConfig.IsBillingEnabled;
 export const BillingPublicKey: string = BillingConfig.BillingPublicKey;
 export const BillingPrivateKey: string = BillingConfig.BillingPrivateKey;
@@ -302,6 +332,34 @@ export const PostgresMigrationLockRetryTimeoutMs: number = parseInt(
     String(10 * 60 * 1000),
   10,
 );
+
+/*
+ * How long (ms) a process that does NOT apply the schema migrations itself
+ * (RUN_DATABASE_MIGRATIONS_ON_BOOT=false: the runtime pods, when the migrate
+ * Job owns them) waits at boot for the migrations its code knows to be
+ * applied (Postgres/SchemaMigrationWait.ts).
+ *
+ * The migrate Job runs asynchronously by default (migrate.hook=false), so the
+ * new pods of a release start while it is still migrating. Code running on
+ * the older schema fails every query that touches what the missing
+ * migrations add: in 14.0.13 every monitor query filtered on
+ * Monitor."isArchived" before AddArchiveToMoreResources had committed, and no
+ * monitor was processed until it did. connect() holds the boot instead: the
+ * pod is not started, so not ready, and the old pods keep serving.
+ *
+ * When this runs out connect() fails and the process exits, to be restarted
+ * and wait again: it never starts on the older schema. Keep it below the
+ * startup probe window (17 minutes in the Helm chart), so the pod gives up
+ * with an explicit error instead of being killed by the probe.
+ *
+ * 0 does not wait: the process logs which migrations are missing and starts
+ * on the schema it finds, as it did before this setting existed.
+ */
+export const PostgresMigrationWaitTimeoutMs: number =
+  parseNonNegativeIntegerFromEnv(
+    "DATABASE_MIGRATION_WAIT_TIMEOUT_MS",
+    15 * 60 * 1000,
+  );
 
 /*
  * Node-postgres client-side query timeout (ms). Belt-and-braces for the
@@ -645,6 +703,10 @@ export const DisableQueueWorkers: boolean =
  * run them — which keeps boot DDL off pooled connections and, since the data
  * migration runner no longer takes an advisory lock, is also what keeps two
  * replicas from running the same migration concurrently.
+ *
+ * Such a process still does not start on a schema older than its code: it
+ * waits, in PostgresDatabase.connect(), for the schema migrations it knows to
+ * be applied (DATABASE_MIGRATION_WAIT_TIMEOUT_MS).
  *
  * Default true preserves the original self-migrating-on-boot behavior used by
  * docker-compose and any deploy that does not run the migrate Job. Those

@@ -336,12 +336,12 @@ export function getResourceAiAgentStatusPill(
 ): ResourceAiAgentStatusPill {
   switch (getResourceAiAgentCardState(status)) {
     case "connected":
-      return { text: "Connected", tone: "success" };
+      return { text: translationKey("Connected"), tone: "success" };
     case "not_installed":
-      return { text: "Not installed", tone: "neutral" };
+      return { text: translationKey("Not installed"), tone: "neutral" };
     case "offline":
     default:
-      return { text: "Offline", tone: "danger" };
+      return { text: translationKey("Offline"), tone: "danger" };
   }
 }
 
@@ -387,6 +387,20 @@ export function getResourceAiAgentOfflineReason(
     : "gone";
 }
 
+/*
+ * The agent and the resource as a sentence names them: the agent by its
+ * product name ("Database AI agent" keeps its capitals in English), the
+ * resource cased for the middle of a sentence.
+ */
+function getAgentAndNoun(
+  descriptor: ResourceAiAgentDescriptor,
+): TemplateValues {
+  return {
+    agent: translatableTerm(descriptor.agentName),
+    noun: translatableTerm(descriptor.noun, { inSentence: true }),
+  };
+}
+
 // The one plain sentence under the pill.
 export function getResourceAiAgentStateSentence(
   status: ResourceAiAccessStatus,
@@ -399,12 +413,22 @@ export function getResourceAiAgentStateSentence(
         const reachError: string | null | undefined =
           status.agent?.posture?.reachError;
 
-        return `The ${descriptor.agentName} is running, but it could not reach this ${descriptor.noun} at its last check${
-          reachError ? `: ${reachError}` : "."
-        } Check its logs:`;
+        // The agent's own error, as it reported it.
+        return reachError
+          ? translateTemplate(
+              "The {{agent}} is running, but it could not reach this {{noun}} at its last check: {{error}} Check its logs:",
+              { ...getAgentAndNoun(descriptor), error: reachError },
+            )
+          : translateTemplate(
+              "The {{agent}} is running, but it could not reach this {{noun}} at its last check. Check its logs:",
+              getAgentAndNoun(descriptor),
+            );
       }
 
-      return `The ${descriptor.agentName} is running next to this ${descriptor.noun}.`;
+      return translateTemplate(
+        "The {{agent}} is running next to this {{noun}}.",
+        getAgentAndNoun(descriptor),
+      );
     }
     case "not_installed":
       return getResourceAiAgentNotInstalledText(descriptor);
@@ -746,27 +770,40 @@ export function getResourceAiAttentionStepText(
   status: ResourceAiAccessStatus,
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  const agentName: string = descriptor.agentName;
-  const noun: string = descriptor.noun;
+  const values: TemplateValues = getAgentAndNoun(descriptor);
 
   switch (gap.code) {
     case "ai_agent_not_connected":
-      return `Install the ${agentName} with the instructions above.`;
+      return translateTemplate(
+        "Install the {{agent}} with the instructions above.",
+        values,
+      );
     case "ai_agent_offline":
-      return `Bring the ${agentName} back online. Its logs say why it is offline (the command is above).`;
+      // The cluster page's step too: a locale words it for both names.
+      return translateTemplate(
+        "Bring the {{agent}} back online. Its logs say why it is offline (the command is above).",
+        values,
+      );
     case "ai_agent_unreachable_resource":
       // The server has two cases: it could not reach it, or has not said.
-      return status.agent?.posture?.reachable === false
-        ? `Let the ${agentName} reach this ${noun} (its error and the logs command are above), then test the connection.`
-        : `Wait a minute for the ${agentName} to report that it can reach this ${noun}, then test the connection.`;
+      return translateTemplate(
+        status.agent?.posture?.reachable === false
+          ? "Let the {{agent}} reach this {{noun}} (its error and the logs command are above), then test the connection."
+          : "Wait a minute for the {{agent}} to report that it can reach this {{noun}}, then test the connection.",
+        values,
+      );
     case "investigation_disabled":
-      return isResourceAiSettingsSetByAgent(status)
-        ? translateTemplate(RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT, {
-            agent: translatableTerm(agentName),
-          })
-        : "Turn on AI investigation.";
+      return translateTemplate(
+        isResourceAiSettingsSetByAgent(status)
+          ? RESOURCE_AGENT_SET_INVESTIGATION_STEP_TEXT
+          : "Turn on AI investigation.",
+        values,
+      );
     case "remediation_write_access_missing":
-      return `Give the ${agentName} write access with the steps below.`;
+      return translateTemplate(
+        "Give the {{agent}} write access with the steps below.",
+        values,
+      );
     /*
      * auto_remediation_disabled_for_project is retired: Enable AI covers
      * it, so an older server that still sends it mid-rollout gets the same
@@ -774,9 +811,11 @@ export function getResourceAiAttentionStepText(
      */
     case "ai_disabled_for_project":
     case "auto_remediation_disabled_for_project":
-      return "Turn on AI for this project.";
+      return translateTemplate("Turn on AI for this project.");
     case "llm_provider_missing":
-      return "Add an AI provider for this project, or use OneUptime AI credits.";
+      return translateTemplate(
+        "Add an AI provider for this project, or use OneUptime AI credits.",
+      );
     /*
      * Not "or turn on auto-recharge": AI credits are recharged after a call
      * they paid for, so a balance that is used up stays used up until
