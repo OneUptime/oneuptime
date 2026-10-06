@@ -1,11 +1,14 @@
 {
   "baseline": {
-    "keys": 25672,
-    "untranslated": 16947
+    "keys": 25851,
+    "untranslated": 16653
   },
   "sameAsEnglish": [
     "Offline",
     "Runbook: {{name}}",
+    "Runner",
+    "agent {{version}}",
+    "kubectl set image deployment/web * -n web",
     "{{count}} match"
   ]
 }
