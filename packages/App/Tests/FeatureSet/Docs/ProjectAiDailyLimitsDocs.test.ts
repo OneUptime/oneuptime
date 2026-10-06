@@ -246,6 +246,10 @@ describe("the AI SRE page says what happens when a limit is reached", () => {
     expect(text).toContain(
       "A record that was resolved meanwhile, or that someone asked OneUptime AI to investigate in the meantime, is not investigated again.",
     );
+    // InvestigationLimitCatchUp: lane-wide pauses keep records waiting.
+    expect(text).toContain(
+      "while Enable AI or automatic investigation is off, there is no LLM provider or AI credit, or the incident or alert daily token limit is reached, it keeps waiting",
+    );
   });
 
   it("no longer says skipped records are never retried after the reset", () => {

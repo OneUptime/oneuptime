@@ -5,6 +5,7 @@ import InvestigationLimitCatchUp, {
   LimitCatchUpProjectResult,
 } from "../../../../Server/Utils/AI/SRE/InvestigationLimitCatchUp";
 import AIIncidentInvestigationRunner from "../../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
+import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIAlertInvestigationRunner from "../../../../Server/Utils/AI/SRE/AlertInvestigationRunner";
 import InvestigationEligibility from "../../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import AIRunService from "../../../../Server/Services/AIRunService";
@@ -333,12 +334,26 @@ function runRunner(lane: Lane, subjectId: ObjectID): boolean {
   return true;
 }
 
+/*
+ * What stops OneUptime AI for a whole lane now, as the new-record gate
+ * (AIInvestigationEngine.getDisabledReason) and the lane's own daily token
+ * limit (AIService.getAutonomousDailyBudgetStatus) would say.
+ */
+let lanePausedBy: Record<Lane, InvestigationNotStartedCode | null> = {
+  Incident: null,
+  Alert: null,
+};
+let laneBudgetSpent: Record<Lane, boolean> = { Incident: false, Alert: false };
+let laneGate: jest.SpyInstance;
+
 beforeEach(() => {
   records = [];
   runs = [];
   incidentQueries = [];
   alertQueries = [];
   queuedInLane = { Incident: 0, Alert: 0 };
+  lanePausedBy = { Incident: null, Alert: null };
+  laneBudgetSpent = { Incident: false, Alert: false };
   limitReached = () => {
     return false;
   };
@@ -420,6 +435,34 @@ beforeEach(() => {
     .mockImplementation(async (data: { projectId: ObjectID }) => {
       return limitReached(data.projectId) ? reachedStatus() : null;
     });
+
+  laneGate = jest
+    .spyOn(AIInvestigationEngine, "getDisabledReason")
+    .mockImplementation(
+      async (projectId: ObjectID, subjectType: "Incident" | "Alert") => {
+        // Ordered like the real gate: the project's limit is checked last.
+        return (
+          lanePausedBy[subjectType] ||
+          (limitReached(projectId) ? "project_daily_limit_reached" : null)
+        );
+      },
+    );
+
+  jest
+    .spyOn(AIService, "getAutonomousDailyBudgetStatus")
+    .mockImplementation(
+      async (
+        _projectId: ObjectID,
+        subject?: { incidentId?: ObjectID; alertId?: ObjectID },
+      ) => {
+        const lane: Lane = subject?.incidentId ? "Incident" : "Alert";
+        return {
+          exhausted: laneBudgetSpent[lane],
+          limitInTokens: laneBudgetSpent[lane] ? 1000 : null,
+          usedTokensToday: laneBudgetSpent[lane] ? 1000 : 0,
+        };
+      },
+    );
 
   investigateIncident = jest
     .spyOn(AIIncidentInvestigationRunner, "investigateNewIncident")
@@ -847,7 +890,73 @@ describe("the limits still apply", () => {
     await InvestigationLimitCatchUp.catchUpProject(PROJECT_A);
 
     expect(limitChecks).not.toHaveBeenCalled();
+    expect(laneGate).not.toHaveBeenCalled();
+    expect(AIService.getAutonomousDailyBudgetStatus).not.toHaveBeenCalled();
     expect(AIRunService.countBy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    "ai_disabled",
+    "automatic_investigation_disabled",
+    "provider_missing",
+    "insufficient_ai_balance",
+  ] as Array<InvestigationNotStartedCode>)(
+    "what stops AI for the whole lane now (%s) leaves its records waiting, untouched, and the other lane goes on",
+    async (code: InvestigationNotStartedCode) => {
+      const incident: FakeRecord = addRecord();
+      const alert: FakeRecord = addRecord({ lane: "Alert" });
+      lanePausedBy = { Incident: code, Alert: null };
+
+      const result: LimitCatchUpProjectResult =
+        await InvestigationLimitCatchUp.catchUpProject(PROJECT_A);
+
+      expect(investigateIncident).not.toHaveBeenCalled();
+      // Its card still says the daily limit stopped it, which stays true.
+      expect(findRecord(incident.id).decision).toEqual(
+        decision("project_daily_limit_reached"),
+      );
+      expect(result.lanes[0]).toEqual(
+        expect.objectContaining({ lane: "Incident", pausedBy: code }),
+      );
+      expect(result.limitStillReached).toBe(false);
+      expect(laneGate).toHaveBeenCalledWith(PROJECT_A, "Incident");
+
+      expect(investigatedAlertIds()).toEqual([alert.id.toString()]);
+
+      // Turned back on while the record may still wait: it is investigated.
+      lanePausedBy = { Incident: null, Alert: null };
+      await InvestigationLimitCatchUp.catchUpProject(PROJECT_A);
+      expect(investigatedIncidentIds()).toEqual([incident.id.toString()]);
+    },
+  );
+
+  test("the lane's own daily token limit spent: its records wait, untouched; the other lane goes on", async () => {
+    const incident: FakeRecord = addRecord();
+    const alert: FakeRecord = addRecord({ lane: "Alert" });
+    laneBudgetSpent = { Incident: true, Alert: false };
+
+    const result: LimitCatchUpProjectResult =
+      await InvestigationLimitCatchUp.catchUpProject(PROJECT_A);
+
+    expect(investigateIncident).not.toHaveBeenCalled();
+    expect(findRecord(incident.id).decision?.code).toBe(
+      "project_daily_limit_reached",
+    );
+    expect(result.lanes[0]).toEqual(
+      expect.objectContaining({
+        lane: "Incident",
+        pausedBy: "daily_budget_exhausted",
+      }),
+    );
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      PROJECT_A,
+      { incidentId: incident.id },
+    );
+    expect(investigatedAlertIds()).toEqual([alert.id.toString()]);
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      PROJECT_A,
+      { alertId: alert.id },
+    );
   });
 });
 

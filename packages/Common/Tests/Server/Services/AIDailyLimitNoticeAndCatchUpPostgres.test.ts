@@ -11,6 +11,7 @@ import IncidentStateService from "../../../Server/Services/IncidentStateService"
 import ProjectService from "../../../Server/Services/ProjectService";
 import AIAlertInvestigationRunner from "../../../Server/Utils/AI/SRE/AlertInvestigationRunner";
 import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
+import AIInvestigationEngine from "../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import InvestigationLimitCatchUp from "../../../Server/Utils/AI/SRE/InvestigationLimitCatchUp";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -119,6 +120,8 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
       OneUptimeDate.getCurrentDate,
       ProjectService.sendEmailToProjectOwners,
       AIService.getReachedProjectDailyLimit,
+      AIService.getAutonomousDailyBudgetStatus,
+      AIInvestigationEngine.getDisabledReason,
       IncidentStateService.getUnresolvedIncidentStates,
       AlertStateService.getUnresolvedAlertStates,
       AIIncidentInvestigationRunner.investigateNewIncident,
@@ -416,9 +419,20 @@ describePostgres("the daily AI limit's notice and catch-up on Postgres", () => {
       projectId = await seedProject({ tokenLimit: 5000 });
       investigatedIncidents = [];
 
+      // Nothing stops OneUptime AI for the project or its lanes now.
       jest
         .spyOn(AIService, "getReachedProjectDailyLimit")
         .mockResolvedValue(null);
+      jest
+        .spyOn(AIInvestigationEngine, "getDisabledReason")
+        .mockResolvedValue(null);
+      jest
+        .spyOn(AIService, "getAutonomousDailyBudgetStatus")
+        .mockResolvedValue({
+          exhausted: false,
+          limitInTokens: null,
+          usedTokensToday: 0,
+        });
       jest
         .spyOn(IncidentStateService, "getUnresolvedIncidentStates")
         .mockResolvedValue([

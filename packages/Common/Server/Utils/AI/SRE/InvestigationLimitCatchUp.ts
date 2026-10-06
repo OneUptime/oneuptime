@@ -13,7 +13,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
-import AIService from "../../../Services/AIService";
+import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
 import AlertService from "../../../Services/AlertService";
 import AlertStateService from "../../../Services/AlertStateService";
 import IncidentService from "../../../Services/IncidentService";
@@ -22,6 +22,7 @@ import ProjectService from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIAlertInvestigationRunner from "./AlertInvestigationRunner";
 import AIIncidentInvestigationRunner from "./IncidentInvestigationRunner";
 
@@ -46,11 +47,15 @@ import AIIncidentInvestigationRunner from "./IncidentInvestigationRunner";
  *     first look it was meant to be;
  *   - not investigated since (someone asked AI to, say): no second run.
  *
- * Each goes through the new-record investigation path again - AI on, the
- * lane's automatic investigation on, a provider and credits, the severity
- * floor, the monitor cooldown, the lane's daily token limit, the project's
- * own limits - so the limits and settings of now decide, as they would for
- * a new record, and whatever stops it is recorded on its card instead.
+ * The limits and settings of now decide, as they would for a new record:
+ *   - what stops OneUptime AI for the whole lane - AI off, the lane's
+ *     automatic investigation off, no provider, no credits, the project's
+ *     own limit, the lane's own daily token limit - leaves the lane's
+ *     records waiting, untouched (their card keeps saying the daily limit
+ *     stopped them, which stays true), for as long as they may wait;
+ *   - each record then goes through the new-record investigation path
+ *     again, gates and all - the severity floor, the monitor cooldown - and
+ *     whatever stops it is recorded on its card instead.
  * Once each: a record is taken off the waiting list with a compare-and-set
  * of the reason it holds, so two workers can never both take it, and a
  * record investigated (or skipped for another reason) is never taken again.
@@ -103,6 +108,12 @@ export interface LimitCatchUpLaneResult {
   takenElsewhere: number;
   // The lane's queue had work waiting: nothing added this run.
   isLaneBusy: boolean;
+  /*
+   * What stops OneUptime AI for the whole lane now - AI off, automatic
+   * investigation off, no provider or credits, the lane's own daily token
+   * limit spent - so its records keep waiting, untouched. Null when nothing.
+   */
+  pausedBy: InvestigationNotStartedCode | null;
 }
 
 export interface LimitCatchUpProjectResult {
@@ -310,6 +321,7 @@ export default class InvestigationLimitCatchUp {
       alreadyInvestigated: 0,
       takenElsewhere: 0,
       isLaneBusy: false,
+      pausedBy: null,
     };
 
     const waiting: Array<CatchUpRecord> = await this.getWaitingRecords(data);
@@ -324,6 +336,47 @@ export default class InvestigationLimitCatchUp {
     if (await this.isLaneBusy(data)) {
       result.isLaneBusy = true;
       return { lane: result, isStoppedByLimit: false };
+    }
+
+    /*
+     * What stops OneUptime AI for the whole lane, as a new record would
+     * meet it: the project's own limit not reset yet ends the project's run;
+     * anything else - AI off, the lane's automatic investigation off, no
+     * provider, no credits - leaves the lane's records waiting, untouched.
+     * Taking them off the list now would record that reason as if it had
+     * stopped them when they were created.
+     */
+    const pausedBy: InvestigationNotStartedCode | null =
+      await AIInvestigationEngine.getDisabledReason(
+        data.projectId,
+        data.lane === "Incident" ? "Incident" : "Alert",
+      );
+
+    if (pausedBy === PROJECT_DAILY_LIMIT_REACHED) {
+      return { lane: result, isStoppedByLimit: true };
+    }
+
+    if (pausedBy) {
+      result.pausedBy = pausedBy;
+      return { lane: result, isStoppedByLimit: false };
+    }
+
+    // The lane's own daily token limit: spent, its records wait too.
+    const firstRecordId: ObjectID | null = waiting[0]?.id || null;
+
+    if (firstRecordId) {
+      const budget: AutonomousBudgetStatus =
+        await AIService.getAutonomousDailyBudgetStatus(
+          data.projectId,
+          data.lane === "Incident"
+            ? { incidentId: firstRecordId }
+            : { alertId: firstRecordId },
+        );
+
+      if (budget.exhausted) {
+        result.pausedBy = "daily_budget_exhausted";
+        return { lane: result, isStoppedByLimit: false };
+      }
     }
 
     for (const record of waiting) {
