@@ -1044,9 +1044,9 @@ describe("on OneUptime Cloud (billing on), whole records at the create check", (
       expect(record.showIncidentsOnStatusPage).toBe(true);
       expect(record.reportDataInDays).toBe(30);
 
-      expect(
-        checkRecordCreate({ modelType: StatusPage, plan, record }),
-      ).toBe("allowed");
+      expect(checkRecordCreate({ modelType: StatusPage, plan, record })).toBe(
+        "allowed",
+      );
     },
   );
 

@@ -139,7 +139,9 @@ const creator: (sentFrom?: {
 type ProjectSettings = Partial<
   Pick<
     Project,
-    "enableAuditLogs" | "storeSystemEventsInAuditLogs" | "auditLogsRetentionInDays"
+    | "enableAuditLogs"
+    | "storeSystemEventsInAuditLogs"
+    | "auditLogsRetentionInDays"
   >
 >;
 
@@ -327,7 +329,12 @@ describe("on OneUptime Cloud (billing on), ProjectService.onBeforeCreate", () =>
     },
   );
 
-  test.each([PlanType.Free, PlanType.Growth, PlanType.Scale, PlanType.Enterprise])(
+  test.each([
+    PlanType.Free,
+    PlanType.Growth,
+    PlanType.Scale,
+    PlanType.Enterprise,
+  ])(
     "a request sent from a project on %s: the new project's plan replaces it, and the request's props are left as they were",
     async (sendingPlan: PlanType) => {
       const props: DatabaseCommonInteractionProps = creator({
@@ -442,9 +449,9 @@ describe("on OneUptime Cloud (billing on), the create's column check after the h
 
 describe("on OneUptime Cloud (billing on), through ProjectService.create", () => {
   test("a project the dashboard creates (a name and a plan) is created on Free", async () => {
-    expect(
-      await createProject(newProject("price_free_month"), creator()),
-    ).toBe(REACHED_SAVE);
+    expect(await createProject(newProject("price_free_month"), creator())).toBe(
+      REACHED_SAVE,
+    );
     expect(save).toHaveBeenCalledTimes(1);
   });
 

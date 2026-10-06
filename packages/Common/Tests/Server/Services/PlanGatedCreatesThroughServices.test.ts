@@ -378,8 +378,11 @@ describe("on OneUptime Cloud (billing on), StatusPageService.create", () => {
     expect(row["reportStartDateTime"]).toBeInstanceOf(Date);
     expect(row["sendNextReportBy"]).toBeInstanceOf(Date);
     expect(
-      (row["reportRecurringInterval"] as unknown as { toJSON: () => JSONObject })
-        .toJSON,
+      (
+        row["reportRecurringInterval"] as unknown as {
+          toJSON: () => JSONObject;
+        }
+      ).toJSON,
     ).toBeDefined();
   });
 
