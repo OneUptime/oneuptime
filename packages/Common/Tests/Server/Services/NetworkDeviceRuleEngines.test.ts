@@ -941,7 +941,10 @@ describe("Network device rule pattern validation", () => {
   it("still refuses a new rule that adds nothing, whatever its pattern", async () => {
     await expect(
       (NetworkDeviceLabelRuleService as any).onBeforeCreate(
-        labelRuleCreate({ labelsToAdd: [], networkDeviceNamePattern: "*0664*" }),
+        labelRuleCreate({
+          labelsToAdd: [],
+          networkDeviceNamePattern: "*0664*",
+        }),
       ),
     ).rejects.toThrow(
       "This label rule adds nothing. Choose at least one label in Labels to Add.",

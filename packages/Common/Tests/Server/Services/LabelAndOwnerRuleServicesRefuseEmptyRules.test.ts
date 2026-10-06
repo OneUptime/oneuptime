@@ -61,6 +61,10 @@ const SERVICES_DIRECTORY: string = path.resolve(
 const RULE_MODEL_FILE: RegExp = /(Label|Owner)Rule\.ts$/;
 const LABEL_RULE_MODEL: RegExp = /LabelRule$/;
 
+// A model with Inherit switches: an incident's, alert's or event's rule.
+const INHERIT_SWITCH_COLUMN: RegExp =
+  /public inherit(Labels|Owners)From\w+\?: boolean/;
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "4af3a31b-58b0-4746-8025-f9cd4db1945e",
 );
@@ -105,7 +109,7 @@ const RULE_CASES: Array<RuleCase> = fs
       model,
       serviceFile: `${model}Service.ts`,
       kind: LABEL_RULE_MODEL.test(model) ? "labels" : "owners",
-      inherits: /public inherit(Labels|Owners)From\w+\?: boolean/.test(source),
+      inherits: INHERIT_SWITCH_COLUMN.test(source),
     };
   });
 
@@ -558,8 +562,10 @@ describe("creating a rule that adds nothing, through the service's create", () =
     "%s saves nothing and answers with the plain message",
     async (_file: string, ruleCase: RuleCase) => {
       const service: DatabaseService<DatabaseBaseModel> = loadService(ruleCase);
-      const repository: SpyInstance<typeof service.getRepository> =
-        jest.spyOn(service, "getRepository");
+      const repository: SpyInstance<typeof service.getRepository> = jest.spyOn(
+        service,
+        "getRepository",
+      );
 
       await expect(
         service.create({

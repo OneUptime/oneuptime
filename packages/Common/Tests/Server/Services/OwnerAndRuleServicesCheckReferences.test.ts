@@ -88,7 +88,8 @@ const RULE_MODEL_CLASS: RegExp =
 const OWNER_MODEL_NAME: RegExp = /Owner(User|Team)$/;
 
 // The service of a label or owner rule: <Resource>LabelRule / OwnerRule.
-const LABEL_OR_OWNER_RULE_SERVICE_FILE: RegExp = /(Label|Owner)RuleService\.ts$/;
+const LABEL_OR_OWNER_RULE_SERVICE_FILE: RegExp =
+  /(Label|Owner)RuleService\.ts$/;
 
 function findServiceCases(): Array<ServiceCase> {
   const serviceFiles: Array<string> = fs

@@ -274,9 +274,10 @@ describe("the Label and Owner Rules page", () => {
       OWNER_RULE_ADDS_NOTHING_MESSAGE,
       INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
     ]) {
-      expect({ message, present: content.includes(`| ${message} |`) }).toEqual(
-        { message, present: true },
-      );
+      expect({ message, present: content.includes(`| ${message} |`) }).toEqual({
+        message,
+        present: true,
+      });
     }
 
     expect(content).toContain("### However the rule is made");
@@ -297,9 +298,7 @@ describe("the Label and Owner Rules page", () => {
   });
 
   test("still lets an edit empty a rule, as decided", () => {
-    expect(content).toContain(
-      "an edit may take away everything a rule adds",
-    );
+    expect(content).toContain("an edit may take away everything a rule adds");
     expect(content).not.toContain("before the form asked");
   });
 

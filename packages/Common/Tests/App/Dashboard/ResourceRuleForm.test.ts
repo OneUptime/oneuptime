@@ -941,9 +941,7 @@ describe("the name of a rule that only inherits", () => {
   test("is empty while no switch is on", () => {
     for (const kind of ["labels", "owners"] as Array<RuleAddsKind>) {
       for (const record of RECORDS) {
-        expect(
-          getInheritingRuleName({ kind, record, values: {} }),
-        ).toBe("");
+        expect(getInheritingRuleName({ kind, record, values: {} })).toBe("");
         expect(
           getInheritingRuleName({
             kind,
@@ -951,9 +949,7 @@ describe("the name of a rule that only inherits", () => {
             values: switchedOn(kind, []),
           }),
         ).toBe("");
-        expect(getInheritingRuleName({ kind, record, values: null })).toBe(
-          "",
-        );
+        expect(getInheritingRuleName({ kind, record, values: null })).toBe("");
       }
     }
   });
@@ -1122,9 +1118,7 @@ describe("whether a rule picks anything", () => {
       false,
     );
     expect(isAnythingPicked("owners", { ownerUsers: ["ada"] })).toBe(true);
-    expect(isAnythingPicked("owners", { ownerTeams: ["platform"] })).toBe(
-      true,
-    );
+    expect(isAnythingPicked("owners", { ownerTeams: ["platform"] })).toBe(true);
     expect(isAnythingPicked("owners", { labelsToAdd: ["id-production"] })).toBe(
       false,
     );
@@ -1551,10 +1545,8 @@ describe.each(RECORDS)(
     test("taking every owner away names the rule after its switches", () => {
       const setNewFormValues: MockFunction = getJestMockFunction();
 
-      fieldByKey(
-        getInheritingOwnerRuleActionFields<Entity>(record),
-        "owners",
-      ).onChange!(
+      fieldByKey(getInheritingOwnerRuleActionFields<Entity>(record), "owners")
+        .onChange!(
         { ownerUsers: [], ownerTeams: [] },
         {
           name: "Add Platform as owners",
@@ -1574,12 +1566,12 @@ describe.each(RECORDS)(
 
 describe("the forms that cannot inherit", () => {
   test("keep their name's help about what they add", () => {
-    expect(fieldByKey(getLabelRuleActionFields<Entity>(), "name").description).toBe(
-      LABEL_RULE_NAME_DESCRIPTION,
-    );
-    expect(fieldByKey(getOwnerRuleActionFields<Entity>(), "name").description).toBe(
-      OWNER_RULE_NAME_DESCRIPTION,
-    );
+    expect(
+      fieldByKey(getLabelRuleActionFields<Entity>(), "name").description,
+    ).toBe(LABEL_RULE_NAME_DESCRIPTION);
+    expect(
+      fieldByKey(getOwnerRuleActionFields<Entity>(), "name").description,
+    ).toBe(OWNER_RULE_NAME_DESCRIPTION);
   });
 });
 
@@ -1644,7 +1636,10 @@ describe("in another language", () => {
       getInheritingRuleName({
         kind: "labels",
         record: "incident",
-        values: { inheritLabelsFromMonitors: true, inheritLabelsFromHosts: true },
+        values: {
+          inheritLabelsFromMonitors: true,
+          inheritLabelsFromHosts: true,
+        },
       }),
     ).toBe("Beschriftungen erben von: Monitore, Hosts");
   });
@@ -1671,7 +1666,10 @@ describe("in another language", () => {
       getInheritingRuleName({
         kind: "owners",
         record: "incident",
-        values: { inheritOwnersFromMonitors: true, inheritOwnersFromServices: true },
+        values: {
+          inheritOwnersFromMonitors: true,
+          inheritOwnersFromServices: true,
+        },
       }),
     ).toBe("Inherit owners from monitors, services");
   });
