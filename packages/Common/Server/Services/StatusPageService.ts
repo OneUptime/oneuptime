@@ -274,6 +274,34 @@ export class Service extends ProjectReferencesService<StatusPage> {
   }
 
   /*
+   * The project a status page belongs to, which never changes: one small
+   * read by its id, as root. The page's cached overview is kept by its
+   * project's generation (StatusPageOverviewCache), which keeps this once
+   * per page. Null when there is no such page.
+   */
+  @CaptureSpan()
+  public async getProjectIdOfStatusPage(
+    statusPageId: ObjectID,
+  ): Promise<ObjectID | null> {
+    if (!ObjectID.isValidUUID(statusPageId.toString())) {
+      return null;
+    }
+
+    const row: { projectId?: unknown } | undefined = await this.getRepository()
+      .createQueryBuilder("statusPage")
+      .select('"statusPage"."projectId"', "projectId")
+      .where('"statusPage"."_id" = :id', { id: statusPageId.toString() })
+      .andWhere('"statusPage"."deletedAt" IS NULL')
+      .getRawOne();
+
+    const projectId: unknown = row?.projectId;
+
+    return typeof projectId === "string" && ObjectID.isValidUUID(projectId)
+      ? new ObjectID(projectId)
+      : null;
+  }
+
+  /*
    * Mirrors `resolveStatusPageIdOrThrow` in `Common/Server/API/StatusPageAPI.ts`
    * (module-private there), but returns null instead of throwing so callers can
    * collapse "no such page" and "page exists but is gated" into one answer.
