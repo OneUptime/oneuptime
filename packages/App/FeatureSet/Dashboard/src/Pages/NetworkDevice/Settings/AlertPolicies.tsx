@@ -510,15 +510,26 @@ const NetworkAlertPoliciesPage: FunctionComponent<
 
   /*
    * Selecting an unreadable relation fails the whole list request, so the
-   * template column and the template field only exist for a user who may
-   * read monitor templates (the AutoImportRules precedent). The server
-   * still requires a template, so a user without the field is told so on
-   * save rather than shown a form that silently drops it.
+   * template column is asked for only when the user may read it. Which
+   * template a policy uses is read with the policy itself (the model's read
+   * list), so every policy reader sees it; the template's name rides along
+   * on the relation.
    */
   const canReadMonitorTemplate: boolean = PermissionGate.canReadColumn(
     new NetworkAlertPolicy(),
     "monitorTemplate",
   );
+
+  /*
+   * The template field lists the project's Network Device templates, which
+   * takes reading templates as well as the policy (the AutoImportRules
+   * precedent, canPickAutoImportMonitorTemplate). The server still requires
+   * a template, so a user without the field is told so on save rather than
+   * shown a picker whose list it may not load.
+   */
+  const canPickMonitorTemplate: boolean =
+    canReadMonitorTemplate &&
+    PermissionGate.check(new MonitorTemplate(), ModelAction.Read).isAllowed;
 
   const monitorTemplateColumn: Column<NetworkAlertPolicy> | null =
     canReadMonitorTemplate
@@ -783,7 +794,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             description:
               "Disable to stand the policy's monitors down without deleting them; enable again to bring the same set back.",
           },
-          ...(canReadMonitorTemplate
+          ...(canPickMonitorTemplate
             ? [
                 {
                   field: { monitorTemplate: true },

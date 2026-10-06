@@ -235,14 +235,12 @@ const requireTraceReadAccess: Array<RequestHandler> =
   createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceTraces);
 
 /*
- * Mirrors the read access control declared on the Metric analytics model,
- * whose table-level read list grants ReadTelemetryServiceTraces rather than
- * ReadTelemetryServiceMetrics. The guard follows the model declaration so
- * these routes stay in lockstep with the model-backed CRUD API; if the model
- * ever switches to ReadTelemetryServiceMetrics this must change with it.
+ * Mirrors the read access control declared on the Metric analytics model:
+ * metrics are read with the Telemetry Service Metrics permission, not the
+ * trace or log ones, on these routes as through the model-backed CRUD API.
  */
 const requireMetricReadAccess: Array<RequestHandler> =
-  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceTraces);
+  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceMetrics);
 
 /*
  * Mirrors the read access control declared on the ExceptionInstance

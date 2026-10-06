@@ -27,6 +27,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 
 import {
+  canPickAutoImportMonitorTemplate,
+  canPickAutoImportOidTemplate,
   canSelectAutoImportMonitorTemplate,
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
@@ -46,18 +48,19 @@ const FORM_UTIL_SOURCE: string = path.join(
   "AutoImportRuleFormUtil.ts",
 );
 
+/*
+ * A rule's template is read with the rule itself (the model's read list), so
+ * the Monitor Template column is shown to every rule reader, a granular one
+ * included; the template's name rides along on the relation. Reading
+ * templates without reading rules shows no rule at all, so it does not open
+ * the column either.
+ */
 describe("Network Device auto-import rule monitor form state", () => {
-  it("omits the Monitor Template column for a granular inventory-rule reader", () => {
+  it("includes the Monitor Template column for a granular rule reader", () => {
     expect(
       getReadableMonitorTemplateColumn([
         Permission.ReadNetworkDeviceAutoImportRule,
       ]),
-    ).toBeNull();
-  });
-
-  it("includes the Monitor Template column for a caller allowed to read it", () => {
-    expect(
-      getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate]),
     ).toEqual(
       expect.objectContaining({
         field: { monitorTemplate: { templateName: true } },
@@ -66,6 +69,26 @@ describe("Network Device auto-import rule monitor form state", () => {
     );
   });
 
+  it.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+  ])("includes the Monitor Template column for %s", (permission: Permission) => {
+    expect(getReadableMonitorTemplateColumn([permission])).not.toBeNull();
+  });
+
+  it.each([
+    Permission.ReadMonitorTemplate,
+    Permission.MonitorViewer,
+    Permission.ReadNetworkDeviceOidTemplate,
+  ])(
+    "omits the Monitor Template column for %s, which reads no rule",
+    (permission: Permission) => {
+      expect(getReadableMonitorTemplateColumn([permission])).toBeNull();
+    },
+  );
+
   /*
    * Regression: the column used to declare only the relation, so the table
    * key was the relation itself and the cell rendered "[object Object]".
@@ -73,7 +96,9 @@ describe("Network Device auto-import rule monitor form state", () => {
    */
   it("resolves the Monitor Template cell to the template name, not [object Object]", () => {
     const column: Column<NetworkDeviceAutoImportRule> | null =
-      getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate]);
+      getReadableMonitorTemplateColumn([
+        Permission.ReadNetworkDeviceAutoImportRule,
+      ]);
 
     expect(column).not.toBeNull();
 
@@ -109,7 +134,9 @@ describe("Network Device auto-import rule monitor form state", () => {
   it("derives a column identity that reaches through to the template name", () => {
     expect(
       getColumnBaseId(
-        getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate])!,
+        getReadableMonitorTemplateColumn([
+        Permission.ReadNetworkDeviceAutoImportRule,
+      ])!,
       ),
     ).toBe("monitorTemplate.templateName");
   });
@@ -127,7 +154,9 @@ describe("Network Device auto-import rule monitor form state", () => {
     rule.monitorTemplate = monitorTemplate;
 
     const cellKey: string = getColumnBaseId(
-      getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate])!,
+      getReadableMonitorTemplateColumn([
+        Permission.ReadNetworkDeviceAutoImportRule,
+      ])!,
     );
 
     expect(
@@ -148,7 +177,9 @@ describe("Network Device auto-import rule monitor form state", () => {
 
   it("leaves the cell empty for an inventory-only rule with no template", () => {
     const column: Column<NetworkDeviceAutoImportRule> =
-      getReadableMonitorTemplateColumn([Permission.ReadMonitorTemplate])!;
+      getReadableMonitorTemplateColumn([
+        Permission.ReadNetworkDeviceAutoImportRule,
+      ])!;
 
     const rendered: unknown = `monitorTemplate.${column.selectedProperty}`
       .split(".")
@@ -174,6 +205,78 @@ describe("Network Device auto-import rule monitor form state", () => {
     expect(
       (source.match(/selectedProperty|getElement/g) || []).length,
     ).toBeGreaterThanOrEqual(entityColumnCount);
+  });
+
+  /*
+   * A picker lists the project's templates, so it is offered only to who may
+   * read the rule's template column AND list the templates: a granular rule
+   * reader without template access keeps an inventory-only form instead of a
+   * picker whose list request would be refused.
+   */
+  it("offers the Monitor Template picker to who may read the rule and list monitor templates", () => {
+    expect(
+      canPickAutoImportMonitorTemplate([
+        Permission.ReadNetworkDeviceAutoImportRule,
+        Permission.ReadMonitorTemplate,
+      ]),
+    ).toBe(true);
+    expect(
+      canPickAutoImportMonitorTemplate([
+        Permission.ReadNetworkDeviceAutoImportRule,
+        Permission.MonitorViewer,
+      ]),
+    ).toBe(true);
+
+    for (const role of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ]) {
+      expect([role, canPickAutoImportMonitorTemplate([role])]).toEqual([
+        role,
+        true,
+      ]);
+    }
+  });
+
+  it("does not offer the Monitor Template picker without both reads", () => {
+    expect(
+      canPickAutoImportMonitorTemplate([
+        Permission.ReadNetworkDeviceAutoImportRule,
+      ]),
+    ).toBe(false);
+    expect(
+      canPickAutoImportMonitorTemplate([Permission.ReadMonitorTemplate]),
+    ).toBe(false);
+    expect(canPickAutoImportMonitorTemplate([])).toBe(false);
+  });
+
+  it("offers the OID Collection Template picker to who may read the rule and list OID templates", () => {
+    expect(
+      canPickAutoImportOidTemplate([
+        Permission.ReadNetworkDeviceAutoImportRule,
+        Permission.ReadNetworkDeviceOidTemplate,
+      ]),
+    ).toBe(true);
+    expect(canPickAutoImportOidTemplate([Permission.ProjectMember])).toBe(
+      true,
+    );
+    expect(
+      canPickAutoImportOidTemplate([
+        Permission.ReadNetworkDeviceAutoImportRule,
+      ]),
+    ).toBe(false);
+    expect(
+      canPickAutoImportOidTemplate([Permission.ReadNetworkDeviceOidTemplate]),
+    ).toBe(false);
+    // The monitor template permission lists no OID template.
+    expect(
+      canPickAutoImportOidTemplate([
+        Permission.ReadNetworkDeviceAutoImportRule,
+        Permission.ReadMonitorTemplate,
+      ]),
+    ).toBe(false);
   });
 
   it("shows the monitor step for an ordinary import rule", () => {

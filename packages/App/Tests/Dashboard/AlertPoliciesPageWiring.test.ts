@@ -186,23 +186,19 @@ describe("the policies page is where policies are managed", () => {
   });
 
   /*
-   * The template column is CONDITIONAL, and that is the design rather than an
-   * accident, so this pins both halves of it.
+   * The template column is asked for only when its column may be read.
+   * `monitorTemplate` is read with the policy's own read list, so every
+   * policy reader sees which template a policy uses; selecting a relation
+   * the caller cannot read would fail the WHOLE list request rather than
+   * blank one cell, so the column still hangs off PermissionGate rather than
+   * being asked for unconditionally - the same gate the auto-import rules
+   * page puts its template column behind (getReadableMonitorTemplateColumn).
    *
-   * `monitorTemplate` carries the MonitorTemplate read permissions, not the
-   * policy's own: a granular reader can hold ReadNetworkAlertPolicy and not
-   * ReadMonitorTemplate. Selecting a relation such a caller cannot read fails
-   * the WHOLE list request rather than blanking one cell, so asking for the
-   * column unconditionally would turn their Alert Policies page into an error
-   * — which is exactly why the auto-import rules page gates its own template
-   * column the same way, in getReadableMonitorTemplateColumn.
-   *
-   * The failure mode this guards is therefore not "the column is optional",
-   * it is "the column quietly stopped existing for anyone": hence the
-   * assertions on the permitted shape, on the gate it hangs off, and on the
-   * spread that actually puts it in the table.
+   * The failure mode this guards is "the column quietly stopped existing for
+   * anyone": hence the assertions on the permitted shape, on the gate it
+   * hangs off, and on the spread that actually puts it in the table.
    */
-  test("the template column exists for a reader who may read templates, and is spread into the table", () => {
+  test("the template column exists for a reader who may read it, and is spread into the table", () => {
     const gate: string = between(
       page,
       "const canReadMonitorTemplate",
@@ -250,17 +246,31 @@ describe("the policies page is where policies are managed", () => {
   });
 
   /*
-   * The template FIELD is gated on the same permission as the template
-   * column, for the same reason — the create form would otherwise select a
-   * relation the caller cannot read. The server still requires a template, so
-   * a caller without the field is refused on save with a sentence, which is a
-   * far better outcome than a form that appears to work and silently drops
-   * the one column that decides what every provisioned monitor watches.
+   * The template FIELD is a picker that lists the project's Network Device
+   * templates, so it is offered to somebody who may read the column AND list
+   * templates; offered to anybody else, its list request would be refused.
+   * The server still requires a template, so a caller without the field is
+   * refused on save with a sentence, which is a far better outcome than a
+   * form that appears to work and silently drops the one column that decides
+   * what every provisioned monitor watches.
    */
-  test("the template field is required, and behind the same permission as the column", () => {
+  test("the template field is offered to who may read the column and list templates", () => {
+    const gate: string = between(
+      page,
+      "const canPickMonitorTemplate",
+      "const monitorTemplateColumn",
+    );
+
+    expect(gate).toContain("canReadMonitorTemplate &&");
+    expect(gate).toContain(
+      "PermissionGate.check(new MonitorTemplate(), ModelAction.Read).isAllowed",
+    );
+  });
+
+  test("the template field is required, and behind the template picker's gate", () => {
     const templateField: string = between(
       formFields,
-      "canReadMonitorTemplate",
+      "canPickMonitorTemplate",
       "field: { scope: true }",
     );
 

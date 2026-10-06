@@ -15,7 +15,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
@@ -30,6 +29,8 @@ import React, {
 } from "react";
 import { Blue, Green, Red } from "Common/Types/BrandColors";
 import {
+  canPickAutoImportMonitorTemplate,
+  canPickAutoImportOidTemplate,
   canSelectAutoImportMonitorTemplate,
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
@@ -92,20 +93,14 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
 > = (): ReactElement => {
   const monitorTemplateColumn: Column<NetworkDeviceAutoImportRule> | null =
     getReadableMonitorTemplateColumn();
-  const canReadMonitorTemplate: boolean = Boolean(monitorTemplateColumn);
-
   /*
-   * The same gate the monitor template beside it goes through, for the same
-   * reason (see getReadableMonitorTemplateColumn): a relation the user cannot
-   * read is not degraded to a blank value, it fails the WHOLE request — so
-   * offering this field to a granular rule-editor who lacks
-   * ReadNetworkDeviceOidTemplate would break the edit form rather than one
-   * dropdown. They keep an inventory-only page; only the field goes away.
+   * The two template pickers list the project's templates, so each is
+   * offered only to somebody who may read those templates as well as the
+   * rule (see canPickAutoImportMonitorTemplate). Without one, the rest of
+   * the form stays: an inventory-only rule needs neither template.
    */
-  const canReadOidTemplate: boolean = PermissionGate.canReadColumn(
-    new NetworkDeviceAutoImportRule(),
-    "oidTemplate",
-  );
+  const canPickMonitorTemplate: boolean = canPickAutoImportMonitorTemplate();
+  const canPickOidTemplate: boolean = canPickAutoImportOidTemplate();
 
   const fetchNetworkDeviceMonitorTemplates: () => Promise<
     Array<DropdownOption>
@@ -324,7 +319,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },
           { title: "Behavior", id: "behavior" },
-          ...(canReadMonitorTemplate
+          ...(canPickMonitorTemplate
             ? [
                 {
                   title: "Monitor",
@@ -462,7 +457,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
               );
             },
           },
-          ...(canReadOidTemplate
+          ...(canPickOidTemplate
             ? [
                 {
                   field: { oidTemplate: true },
@@ -485,7 +480,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                 },
               ]
             : []),
-          ...(canReadMonitorTemplate
+          ...(canPickMonitorTemplate
             ? [
                 {
                   field: { monitorTemplate: true },

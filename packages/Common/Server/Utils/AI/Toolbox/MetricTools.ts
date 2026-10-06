@@ -32,8 +32,9 @@ import {
 } from "./ToolTypes";
 
 /*
- * Note: metric read access is gated on ReadTelemetryServiceTraces — this
- * mirrors the guard on the dashboard's /telemetry/metrics/* routes.
+ * Metric read access, as the Metric model and the dashboard's
+ * /telemetry/metrics/* routes grant it: the Telemetry Service Metrics
+ * permission, or a role that reads telemetry.
  */
 const METRIC_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -43,7 +44,7 @@ const METRIC_READ_PERMISSIONS: Array<Permission> = [
   Permission.TelemetryAdmin,
   Permission.TelemetryMember,
   Permission.TelemetryViewer,
-  Permission.ReadTelemetryServiceTraces,
+  Permission.ReadTelemetryServiceMetrics,
 ];
 
 export const QueryMetricsTool: ObservabilityTool = {
