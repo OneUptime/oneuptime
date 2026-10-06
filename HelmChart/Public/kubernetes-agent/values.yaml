@@ -1,5 +1,19 @@
 # OneUptime Kubernetes Agent Configuration
 
+# The version of the chart this values.yaml comes with. Do not set it, and
+# leave it out of a values file you keep: the release pipeline stamps it with
+# the version it publishes the chart as (.github/workflows/release.yml), and
+# it equals Chart.yaml's version here.
+#
+# After every install and upgrade the chart compares it with its own version.
+# A different or missing one means the release renders with an older chart's
+# defaults — what `helm upgrade --reuse-values` does — so the notes say what
+# is stale (the eBPF image among them) and print the upgrade that applies
+# this chart's defaults and keeps the values you set: --reset-then-reuse-values
+# (Helm 3.14+), or `helm get values` into -f. The README's "Upgrading" section
+# has the details.
+chartDefaultsVersion: "0.7.0"
+
 # Preset for the kind of cluster you're installing into. Sets compatible
 # defaults for log collection and security context — so you don't have to
 # think about hostPath, Pod Security Standards, or which log collection mode
@@ -832,7 +846,11 @@ ebpf:
     #
     # OBI is pre-1.0: read its release notes before moving this, and check
     # the feature names in kubernetes-agent.ebpfMetricsFeatures still exist —
-    # OBI refuses to start on one it does not know.
+    # OBI refuses to start on one it does not know. Move
+    # kubernetes-agent.defaultEbpfImageTag (templates/_stale-defaults.tpl)
+    # with it: the notes name a release still on an older chart's tag by
+    # comparing with it (tests/stale-defaults-source_test.yaml fails when
+    # they differ).
     tag: "v0.14.0"
     pullPolicy: IfNotPresent
   # OBI's memory scales with the number of processes it instruments and the
@@ -1512,7 +1530,7 @@ serviceAccount:
 # already exist):
 #   helm repo update
 #   helm upgrade <release> oneuptime/kubernetes-agent -n <namespace> \
-#     --reuse-values --set aiAgent.investigation=true \
+#     --reset-then-reuse-values --set aiAgent.investigation=true \
 #     --set aiAgent.fixes=ask-for-approval \
 #     --set "aiAgent.remediation.namespaces={web,api}"
 aiAgent:
@@ -1584,7 +1602,7 @@ aiAgent:
   #   # Empty binds it cluster-wide with a ClusterRoleBinding, which RBAC
   #   # cannot keep out of kube-system, kube-public, kube-node-lease or this
   #   # release's namespace: there the policy and the agent hold the line.
-  #   # Under --reuse-values, leaving the flag out keeps a stored list; go back
+  #   # Leaving the flag out of an upgrade keeps a stored list; go back
   #   # to cluster-wide with --set-json 'aiAgent.remediation.namespaces=[]'
   #   # (not `={}`, which Helm reads as one empty name).
   #   namespaces: []

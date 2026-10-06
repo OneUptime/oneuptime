@@ -234,24 +234,19 @@ Chart также может собирать:
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` сохраняет вашу существующую конфигурацию; передавайте любые новые переопределения `--set` поверх неё.
+`--reset-then-reuse-values` (Helm 3.14+) сохраняет заданные вами значения (пресет, имя кластера, фильтры) и берёт все остальные значения из нового чарта; передавайте любые новые переопределения `--set` поверх неё. В Helm 3.13 и более ранних версиях обновляйтесь вместо этого с заданными вами значениями:
 
-> **Внимание: `--reuse-values` не объединяет новые значения по умолчанию из chart.** Helm повторно использует ваши ранее отрендеренные значения дословно — поэтому любое новое поле верхнего уровня, добавленное в более новой версии chart (например, `profiling.*`, `ebpf.features.*`), остаётся неустановленным в вашем существующем релизе, и шаблон рендерится так, как если бы вы его отключили.
->
-> **Helm 3.14+** — переключитесь на `--reset-then-reuse-values`. Эта опция повторно считывает значения chart по умолчанию для ключей, которые вы не переопределяли:
->
-> ```bash
-> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->   --namespace oneuptime-kubernetes-agent \
->   --reset-then-reuse-values
-> ```
->
-> **Helm 3.13 или ранее** — уберите `--reuse-values` и передайте исходные флаги `--set` (или `-f values.yaml`) явно. Новые значения chart по умолчанию будут применяться ко всему, что вы не переопределяете.
->
-> Если Pod нового функционала (например, `kubernetes-agent-profiling-*`) не появляются после обновления, причина почти всегда в этом. `helm get values <release>` показывает, что у Helm есть на самом деле — отсутствие полей в выводе означает, что значения по умолчанию для них не были объединены.
+```bash
+helm repo update
+helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+Не используйте `--reuse-values`: он сохраняет и значения по умолчанию того чарта, с которого вы обновляетесь, поэтому значения по умолчанию более нового чарта (в том числе его образ eBPF) никогда не применяются. Когда релиз работает со значениями по умолчанию более старого чарта, заметки, которые Helm выводит после установки или обновления, заканчиваются предупреждением и командой, которая это исправляет.
 
 > **Метрики span из eBPF переименованы.** `ebpf.features.spanMetrics` теперь отправляет `traces.span.metrics.calls` и `traces.span.metrics.duration` (секунды) вместо `traces_spanmetrics_calls_total` и `traces_spanmetrics_latency`: те же ряды под именами, которые OBI сохраняет (старые OBI объявил устаревшими). Дашборд, график или монитор метрик со старым именем после обновления перестаёт получать новые данные, причём без какой-либо ошибки, — переведите его на новое имя и исправьте записи `filters.metrics`, в которых указано старое имя.
 
@@ -271,7 +266,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 

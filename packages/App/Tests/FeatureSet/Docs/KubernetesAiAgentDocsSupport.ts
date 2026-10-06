@@ -78,7 +78,7 @@ export const AI_AGENT_PAGE: string = "Pages/Kubernetes/View/AI/Agent.tsx";
  */
 export const AI_AGENT_INSTALL_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true`;
 
 /*
@@ -88,7 +88,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
  */
 export const AI_AGENT_SCOPED_WRITE_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true \\
   --set aiAgent.investigation=true \\
   --set aiAgent.fixes=ask-for-approval \\
@@ -102,30 +102,29 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
  */
 export const AI_AGENT_APPLY_SETTINGS_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true \\
   --set aiAgent.investigation=true \\
   --set aiAgent.fixes=ask-for-approval`;
 
 /*
  * Write access, cluster-wide. It resets a namespace list stored on the
- * release: under --reuse-values a stored list is kept when the flag is left
- * out, so without the reset this command would leave the role bound only
- * where that list says.
+ * release: a stored list is kept when the flag is left out, so without the
+ * reset this command would leave the role bound only where that list says.
  */
 export const AI_AGENT_CLUSTER_WIDE_WRITE_COMMAND: string = `helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent --reuse-values \\
+  --namespace oneuptime-agent --reset-then-reuse-values \\
   --set aiAgent.enabled=true \\
   --set aiAgent.investigation=true \\
   --set aiAgent.fixes=ask-for-approval \\
   --set-json 'aiAgent.remediation.namespaces=[]'`;
 
 /*
- * The reset of aiAgent.remediation.namespaces that works under
- * --reuse-values. `={}` is one empty name (the schema refuses it), and
- * `=null` is dropped by Helm when the release stores the key, so neither
- * resets a stored list.
+ * The reset of aiAgent.remediation.namespaces that works whichever way the
+ * release keeps its values. `={}` is one empty name (the schema refuses it),
+ * and `=null` is dropped by Helm when the release stores the key, so under
+ * --reuse-values it resets nothing.
  */
 export const EMPTY_LIST_RESET_FLAG: string =
   "--set-json 'aiAgent.remediation.namespaces=[]'";
