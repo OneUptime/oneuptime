@@ -2,10 +2,11 @@
 {{- /*
   Block the deploy on migrations (as a Helm hook) only when migrate.hook is true.
   When false (default), render a regular async Job for BOTH install and upgrade,
-  so helm returns immediately and migrations run in the background. NOTE: on a
-  FRESH install with hook=false the app pods come up against an un-migrated
-  database and stay unready (likely CrashLoopBackOff) until this async Job
-  finishes creating the schema — set hook=true if you need the install to block.
+  so helm returns immediately and migrations run in the background. The runtime
+  pods do not start on a schema older than their code meanwhile: each waits at
+  boot, unready, until the schema migrations it needs are applied
+  (migrate.runtimeWaitTimeoutSeconds) — so on a FRESH install they wait for this
+  Job to create the schema instead of crash-looping.
 */ -}}
 {{- $useHook := .Values.migrate.hook }}
 # =============================================================================
@@ -35,6 +36,9 @@ metadata:
   # Blocking: a Helm hook — the deploy waits for migrations before rolling the
   # new pods (new code never runs against an un-migrated schema). post-install on
   # a fresh install; pre-upgrade on an upgrade (only when migrate.hook=true).
+  # A post-install hook runs only after the release's pods exist (once they are
+  # ready, under `helm install --wait` and Argo CD), so on an install those pods
+  # do not wait for it (DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0, see _helpers.tpl).
   annotations:
     "helm.sh/hook": {{ ternary "post-install" "pre-upgrade" .Release.IsInstall }}
     "helm.sh/hook-weight": "-5"

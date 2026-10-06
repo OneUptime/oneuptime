@@ -64,7 +64,11 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   us-east-1", too long for the sidebar), two hosts, a Kubernetes cluster, three services and an
   SLO; `none` leaves #1042 and #58 with nothing attached.
 - **Incident episode #12** "Checkout degradation — Sep 14" with four member incidents, a
-  grouping rule and a role member; **alert episode #7** with five member alerts.
+  grouping rule and a role member; **alert episode #7** with five member alerts. Each one's
+  founding member, incident #1038 and alert #305, later joined another episode too (#13 and #8,
+  modelled only as that membership row and the link), so its own `incidentEpisodeId` /
+  `alertEpisodeId` names the later one, as the server keeps it. The episodes still list it: an
+  episode's members are its membership rows.
 - **State changes** submitted from a hero action (incident, alert, both episodes, scheduled
   maintenance) are stamped like the server does: the new timeline entry starts now, the open
   one is closed and the event moves to the new state, so a background refresh reads the result.
@@ -193,6 +197,9 @@ Query parameters, parsed once per page load:
   Ongoing refreshing in place; `?fail=resend`.
 - **Episodes**: hero and four-cell stat bar, the members card (number chip, title link, state
   and severity pills, View all), details field order, roles, Resolve / Acknowledge from the hero.
+  The card and the telemetry snapshot's first member are read by membership: the membership
+  rows, then the members by id, never by the members' own episode link - so the founding member
+  that later joined another episode is still listed.
 - **Affected Resources card** (incident, alert and scheduled maintenance): the categories are
   sections of the one card, read from computed styles - no shadow, border (but the hairline
   above each section after the first) or white fill inside it, as wide on the right as on the

@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, RenderResult, screen } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  RenderResult,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -561,10 +567,18 @@ describe.each(PAGES)("$name", (page: NotePageCase) => {
 
     currentEventId = OTHER_EVENT_ID;
     view.rerender(element());
-    await screen.findByTestId("event-notes-feed");
+
+    /*
+     * Wait for the mount itself, not for a feed element to appear: a public
+     * page draws a loader while it reads the new event's notify setting and
+     * the feed after that, and when React's render runs past its time slice
+     * the feed's mount effect lands in a later task than its element.
+     */
+    await waitFor(() => {
+      expect(feedMounts[feedMounts.length - 1]).toBe(OTHER_EVENT_ID);
+    });
 
     expect(feedMounts[0]).toBe(EVENT_ID);
-    expect(feedMounts[feedMounts.length - 1]).toBe(OTHER_EVENT_ID);
     expect(feed().parentId.toString()).toBe(OTHER_EVENT_ID);
   });
 });

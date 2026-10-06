@@ -435,9 +435,12 @@ const WorkersFeatureSet: FeatureSet = {
        * (migrate.hook=false), so on a fresh install / schema-adding upgrade there
        * is a window where pods are up but the tables/MVs don't exist yet —
        * telemetry inserts transiently fail with UNKNOWN_TABLE and retry until the
-       * Job finishes. This is the same model Postgres schema already follows, and
-       * the boot self-heal of a wiped ClickHouse volume likewise becomes "re-run
-       * the migrate Job".
+       * Job finishes. The Postgres schema has no such window any more: a pod
+       * waits at boot for the Postgres migrations its code needs
+       * (PostgresDatabase.connect()), and the Job applies those before it syncs
+       * these tables, so this one lasts about as long as that sync. The boot
+       * self-heal of a wiped ClickHouse volume also becomes "re-run the migrate
+       * Job".
        *
        * Deployments WITHOUT a dedicated migrate Job leave the flag at its default
        * (true) and keep the original behavior: every boot reconciles the schema
