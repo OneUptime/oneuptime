@@ -8,9 +8,9 @@ import PermissionGate, {
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import { RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS } from "./ResourceAiAccessSettingsUtil";
 import {
-  translatableTerm,
-  translateTemplate,
-} from "Common/UI/Utils/TranslateTemplate";
+  getAiAccessTestPermissionMessage,
+  getAiAccessTestPermissionRequirement,
+} from "../AiAccess/AiAccessModes";
 
 /*
  * What the signed-in user may do on a resource's AI pages, read from the
@@ -98,19 +98,23 @@ export function getResourceAccessTestPermissionGate(
   return getResourceSettingsGate(descriptor);
 }
 
+// Who may edit the resource, and so run the test.
+function getResourceAccessTestPermissionTitles(
+  descriptor: ResourceAiAgentDescriptor,
+): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new descriptor.modelType().getUpdatePermissions(),
+  );
+}
+
 // Why the test is locked, for the disabled button's tooltip and note.
 export function getResourceAccessTestPermissionRequirement(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return translateTemplate(
-    "Testing the connection needs permission to edit this {{noun}} (one of: {{permissions}}).",
-    {
-      noun: translatableTerm(descriptor.noun, { inSentence: true }),
-      permissions: PermissionGate.getPermissionTitles(
-        new descriptor.modelType().getUpdatePermissions(),
-      ).join(", "),
-    },
-  );
+  return getAiAccessTestPermissionRequirement({
+    noun: descriptor.noun,
+    permissionTitles: getResourceAccessTestPermissionTitles(descriptor),
+  });
 }
 
 /*
@@ -120,11 +124,8 @@ export function getResourceAccessTestPermissionRequirement(
 export function getResourceAccessTestPermissionMessage(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return translateTemplate(
-    "{{requirement}} Nothing on the {{noun}} or in its AI settings was changed.",
-    {
-      requirement: getResourceAccessTestPermissionRequirement(descriptor),
-      noun: translatableTerm(descriptor.noun, { inSentence: true }),
-    },
-  );
+  return getAiAccessTestPermissionMessage({
+    noun: descriptor.noun,
+    permissionTitles: getResourceAccessTestPermissionTitles(descriptor),
+  });
 }
