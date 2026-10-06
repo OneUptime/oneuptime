@@ -804,6 +804,48 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
 
+  test("a incident in a state placed after the resolved one is filed under Resolved too", async () => {
+    /*
+     * "Archived" sits after the project's resolved state and does not carry
+     * the resolved flag. By the one resolved rule (utils/resolvedState) the
+     * incident is over: filed under Resolved, with nothing to acknowledge.
+     */
+    mockStates.current = statesWith([
+      ...projectStates(),
+      makeIncidentState({
+        _id: "incident-state-archived",
+        name: "Archived",
+        isCreatedState: false,
+        order: 4,
+      }),
+    ]);
+    mockIncidents.current = incidentsWith({
+      items: [
+        wrapIncident(
+          makeIncident({
+            _id: "incident-archived",
+            title: "Archived outage",
+            incidentNumber: 21,
+            incidentNumberWithPrefix: "#21",
+            currentIncidentState: makeNamedEntityWithColor({
+              _id: "incident-state-archived",
+              name: "Archived",
+            }),
+          }),
+        ),
+      ],
+    });
+
+    await renderIncidentsScreen();
+
+    await waitFor(() => {
+      expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
+    });
+
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
+    expect(screen.queryByText("Acknowledge")).toBeNull();
+  });
+
   test("a heading is only drawn for a section that has incidents in it", async () => {
     mockIncidents.current = incidentsWith({ items: [activeIncident()] });
 

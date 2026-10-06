@@ -9,7 +9,7 @@ Enabling it is one command:
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -38,7 +38,7 @@ Point the chart at your existing engine instead — nothing is bundled then:
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true \
   --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
 ```
@@ -135,7 +135,7 @@ Allocation rows are stored in ClickHouse (one row per cluster, window, namespace
 
 - **Costs pages are empty** — check the cost agent's logs: `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-cost`. A `401` means the ingestion key is invalid; `cost engine did not answer any known allocation path` means the engine isn't up yet (the bundled OpenCost needs a few minutes after install to price its first windows) or `cost.engine.url` is wrong.
 - **Bundled OpenCost not ready** — `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-opencost`. It logs which cloud provider it detected and whether pricing data loaded.
-- **`mkdir /var/configs: permission denied` in the OpenCost log** — a chart bug fixed in chart 0.6.1. OpenCost ran as non-root with no writable config directory, so `Error downloading default pricing data` left its Allocation API unable to answer and the poller stalled — while the pod stayed `Running`, `/healthz` stayed green, and the node cost metrics kept publishing. Upgrade the chart (`helm repo update && helm upgrade ... --reuse-values`); cost rows appear on the next poll.
+- **`mkdir /var/configs: permission denied` in the OpenCost log** — a chart bug fixed in chart 0.6.1. OpenCost ran as non-root with no writable config directory, so `Error downloading default pricing data` left its Allocation API unable to answer and the poller stalled — while the pod stayed `Running`, `/healthz` stayed green, and the node cost metrics kept publishing. Upgrade the chart (`helm repo update && helm upgrade ... --reset-then-reuse-values`); cost rows appear on the next poll.
 - **Dashboard template shows no data** — the template reads the scraped cost metrics; confirm `cost.metrics.enabled` is `true`.
 - **Right-Sizing card is empty** — either the window is shorter than the 24 hours a recommendation needs (widen the time range), or every container is already within 15% of its recommended request, which the card says explicitly.
 - **Memory recommendations show `-` but CPU ones work** — no memory peak reached the server, so memory was deliberately left unsized rather than guessed from an average. On an external-engine install, set `cost.engine.prometheusUrl`. The card reports how many containers this affects.

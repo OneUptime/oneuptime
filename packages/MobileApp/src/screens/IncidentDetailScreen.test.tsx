@@ -175,6 +175,16 @@ const RESOLVED_STATE: IncidentState = makeIncidentState({
   isResolvedState: true,
   order: 3,
 });
+/*
+ * A state the project placed after Resolved, without the resolved flag: by
+ * the one resolved rule (utils/resolvedState) a record in it is resolved.
+ */
+const CLOSED_STATE: IncidentState = makeIncidentState({
+  _id: "incident-state-closed",
+  name: "Closed",
+  isCreatedState: false,
+  order: 4,
+});
 
 /**
  * A hook result in whatever state a test needs it in.
@@ -601,6 +611,37 @@ describe("The controls a responder is offered", () => {
     expect(screen.queryByText("Actions")).toBeNull();
   });
 
+  test("a incident in a state placed after Resolved is offered nothing to press either", async () => {
+    /*
+     * "Closed" comes after Resolved and does not carry the resolved flag. The
+     * incident is resolved all the same, so there is nothing to acknowledge -
+     * and no Resolve, which could only move it back up the list.
+     */
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE, CLOSED_STATE],
+    });
+    mockIncidentDetail.current = queryState<IncidentItem | null>({
+      data: makeLoadedIncident({
+        currentIncidentState: makeNamedEntityWithColor({
+          _id: CLOSED_STATE._id,
+          name: CLOSED_STATE.name,
+        }),
+      }),
+    });
+    const client: QueryClient = createTestQueryClient();
+
+    await renderScreen(client);
+
+    expect(
+      screen.queryByRole("button", { name: "Acknowledge incident" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Resolve incident" }),
+    ).toBeNull();
+    expect(screen.queryByText("Actions")).toBeNull();
+    expect(screen.getByText("Response complete")).toBeTruthy();
+  });
+
   test("a project with no acknowledged state offers only the state it does have", async () => {
     /*
      * Incident states are configured per project, and a project can perfectly
@@ -700,6 +741,40 @@ describe("Acknowledging and resolving", () => {
         PROJECT_ID,
         INCIDENT_ID,
         ACKNOWLEDGED_STATE._id,
+      );
+    });
+  });
+
+  test("Resolve sends the project's resolved state - the first flagged from the top - whatever order the states arrive in", async () => {
+    /*
+     * A project may flag a second state resolved further down. Resolve means
+     * the first one from the top (utils/resolvedState), so a list that
+     * arrives with the lower one first still resolves into Resolved.
+     */
+    const autoClosedState: IncidentState = makeIncidentState({
+      _id: "incident-state-auto-closed",
+      name: "Auto-closed",
+      isCreatedState: false,
+      isResolvedState: true,
+      order: 5,
+    });
+    mockIncidentStates.current = queryState<IncidentState[]>({
+      data: [autoClosedState, TRIAGE_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE],
+    });
+    const client: QueryClient = createSeedableClient();
+    client.setQueryData(INCIDENT_QUERY_KEY, incidentFixture);
+
+    await renderScreen(client);
+
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Resolve incident" }),
+    );
+
+    await waitFor(() => {
+      expect(changeIncidentStateMock).toHaveBeenCalledWith(
+        PROJECT_ID,
+        INCIDENT_ID,
+        RESOLVED_STATE._id,
       );
     });
   });

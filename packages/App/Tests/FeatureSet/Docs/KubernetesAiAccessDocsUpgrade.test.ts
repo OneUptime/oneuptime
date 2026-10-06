@@ -429,10 +429,11 @@ describe("the Kubernetes agent page's Upgrading section", () => {
   const note: string = getSection(upgrading, KUBERNETES_AGENT_UPGRADE_HEADING);
   const flat: string = note.replace(/\s*\n\s*/g, " ");
 
-  it("keeps the plain upgrade first", () => {
-    expect(getBashBlocks(upgrading)[0]).toBe(
-      "helm repo update\nhelm upgrade kubernetes-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-agent \\\n  --reuse-values",
-    );
+  it("keeps the plain upgrade first, then the one for Helm before 3.14", () => {
+    expect(getBashBlocks(upgrading).slice(0, 2)).toEqual([
+      "helm repo update\nhelm upgrade kubernetes-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-agent \\\n  --reset-then-reuse-values",
+      "helm repo update\nhelm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \\\n  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\\n  --namespace oneuptime-agent -f values.yaml",
+    ]);
   });
 
   it("says what to do before upgrading to the agent", () => {

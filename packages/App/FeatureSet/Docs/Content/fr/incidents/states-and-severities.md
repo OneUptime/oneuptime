@@ -2,7 +2,7 @@
 
 Chaque incident porte deux classifications : un **état** qui dit où il en est dans votre réponse, et une **gravité** qui dit à quel point il fait mal. Dans le tableau de bord, les deux se ressemblent — pastilles colorées dans la liste des incidents, listes propres au projet que vous pouvez renommer et recolorer. Leurs rôles n'ont pourtant rien à voir.
 
-Les états pilotent le comportement. Trois indicateurs booléens sur les lignes d'état décident quels incidents comptent comme actifs, quels boutons apparaissent dans l'en-tête de l'incident, quand le chronomètre du SLA s'arrête et quand l'incident disparaît de votre page de statut. Les gravités, elles, ne pilotent rien par elles-mêmes : ce sont des étiquettes qui décrivent l'impact et sur lesquelles d'autres règles peuvent se caler.
+Les états pilotent le comportement. Trois indicateurs booléens sur les lignes d'état, avec l'ordre des états, décident quels incidents comptent comme actifs, quels boutons apparaissent dans l'en-tête de l'incident, quand le chronomètre du SLA s'arrête et quand l'incident disparaît de votre page de statut. Les gravités, elles, ne pilotent rien par elles-mêmes : ce sont des étiquettes qui décrivent l'impact et sur lesquelles d'autres règles peuvent se caler.
 
 Les deux listes sont initialisées à la création de votre projet, et les deux se modifient sous **Incidents → Paramètres**. Cette section du menu latéral Incidents est repliée par défaut : dépliez **Paramètres** avant de partir à leur recherche.
 
@@ -36,7 +36,7 @@ Attention au nom : le premier état est **Identifié**, même si plusieurs descr
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | L'état que reçoit un incident quand personne n'en a choisi. Si aucun état du projet ne porte cet indicateur, la création d'un incident échoue avec une erreur vous invitant à ajouter un état de création depuis les paramètres. |
 | `isAcknowledgedState` | Alimente le bouton **Acknowledge** et la tuile de statistique « <nom de l'état> en » de la **Vue d'ensemble** de l'incident. Au passage vers cet état, le SLA de l'incident est marqué comme ayant reçu une réponse. |
-| `isResolvedState`     | Alimente le bouton **Résoudre** et la tuile de statistique de résolution, définit la liste **Incidents actifs**, et c'est lui qui retire l'incident de la section active d'une page de statut. Marque le SLA comme résolu. |
+| `isResolvedState`     | Désigne l'état résolu du projet : celui vers lequel **Résoudre** fait passer un incident et que montre la tuile de statistique de résolution. Un incident dans cet état, ou dans un état placé après lui, est résolu : il quitte **Incidents actifs** et la section active d'une page de statut, et son SLA est marqué comme résolu. |
 
 On attend qu'un seul état par projet porte chacun de ces indicateurs — les recherches ne ramènent qu'une ligne. Les trois états porteurs d'indicateurs peuvent être renommés, recolorés et réordonnés, mais la page de paramètres refuse de les supprimer et affiche une erreur nommant les états de création, de prise en compte et de résolution.
 
@@ -44,7 +44,7 @@ Comme l'interface lit les noms d'états dynamiquement, renommer un état change 
 
 ## Ajouter vos propres états
 
-Allez dans **Incidents → Paramètres → État de l'incident**. La page est une liste ordonnée triée par `order` croissant, et les nouveaux états s'ajoutent à la fin. Faites glisser une ligne pour changer sa position.
+Allez dans **Incidents → Paramètres → État de l'incident**. La page est une liste ordonnée triée par `order` croissant, et un nouvel état s'ajoute juste au-dessus de l'état résolu. Faites glisser une ligne pour changer sa position.
 
 **Champs d'un état :**
 
@@ -54,7 +54,7 @@ Allez dans **Incidents → Paramètres → État de l'incident**. La page est un
 
 Vous ne pouvez pas positionner les trois indicateurs depuis ce formulaire — ils appartiennent aux lignes initialisées. Un état que vous ajoutez est donc un état sans indicateur, ce qui a deux conséquences à anticiper :
 
-- **Il compte comme actif.** **Incidents actifs** se définit comme « l'état courant n'est pas l'état résolu » : tout ce que vous ajoutez, hormis l'état résolu, maintient l'incident dans la liste active et dans le compteur de la barre latérale.
+- **Au-dessus de l'état résolu, il garde l'incident actif.** **Incidents actifs** regroupe les incidents dont l'état courant se trouve au-dessus de l'état résolu : un état que vous ajoutez là maintient donc l'incident dans la liste active et dans le compteur de la barre latérale. Un état que vous faites glisser sous l'état résolu compte comme résolu partout — listes actives, pages de statut, rappels et SLA — et faire passer un incident de **Résolu** à cet état n'est pas une seconde résolution.
 - **Son bouton de transition est générique.** Au lieu de **Acknowledge** ou **Résoudre**, la fenêtre de confirmation s'intitule **Marquer l'incident comme `<state name>`**, avec un bouton de validation **Mark as `<state name>`**.
 
 Une configuration courante consiste à insérer une étape de triage ou d'atténuation entre les états de prise en compte et de résolution — par exemple, faire glisser un nouvel état « Atténué » pour qu'il se place après **Pris en compte** et avant **Résolu**.
@@ -104,6 +104,15 @@ Un incident change d'état de quatre façons :
 
 Chacune de ces voies écrit une ligne de chronologie. Un changement d'état fait aussi quelques choses que vous n'avez pas à demander : il publie une entrée dans le fil d'incident, attribue un Responsable d'incident si l'incident n'en a pas encore, et met à jour le chronomètre du SLA. Rouvrir un incident résolu démarre un nouvel enregistrement de SLA à partir de l'heure de réouverture.
 
+## Ce que fait la résolution
+
+Un incident est résolu quand il passe d'un état au-dessus de votre état résolu à l'état résolu, ou à tout état placé après lui — quelle que soit celle des quatre voies ci-dessus qui le déplace. Chaque résolution :
+
+- **Rend les moniteurs que l'incident retient.** Un incident déclaré ouvert retient ses moniteurs : il les a mis dans son statut **Change Monitor Status to**, s'il en indique un, et, déclaré à la main, a mis leur surveillance en pause. Une modification pendant qu'il est ouvert — ajouter des moniteurs ou changer ce statut — les lui fait retenir aussi. La résolution relance leur surveillance et les remet en état opérationnel, sauf si un autre incident ouvert les retient encore, et dès lors l'incident ne retient plus rien. Un incident déclaré déjà résolu ne rend donc rien, pas plus qu'une seconde résolution après une réouverture : le statut que ses moniteurs ont pris entre-temps — par leurs sondes, par une maintenance ou à la main — reste.
+- **Marque le SLA comme résolu** et, quand les brouillons de post-mortem de OneUptime AI sont activés, rédige un brouillon de post-mortem.
+
+Passer de **Résolu** à un état placé après lui — **Clôturé**, par exemple — n'est pas une seconde résolution : rien de tout cela ne se rejoue et aucun nouveau SLA ne démarre. Un incident déclaré avant que OneUptime n'enregistre cela rend ses moniteurs à sa prochaine résolution, comme avant.
+
 ## La chronologie d'état
 
 La page **Chronologie d'état** du menu latéral de l'incident est la piste d'audit de tous les états par lesquels l'incident est passé. La carte de cette page s'intitule **Chronologie de statut**, et elle est triée du plus récent au plus ancien.
@@ -125,11 +134,11 @@ Les lignes de chronologie peuvent être créées et supprimées, mais pas modifi
 
 ## La liste des incidents actifs
 
-**Incidents → Incidents actifs** est la liste que vous surveillez pendant une astreinte. Sa définition tient en une seule condition : l'état courant de l'incident est un état dont `isResolvedState` vaut faux. Rien d'autre n'entre en compte — ni la gravité, ni l'ancienneté, ni le fait que quelqu'un l'ait pris en compte.
+**Incidents → Incidents actifs** est la liste que vous surveillez pendant une astreinte. Sa définition tient en une seule condition : l'état courant de l'incident se trouve au-dessus de votre état résolu — le premier état de l'ordre marqué `isResolvedState`. Rien d'autre n'entre en compte — ni la gravité, ni l'ancienneté, ni le fait que quelqu'un l'ait pris en compte.
 
 L'entrée du menu latéral porte un badge de comptage rouge qui utilise la même requête : le badge et la liste sont donc toujours d'accord. Quand il n'y a rien à voir, la page le dit.
 
-Conséquence pratique : tout état personnalisé que vous ajoutez maintient les incidents dans cette liste. C'est en général ce que vous voulez — « Atténué » n'est pas « terminé » — mais cela veut dire que le badge ne se vide que lorsque les incidents atteignent vraiment l'état résolu.
+Conséquence pratique : un état personnalisé que vous ajoutez au-dessus de l'état résolu maintient les incidents dans cette liste — « Atténué » n'est pas « terminé » — et un état placé après lui les en retire, comme le fait l'état résolu. Les alertes et les épisodes suivent la même règle avec leurs propres états, et les compteurs du menu latéral, les rappels, les pages de statut et l'application mobile la lisent tous.
 
 ## Prévenir les abonnés de la page de statut d'un changement d'état
 
@@ -156,7 +165,7 @@ Trois choses distinctes décident si un incident figure sur la page publique, et
 
 - **Afficher les incidents** (`showIncidentsOnStatusPage`) sur la page de statut elle-même.
 - **Visible sur la page de statut** (`isVisibleOnStatusPage`) sur l'incident — une bascule sur la page **Paramètres** de l'incident. Elle vaut vrai par défaut et n'est pas dans l'assistant de déclaration ; un critère de moniteur peut la positionner via **Afficher l'incident sur la page de statut**.
-- **L'état courant n'est pas l'état résolu.** C'est ce qui retire un incident de la section active : la requête de la page de statut récupère les incidents dont l'état courant est un état non résolu. Vous n'archivez ni ne clôturez rien — vous le résolvez, et il bascule dans l'historique.
+- **L'état courant se trouve au-dessus de l'état résolu.** C'est ce qui retire un incident de la section active : la requête de la page de statut récupère les incidents dont l'état courant se trouve au-dessus de votre état résolu, si bien que l'état résolu et tout état placé après lui retirent l'incident. Vous n'archivez ni ne clôturez rien — vous le résolvez, et il bascule dans l'historique.
 
 **Les incidents privés n'apparaissent jamais.** Activer **Incident privé** masque l'incident de toutes les pages de statut, quels que soient les réglages ci-dessus, et le restreint à ses propriétaires ainsi qu'aux administrateurs et propriétaires du projet.
 

@@ -6,6 +6,9 @@ import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import AlertStateTimelineService from "./AlertStateTimelineService";
+import AlertStateService from "./AlertStateService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 import AlertMeasurementAnchorType from "../../Types/Alerts/AlertMeasurementAnchorType";
 import AlertStateRole from "../../Types/Alerts/AlertStateRole";
 import MeasurementEvaluator, {
@@ -114,9 +117,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      data.alertId,
-    );
+    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline({
+      alertId: data.alertId,
+      projectId: alert.projectId,
+    });
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
       (measurement: AlertMeasurement) => {
@@ -143,12 +147,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  private async loadTimeline(
-    alertId: ObjectID,
-  ): Promise<Array<MeasurementTimelineEntry>> {
+  private async loadTimeline(data: {
+    alertId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<MeasurementTimelineEntry>> {
     const timelines: Array<AlertStateTimeline> =
       await AlertStateTimelineService.findBy({
-        query: { alertId: alertId },
+        query: { alertId: data.alertId },
         select: {
           _id: true,
           alertStateId: true,
@@ -159,7 +164,6 @@ export class Service extends DatabaseService<Model> {
             order: true,
             isCreatedState: true,
             isAcknowledgedState: true,
-            isResolvedState: true,
           },
         },
         sort: { startsAt: SortOrder.Ascending },
@@ -167,6 +171,31 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         props: { isRoot: true },
       });
+
+    /*
+     * "The alert is resolved" is each move into a state that counts as
+     * resolved (Common/Utils/ResolvedState) - the project's resolved state,
+     * or one placed after it - from one that does not. Moving on from one
+     * resolved state to another is not a second resolve.
+     */
+    const resolutionRowIds: Set<string> = new Set(
+      ResolvedStateUtil.getResolutionRows({
+        list: StateListType.AlertState,
+        states: await AlertStateService.getAllAlertStates({
+          projectId: data.projectId,
+          props: { isRoot: true },
+        }),
+        timeline: timelines.map((timeline: AlertStateTimeline) => {
+          return {
+            id: timeline._id?.toString() || "",
+            stateId: timeline.alertStateId,
+            startsAt: timeline.startsAt,
+          };
+        }),
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
 
     return timelines
       .filter((timeline: AlertStateTimeline) => {
@@ -183,7 +212,7 @@ export class Service extends DatabaseService<Model> {
           roles.push(AlertStateRole.Acknowledged);
         }
 
-        if (timeline.alertState?.isResolvedState) {
+        if (resolutionRowIds.has(timeline._id?.toString() || "")) {
           roles.push(AlertStateRole.Resolved);
         }
 

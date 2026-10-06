@@ -72,6 +72,9 @@ import Log from "../../Models/AnalyticsModels/Log";
 import SloHistory from "../../Models/AnalyticsModels/SloHistory";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
+import IncidentStateService from "../Services/IncidentStateService";
+import AlertStateService from "../Services/AlertStateService";
+import Includes from "../../Types/BaseDatabase/Includes";
 import MonitorService from "../Services/MonitorService";
 import HostService from "../Services/HostService";
 import KubernetesResourceService from "../Services/KubernetesResourceService";
@@ -2316,6 +2319,26 @@ export default class DashboardAPI extends BaseAPI<
     }
 
     /*
+     * An incident or alert list kept to Unresolved or Resolved: the
+     * project's own states say which those are (Common/Utils/ResolvedState)
+     * - a state placed after Resolved is resolved too. Within any states
+     * the list already names.
+     */
+    if (
+      policy.resolvedStateFilter &&
+      dashboard.projectId &&
+      (requestedResourceType === "incident" ||
+        requestedResourceType === "alert")
+    ) {
+      query = await DashboardAPI.applyResolvedStateFilter({
+        query: query,
+        resourceType: requestedResourceType,
+        filter: policy.resolvedStateFilter,
+        projectId: dashboard.projectId,
+      });
+    }
+
+    /*
      * Project scope is the final query invariant. Neither the request nor a
      * future policy builder may redirect this root read to another project.
      * Resource kind, where applicable, comes solely from the selected
@@ -2342,6 +2365,64 @@ export default class DashboardAPI extends BaseAPI<
       new PositiveNumber(list.length),
       config.modelType,
     );
+  }
+
+  /*
+   * Keeps an incident or alert list to the project's unresolved or resolved
+   * states: its current state id among them - and among the states the list
+   * names already, when it names some.
+   */
+  private static async applyResolvedStateFilter(data: {
+    query: JSONObject;
+    resourceType: "incident" | "alert";
+    filter: "unresolved" | "resolved";
+    projectId: ObjectID;
+  }): Promise<JSONObject> {
+    const stateColumn: string =
+      data.resourceType === "incident"
+        ? "currentIncidentStateId"
+        : "currentAlertStateId";
+
+    let stateIds: Array<ObjectID> = [];
+
+    if (data.resourceType === "incident") {
+      stateIds =
+        data.filter === "unresolved"
+          ? await IncidentStateService.getUnresolvedIncidentStateIds(
+              data.projectId,
+            )
+          : await IncidentStateService.getResolvedIncidentStateIds(
+              data.projectId,
+            );
+    } else {
+      stateIds =
+        data.filter === "unresolved"
+          ? await AlertStateService.getUnresolvedAlertStateIds(data.projectId)
+          : await AlertStateService.getResolvedAlertStateIds(data.projectId);
+    }
+
+    let allowed: Array<string> = stateIds.map((stateId: ObjectID): string => {
+      return stateId.toString();
+    });
+
+    const named: unknown = data.query[stateColumn];
+
+    if (named instanceof Includes) {
+      const namedIds: Array<string> = named.values.map(
+        (value: unknown): string => {
+          return String(value).toLowerCase();
+        },
+      );
+
+      allowed = allowed.filter((stateId: string): boolean => {
+        return namedIds.includes(stateId.toLowerCase());
+      });
+    }
+
+    return {
+      ...data.query,
+      [stateColumn]: new Includes(allowed),
+    };
   }
 
   private static getFileAsBase64JSONObject(

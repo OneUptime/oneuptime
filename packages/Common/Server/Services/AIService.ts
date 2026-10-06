@@ -26,10 +26,13 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
 import ProjectAiDailyLimits, {
+  PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
+  PROJECT_AI_DAILY_LIMITS_LOCATION,
   ProjectAiDailyLimit,
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -331,7 +334,7 @@ export const AI_BALANCE_INSUFFICIENT_MESSAGE: string =
  * Where a project's own daily AI limits are set, as every refusal names it.
  */
 export const PROJECT_DAILY_AI_LIMITS_LOCATION: string =
-  "Project Settings → AI Features → More settings";
+  PROJECT_AI_DAILY_LIMITS_LOCATION;
 
 /*
  * What every refusal by a project's own daily AI limit says, in its first
@@ -356,13 +359,24 @@ export interface ProjectAiDailyLimitStatus extends ProjectAiDailyLimitValues {
   isSpendCounted: boolean;
   // When the count starts again: the next midnight UTC.
   resetsAt: Date;
+  /*
+   * When the reached limit last stopped AI before - its ...ReachedAt column
+   * - as the project row carried it: null for never, undefined when the
+   * row did not carry the column or nothing is reached. The owners' notice
+   * reads it to tell, at no cost, that they were told today.
+   */
+  lastReachedAt?: Date | null | undefined;
 }
 
 /*
  * The one sentence that says a project's own daily AI limit stopped some AI
  * work: in the AI Logs, on a failed run, in Ask AI, in Slack and Microsoft
  * Teams, and from every "Generate with AI" button. It says which limit, how
- * much was used, when AI starts again and where the limit is changed.
+ * much was used, when AI starts again, and who can change the limit and
+ * where. It is said to whoever asked - who may not be one of the people who
+ * can change the limit - so it names them rather than telling the reader
+ * to (the project's owners are emailed with a link to the setting:
+ * ProjectAiDailyLimitOwnerNotice).
  */
 export const getProjectDailyLimitMessage: (
   status: Pick<
@@ -375,21 +389,9 @@ export const getProjectDailyLimitMessage: (
     "reachedLimit" | "tokenLimit" | "spendLimitInUSD" | "usage"
   >,
 ): string => {
-  const after: string = `OneUptime AI starts again at midnight UTC. To raise or remove the limit, go to ${PROJECT_DAILY_AI_LIMITS_LOCATION}.`;
-
-  if (status.reachedLimit === ProjectAiDailyLimit.Spend) {
-    return `This project has reached its daily AI spend limit: ${ProjectAiDailyLimits.formatUsd(
-      status.usage.spentTodayInUSDCents,
-    )} of ${ProjectAiDailyLimits.formatUsd(
-      (status.spendLimitInUSD || 0) * 100,
-    )} spent today. ${after}`;
-  }
-
-  return `This project has reached its daily AI token limit: ${status.usage.usedTokensToday.toLocaleString(
-    "en-US",
-  )} of ${(status.tokenLimit || 0).toLocaleString(
-    "en-US",
-  )} tokens used today. ${after}`;
+  return `${ProjectAiDailyLimits.getReachedSentence(
+    status,
+  )} OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`;
 };
 
 export interface AILogRequest {
@@ -690,6 +692,9 @@ export class Service extends BaseService {
             select: {
               aiDailyTokenLimit: true,
               aiDailySpendLimitInUSD: true,
+              // When each limit last stopped AI: the owners' notice reads it.
+              aiDailyTokenLimitReachedAt: true,
+              aiDailySpendLimitReachedAt: true,
             },
             props: { isRoot: true },
           });
@@ -747,7 +752,36 @@ export class Service extends BaseService {
       isSpendCounted: status.isSpendCounted,
     });
 
+    if (status.reachedLimit && project) {
+      status.lastReachedAt =
+        project[PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS[status.reachedLimit]];
+    }
+
     return status;
+  }
+
+  /*
+   * A project's own daily AI limit stopped some AI work: tell its owners,
+   * the first time it does on a UTC day (ProjectAiDailyLimitOwnerNotice -
+   * once a day for each limit, whichever server, refusal or skip comes
+   * first). Never throws and never delays the work's own outcome beyond the
+   * one email of the day.
+   */
+  private async tellOwnersDailyLimitReached(
+    projectId: ObjectID,
+    status: ProjectAiDailyLimitStatus,
+  ): Promise<void> {
+    try {
+      await ProjectAiDailyLimitOwnerNotice.notifyIfFirstToday({
+        projectId,
+        status,
+        lastReachedAt: status.lastReachedAt,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not tell the owners of project ${projectId.toString()} that a daily AI limit was reached: ${error}`,
+      );
+    }
   }
 
   /*
@@ -758,7 +792,8 @@ export class Service extends BaseService {
    * Microsoft Teams questions - so that work is skipped, or refused in one
    * clear message, instead of failing on its first model call. It fails
    * OPEN: limits that cannot be read never stop anything here, because the
-   * model call itself (executeWithLogging) still enforces them.
+   * model call itself (executeWithLogging) still enforces them. A limit it
+   * finds reached tells the project's owners, the first time that day.
    */
   @CaptureSpan()
   public async getReachedProjectDailyLimit(data: {
@@ -766,17 +801,24 @@ export class Service extends BaseService {
     project?: Project | null | undefined;
     llmProvider?: LlmProvider | null | undefined;
   }): Promise<ProjectAiDailyLimitStatus | null> {
-    try {
-      const status: ProjectAiDailyLimitStatus =
-        await this.getProjectDailyLimitStatus(data);
+    let status: ProjectAiDailyLimitStatus;
 
-      return status.reachedLimit ? status : null;
+    try {
+      status = await this.getProjectDailyLimitStatus(data);
     } catch (error) {
       logger.error(
         `AI: could not check the daily AI limits of project ${data.projectId.toString()}; not stopping on them: ${error}`,
       );
       return null;
     }
+
+    if (!status.reachedLimit) {
+      return null;
+    }
+
+    await this.tellOwnersDailyLimitReached(data.projectId, status);
+
+    return status;
   }
 
   /*
@@ -954,6 +996,9 @@ export class Service extends BaseService {
         // The project's own daily AI limits, checked below on this same row.
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
+        // When each last stopped AI, so a refusal tells the owners at no cost.
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });
@@ -1094,6 +1139,12 @@ export class Service extends BaseService {
         data: logEntry,
         props: { isRoot: true },
       });
+
+      // The first refusal of the day tells the project's owners.
+      await this.tellOwnersDailyLimitReached(
+        request.projectId,
+        projectDailyLimit,
+      );
 
       throw new BadDataException(limitMessage);
     }

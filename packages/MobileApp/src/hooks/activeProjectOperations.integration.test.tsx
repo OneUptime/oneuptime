@@ -104,7 +104,12 @@ describe("Project selection through queries to the HTTP request", () => {
       expect(result.current.incidentStates.statesMap.size).toBe(1);
       expect(result.current.alertStates.statesMap.size).toBe(1);
     });
-    expect(postMock).toHaveBeenCalledTimes(14);
+    /*
+     * Ten reads, and the four open counts each read their project's states
+     * first: which states are open is the project's to say
+     * (utils/resolvedState).
+     */
+    expect(postMock).toHaveBeenCalledTimes(18);
     for (const call of postMock.mock.calls) {
       expect(call[2]).toEqual({ headers: { tenantid: "project-a" } });
     }
@@ -120,10 +125,15 @@ describe("Project selection through queries to the HTTP request", () => {
     );
     expect(unresolvedCalls).toHaveLength(4);
     for (const call of unresolvedCalls) {
+      /*
+       * The fake server's state list is one state with no resolved flag, so
+       * that state is open, and each count asks for records in it.
+       */
       expect(
         Object.values((call[1] as { query: Record<string, unknown> }).query),
       ).toContainEqual({
-        isResolvedState: false,
+        _type: "Includes",
+        value: [expect.stringMatching(/^project-a(incident|alert)-state$/)],
       });
     }
   });

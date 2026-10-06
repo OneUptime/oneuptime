@@ -41,8 +41,8 @@ import path from "path";
  *   that offers the value says the namespaces must already exist, and how
  *   to go back to cluster-wide on a release that stores a list
  *   (`--set-json 'aiAgent.remediation.namespaces=[]'`; `={}` is one empty
- *   name and fails the schema, and leaving the flag out under --reuse-values
- *   keeps the list; KubernetesAiAccessDocsRoundFour.test.ts holds every copy
+ *   name and fails the schema, and leaving the flag out of an upgrade keeps
+ *   the list; KubernetesAiAccessDocsRoundFour.test.ts holds every copy
  *   to the `=null` rules).
  * - aiAgent.remediation.nodeOperations=false reaches the agent
  *   (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS), which then refuses node
@@ -201,12 +201,15 @@ describe("aiAgent.remediation.namespaces in the docs", () => {
   it("says on the AI SRE page that leaving the namespaces flag out keeps a stored list", () => {
     const section: string = getClusterAccessSection();
 
-    // True only the first time: --reuse-values keeps a stored list.
+    /*
+     * True only the first time: an upgrade that keeps the release's values
+     * (--reset-then-reuse-values, or --reuse-values) keeps a stored list.
+     */
     expect(section).not.toContain(
       "Leave out the last line to grant it cluster-wide. ",
     );
     expect(section).toContain(
-      "With `--reuse-values`, leaving the flag out keeps the list stored on the release",
+      "Leaving the flag out of an upgrade keeps the list stored on the release",
     );
   });
 

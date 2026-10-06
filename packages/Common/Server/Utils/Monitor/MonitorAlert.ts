@@ -15,6 +15,8 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import LabelService from "../../Services/LabelService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
@@ -50,6 +52,11 @@ export default class MonitorAlert {
   @CaptureSpan()
   public static async checkOpenAlertsAndCloseIfResolved(input: {
     monitorId: ObjectID;
+    /*
+     * The monitor's project: its alert states say which of the monitor's
+     * alerts are still open (Common/Utils/ResolvedState).
+     */
+    projectId: ObjectID;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     rootCause: string;
     criteriaInstance: MonitorCriteriaInstance | null;
@@ -86,13 +93,17 @@ export default class MonitorAlert {
      */
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Alert>> {
-    // check active alerts and if there are open alerts, do not create another alert.
+    /*
+     * check active alerts and if there are open alerts, do not create another
+     * alert. Open: in a state above the project's resolved state - an alert
+     * in a state placed after Resolved is over, and a new one is raised.
+     */
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         monitor: input.monitorId!,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(input.projectId),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -213,9 +224,11 @@ export default class MonitorAlert {
     const openAlerts: Array<Alert> = await AlertService.findBy({
       query: {
         monitor: input.monitor.id!,
-        currentAlertState: {
-          isResolvedState: false,
-        },
+        currentAlertStateId: QueryHelper.any(
+          await AlertStateService.getUnresolvedAlertStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -367,6 +380,7 @@ export default class MonitorAlert {
         ? input.openAlerts
         : await this.checkOpenAlertsAndCloseIfResolved({
             monitorId: input.monitor.id!,
+            projectId: input.monitor.projectId!,
             autoResolveCriteriaInstanceIdAlertIdsDictionary:
               input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
             rootCause: input.rootCause,

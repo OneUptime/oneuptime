@@ -135,10 +135,23 @@ test.describe("an outdated agent version", () => {
     await expect(command).toContainText(
       "helm upgrade kubernetes-agent oneuptime/kubernetes-agent",
     );
-    await expect(command).toContainText("--reuse-values");
+    await expect(command).toContainText("--reset-then-reuse-values");
     await expect(
       dialog.getByRole("button", { name: "Copy to clipboard" }),
     ).toBeVisible();
+
+    /*
+     * Helm before 3.14 has no --reset-then-reuse-values: its own tab saves
+     * the release's values and passes them back with -f. Neither tab says
+     * --reuse-values, which would keep the old chart's defaults.
+     */
+    await dialog.getByRole("tab", { name: "Helm 3.13 or earlier" }).click();
+    await expect(command).toHaveCount(1);
+    await expect(command).toContainText(
+      "helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml",
+    );
+    await expect(command).toContainText("-f values.yaml");
+    await expect(command).not.toContainText("--reuse-values");
 
     // Escape closes it, and the focus is back on the version.
     await page.keyboard.press("Escape");

@@ -334,6 +334,31 @@ certificate, an exporter whose profile is off, a FlashBlade, a misconfigured
 endpoint or array name — and that the array's API token never appears on a
 command line.
 
+### `ProxmoxCephAgentInstallers.test.js`
+
+Runs the Proxmox and Ceph agents' `install.sh` for real in a scratch
+directory, with `docker`, `curl` and `ceph` replaced by recording stubs.
+Running either script again is the upgrade (the dialog beside an outdated
+agent version offers it), so the suite pins that a re-run keeps the answers:
+every variable `docker-compose.yml` reads is read back from `.env` exactly as
+Docker Compose reads it — including an unquoted `.env` from the previous
+script and values added by hand (`PVE_VERIFY_SSL`,
+`ONEUPTIME_AI_INVESTIGATION`), which that script dropped — an exported
+variable still overrides it, and nothing is asked again (the AI agent's
+questions and the offer to create the Ceph client run on a fresh install
+only). It also pins that values are written quoted for Compose and the
+`.env` is mode 600; that a file the reader edited is kept as
+`<file>.bak.<timestamp>` (a sha256 record in `.agent-files.sha256` tells an
+edit from an upgrade, and with no record every differing file is kept); that
+the images are pulled (a failed pull is not fatal), Compose is started from
+`.env` alone and `--force-recreate` starts the collector on the config the run
+just downloaded; and that the scripts' `.env` helpers are the VMware and
+Database installers' own. Where `docker compose` runs, the written `.env` is
+read back through the real `docker compose config`: a cluster name with ` #`,
+a token secret with `$` and quotes and the exporter's profile reach the
+containers as typed. CI must run that check; elsewhere it is skipped with the
+reason logged.
+
 ### `ContainerAgentAiInstallers.test.js`
 
 Runs the Docker, Podman and Docker Swarm agents' `install.sh` for real in a
@@ -368,6 +393,12 @@ collector). The matrix pins the verdicts:
 
 The Docker Swarm check has no `/fluentd` fallback, so there an old server that
 does not refuse the key stays inconclusive.
+
+With the collector down there is no container environment to read, and the
+Ceph, Proxmox, VMware and Storage Array checks fall back to the `.env` their
+`install.sh` writes quoted for Docker Compose: the suite pins that they read
+it as Compose does, so the probe asks the URL and sends the key without the
+quotes.
 
 ### `ContainerAgentDockerApiVersion.test.js`
 

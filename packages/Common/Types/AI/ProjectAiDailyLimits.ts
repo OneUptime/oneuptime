@@ -25,10 +25,19 @@
  * stops a call through the project's own provider, and on a server that does
  * not bill AI (self-hosted) there is no spend limit at all.
  *
+ * The first time a limit stops OneUptime AI on a UTC day, the project's
+ * owners are emailed (Server/Utils/AI/ProjectAiDailyLimitOwnerNotice), once
+ * a day for each limit. Incidents and alerts not investigated because a
+ * limit was reached are investigated once it no longer stops AI - after the
+ * reset, or as soon as the limit is raised or removed - if they are still
+ * open (Server/Utils/AI/SRE/InvestigationLimitCatchUp).
+ *
  * Shared by the server, which enforces the limits and refuses a write
  * outside them, and the dashboard, which offers them, so both read a stored
  * value the same way. Kept free of React and of server code.
  */
+
+import Permission from "../Permission";
 
 // The Project columns that hold the limits.
 export type ProjectAiDailyTokenLimitColumn = "aiDailyTokenLimit";
@@ -60,6 +69,43 @@ export enum ProjectAiDailyLimit {
   Tokens = "Tokens",
   Spend = "Spend",
 }
+
+/*
+ * The Project columns that say when each limit last stopped OneUptime AI:
+ * the moment of the first time on the latest UTC day it did. Written once a
+ * day per limit, by the same conditional UPDATE that decides the owners are
+ * told (so they are told once a day for each limit), and read to find the
+ * projects whose skipped incidents and alerts may be waiting for the reset.
+ * Internal: no one reads or writes them through the API.
+ */
+export type ProjectAiDailyLimitReachedAtColumn =
+  | "aiDailyTokenLimitReachedAt"
+  | "aiDailySpendLimitReachedAt";
+
+export const PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS: Readonly<
+  Record<ProjectAiDailyLimit, ProjectAiDailyLimitReachedAtColumn>
+> = {
+  [ProjectAiDailyLimit.Tokens]: "aiDailyTokenLimitReachedAt",
+  [ProjectAiDailyLimit.Spend]: "aiDailySpendLimitReachedAt",
+};
+
+/*
+ * Where the limits are changed, as every sentence about them names it.
+ */
+export const PROJECT_AI_DAILY_LIMITS_LOCATION: string =
+  "Project Settings → AI Features → More settings";
+
+/*
+ * Who may change the limits: the update permissions of both limit columns
+ * (a test holds them to the Project model) - the same people who may turn
+ * OneUptime AI off. Not a project admin: the limits decide what AI may cost.
+ */
+export const PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS: ReadonlyArray<Permission> =
+  [Permission.ProjectOwner, Permission.ManageProjectBilling];
+
+// The people PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS let in, in words.
+export const WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS: string =
+  "a project owner or someone with Manage Billing";
 
 // What the project has used since midnight UTC.
 export interface ProjectAiDailyUsage {
@@ -171,6 +217,68 @@ export default class ProjectAiDailyLimits {
   // The next midnight UTC: when the count starts again.
   public static getNextReset(now: Date): Date {
     return new Date(this.getDayStart(now).getTime() + MILLISECONDS_IN_A_DAY);
+  }
+
+  /*
+   * Whether `at` - when a limit last stopped AI, as a ...ReachedAt column
+   * holds it - falls on the UTC day `now` is in. Never, or a value that is
+   * not a date, is not today.
+   */
+  public static isToday(
+    at: Date | string | null | undefined,
+    now: Date,
+  ): boolean {
+    if (at === null || at === undefined) {
+      return false;
+    }
+
+    const time: number = new Date(at).getTime();
+
+    if (!Number.isFinite(time)) {
+      return false;
+    }
+
+    return (
+      time >= this.getDayStart(now).getTime() &&
+      time < this.getNextReset(now).getTime()
+    );
+  }
+
+  /*
+   * The first sentence of everything that says a limit stopped OneUptime
+   * AI - a refusal, the owners' email: which limit, and how much of it the
+   * project used today. "This project has reached its daily AI token limit:
+   * 5,000 of 5,000 tokens used today." Its first words are what the
+   * investigation engine recognises a refusal by (AIService's
+   * PROJECT_DAILY_AI_LIMIT_REACHED_PATTERN), so they stay as they are.
+   */
+  public static getReachedSentence(status: {
+    reachedLimit: ProjectAiDailyLimit | null;
+    tokenLimit: number | null;
+    spendLimitInUSD: number | null;
+    usage: ProjectAiDailyUsage;
+  }): string {
+    if (status.reachedLimit === ProjectAiDailyLimit.Spend) {
+      return `This project has reached its daily AI spend limit: ${this.formatUsd(
+        status.usage.spentTodayInUSDCents,
+      )} of ${this.formatUsd((status.spendLimitInUSD || 0) * 100)} spent today.`;
+    }
+
+    return `This project has reached its daily AI token limit: ${status.usage.usedTokensToday.toLocaleString(
+      "en-US",
+    )} of ${(status.tokenLimit || 0).toLocaleString("en-US")} tokens used today.`;
+  }
+
+  /*
+   * Who can change the limits, and where, as the sentence that follows one
+   * saying a limit stopped AI - for whoever reads it, who may or may not be
+   * one of them: "A project owner or someone with Manage Billing can raise
+   * or remove the limit in Project Settings → AI Features → More settings."
+   */
+  public static getWhoCanChangeSentence(): string {
+    const who: string = WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS;
+
+    return `${who.charAt(0).toUpperCase()}${who.slice(1)} can raise or remove the limit in ${PROJECT_AI_DAILY_LIMITS_LOCATION}.`;
   }
 
   /*

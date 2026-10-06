@@ -116,6 +116,25 @@ let findBy: jest.SpyInstance;
 let validateReferences: jest.SpyInstance;
 let applyMappings: jest.SpyInstance;
 
+/*
+ * The guard's reads: those asking for an alert's monitor. (An update that
+ * writes a title has the alert's title read as well, so its feed line
+ * follows a real change - another read, for another question.)
+ */
+function monitorReads(): Array<Array<unknown>> {
+  return (findBy.mock.calls as Array<Array<unknown>>).filter(
+    (call: Array<unknown>): boolean => {
+      const select: Record<string, unknown> =
+        (call[0] as { select?: Record<string, unknown> }).select || {};
+
+      return (
+        select["monitorId"] !== undefined ||
+        select["isCreatedAutomatically"] !== undefined
+      );
+    },
+  );
+}
+
 beforeEach(() => {
   stored = [
     storedAlert({ isCreatedAutomatically: true, monitorId: OLD_MONITOR_ID }),
@@ -431,7 +450,7 @@ describe("AlertService.onBeforeUpdate: what the guard reads", () => {
       hosts: [],
     });
 
-    expect(findBy).not.toHaveBeenCalled();
+    expect(monitorReads()).toHaveLength(0);
     expect((onUpdate.carryForward as CarryForwardShape).monitorChanges).toEqual(
       {},
     );
@@ -445,7 +464,7 @@ describe("AlertService.onBeforeUpdate: what the guard reads", () => {
       monitorId: undefined,
     });
 
-    expect(findBy).not.toHaveBeenCalled();
+    expect(monitorReads()).toHaveLength(0);
     expect((onUpdate.carryForward as CarryForwardShape).monitorChanges).toEqual(
       {},
     );

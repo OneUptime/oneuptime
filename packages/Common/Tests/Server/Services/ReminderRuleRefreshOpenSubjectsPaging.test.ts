@@ -67,6 +67,16 @@ interface KindUnderTest {
   pluralName: string;
   // The subject column holding its current state.
   stateColumn: string;
+  /*
+   * How the project's states are read. Incidents and alerts read every
+   * state, top first, and keep the ones above the resolved state by the one
+   * rule (Common/Utils/ResolvedState); scheduled maintenance asks for the
+   * states not flagged resolved.
+   */
+  stateRead: {
+    query: (projectId: ObjectID) => JSONObject;
+    limit: number;
+  };
   refreshOpenSubjects: (
     projectId: ObjectID,
     options?: RefreshOptions,
@@ -80,6 +90,12 @@ const KINDS: Array<KindUnderTest> = [
     name: "incident",
     pluralName: "incidents",
     stateColumn: "currentIncidentStateId",
+    stateRead: {
+      query: (projectId: ObjectID): JSONObject => {
+        return { projectId: projectId };
+      },
+      limit: LIMIT_MAX,
+    },
     refreshOpenSubjects: (
       projectId: ObjectID,
       options?: RefreshOptions,
@@ -117,6 +133,12 @@ const KINDS: Array<KindUnderTest> = [
     name: "alert",
     pluralName: "alerts",
     stateColumn: "currentAlertStateId",
+    stateRead: {
+      query: (projectId: ObjectID): JSONObject => {
+        return { projectId: projectId };
+      },
+      limit: LIMIT_MAX,
+    },
     refreshOpenSubjects: (
       projectId: ObjectID,
       options?: RefreshOptions,
@@ -154,6 +176,12 @@ const KINDS: Array<KindUnderTest> = [
     name: "scheduled maintenance",
     pluralName: "scheduled maintenances",
     stateColumn: "currentScheduledMaintenanceStateId",
+    stateRead: {
+      query: (projectId: ObjectID): JSONObject => {
+        return { projectId: projectId, isResolvedState: false };
+      },
+      limit: LIMIT_PER_PROJECT,
+    },
     refreshOpenSubjects: (
       projectId: ObjectID,
       options?: RefreshOptions,
@@ -397,11 +425,8 @@ describe.each(KINDS)(
       });
 
       expect(stateReads).toHaveLength(1);
-      expect(stateReads[0]!["query"]).toEqual({
-        projectId: projectId,
-        isResolvedState: false,
-      });
-      expect(stateReads[0]!["limit"]).toBe(LIMIT_PER_PROJECT);
+      expect(stateReads[0]!["query"]).toEqual(kind.stateRead.query(projectId));
+      expect(stateReads[0]!["limit"]).toBe(kind.stateRead.limit);
       expect(stateReads[0]!["props"]).toEqual({ isRoot: true });
     });
 

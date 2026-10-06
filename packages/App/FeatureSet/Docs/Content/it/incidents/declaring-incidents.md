@@ -164,7 +164,7 @@ La chiamata di creazione fa molto più che scrivere una riga. Nell'ordine:
 9. **Gli iscritti vengono messi in coda**, se **Notifica gli iscritti alla pagina di stato** è rimasta attiva e l'incidente è visibile sulla pagina di stato. La consegna è gestita da un job in background, non in linea con la vostra richiesta.
 10. **Scattano i workflow.** Il trigger **On Create Incident** avvia qualsiasi workflow costruito su di esso. Vedete [Panoramica dei workflow](/docs/workflows/index).
 
-Da lì in poi l'incidente è vivo: conta per il badge **Incidenti attivi** nel menu laterale di Incidenti (è attivo qualsiasi stato non contrassegnato `isResolvedState`), compare sulle pagine di stato che ospitano uno dei suoi monitor e la sua **Cronologia stato** inizia a registrare.
+Da lì in poi l'incidente è vivo: conta per il badge **Incidenti attivi** nel menu laterale di Incidenti (è attivo qualsiasi stato sopra il vostro stato risolto), compare sulle pagine di stato che ospitano uno dei suoi monitor e la sua **Cronologia stato** inizia a registrare.
 
 ## Dove leggere ora
 

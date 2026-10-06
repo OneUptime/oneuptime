@@ -2,6 +2,11 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import ProjectUtil from "Common/UI/Utils/Project";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import IncidentStateUtil from "../../../Utils/IncidentState";
 import React, {
   Fragment,
   FunctionComponent,
@@ -20,6 +25,7 @@ import Fields from "Common/UI/Components/Forms/Types/Fields";
 import IncidentCreatedRenotify, {
   IncidentCreatedRenotifyState,
 } from "Common/Types/StatusPage/IncidentCreatedRenotify";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import RemindersCard from "../../../Components/Reminders/RemindersCard";
 import ReminderRuleScope from "../../../Components/Reminders/ReminderRuleScope";
 import { getIncidentCreatedRenotifyFormField } from "../../../Components/Incident/IncidentCreatedRenotifyFormField";
@@ -78,8 +84,44 @@ const IncidentDelete: FunctionComponent<
     ? IncidentCreatedRenotify.getFormFieldDescription(renotifyState)
     : undefined;
 
-  const isResolved: boolean =
-    loadedIncident?.currentIncidentState?.isResolvedState === true;
+  /*
+   * A postmortem published while the incident was hidden waits for it to be
+   * shown: turning 'Visible on Status Page' on sends it to subscribers
+   * (IncidentPostmortemPublication.isShownByUpdate), and the switch says so
+   * while that is the case - not for a private incident, which stays hidden.
+   */
+  const isPostmortemWaitingForIncident: boolean =
+    IncidentPostmortemPublication.isSentBySwitchingVisibilityOn(loadedIncident);
+
+  /*
+   * Resolved by the one rule (Common/Utils/ResolvedState): the project's
+   * resolved state, or a state placed after it.
+   */
+  const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
+    [],
+  );
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    IncidentStateUtil.getIncidentStates(projectId)
+      .then((states: Array<IncidentState>) => {
+        setIncidentStates(states);
+      })
+      .catch(() => {
+        // Left open: the publish checkbox starts ticked, as for an open incident.
+      });
+  }, []);
+
+  const isResolved: boolean = ResolvedStateUtil.isResolved({
+    list: StateListType.IncidentState,
+    states: incidentStates,
+    stateId: loadedIncident?.currentIncidentStateId,
+  });
 
   const settingsFormFields: Fields<Incident> = useMemo(() => {
     const fields: Fields<Incident> = [
@@ -88,6 +130,11 @@ const IncidentDelete: FunctionComponent<
           isVisibleOnStatusPage: true,
         },
         title: "Visible on Status Page",
+        ...(isPostmortemWaitingForIncident
+          ? {
+              description: IncidentPostmortemPublication.sendsOnShowDescription,
+            }
+          : {}),
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },
@@ -116,7 +163,12 @@ const IncidentDelete: FunctionComponent<
     });
 
     return fields;
-  }, [canRenotifyOnPublish, isResolved, renotifyDescription]);
+  }, [
+    canRenotifyOnPublish,
+    isResolved,
+    renotifyDescription,
+    isPostmortemWaitingForIncident,
+  ]);
 
   /*
    * The incident as the 'Status Page Scope' card last loaded it: the pages it
@@ -336,14 +388,21 @@ const IncidentDelete: FunctionComponent<
           selectMoreFields: {
             subscriberNotificationStatusOnIncidentCreated: true,
             shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
-            currentIncidentState: {
-              isResolvedState: true,
-            },
+            currentIncidentStateId: true,
             // Pages added while it was hidden can be told when it is published.
             statusPages: {
               _id: true,
             },
             statusPagesNotifiedOnCreation: true,
+            /*
+             * Whether showing it sends a postmortem that waits for it. The
+             * note itself is not loaded for this: the server checks it when
+             * the incident is shown.
+             */
+            showPostmortemOnStatusPage: true,
+            notifySubscribersOnPostmortemPublished: true,
+            subscriberNotificationStatusOnPostmortemPublished: true,
+            subscriberNotificationStatusMessageOnPostmortemPublished: true,
           },
           onItemLoaded: (item: Incident) => {
             setLoadedIncident(item);

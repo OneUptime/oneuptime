@@ -94,6 +94,8 @@ describe("AIIncidentPostmortemRunner.isEnabledForProject", () => {
         enableAutomaticPostmortemDraft: true,
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });

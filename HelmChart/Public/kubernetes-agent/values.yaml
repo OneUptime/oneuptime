@@ -1,5 +1,19 @@
 # OneUptime Kubernetes Agent Configuration
 
+# The version of the chart this values.yaml comes with. Do not set it, and
+# leave it out of a values file you keep: the release pipeline stamps it with
+# the version it publishes the chart as (.github/workflows/release.yml), and
+# it equals Chart.yaml's version here.
+#
+# After every install and upgrade the chart compares it with its own version.
+# A different or missing one means the release renders with an older chart's
+# defaults — what `helm upgrade --reuse-values` does — so the notes say what
+# is stale (the eBPF image among them) and print the upgrade that applies
+# this chart's defaults and keeps the values you set: --reset-then-reuse-values
+# (Helm 3.14+), or `helm get values` into -f. The README's "Upgrading" section
+# has the details.
+chartDefaultsVersion: "0.7.0"
+
 # Preset for the kind of cluster you're installing into. Sets compatible
 # defaults for log collection and security context — so you don't have to
 # think about hostPath, Pod Security Standards, or which log collection mode
@@ -832,7 +846,11 @@ ebpf:
     #
     # OBI is pre-1.0: read its release notes before moving this, and check
     # the feature names in kubernetes-agent.ebpfMetricsFeatures still exist —
-    # OBI refuses to start on one it does not know.
+    # OBI refuses to start on one it does not know. Move
+    # kubernetes-agent.defaultEbpfImageTag (templates/_stale-defaults.tpl)
+    # with it: the notes name a release still on an older chart's tag by
+    # comparing with it (tests/stale-defaults-source_test.yaml fails when
+    # they differ).
     tag: "v0.14.0"
     pullPolicy: IfNotPresent
   # OBI's memory scales with the number of processes it instruments and the
@@ -1162,6 +1180,53 @@ ebpf:
   # map as a remote endpoint rather than a database. Its metrics are
   # unaffected. Set false to keep these spans — and the one-span traces.
   dropUnlinkedDatabaseCalls: true
+  # OBI's other client calls that belong to no trace: the HTTP, gRPC and
+  # other calls (not database, messaging or GenAI calls) made by work no
+  # request triggered — a worker querying ClickHouse over HTTP, a controller
+  # renewing its Kubernetes lease, a poller, a monitor checking a website —
+  # and calls OBI could not place in their request's trace, which look the
+  # same. Each reaches OneUptime as a trace of one span named after the bare
+  # request (`POST /`, `PUT /apis/*/...`).
+  #
+  # OFF by default, because the agent's collector decides span by span and
+  # cannot see what hangs under a span, so dropping these costs data:
+  #   - When the service a call went to runs on the same node and OBI traces
+  #     it, OBI links the request it served under the call. With
+  #     `contextPropagation` on, that happens on any node, and also when the
+  #     service runs its own OpenTelemetry SDK, which reads the `traceparent`
+  #     OBI injected. The call is then the root of a whole trace (a cron
+  #     job's call into your API and everything the API did for it), and
+  #     dropping it leaves that trace without its root: it no longer shows
+  #     in the Traces list's root-span view, and the service map loses the
+  #     traced edge between the two (OBI's service graph metrics still draw
+  #     it, without latency). On the cluster this was measured on, with
+  #     `contextPropagation` off, between one in twenty and one in ten of the
+  #     calls this drops were such roots, depending on the hour; with it on,
+  #     more are.
+  #   - The service map reads these calls. A service or endpoint that only
+  #     background work calls (an external API a worker syncs with) is then
+  #     drawn from OBI's service graph metrics alone — under the name OBI gives
+  #     it there, which for an address outside the cluster that OBI knows
+  #     only by IP is `outgoing` — and an edge also seen inside requests
+  #     counts only those calls: its rate, errors and latency describe the
+  #     request traffic, not all of it.
+  #   - A service's overview (Requests, Error rate, Latency p95) counts its
+  #     spans. A worker, runner or probe whose spans are mostly these calls
+  #     shows far fewer requests (none if it does nothing else), and its
+  #     error rate and p95 then cover only the spans that are left.
+  #   - Trace searches and trace monitors find none of these calls, failed
+  #     ones included: the status does not matter.
+  # Only OBI's spans are dropped, never spans your apps push from their own
+  # SDKs, and only CLIENT spans without a parent. Database calls are
+  # dropUnlinkedDatabaseCalls's business, and messaging calls (queue
+  # discovery reads them) and GenAI calls, MCP ones included (LLM cost and
+  # token figures come from them), are always kept. OBI's metrics are
+  # unaffected: `http.client.request.duration`, `rpc.client.call.duration`
+  # and the service graph counters still count every call.
+  #
+  # Only an explicit true turns it on: a key missing from your values (a
+  # release upgraded with --reuse-values) counts as off.
+  dropUnlinkedClientCalls: false
 
   # Drop the HTTP metrics OBI records for its own Node.js agent injection
   # (see `nodejs` above). OBI v0.14 starts tracing a Node.js process before
@@ -1512,7 +1577,7 @@ serviceAccount:
 # already exist):
 #   helm repo update
 #   helm upgrade <release> oneuptime/kubernetes-agent -n <namespace> \
-#     --reuse-values --set aiAgent.investigation=true \
+#     --reset-then-reuse-values --set aiAgent.investigation=true \
 #     --set aiAgent.fixes=ask-for-approval \
 #     --set "aiAgent.remediation.namespaces={web,api}"
 aiAgent:
@@ -1584,7 +1649,7 @@ aiAgent:
   #   # Empty binds it cluster-wide with a ClusterRoleBinding, which RBAC
   #   # cannot keep out of kube-system, kube-public, kube-node-lease or this
   #   # release's namespace: there the policy and the agent hold the line.
-  #   # Under --reuse-values, leaving the flag out keeps a stored list; go back
+  #   # Leaving the flag out of an upgrade keeps a stored list; go back
   #   # to cluster-wide with --set-json 'aiAgent.remediation.namespaces=[]'
   #   # (not `={}`, which Helm reads as one empty name).
   #   namespaces: []
