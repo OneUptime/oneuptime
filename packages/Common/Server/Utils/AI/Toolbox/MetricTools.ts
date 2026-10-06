@@ -22,6 +22,7 @@ import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getMetricReadPermissions } from "./MetricReadPermissions";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   ObservabilityTool,
@@ -32,20 +33,10 @@ import {
 } from "./ToolTypes";
 
 /*
- * Metric read access, as the Metric model and the dashboard's
- * /telemetry/metrics/* routes grant it: the Telemetry Service Metrics
- * permission, or a role that reads telemetry.
+ * Metric read access is the Metric model's own read list
+ * (getMetricReadPermissions), which the dashboard's /telemetry/metrics/*
+ * routes grant too.
  */
-const METRIC_READ_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
-  Permission.ReadTelemetryServiceMetrics,
-];
 
 export const QueryMetricsTool: ObservabilityTool = {
   name: "query_metrics",
@@ -83,7 +74,9 @@ export const QueryMetricsTool: ObservabilityTool = {
     },
     required: ["metricName"],
   },
-  requiredPermissions: METRIC_READ_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return getMetricReadPermissions();
+  },
   execute: async (
     args: JSONObject,
     ctx: ToolContext,
@@ -238,7 +231,9 @@ export const BaselineAnomalyTool: ObservabilityTool = {
     },
     required: ["metricName"],
   },
-  requiredPermissions: METRIC_READ_PERMISSIONS,
+  get requiredPermissions(): Array<Permission> {
+    return getMetricReadPermissions();
+  },
   execute: async (
     args: JSONObject,
     ctx: ToolContext,

@@ -18,6 +18,8 @@ import fs from "fs";
 import path from "path";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import Column from "Common/UI/Components/ModelTable/Column";
 import { getColumnBaseId } from "Common/UI/Components/ModelTable/ColumnPreference";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
@@ -27,13 +29,43 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 
 import {
-  canPickAutoImportMonitorTemplate,
-  canPickAutoImportOidTemplate,
   canSelectAutoImportMonitorTemplate,
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
 } from "../../FeatureSet/Dashboard/src/Pages/NetworkDevice/Settings/AutoImportRuleFormUtil";
 import { describe, expect, it } from "@jest/globals";
+
+const PAGE_SOURCE: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Pages",
+  "NetworkDevice",
+  "Settings",
+  "AutoImportRules.tsx",
+);
+
+// The page's two pickers, through the shared gate it uses for them.
+function canPickMonitorTemplate(permissions: Array<Permission>): boolean {
+  return PermissionGate.canPickRelation(
+    new NetworkDeviceAutoImportRule(),
+    "monitorTemplate",
+    new MonitorTemplate(),
+    { permissions },
+  );
+}
+
+function canPickOidTemplate(permissions: Array<Permission>): boolean {
+  return PermissionGate.canPickRelation(
+    new NetworkDeviceAutoImportRule(),
+    "oidTemplate",
+    new NetworkDeviceOidTemplate(),
+    { permissions },
+  );
+}
 
 const FORM_UTIL_SOURCE: string = path.join(
   __dirname,
@@ -218,13 +250,13 @@ describe("Network Device auto-import rule monitor form state", () => {
    */
   it("offers the Monitor Template picker to who may read the rule and list monitor templates", () => {
     expect(
-      canPickAutoImportMonitorTemplate([
+      canPickMonitorTemplate([
         Permission.ReadNetworkDeviceAutoImportRule,
         Permission.ReadMonitorTemplate,
       ]),
     ).toBe(true);
     expect(
-      canPickAutoImportMonitorTemplate([
+      canPickMonitorTemplate([
         Permission.ReadNetworkDeviceAutoImportRule,
         Permission.MonitorViewer,
       ]),
@@ -236,48 +268,61 @@ describe("Network Device auto-import rule monitor form state", () => {
       Permission.ProjectMember,
       Permission.Viewer,
     ]) {
-      expect([role, canPickAutoImportMonitorTemplate([role])]).toEqual([
-        role,
-        true,
-      ]);
+      expect([role, canPickMonitorTemplate([role])]).toEqual([role, true]);
     }
   });
 
   it("does not offer the Monitor Template picker without both reads", () => {
     expect(
-      canPickAutoImportMonitorTemplate([
-        Permission.ReadNetworkDeviceAutoImportRule,
-      ]),
+      canPickMonitorTemplate([Permission.ReadNetworkDeviceAutoImportRule]),
     ).toBe(false);
-    expect(
-      canPickAutoImportMonitorTemplate([Permission.ReadMonitorTemplate]),
-    ).toBe(false);
-    expect(canPickAutoImportMonitorTemplate([])).toBe(false);
+    expect(canPickMonitorTemplate([Permission.ReadMonitorTemplate])).toBe(
+      false,
+    );
+    expect(canPickMonitorTemplate([])).toBe(false);
   });
 
   it("offers the OID Collection Template picker to who may read the rule and list OID templates", () => {
     expect(
-      canPickAutoImportOidTemplate([
+      canPickOidTemplate([
         Permission.ReadNetworkDeviceAutoImportRule,
         Permission.ReadNetworkDeviceOidTemplate,
       ]),
     ).toBe(true);
-    expect(canPickAutoImportOidTemplate([Permission.ProjectMember])).toBe(true);
+    expect(canPickOidTemplate([Permission.ProjectMember])).toBe(true);
     expect(
-      canPickAutoImportOidTemplate([
-        Permission.ReadNetworkDeviceAutoImportRule,
-      ]),
+      canPickOidTemplate([Permission.ReadNetworkDeviceAutoImportRule]),
     ).toBe(false);
-    expect(
-      canPickAutoImportOidTemplate([Permission.ReadNetworkDeviceOidTemplate]),
-    ).toBe(false);
+    expect(canPickOidTemplate([Permission.ReadNetworkDeviceOidTemplate])).toBe(
+      false,
+    );
     // The monitor template permission lists no OID template.
     expect(
-      canPickAutoImportOidTemplate([
+      canPickOidTemplate([
         Permission.ReadNetworkDeviceAutoImportRule,
         Permission.ReadMonitorTemplate,
       ]),
     ).toBe(false);
+  });
+
+  /*
+   * The page hangs both pickers - and the Monitor step - off that gate,
+   * each with its own template model, so a granular rule reader keeps an
+   * inventory-only form rather than pickers whose lists are refused.
+   */
+  it("the rules page gates each template picker on the shared gate", () => {
+    const page: string = fs
+      .readFileSync(PAGE_SOURCE, "utf8")
+      .replace(/\s+/g, " ");
+
+    expect(page).toContain(
+      'const canPickMonitorTemplate: boolean = PermissionGate.canPickRelation( new NetworkDeviceAutoImportRule(), "monitorTemplate", new MonitorTemplate(), );',
+    );
+    expect(page).toContain(
+      'const canPickOidTemplate: boolean = PermissionGate.canPickRelation( new NetworkDeviceAutoImportRule(), "oidTemplate", new NetworkDeviceOidTemplate(), );',
+    );
+    expect(page.match(/\.\.\.\(canPickMonitorTemplate/g) || []).toHaveLength(2);
+    expect(page.match(/\.\.\.\(canPickOidTemplate/g) || []).toHaveLength(1);
   });
 
   it("shows the monitor step for an ordinary import rule", () => {

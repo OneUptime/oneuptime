@@ -15,6 +15,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
@@ -29,8 +30,6 @@ import React, {
 } from "react";
 import { Blue, Green, Red } from "Common/Types/BrandColors";
 import {
-  canPickAutoImportMonitorTemplate,
-  canPickAutoImportOidTemplate,
   canSelectAutoImportMonitorTemplate,
   getReadableMonitorTemplateColumn,
   updateMonitorIncompatibleBehavior,
@@ -95,12 +94,20 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
     getReadableMonitorTemplateColumn();
   /*
    * The two template pickers list the project's templates, so each is
-   * offered only to somebody who may read those templates as well as the
-   * rule (see canPickAutoImportMonitorTemplate). Without one, the rest of
-   * the form stays: an inventory-only rule needs neither template.
+   * offered only to somebody who may list those templates as well as read
+   * the rule (PermissionGate.canPickRelation). Without one, the rest of the
+   * form stays: an inventory-only rule needs neither template.
    */
-  const canPickMonitorTemplate: boolean = canPickAutoImportMonitorTemplate();
-  const canPickOidTemplate: boolean = canPickAutoImportOidTemplate();
+  const canPickMonitorTemplate: boolean = PermissionGate.canPickRelation(
+    new NetworkDeviceAutoImportRule(),
+    "monitorTemplate",
+    new MonitorTemplate(),
+  );
+  const canPickOidTemplate: boolean = PermissionGate.canPickRelation(
+    new NetworkDeviceAutoImportRule(),
+    "oidTemplate",
+    new NetworkDeviceOidTemplate(),
+  );
 
   const fetchNetworkDeviceMonitorTemplates: () => Promise<
     Array<DropdownOption>

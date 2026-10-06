@@ -16,7 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { Mock } from "jest-mock";
+import { Mock, SpyInstance } from "jest-mock";
 import * as React from "react";
 import TraceExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceExplorer";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
@@ -33,6 +33,8 @@ import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Clipboard from "../../../UI/Utils/Clipboard";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import Permission from "../../../Types/Permission";
 import { resetPreferencesForTesting } from "../../../UI/Components/AttributesJSON/AttributesJSONPreferences";
 
 /*
@@ -2146,6 +2148,54 @@ describe("related signals", () => {
       "2",
     );
   });
+
+  /*
+   * Metrics are read with the metric permission, not the trace one. Somebody
+   * who may read this trace but not metrics gets no Metrics tab, rather than
+   * a tab whose request the server refuses.
+   */
+  test("the metrics tab is left out for a reader of traces who may not read metrics", async () => {
+    const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue([Permission.ReadTelemetryServiceTraces]);
+
+    try {
+      await renderTrace();
+
+      expect(
+        screen.queryByTestId("trace-signal-tab-metrics"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("trace-signal-tab-logs")).toBeInTheDocument();
+      expect(postsTo("/telemetry/metrics/for-trace")).toHaveLength(0);
+    } finally {
+      permissions.mockRestore();
+    }
+  });
+
+  test.each([
+    [[Permission.ReadTelemetryServiceMetrics]],
+    [[Permission.TelemetryViewer]],
+    [[]],
+  ])(
+    "the metrics tab is there for %j (an empty snapshot is still loading)",
+    async (granted: Array<Permission>) => {
+      const permissions: SpyInstance<typeof PermissionUtil.getAllPermissions> =
+        jest
+          .spyOn(PermissionUtil, "getAllPermissions")
+          .mockReturnValue(granted);
+
+      try {
+        await renderTrace();
+
+        expect(
+          screen.getByTestId("trace-signal-tab-metrics"),
+        ).toBeInTheDocument();
+      } finally {
+        permissions.mockRestore();
+      }
+    },
+  );
 
   test("the profile tab only exists when the trace was profiled", async () => {
     postMock.mockImplementation(async (args: PostArgs) => {

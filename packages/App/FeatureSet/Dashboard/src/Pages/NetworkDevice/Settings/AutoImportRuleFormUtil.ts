@@ -1,14 +1,9 @@
-import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkDeviceAutoImportRule from "Common/Models/DatabaseModels/NetworkDeviceAutoImportRule";
-import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import Permission from "Common/Types/Permission";
 import Column from "Common/UI/Components/ModelTable/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import PermissionGate, {
-  ModelAction,
-  PermissionGateOptions,
-} from "Common/UI/Utils/PermissionGate";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 export type MonitorIncompatibleBehaviorField =
   | "isExclusion"
@@ -18,12 +13,6 @@ export function canSelectAutoImportMonitorTemplate(
   values: FormValues<NetworkDeviceAutoImportRule>,
 ): boolean {
   return !values.isExclusion && !values.includePingOnlyHosts;
-}
-
-function gateOptions(
-  permissions?: Array<Permission>,
-): PermissionGateOptions | undefined {
-  return permissions ? { permissions } : undefined;
 }
 
 /*
@@ -41,7 +30,7 @@ export function getReadableMonitorTemplateColumn(
     !PermissionGate.canReadColumn(
       new NetworkDeviceAutoImportRule(),
       "monitorTemplate",
-      gateOptions(permissions),
+      { permissions },
     )
   ) {
     return null;
@@ -64,47 +53,6 @@ export function getReadableMonitorTemplateColumn(
     type: FieldType.Entity,
     selectedProperty: "templateName",
   };
-}
-
-/*
- * Whether the rule form can offer a template picker. Reading which template
- * a rule applies takes reading the rule, but the picker lists the project's
- * templates, which takes reading templates: offered to somebody who may not,
- * the list request is refused and the field cannot be filled. Without it they
- * keep the rest of the form - an inventory-only rule needs no template.
- */
-export function canPickAutoImportMonitorTemplate(
-  permissions?: Array<Permission>,
-): boolean {
-  return (
-    PermissionGate.canReadColumn(
-      new NetworkDeviceAutoImportRule(),
-      "monitorTemplate",
-      gateOptions(permissions),
-    ) &&
-    PermissionGate.check(
-      new MonitorTemplate(),
-      ModelAction.Read,
-      gateOptions(permissions),
-    ).isAllowed
-  );
-}
-
-export function canPickAutoImportOidTemplate(
-  permissions?: Array<Permission>,
-): boolean {
-  return (
-    PermissionGate.canReadColumn(
-      new NetworkDeviceAutoImportRule(),
-      "oidTemplate",
-      gateOptions(permissions),
-    ) &&
-    PermissionGate.check(
-      new NetworkDeviceOidTemplate(),
-      ModelAction.Read,
-      gateOptions(permissions),
-    ).isAllowed
-  );
 }
 
 /*

@@ -58,6 +58,7 @@ import ExceptionAggregationService, {
   FacetValue as ExceptionFacetValue,
   FacetRequest as ExceptionFacetRequest,
 } from "../Services/ExceptionAggregationService";
+import Metric from "../../Models/AnalyticsModels/Metric";
 import MetricAggregationService, {
   FacetValue as MetricFacetValue,
   FacetRequest as MetricFacetRequest,
@@ -235,12 +236,18 @@ const requireTraceReadAccess: Array<RequestHandler> =
   createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceTraces);
 
 /*
- * Mirrors the read access control declared on the Metric analytics model:
- * metrics are read with the Telemetry Service Metrics permission, not the
- * trace or log ones, on these routes as through the model-backed CRUD API.
+ * The read access control declared on the Metric analytics model itself
+ * (the Telemetry Service Metrics permission, or a role that reads
+ * telemetry), so these routes let in exactly who the model-backed CRUD API
+ * lets read metrics, and cannot drift from it.
  */
-const requireMetricReadAccess: Array<RequestHandler> =
-  createTelemetryReadAccessGuard(Permission.ReadTelemetryServiceMetrics);
+const requireMetricReadAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: new Metric().getReadPermissions(),
+  }),
+];
 
 /*
  * Mirrors the read access control declared on the ExceptionInstance

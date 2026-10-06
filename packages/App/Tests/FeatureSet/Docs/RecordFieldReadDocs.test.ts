@@ -6,12 +6,12 @@ import path from "path";
 
 /*
  * Users, Teams & Permissions says, right after how a request is decided,
- * that reading a record reads all of it, which secrets are narrower, and
- * which permission reads each telemetry signal - metrics included, which a
- * custom role reads with Read Telemetry Service Metrics. This reads every
- * copy and holds the permissions it names to their titles in the product:
- * the dashboard shows permission titles untranslated, so every language
- * quotes them in English.
+ * that every field of a record is read with the record's own read
+ * permission, that secrets are narrower, and which permission reads each
+ * telemetry signal - metrics included, which a custom role reads with Read
+ * Telemetry Service Metrics. This reads every copy and holds the
+ * permissions it names to their titles in the product: the dashboard shows
+ * permission titles untranslated, so every language quotes them in English.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -71,11 +71,14 @@ describe("Users, Teams & Permissions: what reading a record reads", () => {
     },
   );
 
-  test("the English page says secrets are read by who may edit their record", () => {
+  test("the English page says a field is read with its record's own permission, and secrets by who may edit it", () => {
     const paragraph: string = paragraphAfterTheSteps("en");
 
     expect(paragraph).toContain(
-      "Secrets are read only by people who may edit the record they belong to",
+      "Every field of a record is read with the record's own read permission: a permission for another kind of record never opens it.",
+    );
+    expect(paragraph).toContain(
+      "Secrets are read only by people who may edit or administer the record they belong to",
     );
     expect(paragraph).toContain("server agent key");
     expect(paragraph).toContain("a workflow's webhook and incoming email keys");

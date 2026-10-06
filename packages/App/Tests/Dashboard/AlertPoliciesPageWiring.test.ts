@@ -261,9 +261,8 @@ describe("the policies page is where policies are managed", () => {
       "const monitorTemplateColumn",
     );
 
-    expect(gate).toContain("canReadMonitorTemplate &&");
     expect(gate).toContain(
-      "PermissionGate.check(new MonitorTemplate(), ModelAction.Read).isAllowed",
+      'PermissionGate.canPickRelation( new NetworkAlertPolicy(), "monitorTemplate", new MonitorTemplate(), )',
     );
   });
 

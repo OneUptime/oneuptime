@@ -1,4 +1,5 @@
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import Metric from "Common/Models/AnalyticsModels/Metric";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
@@ -16,6 +17,7 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   CrossSignalQueryParams,
@@ -30,6 +32,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { shouldAttemptRead } from "../../../Utils/OverviewSection";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
@@ -341,6 +344,16 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
     return targetUrl;
   };
 
+  /*
+   * Metrics are read with their own permission, not the trace one, so the
+   * Metrics tab is left out for somebody who may read this trace but not
+   * metrics, rather than offered and then refused. Shown while the
+   * permission snapshot is still loading: the server has the last word.
+   */
+  const canReadMetrics: boolean = shouldAttemptRead(
+    PermissionGate.check(new Metric(), ModelAction.Read),
+  );
+
   const tabs: Array<{
     id: CorrelatedSignalTab;
     label: string;
@@ -348,11 +361,15 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
   }> = [
     { id: "logs", label: "Logs", count: null },
     { id: "exceptions", label: "Exceptions", count: exceptionCount },
-    {
-      id: "metrics",
-      label: "Metrics",
-      count: metricsFetched ? traceMetricSeries.length : null,
-    },
+    ...(canReadMetrics
+      ? [
+          {
+            id: "metrics" as CorrelatedSignalTab,
+            label: "Metrics",
+            count: metricsFetched ? traceMetricSeries.length : null,
+          },
+        ]
+      : []),
     ...(profileSampleCount > 0
       ? [
           {

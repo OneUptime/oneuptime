@@ -522,14 +522,16 @@ const NetworkAlertPoliciesPage: FunctionComponent<
 
   /*
    * The template field lists the project's Network Device templates, which
-   * takes reading templates as well as the policy (the AutoImportRules
-   * precedent, canPickAutoImportMonitorTemplate). The server still requires
-   * a template, so a user without the field is told so on save rather than
-   * shown a picker whose list it may not load.
+   * takes listing templates as well as reading the policy
+   * (PermissionGate.canPickRelation, as on the auto-import rules page). The
+   * server still requires a template, so a user without the field is told
+   * so on save rather than shown a picker whose list it may not load.
    */
-  const canPickMonitorTemplate: boolean =
-    canReadMonitorTemplate &&
-    PermissionGate.check(new MonitorTemplate(), ModelAction.Read).isAllowed;
+  const canPickMonitorTemplate: boolean = PermissionGate.canPickRelation(
+    new NetworkAlertPolicy(),
+    "monitorTemplate",
+    new MonitorTemplate(),
+  );
 
   const monitorTemplateColumn: Column<NetworkAlertPolicy> | null =
     canReadMonitorTemplate

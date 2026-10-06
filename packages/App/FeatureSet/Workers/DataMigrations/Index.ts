@@ -126,6 +126,7 @@ import AcceptPendingTeamInvitationsOfProjectMembers from "./AcceptPendingTeamInv
 import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCallMissedNotificationSettingsForUsers";
 import NormalizeListOrder from "./NormalizeListOrder";
 import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
+import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -592,6 +593,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new RewriteMeasurementPointsInTheirUnit(),
+  /*
+   * Metric data points are read, created and deleted with the Telemetry
+   * Service Metrics permissions now, where their table and columns named
+   * the trace and log ones. Gives every team and API key the metric
+   * permission that does what its trace and log grants did for metrics
+   * (copied, never renamed). Postgres-only and idempotent; a row it cannot
+   * add is logged and skipped. No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new AddTelemetryServiceMetricsPermissions(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
