@@ -18,6 +18,7 @@ import IncidentStateRole from "../../../Types/Incident/IncidentStateRole";
 import { JSONObject } from "../../../Types/JSON";
 import MeasurementStatus from "../../../Types/Measurement/MeasurementStatus";
 import ObjectID from "../../../Types/ObjectID";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
   afterEach,
@@ -196,6 +197,55 @@ function defaultTimeline(): Array<IncidentStateTimeline> {
       isResolvedState: true,
     }),
   ];
+}
+
+/*
+ * The project's incident states, as the state service reads them. Closed
+ * comes after Resolved without the flag, and counts as resolved
+ * (Common/Utils/ResolvedState): entering it is no second resolve.
+ */
+function projectStates(): Array<IncidentState> {
+  const rows: Array<{
+    id: ObjectID;
+    name: string;
+    order: number;
+    flag?: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
+  }> = [
+    {
+      id: IDENTIFIED_STATE_ID,
+      name: "Identified",
+      order: 1,
+      flag: "isCreatedState",
+    },
+    {
+      id: ACKNOWLEDGED_STATE_ID,
+      name: "Acknowledged",
+      order: 2,
+      flag: "isAcknowledgedState",
+    },
+    { id: MITIGATED_STATE_ID, name: "Mitigated", order: 3 },
+    { id: RESOLVED_STATE_ID, name: "Resolved", order: 4, flag: "isResolvedState" },
+    { id: CLOSED_STATE_ID, name: "Closed", order: 5 },
+  ];
+
+  return rows.map(
+    (row: {
+      id: ObjectID;
+      name: string;
+      order: number;
+      flag?: "isCreatedState" | "isAcknowledgedState" | "isResolvedState";
+    }): IncidentState => {
+      const state: IncidentState = new IncidentState();
+      state._id = row.id.toString();
+      state.id = row.id;
+      state.name = row.name;
+      state.order = row.order;
+      state.isCreatedState = row.flag === "isCreatedState";
+      state.isAcknowledgedState = row.flag === "isAcknowledgedState";
+      state.isResolvedState = row.flag === "isResolvedState";
+      return state;
+    },
+  );
 }
 
 function buildMeasurement(input: {
@@ -402,6 +452,8 @@ describe("IncidentMeasurementValueService.recomputeForIncident", () => {
     createdRows = [];
     updateCalls = [];
     replaceCalls = [];
+
+    mockProjectStates({ incidentStates: projectStates() });
 
     jest
       .spyOn(IncidentService, "findOneById")

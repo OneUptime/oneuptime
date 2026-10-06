@@ -81,17 +81,21 @@ function mockExecution(status: RunbookExecutionStatus): void {
 function mockIncident(overrides: Partial<Record<string, unknown>> = {}): void {
   jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
     id: INCIDENT_ID,
+    projectId: PROJECT_ID,
     currentIncidentStateId: STATE_ID,
     monitors: [{ id: MONITOR_ID }],
     ...overrides,
   } as unknown as Incident);
 }
 
+/*
+ * Whether the incident's state counts as resolved in its project - the one
+ * rule's answer (IncidentStateService.isResolvedIncidentState).
+ */
 function mockIncidentState(isResolved: boolean): void {
-  jest.spyOn(IncidentStateService, "findOneById").mockResolvedValue({
-    id: STATE_ID,
-    isResolvedState: isResolved,
-  } as unknown as IncidentState);
+  jest
+    .spyOn(IncidentStateService, "isResolvedIncidentState")
+    .mockResolvedValue(isResolved);
 }
 
 function mockMonitorOperational(isOperational: boolean): void {

@@ -36,6 +36,13 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -44,6 +51,11 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
  */
 beforeEach(() => {
   stubProjectDirectory({});
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
 });
 
 /*
@@ -2020,21 +2032,33 @@ describe("ServiceLevelObjectiveService.resolveOpenBurnRateAlertsAndIncidentsForS
 
     const alertFindByArg: { query: Record<string, unknown> } = alertFindBySpy
       .mock.calls[0]![0] as { query: Record<string, unknown> };
-    expect(alertFindByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: fingerprint,
-      currentAlertState: { isResolvedState: false },
-    });
+    expect(alertFindByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(alertFindByArg.query["seriesFingerprint"]).toBe(
+      fingerprint,
+    );
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(alertFindByArg.query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
+    expect(Object.keys(alertFindByArg.query).sort()).toEqual(
+      ["currentAlertStateId", "projectId", "seriesFingerprint"].sort(),
+    );
 
     const incidentFindByArg: { query: Record<string, unknown> } =
       incidentFindBySpy.mock.calls[0]![0] as {
         query: Record<string, unknown>;
       };
-    expect(incidentFindByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: fingerprint,
-      currentIncidentState: { isResolvedState: false },
-    });
+    expect(incidentFindByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(incidentFindByArg.query["seriesFingerprint"]).toBe(
+      fingerprint,
+    );
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(incidentFindByArg.query["currentIncidentStateId"])).toEqual(
+      openStateIds(INCIDENT_STATE_IDS),
+    );
+    expect(Object.keys(incidentFindByArg.query).sort()).toEqual(
+      ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+    );
 
     // And both actually resolved, through their own state timeline tables.
     expect(alertTimelineCreateSpy).toHaveBeenCalledTimes(1);

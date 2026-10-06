@@ -40,6 +40,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The reported bug, pinned at the layer that produced it.
@@ -211,6 +212,11 @@ describe("A second breaching series alerts even while the first is open", () => 
   let openIncidents: Array<Incident> = [];
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdAlerts = [];
     createdIncidents = [];
     resolvedAlertIds = [];

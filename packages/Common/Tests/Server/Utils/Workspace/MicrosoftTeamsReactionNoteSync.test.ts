@@ -68,6 +68,14 @@ import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReac
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
 import type { ConversationReference, TurnContext } from "botbuilder";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  ProjectStateIds,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../../TestingUtils/Services/ProjectStatesHelper";
 
 const projectId: ObjectID = ObjectID.generate();
 const oneUptimeUserId: ObjectID = ObjectID.generate();
@@ -1035,6 +1043,11 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
     return spies as Record<WorkspaceNoteResourceType, jest.SpyInstance>;
   }
 
+  beforeEach((): void => {
+    // Open: in a state above the project's resolved state.
+    mockProjectStates();
+  });
+
   test("collects the Teams channels of open and recently changed resources", async () => {
     const incident: Incident = resourceRow({
       createdAt: new Date("2026-09-20"),
@@ -1088,7 +1101,10 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
 
     const openQuery: any = calls[0]![0].query;
     expect(openQuery.projectId).toBe(projectId);
-    expect(openQuery.currentIncidentState).toEqual({ isResolvedState: false });
+    expect(openQuery.currentIncidentState).toBeUndefined();
+    expect(idsOfAnyFilter(openQuery.currentIncidentStateId)).toEqual(
+      openStateIds(INCIDENT_STATE_IDS),
+    );
     expect(
       Object.values(
         openQuery.postUpdatesToWorkspaceChannels.objectLiteralParameters,
@@ -1099,6 +1115,7 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
 
     const recentQuery: any = calls[1]![0].query;
     expect(recentQuery.currentIncidentState).toBeUndefined();
+    expect(recentQuery.currentIncidentStateId).toBeUndefined();
     expect(recentQuery.updatedAt.type).toBe("raw");
 
     for (const call of calls) {
@@ -1169,32 +1186,48 @@ describe("MicrosoftTeamsReactionNoteSync.getWatchedChannels", () => {
   test.each([
     [
       WorkspaceNoteResourceType.Incident,
-      { currentIncidentState: { isResolvedState: false } },
+      "currentIncidentStateId",
+      INCIDENT_STATE_IDS,
     ],
     [
       WorkspaceNoteResourceType.IncidentEpisode,
-      { currentIncidentState: { isResolvedState: false } },
+      "currentIncidentStateId",
+      INCIDENT_STATE_IDS,
     ],
-    [
-      WorkspaceNoteResourceType.Alert,
-      { currentAlertState: { isResolvedState: false } },
-    ],
+    [WorkspaceNoteResourceType.Alert, "currentAlertStateId", ALERT_STATE_IDS],
     [
       WorkspaceNoteResourceType.AlertEpisode,
-      { currentAlertState: { isResolvedState: false } },
+      "currentAlertStateId",
+      ALERT_STATE_IDS,
     ],
-    [
-      WorkspaceNoteResourceType.ScheduledMaintenance,
-      { currentScheduledMaintenanceState: { isResolvedState: false } },
-    ],
-  ])(
-    "open %s query",
-    (resourceType: WorkspaceNoteResourceType, query: JSONObject) => {
-      expect(
-        MicrosoftTeamsReactionNoteSync.getOpenResourceQuery(resourceType),
-      ).toEqual(query);
+  ] as Array<[WorkspaceNoteResourceType, string, ProjectStateIds]>)(
+    "open %s query: the project's states above its resolved state",
+    async (
+      resourceType: WorkspaceNoteResourceType,
+      column: string,
+      ids: ProjectStateIds,
+    ) => {
+      const query: JSONObject =
+        await MicrosoftTeamsReactionNoteSync.getOpenResourceQuery({
+          resourceType: resourceType,
+          projectId: projectId,
+        });
+
+      expect(Object.keys(query)).toEqual([column]);
+      expect(idsOfAnyFilter(query[column])).toEqual(openStateIds(ids));
     },
   );
+
+  test("open scheduled maintenance query", async () => {
+    await expect(
+      MicrosoftTeamsReactionNoteSync.getOpenResourceQuery({
+        resourceType: WorkspaceNoteResourceType.ScheduledMaintenance,
+        projectId: projectId,
+      }),
+    ).resolves.toEqual({
+      currentScheduledMaintenanceState: { isResolvedState: false },
+    });
+  });
 });
 
 describe("MicrosoftTeamsReactionNoteSync.syncProject / syncAllProjects", () => {

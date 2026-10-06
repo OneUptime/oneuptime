@@ -4,9 +4,7 @@ import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentMeasurementValueService from "../../../Server/Services/IncidentMeasurementValueService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
-import IncidentStateTimelineService, {
-  INCIDENT_NEVER_HELD_ITS_MONITORS_KEY,
-} from "../../../Server/Services/IncidentStateTimelineService";
+import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import AIIncidentPostmortemRunner from "../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import InvestigationGrader from "../../../Server/Utils/AI/SRE/InvestigationGrader";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -17,6 +15,7 @@ import URL from "../../../Types/API/URL";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 import {
   afterEach,
   beforeEach,
@@ -31,23 +30,25 @@ jest.mock("../../../Server/Utils/Logger");
 /*
  * Resolving an incident gives its monitors back: their monitoring resumes
  * and their status returns to operational (markMonitorsActiveForMonitoring).
- * That undoes what the incident did to them - and an incident declared
- * already resolved did nothing to them: it never set a status on its
- * monitors or paused their monitoring (Common/Utils/StartingStage). So its
- * first state, resolved, gives nothing back: a monitor that is down for
- * another reason stays down, no recovery that never happened is written to
- * the monitor's timeline, and its owners are not told of one.
+ * That undoes what the incident did to them - so it gives back only what the
+ * incident holds, which the incident records (Incident.holdsMonitors):
  *
- * Which resolve that is, IncidentService says when it writes the incident's
- * first state (INCIDENT_NEVER_HELD_ITS_MONITORS_KEY) - and only OneUptime's
- * own write can say it: a request's misc data is whatever its body says.
- * Nothing about the timeline's rows decides it any more. It used to be read
- * off "no row before this one", which a resolve dated before the incident's
- * first state, one of an incident declared with a time still to come, or one
- * written after the earlier rows aged out of the timeline (it keeps three
- * years) also have - each of which left an open incident's monitors paused
- * and down for good. Every resolve but that one first state gives the
- * monitors back, as always.
+ *   - true for an incident declared open: it put its monitors in its status
+ *     and, declared by hand, paused their monitoring;
+ *   - false for one declared already resolved, which did neither - and for
+ *     one whose resolve gave its monitors back already, so a reopen and a
+ *     second resolve give back nothing a second time;
+ *   - null for an incident from before this was recorded, which gives its
+ *     monitors back as it always did.
+ *
+ * A monitor that is down for another reason stays down, no recovery that
+ * never happened is written to its timeline, and its owners are not told of
+ * one. Nothing about the timeline's rows decides it, and nothing a request
+ * sends: the column is OneUptime's to write.
+ *
+ * It replaced the never-held signal #4435 handed the first state of an
+ * incident declared resolved, which only covered that first state: a reopen
+ * and a second resolve still gave back monitors the incident never held.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -63,18 +64,21 @@ const MONITOR_ID: string = "0193c0de-5a7e-4fab-8bcd-0000000000f1";
 // When the incident was declared: where the row its create writes starts.
 const DECLARED_AT: Date = new Date("2026-10-06T08:00:00.000Z");
 
-// What IncidentService hands the first state of an incident declared resolved.
-const NEVER_HELD: JSONObject = {
-  [INCIDENT_NEVER_HELD_ITS_MONITORS_KEY]: true,
-};
-
 let givenBack: Array<Array<unknown>> = [];
+let recorded: Array<{ incidentId: ObjectID; holdsMonitors: boolean }> = [];
 let postmortemDrafts: number = 0;
+// What the incident holds, as the database would read it back.
+let holdsMonitors: boolean | null | undefined = true;
 
-function stateWith(id: string, isResolved: boolean): IncidentState {
+function stateWith(
+  id: string,
+  isResolved: boolean,
+  order: number,
+): IncidentState {
   const state: IncidentState = new IncidentState();
   state._id = id;
   state.name = isResolved ? "Resolved" : "Identified";
+  state.order = order;
   state.isResolvedState = isResolved;
   state.isAcknowledgedState = false;
   state.isCreatedState = !isResolved;
@@ -83,11 +87,21 @@ function stateWith(id: string, isResolved: boolean): IncidentState {
 
 beforeEach(() => {
   givenBack = [];
+  recorded = [];
   postmortemDrafts = 0;
+  holdsMonitors = true;
+
+  // The project's states: Identified, then Resolved.
+  mockProjectStates({
+    incidentStates: [
+      stateWith(IDENTIFIED_STATE_ID, false, 1),
+      stateWith(RESOLVED_STATE_ID, true, 2),
+    ],
+  });
 
   jest
     .spyOn(IncidentStateService, "findOneBy")
-    .mockResolvedValue(stateWith(RESOLVED_STATE_ID, true) as never);
+    .mockResolvedValue(stateWith(RESOLVED_STATE_ID, true, 2) as never);
   jest.spyOn(IncidentService, "updateOneBy").mockResolvedValue(1 as never);
   jest
     .spyOn(IncidentStateTimelineService, "updateOneById")
@@ -136,6 +150,9 @@ beforeEach(() => {
     incident._id = INCIDENT_ID.toString();
     incident.projectId = PROJECT_ID;
     incident.declaredAt = DECLARED_AT;
+    if (holdsMonitors !== undefined) {
+      incident.holdsMonitors = holdsMonitors as boolean;
+    }
     const monitor: Monitor = new Monitor();
     monitor._id = MONITOR_ID;
     incident.monitors = [monitor];
@@ -146,6 +163,17 @@ beforeEach(() => {
     .spyOn(IncidentService, "markMonitorsActiveForMonitoring")
     .mockImplementation((async (...args: Array<unknown>): Promise<void> => {
       givenBack.push(args);
+    }) as never);
+
+  jest
+    .spyOn(IncidentService, "recordHoldsMonitors")
+    .mockImplementation((async (data: {
+      incidentId: ObjectID;
+      holdsMonitors: boolean;
+    }): Promise<void> => {
+      recorded.push(data);
+      // The database now reads it back so.
+      holdsMonitors = data.holdsMonitors;
     }) as never);
 
   jest
@@ -162,47 +190,39 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function resolvedRow(startsAt: Date): IncidentStateTimeline {
+function rowIn(stateId: string, startsAt: Date): IncidentStateTimeline {
   const row: IncidentStateTimeline = new IncidentStateTimeline();
   row._id = ObjectID.generate().toString();
   row.projectId = PROJECT_ID;
   row.incidentId = INCIDENT_ID;
-  row.incidentStateId = new ObjectID(RESOLVED_STATE_ID);
-  row.startsAt = startsAt;
-  return row;
-}
-
-function identifiedRow(startsAt: Date): IncidentStateTimeline {
-  const row: IncidentStateTimeline = new IncidentStateTimeline();
-  row._id = ObjectID.generate().toString();
-  row.projectId = PROJECT_ID;
-  row.incidentId = INCIDENT_ID;
-  row.incidentStateId = new ObjectID(IDENTIFIED_STATE_ID);
-  row.incidentState = stateWith(IDENTIFIED_STATE_ID, false);
+  row.incidentStateId = new ObjectID(stateId);
   row.startsAt = startsAt;
   return row;
 }
 
 // The incident's first state, from when it was declared.
 function earlierRow(): IncidentStateTimeline {
-  return identifiedRow(DECLARED_AT);
+  return rowIn(IDENTIFIED_STATE_ID, DECLARED_AT);
 }
 
 /*
- * A resolved row, written `startsAt` (by default, where the incident's
- * create starts its first row), with the rows found before and after it,
- * by a write with `props` and `miscDataProps`.
+ * A row in `stateId` (by default the resolved state), written `startsAt`
+ * (by default where the incident's create starts its first row), with the
+ * rows found before and after it, by a write with `props` and
+ * `miscDataProps`.
  */
-async function resolve(
+async function write(
   before: IncidentStateTimeline | null,
   options: {
+    stateId?: string;
     after?: IncidentStateTimeline | null;
     startsAt?: Date;
     props?: Record<string, unknown>;
     miscDataProps?: JSONObject;
   } = {},
 ): Promise<IncidentStateTimeline> {
-  const row: IncidentStateTimeline = resolvedRow(
+  const row: IncidentStateTimeline = rowIn(
+    options.stateId || RESOLVED_STATE_ID,
     options.startsAt || DECLARED_AT,
   );
   const hooks: Record<string, (...args: Array<unknown>) => Promise<unknown>> =
@@ -233,15 +253,18 @@ async function resolve(
   return row;
 }
 
-describe("an incident's resolved state gives its monitors back, unless it is the first state of an incident declared resolved", () => {
-  test("declared already resolved: the first state OneUptime writes for it says so, and gives nothing back", async () => {
-    await resolve(null, { miscDataProps: NEVER_HELD });
+describe("an incident's resolve gives back the monitors it holds, and only those", () => {
+  test("declared already resolved, it holds nothing: its resolve gives nothing back, and records nothing more", async () => {
+    holdsMonitors = false;
+
+    await write(null);
 
     expect(givenBack).toEqual([]);
+    expect(recorded).toEqual([]);
   });
 
-  test("resolved after a state of its own: the monitors are given back, from the moment it resolved", async () => {
-    const row: IncidentStateTimeline = await resolve(earlierRow(), {
+  test("an incident that holds them: the resolve gives them back, from the moment it resolved - then it holds nothing", async () => {
+    const row: IncidentStateTimeline = await write(earlierRow(), {
       startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 30),
     });
 
@@ -253,175 +276,158 @@ describe("an incident's resolved state gives its monitors back, unless it is the
       }),
     ).toEqual([MONITOR_ID]);
     expect(givenBack[0]![2]).toEqual(row.startsAt);
-  });
 
-  test("a resolve with no row before it, from the moment the incident was declared, still gives the monitors back when nothing says the incident never held them", async () => {
-    // Its first row deleted, say: the timeline alone cannot tell.
-    await resolve(null);
-
-    expect(givenBack).toHaveLength(1);
-  });
-
-  test("a resolve dated before the incident's first state gives the monitors back: that first state comes after it", async () => {
-    await resolve(null, {
-      after: earlierRow(),
-      startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, -10),
-    });
-
-    expect(givenBack).toHaveLength(1);
-  });
-
-  test("an incident declared with a time still to come, resolved now, gives the monitors back", async () => {
-    const declaredLater: Date = OneUptimeDate.addRemoveMinutes(
-      OneUptimeDate.getCurrentDate(),
-      60,
-    );
-
-    await resolve(null, {
-      after: identifiedRow(declaredLater),
-      startsAt: OneUptimeDate.getCurrentDate(),
-    });
-
-    expect(givenBack).toHaveLength(1);
-  });
-
-  test("a resolve written after the incident's earlier rows aged out of the timeline gives the monitors back", async () => {
-    await resolve(null, { startsAt: OneUptimeDate.getCurrentDate() });
-
-    expect(givenBack).toHaveLength(1);
-  });
-
-  test("a request cannot say it: the same misc data from a user's or an API key's write is not heard, and the monitors are given back", async () => {
-    await resolve(null, {
-      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
-      miscDataProps: NEVER_HELD,
-    });
-    await resolve(null, {
-      props: { tenantId: PROJECT_ID, isRoot: false },
-      miscDataProps: NEVER_HELD,
-    });
-
-    expect(givenBack).toHaveLength(2);
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]!.incidentId.toString()).toBe(INCIDENT_ID.toString());
+    expect(recorded[0]!.holdsMonitors).toBe(false);
   });
 
   test.each([
-    ["the word true", "true"],
-    ["one", 1],
-    ["an object", { value: true }],
-    ["false", false],
-  ] as Array<[string, unknown]>)(
-    "anything but true (%s) is not the signal: the monitors are given back",
-    async (_name: string, value: unknown) => {
-      await resolve(null, {
-        miscDataProps: {
-          [INCIDENT_NEVER_HELD_ITS_MONITORS_KEY]: value,
-        } as JSONObject,
+    ["null", null],
+    ["never read", undefined],
+  ] as Array<[string, null | undefined]>)(
+    "an incident from before it was recorded (%s) gives its monitors back, as it always did, and holds nothing from then on",
+    async (_name: string, value: null | undefined) => {
+      holdsMonitors = value;
+
+      await write(earlierRow(), {
+        startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 30),
+      });
+
+      expect(givenBack).toHaveLength(1);
+      expect(recorded.map((entry: { holdsMonitors: boolean }) => {
+        return entry.holdsMonitors;
+      })).toEqual([false]);
+    },
+  );
+
+  test("resolved, reopened and resolved again: the second resolve gives back nothing - the first gave them back", async () => {
+    await write(earlierRow(), {
+      startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 30),
+    });
+
+    // Reopened: its resolved row deleted, the incident back in Identified.
+    await write(earlierRow(), {
+      startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 60),
+    });
+
+    expect(givenBack).toHaveLength(1);
+    expect(recorded).toHaveLength(1);
+  });
+
+  test("declared resolved, reopened and resolved: nothing is given back, ever", async () => {
+    holdsMonitors = false;
+
+    await write(null);
+    await write(earlierRow(), {
+      startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 60),
+    });
+
+    expect(givenBack).toEqual([]);
+    expect(recorded).toEqual([]);
+  });
+
+  test.each([
+    [
+      "no row before it (its first row deleted, say)",
+      {},
+    ],
+    [
+      "dated before the incident's first state",
+      {
+        after: "first",
+        startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, -10),
+      },
+    ],
+    [
+      "written after the earlier rows aged out of the timeline",
+      { startsAt: OneUptimeDate.getCurrentDate() },
+    ],
+  ] as Array<[string, { after?: string; startsAt?: Date }]>)(
+    "the timeline's rows decide nothing: a resolve with %s gives back what the incident holds",
+    async (_name: string, shape: { after?: string; startsAt?: Date }) => {
+      await write(null, {
+        ...(shape.after ? { after: earlierRow() } : {}),
+        ...(shape.startsAt ? { startsAt: shape.startsAt } : {}),
       });
 
       expect(givenBack).toHaveLength(1);
     },
   );
 
-  test("other misc data, such as a public note, does not keep the monitors either", async () => {
-    await resolve(earlierRow(), {
-      startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 30),
-      miscDataProps: { publicNote: "Fixed." },
+  test("a request's misc data has no say: the old never-held signal, sent by anyone, keeps nothing", async () => {
+    await write(null, {
+      props: { tenantId: PROJECT_ID, userId: ObjectID.generate() },
+      miscDataProps: { neverHeldItsMonitors: true },
     });
 
     expect(givenBack).toHaveLength(1);
   });
 
   test("either way, a resolved incident still gets its postmortem draft", async () => {
-    await resolve(null, { miscDataProps: NEVER_HELD });
-    await resolve(earlierRow(), {
+    holdsMonitors = false;
+    await write(null);
+
+    holdsMonitors = true;
+    await write(earlierRow(), {
       startsAt: OneUptimeDate.addRemoveMinutes(DECLARED_AT, 30),
     });
 
     expect(postmortemDrafts).toBe(2);
   });
 
-  test("a first state that is not resolved gives nothing back either, as before", async () => {
+  test("a state that is not resolved gives nothing back and records nothing", async () => {
     jest
       .spyOn(IncidentStateService, "findOneBy")
-      .mockResolvedValue(stateWith(IDENTIFIED_STATE_ID, false) as never);
+      .mockResolvedValue(stateWith(IDENTIFIED_STATE_ID, false, 1) as never);
 
-    await resolve(null);
-    await resolve(null, { miscDataProps: NEVER_HELD });
+    await write(null, { stateId: IDENTIFIED_STATE_ID });
 
     expect(givenBack).toEqual([]);
+    expect(recorded).toEqual([]);
     expect(postmortemDrafts).toBe(0);
   });
 });
 
 /*
- * IncidentService.changeIncidentState writes the state; told the incident
- * never held its monitors - which only the first state of an incident
- * declared resolved is (handleIncidentStateChangeAsync, pinned per kind in
- * CreatedClosedNoAutomations.test.ts) - it hands that to the timeline.
+ * IncidentService.recordHoldsMonitors writes the column as OneUptime: as
+ * root, and past the update hooks, which would otherwise take a write of one
+ * column of its own for an edit of the incident.
  */
-describe("IncidentService.changeIncidentState says the incident never held its monitors only when told", () => {
-  let created: Array<{
-    data: IncidentStateTimeline;
-    props: Record<string, unknown>;
-    miscDataProps?: JSONObject;
-  }> = [];
-
+describe("IncidentService.recordHoldsMonitors", () => {
+  // The real write, not the stand-in the resolves above are watched through.
   beforeEach(() => {
-    created = [];
+    jest.restoreAllMocks();
+  });
 
-    // No row yet: the state written is the incident's first.
-    jest
-      .spyOn(IncidentStateTimelineService, "findOneBy")
-      .mockResolvedValue(null as never);
-    jest
-      .spyOn(IncidentStateTimelineService, "create")
-      .mockImplementation((async (createBy: {
-        data: IncidentStateTimeline;
+  test.each([true, false])(
+    "writes %s as OneUptime, past the update hooks",
+    async (value: boolean) => {
+      const update: jest.SpiedFunction<typeof IncidentService.updateOneById> =
+        jest
+          .spyOn(IncidentService, "updateOneById")
+          .mockResolvedValue(undefined as never);
+
+      await IncidentService.recordHoldsMonitors({
+        incidentId: INCIDENT_ID,
+        holdsMonitors: value,
+      });
+
+      expect(update).toHaveBeenCalledTimes(1);
+
+      const call: {
+        id: ObjectID;
+        data: Record<string, unknown>;
         props: Record<string, unknown>;
-        miscDataProps?: JSONObject;
-      }): Promise<IncidentStateTimeline> => {
-        created.push(createBy);
-        return createBy.data;
-      }) as never);
-  });
+      } = update.mock.calls[0]![0] as unknown as {
+        id: ObjectID;
+        data: Record<string, unknown>;
+        props: Record<string, unknown>;
+      };
 
-  async function change(neverHeldItsMonitors?: boolean): Promise<void> {
-    await IncidentService.changeIncidentState({
-      projectId: PROJECT_ID,
-      incidentId: INCIDENT_ID,
-      incidentStateId: new ObjectID(RESOLVED_STATE_ID),
-      shouldNotifyStatusPageSubscribers: false,
-      isSubscribersNotified: true,
-      notifyOwners: false,
-      rootCause: undefined,
-      stateChangeLog: undefined,
-      timelineStartsAt: DECLARED_AT,
-      ...(neverHeldItsMonitors === undefined
-        ? {}
-        : { neverHeldItsMonitors: neverHeldItsMonitors }),
-      props: { isRoot: true },
-    });
-  }
-
-  test("told so: the first state carries the signal, written as OneUptime, from the moment the incident was declared", async () => {
-    await change(true);
-
-    expect(created).toHaveLength(1);
-    expect(created[0]!.miscDataProps).toEqual(NEVER_HELD);
-    expect(created[0]!.props).toEqual({ isRoot: true });
-    expect(created[0]!.data.startsAt).toEqual(DECLARED_AT);
-  });
-
-  test.each([
-    ["told it held them", false],
-    ["not told at all", undefined],
-  ] as Array<[string, boolean | undefined]>)(
-    "%s: no misc data, so its resolve gives the monitors back as always",
-    async (_name: string, neverHeld: boolean | undefined) => {
-      await change(neverHeld);
-
-      expect(created).toHaveLength(1);
-      expect(created[0]!.miscDataProps).toBeUndefined();
+      expect(call.id.toString()).toBe(INCIDENT_ID.toString());
+      expect(call.data).toEqual({ holdsMonitors: value });
+      expect(call.props).toEqual({ isRoot: true, ignoreHooks: true });
     },
   );
 });

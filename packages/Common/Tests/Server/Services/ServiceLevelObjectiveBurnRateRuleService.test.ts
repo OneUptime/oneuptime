@@ -22,6 +22,13 @@ import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../TestingUtils/Services/ProjectStatesHelper";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 
@@ -46,6 +53,11 @@ function stubDirectoryAndGenericCheck(): void {
  */
 beforeEach(() => {
   stubDirectoryAndGenericCheck();
+  /*
+   * The project's states: an open alert or incident is in a state above
+   * its resolved state (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
 });
 
 /*
@@ -2203,11 +2215,17 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenAlertsForRule", ()
       props: Record<string, unknown>;
     };
 
-    expect(findByArg.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
-      currentAlertState: { isResolvedState: false },
-    });
+    expect(findByArg.query["projectId"]).toEqual(PROJECT_ID);
+    expect(findByArg.query["seriesFingerprint"]).toBe(
+      `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
+    );
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(findByArg.query["currentAlertStateId"])).toEqual(
+      openStateIds(ALERT_STATE_IDS),
+    );
+    expect(Object.keys(findByArg.query).sort()).toEqual(
+      ["currentAlertStateId", "projectId", "seriesFingerprint"].sort(),
+    );
     // projectId is needed on each row to stamp the timeline entry.
     expect(findByArg.select).toEqual({ _id: true, projectId: true });
     expect(findByArg.props).toEqual({ isRoot: true });
@@ -2485,11 +2503,17 @@ describe("ServiceLevelObjectiveBurnRateRuleService.resolveOpenIncidentsForRule",
       0,
     );
 
-    expect(findByArguments.query).toEqual({
-      projectId: PROJECT_ID,
-      seriesFingerprint: `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
-      currentIncidentState: { isResolvedState: false },
-    });
+    expect(findByArguments.query["projectId"]).toEqual(PROJECT_ID);
+    expect(findByArguments.query["seriesFingerprint"]).toBe(
+      `slo:${SLO_ID.toString()}:burn-rule:${RULE_ID.toString()}`,
+    );
+    // Unresolved: in a state above the project's resolved state.
+    expect(idsOfAnyFilter(findByArguments.query["currentIncidentStateId"])).toEqual(
+      openStateIds(INCIDENT_STATE_IDS),
+    );
+    expect(Object.keys(findByArguments.query).sort()).toEqual(
+      ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+    );
     // projectId is needed on each row to stamp the timeline entry.
     expect(findByArguments.select).toEqual({ _id: true, projectId: true });
     expect(findByArguments.props).toEqual({ isRoot: true });

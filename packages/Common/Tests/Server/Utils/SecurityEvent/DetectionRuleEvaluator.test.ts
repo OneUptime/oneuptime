@@ -61,6 +61,12 @@ import { JSONObject } from "../../../../Types/JSON";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import { getJestSpyOn } from "../../../Spy";
 import {
+  INCIDENT_STATE_IDS,
+  idsOfAnyFilter,
+  mockProjectStates,
+  openStateIds,
+} from "../../TestingUtils/Services/ProjectStatesHelper";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -340,6 +346,11 @@ function silenceLogger(): void {
 describe("DetectionRuleEvaluator", () => {
   beforeEach(() => {
     silenceLogger();
+    /*
+     * The project's states: an open detection is in a state above its
+     * resolved state (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
   });
 
   afterEach(() => {
@@ -862,16 +873,18 @@ describe("DetectionRuleEvaluator", () => {
        */
       const findByArg: JSONObject = spies.incidentFindBy.mock
         .calls[0]?.[0] as JSONObject;
-      expect(findByArg["query"]).toEqual({
-        projectId: PROJECT_ID,
-        seriesFingerprint: new Includes([
-          expectedFingerprint("alice"),
-          expectedFingerprint("bob"),
-        ]),
-        currentIncidentState: {
-          isResolvedState: false,
-        },
-      });
+      const query: JSONObject = findByArg["query"] as JSONObject;
+      expect(query["projectId"]).toEqual(PROJECT_ID);
+      expect(query["seriesFingerprint"]).toEqual(
+        new Includes([expectedFingerprint("alice"), expectedFingerprint("bob")]),
+      );
+      // Unresolved: in a state above the project's resolved state.
+      expect(idsOfAnyFilter(query["currentIncidentStateId"])).toEqual(
+        openStateIds(INCIDENT_STATE_IDS),
+      );
+      expect(Object.keys(query).sort()).toEqual(
+        ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+      );
     });
 
     test("an incident fingerprint already open does NOT suppress the alert", async () => {

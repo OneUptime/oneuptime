@@ -33,9 +33,9 @@ import { describe, expect, test } from "@jest/globals";
  *     these services - and leaves the line saying nobody was paged to
  *     OnCallNotRunOnCreate, which writes it to the record's own feed;
  *   - an episode is resolved from the moment it exists exactly when it
- *     starts resolved (its resolvedAt follows the stage), and an incident's
- *     first state is told the incident never held its monitors exactly when
- *     it starts resolved.
+ *     starts resolved (its resolvedAt follows the stage), and an incident
+ *     records that it holds its monitors (Incident.holdsMonitors) exactly
+ *     when it starts ongoing, so a resolve gives back only what it holds.
  *
  * Only real syntax is read, through the TypeScript AST.
  */
@@ -544,54 +544,43 @@ describe.each(SERVICES)(
 );
 
 describe.each(["AlertEpisodeService.ts", "IncidentEpisodeService.ts"])(
-  "%s: resolvedAt follows the resolved flag",
+  "%s: resolvedAt follows the stage",
   (file: string) => {
-    test("onBeforeCreate stamps resolvedAt exactly when the state is flagged resolved, as the first timeline row does, with no lookup of its own", () => {
+    test("onBeforeCreate stamps resolvedAt exactly when the episode starts resolved - the one rule's resolved, as its first timeline row reads it - with no lookup of its own", () => {
       const source: ts.SourceFile = parse(file);
       const text: string = methodOf(source, "onBeforeCreate")!.getText(source);
 
       expect(text).toMatch(
-        /if \(pickedStart\?\.flaggedResolved\) \{\s*createBy\.data\.resolvedAt = /,
+        /if \(pickedStart\?\.stage === StartingStage\.Resolved\) \{\s*createBy\.data\.resolvedAt = /,
       );
       expect(text).not.toMatch(/isResolved\w*State\(/);
     });
   },
 );
 
-describe("IncidentService.ts: the first state of an incident declared resolved", () => {
+describe("IncidentService.ts: whether an incident holds its monitors", () => {
   const source: ts.SourceFile = parse("IncidentService.ts");
 
-  test("onCreateSuccess hands the stage to the step that writes the first state", () => {
-    const calls: Array<ts.CallExpression> = awaitedCalls(
-      source,
-      methodOf(source, "onCreateSuccess")!,
-    )
-      .filter((step: { callee: string }): boolean => {
-        return step.callee === "this.handleIncidentStateChangeAsync";
-      })
-      .map((step: { call: ts.CallExpression }): ts.CallExpression => {
-        return step.call;
-      });
-
-    expect(calls).toHaveLength(1);
-    expect(
-      calls[0]!.arguments.map((argument: ts.Expression): string => {
-        return argument.getText(source);
-      }),
-    ).toContain("startingStage");
-  });
-
-  test("the first state is told the incident never held its monitors exactly when it does not start ongoing", () => {
-    const text: string = methodOf(
-      source,
-      "handleIncidentStateChangeAsync",
-    )!.getText(source);
+  test("onBeforeCreate records it from where the incident starts, whatever the write sent", () => {
+    const text: string = methodOf(source, "onBeforeCreate")!.getText(source);
 
     expect(text).toMatch(
-      /neverHeldItsMonitors: !StartingStageUtil\.isOngoing\(startingStage\)/,
+      /createBy\.data\.holdsMonitors = StartingStageUtil\.isOngoing\(startingStage\);/,
     );
-    // Written as OneUptime: the timeline hears it from a root write only.
-    expect(text).toMatch(/props: \{\s*isRoot: true,?\s*\}/);
+  });
+
+  test("the first state no longer carries a signal of its own: the column says it", () => {
+    expect(source.getText()).not.toMatch(/neverHeldItsMonitors/);
+    expect(source.getText()).not.toMatch(/INCIDENT_NEVER_HELD_ITS_MONITORS_KEY/);
+  });
+
+  test("it is recorded as OneUptime, never through the caller's permissions or hooks", () => {
+    const text: string = methodOf(source, "recordHoldsMonitors")!.getText(
+      source,
+    );
+
+    expect(text).toMatch(/isRoot: true/);
+    expect(text).toMatch(/ignoreHooks: true/);
   });
 });
 
@@ -607,40 +596,80 @@ describe("IncidentStateTimelineService.ts: which resolve gives the monitors back
     ts.ScriptKind.TS,
   );
 
-  test("every resolve but the first state of an incident declared resolved, said by a root write - not read off the timeline's rows", () => {
+  test("only a resolve gives monitors back, and only the monitors the incident holds - then it holds nothing", () => {
     const onCreateSuccess: ts.MethodDeclaration = methodOf(
       timelineSource,
       "onCreateSuccess",
     )!;
 
     const giveBacks: Array<ts.CallExpression> = [];
+    const releases: Array<ts.CallExpression> = [];
 
     eachNode(onCreateSuccess, (node: ts.Node) => {
-      if (
-        ts.isCallExpression(node) &&
-        node.expression.getText(timelineSource) ===
-          "IncidentService.markMonitorsActiveForMonitoring"
-      ) {
+      if (!ts.isCallExpression(node)) {
+        return;
+      }
+
+      const callee: string = node.expression.getText(timelineSource);
+
+      if (callee === "IncidentService.markMonitorsActiveForMonitoring") {
         giveBacks.push(node);
+      }
+
+      if (callee === "IncidentService.recordHoldsMonitors") {
+        releases.push(node);
       }
     });
 
     expect(giveBacks).toHaveLength(1);
+    expect(releases).toHaveLength(1);
 
-    const decidedBy: RegExp = /isFirstStateOfIncidentDeclaredResolved\(/;
+    // A resolve: the move of the current state into a resolved one.
     expect(
-      isDecidedBy(timelineSource, giveBacks[0]!, onCreateSuccess, decidedBy),
+      isDecidedBy(
+        timelineSource,
+        giveBacks[0]!,
+        onCreateSuccess,
+        /\bresolvesIncident\b/,
+      ),
     ).toBe(true);
 
-    const decision: string = methodOf(
+    // Of what it holds - null (from before it was recorded) gives back too.
+    for (const call of [giveBacks[0]!, releases[0]!]) {
+      expect(
+        isDecidedBy(
+          timelineSource,
+          call,
+          onCreateSuccess,
+          /holdsMonitors !== false/,
+        ),
+      ).toBe(true);
+    }
+
+    // And from then on it holds nothing.
+    expect(releases[0]!.getText(timelineSource)).toMatch(
+      /holdsMonitors: false/,
+    );
+    expect(giveBacks[0]!.getStart(timelineSource)).toBeLessThan(
+      releases[0]!.getStart(timelineSource),
+    );
+
+    // Read off the incident, not off the timeline's rows.
+    expect(onCreateSuccess.getText(timelineSource)).not.toMatch(
+      /isFirstStateOfIncidentDeclaredResolved|INCIDENT_NEVER_HELD_ITS_MONITORS_KEY/,
+    );
+  });
+
+  test("a resolve is decided by the one rule: into a resolved state, from one that is not, for the current row", () => {
+    const text: string = methodOf(
       timelineSource,
-      "isFirstStateOfIncidentDeclaredResolved",
+      "onCreateSuccess",
     )!.getText(timelineSource);
 
-    expect(decision).toMatch(/createBy\.props\.isRoot === true/);
-    expect(decision).toMatch(/INCIDENT_NEVER_HELD_ITS_MONITORS_KEY\] === true/);
-    expect(decision).not.toMatch(/statusTimeline(Before|After)ThisStatus/);
-    expect(decision).not.toMatch(/declaredAt|startsAt/);
+    expect(text).toMatch(
+      /const resolvesIncident: boolean =\s*!createdItem\.endsAt && isResolved && !previousStateWasResolved;/,
+    );
+    expect(text).toMatch(/ResolvedStateUtil\.isResolved\(/);
   });
 });
 

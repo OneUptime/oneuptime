@@ -20,6 +20,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * Regression tests for per-series offline/online auto-resolve.
@@ -341,6 +342,11 @@ describe("Per-series auto-resolve root cause", () => {
   let incidentRootCauses: Dictionary<string | undefined> = {};
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     openAlerts = [];
     openIncidents = [];
     alertRootCauses = {};

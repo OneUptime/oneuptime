@@ -246,13 +246,13 @@ describe("RemediationVerifier — a resource round's follow-up", () => {
     // The subject was resolved: verified.
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
       id: INCIDENT_ID,
+      projectId: PROJECT_ID,
       currentIncidentStateId: STATE_ID,
       monitors: [],
     } as unknown as Incident);
-    jest.spyOn(IncidentStateService, "findOneById").mockResolvedValue({
-      id: STATE_ID,
-      isResolvedState: true,
-    } as unknown as IncidentState);
+    jest
+      .spyOn(IncidentStateService, "isResolvedIncidentState")
+      .mockResolvedValue(true);
 
     await RemediationVerifier.verifyPendingRemediations();
 

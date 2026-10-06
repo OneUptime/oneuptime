@@ -559,7 +559,7 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
         },
       });
 
-    const isResolvedState: boolean = ResolvedStateUtil.isResolved({
+    const isResolved: boolean = ResolvedStateUtil.isResolved({
       list: StateListType.IncidentState,
       states: incidentStates,
       stateId: createdItem.incidentStateId,
@@ -579,14 +579,14 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
      * another ("Resolved" to "Closed") is no new resolve.
      */
     const resolvesIncident: boolean =
-      !createdItem.endsAt && isResolvedState && !previousStateWasResolved;
+      !createdItem.endsAt && isResolved && !previousStateWasResolved;
 
     const stateName: string = incidentState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
 
-    if (isResolvedState) {
+    if (isResolved) {
       stateEmoji = "✅";
     } else if (incidentState?.isAcknowledgedState) {
       // eyes emoji for acknowledged state.
@@ -779,7 +779,7 @@ ${createdItem.rootCause}`,
       incidentId: createdItem.incidentId,
       projectId: createdItem.projectId!,
       isAcknowledgedState: incidentState?.isAcknowledgedState || false,
-      isResolvedState: isResolvedState,
+      isResolved: isResolved,
       stateChangedAt: createdItem.startsAt || OneUptimeDate.getCurrentDate(),
       previousStateWasResolved: previousStateWasResolved,
     }).catch((error: Error) => {
@@ -1133,7 +1133,7 @@ ${createdItem.rootCause}`,
     incidentId: ObjectID;
     projectId: ObjectID;
     isAcknowledgedState: boolean;
-    isResolvedState: boolean;
+    isResolved: boolean;
     stateChangedAt: Date;
     previousStateWasResolved: boolean;
   }): Promise<void> {
@@ -1143,7 +1143,7 @@ ${createdItem.rootCause}`,
        * Common/Utils/ResolvedState). A state placed after Resolved is no
        * reopen.
        */
-      if (data.previousStateWasResolved && !data.isResolvedState) {
+      if (data.previousStateWasResolved && !data.isResolved) {
         // Incident is being reopened - create a new SLA record
         const incident: Incident | null = await IncidentService.findOneById({
           id: data.incidentId,
@@ -1187,7 +1187,7 @@ ${createdItem.rootCause}`,
        * Track the resolve: the move into a resolved state. Moving on from
        * one resolved state to another closes nothing more.
        */
-      if (data.isResolvedState && !data.previousStateWasResolved) {
+      if (data.isResolved && !data.previousStateWasResolved) {
         await IncidentSlaService.markResolved({
           incidentId: data.incidentId,
           resolvedAt: data.stateChangedAt,
