@@ -1,5 +1,8 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { getKubernetesAgentChartUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  getKubernetesAgentChartUpgradeCommand,
+  getKubernetesAgentChartUpgradeFallbackCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getDockerAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
 import { getDockerSwarmAgentInstallScriptCommand } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
@@ -7,12 +10,14 @@ import { getRunnerUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Compo
 import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   PROXMOX_AGENT_COLLECTOR_IMAGE,
+  PROXMOX_AGENT_RECREATE_COMMAND,
   getProxmoxAgentDownloadCommand,
-  getProxmoxAgentRecreateCommand,
+  getProxmoxAgentUpgradeCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
+  CEPH_AGENT_RECREATE_COMMAND,
   getCephAgentDownloadCommand,
-  getCephAgentRecreateCommand,
+  getCephAgentUpgradeCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import {
   VMWARE_AGENT_RECREATE_COMMAND,
@@ -183,7 +188,38 @@ describe("the English guides' commands are the ones the upgrade dialog shows", (
       "```bash\n" + getKubernetesAgentChartUpgradeCommand() + "\n```",
     );
   });
+});
 
+/*
+ * The dialog's second tab is the same upgrade on Helm before 3.14, which has
+ * no --reset-then-reuse-values. Every language's guide shows it under the
+ * chart upgrade, and says not to use --reuse-values, which keeps the old
+ * chart's defaults too (so a newer eBPF image never applies).
+ */
+describe("the Kubernetes guide's upgrade for older Helm, in every language", () => {
+  test.each(LANGUAGES)(
+    "%s: shows the dialog's older-Helm upgrade right after the chart upgrade",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/kubernetes-agent.md",
+      ) as string;
+      const upgrade: number = guide.indexOf(
+        "```bash\n" + getKubernetesAgentChartUpgradeCommand() + "\n```",
+      );
+      const fallback: number = guide.indexOf(
+        "```bash\n" + getKubernetesAgentChartUpgradeFallbackCommand() + "\n```",
+      );
+      expect(upgrade).toBeGreaterThan(-1);
+      expect(fallback).toBeGreaterThan(upgrade);
+      // Nothing but the paragraph leading into it sits between the two.
+      expect(guide.slice(upgrade, fallback).split("```").length).toBe(3);
+      expect(guide.slice(fallback)).toContain("`--reuse-values`");
+    },
+  );
+});
+
+describe("the English guides' other commands are the ones the upgrade dialog shows", () => {
   test("Docker and Podman: the image pull and removal, and Compose", () => {
     const docker: string = readGuide(
       "en",
@@ -361,43 +397,40 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     },
   );
 
+  /*
+   * The Proxmox and Ceph install scripts reuse the .env they find, so the
+   * upgrade is the script again, first; a Docker Compose install takes both
+   * files and a recreate in its own folder. Never the script's folder by
+   * hand any more: the script finds it.
+   */
   test.each([
-    ["en", "telemetry/proxmox.md"],
-    ["fa", "telemetry/proxmox.md"],
+    ["en", "telemetry/proxmox.md", "proxmox"],
+    ["fa", "telemetry/proxmox.md", "proxmox"],
+    ["en", "telemetry/ceph.md", "ceph"],
+    ["fa", "telemetry/ceph.md", "ceph"],
   ])(
-    "%s %s: the install script's folder, the files again and the recreate, as the dialog shows them",
-    (language: string, page: string) => {
+    "%s %s: the install script again, or the files and the recreate, as the dialog shows them",
+    (language: string, page: string, agent: string) => {
       const section: string = upgradeSection(
         readGuide(language, page) as string,
         HEADINGS[language] as string,
       );
-      expect(section).toContain(
-        "```bash\n" +
-          getProxmoxAgentDownloadCommand("install-script") +
-          "\n" +
-          getProxmoxAgentRecreateCommand("docker-compose") +
-          "\n```",
-      );
-    },
-  );
+      const upgrade: string =
+        agent === "proxmox"
+          ? getProxmoxAgentUpgradeCommand()
+          : getCephAgentUpgradeCommand();
+      const compose: string =
+        agent === "proxmox"
+          ? getProxmoxAgentDownloadCommand() +
+            "\n" +
+            PROXMOX_AGENT_RECREATE_COMMAND
+          : getCephAgentDownloadCommand() + "\n" + CEPH_AGENT_RECREATE_COMMAND;
 
-  test.each([
-    ["en", "telemetry/ceph.md"],
-    ["fa", "telemetry/ceph.md"],
-  ])(
-    "%s %s: the install script's folder, the files again and the recreate, as the dialog shows them",
-    (language: string, page: string) => {
-      const section: string = upgradeSection(
-        readGuide(language, page) as string,
-        HEADINGS[language] as string,
-      );
-      expect(section).toContain(
-        "```bash\n" +
-          getCephAgentDownloadCommand("install-script") +
-          "\n" +
-          getCephAgentRecreateCommand("docker-compose") +
-          "\n```",
-      );
+      expect(section).toContain("```bash\n" + upgrade + "\n```");
+      expect(section).toContain("```bash\n" + compose + "\n```");
+      expect(section.indexOf(upgrade)).toBeLessThan(section.indexOf(compose));
+      expect(section).toContain("`<file>.bak.<timestamp>`");
+      expect(section).not.toContain("cd /opt/");
     },
   );
 

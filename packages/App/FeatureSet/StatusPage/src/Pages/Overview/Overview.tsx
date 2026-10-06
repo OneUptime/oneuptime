@@ -39,6 +39,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -180,6 +181,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [episodeStateTimelines, setEpisodeStateTimelines] = useState<
     Array<IncidentEpisodeStateTimeline>
   >([]);
+  // The project's incident states: which timeline rows show the resolved check.
+  const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
+    [],
+  );
   const [monitorStatusTimelines, setMonitorStatusTimelines] = useState<
     Array<MonitorStatusTimeline>
   >([]);
@@ -414,6 +419,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
           IncidentEpisodeStateTimeline,
         );
 
+      const incidentStates: Array<IncidentState> = BaseModel.fromJSONArray(
+        (data["incidentStates"] as JSONArray) || [],
+        IncidentState,
+      );
+
       const monitorStatusTimelines: Array<MonitorStatusTimeline> =
         BaseModel.fromJSONArray(
           (data["monitorStatusTimelines"] as JSONArray) || [],
@@ -519,6 +529,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setActiveEpisodes(activeEpisodes);
       setEpisodePublicNotes(episodePublicNotes);
       setEpisodeStateTimelines(episodeStateTimelines);
+      setIncidentStates(incidentStates);
       setMonitorStatusTimelines(monitorStatusTimelines);
       setUptimeDailyAggregate(uptimeDailyAggregate);
       setMonitorGroupMergedDowntime(monitorGroupMergedDowntime);
@@ -2029,6 +2040,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         incidentPublicNotes: incidentGroup.publicNotes || [],
                         incidentStateTimelines:
                           incidentGroup.incidentStateTimelines,
+                        incidentStates: incidentStates,
                         statusPageResources: incidentGroup.incidentResources,
                         monitorsInGroup: incidentGroup.monitorsInGroup,
                         isPreviewPage: StatusPageUtil.isPreviewPage(),
@@ -2049,6 +2061,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         episodePublicNotes: episodeGroup.publicNotes || [],
                         episodeStateTimelines:
                           episodeGroup.episodeStateTimelines,
+                        incidentStates: incidentStates,
                         statusPageResources: episodeGroup.episodeResources,
                         monitorsInGroup: episodeGroup.monitorsInGroup,
                         isPreviewPage: StatusPageUtil.isPreviewPage(),

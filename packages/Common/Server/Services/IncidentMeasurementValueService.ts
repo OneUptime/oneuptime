@@ -6,6 +6,9 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentService from "./IncidentService";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import IncidentStateService from "./IncidentStateService";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 import IncidentMeasurementAnchorType from "../../Types/Incident/IncidentMeasurementAnchorType";
 import IncidentStateRole from "../../Types/Incident/IncidentStateRole";
 import MeasurementEvaluator, {
@@ -118,9 +121,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline(
-      data.incidentId,
-    );
+    const timeline: Array<MeasurementTimelineEntry> = await this.loadTimeline({
+      incidentId: data.incidentId,
+      projectId: incident.projectId,
+    });
 
     const specs: Array<MeasurementDefinitionSpec> = measurements.map(
       (measurement: IncidentMeasurement) => {
@@ -144,12 +148,13 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  private async loadTimeline(
-    incidentId: ObjectID,
-  ): Promise<Array<MeasurementTimelineEntry>> {
+  private async loadTimeline(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<MeasurementTimelineEntry>> {
     const timelines: Array<IncidentStateTimeline> =
       await IncidentStateTimelineService.findBy({
-        query: { incidentId: incidentId },
+        query: { incidentId: data.incidentId },
         select: {
           _id: true,
           incidentStateId: true,
@@ -160,7 +165,6 @@ export class Service extends DatabaseService<Model> {
             order: true,
             isCreatedState: true,
             isAcknowledgedState: true,
-            isResolvedState: true,
           },
         },
         sort: { startsAt: SortOrder.Ascending },
@@ -168,6 +172,31 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
         props: { isRoot: true },
       });
+
+    /*
+     * "The incident is resolved" is each move into a state that counts as
+     * resolved (Common/Utils/ResolvedState) - the project's resolved state,
+     * or one placed after it - from one that does not. Moving on from one
+     * resolved state to another is not a second resolve.
+     */
+    const resolutionRowIds: Set<string> = new Set(
+      ResolvedStateUtil.getResolutionRows({
+        list: StateListType.IncidentState,
+        states: await IncidentStateService.getAllIncidentStates({
+          projectId: data.projectId,
+          props: { isRoot: true },
+        }),
+        timeline: timelines.map((timeline: IncidentStateTimeline) => {
+          return {
+            id: timeline._id?.toString() || "",
+            stateId: timeline.incidentStateId,
+            startsAt: timeline.startsAt,
+          };
+        }),
+      }).map((row: { id: string }) => {
+        return row.id;
+      }),
+    );
 
     return timelines
       .filter((timeline: IncidentStateTimeline) => {
@@ -184,7 +213,7 @@ export class Service extends DatabaseService<Model> {
           roles.push(IncidentStateRole.Acknowledged);
         }
 
-        if (timeline.incidentState?.isResolvedState) {
+        if (resolutionRowIds.has(timeline._id?.toString() || "")) {
           roles.push(IncidentStateRole.Resolved);
         }
 

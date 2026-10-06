@@ -34,7 +34,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Ce
 bash install.sh
 ```
 
-The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and mgr endpoints — and whether the [AI agent](#ai-agent) may apply fixes, offering to create the AI agent's own Ceph client with this machine's admin access — installs to `/opt/oneuptime-ceph-agent`, and starts the agent with Docker Compose.
+The script prompts for your OneUptime URL, telemetry ingestion token, cluster name, and mgr endpoints — and whether the [AI agent](#ai-agent) may apply fixes, offering to create the AI agent's own Ceph client with this machine's admin access — installs to `/opt/oneuptime-ceph-agent`, writes a `0600` `.env` file, and starts the agent with Docker Compose. Running the script again reuses everything in that `.env` instead of prompting again, which is how you [upgrade the agent](#upgrading-the-agent).
 
 ## Alternative — Docker Compose
 
@@ -133,17 +133,21 @@ The unit assumes the agent lives in `/opt/oneuptime-ceph-agent` (the install scr
 
 The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the cluster's **Overview**. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
 
-The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Download both files again (your `.env` stays; re-apply any change you made to the two files), then pull the images and recreate the agent so the collector reads its new config:
+The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml` (a file you edited is kept as `<file>.bak.<timestamp>`), pulls the images and recreates the agent so the collector reads its new config. The AI agent's `ceph/` folder stays as it is.
 
 ```bash
-cd /opt/oneuptime-ceph-agent
+curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/install.sh -o install.sh
+bash install.sh
+```
+
+Installed it with Docker Compose instead? In the agent's folder, download both files again (re-apply any change you made to them), then pull the images and recreate the agent:
+
+```bash
 curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/docker-compose.yml
 curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
-
-Installed it with Docker Compose in a folder of your own? Run the same commands there, without the `cd`.
 
 ## Uninstalling the Agent
 
@@ -211,7 +215,7 @@ docker compose up -d
 ```
 
 - **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on this cluster with it, and the cluster's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or leave the agent out.
-- Never put the admin keyring there. `install.sh` offers to create the client for you.
+- Never put the admin keyring there. On a fresh install, `install.sh` offers to create the client for you; running it again never does.
 - It is **read-only** unless you set `ONEUPTIME_AI_ALLOW_WRITES=true` and give the client the caps for the fixes (the agent's README lists them); `ONEUPTIME_AI_WRITE_TARGETS` (for example `osd.*,cluster`) limits what a fix may touch. `ONEUPTIME_AI_FIXES` in the same `.env` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
 - It connects out to the monitors (TCP 3300 and 6789) and the mgr and OSD daemons (TCP 6800–7300), runs as UID 1000 with no capabilities, and never runs `auth`, `config-key`, `tell` or anything that deletes data. Delete the `oneuptime-ceph-ai-agent` service from `docker-compose.yml` if you do not use OneUptime AI.
 

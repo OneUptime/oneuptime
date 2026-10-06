@@ -473,15 +473,21 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.CreateNetworkDeviceAutoImportRule,
     ],
+    /*
+     * Which template a rule applies is part of the rule, so it is read with
+     * the rule's own read permission, like every other column here (and the
+     * OID Collection Template below). The templates' other fields stay with
+     * the templates' permissions: a relation select brings only what each
+     * template lets a joined row show - a monitor template's name,
+     * description and monitor type, an OID template's name and OIDs (as a
+     * device's reader sees its OID template's).
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadMonitorTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -525,10 +531,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.MonitorAdmin,
-      Permission.MonitorMember,
-      Permission.MonitorViewer,
-      Permission.ReadMonitorTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -563,7 +566,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadNetworkDeviceOidTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -616,7 +619,7 @@ export default class NetworkDeviceAutoImportRule extends RuleBaseModel {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
-      Permission.ReadNetworkDeviceOidTemplate,
+      Permission.ReadNetworkDeviceAutoImportRule,
     ],
     update: [
       Permission.ProjectOwner,

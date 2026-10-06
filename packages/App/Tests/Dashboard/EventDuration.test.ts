@@ -5,6 +5,7 @@ import {
   getEventEndDateForCurrentState,
   getEventDurationText,
   getLatestTimelineDateByEventId,
+  getResolvedAtByEventId,
 } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 
 const DASHBOARD_SRC: string = path.join(
@@ -197,10 +198,18 @@ describe("getLatestTimelineDateByEventId", () => {
   });
 });
 
+/*
+ * The states that count as resolved are the project's to say: its resolved
+ * state and any state placed after it (Common/Utils/ResolvedState). Here
+ * "resolved" and "closed", which comes after it without the flag.
+ */
+const RESOLVED_STATE_IDS: Array<string> = ["resolved", "closed"];
+
 describe("getEventEndDateForCurrentState", () => {
   const openDate: Date = new Date("2026-08-01T01:00:00.000Z");
   const resolvedDate: Date = new Date("2026-08-01T02:00:00.000Z");
   const reopenedDate: Date = new Date("2026-08-01T03:00:00.000Z");
+  const closedDate: Date = new Date("2026-08-01T04:00:00.000Z");
 
   it("returns the latest date when the current state is resolved", () => {
     expect(
@@ -209,7 +218,7 @@ describe("getEventEndDateForCurrentState", () => {
           { stateId: "open", startsAt: openDate },
           { stateId: "resolved", startsAt: resolvedDate },
         ],
-        "resolved",
+        RESOLVED_STATE_IDS,
       ),
     ).toBe(resolvedDate);
   });
@@ -222,7 +231,7 @@ describe("getEventEndDateForCurrentState", () => {
           { stateId: "resolved", startsAt: resolvedDate },
           { stateId: "open", startsAt: reopenedDate },
         ],
-        "resolved",
+        RESOLVED_STATE_IDS,
       ),
     ).toBeUndefined();
   });
@@ -234,7 +243,7 @@ describe("getEventEndDateForCurrentState", () => {
           { stateId: "resolved", startsAt: resolvedDate },
           { stateId: "open", startsAt: openDate },
         ],
-        "resolved",
+        RESOLVED_STATE_IDS,
       ),
     ).toBe(resolvedDate);
   });
@@ -243,7 +252,7 @@ describe("getEventEndDateForCurrentState", () => {
     expect(
       getEventEndDateForCurrentState(
         [{ stateId: "open", startsAt: openDate }, { stateId: "resolved" }],
-        "resolved",
+        RESOLVED_STATE_IDS,
       ),
     ).toBeUndefined();
   });
@@ -252,9 +261,86 @@ describe("getEventEndDateForCurrentState", () => {
     expect(
       getEventEndDateForCurrentState(
         [{ stateId: "resolved", startsAt: resolvedDate }],
-        undefined,
+        [],
       ),
     ).toBeUndefined();
+  });
+
+  it("moving on from Resolved into a state after it keeps the moment it was resolved", () => {
+    expect(
+      getEventEndDateForCurrentState(
+        [
+          { stateId: "open", startsAt: openDate },
+          { stateId: "resolved", startsAt: resolvedDate },
+          { stateId: "closed", startsAt: closedDate },
+        ],
+        RESOLVED_STATE_IDS,
+      ),
+    ).toBe(resolvedDate);
+  });
+
+  it("an event moved straight into a state after Resolved ended then", () => {
+    expect(
+      getEventEndDateForCurrentState(
+        [
+          { stateId: "open", startsAt: openDate },
+          { stateId: "closed", startsAt: closedDate },
+        ],
+        RESOLVED_STATE_IDS,
+      ),
+    ).toBe(closedDate);
+  });
+
+  it("an event resolved, reopened and resolved again ended at its latest resolve", () => {
+    const resolvedAgainDate: Date = new Date("2026-08-01T05:00:00.000Z");
+
+    expect(
+      getEventEndDateForCurrentState(
+        [
+          { stateId: "open", startsAt: openDate },
+          { stateId: "resolved", startsAt: resolvedDate },
+          { stateId: "open", startsAt: reopenedDate },
+          { stateId: "resolved", startsAt: resolvedAgainDate },
+          {
+            stateId: "closed",
+            startsAt: new Date("2026-08-01T06:00:00.000Z"),
+          },
+        ],
+        RESOLVED_STATE_IDS,
+      ),
+    ).toBe(resolvedAgainDate);
+  });
+});
+
+describe("getResolvedAtByEventId", () => {
+  it("gives each event resolved now the moment it was resolved this time, and none to an open one", () => {
+    const timelines: Array<EventTimelineDate> = [
+      {
+        eventId: "a",
+        stateId: "open",
+        startsAt: new Date("2026-08-01T01:00:00.000Z"),
+      },
+      {
+        eventId: "a",
+        stateId: "resolved",
+        startsAt: new Date("2026-08-01T02:00:00.000Z"),
+      },
+      {
+        eventId: "a",
+        stateId: "closed",
+        startsAt: new Date("2026-08-01T03:00:00.000Z"),
+      },
+      {
+        eventId: "b",
+        stateId: "open",
+        startsAt: new Date("2026-08-01T01:00:00.000Z"),
+      },
+      { eventId: "", stateId: "resolved", startsAt: new Date() },
+    ];
+
+    expect(getResolvedAtByEventId(timelines, RESOLVED_STATE_IDS)).toEqual({
+      a: new Date("2026-08-01T02:00:00.000Z"),
+    });
   });
 });
 
@@ -288,17 +374,17 @@ describe("duration display wiring", () => {
     "Index.tsx",
   );
 
-  it("shows incident duration and requests resolved-state metadata", () => {
+  it("shows incident duration and reads the project's states to know which are resolved", () => {
     expect(incidentTable).toContain('title: "Duration"');
-    expect(incidentTable).toContain("isResolvedState: true");
+    expect(incidentTable).toContain("ResolvedStateUtil.getResolvedStateIds");
     expect(incidentTable).toContain(
       "useEventTimelineEndDates<IncidentStateTimeline>",
     );
   });
 
-  it("shows alert duration and requests resolved-state metadata", () => {
+  it("shows alert duration and reads the project's states to know which are resolved", () => {
     expect(alertTable).toContain('title: "Duration"');
-    expect(alertTable).toContain("isResolvedState: true");
+    expect(alertTable).toContain("ResolvedStateUtil.getResolvedStateIds");
     expect(alertTable).toContain(
       "useEventTimelineEndDates<AlertStateTimeline>",
     );

@@ -10,6 +10,10 @@
  * eBPF profiler has on-CPU samples to tag with the request's trace context;
  * /cpu/hash burns more.
  *
+ * Outside any request, a timer calls downstream's GET /tick every 2 s, the way
+ * a worker or a controller calls out on its own: what reaches the sink as a
+ * CLIENT span with no parent, the call ebpf.dropUnlinkedClientCalls drops.
+ *
  * Routes are declared as Express literals, which OBI's Node.js route harvester
  * reads from this file (it has to live outside node_modules, /tmp, /usr ...).
  */
@@ -22,6 +26,7 @@ const { Pool } = require("pg");
 
 const BURN_MS = Number(process.env.BURN_MS || 3);
 const HASH_BURN_MS = Number(process.env.HASH_BURN_MS || 25);
+const TICK_MS = Number(process.env.TICK_MS || 2000);
 const redis = new Redis({ host: process.env.REDIS_HOST, port: 6379 });
 const pool = new Pool({
   host: process.env.PG_HOST,
@@ -94,6 +99,27 @@ app.get("/api/items/:id", handler(0));
 app.post("/api/orders", handler(0));
 app.get("/status/ready", handler(0));
 app.get("/cpu/hash", handler(HASH_BURN_MS));
+
+/*
+ * Work no request triggered (analyze.py TR-13). A connection of its own, so it
+ * never queues behind the requests' calls on their agent, nor they behind it.
+ * Failures are ignored: downstream may not be up yet.
+ */
+const tickAgent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+setInterval(() => {
+  const req = http.get(
+    {
+      host: process.env.DOWNSTREAM_HOST,
+      port: 8080,
+      path: "/tick",
+      agent: tickAgent,
+    },
+    (res) => {
+      res.resume();
+    },
+  );
+  req.on("error", () => {});
+}, TICK_MS);
 
 app.listen(3000, "0.0.0.0", () => {
   console.log(

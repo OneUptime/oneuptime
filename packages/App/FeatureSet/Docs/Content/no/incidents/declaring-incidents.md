@@ -164,7 +164,7 @@ Opprettelseskallet gjør mer enn å skrive en rad. I rekkefølge:
 9. **Abonnenter køes**, hvis **Varsle statussideabonnenter** ble stående på og hendelsen er synlig på statussiden. Utsendelsen håndteres av en bakgrunnsjobb, ikke inline med forespørselen din.
 10. **Arbeidsflyter utløses.** Triggeren **On Create Incident** starter enhver arbeidsflyt som er bygget på den. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
-Derfra er hendelsen i live: den teller mot telleren **Aktive hendelser** i sidemenyen for Hendelser (enhver tilstand som ikke er flagget `isResolvedState` teller som aktiv), den vises på statussidene som bærer en av overvåkingene dens, og **Tilstandstidslinje** begynner å registrere.
+Derfra er hendelsen i live: den teller mot telleren **Aktive hendelser** i sidemenyen for Hendelser (enhver tilstand over den løste tilstanden din teller som aktiv), den vises på statussidene som bærer en av overvåkingene dens, og **Tilstandstidslinje** begynner å registrere.
 
 ## Hvor du leser videre
 

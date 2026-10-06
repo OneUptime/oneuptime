@@ -49,7 +49,7 @@ La distinzione conta più di quanto sembri:
 
 - `isCreatedState` decide dove parte un nuovo incidente. Se alla creazione non viene scelto esplicitamente uno stato, OneUptime cerca lo stato di creazione del progetto e usa quello.
 - `isAcknowledgedState` e `isResolvedState` governano i pulsanti **Acknowledge** e **Risolvi** nell'intestazione dell'incidente, i due riquadri statistici nella **Panoramica** dell'incidente e il badge con il conteggio **Incidenti attivi** nel menu laterale.
-- **Incidenti attivi** è definito puramente come "lo stato attuale non è lo stato risolto". Qualsiasi stato personalizzato che aggiungete è quindi attivo, a meno che non sia quello risolto.
+- **Incidenti attivi** è definito puramente come "lo stato attuale sta sopra lo stato risolto". Uno stato personalizzato che aggiungete sopra lo stato risolto è quindi attivo; uno che mettete dopo conta come risolto, come lo stato risolto stesso.
 
 **Attenzione ai nomi.** Il primo stato preimpostato si chiama **Identified**, anche se diverse descrizioni all'interno del prodotto continuano a chiamarlo stato di creazione. Se nell'elenco degli stati del vostro progetto cercate "Created", si tratta della riga chiamata **Identified**.
 
@@ -102,7 +102,7 @@ Chi risponde riconosce l'incidente, collega le risorse interessate, esegue i run
 
 ### 4. Viene risolto
 
-Un clic su **Risolvi** porta l'incidente allo stato risolto, marca la cronologia di stato, ferma il cronometro della durata e toglie l'incidente dalla sezione attiva di ogni pagina di stato su cui compariva. Non serve altro perché accada: la query della pagina di stato guarda proprio il flag dello stato risolto.
+Un clic su **Risolvi** porta l'incidente allo stato risolto, marca la cronologia di stato, ferma il cronometro della durata, restituisce i monitor che tiene e toglie l'incidente dalla sezione attiva di ogni pagina di stato su cui compariva. Non serve altro perché accada: una pagina di stato mostra solo gli incidenti in uno stato sopra lo stato risolto. Vedete [Stati e gravità degli incidenti](/docs/incidents/states-and-severities).
 
 Dopodiché potete scrivere un post-mortem e, se volete, pubblicarlo sulla pagina di stato.
 
@@ -112,7 +112,7 @@ Aprite **Incidenti** nella navigazione a sinistra. Il suo menu laterale è organ
 
 | Sezione            | Che cosa ci fate                                                                                                                                                           |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Panoramica**  | **Tutti gli incidenti** e **Incidenti attivi** — quest'ultima porta un badge rosso con il numero di incidenti che non sono nello stato risolto.                            |
+| **Panoramica**  | **Tutti gli incidenti** e **Incidenti attivi** — quest'ultima porta un badge rosso con il numero di incidenti in uno stato sopra lo stato risolto.                            |
 | **Episodi**  | Gli episodi di incidente, una funzionalità di raggruppamento a parte con pagine proprie.                                                                                    |
 | **IA** | **Informazioni**, **Registri**, **Impostazioni**, **Regole di rimedio automatico**: ciò che OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, ciò che può fare da solo e le regole che correggono gli incidenti con i runbook. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Area di lavoro** | Connessioni **Slack** e **Microsoft Teams** per gli incidenti.                                                                                                          |
@@ -145,7 +145,7 @@ Aprite un incidente e trovate un menu laterale a sinistra, raggruppato così:
 - **I monitor individuano il problema; gli incidenti lo registrano.** Una regola nei criteri di un monitor può dichiarare un incidente in automatico, precompilando titolo, gravità, policy di reperibilità, proprietari, etichette e note di rimedio. Per le variabili disponibili lì, vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
 - **Sono le policy di reperibilità a chiamare le persone.** Collegate le policy nel passaggio **Reperibilità** della procedura di dichiarazione, su un modello, oppure tramite **Incidenti → Regole → Regole di reperibilità**. Scatta ogni regola corrispondente: l'insieme eseguito è l'unione di tutte le corrispondenze più quanto collegato direttamente, senza duplicati.
 - **I runbook dicono alle persone cosa fare.** Le regole di runbook collegano una procedura in automatico quando viene creato un incidente corrispondente, e chi risponde può avviarne una a mano dall'incidente. Vedete [Panoramica dei Runbook](/docs/runbooks/index).
-- **Le pagine di stato informano i clienti.** Un incidente compare nell'elenco attivo di una pagina di stato quando la pagina ha gli incidenti abilitati, l'incidente è contrassegnato come visibile sulla pagina e il suo stato attuale non è quello risolto. Gli incidenti privati sono sempre nascosti da ogni pagina di stato. Vedete [Panoramica delle pagine di stato](/docs/status-pages/index).
+- **Le pagine di stato informano i clienti.** Un incidente compare nell'elenco attivo di una pagina di stato quando la pagina ha gli incidenti abilitati, l'incidente è contrassegnato come visibile sulla pagina e il suo stato attuale sta sopra lo stato risolto. Gli incidenti privati sono sempre nascosti da ogni pagina di stato. Vedete [Panoramica delle pagine di stato](/docs/status-pages/index).
 - **I workflow automatizzano intorno a tutto questo.** I trigger **On Create Incident**, **On Update Incident** e **On Delete Incident** vi permettono di costruire automazioni senza codice sul ciclo di vita dell'incidente. Vedete [Panoramica dei workflow](/docs/workflows/index).
 
 ## Dove leggere ora

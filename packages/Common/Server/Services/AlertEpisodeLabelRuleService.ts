@@ -1,8 +1,8 @@
-import ProjectReferencesService from "./ProjectReferencesService";
+import LabelAndOwnerRuleBaseService from "./LabelAndOwnerRuleBaseService";
 import Model from "../../Models/DatabaseModels/AlertEpisodeLabelRule";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 
-export class Service extends ProjectReferencesService<Model> {
+export class Service extends LabelAndOwnerRuleBaseService<Model> {
   public constructor() {
     super(Model);
     if (IsBillingEnabled) {

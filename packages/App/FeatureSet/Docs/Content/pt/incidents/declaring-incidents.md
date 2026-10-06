@@ -164,7 +164,7 @@ A chamada de criação faz bem mais do que gravar uma linha. Em ordem:
 9. **Assinantes entram na fila**, se **Notificar assinantes da página de status** tiver ficado ativado e o incidente estiver visível na página de status. A entrega fica a cargo de um job em segundo plano, não da sua requisição.
 10. **Workflows disparam.** O gatilho **On Create Incident** inicia qualquer workflow construído sobre ele. Veja [Visão geral dos workflows](/docs/workflows/index).
 
-Daí em diante o incidente está no ar: ele conta para o selo **Incidentes ativos** no menu lateral de Incidentes (qualquer estado sem a flag `isResolvedState` conta como ativo), aparece nas páginas de status que carregam um de seus monitores, e sua **Linha do tempo de estado** começa a registrar.
+Daí em diante o incidente está no ar: ele conta para o selo **Incidentes ativos** no menu lateral de Incidentes (qualquer estado acima do seu estado resolvido conta como ativo), aparece nas páginas de status que carregam um de seus monitores, e sua **Linha do tempo de estado** começa a registrar.
 
 ## Onde ler a seguir
 

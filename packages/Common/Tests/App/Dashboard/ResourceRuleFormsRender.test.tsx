@@ -1094,6 +1094,106 @@ describe.each(INHERITING_PAGES)(
       }
     });
 
+    /*
+     * A rule that only inherits used to keep an empty name until somebody
+     * typed one. It is named after what it inherits from now, and the name
+     * follows the switches while it is still the form's own.
+     */
+    test("names a rule that only inherits after its switches, and follows them", async () => {
+      const kindWord: string = page.kind === "labels" ? "labels" : "owners";
+      const monitors: string = page.monitorsSwitch.endsWith("Monitor")
+        ? "monitor"
+        : "monitors";
+      const hostsSwitch: string =
+        page.kind === "labels"
+          ? "Inherit Labels From Hosts"
+          : "Inherit Owners From Hosts";
+
+      await renderPage(page.Page);
+      await within(dialog()).findByRole("navigation", { name: "Progress" });
+      await next();
+      await openFold(page.foldTitle);
+
+      expect(nameBox()).toHaveValue("");
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(switchNamed(page.monitorsSwitch));
+      });
+
+      await waitFor(() => {
+        expect(nameBox()).toHaveValue(`Inherit ${kindWord} from ${monitors}`);
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(switchNamed(hostsSwitch));
+      });
+
+      await waitFor(() => {
+        expect(nameBox()).toHaveValue(
+          `Inherit ${kindWord} from ${monitors}, hosts`,
+        );
+      });
+
+      // Turned off again: out of the name.
+      await act(async (): Promise<void> => {
+        fireEvent.click(switchNamed(page.monitorsSwitch));
+      });
+
+      await waitFor(() => {
+        expect(nameBox()).toHaveValue(`Inherit ${kindWord} from hosts`);
+      });
+
+      // The switches stay as they were set, the name beside them.
+      expect(switchNamed(page.monitorsSwitch)).toHaveAttribute(
+        "aria-checked",
+        "false",
+      );
+      expect(switchNamed(hostsSwitch)).toHaveAttribute("aria-checked", "true");
+
+      await submit();
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+
+      const model: JSONObject = sentModel();
+      const hostsColumn: string =
+        page.kind === "labels"
+          ? "inheritLabelsFromHosts"
+          : "inheritOwnersFromHosts";
+      const monitorsColumn: string =
+        page.kind === "labels"
+          ? "inheritLabelsFromMonitors"
+          : "inheritOwnersFromMonitors";
+
+      expect(model["name"]).toBe(`Inherit ${kindWord} from hosts`);
+      expect(model[hostsColumn]).toBe(true);
+      expect(model[monitorsColumn]).toBe(false);
+    });
+
+    test("never writes over a name somebody typed as the switches change", async () => {
+      await renderPage(page.Page);
+      await within(dialog()).findByRole("navigation", { name: "Progress" });
+      await next();
+      await openFold(page.foldTitle);
+
+      fireEvent.change(nameBox(), {
+        target: { value: "What the monitors carry" },
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(switchNamed(page.monitorsSwitch));
+      });
+
+      expect(nameBox()).toHaveValue("What the monitors carry");
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(switchNamed(page.monitorsSwitch));
+      });
+
+      expect(nameBox()).toHaveValue("What the monitors carry");
+    });
+
     test("still will not create a rule that neither names nor inherits anything", async () => {
       await renderPage(page.Page);
       await within(dialog()).findByRole("navigation", { name: "Progress" });
@@ -1122,6 +1222,140 @@ describe.each(INHERITING_PAGES)(
     });
   },
 );
+
+describe("an incident rule that inherits, then picks", () => {
+  test("is named after its first label over the name its switch gave it", async () => {
+    const user: UserEvent = await renderPage(IncidentLabelRules);
+    await within(dialog()).findByRole("navigation", { name: "Progress" });
+    await next();
+
+    await openFold("Inherit Labels");
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Inherit Labels From Monitors"));
+    });
+
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Inherit labels from monitors");
+    });
+
+    await pickLabel(user, "production");
+
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Add production");
+    });
+
+    // A switch now leaves the picks' name alone.
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Inherit Labels From Services"));
+    });
+
+    expect(nameBox()).toHaveValue("Add production");
+
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: JSONObject = sentModel();
+
+    expect(model["name"]).toBe("Add production");
+    expect(ids(model["labelsToAdd"])).toEqual([PRODUCTION]);
+    expect(model["inheritLabelsFromMonitors"]).toBe(true);
+    expect(model["inheritLabelsFromServices"]).toBe(true);
+  });
+
+  test("an owner rule is named after its first owner over its switches' name", async () => {
+    await renderPage(IncidentOwnerRules);
+    await within(dialog()).findByRole("navigation", { name: "Progress" });
+    await next();
+
+    await openFold("Inherit Owners");
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Inherit Owners From Kubernetes Clusters"));
+    });
+
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Inherit owners from Kubernetes clusters");
+    });
+
+    await pickOwner("Platform");
+
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Add Platform as owners");
+    });
+  });
+});
+
+describe("editing a rule that only inherits, named after its switches", () => {
+  test("follows the switches while the name is still the one they gave it", async () => {
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(new IncidentLabelRule(), {
+          _id: RULE_ID,
+          name: "Inherit labels from services",
+          isEnabled: true,
+          labelsToAdd: [],
+          inheritLabelsFromServices: true,
+        }),
+      );
+    }) as never);
+
+    await renderPage(IncidentLabelRules, "edit");
+    await openLastStep();
+    await within(dialog()).findByRole("switch", { name: /Enabled/ });
+
+    await waitFor(() => {
+      expect(fold("Inherit Labels")).toHaveAttribute("aria-expanded", "true");
+    });
+
+    expect(nameBox()).toHaveValue("Inherit labels from services");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Inherit Labels From Hosts"));
+    });
+
+    await waitFor(() => {
+      expect(nameBox()).toHaveValue("Inherit labels from hosts, services");
+    });
+
+    await submit();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sentModel()["name"]).toBe("Inherit labels from hosts, services");
+  });
+
+  test("keeps a name somebody gave it", async () => {
+    getItemMock.mockImplementation((() => {
+      return Promise.resolve(
+        Object.assign(new IncidentLabelRule(), {
+          _id: RULE_ID,
+          name: "Inherit services' labels",
+          isEnabled: true,
+          labelsToAdd: [],
+          inheritLabelsFromServices: true,
+        }),
+      );
+    }) as never);
+
+    await renderPage(IncidentLabelRules, "edit");
+    await openLastStep();
+    await within(dialog()).findByRole("switch", { name: /Enabled/ });
+
+    await waitFor(() => {
+      expect(fold("Inherit Labels")).toHaveAttribute("aria-expanded", "true");
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(switchNamed("Inherit Labels From Hosts"));
+    });
+
+    expect(nameBox()).toHaveValue("Inherit services' labels");
+  });
+});
 
 describe("an incident label rule, as somebody fills it in", () => {
   test("names the rule after its labels, and inherits beside them", async () => {

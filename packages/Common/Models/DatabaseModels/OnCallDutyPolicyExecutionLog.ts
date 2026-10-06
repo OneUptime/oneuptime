@@ -1090,7 +1090,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
       Permission.OnCallAdmin,
       Permission.OnCallMember,
       Permission.OnCallViewer,
-      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
     ],
     update: [],
   })
@@ -1134,7 +1134,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
       Permission.OnCallAdmin,
       Permission.OnCallMember,
       Permission.OnCallViewer,
-      Permission.ReadProjectOnCallDutyPolicyExecutionLogTimeline,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
     ],
     update: [],
   })

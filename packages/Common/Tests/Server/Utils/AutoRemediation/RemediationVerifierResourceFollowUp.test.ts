@@ -13,7 +13,6 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../../Server/Services/IncidentStateService";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
@@ -246,13 +245,13 @@ describe("RemediationVerifier — a resource round's follow-up", () => {
     // The subject was resolved: verified.
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
       id: INCIDENT_ID,
+      projectId: PROJECT_ID,
       currentIncidentStateId: STATE_ID,
       monitors: [],
     } as unknown as Incident);
-    jest.spyOn(IncidentStateService, "findOneById").mockResolvedValue({
-      id: STATE_ID,
-      isResolvedState: true,
-    } as unknown as IncidentState);
+    jest
+      .spyOn(IncidentStateService, "isResolvedIncidentState")
+      .mockResolvedValue(true);
 
     await RemediationVerifier.verifyPendingRemediations();
 

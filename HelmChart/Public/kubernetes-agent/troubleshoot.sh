@@ -502,7 +502,7 @@ egress_fail_finding() {
 }
 
 token_invalid_finding() {
-  add_finding "DEFINITIVE: OneUptime does not accept the ingestion key in the Secret (unknown, revoked, disabled, expired, or a browser key). Every export is refused (401/422) and dropped, and the collector only logs 'Exporting failed', which is why the agent looks healthy while nothing ingests. FIX: create or copy a live server Telemetry Ingestion Key in OneUptime, then: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set oneuptime.apiKey=<key>"
+  add_finding "DEFINITIVE: OneUptime does not accept the ingestion key in the Secret (unknown, revoked, disabled, expired, or a browser key). Every export is refused (401/422) and dropped, and the collector only logs 'Exporting failed', which is why the agent looks healthy while nothing ingests. FIX: create or copy a live server Telemetry Ingestion Key in OneUptime, then: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set oneuptime.apiKey=<key>"
 }
 
 # Fallback token oracle for servers without /otlp/v1/validate, which answer
@@ -647,7 +647,7 @@ cost_deploy_check() {
     -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
   if [ -z "$dep" ]; then
     fail "$label Deployment (component=$comp) not found in '$NS'."
-    add_finding "The $label Deployment is missing while cost is enabled — the chart rendered a partial cost stack. Re-run: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.enabled=true"
+    add_finding "The $label Deployment is missing while cost is enabled — the chart rendered a partial cost stack. Re-run: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.enabled=true"
     COST_OK=0
     return 1
   fi
@@ -671,7 +671,7 @@ cost_deploy_check() {
   case "$reasons" in
     *ImagePull*|*ErrImage*)
       fail "$label Deployment '$dep' NOT ready ($ready/$want) — ImagePullBackOff: cannot pull '${img:-?}'."
-      add_finding "$label is in ImagePullBackOff — the tag '${img##*:}' does not exist in the registry (or it isn't reachable from this cluster). This is the known cost failure: the chart used to default cost.agent.image.tag to the chart appVersion, a tag the release pipeline never publishes. Upgrade the chart, or pin a tag that exists: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.agent.image.tag=release" ;;
+      add_finding "$label is in ImagePullBackOff — the tag '${img##*:}' does not exist in the registry (or it isn't reachable from this cluster). This is the known cost failure: the chart used to default cost.agent.image.tag to the chart appVersion, a tag the release pipeline never publishes. Upgrade the chart, or pin a tag that exists: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.agent.image.tag=release" ;;
     *CreateContainerConfigError*|*CreateContainerError*)
       fail "$label Deployment '$dep' NOT ready ($ready/$want) — container config error."
       add_finding "$label has a config error (usually a missing/renamed api-key Secret key). See Section 4." ;;
@@ -734,7 +734,7 @@ if [ -z "$COST_AGENT_DEPLOY" ]; then
     add_finding "The bundled cost engine runs but nothing polls it — cost.agent.enabled is false, so allocations are computed in-cluster and never shipped to OneUptime. Re-run with --set cost.agent.enabled=true."
   else
     info "Cost collection is not enabled here (no component=cost-agent Deployment) — skipping."
-    detail "Enable it with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.enabled=true"
+    detail "Enable it with: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.enabled=true"
   fi
 else
   COST_ENABLED=1
@@ -820,7 +820,7 @@ else
         case "$COST_POLL_ERR" in
           *"illegal window"*|*"Invalid 'window'"*|*.[0-9][0-9][0-9]Z*)
             COST_MS_WINDOW_BUG=1
-            add_finding "KNOWN BUG: the cost agent is sending a millisecond-precision RFC3339 window ('...T16:00:00.000Z'), which no OpenCost/Kubecost layout parses — every window is rejected with HTTP 400 'illegal window' and nothing is ever shipped. Fixed in newer cost-agent images: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reuse-values --set cost.agent.image.tag=release, then restart: kubectl rollout restart -n $NS deploy/$COST_AGENT_DEPLOY" ;;
+            add_finding "KNOWN BUG: the cost agent is sending a millisecond-precision RFC3339 window ('...T16:00:00.000Z'), which no OpenCost/Kubecost layout parses — every window is rejected with HTTP 400 'illegal window' and nothing is ever shipped. Fixed in newer cost-agent images: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.agent.image.tag=release, then restart: kubectl rollout restart -n $NS deploy/$COST_AGENT_DEPLOY" ;;
           *"did not answer any known allocation path"*|*"HTTP 404"*)
             add_finding "The cost engine at ${COST_ENGINE_URL:-?} serves none of the allocation paths the poller knows (/model/allocation, /allocation/compute, /allocation). If it exposes a different path, set cost.engine.allocationPath. Poller error: $COST_POLL_ERR" ;;
           *ECONNREFUSED*|*ENOTFOUND*|*EAI_AGAIN*|*timeout*|*ETIMEDOUT*)

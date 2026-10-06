@@ -86,6 +86,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
 
+      # The daily AI limit's owner notice (one conditional UPDATE decides the
+      # once-a-day email, even when servers race) and the catch-up that
+      # investigates the incidents and alerts the limit skipped (its jsonb
+      # read and compare-and-set), on structure-only copies of the migrated
+      # tables in a schema of their own.
+      - name: Test the daily AI limit's notice and catch-up on Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_DAILY_LIMIT_TESTS: "true"
+          AI_DAILY_LIMIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_DAILY_LIMIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_DAILY_LIMIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/AIDailyLimitNoticeAndCatchUpPostgres.test.ts
+          --forceExit
+
       - name: Test episode member deletion on migrated Postgres
         working-directory: packages/Common
         env:
