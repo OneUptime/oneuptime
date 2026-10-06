@@ -25911,5 +25911,10 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "इस प्लान में आपके {{count}} SCIM कनेक्शनों ने काम करना बंद कर दिया है, इसलिए आपका पहचान प्रदाता अब लोगों को न जोड़ता है न हटाता है। {{planName}} प्लान में ये फिर से काम करते हैं।",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "इस प्लान में आपके SCIM कनेक्शन ने काम करना बंद कर दिया है, इसलिए आपका पहचान प्रदाता अब लोगों को न जोड़ता है न हटाता है। {{planName}} प्लान में यह फिर से काम करता है।",
   "API keys stop working on this plan.": "इस प्लान पर API कुंजियाँ काम करना बंद कर देती हैं।",
-  "SCIM connections stop working on this plan.": "इस प्लान पर SCIM कनेक्शन काम करना बंद कर देते हैं।"
+  "SCIM connections stop working on this plan.": "इस प्लान पर SCIM कनेक्शन काम करना बंद कर देते हैं।",
+  "Sending a test needs permission to create SMTP configs.": "परीक्षण भेजने के लिए SMTP कॉन्फ़िगरेशन बनाने की अनुमति चाहिए।",
+  "Sending a test needs permission to create Twilio configs.": "परीक्षण भेजने के लिए Twilio कॉन्फ़िगरेशन बनाने की अनुमति चाहिए।",
+  "Sending a test needs permission to create summaries.": "परीक्षण भेजने के लिए सारांश बनाने की अनुमति चाहिए।",
+  "Sending a test needs the {{planName}} plan.": "परीक्षण भेजने के लिए {{planName}} प्लान चाहिए।",
+  "Sending a test report needs permission to edit this status page.": "टेस्ट रिपोर्ट भेजने के लिए इस स्थिति पृष्ठ को संपादित करने की अनुमति चाहिए।"
 }

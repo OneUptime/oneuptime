@@ -43,6 +43,7 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
+import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import AIService, {
   AI_DISABLED_MESSAGE,
   getProjectDailyLimitMessage,
@@ -1065,27 +1066,20 @@ export default class SlackAPI {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
-          const databaseProps: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-
           /*
-           * Posting into a channel is a side effect, so membership alone is
-           * not enough. Anyone who could create a workspace notification rule
-           * - including its team block list, which the CRUD create enforces
-           * too - can already make OneUptime post to this channel; a Viewer,
+           * Posting into a channel is what a notification rule does, so the
+           * test asks what adding a rule asks (TestSendAccess): a signed-in
+           * member, on a credential that may make changes, on the plan rules
+           * are sold on, who could create a rule - team blocks counted.
+           * Anyone who could can already make OneUptime post here; a Viewer,
            * or a member whose team is blocked from creating rules, cannot.
-           * getUserMiddleware admits unauthenticated requests as "public", so
-           * the membership check is mandatory as well.
            */
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
-
-          CommonAPI.assertCanCreateTable({
-            modelType: WorkspaceNotificationRule,
-            props: databaseProps,
-            errorMessage:
-              "You do not have permission to send test notifications in this project.",
-          });
+          const caller: TestSendCaller = await TestSendAccess.assertMaySendTest(
+            {
+              req: req,
+              modelType: WorkspaceNotificationRule,
+            },
+          );
 
           const channelId: string =
             typeof req.body?.["channelId"] === "string"
@@ -1095,9 +1089,9 @@ export default class SlackAPI {
           // Slack has no chats or teams: only the channel id is forwarded.
           await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
             {
-              projectId: projectId,
+              projectId: caller.projectId,
               workspaceType: WorkspaceType.Slack,
-              testByUserId: databaseProps.userId!,
+              testByUserId: caller.userId,
               channelId: channelId,
             },
           );

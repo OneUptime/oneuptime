@@ -7,10 +7,10 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -29,7 +29,9 @@ export default class UserWebhookAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          req = req as OneUptimeRequest;
+          // A test to the caller's own endpoint (TestSendAccess).
+          const sender: TestSendToSelfCaller =
+            await TestSendAccess.assertMaySendTestToSelf(req);
 
           if (!req.body["itemId"]) {
             return Response.sendErrorResponse(
@@ -61,10 +63,7 @@ export default class UserWebhookAPI extends BaseAPI<
             );
           }
 
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
+          if (item.userId?.toString() !== sender.userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,

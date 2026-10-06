@@ -25911,5 +25911,10 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Подключений SCIM, которые перестали работать на этом тарифе: {{count}}. Ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} они снова заработают.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Ваше подключение SCIM перестало работать на этом тарифе, поэтому ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} оно снова заработает.",
   "API keys stop working on this plan.": "На этом тарифе API-ключи перестают работать.",
-  "SCIM connections stop working on this plan.": "На этом тарифе SCIM-подключения перестают работать."
+  "SCIM connections stop working on this plan.": "На этом тарифе SCIM-подключения перестают работать.",
+  "Sending a test needs permission to create SMTP configs.": "Чтобы отправить тест, нужно право создавать конфигурации SMTP.",
+  "Sending a test needs permission to create Twilio configs.": "Чтобы отправить тест, нужно право создавать конфигурации Twilio.",
+  "Sending a test needs permission to create summaries.": "Чтобы отправить тест, нужно право создавать сводки.",
+  "Sending a test needs the {{planName}} plan.": "Чтобы отправить тест, нужен тариф {{planName}}.",
+  "Sending a test report needs permission to edit this status page.": "Чтобы отправить тестовый отчёт, нужно право редактировать эту страницу статуса."
 }

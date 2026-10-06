@@ -25911,5 +25911,10 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Tus {{count}} conexiones SCIM dejaron de funcionar con este plan, así que tu proveedor de identidad ya no añade ni quita personas. Vuelven a funcionar con el plan {{planName}}.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Tu conexión SCIM dejó de funcionar con este plan, así que tu proveedor de identidad ya no añade ni quita personas. Vuelve a funcionar con el plan {{planName}}.",
   "API keys stop working on this plan.": "Las claves de API dejan de funcionar con este plan.",
-  "SCIM connections stop working on this plan.": "Las conexiones SCIM dejan de funcionar con este plan."
+  "SCIM connections stop working on this plan.": "Las conexiones SCIM dejan de funcionar con este plan.",
+  "Sending a test needs permission to create SMTP configs.": "Para enviar una prueba necesitas permiso para crear configuraciones SMTP.",
+  "Sending a test needs permission to create Twilio configs.": "Para enviar una prueba necesitas permiso para crear configuraciones de Twilio.",
+  "Sending a test needs permission to create summaries.": "Para enviar una prueba necesitas permiso para crear resúmenes.",
+  "Sending a test needs the {{planName}} plan.": "Para enviar una prueba necesitas el plan {{planName}}.",
+  "Sending a test report needs permission to edit this status page.": "Para enviar un informe de prueba necesitas permiso para editar esta página de estado."
 }

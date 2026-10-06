@@ -7,10 +7,10 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
-  OneUptimeRequest,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
@@ -35,7 +35,9 @@ export default class UserMicrosoftTeamsAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          req = req as OneUptimeRequest;
+          // A test to the caller's own account (TestSendAccess).
+          const sender: TestSendToSelfCaller =
+            await TestSendAccess.assertMaySendTestToSelf(req);
 
           if (!req.body["itemId"]) {
             return Response.sendErrorResponse(
@@ -67,10 +69,7 @@ export default class UserMicrosoftTeamsAPI extends BaseAPI<
             );
           }
 
-          if (
-            item.userId?.toString() !==
-            (req as OneUptimeRequest)?.userAuthorization?.userId?.toString()
-          ) {
+          if (item.userId?.toString() !== sender.userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,

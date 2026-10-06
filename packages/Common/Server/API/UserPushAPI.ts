@@ -14,6 +14,7 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ObjectID from "../../Types/ObjectID";
@@ -230,9 +231,10 @@ export default class UserPushAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          req = req as OneUptimeRequest;
-
-          const userId: ObjectID = getAuthenticatedUserId(req);
+          // A test to the caller's own device (TestSendAccess).
+          const sender: TestSendToSelfCaller =
+            await TestSendAccess.assertMaySendTestToSelf(req);
+          const userId: ObjectID = sender.userId;
 
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(

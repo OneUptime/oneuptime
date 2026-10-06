@@ -25911,5 +25911,10 @@
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "在此方案中，您的 {{count}} 個 SCIM 連線已停止運作，因此您的身分提供者不再新增或移除人員。在 {{planName}} 方案中它們會恢復運作。",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "在此方案中，您的 SCIM 連線已停止運作，因此您的身分提供者不再新增或移除人員。在 {{planName}} 方案中它會恢復運作。",
   "API keys stop working on this plan.": "在此方案下，API 金鑰將停止運作。",
-  "SCIM connections stop working on this plan.": "在此方案下，SCIM 連線將停止運作。"
+  "SCIM connections stop working on this plan.": "在此方案下，SCIM 連線將停止運作。",
+  "Sending a test needs permission to create SMTP configs.": "傳送測試需要建立 SMTP 設定的權限。",
+  "Sending a test needs permission to create Twilio configs.": "傳送測試需要建立 Twilio 設定的權限。",
+  "Sending a test needs permission to create summaries.": "傳送測試需要建立摘要的權限。",
+  "Sending a test needs the {{planName}} plan.": "傳送測試需要 {{planName}} 方案。",
+  "Sending a test report needs permission to edit this status page.": "寄送測試報告需要編輯此狀態頁面的權限。"
 }
