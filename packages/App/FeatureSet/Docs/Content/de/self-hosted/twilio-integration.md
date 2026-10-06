@@ -93,7 +93,7 @@ Für die Entwicklung beschreibt Twilios [Webhook-Testanleitung](https://www.twil
 ## 4. Zustellung und Callbacks getrennt testen
 
 1. Prüfen Sie außerhalb von Firmennetz und VPN, ob der Callback-Hostname zum öffentlichen Gateway aufgelöst wird und ein gültiges TLS-Zertifikat liefert. Ein Browser-GET testet diese POST-Callbacks nicht.
-2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** in der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon.
+2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** in der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon. Beide brauchen die Berechtigung, Twilio-Konfigurationen anzulegen: **Project Owner**, **Project Admin** oder **Create Call and SMS** und **Read Call and SMS** in einer eigenen Rolle.
 3. Konfigurieren Sie den verifizierten SMS-/Anrufkontakt und die Benachrichtigungsregeln des Benutzers und lösen Sie anschließend kontrolliert eine Bereitschaftswarnung aus. Drücken Sie 1 und prüfen Sie die Bestätigung in OneUptime. Wenn Sie Richtlinien für eingehende Anrufe verwenden, rufen Sie die konfigurierte Nummer an und prüfen Sie Routing und Anrufprotokoll.
 4. Prüfen Sie den SMS-Zustellstatus in OneUptime und in Twilios Nachrichtenprotokollen. Ein angenommener Sendeauftrag beweist keine Zustellung; [Twilio meldet spätere Statusänderungen durch Callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 

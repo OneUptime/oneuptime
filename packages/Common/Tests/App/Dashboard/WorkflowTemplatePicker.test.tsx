@@ -496,11 +496,26 @@ describe("what the step opens on", () => {
     );
   });
 
+  /*
+   * A name can have digits of its own - Dynamics 365 - so what is checked is
+   * that nothing is added to the name: each option reads as its label alone.
+   */
   test("no counts anywhere: not beside the categories, not in the heading", () => {
     renderPicker();
 
+    const labels: Array<string> = getWorkflowTemplatePickerViews().map(
+      (info: WorkflowTemplatePickerViewInfo): string => {
+        return info.label;
+      },
+    );
+
+    expect(selectOptionTexts()).toEqual(labels);
+
     for (const text of selectOptionTexts()) {
-      expect({ text: text, hasDigit: DIGIT.test(text) }).toEqual({
+      expect({
+        text: text,
+        hasDigit: DIGIT.test(text.replace("Dynamics 365", "Dynamics")),
+      }).toEqual({
         text: text,
         hasDigit: false,
       });

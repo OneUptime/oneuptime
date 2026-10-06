@@ -430,16 +430,16 @@ describe("the essentials are always open", () => {
     expect(plainHeading("Essentials").parentElement!.querySelector("svg")).toBe(
       null,
     );
-    // Drawn as Recent's heading is, lined up with the folded lines.
+    // Drawn as Recent's heading is, lined up with the folded rows' icons.
     expect(plainHeading("Essentials").className).toBe(
       plainHeading("Recent").className,
     );
     expect(plainHeading("Essentials").parentElement).toHaveClass(
       "border",
       "border-transparent",
-      "px-2",
+      "px-3",
     );
-    expect(line("Infrastructure")).toHaveClass("border", "px-2");
+    expect(line("Infrastructure")).toHaveClass("px-3");
   });
 
   test("clicking their heading leaves them open and remembers nothing", () => {
@@ -669,8 +669,10 @@ describe("the keyboard moves over headings and the products on screen", () => {
     fireEvent.mouseMove(line("Resources"));
 
     expect(cursorText()).toBe("heading:Resources");
-    expect(line("Resources")).toHaveClass("border-indigo-300", "bg-indigo-50");
-    expect(line("Code")).toHaveClass("border-transparent");
+    expect(line("Resources")).toHaveClass("bg-indigo-50");
+    expect(line("Resources")).not.toHaveClass("hover:bg-gray-50");
+    expect(line("Code")).toHaveClass("hover:bg-gray-50");
+    expect(line("Code")).not.toHaveClass("bg-indigo-50");
   });
 
   test("the cursor on a heading points assistive technology at its button", () => {

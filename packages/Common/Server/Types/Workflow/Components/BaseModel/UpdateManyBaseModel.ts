@@ -2,6 +2,7 @@ import DatabaseService from "../../../../Services/DatabaseService";
 import Query from "../../../Database/Query";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import QueryDeepPartialEntity from "../../../../../Types/Database/PartialEntity";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
@@ -15,6 +16,10 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import {
+  getCustomFieldsToMerge,
+  updateManyMergingCustomFields,
+} from "./CustomFieldsArgument";
 import logComponentError from "./LogComponentError";
 
 export default class UpdateManyBaseModel<
@@ -162,16 +167,37 @@ export default class UpdateManyBaseModel<
         ] = options.projectId;
       }
 
-      const itemsUpdated: number = await this.modelService.updateBy({
-        query: query,
-        data: args["data"] as QueryDeepPartialEntity<TBaseModel>,
-        limit: new PositiveNumber(args["limit"] as number),
-        skip: new PositiveNumber(args["skip"] as number),
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
-      });
+      const data: JSONObject = args["data"] as JSONObject;
+
+      const props: DatabaseCommonInteractionProps = {
+        isRoot: true,
+        tenantId: options.projectId,
+      };
+
+      // Custom fields are merged into what each record holds. See the helper.
+      const customFields: JSONObject | null = getCustomFieldsToMerge(
+        data,
+        this.modelService.getModel(),
+      );
+
+      const itemsUpdated: number = customFields
+        ? await updateManyMergingCustomFields({
+            modelService: this.modelService,
+            query: query,
+            data: data,
+            customFields: customFields,
+            limit: args["limit"] as number,
+            skip: args["skip"] as number,
+            props: props,
+            log: options.log,
+          })
+        : await this.modelService.updateBy({
+            query: query,
+            data: data as QueryDeepPartialEntity<TBaseModel>,
+            limit: new PositiveNumber(args["limit"] as number),
+            skip: new PositiveNumber(args["skip"] as number),
+            props: props,
+          });
 
       options.log(
         `Updated ${itemsUpdated} ${

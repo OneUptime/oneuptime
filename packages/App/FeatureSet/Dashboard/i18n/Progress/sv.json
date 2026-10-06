@@ -1,12 +1,17 @@
 {
   "baseline": {
-    "keys": 25672,
-    "untranslated": 16923
+    "keys": 25852,
+    "untranslated": 16629
   },
   "sameAsEnglish": [
     "Incident {{number}}: {{title}}",
     "Offline",
     "Precision",
-    "Runbook: {{name}}"
+    "Runbook: {{name}}",
+    "Runner",
+    "VMware vCenter",
+    "agent {{version}}",
+    "kubectl set image deployment/web * -n web",
+    "{{count}} process"
   ]
 }

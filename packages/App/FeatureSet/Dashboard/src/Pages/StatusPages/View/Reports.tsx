@@ -22,6 +22,11 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { STATUS_PAGE_API_URL } from "Common/UI/Config";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import StatusPageReportsCard from "../../../Components/StatusPage/StatusPageReportsCard";
+import {
+  getTestSendLock,
+  TestSendLock,
+  TestSendTargets,
+} from "../../../Components/TestSend/TestSendLock";
 
 export interface TestEmailObject {
   email: Email;
@@ -47,6 +52,15 @@ const StatusPageReports: FunctionComponent<
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
+
+  /*
+   * A test report asks what switching this page's reports on asks
+   * (TestSendLock): locked, saying why, for someone the dashboard knows may
+   * not send it.
+   */
+  const testReportLock: TestSendLock = getTestSendLock(
+    TestSendTargets.StatusPageReport,
+  );
 
   type SendTestEmailReportFunction = (
     testEmail: TestEmailObject,
@@ -99,7 +113,13 @@ const StatusPageReports: FunctionComponent<
           {
             title: `Send Test Report`,
             buttonStyle: ButtonStyleType.NORMAL,
+            disabled: testReportLock.isLocked,
+            tooltip: testReportLock.tooltip,
             onClick: () => {
+              if (testReportLock.isLocked) {
+                return;
+              }
+
               setShowModal(true);
             },
             icon: IconProp.Email,

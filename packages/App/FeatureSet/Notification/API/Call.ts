@@ -21,7 +21,9 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import CommonAPI from "Common/Server/API/CommonAPI";
-import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import TestSendAccess, {
+  TestSendCaller,
+} from "Common/Server/API/TestSendAccess";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 
 const router: ExpressRouter = Express.getRouter();
@@ -77,25 +79,24 @@ router.post(
       );
 
       /*
-       * The lookup below runs as root so it can read the Twilio credentials,
-       * which means the id in the body is otherwise honoured whoever it
-       * belongs to: any authenticated user could name another project's
-       * config id and have the server place a call on that project's Twilio
-       * account, to a number they chose and at that project's expense (and
-       * learn which config ids exist in other projects while they were at
-       * it). Establish which project the caller is authorized for first, then
-       * confirm the config they named is actually in it.
-       *
-       * The member check has to come BEFORE the read, not after it: a request
-       * that is refused only once the row is in hand has already told the
-       * caller whether that row exists.
+       * "Send Test Call" calls through the project's own Twilio account, so
+       * it asks what every test send asks (TestSendAccess), before anything
+       * is read: a signed-in member, on a credential that may make changes,
+       * on the plan custom Twilio configs are sold on, who could add one -
+       * team blocks counted - and a config they may read, in their own
+       * project. One of another project and one that does not exist are
+       * answered alike.
        */
-      const props: DatabaseCommonInteractionProps =
-        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const caller: TestSendCaller = await TestSendAccess.assertMaySendTest({
+        req: req,
+        modelType: ProjectCallSMSConfig,
+        record: {
+          service: ProjectCallSMSConfigService,
+          id: callSMSConfigId,
+        },
+      });
 
-      const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
-
+      // Read as OneUptime only now, for the credentials the call needs.
       const config: ProjectCallSMSConfig | null =
         await ProjectCallSMSConfigService.findOneById({
           id: callSMSConfigId,
@@ -124,7 +125,7 @@ router.post(
 
       CommonAPI.assertResourceBelongsToProject({
         resourceProjectId: config.projectId,
-        projectId: projectId,
+        projectId: caller.projectId,
       });
 
       const toPhone: Phone = new Phone(body["toPhone"] as string);

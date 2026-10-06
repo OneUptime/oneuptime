@@ -157,7 +157,12 @@ Almost every text field accepts variables:
 - Headers and body fields (inside string values).
 - Both sides of an **If / Else** block.
 
-In JSON fields you can use a variable inside a string value, but not as a key. A reference that occupies a whole value on its own is substituted bare, so you can drop an entire object into a JSON field that way. If you need to build a structure dynamically, use a **Run Custom JavaScript** block to build it, then pass its output to the next block.
+In JSON fields — **Data (JSON Object)**, **Query** and **Select Fields** on the record components, an API block's **Request Body**, the **Arguments** of **Run Custom JavaScript** — a reference is filled in for where it stands:
+
+- **Inside quotes, it's text.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` puts the value in the string. Quotes, backslashes and line breaks in the value are escaped, so the JSON stays valid and the value stays one string.
+- **On its own, it's the value itself.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` drops in the whole object, a list stays a list, and a number stays a number. Text that is JSON in itself — `5`, `true`, or an object a block returned as JSON text — goes in as that value. Any other text goes in as a string.
+
+A reference inside a key's quotes is text too. If you need to build a structure dynamically, use a **Run Custom JavaScript** block to build it, then pass its output to the next block.
 
 The **Run Custom JavaScript** block doesn't get variables automatically — nothing is injected into the sandbox. Put `{{global.variables.NAME}}` (or any component reference) into the block's **Arguments** JSON field; those values are substituted before the script runs and arrive as `args`.
 

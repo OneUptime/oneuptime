@@ -1305,6 +1305,33 @@ describe("in the reader's language", () => {
     expect(broad!.description).toMatch(LOOKED_UP);
   });
 
+  /*
+   * The Investigation row's examples are words for a Proxmox cluster and a
+   * database server, looked up with the sentence; command names otherwise,
+   * kept as they are. The words used to stay English inside it.
+   */
+  test("the investigation sentence names its examples in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    for (const type of [
+      AiResourceType.ProxmoxCluster,
+      AiResourceType.DatabaseServer,
+    ]) {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+
+      expect(ENGLISH[descriptor.readExamples]).toBe(descriptor.readExamples);
+      expect(getResourceInvestigationOnSentence(descriptor)).toContain(
+        `: ‹${descriptor.readExamples}›.`,
+      );
+    }
+
+    // Command names stay as they are.
+    expect(getResourceInvestigationOnSentence(DOCKER)).toContain(
+      ": ps, inspect, logs, stats, events.",
+    );
+  });
+
   test("a confirmation the reader's language lacks is English, its protections too", async () => {
     await i18next.changeLanguage("en");
     const english: string =

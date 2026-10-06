@@ -27,7 +27,7 @@ OneUptime 支持通过自定义 SMTP 服务器发送电子邮件，提供三种�
 
 **Microsoft Graph。** 打开 **更多字段**，将 **传输** 设置为 `Microsoft Graph`，然后填写具有 **Mail.Send** 应用程序权限的 Azure 应用：其客户端 ID 和客户端密钥、令牌 URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` 以及范围 `https://graph.microsoft.com/.default`。邮件从 **发件人邮箱** 对应的邮箱发送，该邮箱必须是您租户中已授权的邮箱。
 
-保存项目配置后，可使用其所在行的 **发送测试电子邮件** 检查它是否正常工作。
+保存项目配置后，可使用其所在行的 **发送测试电子邮件** 检查它是否正常工作。这需要添加 SMTP 配置的权限：**Project Owner**、**Project Admin**，或自定义角色中的 **Create SMTP Config** 和 **Read SMTP Config**。在 OneUptime Cloud 上，它还像添加配置一样需要 **Growth** 套餐。对其他人它是锁定的，它的提示会说明需要什么。
 
 ## OAuth 2.0 认证
 

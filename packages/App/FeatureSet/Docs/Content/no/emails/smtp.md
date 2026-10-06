@@ -27,7 +27,7 @@ Alt annet er felt sammen under **Flere felt** på slutten av trinnet Server. Men
 
 **Microsoft Graph.** Åpne **Flere felt**, sett **Transport** til `Microsoft Graph`, og fyll inn en Azure-app med apptillatelsen **Mail.Send**: klient-ID-en og klienthemmeligheten, token-URL-en `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` og omfanget `https://graph.microsoft.com/.default`. E-post sendes fra postkassen i **E-post fra**, som må være en lisensiert postkasse i leietakeren din.
 
-Når en prosjektkonfigurasjon er lagret, sjekker **Send test-e-post** på raden at den fungerer.
+Når en prosjektkonfigurasjon er lagret, sjekker **Send test-e-post** på raden at den fungerer. Det krever tillatelse til å legge til SMTP-konfigurasjoner: **Project Owner**, **Project Admin** eller **Create SMTP Config** og **Read SMTP Config** i en egendefinert rolle. På OneUptime Cloud krever det også planen **Growth**, akkurat som å legge til en konfigurasjon. For alle andre er den låst, og verktøytipset sier hva som kreves.
 
 ## OAuth 2.0-autentisering
 

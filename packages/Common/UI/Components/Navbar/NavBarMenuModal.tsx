@@ -8,8 +8,12 @@ import Navigation from "../../Utils/Navigation";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import URL from "../../../Types/API/URL";
+import Dictionary from "../../../Types/Dictionary";
 import type { MoreMenuItem } from "./NavBar";
-import NavBarCategoryToggle from "./NavBarCategoryToggle";
+import NavBarCategoryToggle, {
+  CATEGORY_LIST_COLUMNS,
+  NavBarCategoryToggleLayout,
+} from "./NavBarCategoryToggle";
 import {
   CategoryFolds,
   groupItemsByCategory,
@@ -138,6 +142,11 @@ export interface ComponentProps {
    * open, with nothing to fold. See NavBarMenuCatalog.ts for the rules.
    */
   categoriesAlwaysOpen?: Array<string> | undefined;
+  /*
+   * Category name -> the icon its row is drawn with, while it folds. A
+   * category without one gets the products menu's own icon.
+   */
+  categoryIcons?: Dictionary<IconProp> | undefined;
   footer?:
     | {
         title: string;
@@ -179,6 +188,8 @@ type MenuEntry = ItemEntry | CategoryEntry;
 
 interface MenuGroup {
   key: string;
+  // Its place among the groups on screen, for the ids of its heading and body.
+  index: number;
   title: string;
   isRecent: boolean;
   // The heading row that folds and opens the group, when it can fold.
@@ -194,6 +205,17 @@ interface RawGroup {
   title: string;
   items: Array<MoreMenuItem>;
   isRecent: boolean;
+}
+
+/*
+ * What the body is drawn as: a group on its own (Recent, a category that
+ * never folds, every category while searching), or a run of categories that
+ * fold, drawn together as one list.
+ */
+interface MenuSection {
+  key: string;
+  isCategoryList: boolean;
+  groups: Array<MenuGroup>;
 }
 
 // The element aria-activedescendant points at for an entry.
@@ -324,7 +346,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
   const entries: Array<MenuEntry> = [];
   const groups: Array<MenuGroup> = rawGroups.map(
-    (group: RawGroup): MenuGroup => {
+    (group: RawGroup, index: number): MenuGroup => {
       const canFold: boolean =
         !isSearching && !group.isRecent && folds.canFold(group.title);
       const isOpen: boolean = !canFold || folds.isOpen(group.title);
@@ -357,6 +379,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
       return {
         key: group.isRecent ? "recent" : `category:${group.title}`,
+        index,
         title: group.title,
         isRecent: group.isRecent,
         toggle,
@@ -366,6 +389,30 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
       };
     },
   );
+
+  /*
+   * The categories that fold are drawn as one list, a row each: one bordered
+   * box under the cards, rather than lines of small capitals that read as
+   * headings with nothing under them. A category the menu keeps open
+   * (Essentials) between two of them ends one list and starts the next, so
+   * the order on screen stays the catalog's.
+   */
+  const sections: Array<MenuSection> = [];
+  groups.forEach((group: MenuGroup) => {
+    const folds: boolean = Boolean(group.toggle);
+    const previous: MenuSection | undefined = sections[sections.length - 1];
+
+    if (folds && previous?.isCategoryList) {
+      previous.groups.push(group);
+      return;
+    }
+
+    sections.push({
+      key: folds ? `list:${group.key}` : group.key,
+      isCategoryList: folds,
+      groups: [group],
+    });
+  });
 
   // Index of the product matching the current page (the "you are here" item).
   const currentFlatIndex: number = entries.findIndex(
@@ -603,6 +650,165 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // A product's card.
+  const renderProduct: (entry: ItemEntry) => ReactElement = (
+    entry: ItemEntry,
+  ): ReactElement => {
+    const item: MoreMenuItem = entry.item;
+    const flatIndex: number = entry.flatIndex;
+    const isActive: boolean = flatIndex === activeIndex;
+    const isCurrent: boolean = flatIndex === currentFlatIndex;
+    const colors: IconColorClasses =
+      ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
+      ICON_COLOR_CLASSES["indigo"]!;
+    return (
+      <div
+        key={entry.key}
+        id={entryElementId(entry)}
+        role="option"
+        aria-selected={isActive}
+        ref={(element: HTMLDivElement | null) => {
+          cellRefs.current[flatIndex] = element;
+        }}
+        onMouseMove={() => {
+          setActiveKey(entry.key);
+        }}
+      >
+        <Link
+          to={item.route}
+          onClick={() => {
+            selectItem(item);
+          }}
+          className={`group flex h-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 ${
+            isActive
+              ? "border-indigo-300 bg-indigo-50 shadow-sm"
+              : isCurrent
+                ? "border-indigo-100 bg-indigo-50/40"
+                : "border-transparent"
+          }`}
+        >
+          <div
+            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring}`}
+          >
+            <Icon
+              icon={item.icon}
+              className={`h-5 w-5 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+              <span className="truncate">{highlightMatch(item.title)}</span>
+              {isCurrent && (
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500"
+                />
+              )}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
+              {highlightMatch(item.description)}
+            </p>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+
+  /*
+   * One group: its heading (a category's row, or a plain heading) and the
+   * product cards shown under it. A category that folds is a row of the list
+   * of categories, its products drawn inside the list under its row.
+   */
+  const renderGroup: (group: MenuGroup) => ReactElement = (
+    group: MenuGroup,
+  ): ReactElement => {
+    const headingId: string = `navbar-menu-heading-${group.index}`;
+    const bodyId: string = `navbar-menu-group-${group.index}`;
+    const title: string =
+      group.title === UNCATEGORIZED_TITLE && !group.isRecent
+        ? tx(UNCATEGORIZED_TITLE)
+        : group.title;
+    const toggle: CategoryEntry | undefined = group.toggle;
+
+    return (
+      <div
+        key={group.key}
+        role="group"
+        aria-labelledby={headingId}
+        ref={(element: HTMLDivElement | null) => {
+          if (element) {
+            groupRefs.current.set(group.key, element);
+          } else {
+            groupRefs.current.delete(group.key);
+          }
+        }}
+        className={
+          toggle ? "col-span-full grid grid-cols-subgrid" : "mb-6 last:mb-1"
+        }
+      >
+        {toggle ? (
+          <NavBarCategoryToggle
+            layout={NavBarCategoryToggleLayout.Columns}
+            title={title}
+            itemTitles={group.items.map((item: MoreMenuItem): string => {
+              return item.title;
+            })}
+            icon={props.categoryIcons?.[group.title]}
+            isOpen={group.isOpen}
+            onToggle={() => {
+              toggleCategory(toggle);
+            }}
+            controlsId={bodyId}
+            headingId={headingId}
+            id={entryElementId(toggle)}
+            isActive={toggle.flatIndex === activeIndex}
+            rowRef={(element: HTMLDivElement | null) => {
+              cellRefs.current[toggle.flatIndex] = element;
+            }}
+            onMouseMove={() => {
+              setActiveKey(toggle.key);
+            }}
+            keepsFocusOnClick={true}
+          />
+        ) : (
+          /*
+           * In a menu that folds, a plain heading (Recent, a category the
+           * menu keeps open, or any category while searching) lines its
+           * text up with the icons of the cards and of the category rows.
+           */
+          <div
+            className={`mb-2.5 flex items-center gap-1.5 ${
+              folds.isEnabled ? "border border-transparent px-3" : "px-1"
+            }`}
+          >
+            {group.isRecent && (
+              <Icon
+                icon={IconProp.Clock}
+                className="h-3.5 w-3.5 text-gray-500"
+              />
+            )}
+            <h3
+              id={headingId}
+              className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500"
+            >
+              {title}
+            </h3>
+          </div>
+        )}
+        {group.shownEntries.length > 0 && (
+          <div
+            id={bodyId}
+            className={`grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 ${
+              toggle ? "col-span-full px-2 pb-2" : ""
+            }`}
+          >
+            {group.shownEntries.map(renderProduct)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       className="relative z-50"
@@ -709,155 +915,21 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   )}
                 </div>
               ) : (
-                groups.map((group: MenuGroup, groupIndex: number) => {
-                  const headingId: string = `navbar-menu-heading-${groupIndex}`;
-                  const bodyId: string = `navbar-menu-group-${groupIndex}`;
-                  const title: string =
-                    group.title === UNCATEGORIZED_TITLE && !group.isRecent
-                      ? tx(UNCATEGORIZED_TITLE)
-                      : group.title;
-                  const isFolded: boolean =
-                    Boolean(group.toggle) && !group.isOpen;
-                  const toggle: CategoryEntry | undefined = group.toggle;
+                sections.map((section: MenuSection): ReactNode => {
+                  if (!section.isCategoryList) {
+                    return (
+                      <React.Fragment key={section.key}>
+                        {section.groups.map(renderGroup)}
+                      </React.Fragment>
+                    );
+                  }
 
                   return (
                     <div
-                      key={group.key}
-                      role="group"
-                      aria-labelledby={headingId}
-                      ref={(element: HTMLDivElement | null) => {
-                        if (element) {
-                          groupRefs.current.set(group.key, element);
-                        } else {
-                          groupRefs.current.delete(group.key);
-                        }
-                      }}
-                      className={isFolded ? "mb-1" : "mb-6 last:mb-1"}
+                      key={section.key}
+                      className={`mb-6 grid last:mb-1 ${CATEGORY_LIST_COLUMNS} gap-x-3 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200`}
                     >
-                      {toggle ? (
-                        <NavBarCategoryToggle
-                          title={title}
-                          itemTitles={group.items.map(
-                            (item: MoreMenuItem): string => {
-                              return item.title;
-                            },
-                          )}
-                          isOpen={group.isOpen}
-                          onToggle={() => {
-                            toggleCategory(toggle);
-                          }}
-                          controlsId={bodyId}
-                          headingId={headingId}
-                          id={entryElementId(toggle)}
-                          isActive={toggle.flatIndex === activeIndex}
-                          rowRef={(element: HTMLDivElement | null) => {
-                            cellRefs.current[toggle.flatIndex] = element;
-                          }}
-                          onMouseMove={() => {
-                            setActiveKey(toggle.key);
-                          }}
-                          keepsFocusOnClick={true}
-                        />
-                      ) : (
-                        /*
-                         * In a menu that folds, a plain heading (Recent, a
-                         * category the menu keeps open, or any category
-                         * while searching) lines its text up with the
-                         * heading rows around it.
-                         */
-                        <div
-                          className={`mb-2.5 flex items-center gap-1.5 ${
-                            folds.isEnabled
-                              ? "border border-transparent px-2"
-                              : "px-1"
-                          }`}
-                        >
-                          {group.isRecent && (
-                            <Icon
-                              icon={IconProp.Clock}
-                              className="h-3.5 w-3.5 text-gray-500"
-                            />
-                          )}
-                          <h3
-                            id={headingId}
-                            className="text-[11px] font-semibold uppercase tracking-[0.1em] text-gray-500"
-                          >
-                            {title}
-                          </h3>
-                        </div>
-                      )}
-                      {group.shownEntries.length > 0 && (
-                        <div
-                          id={bodyId}
-                          className={`grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 ${
-                            toggle ? "mt-2" : ""
-                          }`}
-                        >
-                          {group.shownEntries.map((entry: ItemEntry) => {
-                            const item: MoreMenuItem = entry.item;
-                            const flatIndex: number = entry.flatIndex;
-                            const isActive: boolean = flatIndex === activeIndex;
-                            const isCurrent: boolean =
-                              flatIndex === currentFlatIndex;
-                            const colors: IconColorClasses =
-                              ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
-                              ICON_COLOR_CLASSES["indigo"]!;
-                            return (
-                              <div
-                                key={entry.key}
-                                id={entryElementId(entry)}
-                                role="option"
-                                aria-selected={isActive}
-                                ref={(element: HTMLDivElement | null) => {
-                                  cellRefs.current[flatIndex] = element;
-                                }}
-                                onMouseMove={() => {
-                                  setActiveKey(entry.key);
-                                }}
-                              >
-                                <Link
-                                  to={item.route}
-                                  onClick={() => {
-                                    selectItem(item);
-                                  }}
-                                  className={`group flex h-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 ${
-                                    isActive
-                                      ? "border-indigo-300 bg-indigo-50 shadow-sm"
-                                      : isCurrent
-                                        ? "border-indigo-100 bg-indigo-50/40"
-                                        : "border-transparent"
-                                  }`}
-                                >
-                                  <div
-                                    className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${colors.bg} ring-1 ${colors.ring}`}
-                                  >
-                                    <Icon
-                                      icon={item.icon}
-                                      className={`h-5 w-5 transition-transform duration-150 group-hover:scale-110 ${colors.text}`}
-                                    />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                                      <span className="truncate">
-                                        {highlightMatch(item.title)}
-                                      </span>
-                                      {isCurrent && (
-                                        <span
-                                          aria-hidden="true"
-                                          className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500"
-                                        />
-                                      )}
-                                    </p>
-                                    <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
-                                      {highlightMatch(item.description)}
-                                    </p>
-                                  </div>
-                                </Link>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {section.groups.map(renderGroup)}
                     </div>
                   );
                 })
