@@ -11,6 +11,7 @@
     "Runner",
     "VMware vCenter",
     "agent {{version}}",
-    "kubectl set image deployment/web * -n web"
+    "kubectl set image deployment/web * -n web",
+    "{{count}} process"
   ]
 }

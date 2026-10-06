@@ -1,5 +1,6 @@
 import ReturnResult from "../../../Types/IsolatedVM/ReturnResult";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import Text from "../../../Types/Text";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import VMRunner from "./VMRunner";
@@ -39,6 +40,146 @@ interface EachBlockBudget {
 
 const MAX_EACH_BLOCKS_PER_EXPANSION: number = 100;
 
+// Writes one resolved {{...}} value into the text being rendered.
+type WriteValueFunction = (value: JSONValue) => string;
+
+/*
+ * Where a value lands in a JSON document decides how it is written.
+ *
+ * Inside a string - "title": "{{x}}" - a value is text, escaped so the string
+ * stays one string. On its own - "customFields": {{x}} - it is the value
+ * itself: an object stays an object, a list a list, a number a number.
+ *
+ * Every value used to be escaped as text. That is right inside a string, but
+ * an object on its own came out as {\n  \"Impact\": ...}, which is not JSON,
+ * and the step failed with "Invalid JSON provided for argument data" - though
+ * the variables guide says a reference that is a whole value on its own drops
+ * the object in (issue 4469).
+ *
+ * Which of the two a value is, only the text around it can say, and only once
+ * the {{#each}} loops have been expanded. So each value is written as a slot
+ * first, and the slots are filled when the whole document is rendered. The
+ * text a slot is read against is the template's own: no value is in it yet,
+ * so a quote inside a value is never taken for the end of a string.
+ */
+class JSONValueSlots {
+  private readonly values: Array<JSONValue> = [];
+
+  /*
+   * NUL cannot appear in JSON text, and the random part keeps a template that
+   * is not JSON from spelling a slot by accident.
+   */
+  private readonly slotStart: string = `\u0000${Text.generateRandomText(16)}:`;
+
+  private static readonly SLOT_END: string = "\u0000";
+
+  public add(value: JSONValue): string {
+    this.values.push(value);
+
+    return `${this.slotStart}${this.values.length - 1}${JSONValueSlots.SLOT_END}`;
+  }
+
+  public fill(text: string): string {
+    if (this.values.length === 0) {
+      return text;
+    }
+
+    const slot: RegExp = new RegExp(
+      `${this.slotStart}(\\d+)${JSONValueSlots.SLOT_END}`,
+      "g",
+    );
+
+    let output: string = "";
+    let position: number = 0;
+    let isInsideString: boolean = false;
+    let isEscaped: boolean = false;
+    let match: RegExpExecArray | null = null;
+
+    while ((match = slot.exec(text)) !== null) {
+      const textBefore: string = text.slice(position, match.index);
+
+      for (const character of textBefore) {
+        if (!isInsideString) {
+          isInsideString = character === '"';
+        } else if (isEscaped) {
+          isEscaped = false;
+        } else if (character === "\\") {
+          isEscaped = true;
+        } else if (character === '"') {
+          isInsideString = false;
+        }
+      }
+
+      const value: JSONValue = this.values[Number(match[1])] as JSONValue;
+
+      output +=
+        textBefore +
+        (isInsideString
+          ? VMUtil.serializeValueForJSON(writeValueAsText(value))
+          : writeValueAsJSON(value));
+
+      // What was written is whole: it neither ends a string nor escapes on.
+      isEscaped = false;
+      position = match.index + match[0].length;
+    }
+
+    return output + text.slice(position);
+  }
+}
+
+type WriteValueAsTextFunction = (value: JSONValue) => string;
+
+// A value as plain text: an object or a list as indented JSON.
+const writeValueAsText: WriteValueAsTextFunction = (
+  value: JSONValue,
+): string => {
+  return typeof value === "object" && value !== null
+    ? JSON.stringify(value, null, 2)
+    : `${value}`;
+};
+
+type WriteValueAsJSONFunction = (value: JSONValue) => string;
+
+/*
+ * A value where JSON expects a value. Text that is JSON in itself goes in as
+ * that JSON: "5" from a webhook was always inserted as 5, and a step that
+ * returns JSON.stringify(...) of an object means the object. Any other text
+ * goes in as a string, which until now did not parse at all.
+ */
+const writeValueAsJSON: WriteValueAsJSONFunction = (
+  value: JSONValue,
+): string => {
+  if (value === null || value === undefined) {
+    return "null";
+  }
+
+  if (typeof value === "string") {
+    try {
+      JSON.parse(value);
+      return value;
+    } catch {
+      return JSON.stringify(value);
+    }
+  }
+
+  return typeof value === "object"
+    ? JSON.stringify(value, null, 2)
+    : JSON.stringify(value);
+};
+
+type GetValueWriterFunction = (
+  slots: JSONValueSlots | null,
+) => WriteValueFunction;
+
+// Into a JSON document a value goes as a slot; into anything else as text.
+const getValueWriter: GetValueWriterFunction = (
+  slots: JSONValueSlots | null,
+): WriteValueFunction => {
+  return (value: JSONValue): string => {
+    return slots ? slots.add(value) : writeValueAsText(value);
+  };
+};
+
 export default class VMUtil {
   @CaptureSpan()
   public static async runCodeInSandbox(data: {
@@ -75,18 +216,15 @@ export default class VMUtil {
     }
 
     /*
-     * When we stringified the value ourselves just above, every placeholder in
-     * the text we are about to substitute into sits inside a JSON string
-     * literal — that is what JSON.stringify did to it. A resolved value
-     * carrying a quote or a newline therefore has to be escaped, or the
-     * JSON.parse at the bottom of this method fails and the caller silently
-     * receives a corrupted string where it asked for an object.
-     *
-     * This is separate from the caller's isJSON flag, which describes text the
-     * caller wrote and where a placeholder may legitimately stand in for a bare
-     * JSON value rather than sit inside a string.
+     * A JSON document has each value written for where it stands in it (see
+     * JSONValueSlots): the caller's own (isJSON), and the one JSON.stringify
+     * just made of the caller's object. Every placeholder in the latter sits
+     * inside a string literal - that is what JSON.stringify did to it - so a
+     * value carrying a quote or a newline is escaped there, or the JSON.parse
+     * at the bottom of this method would fail and the caller would silently
+     * receive a corrupted string where it asked for an object.
      */
-    const shouldEscapeForJSON: boolean = Boolean(isJSON) || didStringify;
+    const isJSONDocument: boolean = Boolean(isJSON) || didStringify;
 
     if (
       typeof valueToReplaceInPlace === "string" &&
@@ -94,29 +232,6 @@ export default class VMUtil {
       valueToReplaceInPlace.toString().includes("}}")
     ) {
       let valueToReplaceInPlaceCopy: string = valueToReplaceInPlace.toString();
-
-      type ResolveVariableFunction = (variable: string) => string | undefined;
-
-      const resolveVariable: ResolveVariableFunction = (
-        variable: string,
-      ): string | undefined => {
-        const foundValue: JSONValue = VMUtil.deepFind(
-          storageMap as any,
-          variable as any,
-        );
-
-        // Skip replacement if the variable is not found in the storageMap.
-        if (foundValue === undefined) {
-          return undefined;
-        }
-
-        // Properly serialize objects to JSON strings
-        if (typeof foundValue === "object" && foundValue !== null) {
-          return JSON.stringify(foundValue, null, 2);
-        }
-
-        return foundValue as string;
-      };
 
       const regex: RegExp = /{{(.*?)}}/g; // Find all matches of the regular expression and capture the word between the braces {{x}} => x
 
@@ -134,13 +249,17 @@ export default class VMUtil {
        * out as whatever that text named. A single placeholder that does not
        * resolve is rendered like any other template, and so left as written.
        */
-      const rawValue: string | undefined =
+      const rawValue: JSONValue | undefined =
         firstMatch && firstMatch[0] === valueToReplaceInPlaceCopy.trim()
-          ? resolveVariable(firstMatch[1]!)
+          ? VMUtil.deepFind(storageMap, firstMatch[1]!)
           : undefined;
 
       if (rawValue !== undefined) {
-        valueToReplaceInPlaceCopy = rawValue;
+        valueToReplaceInPlaceCopy = (
+          typeof rawValue === "object" && rawValue !== null
+            ? JSON.stringify(rawValue, null, 2)
+            : rawValue
+        ) as string;
       } else {
         /*
          * One pass over the template, never a rescan. Substituting one
@@ -160,27 +279,39 @@ export default class VMUtil {
          * resolved value of "50$" or "a$&b" rewrote itself using the matched
          * text. A function replacement is taken literally.
          */
-        valueToReplaceInPlaceCopy = VMUtil.expandEachLoops(
-          storageMap,
-          valueToReplaceInPlaceCopy,
-          shouldEscapeForJSON,
-          (text: string): string => {
+        const slots: JSONValueSlots | null = isJSONDocument
+          ? new JSONValueSlots()
+          : null;
+        const writeValue: WriteValueFunction = getValueWriter(slots);
+
+        valueToReplaceInPlaceCopy = VMUtil.renderEachLoops({
+          template: valueToReplaceInPlaceCopy,
+          scope: {
+            lookupChain: [storageMap],
+            eachPathScope: storageMap,
+          },
+          writeValue: writeValue,
+          budget: { remaining: MAX_EACH_BLOCKS_PER_EXPANSION },
+          renderText: (text: string): string => {
             return text.replace(
               regex,
               (placeholder: string, variable: string): string => {
-                const value: string | undefined = resolveVariable(variable);
+                const value: JSONValue = VMUtil.deepFind(storageMap, variable);
 
+                // Skip replacement if the variable is not found in the storageMap.
                 if (value === undefined) {
                   return placeholder;
                 }
 
-                return shouldEscapeForJSON
-                  ? VMUtil.serializeValueForJSON(value)
-                  : `${value}`;
+                return writeValue(value);
               },
             );
           },
-        );
+        });
+
+        if (slots) {
+          valueToReplaceInPlaceCopy = slots.fill(valueToReplaceInPlaceCopy);
+        }
       }
 
       valueToReplaceInPlace = valueToReplaceInPlaceCopy;
@@ -209,8 +340,9 @@ export default class VMUtil {
    *  - If the resolved path is not an array, the block is removed (replaced with empty string)
    *
    * Template text outside every block is returned as written, or passed
-   * through renderTextOutsideLoops when one is given — replaceValueInPlace
-   * hands in its own substitution, so a template is rendered in one walk.
+   * through renderTextOutsideLoops when one is given. In a JSON template
+   * (isJSON) each value a loop writes is written for where it stands, as
+   * replaceValueInPlace writes them.
    *
    * Example:
    *   {{#each requestBody.alerts}}
@@ -224,13 +356,15 @@ export default class VMUtil {
     isJSON: boolean | undefined,
     renderTextOutsideLoops?: ((text: string) => string) | undefined,
   ): string {
-    return VMUtil.renderEachLoops({
+    const slots: JSONValueSlots | null = isJSON ? new JSONValueSlots() : null;
+
+    const expanded: string = VMUtil.renderEachLoops({
       template: template,
       scope: {
         lookupChain: [storageMap],
         eachPathScope: storageMap,
       },
-      isJSON: isJSON,
+      writeValue: getValueWriter(slots),
       budget: { remaining: MAX_EACH_BLOCKS_PER_EXPANSION },
       renderText:
         renderTextOutsideLoops ||
@@ -238,6 +372,8 @@ export default class VMUtil {
           return text;
         }),
     });
+
+    return slots ? slots.fill(expanded) : expanded;
   }
 
   /*
@@ -261,7 +397,7 @@ export default class VMUtil {
   private static renderEachLoops(data: {
     template: string;
     scope: EachLoopScope;
-    isJSON: boolean | undefined;
+    writeValue: WriteValueFunction;
     budget: EachBlockBudget;
     renderText: (text: string) => string;
   }): string {
@@ -384,7 +520,7 @@ export default class VMUtil {
           VMUtil.renderEachLoops({
             template: iterationBody,
             scope: iterationScope,
-            isJSON: data.isJSON,
+            writeValue: data.writeValue,
             budget: isObjectElement
               ? { remaining: MAX_EACH_BLOCKS_PER_EXPANSION }
               : data.budget,
@@ -392,7 +528,7 @@ export default class VMUtil {
               return VMUtil.replaceLoopVariables(
                 iterationScope,
                 text,
-                data.isJSON,
+                data.writeValue,
               );
             },
           }),
@@ -419,19 +555,8 @@ export default class VMUtil {
   private static replaceLoopVariables(
     scope: EachLoopScope,
     body: string,
-    isJSON: boolean | undefined,
+    writeValue: WriteValueFunction,
   ): string {
-    type FormatValueFunction = (value: JSONValue) => string;
-
-    const formatValue: FormatValueFunction = (value: JSONValue): string => {
-      const replacement: string =
-        typeof value === "object" && value !== null
-          ? JSON.stringify(value, null, 2)
-          : `${value}`;
-
-      return isJSON ? VMUtil.serializeValueForJSON(replacement) : replacement;
-    };
-
     type ReplaceVariablesFunction = (text: string) => string;
 
     const replaceVariables: ReplaceVariablesFunction = (
@@ -448,7 +573,7 @@ export default class VMUtil {
             );
 
             if (foundValue !== undefined) {
-              return formatValue(foundValue);
+              return writeValue(foundValue);
             }
           }
 
@@ -470,7 +595,7 @@ export default class VMUtil {
     return body
       .split("{{this}}")
       .map(replaceVariables)
-      .join(formatValue(scope.thisElement.value));
+      .join(writeValue(scope.thisElement.value));
   }
 
   @CaptureSpan()

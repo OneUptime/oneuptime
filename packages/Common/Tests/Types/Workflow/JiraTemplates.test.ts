@@ -2325,15 +2325,22 @@ describe("Jira templates in the picker", () => {
     }
   });
 
-  test("Jira sits immediately before Integrations", () => {
+  /*
+   * The two-way integrations sit together, Jira first, ahead of the
+   * webhook-glue templates under Integrations.
+   */
+  test("Jira sits immediately before Dynamics 365, and Dynamics 365 before Integrations", () => {
     const jiraIndex: number = WorkflowTemplateCategories.indexOf(
       WorkflowTemplateCategory.Jira,
     );
 
     expect(jiraIndex).toBeGreaterThan(-1);
     expect(
-      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Integrations),
+      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Dynamics365),
     ).toBe(jiraIndex + 1);
+    expect(
+      WorkflowTemplateCategories.indexOf(WorkflowTemplateCategory.Integrations),
+    ).toBe(jiraIndex + 2);
   });
 
   /*

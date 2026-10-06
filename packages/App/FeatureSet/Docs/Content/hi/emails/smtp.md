@@ -27,7 +27,7 @@ OneUptime तीन authentication methods के साथ custom SMTP servers 
 
 **Microsoft Graph.** **और फ़ील्ड** खोलें, **ट्रांसपोर्ट** को `Microsoft Graph` पर सेट करें, और **Mail.Send** एप्लिकेशन अनुमति वाला Azure ऐप भरें: उसका क्लाइंट ID और क्लाइंट सीक्रेट, टोकन URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` और स्कोप `https://graph.microsoft.com/.default`। मेल **प्रेषक ईमेल** वाले मेलबॉक्स से भेजा जाता है, जो आपके टेनेंट में लाइसेंस वाला मेलबॉक्स होना चाहिए।
 
-प्रोजेक्ट कॉन्फ़िग सहेजने के बाद, उसकी पंक्ति पर **परीक्षण ईमेल भेजें** जाँचता है कि वह काम करता है।
+प्रोजेक्ट कॉन्फ़िग सहेजने के बाद, उसकी पंक्ति पर **परीक्षण ईमेल भेजें** जाँचता है कि वह काम करता है। इसके लिए SMTP कॉन्फ़िग जोड़ने की अनुमति चाहिए: **Project Owner**, **Project Admin**, या किसी custom role में **Create SMTP Config** और **Read SMTP Config**। OneUptime Cloud पर, कॉन्फ़िग जोड़ने की तरह, इसके लिए **Growth** plan भी चाहिए। बाकी सबके लिए यह बंद रहता है और उसका tooltip बताता है कि क्या चाहिए।
 
 ## OAuth 2.0 Authentication
 

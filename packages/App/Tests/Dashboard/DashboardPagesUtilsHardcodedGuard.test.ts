@@ -32,10 +32,6 @@ const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
     count: 1,
     why: '"pid {n}" (process id label)',
   },
-  "Pages/Host/View/Processes.tsx": {
-    count: 1,
-    why: '"pid {n}" (process id label)',
-  },
   "Pages/IoT/View/Devices.tsx": { count: 1, why: '"{n} °C" (unit)' },
   "Pages/Llm/Documentation.tsx": {
     count: 2,

@@ -1661,10 +1661,21 @@ export default class RunWorkflow {
 
       const contentBeforeSubstitution: JSONValue = argumentContent;
 
+      /*
+       * Parsed as JSON below, so substituted as JSON: a value inside a string
+       * is escaped, and one on its own is the value itself. Query and Select
+       * used to take every value raw, so a quote in a matched title broke
+       * the query or rewrote it.
+       */
+      const isJSONDocument: boolean =
+        argument.type === ComponentInputType.JSON ||
+        argument.type === ComponentInputType.Query ||
+        argument.type === ComponentInputType.Select;
+
       argumentContent = VMAPI.replaceValueInPlace(
         storageMap as any,
         argumentContent as string,
-        argument.type === ComponentInputType.JSON,
+        isJSONDocument,
       );
 
       this.logUnresolvedReferences({
@@ -1673,12 +1684,7 @@ export default class RunWorkflow {
         after: argumentContent,
       });
 
-      if (
-        typeof argumentContent === "string" &&
-        (argument.type === ComponentInputType.JSON ||
-          argument.type === ComponentInputType.Query ||
-          argument.type === ComponentInputType.Select)
-      ) {
+      if (typeof argumentContent === "string" && isJSONDocument) {
         try {
           argumentContent = JSON.parse(argumentContent);
         } catch (err: any) {

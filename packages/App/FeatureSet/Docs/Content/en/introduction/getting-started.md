@@ -38,12 +38,12 @@ Detect and diagnose errors in your online services. Get detailed error reports w
 
 ## Finding your way around
 
-Everything in OneUptime is under **Products** in the top bar. The menu always opens on the essentials: Monitors, Incidents, Alerts, On-Call Duty, Status Pages, Scheduled Maintenance and SLOs. The essentials are never folded away. Every other group (Observability, AI, Code, Resources, Infrastructure, Dashboards & Automation and Settings) is folded to one line that says how many products it holds and names them. Click a line to open it, or move to it with the arrow keys and press **Enter**.
+Everything in OneUptime is under **Products** in the top bar. The menu always opens on the essentials: Monitors, Incidents, Alerts, On-Call Duty, Status Pages, Scheduled Maintenance and SLOs. The essentials are never folded away. Every other group (Observability, AI, Code, Resources, Infrastructure, Dashboards & Automation and Settings) is folded into a row of the list below them. Each row names the products the group holds and says how many. Click a row to open it, or move to it with the arrow keys and press **Enter**.
 
 - **Search finds everything.** Type in the menu's search box to find any product by its name, by what it does, or by a familiar word such as `k8s` or `RUM`. Search looks inside the folded groups too.
 - **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
 - **Your choices stay.** The menu remembers, on your browser, which of the other groups you opened or folded.
-- **On a phone**, the menu button lists the products the same way: the essentials first, and every other group as one line that opens on a tap.
+- **On a phone**, the menu button lists the products the same way: the essentials first, and every other group as one row that opens on a tap.
 
 ## Searching for a page, a setting or an action
 

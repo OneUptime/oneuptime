@@ -14,6 +14,10 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { JSONObject } from "../../JSON";
 import { NodeDataProp } from "../Component";
+import {
+  CUSTOM_FIELDS_COLUMN,
+  hasCustomFieldsColumn,
+} from "../CustomFieldsColumn";
 import { DatabaseOperation, getDatabaseOperation } from "../DatabaseOperation";
 import { componentReturnValueReference } from "../TemplateSyntax";
 import ComponentDocumentation, {
@@ -414,6 +418,30 @@ const countTopic: CountTopicFunction = (data: {
   };
 };
 
+/*
+ * What an update does to custom fields, on a model that has them. They all
+ * live in one column, and the step merges into it rather than replacing it -
+ * which the help has to say, because writing a whole column is what every
+ * other field does.
+ */
+const customFieldsTopic: TopicFunction = (
+  words: ModelWords,
+): ComponentDocumentationTopic => {
+  return {
+    title: "Custom fields",
+    paragraphs: [
+      `\`${CUSTOM_FIELDS_COLUMN}\` holds the ${words.one}'s custom fields, each under its name. Only the ones you name change. Every other custom field keeps its value.`,
+      `To clear one, set it to \`null\`. To clear them all, set \`${CUSTOM_FIELDS_COLUMN}\` itself to \`null\`.`,
+    ],
+    example: {
+      title: "Data (JSON Object)",
+      code: formatJSON({
+        [CUSTOM_FIELDS_COLUMN]: { "Notification Count": 1 },
+      }),
+    },
+  };
+};
+
 const update: UpdateOrDeleteFunction = (
   context: ComponentDocumentationContext,
   words: ModelWords,
@@ -458,6 +486,7 @@ const update: UpdateOrDeleteFunction = (
           ? { title: "Data (JSON Object)", code: formatJSON(example) }
           : undefined,
       },
+      ...(hasCustomFieldsColumn(words.model) ? [customFieldsTopic(words)] : []),
       countTopic({ context, words, returnValueId: "items-updated" }),
       idSpellingTopic(words),
       thisProjectOnlyTopic(words),

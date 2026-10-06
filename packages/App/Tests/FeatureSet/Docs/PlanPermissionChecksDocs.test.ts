@@ -1,4 +1,4 @@
-import { TEST_NOTIFICATION_PERMISSION_MESSAGE } from "Common/Server/API/WorkspaceNotificationRuleAPI";
+import { TEST_NOTIFICATION_PERMISSION_MESSAGE } from "Common/Server/API/TestSendAccess";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import WorkspaceNotificationRule from "Common/Models/DatabaseModels/WorkspaceNotificationRule";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";

@@ -43,7 +43,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | [PagerDuty](/docs/integrations/pagerduty)                             | Outbound (+ inbound) | Trigger and resolve PagerDuty events from OneUptime incidents.                |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Outbound (+ inbound) | Create and close Opsgenie alerts.                                             |
 | [ServiceNow](/docs/integrations/servicenow)                           | Outbound (+ inbound) | Open ServiceNow incidents from OneUptime.                                     |
-| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Outbound (+ inbound) | Open and resolve Dynamics 365 Cases from OneUptime incidents.                 |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)   | Outbound (+ inbound) | Open a Dynamics 365 case for every incident or alert; sync status and notes back. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inbound              | Convert Alertmanager notifications into incidents.                            |
 | [Grafana](/docs/integrations/grafana)                                 | Inbound              | Convert Grafana alerts into incidents.                                        |
 | [Datadog](/docs/integrations/datadog)                                 | Inbound              | Convert Datadog monitor alerts into incidents.                                |
@@ -77,7 +77,7 @@ Most outbound integrations need an `Authorization` header on the API block. The 
 | API key header              | `GenieKey {{global.variables.OPSGENIE_KEY}}`       | Opsgenie                            |
 | Token in body               | `routing_key` field in the JSON body               | PagerDuty Events API                |
 | Private token header        | `PRIVATE-TOKEN: {{global.variables.GITLAB_TOKEN}}` | GitLab                              |
-| OAuth 2.0 client credentials | `Bearer <token fetched by an earlier API block>`   | Microsoft Dynamics 365 (Dataverse)  |
+| OAuth 2.0 client credentials | `Bearer {{local.variables.dynamicsAccessToken}}` from an [OAuth 2.0 variable](/docs/workflows/variables#oauth-20-variables-tokens-that-refresh-themselves) | Microsoft Dynamics 365 (Dataverse)  |
 
 For Basic auth, base64-encode `username:password` (or `email:api_token`) **once**, then store the result as the secret. On macOS/Linux:
 

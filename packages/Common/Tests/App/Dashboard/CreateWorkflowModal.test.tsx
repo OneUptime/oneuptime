@@ -169,6 +169,37 @@ const JIRA_WEBHOOK_ONLY_TEMPLATE_IDS: Array<string> = [
 
 const JIRA_TOKEN_VARIABLE: string = "jiraBasicAuthToken";
 
+/* The Dynamics 365 templates, in the order the picker shows them. */
+const INCIDENT_DYNAMICS_TEMPLATE_IDS: Array<string> = [
+  "dynamics-create-case-for-incident",
+  "dynamics-update-case-on-incident-state",
+  "dynamics-note-from-incident-private-note",
+  "dynamics-note-from-incident-public-note",
+  "dynamics-declare-incident-from-case",
+  "dynamics-case-status-to-incident-state",
+  "dynamics-case-note-to-incident-private-note",
+];
+
+const ALERT_DYNAMICS_TEMPLATE_IDS: Array<string> = [
+  "dynamics-create-case-for-alert",
+  "dynamics-update-case-on-alert-state",
+  "dynamics-note-from-alert-private-note",
+  "dynamics-create-alert-from-case",
+  "dynamics-case-status-to-alert-state",
+  "dynamics-case-note-to-alert-private-note",
+];
+
+/** What someone setting the Dynamics 365 templates up types, in the order the wizard asks. */
+const DYNAMICS_VALUES: Record<string, string> = {
+  dynamicsUrl: "https://acme.crm.dynamics.com",
+  dynamicsTenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47",
+  dynamicsClientId: "9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f",
+  dynamicsClientSecret: "Abc8Q~kJ2xLm9.Qr3StUvWxYz0123456789ab-CdE",
+  dynamicsLinkColumn: "new_oneuptimelink",
+  dynamicsCustomer: "4f7e6c3a-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+  oneuptimeUrl: "https://oneuptime.com",
+};
+
 /** The one setting whose help text names the record: it is what the issue links back to. */
 const ONEUPTIME_URL_VARIABLE: string = "oneuptimeUrl";
 
@@ -1702,10 +1733,11 @@ describe("CreateWorkflowModal Jira templates", () => {
 
   /*
    * Someone looking for what OneUptime can do with alerts finds the Jira
-   * versions after the alert templates they already know. The incident Jira
-   * templates never mention alerts, so they stay out of it.
+   * versions after the alert templates they already know, and the Dynamics
+   * 365 ones after those. The incident templates never mention alerts, so
+   * they stay out of it.
    */
-  test("searching for alert shows the Alerts templates, then the alert Jira templates", () => {
+  test("searching for alert shows the Alerts templates, then the alert Jira templates, then the alert Dynamics 365 ones", () => {
     renderModal();
 
     const alertCategoryTemplateIds: Array<string> =
@@ -1725,7 +1757,11 @@ describe("CreateWorkflowModal Jira templates", () => {
         results: optionIdsIn(getListbox()),
       }).toEqual({
         query: query,
-        results: [...alertCategoryTemplateIds, ...ALERT_JIRA_KIND.templateIds],
+        results: [
+          ...alertCategoryTemplateIds,
+          ...ALERT_JIRA_KIND.templateIds,
+          ...ALERT_DYNAMICS_TEMPLATE_IDS,
+        ],
       });
     }
   });
@@ -2072,4 +2108,222 @@ describe("CreateWorkflowModal Jira templates", () => {
       expect(workflow.isEnabled).toBe(false);
     },
   );
+});
+
+describe("CreateWorkflowModal Dynamics 365 templates", () => {
+  test("the Dynamics 365 category holds its thirteen templates: seven for incidents, then six for alerts", () => {
+    renderModal();
+    showView(WorkflowTemplateCategory.Dynamics365);
+
+    expect(groupNames()).toEqual(["Incidents", "Alerts"]);
+    expect(
+      optionIdsIn(
+        within(getListbox()).getByRole("group", { name: "Incidents" }),
+      ),
+    ).toEqual(INCIDENT_DYNAMICS_TEMPLATE_IDS);
+    expect(
+      optionIdsIn(within(getListbox()).getByRole("group", { name: "Alerts" })),
+    ).toEqual(ALERT_DYNAMICS_TEMPLATE_IDS);
+  });
+
+  test("the create-case template asks for its seven settings in order, the secret masked", () => {
+    renderModal();
+    goToConfigure("dynamics-create-case-for-incident");
+
+    expect(
+      testIdSuffixes(getStepContent(), VARIABLE_INPUT_TEST_ID_PREFIX),
+    ).toEqual(Object.keys(DYNAMICS_VALUES));
+
+    for (const name of Object.keys(DYNAMICS_VALUES)) {
+      expect(getVariableInput(name)).toHaveAttribute(
+        "type",
+        name === "dynamicsClientSecret" ? "password" : "text",
+      );
+    }
+  });
+
+  test("values of the wrong shape are refused before anything is created, each saying what to type instead", async () => {
+    renderModal();
+    goToConfigure("dynamics-create-case-for-incident");
+
+    for (const [name, value] of Object.entries(DYNAMICS_VALUES)) {
+      fillVariable(name, value);
+    }
+
+    fillVariable("dynamicsUrl", "https://acme.crm.dynamics.com/api/data/v9.2/");
+    fillVariable(
+      "dynamicsClientSecret",
+      "0d9c8b7a-6f5e-4d3c-8b2a-1f0e9d8c7b6a",
+    );
+
+    submit();
+
+    await waitFor(() => {
+      expect(getStepContent()).toHaveTextContent(
+        "Enter only the environment's address, such as https://yourorg.crm.dynamics.com: with https://, and without /api/data/v9.2 or a slash at the end.",
+      );
+    });
+    expect(getStepContent()).toHaveTextContent(
+      "That is the secret's ID. Paste the secret's Value instead, from the Value column under Certificates & secrets.",
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+    expectActiveStep("Configure");
+
+    // Fixing a field clears its message.
+    fillVariable("dynamicsUrl", DYNAMICS_VALUES["dynamicsUrl"] as string);
+
+    expect(getStepContent()).not.toHaveTextContent(
+      "Enter only the environment's address",
+    );
+  });
+
+  test("creating writes a disabled workflow, its four static settings, then the OAuth 2.0 variable", async () => {
+    const created: Workflow = createdWorkflow();
+
+    acceptEveryCreate(created);
+
+    const harness: ModalHarness = renderModal();
+    const template: WorkflowTemplate = goToConfigure(
+      "dynamics-create-case-for-incident",
+    );
+
+    for (const [name, value] of Object.entries(DYNAMICS_VALUES)) {
+      fillVariable(name, value);
+    }
+
+    submit();
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledWith(created);
+    });
+
+    const calls: Array<ModelCreateArguments> = createCalls();
+
+    expect(calls).toHaveLength(6);
+    expect(calls[0]?.modelType).toBe(Workflow);
+
+    const workflow: Workflow = calls[0]?.model as Workflow;
+    const serialized: string = JSON.stringify(workflow.graph);
+
+    expect(workflow.isEnabled).toBe(false);
+    expect(workflow.name).toBe(template.workflowName);
+    expect(serialized).not.toContain(DYNAMICS_VALUES["dynamicsClientSecret"]);
+    expect(serialized).not.toContain(DYNAMICS_VALUES["dynamicsTenantId"]);
+    expect(serialized).toContain("{{local.variables.dynamicsAccessToken}}");
+
+    expect(writtenRows(calls.slice(1, 5))).toEqual(
+      [
+        "dynamicsUrl",
+        "dynamicsLinkColumn",
+        "dynamicsCustomer",
+        "oneuptimeUrl",
+      ].map((name: string) => {
+        return {
+          name: name,
+          content: DYNAMICS_VALUES[name],
+          isSecret: false,
+          workflowId: WORKFLOW_ID.toString(),
+          projectId: PROJECT_ID.toString(),
+        };
+      }),
+    );
+
+    const oauth: WorkflowVariable = calls[5]?.model as WorkflowVariable;
+
+    expect(calls[5]?.modelType).toBe(WorkflowVariable);
+    expect({
+      name: oauth.name,
+      variableType: oauth.variableType,
+      oauthGrantType: oauth.oauthGrantType,
+      oauthClientAuthenticationMethod: oauth.oauthClientAuthenticationMethod,
+      oauthTokenUrl: oauth.oauthTokenUrl,
+      oauthClientId: oauth.oauthClientId,
+      oauthClientSecret: oauth.oauthClientSecret,
+      oauthScope: oauth.oauthScope,
+      content: oauth.content,
+      isSecret: (oauth as unknown as { isSecret: boolean }).isSecret,
+      workflowId: oauth.workflowId?.toString(),
+      projectId: oauth.projectId?.toString(),
+    }).toEqual({
+      name: "dynamicsAccessToken",
+      variableType: "OAuth 2.0",
+      oauthGrantType: "Client Credentials",
+      oauthClientAuthenticationMethod: "Request Body",
+      oauthTokenUrl: `https://login.microsoftonline.com/${DYNAMICS_VALUES["dynamicsTenantId"]}/oauth2/v2.0/token`,
+      oauthClientId: DYNAMICS_VALUES["dynamicsClientId"],
+      oauthClientSecret: DYNAMICS_VALUES["dynamicsClientSecret"],
+      oauthScope: `${DYNAMICS_VALUES["dynamicsUrl"]}/.default`,
+      content: undefined,
+      isSecret: true,
+      workflowId: WORKFLOW_ID.toString(),
+      projectId: PROJECT_ID.toString(),
+    });
+
+    // The tenant, client ID and secret were typed, but never written as rows of their own.
+    for (const call of calls.slice(1)) {
+      expect([
+        "dynamicsTenantId",
+        "dynamicsClientId",
+        "dynamicsClientSecret",
+      ]).not.toContain((call.model as WorkflowVariable).name);
+    }
+
+    expect(mockDeleteItem).not.toHaveBeenCalled();
+  });
+
+  test("an OAuth 2.0 variable the API refuses takes the workflow back with it", async () => {
+    const created: Workflow = createdWorkflow();
+
+    mockCreate.mockImplementation(
+      async (
+        data: ModelCreateArguments,
+      ): Promise<{ data: Workflow | WorkflowVariable }> => {
+        if (data.modelType === Workflow) {
+          return { data: created };
+        }
+
+        if ((data.model as WorkflowVariable).variableType === "OAuth 2.0") {
+          throw new Error(
+            "Client secret is required for the Client Credentials grant.",
+          );
+        }
+
+        return { data: data.model };
+      },
+    );
+
+    const harness: ModalHarness = renderModal();
+    goToConfigure("dynamics-case-status-to-alert-state");
+
+    for (const [name, value] of Object.entries(DYNAMICS_VALUES)) {
+      if (screen.queryByTestId(`${VARIABLE_INPUT_TEST_ID_PREFIX}${name}`)) {
+        fillVariable(name, value);
+      }
+    }
+
+    submit();
+
+    await waitFor(() => {
+      expect(mockDeleteItem).toHaveBeenCalledWith({
+        modelType: Workflow,
+        id: WORKFLOW_ID,
+      });
+    });
+    expect(harness.onCreated).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        "Client secret is required for the Client Credentials grant.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("searching for dynamics shows the thirteen of them, the incident ones first", () => {
+    renderModal();
+    searchTemplates("dynamics");
+
+    expect(optionIdsIn(getListbox())).toEqual([
+      ...INCIDENT_DYNAMICS_TEMPLATE_IDS,
+      ...ALERT_DYNAMICS_TEMPLATE_IDS,
+    ]);
+  });
 });

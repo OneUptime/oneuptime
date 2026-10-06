@@ -31,6 +31,11 @@ import TwilioConfigDefaultCopy, {
   getTwilioConfigDefaultState,
   isDefaultSwitchOnWhenCreating,
 } from "./TwilioConfigDefaultCopy";
+import {
+  getTestSendLock,
+  TestSendLock,
+  TestSendTargets,
+} from "../TestSend/TestSendLock";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -152,6 +157,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
 
   const [error, setError] = useState<string>("");
 
+  // Locked, saying why, for someone who may not send a test (TestSendLock).
+  const testSendLock: TestSendLock = getTestSendLock(
+    TestSendTargets.TwilioConfig,
+  );
+
   const [currentCallSMSTestConfig, setCurrentCallSMSTestConfig] =
     useState<ProjectCallSMSConfig | null>(null);
 
@@ -195,6 +205,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             title: "Send Test SMS",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.SMS,
+            disabled: testSendLock.isLocked,
+            tooltip: testSendLock.tooltip,
             onClick: async (
               item: ProjectCallSMSConfig,
               onCompleteAction: VoidFunction,
@@ -215,6 +227,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             title: "Send Test Call",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Call,
+            disabled: testSendLock.isLocked,
+            tooltip: testSendLock.tooltip,
             onClick: async (
               item: ProjectCallSMSConfig,
               onCompleteAction: VoidFunction,

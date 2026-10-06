@@ -93,7 +93,7 @@ Twilio 要求 [Webhook URL 可公开访问](https://www.twilio.com/docs/usage/we
 ## 4. 分别测试发送和回调
 
 1. 从公司网络和 VPN 外部验证回调主机名解析到公共网关，并提供有效的 TLS 证书。浏览器 GET 不会测试这些 POST 回调。
-2. 在项目的 Twilio 配置中使用**发送测试短信**和**拨打测试电话**，确认目标手机收到短信和来电。
+2. 在项目的 Twilio 配置中使用**发送测试短信**和**拨打测试电话**，确认目标手机收到短信和来电。两者都需要添加 Twilio 配置的权限：**Project Owner**、**Project Admin**，或自定义角色中的 **Create Call and SMS** 和 **Read Call and SMS**。
 3. 配置用户已验证的短信/通话联系方式和通知规则，然后触发一次受控的值班告警。按 1，并在 OneUptime 中确认告警已被确认。 如果使用来电策略，请拨打配置的号码，检查路由和通话日志。
 4. 在 OneUptime 和 Twilio 消息日志中确认短信发送状态。发送请求被接受不代表已送达；[Twilio 通过回调报告后续状态变化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 

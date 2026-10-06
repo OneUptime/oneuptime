@@ -60,6 +60,11 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
+import {
+  getTestSendLock,
+  TestSendLock,
+  TestSendTargets,
+} from "../TestSend/TestSendLock";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -85,6 +90,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [incidentStates, setIncidentStates] = React.useState<
     Array<IncidentState>
   >([]);
+
+  // Locked, saying why, for someone who may not send a test (TestSendLock).
+  const testSummaryLock: TestSendLock = getTestSendLock(
+    TestSendTargets.Summary,
+  );
 
   // Test modal state
   const [showTestModal, setShowTestModal] = React.useState<boolean>(false);
@@ -276,6 +286,8 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             title: "Send Test Now",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Play,
+            disabled: testSummaryLock.isLocked,
+            tooltip: testSummaryLock.tooltip,
             onClick: async (
               item: WorkspaceNotificationSummary,
               onCompleteAction: VoidFunction,

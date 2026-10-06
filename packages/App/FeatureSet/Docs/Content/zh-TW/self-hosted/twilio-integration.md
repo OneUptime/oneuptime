@@ -93,7 +93,7 @@ Twilio 要求 [Webhook URL 可供公開存取](https://www.twilio.com/docs/usage
 ## 4. 分別測試傳送和回呼
 
 1. 從公司網路和 VPN 外部驗證回呼主機名稱解析到公用閘道，並提供有效的 TLS 憑證。瀏覽器 GET 不會測試這些 POST 回呼。
-2. 在專案的 Twilio 設定中使用**傳送測試簡訊**和**撥打測試電話**，確認目的地手機收到簡訊和來電。
+2. 在專案的 Twilio 設定中使用**傳送測試簡訊**和**撥打測試電話**，確認目的地手機收到簡訊和來電。兩者都需要新增 Twilio 設定的權限：**Project Owner**、**Project Admin**，或自訂角色中的 **Create Call and SMS** 與 **Read Call and SMS**。
 3. 設定使用者已驗證的簡訊/通話聯絡方式和通知規則，然後觸發一次受控的值班警示。按 1，並在 OneUptime 中確認警示已被確認。 如果使用來電原則，請撥打設定的號碼，檢查路由和通話日誌。
 4. 在 OneUptime 和 Twilio 訊息記錄中確認簡訊傳送狀態。傳送要求被接受不代表已送達；[Twilio 透過回呼回報後續狀態變更](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 
