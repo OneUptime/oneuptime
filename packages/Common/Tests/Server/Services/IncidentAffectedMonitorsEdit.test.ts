@@ -1443,13 +1443,34 @@ describe("IncidentService.onBeforeUpdate: which monitors an update adds and remo
     },
   );
 
-  test("an update that touches neither reads no incident", async () => {
+  test("an update that touches neither reads no monitors and changes none", async () => {
     const onUpdate: OnUpdate<Incident> = await runBeforeUpdate(
       makeUpdateBy({ title: "Renamed" }),
     );
 
-    expect(onUpdate.carryForward).toEqual({});
-    expect(IncidentService.findBy).not.toHaveBeenCalled();
+    /*
+     * The title is read before the write, so its feed line follows a real
+     * change (EventFieldChange): that read asks for no monitor, and what it
+     * carries forward takes no monitor off, puts none on and sets no status.
+     */
+    for (const entry of Object.values(
+      (onUpdate.carryForward || {}) as Record<string, Record<string, unknown>>,
+    )) {
+      expect(entry["monitorsRemoved"]).toEqual([]);
+      expect(entry["monitorsAdded"]).toEqual([]);
+      expect(entry["newMonitorChangeStatusIdTo"]).toBeUndefined();
+      expect(entry["isChangeMonitorStatusToCleared"]).toBeUndefined();
+    }
+
+    for (const call of (
+      IncidentService.findBy as unknown as { mock: { calls: Array<unknown> } }
+    ).mock.calls) {
+      const select: Record<string, unknown> =
+        (call as Array<{ select?: Record<string, unknown> }>)[0]?.select || {};
+
+      expect(select["monitors"]).toBeUndefined();
+      expect(select["changeMonitorStatusToId"]).toBeUndefined();
+    }
   });
 });
 

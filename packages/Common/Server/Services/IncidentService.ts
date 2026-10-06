@@ -54,6 +54,10 @@ import ProjectScopedReferenceValidator, {
 } from "../Utils/Database/ProjectScopedReferenceValidator";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ReferenceChange from "../Utils/Database/ReferenceChange";
+import EventFieldChange, {
+  EventFieldSet,
+  EventValuesBeforeUpdate,
+} from "../Utils/EventFieldChange";
 import CreatedByUser from "../Utils/Database/CreatedByUser";
 import EpisodeMembershipReference, {
   INCIDENT_EPISODE_REFERENCE,
@@ -241,6 +245,13 @@ type UpdateCarryForward = Dictionary<{
    * and records a note that really changed (recordStoredValuesBeforeUpdate).
    */
   postmortemBeforeUpdate?: IncidentPostmortemStoredState | undefined;
+  /*
+   * The title, root cause, description, remediation notes, labels and Send
+   * reminders switch the incident held before the update - those the update
+   * writes, and no others - so its feed item and its reminder refresh follow
+   * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
+   */
+  valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
 }>;
 
 /*
@@ -894,7 +905,13 @@ export class Service extends ProjectReferencesService<Model> {
    *   or the switch. Subscribers are told once, when an update publishes the
    *   postmortem, and the feed records a note that really changed
    *   (IncidentPostmortemPublication). The Edit Postmortem form sends the
-   *   note with every save, so its being there is no news.
+   *   note with every save, so its being there is no news;
+   * - the title, root cause, description, remediation notes, labels and
+   *   Send reminders switch the update writes. The "Incident updated" feed
+   *   item records each one that really changed, and a labels change or the
+   *   switch flipped matches the reminder rule again, which starts the
+   *   reminder interval over (EventFieldChange). The Incident Details card
+   *   sends the title, the severity and the labels with every save.
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -911,7 +928,13 @@ export class Service extends ProjectReferencesService<Model> {
         updateBy.data as unknown as Record<string, unknown>,
       );
 
-    if (!writtenSeverityId && !isPostmortemWritten) {
+    const fieldsWritten: EventFieldSet = EventFieldChange.getFieldsWritten(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
+
+    if (!writtenSeverityId && !isPostmortemWritten && !isFieldWritten) {
       return;
     }
 
@@ -929,6 +952,7 @@ export class Service extends ProjectReferencesService<Model> {
             subscriberNotificationStatusOnPostmortemPublished: true,
           }
         : {}),
+      ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
     };
 
     const incidents: Array<Model> = await this.findIncidentsForUpdateHook({
@@ -964,6 +988,14 @@ export class Service extends ProjectReferencesService<Model> {
                 subscriberNotificationStatusOnPostmortemPublished:
                   incident.subscriberNotificationStatusOnPostmortemPublished,
               },
+            }
+          : {}),
+        ...(isFieldWritten
+          ? {
+              valuesBeforeUpdate: EventFieldChange.getValuesBeforeUpdate({
+                record: incident,
+                fields: fieldsWritten,
+              }),
             }
           : {}),
       };
@@ -4633,21 +4665,29 @@ ${incident.remediationNotes || "No remediation notes provided."}
         });
 
         /*
+         * What the update changed of the title, root cause, description,
+         * remediation notes, labels and Send reminders switch, against what
+         * the incident held before the write (recordStoredValuesBeforeUpdate).
+         * One the read did not see counts as changed.
+         */
+        const fieldChanges: EventFieldSet = EventFieldChange.getChanges({
+          written: updatedIncidentData,
+          valuesBeforeUpdate: (
+            onUpdate.carryForward as UpdateCarryForward | undefined
+          )?.[incidentId.toString()]?.valuesBeforeUpdate,
+        });
+
+        /*
          * The reminder rule is matched on the severity and the labels, and
          * reminders can be switched on or off. One refresh covers whatever
-         * of those the update changed: each refresh restarts the interval.
+         * of those the update changed - clearing the labels included - and
+         * none runs when it changed none of them: each refresh restarts the
+         * interval, so writing back the labels the incident has must not.
          */
         const shouldRefreshReminders: boolean =
           isSeverityChanged ||
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "enableReminders",
-          ) ||
-          // Any labels change re-matches the rule, clearing them included.
-          Boolean(
-            updatedIncidentData.labels &&
-              Array.isArray(updatedIncidentData.labels),
-          );
+          fieldChanges.labels ||
+          fieldChanges.enableReminders;
 
         // emit postmortem completion time metric when postmortemPostedAt is set
         if (
@@ -4768,100 +4808,21 @@ ${incident.remediationNotes || "No remediation notes provided."}
         let shouldAddIncidentFeed: boolean = false;
         let feedInfoInMarkdown: string = `**[${incidentLabel}](${incidentLink.toString()}) was updated.**`;
 
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "title")
-        ) {
-          // Plain text, escaped as in the "Incident Created" item.
-          const title: string = escapeMarkdownValue(
-            (updatedIncidentData.title as string) || "No title provided.",
-          );
-          feedInfoInMarkdown += `\n\n**Title**: \n${title}\n`;
+        /*
+         * A line for each of the title, root cause, description, remediation
+         * notes and labels the update really changed: writing back what the
+         * incident holds - every save of a card sends its fields - adds none.
+         */
+        const fieldsMarkdown: string = await EventFieldChange.getFeedMarkdown({
+          written: updatedIncidentData,
+          changes: fieldChanges,
+          projectId: projectId,
+          recordName: "Incident",
+        });
+
+        if (fieldsMarkdown) {
+          feedInfoInMarkdown += fieldsMarkdown;
           shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(updatedIncidentData, "rootCause")
-        ) {
-          const rootCause: string =
-            (updatedIncidentData.rootCause as string) || "";
-          const rootCauseText: string = rootCause.trim().length
-            ? rootCause
-            : "Root cause removed.";
-          feedInfoInMarkdown += `\n\n**📄 Root Cause**: \n${rootCauseText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "description",
-          )
-        ) {
-          const description: string =
-            (updatedIncidentData.description as string) ||
-            "No description provided.";
-          feedInfoInMarkdown += `\n\n**Incident Description**: \n${description}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          Object.prototype.hasOwnProperty.call(
-            updatedIncidentData,
-            "remediationNotes",
-          )
-        ) {
-          const remediationNotes: string =
-            (updatedIncidentData.remediationNotes as string) || "";
-          const remediationText: string = remediationNotes.trim().length
-            ? remediationNotes
-            : "Remediation notes removed.";
-          feedInfoInMarkdown += `\n\n**🎯 Remediation Notes**: \n${remediationText}\n`;
-          shouldAddIncidentFeed = true;
-        }
-
-        if (
-          updatedIncidentData.labels &&
-          (updatedIncidentData.labels as Array<Label>).length > 0 &&
-          Array.isArray(updatedIncidentData.labels)
-        ) {
-          const labelIds: Array<ObjectID> = (updatedIncidentData.labels as any)
-            .map((label: Label) => {
-              if (label._id) {
-                return new ObjectID(label._id?.toString());
-              }
-
-              return null;
-            })
-            .filter((labelId: ObjectID | null) => {
-              return labelId !== null;
-            });
-
-          const labels: Array<Label> = await LabelService.findBy({
-            query: {
-              _id: QueryHelper.any(labelIds),
-            },
-            select: {
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          if (labels.length > 0) {
-            feedInfoInMarkdown += `\n\n**🏷️ Labels**:
-
-${labels
-  .map((label: Label) => {
-    return `- ${label.name}`;
-  })
-  .join("\n")}
-`;
-
-            shouldAddIncidentFeed = true;
-          }
         }
 
         if (isSeverityChanged && writtenIncidentSeverityId) {
