@@ -87,6 +87,8 @@ The public page is its own app, with a small set of routes:
 
 The top nav bar always shows **Overview**; the rest appear only when enabled. **Incidents**, **Announcements** and **Scheduled Events** each need their toggle on; **Subscribe** needs both **Show Subscriber Page** and at least one subscriber channel enabled. A private page also gets a **Logout** item.
 
+A single incident, episode, announcement or scheduled event opens only when the page would list it, whatever its history window: a private incident or episode, one hidden from status pages, a scheduled event hidden from status pages, or an announcement scheduled for later is not found by its link either.
+
 ### The overview page
 
 The overview is the page most visitors ever see. Top to bottom it renders:
@@ -99,6 +101,8 @@ The overview is the page most visitors ever see. Top to bottom it renders:
 6. **Scheduled Maintenance Events**.
 
 A brand-new page with nothing on it shows an empty state telling you to add resources from the dashboard — which is your cue to head to the **Resources** screen.
+
+The overview a visitor is shown is at most 15 seconds old, and anything you take off the page leaves it within a second: an incident, episode or scheduled event you hide from status pages, make private, limit to other pages or delete, an announcement you end, move to later or delete, a public note you delete, and a resource, group or monitor you remove from the page or delete. Other edits, such as a new title, show within those 15 seconds.
 
 For what puts an incident on this page in the first place, and what takes it off again, see [Incident States & Severities](/docs/incidents/states-and-severities).
 

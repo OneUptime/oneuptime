@@ -18,6 +18,12 @@ import ts from "typescript";
  *     notPrivateIncidents where an incident only links an episode). Their
  *     display queries and counts go through IncidentStatusPageScope, which
  *     applies the rule itself (pinned by its own suites);
+ *   - every ScheduledMaintenanceService read there passes its query through
+ *     StatusPageVisibilityQuery.shownScheduledMaintenance (Visible on Status
+ *     Page on), and every StatusPageAnnouncementService read through
+ *     shownAnnouncements (shown from a time that has come) - a read by id as
+ *     much as a list, so a record a page does not list is not one it shows
+ *     by its id either;
  *   - neither reads a record by id alone (findOneById has no query to hold
  *     the rule);
  *   - the incident and episode subscriber jobs, and the audience summary,
@@ -44,6 +50,8 @@ const RULE_HELPER: string = "StatusPageVisibilityQuery";
 const ALLOWED_QUERY_HELPERS: Record<string, ReadonlyArray<string>> = {
   IncidentService: ["shownIncidents", "notPrivateIncidents"],
   IncidentEpisodeService: ["shownEpisodes"],
+  ScheduledMaintenanceService: ["shownScheduledMaintenance"],
+  StatusPageAnnouncementService: ["shownAnnouncements"],
 };
 
 // The service calls that take a query.
@@ -399,6 +407,18 @@ describe("A status page shows an incident or an episode by one rule: visible, an
         return finding.text.startsWith("IncidentService.");
       }).length,
     ).toBeGreaterThanOrEqual(2);
+    // The event list and its future events, by id, the overview's two, the note attachment.
+    expect(
+      scan.reads.filter((finding: Finding): boolean => {
+        return finding.text.startsWith("ScheduledMaintenanceService.");
+      }).length,
+    ).toBeGreaterThanOrEqual(5);
+    // The announcement list and by id, the overview's, the attachment.
+    expect(
+      scan.reads.filter((finding: Finding): boolean => {
+        return finding.text.startsWith("StatusPageAnnouncementService.");
+      }).length,
+    ).toBeGreaterThanOrEqual(3);
   });
 
   test("a read whose query skips the rule is caught, and one built by it passes", () => {
@@ -417,6 +437,14 @@ describe("A status page shows an incident or an episode by one rule: visible, an
         "  await IncidentService.findOneById({ id: someId });",
         "  await IncidentService.countBy({ query: StatusPageVisibilityQuery.shownIncidents({}) });",
         "  await IncidentService.findBy({ query: StatusPageVisibilityQuery.shownEpisodes({}) });",
+        "  let query = { _id: id, isVisibleOnStatusPage: true };",
+        "  if (byId) { query = { _id: id }; }",
+        "  await ScheduledMaintenanceService.findBy({ query: query });",
+        "  let shown = StatusPageVisibilityQuery.shownScheduledMaintenance({});",
+        "  if (byId) { shown = StatusPageVisibilityQuery.shownScheduledMaintenance({ _id: id }); }",
+        "  await ScheduledMaintenanceService.findBy({ query: shown });",
+        "  await StatusPageAnnouncementService.findOneBy({ query: { _id: id } });",
+        "  await StatusPageAnnouncementService.findOneBy({ query: StatusPageVisibilityQuery.shownAnnouncements({ _id: id }, { now: now }) });",
         "}",
       ].join("\n"),
     );
@@ -433,6 +461,9 @@ describe("A status page shows an incident or an episode by one rule: visible, an
         "5 IncidentService.findOneById",
         // An incident read through the episodes' helper is not the rule.
         "7 IncidentService.findBy",
+        // A read by id rebuilt without the rule, as the list was.
+        "10 ScheduledMaintenanceService.findBy",
+        "14 StatusPageAnnouncementService.findOneBy",
       ]);
     } finally {
       fs.unlinkSync(probe);

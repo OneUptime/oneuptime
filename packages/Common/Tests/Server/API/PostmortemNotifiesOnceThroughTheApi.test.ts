@@ -84,6 +84,10 @@ import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/St
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import {
+  applyUpdateValues,
+  returnedColumns,
+} from "../TestingUtils/RowWriteSql";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-5a90-4aaa-8bbb-000000000001",
@@ -140,6 +144,12 @@ const incidentService: DatabaseService<BaseModel> =
 let caller: DatabaseCommonInteractionProps;
 let stored: Incident;
 let repositoryUpdate: MockFunction;
+/*
+ * What each update through the repository stored, column by column - a
+ * column the database works out in the write (getRowWriteSql) as it stored
+ * it - without TypeORM's version bump.
+ */
+let writes: Array<Record<string, unknown>>;
 let compareAndSet: MockFunction;
 let feed: MockFunction;
 
@@ -251,17 +261,12 @@ function postmortemFeedItems(): Array<string> {
     );
 }
 
-// The columns the one write set, without TypeORM's version bump.
+// What the one write stored, without TypeORM's version bump.
 function written(): Record<string, unknown> {
   expect(repositoryUpdate).toHaveBeenCalledTimes(1);
+  expect(writes).toHaveLength(1);
 
-  const set: Record<string, unknown> = {
-    ...(repositoryUpdate.mock.calls[0]![1] as Record<string, unknown>),
-  };
-
-  delete set["version"];
-
-  return set;
+  return { ...writes[0]! };
 }
 
 beforeEach(() => {
@@ -296,24 +301,26 @@ beforeEach(() => {
   /*
    * The write: what it sets is what later reads find - the read the
    * service makes once an update that shows the incident is written
-   * included.
+   * included. A column written as an expression is stored as Postgres
+   * works it out on the row, and handed back when asked (RETURNING).
    */
+  writes = [];
   repositoryUpdate = getJestMockFunction();
   repositoryUpdate.mockImplementation((async (
     _criteria: unknown,
     data: unknown,
+    options?: { returning?: unknown },
   ): Promise<unknown> => {
+    const row: Record<string, unknown> = stored as unknown as Record<
+      string,
+      unknown
+    >;
+
     if (data && typeof data === "object") {
-      for (const [column, value] of Object.entries(
-        data as Record<string, unknown>,
-      )) {
-        if (column !== "version") {
-          (stored as unknown as Record<string, unknown>)[column] = value;
-        }
-      }
+      writes.push(applyUpdateValues(row, data as Record<string, unknown>));
     }
 
-    return { affected: 1 };
+    return { affected: 1, raw: returnedColumns(row, options) };
   }) as never);
 
   jest.spyOn(stubbable, "getRepository").mockReturnValue({
@@ -676,6 +683,7 @@ describe("PUT an incident's Visible on Status Page", () => {
       "Notifications sent successfully to all subscribers.";
     compareAndSet.mockClear();
     repositoryUpdate.mockClear();
+    writes.length = 0;
 
     await put({ isVisibleOnStatusPage: false });
     await put({ isVisibleOnStatusPage: true });

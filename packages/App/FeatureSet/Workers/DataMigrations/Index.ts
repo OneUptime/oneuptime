@@ -130,6 +130,7 @@ import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublis
 import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
 import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
 import HideImagesOfPrivateIncidents from "./HideImagesOfPrivateIncidents";
+import HideImagesOfHiddenRecordNotes from "./HideImagesOfHiddenRecordNotes";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -633,6 +634,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the last slot.
    */
   new HideImagesOfPrivateIncidents(),
+  /*
+   * A public note shows its images only while the incident, episode or
+   * scheduled maintenance event it belongs to is shown on status pages, so
+   * the images of public notes of records no status page shows - and the
+   * images a private record kept public through its own notes - become
+   * private again, unless a published record still shows them, or they are
+   * icons (PublishedImages). Postgres-only, idempotent, never makes a file
+   * public. After HideImagesOfPrivateIncidents; no other ordering
+   * requirement, so it sits before the last slot.
+   */
+  new HideImagesOfHiddenRecordNotes(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
