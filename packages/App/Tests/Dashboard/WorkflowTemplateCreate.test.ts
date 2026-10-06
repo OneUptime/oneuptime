@@ -34,6 +34,11 @@ import {
   templateVariablesToFill,
   validateTemplateVariableValues,
 } from "../../FeatureSet/Dashboard/src/Utils/Workflow/WorkflowTemplateCreateUtil";
+import {
+  OAuth2ClientAuthenticationMethod,
+  OAuth2GrantType,
+  WorkflowVariableType,
+} from "Common/Types/Workflow/WorkflowVariableOAuth";
 
 const projectId: ObjectID = ObjectID.generate();
 const workflowId: ObjectID = ObjectID.generate();
@@ -737,14 +742,20 @@ describe("buildWorkflowVariables", () => {
         },
       );
 
+      // One row per field, but none for a field kept only as an OAuth 2.0 setting, and one per OAuth 2.0 variable.
+      const expectedRows: number =
+        template.variables.filter((variable: WorkflowTemplateVariable) => {
+          return !variable.isOAuth2SettingOnly;
+        }).length + (template.oauth2Variables || []).length;
+
       expect({
         template: template.id,
         rows: rows.length,
         distinctNames: new Set<string>(lowerCaseNames).size,
       }).toEqual({
         template: template.id,
-        rows: template.variables.length,
-        distinctNames: template.variables.length,
+        rows: expectedRows,
+        distinctNames: expectedRows,
       });
     }
   });
@@ -1812,6 +1823,385 @@ describe("Jira templates", () => {
         }),
       );
       expect(alertRows).not.toEqual(incidentRows);
+    });
+  });
+});
+
+/* --------------------------- Dynamics 365 --------------------------- */
+
+/*
+ * The Dynamics 365 templates are the first to sign in with an OAuth 2.0
+ * variable the wizard builds itself. Three of the values typed for them — the
+ * tenant, the client ID and the client secret — become that variable's
+ * settings and nothing else: no row of their own, nothing in the graph. And
+ * every field has a format the wizard checks before anything is created,
+ * because a Dynamics 365 URL pasted with its /api/data/v9.2 tail, or a
+ * secret's ID pasted for its value, is not an error anywhere until a run.
+ */
+describe("Dynamics 365 templates", () => {
+  const DYNAMICS_VALUES: Record<string, string> = {
+    dynamicsUrl: "https://acme.crm.dynamics.com",
+    dynamicsTenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47",
+    dynamicsClientId: "9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f",
+    dynamicsClientSecret: "Abc8Q~kJ2xLm9.Qr3StUvWxYz0123456789ab-CdE",
+    dynamicsLinkColumn: "new_oneuptimelink",
+    dynamicsCustomer: "4f7e6c3a-1b2d-4e5f-8a9b-0c1d2e3f4a5b",
+    oneuptimeUrl: "https://oneuptime.com",
+  };
+
+  const SETTING_ONLY: Array<string> = [
+    "dynamicsTenantId",
+    "dynamicsClientId",
+    "dynamicsClientSecret",
+  ];
+
+  const dynamicsTemplates: Array<WorkflowTemplate> =
+    getWorkflowTemplatesByCategory(WorkflowTemplateCategory.Dynamics365);
+
+  const createCaseTemplate: WorkflowTemplate = getWorkflowTemplate(
+    "dynamics-create-case-for-incident",
+  ) as WorkflowTemplate;
+
+  type ValuesForFunction = (
+    template: WorkflowTemplate,
+    overrides?: Record<string, string>,
+  ) => Record<string, string>;
+
+  const valuesFor: ValuesForFunction = (
+    template: WorkflowTemplate,
+    overrides?: Record<string, string>,
+  ): Record<string, string> => {
+    const values: Record<string, string> = {};
+
+    for (const variable of template.variables) {
+      values[variable.name] = DYNAMICS_VALUES[variable.name] as string;
+    }
+
+    return { ...values, ...(overrides || {}) };
+  };
+
+  type RowsForFunction = (
+    template: WorkflowTemplate,
+    overrides?: Record<string, string>,
+  ) => Array<WorkflowVariable>;
+
+  const rowsFor: RowsForFunction = (
+    template: WorkflowTemplate,
+    overrides?: Record<string, string>,
+  ): Array<WorkflowVariable> => {
+    return buildWorkflowVariables({
+      template: template,
+      values: valuesFor(template, overrides),
+      workflowId: workflowId,
+      projectId: projectId,
+    });
+  };
+
+  test("there are thirteen, and every one signs in with an OAuth 2.0 variable", () => {
+    expect(dynamicsTemplates).toHaveLength(13);
+
+    for (const template of dynamicsTemplates) {
+      expect(
+        (template.oauth2Variables || []).map(
+          (variable: { name: string }): string => {
+            return variable.name;
+          },
+        ),
+      ).toEqual(["dynamicsAccessToken"]);
+    }
+  });
+
+  describe("validateTemplateVariableValues", () => {
+    test("what someone setting Dynamics 365 up types is accepted", () => {
+      for (const template of dynamicsTemplates) {
+        expect({
+          template: template.id,
+          errors: validateTemplateVariableValues(template, valuesFor(template)),
+        }).toEqual({ template: template.id, errors: {} });
+      }
+    });
+
+    test("every setting is required", () => {
+      const errors: Record<string, string> = validateTemplateVariableValues(
+        createCaseTemplate,
+        {},
+      );
+
+      expect(Object.keys(errors).sort()).toEqual(
+        createCaseTemplate.variables
+          .map((variable: WorkflowTemplateVariable): string => {
+            return variable.name;
+          })
+          .sort(),
+      );
+      expect(errors["dynamicsClientSecret"]).toBe(
+        "Client Secret Value is required.",
+      );
+    });
+
+    test.each([
+      [
+        "dynamicsUrl",
+        "https://acme.crm.dynamics.com/api/data/v9.2/",
+        "Enter only the environment's address, such as https://yourorg.crm.dynamics.com: with https://, and without /api/data/v9.2 or a slash at the end.",
+      ],
+      [
+        "dynamicsUrl",
+        "https://acme.crm.dynamics.com/",
+        "Enter only the environment's address, such as https://yourorg.crm.dynamics.com: with https://, and without /api/data/v9.2 or a slash at the end.",
+      ],
+      [
+        "dynamicsUrl",
+        "acme.crm.dynamics.com",
+        "Enter only the environment's address, such as https://yourorg.crm.dynamics.com: with https://, and without /api/data/v9.2 or a slash at the end.",
+      ],
+      [
+        "dynamicsTenantId",
+        "Contoso",
+        "Enter the Directory (tenant) ID from the app registration's Overview page: a GUID such as 72f988bf-86f1-41af-91ab-2d7cd011db47, or your tenant's domain.",
+      ],
+      [
+        "dynamicsClientId",
+        "OneUptime Integration",
+        "Enter the Application (client) ID from the app registration's Overview page: a GUID such as 9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f.",
+      ],
+      [
+        "dynamicsClientSecret",
+        "0d9c8b7a-6f5e-4d3c-8b2a-1f0e9d8c7b6a",
+        "That is the secret's ID. Paste the secret's Value instead, from the Value column under Certificates & secrets.",
+      ],
+      [
+        "dynamicsLinkColumn",
+        "OneUptime Link",
+        "Enter the column's logical name, in lower case and with its prefix, such as new_oneuptimelink. Its display name will not work.",
+      ],
+      [
+        "dynamicsCustomer",
+        "Contoso Pharmaceuticals",
+        "Enter the account's id, such as 4f7e6c3a-1b2d-4e5f-8a9b-0c1d2e3f4a5b, or contacts(<id>) to file new cases against a contact.",
+      ],
+    ])(
+      "%s of %j is refused, and the field says what to type instead",
+      (name: string, value: string, message: string) => {
+        const errors: Record<string, string> = validateTemplateVariableValues(
+          createCaseTemplate,
+          valuesFor(createCaseTemplate, { [name]: value }),
+        );
+
+        expect(errors).toEqual({ [name]: message });
+      },
+    );
+
+    test("a value is checked as it will be saved, without the spaces around it", () => {
+      expect(
+        validateTemplateVariableValues(
+          createCaseTemplate,
+          valuesFor(createCaseTemplate, {
+            dynamicsUrl: "  https://acme.crm.dynamics.com \n",
+            dynamicsLinkColumn: " new_oneuptimelink ",
+          }),
+        ),
+      ).toEqual({});
+    });
+
+    test("a missing value says it is required, not that it has the wrong shape", () => {
+      expect(
+        validateTemplateVariableValues(
+          createCaseTemplate,
+          valuesFor(createCaseTemplate, { dynamicsUrl: "   " }),
+        ),
+      ).toEqual({ dynamicsUrl: "Dynamics 365 Environment URL is required." });
+    });
+
+    test("checking the same good value again still passes: no format keeps state", () => {
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        expect(
+          validateTemplateVariableValues(
+            createCaseTemplate,
+            valuesFor(createCaseTemplate),
+          ),
+        ).toEqual({});
+      }
+    });
+  });
+
+  describe("buildWorkflowVariables", () => {
+    test("the create-case template writes its four static rows, then the OAuth 2.0 one", () => {
+      expect(
+        rowsFor(createCaseTemplate).map((row: WorkflowVariable): string => {
+          return row.name as string;
+        }),
+      ).toEqual([
+        "dynamicsUrl",
+        "dynamicsLinkColumn",
+        "dynamicsCustomer",
+        "oneuptimeUrl",
+        "dynamicsAccessToken",
+      ]);
+    });
+
+    test("every other Dynamics 365 template writes the environment, the link column and the OAuth 2.0 row", () => {
+      for (const template of dynamicsTemplates) {
+        if (template.id.startsWith("dynamics-create-case-for-")) {
+          continue;
+        }
+
+        expect({
+          template: template.id,
+          rows: rowsFor(template).map((row: WorkflowVariable): string => {
+            return row.name as string;
+          }),
+        }).toEqual({
+          template: template.id,
+          rows: ["dynamicsUrl", "dynamicsLinkColumn", "dynamicsAccessToken"],
+        });
+      }
+    });
+
+    test("the OAuth 2.0 row is the Microsoft Entra ID client credentials variable, filled in", () => {
+      const oauth: WorkflowVariable = rowsFor(createCaseTemplate).find(
+        (row: WorkflowVariable) => {
+          return row.name === "dynamicsAccessToken";
+        },
+      ) as WorkflowVariable;
+
+      expect(oauth.variableType).toBe(WorkflowVariableType.OAuth2);
+      expect(oauth.oauthGrantType).toBe(OAuth2GrantType.ClientCredentials);
+      expect(oauth.oauthClientAuthenticationMethod).toBe(
+        OAuth2ClientAuthenticationMethod.RequestBody,
+      );
+      expect(oauth.oauthTokenUrl).toBe(
+        "https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/oauth2/v2.0/token",
+      );
+      expect(oauth.oauthClientId).toBe("9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f");
+      expect(oauth.oauthClientSecret).toBe(
+        "Abc8Q~kJ2xLm9.Qr3StUvWxYz0123456789ab-CdE",
+      );
+      expect(oauth.oauthScope).toBe("https://acme.crm.dynamics.com/.default");
+      expect(oauth.content).toBeUndefined();
+      expect(oauth.workflowId).toBe(workflowId);
+      expect(oauth.projectId).toBe(projectId);
+      expect((oauth as unknown as { isSecret?: unknown }).isSecret).toBe(true);
+      expect(oauth.description).toContain("Microsoft Entra ID");
+    });
+
+    test("the settings are filled in from trimmed values", () => {
+      const oauth: WorkflowVariable = rowsFor(createCaseTemplate, {
+        dynamicsTenantId: "  contoso.onmicrosoft.com ",
+        dynamicsClientId: "\t9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f\n",
+        dynamicsClientSecret: " Abc8Q~secret ",
+        dynamicsUrl: " https://acme.crm4.dynamics.com ",
+      }).find((row: WorkflowVariable) => {
+        return row.name === "dynamicsAccessToken";
+      }) as WorkflowVariable;
+
+      expect(oauth.oauthTokenUrl).toBe(
+        "https://login.microsoftonline.com/contoso.onmicrosoft.com/oauth2/v2.0/token",
+      );
+      expect(oauth.oauthClientId).toBe("9f2c1d44-7a3b-4c5d-8e6f-0a1b2c3d4e5f");
+      expect(oauth.oauthClientSecret).toBe("Abc8Q~secret");
+      expect(oauth.oauthScope).toBe("https://acme.crm4.dynamics.com/.default");
+    });
+
+    test("the tenant, client ID and secret get no row of their own, and are in no static row", () => {
+      for (const template of dynamicsTemplates) {
+        const rows: Array<WorkflowVariable> = rowsFor(template);
+
+        for (const row of rows) {
+          expect(SETTING_ONLY).not.toContain(row.name);
+
+          if (row.variableType === WorkflowVariableType.OAuth2) {
+            continue;
+          }
+
+          for (const name of SETTING_ONLY) {
+            expect(row.content).not.toContain(DYNAMICS_VALUES[name]);
+          }
+        }
+      }
+    });
+
+    test("only the OAuth 2.0 row is secret: the static rows hold nothing that needs hiding", () => {
+      for (const row of rowsFor(createCaseTemplate)) {
+        expect({
+          name: row.name,
+          isSecret: (row as unknown as { isSecret?: boolean }).isSecret,
+        }).toEqual({
+          name: row.name,
+          isSecret: row.name === "dynamicsAccessToken",
+        });
+      }
+    });
+
+    test("the OAuth 2.0 row fits the columns it is written to", () => {
+      const oauth: WorkflowVariable = rowsFor(createCaseTemplate).find(
+        (row: WorkflowVariable) => {
+          return row.name === "dynamicsAccessToken";
+        },
+      ) as WorkflowVariable;
+
+      expect((oauth.name as string).length).toBeLessThanOrEqual(
+        ColumnLength.ShortText,
+      );
+      expect((oauth.description as string).length).toBeLessThanOrEqual(
+        ColumnLength.LongText,
+      );
+      expect((oauth.oauthClientId as string).length).toBeLessThanOrEqual(
+        ColumnLength.LongText,
+      );
+    });
+  });
+
+  describe("buildWorkflowFromTemplate", () => {
+    test("nothing typed reaches the graph: it only ever refers to the rows", () => {
+      for (const template of dynamicsTemplates) {
+        const workflow: Workflow = buildWorkflowFromTemplate({
+          name: "Dynamics 365",
+          description: "",
+          projectId: projectId,
+          template: template,
+          values: valuesFor(template),
+          generateId: generateId,
+        });
+        const serialized: string = JSON.stringify(workflow.graph);
+
+        for (const name of SETTING_ONLY) {
+          expect(serialized).not.toContain(DYNAMICS_VALUES[name] as string);
+          expect(serialized).not.toContain(`{{local.variables.${name}}}`);
+        }
+
+        expect(serialized).toContain("{{local.variables.dynamicsAccessToken}}");
+        expect(workflow.isEnabled).toBe(false);
+      }
+    });
+
+    test("nothing is stripped: every argument arrives as the template wrote it", () => {
+      for (const template of dynamicsTemplates) {
+        const workflow: Workflow = buildWorkflowFromTemplate({
+          name: "Dynamics 365",
+          description: "",
+          projectId: projectId,
+          template: template,
+          values: valuesFor(template),
+          generateId: generateId,
+        });
+        const graphSpec: { nodes: Array<{ args?: JSONObject | undefined }> } =
+          getTemplateGraphSpec(template.id) as unknown as {
+            nodes: Array<{ args?: JSONObject | undefined }>;
+          };
+
+        expect(
+          ((workflow.graph as JSONObject)["nodes"] as Array<JSONObject>).map(
+            (node: JSONObject): JSONObject => {
+              return (node["data"] as JSONObject)["arguments"] as JSONObject;
+            },
+          ),
+        ).toEqual(
+          graphSpec.nodes.map((node: { args?: JSONObject | undefined }) => {
+            return node.args || {};
+          }),
+        );
+      }
     });
   });
 });

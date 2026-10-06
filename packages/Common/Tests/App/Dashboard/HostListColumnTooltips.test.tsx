@@ -239,7 +239,7 @@ describe("Host Processes list", () => {
     },
   );
 
-  test("the CPU column shows one of the three readings, not their sum, as its text warns", async () => {
+  test("the CPU column adds user and system time and leaves wait out, as its text says", async () => {
     render(<HostProcesses {...PAGE_PROPS} />);
     await settle();
 
@@ -247,9 +247,11 @@ describe("Host Processes list", () => {
       .getByText("postgres")
       .closest("tr") as HTMLElement;
 
-    expect(within(row).getByText("30.0%")).toBeInTheDocument();
-    expect(within(row).queryByText("36.0%")).not.toBeInTheDocument();
-    expect(D.processListCpu).toContain("only one of them");
+    // 30% user + 6% system; the wait reading is time blocked on disk.
+    expect(within(row).getByText("36.0%")).toBeInTheDocument();
+    expect(within(row).queryByText("30.0%")).not.toBeInTheDocument();
+    expect(D.processListCpu).toContain("(user plus system time)");
+    expect(D.processListCpu).toContain("waiting on disk is left out");
   });
 
   test("the Memory column compares RSS with the host's total RAM", async () => {
