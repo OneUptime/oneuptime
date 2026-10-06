@@ -3347,15 +3347,21 @@ export default class Incident extends BaseModel {
   })
   public reminderNotificationSentCount?: number = undefined;
 
+  /*
+   * The episode this incident is in: the latest one it is still a member of,
+   * or none. Membership is the IncidentEpisodeMember rows, and this only
+   * mirrors them - IncidentEpisodeMemberService points it at an episode the
+   * incident joins and, when the incident leaves one, at the latest episode
+   * it is still in. Written any other way it names an episode the incident
+   * is not a member of: the episode's overview lists the incident while its
+   * members do not, and an incident created with it set is never grouped,
+   * so no member row is ever made for it. So nobody may write it, under
+   * either name: an incident joins or leaves an episode through the
+   * episode's members. IncidentService refuses the writes that skip column
+   * permissions too (EpisodeMembershipReference).
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3366,21 +3372,15 @@ export default class Incident extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadProjectIncident,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.EditProjectIncident,
-    ],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "incidentEpisodeId",
     type: TableColumnType.Entity,
     modelType: IncidentEpisode,
     title: "Incident Episode",
-    description: "Relation to Incident Episode this incident belongs to",
+    description:
+      "The latest Incident Episode this incident is a member of. Read-only: set by OneUptime when the incident is added to or removed from an episode's members (Incident Episode Member).",
   })
   @ManyToOne(
     () => {
@@ -3396,15 +3396,9 @@ export default class Incident extends BaseModel {
   @JoinColumn({ name: "incidentEpisodeId" })
   public incidentEpisode?: IncidentEpisode = undefined;
 
+  // Read-only, like the relation above: see there.
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.CreateProjectIncident,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -3415,21 +3409,15 @@ export default class Incident extends BaseModel {
       Permission.IncidentViewer,
       Permission.ReadProjectIncident,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.IncidentAdmin,
-      Permission.IncidentMember,
-      Permission.EditProjectIncident,
-    ],
+    update: [],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     title: "Incident Episode ID",
-    description: "ID of the Incident Episode this incident belongs to",
+    description:
+      "ID of the latest Incident Episode this incident is a member of. Read-only: set by OneUptime when the incident is added to or removed from an episode's members (Incident Episode Member).",
   })
   @Column({
     type: ColumnType.ObjectID,
