@@ -1,0 +1,173 @@
+# The end of NOTES.txt: how to upgrade, and the warning a release gets when it
+# renders with an older chart's defaults.
+#
+# `helm upgrade --reuse-values` hands the new chart's templates the previous
+# release's values, that chart's values.yaml included, so a default the new
+# chart changed never applies: a cluster upgraded that way from 14.0.10 to
+# 14.0.14 kept OBI v0.9.0 and the old exclusion list. values.yaml carries the
+# version of the chart it comes with (chartDefaultsVersion, stamped by the
+# release pipeline), and the notes compare it with .Chart.Version
+# (templates/_stale-defaults.tpl):
+#   (a) a release on this chart's values.yaml — a fresh install, an upgrade
+#       with --reset-then-reuse-values or with `helm get values` into -f —
+#       never warns, whatever it pins (a pin there is somebody's choice), and
+#       is told how to upgrade without --reuse-values;
+#   (b) a release on an older chart's values (chartDefaultsVersion older, or
+#       missing on a chart from before it) is warned, with the OBI tag named
+#       when it is not this chart's default (and eBPF is on), and gets the
+#       exact upgrade that fixes it for this release, Helm 3.14+ and older;
+#   (c) a values file that copies an older chart's defaults is called out,
+#       since the fix keeps what that file pins.
+#
+# This suite renders as published chart 14.0.15: the pipeline stamps the
+# packaged values.yaml with the version it packages the chart as, so each
+# test sets the stamp it would carry. stale-defaults-source_test.yaml renders
+# the chart as it is in the repository.
+suite: notes warn about an older chart's defaults
+release:
+  name: my-agent
+  namespace: monitoring
+chart:
+  version: 14.0.15
+  appVersion: 14.0.15
+templates:
+  - templates/NOTES.txt
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: does not warn a fresh install of the published chart, and says how to upgrade it
+    set:
+      chartDefaultsVersion: "14.0.15"
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "WARNING"
+      - notMatchRegexRaw:
+          pattern: "did not get this chart's defaults"
+      - matchRegexRaw:
+          pattern: "\nTo upgrade to a newer chart, keeping the values you set \\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values\nHelm before 3\\.14:\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring -f values\\.yaml\nNot --reuse-values: it keeps this chart's defaults too, so a newer chart's\ndefaults \\(its eBPF image among them\\) would never apply\\.\n$"
+      # Every command in the notes (an indented line) keeps the values set and
+      # takes the chart's defaults: none of them is a --reuse-values upgrade.
+      - notMatchRegexRaw:
+          pattern: "(?m)^ +helm upgrade [^\\n]*--reuse-values"
+
+  - it: does not warn an upgrade that took this chart's values.yaml, even with the OBI tag pinned back
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.15"
+      ebpf.image.tag: v0.13.0
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "WARNING"
+      - notMatchRegexRaw:
+          pattern: "ebpf\\.image\\.tag"
+      - matchRegexRaw:
+          pattern: "\nTo upgrade to a newer chart, keeping the values you set"
+
+  - it: warns a --reuse-values upgrade from 14.0.10, names the OBI tag it kept, and prints this release's fix
+    release:
+      upgrade: true
+    values:
+      - values/reuse-values-14.0.10.yaml
+    asserts:
+      - matchRegexRaw:
+          pattern: "\n\nWARNING: this release did not get this chart's defaults\\.\nIt renders with an older chart's defaults \\(its values have no\nchartDefaultsVersion\\), not with those of this chart, 14\\.0\\.15\\.\nThat is what `helm upgrade --reuse-values` does: it keeps the previous\nrelease's values, the old chart's defaults included, so a default this chart\nadded or changed never applies\\.\n"
+      - matchRegexRaw:
+          pattern: "\nStale here:\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
+      - matchRegexRaw:
+          pattern: "\nApply this chart's defaults and keep the values you set \\(Helm 3\\.14\\+\\):\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
+      - matchRegexRaw:
+          pattern: "\nHelm before 3\\.14:\n  helm get values my-agent -n monitoring -o yaml > values\\.yaml && helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 -f values\\.yaml\n"
+      - matchRegexRaw:
+          pattern: "\nValues you set yourself stay as they are\\. A values file you pass should hold\nonly the values you changed: a copy of an older chart's values\\.yaml \\(or of\n`helm get values --all`\\) pins its defaults, chartDefaultsVersion included\\.\n$"
+      # The warning replaces the general advice; it is the last thing printed.
+      - notMatchRegexRaw:
+          pattern: "To upgrade to a newer chart"
+      - notMatchRegexRaw:
+          pattern: "(?m)^ +helm upgrade [^\\n]*--reuse-values"
+
+  - it: names the chart a stamped older release's defaults come from, and no OBI tag when it is already this chart's
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nWARNING: this release did not get this chart's defaults\\.\nIt renders with the defaults of chart 14\\.0\\.13 \\(chartDefaultsVersion\\), not\nwith those of this chart, 14\\.0\\.15\\.\n"
+      - notMatchRegexRaw:
+          pattern: "Stale here"
+      - notMatchRegexRaw:
+          pattern: "ebpf\\.image\\.tag"
+      - matchRegexRaw:
+          pattern: "  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
+
+  - it: names an OBI tag a stale release pins, and says the fix keeps a tag set on purpose
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.12"
+      ebpf.image.tag: v0.13.0
+    asserts:
+      - matchRegexRaw:
+          pattern: "It renders with the defaults of chart 14\\.0\\.12"
+      - matchRegexRaw:
+          pattern: "  - ebpf\\.image\\.tag is \"v0\\.13\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
+      - matchRegexRaw:
+          pattern: "\nValues you set yourself stay as they are\\."
+
+  - it: names no OBI tag when eBPF is off, but still warns
+    release:
+      upgrade: true
+    values:
+      - values/reuse-values-14.0.10.yaml
+    set:
+      ebpf.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nWARNING: this release did not get this chart's defaults\\.\n"
+      - notMatchRegexRaw:
+          pattern: "Stale here"
+      - notMatchRegexRaw:
+          pattern: "ebpf\\.image\\.tag"
+      - matchRegexRaw:
+          pattern: "--version 14\\.0\\.15 --reset-then-reuse-values\n"
+
+  - it: warns a fresh install whose values file copies an older chart's values.yaml
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.image.tag: v0.13.0
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nWARNING: this release did not get this chart's defaults\\.\nIt renders with the defaults of chart 14\\.0\\.13"
+      - matchRegexRaw:
+          pattern: "a copy of an older chart's values\\.yaml \\(or of\n`helm get values --all`\\) pins its defaults, chartDefaultsVersion included\\."
+
+  - it: prints the fix for the release's own name and namespace
+    release:
+      name: oneuptime-kubernetes-agent
+      namespace: observability
+      upgrade: true
+    values:
+      - values/reuse-values-14.0.10.yaml
+    asserts:
+      - matchRegexRaw:
+          pattern: "\n  helm upgrade oneuptime-kubernetes-agent oneuptime/kubernetes-agent -n observability --version 14\\.0\\.15 --reset-then-reuse-values\n"
+      - matchRegexRaw:
+          pattern: "\n  helm get values oneuptime-kubernetes-agent -n observability -o yaml > values\\.yaml && helm upgrade oneuptime-kubernetes-agent oneuptime/kubernetes-agent -n observability --version 14\\.0\\.15 -f values\\.yaml\n"
+      - notMatchRegexRaw:
+          pattern: "my-agent|-n monitoring"
+
+  - it: renders the rest of the notes for a 14.0.10 release as before
+    release:
+      upgrade: true
+    values:
+      - values/reuse-values-14.0.10.yaml
+    asserts:
+      - matchRegexRaw:
+          pattern: "^OneUptime Kubernetes Agent has been installed\\.\n"
+      - matchRegexRaw:
+          pattern: "  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values --set ebpf\\.enabled=false\n"
+      - matchRegexRaw:
+          pattern: "Kubernetes AI agent: on, read-only\\."

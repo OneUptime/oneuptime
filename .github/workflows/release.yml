@@ -237,6 +237,15 @@ jobs:
           # one cluster's nodes and namespaces distinct from another's in
           # OneUptime, so the chart refuses to render without it. Supply a
           # throwaway value here; this only proves the templates render.
+          #
+          # chartDefaultsVersion is the version of the chart its values.yaml
+          # comes with, so it is stamped with the version the chart is
+          # packaged as. The chart's notes compare the two and warn a release
+          # that renders with an older chart's defaults (what
+          # `helm upgrade --reuse-values` does); a stamp that is not the
+          # chart's version would warn every install, so the step fails then.
+          sed -i 's/^chartDefaultsVersion: .*/chartDefaultsVersion: "${{needs.read-version.outputs.major_minor}}"/' kubernetes-agent/values.yaml
+          grep -qx 'chartDefaultsVersion: "${{needs.read-version.outputs.major_minor}}"' kubernetes-agent/values.yaml
           helm lint kubernetes-agent --set clusterName=ci-render-check
           helm template kubernetes-agent --values kubernetes-agent/values.yaml --set clusterName=ci-render-check
           helm package --sign --key 'key@oneuptime.com' --keyring ~/.gnupg/secring.gpg kubernetes-agent --version ${{needs.read-version.outputs.major_minor}} --app-version ${{needs.read-version.outputs.major_minor}}

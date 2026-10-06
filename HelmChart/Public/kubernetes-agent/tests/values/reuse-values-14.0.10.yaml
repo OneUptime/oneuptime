@@ -1,0 +1,29 @@
+# A release installed from chart 14.0.10 and upgraded with
+# `helm upgrade --reuse-values`, as a test cluster was to 14.0.14. Helm
+# renders the new chart with the old release's computed values: 14.0.10's
+# whole values.yaml stands in for this chart's (pkg/action/upgrade.go,
+# reuseValues: `chart.Values = oldVals`). So OBI stays on 14.0.10's v0.9.0, the
+# exclusion list misses what was added since (*/chrome_crashpad_handler), and
+# every key added since is unset — chartDefaultsVersion among them.
+#
+# helm-unittest coalesces this file over this chart's values.yaml, so every
+# key 14.0.10 does not have is null here (Helm deletes a key whose value is
+# null when it coalesces) and every default 14.0.10 had otherwise is set to
+# it: the templates see what such an upgrade renders with. When this file was
+# written these were all the differences between 14.0.10's values.yaml and
+# this chart's (a key a later chart adds needs a null here too). The user's
+# own values (clusterName, oneuptime.*) are set by each test.
+chartDefaultsVersion: null
+ebpf:
+  image:
+    tag: v0.9.0
+  excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit,*/clickhouse"
+  features:
+    hostMetrics: true
+  dropDatabaseServerSpans: null
+  dropNodeInspectorMetrics: null
+  dropUnlinkedDatabaseCalls: null
+  excludeOtelInstrumentedServices: null
+  extraSpanAttributes: null
+  nodejs: null
+  routes: null
