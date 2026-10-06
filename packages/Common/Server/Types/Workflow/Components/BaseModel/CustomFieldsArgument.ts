@@ -36,9 +36,10 @@ import {
  */
 
 /*
- * How many times a merged write is made again, on top of a fresh read, when
- * something else changed the record between the read and the write. Beyond
- * that the last read is written on without the guard (see writeMerged).
+ * How many times one record is written guarded by the version it was read
+ * at - each try after the first over a fresh read, because something else
+ * wrote the record in between. After that the last read is written over
+ * without the guard (see writeMerged).
  */
 export const MAX_GUARDED_MERGE_WRITES: number = 5;
 
