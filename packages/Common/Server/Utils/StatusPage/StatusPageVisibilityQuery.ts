@@ -2,10 +2,7 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Query from "../../Types/Database/Query";
-import {
-  applyIncidentRelatedRecordPrivacyFilter,
-  applyIncidentSelfPrivacyFilter,
-} from "../Incident/IncidentPrivacyFilter";
+import { applyIncidentSelfPrivacyFilter } from "../Incident/IncidentPrivacyFilter";
 import { applyIncidentEpisodeSelfPrivacyFilter } from "../IncidentEpisode/IncidentEpisodePrivacyFilter";
 
 /*
@@ -45,17 +42,6 @@ export default class StatusPageVisibilityQuery {
   public static notPrivateIncidents(query: Query<Incident>): Query<Incident> {
     return applyIncidentSelfPrivacyFilter<Query<Incident>>(
       { ...query },
-      PUBLIC_VIEWER,
-    );
-  }
-
-  /*
-   * Rows that belong to an incident by their incidentId - an episode's
-   * members - kept to those of incidents that are not private.
-   */
-  public static ofNotPrivateIncidents<T>(query: T): T {
-    return applyIncidentRelatedRecordPrivacyFilter<T>(
-      { ...query } as T,
       PUBLIC_VIEWER,
     );
   }

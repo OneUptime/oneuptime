@@ -30,6 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * IncidentStatusPageScope decides which status pages an incident reaches:
@@ -45,6 +46,9 @@ import {
  *     sort and truncate the two halves as the database would have;
  *   - the counts are disjoint and include projectId and
  *     isVisibleOnStatusPage;
+ *   - every display query and count holds only incidents a status page
+ *     shows - Visible on Status Page on, and not private - in SQL, and a
+ *     private incident reaches no page (StatusPageVisibility);
  *   - everything fails closed when a scope column was not loaded.
  */
 
@@ -91,6 +95,23 @@ interface IncidentScopeFixture {
   id: string;
   isScopedToStatusPages?: boolean | undefined;
   statusPageIds?: Array<string> | undefined;
+  isPrivate?: boolean | undefined;
+}
+
+/*
+ * Whether a query condition on isPrivate is the privacy clause the status
+ * page reads add (StatusPageVisibilityQuery): the privacy filters' anonymous
+ * form, `isPrivate IS NULL OR isPrivate = FALSE`.
+ */
+function isNotPrivateClause(condition: unknown): boolean {
+  const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
+
+  return (
+    operator instanceof FindOperator &&
+    Boolean(operator.getSql) &&
+    operator.getSql!("private_column") ===
+      "(private_column IS NULL OR private_column = FALSE)"
+  );
 }
 
 let pages: Array<PageFixture> = [];
@@ -248,11 +269,18 @@ beforeEach(() => {
   incidentFindBy.mockImplementation(
     (findBy: { query: JSONObject }): Promise<Array<Incident>> => {
       const wanted: Array<string> = idsIn(findBy.query["_id"]);
+      // The privacy clause, applied as the database would.
+      const leavesOutPrivate: boolean = isNotPrivateClause(
+        findBy.query["isPrivate"],
+      );
 
       return Promise.resolve(
         storedScopes
           .filter((scope: IncidentScopeFixture): boolean => {
-            return wanted.includes(scope.id);
+            return (
+              wanted.includes(scope.id) &&
+              !(leavesOutPrivate && scope.isPrivate === true)
+            );
           })
           .map((scope: IncidentScopeFixture): Incident => {
             const incident: Incident = new Incident();
@@ -301,6 +329,70 @@ afterEach(() => {
 });
 
 describe("IncidentStatusPageScope.resolvePagesForIncidents", () => {
+  /*
+   * A private incident is hidden from every status page, so its
+   * subscribers' pages are none: read with the privacy clause, it is not
+   * found, and an incident not found is scoped to nothing.
+   */
+  test("a private incident reaches no status page, scoped or not", async () => {
+    useTenSitePages();
+    storedScopes = [
+      { id: INCIDENT_A, isScopedToStatusPages: false, isPrivate: true },
+      {
+        id: INCIDENT_B,
+        isScopedToStatusPages: true,
+        statusPageIds: [sitePageId(3)],
+        isPrivate: true,
+      },
+    ];
+
+    for (const incidentId of [INCIDENT_A, INCIDENT_B]) {
+      const resolved: ResolvedIncidentStatusPages =
+        await IncidentStatusPageScope.resolvePagesForIncidents({
+          incidents: [incidentOn(incidentId, [SHARED_MONITOR])],
+        });
+
+      expect(resolved.statusPages).toEqual([]);
+      expect(resolved.statusPageToResources).toEqual({});
+    }
+
+    // The scope is read with the privacy clause, in SQL.
+    for (const call of incidentFindBy.mock.calls) {
+      expect(
+        isNotPrivateClause(
+          (call[0] as { query: JSONObject }).query["isPrivate"],
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("an episode reaches the pages of its members that are not private, and none through a private one", async () => {
+    useTenSitePages();
+    storedScopes = [
+      {
+        id: INCIDENT_A,
+        isScopedToStatusPages: true,
+        statusPageIds: [sitePageId(2)],
+      },
+      {
+        id: INCIDENT_B,
+        isScopedToStatusPages: true,
+        statusPageIds: [sitePageId(5), sitePageId(6)],
+        isPrivate: true,
+      },
+    ];
+
+    const resolved: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [
+          incidentOn(INCIDENT_A, [SHARED_MONITOR]),
+          incidentOn(INCIDENT_B, [SHARED_MONITOR]),
+        ],
+      });
+
+    expect(reachedPageNames(resolved)).toEqual(["Site 02"]);
+  });
+
   test("an unscoped incident on a monitor shared by ten pages reaches all ten, in name order", async () => {
     useTenSitePages();
     storedScopes = [{ id: INCIDENT_A, isScopedToStatusPages: false }];
@@ -1077,12 +1169,14 @@ describe("IncidentStatusPageScope.findIncidentsForStatusPage", () => {
         monitors: monitors,
         projectId: PROJECT_ID,
         isVisibleOnStatusPage: true,
+        isPrivate: expect.any(FindOperator),
         isScopedToStatusPages: false,
       },
       {
         monitors: monitors,
         projectId: PROJECT_ID,
         isVisibleOnStatusPage: true,
+        isPrivate: expect.any(FindOperator),
         isScopedToStatusPages: true,
         statusPages: [STATUS_PAGE_ID],
       },
@@ -1101,10 +1195,72 @@ describe("IncidentStatusPageScope.findIncidentsForStatusPage", () => {
     expect(queries()).toEqual([
       {
         projectId: PROJECT_ID,
+        isVisibleOnStatusPage: true,
+        isPrivate: expect.any(FindOperator),
         isScopedToStatusPages: true,
         statusPages: [STATUS_PAGE_ID],
       },
     ]);
+  });
+
+  test("each half holds only incidents the page shows - visible and not private - whatever the caller's query names", async () => {
+    await IncidentStatusPageScope.findIncidentsForStatusPage({
+      statusPage: page(false),
+      query: { projectId: PROJECT_ID, isVisibleOnStatusPage: false },
+      select: { _id: true },
+      limit: 10,
+      props: { isRoot: true },
+    });
+
+    expect(queries()).toHaveLength(2);
+
+    for (const query of queries()) {
+      expect(query["isVisibleOnStatusPage"]).toBe(true);
+      expect(isNotPrivateClause(query["isPrivate"])).toBe(true);
+    }
+  });
+
+  test("with includeHiddenIncidents, incidents switched off are read too, but never private ones", async () => {
+    await IncidentStatusPageScope.findIncidentsForStatusPage({
+      statusPage: page(false),
+      query: { projectId: PROJECT_ID },
+      select: { _id: true },
+      limit: 10,
+      props: { isRoot: true },
+      includeHiddenIncidents: true,
+    });
+
+    expect(queries()).toHaveLength(2);
+
+    for (const query of queries()) {
+      expect(query).not.toHaveProperty("isVisibleOnStatusPage");
+      expect(isNotPrivateClause(query["isPrivate"])).toBe(true);
+    }
+  });
+
+  test("findOneIncidentForStatusPage holds the same rule, and passes includeHiddenIncidents on", async () => {
+    await IncidentStatusPageScope.findOneIncidentForStatusPage({
+      statusPage: page(true),
+      query: { projectId: PROJECT_ID },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    expect(queries()[0]!["isVisibleOnStatusPage"]).toBe(true);
+    expect(isNotPrivateClause(queries()[0]!["isPrivate"])).toBe(true);
+
+    incidentFindBy.mockClear();
+
+    await IncidentStatusPageScope.findOneIncidentForStatusPage({
+      statusPage: page(true),
+      query: { projectId: PROJECT_ID },
+      select: { _id: true },
+      props: { isRoot: true },
+      includeHiddenIncidents: true,
+    });
+
+    expect(queries()[0]).not.toHaveProperty("isVisibleOnStatusPage");
+    expect(isNotPrivateClause(queries()[0]!["isPrivate"])).toBe(true);
   });
 
   test("a page whose onlyShowScopedIncidents was not loaded runs only the scoped half", async () => {
@@ -1455,16 +1611,22 @@ describe("IncidentStatusPageScope.countIncidentsForStatusPage", () => {
         monitors: monitors,
         projectId: PROJECT_ID,
         isVisibleOnStatusPage: true,
+        isPrivate: expect.any(FindOperator),
         isScopedToStatusPages: false,
       },
       {
         monitors: monitors,
         projectId: PROJECT_ID,
         isVisibleOnStatusPage: true,
+        isPrivate: expect.any(FindOperator),
         isScopedToStatusPages: true,
         statusPages: [STATUS_PAGE_ID],
       },
     ]);
+
+    for (const query of countQueries()) {
+      expect(isNotPrivateClause(query["isPrivate"])).toBe(true);
+    }
   });
 
   test("a page that only shows scoped incidents counts only those", async () => {
