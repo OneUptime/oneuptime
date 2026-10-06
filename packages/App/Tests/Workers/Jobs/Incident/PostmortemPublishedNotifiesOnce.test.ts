@@ -353,8 +353,13 @@ function holds(expected: JSONObject): boolean {
 async function update(
   data: JSONObject,
   props: DatabaseCommonInteractionProps = editor(),
+  miscDataProps?: JSONObject,
 ): Promise<void> {
-  const writeAndFinish: () => Promise<void> = await beginUpdate(data, props);
+  const writeAndFinish: () => Promise<void> = await beginUpdate(
+    data,
+    props,
+    miscDataProps,
+  );
 
   await writeAndFinish();
 }
@@ -367,6 +372,7 @@ async function update(
 async function beginUpdate(
   data: JSONObject,
   props: DatabaseCommonInteractionProps = editor(),
+  miscDataProps?: JSONObject,
 ): Promise<() => Promise<void>> {
   const hooks: UpdateHooks = IncidentService as unknown as UpdateHooks;
 
@@ -376,6 +382,7 @@ async function beginUpdate(
     props: props,
     limit: 1,
     skip: 0,
+    ...(miscDataProps ? { miscDataProps: miscDataProps } : {}),
   });
 
   return async (): Promise<void> => {
@@ -872,6 +879,114 @@ describe("a published postmortem written by something other than the form", () =
       subscriberNotificationStatusOnPostmortemPublished:
         StatusPageSubscriberNotificationStatus.Pending,
     } as unknown as JSONObject);
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+});
+
+/*
+ * A POSTMORTEM PUBLISHED WHILE ITS INCIDENT IS HIDDEN IS ANNOUNCED WHEN THE
+ * INCIDENT IS MADE VISIBLE (found in #4429).
+ *
+ * The status page shows a postmortem only on an incident it shows, so one
+ * published while its incident was hidden reaches nobody: the job settles
+ * its notification as Skipped, because the incident is not visible. Making
+ * the incident visible then put the postmortem on the status page for the
+ * first time - and told nobody, ever: nothing queued the notification again,
+ * and only the API's Pending would send it.
+ */
+describe("a postmortem published while its incident is hidden from status pages", () => {
+  beforeEach(() => {
+    // Declared hidden: nothing about it is on a status page.
+    incident.isVisibleOnStatusPage = false;
+  });
+
+  // The incident's Settings form, saved with Visible on Status Page on.
+  async function makeVisible(): Promise<void> {
+    await update({
+      isVisibleOnStatusPage: true,
+      isPrivate: false,
+    } as unknown as JSONObject);
+  }
+
+  test("is announced once, when the incident is made visible", async () => {
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+
+    // Nothing on a status page yet: nobody is told.
+    expect(sent()).toEqual(NOTHING_SENT);
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Skipped,
+    );
+
+    await makeVisible();
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Success,
+    );
+  });
+
+  test("hiding it and making it visible again tells nobody a second time", async () => {
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+    await makeVisible();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+
+    await update({ isVisibleOnStatusPage: false } as unknown as JSONObject);
+    await runTheJob();
+    await makeVisible();
+    await runTheJob();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("a postmortem announced before the incident was hidden is not announced again when it is shown again", async () => {
+    incident.isVisibleOnStatusPage = true;
+
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+
+    await update({ isVisibleOnStatusPage: false } as unknown as JSONObject);
+    await runTheJob();
+    await makeVisible();
+    await runTheJob();
+
+    expect(sent()).toEqual(sentTimes(1));
+  });
+
+  test("a postmortem that is not published tells nobody when the incident is made visible", async () => {
+    // Written, never published.
+    await makeVisible();
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+    expect(incident.subscriberNotificationStatusOnPostmortemPublished).toBe(
+      StatusPageSubscriberNotificationStatus.Skipped,
+    );
+  });
+
+  test("a postmortem taken off the status page while the incident was hidden tells nobody when it is made visible, and publishing it then tells them once", async () => {
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
+    await runTheJob();
+    await saveEditPostmortemForm({ note: NOTE, publish: false });
+    await runTheJob();
+
+    await makeVisible();
+    await runTheJob();
+
+    expect(sent()).toEqual(NOTHING_SENT);
+
+    await saveEditPostmortemForm({ note: NOTE, publish: true });
     await runTheJob();
     await runTheJob();
 
