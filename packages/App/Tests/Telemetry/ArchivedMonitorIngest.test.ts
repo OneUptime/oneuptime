@@ -67,6 +67,9 @@ import {
   IncomingRequestIngestJobData,
   ProbeIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+import { isNonActionableIngestError } from "../../FeatureSet/Telemetry/Utils/NonActionableIngestError";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -196,8 +199,20 @@ describe("the telemetry worker", () => {
      * MonitorResource throws MonitorArchived for a result that still reaches
      * an archived monitor; the telemetry job swallows the non-actionable
      * refusals (not found, disabled) instead of failing and retrying them,
-     * and archived must be one of them.
+     * and archived must be one of them. The worker's catch returns on what
+     * isNonActionableIngestError accepts.
      */
+    expect(
+      isNonActionableIngestError(
+        new BadDataException(ExceptionMessages.MonitorDisabled),
+      ),
+    ).toBe(true);
+    expect(
+      isNonActionableIngestError(
+        new BadDataException(ExceptionMessages.MonitorArchived),
+      ),
+    ).toBe(true);
+
     const source: string = fs.readFileSync(
       path.join(
         __dirname,
@@ -205,13 +220,17 @@ describe("the telemetry worker", () => {
       ),
       "utf8",
     );
+    const guardStart: number = source.indexOf(
+      "if (isNonActionableIngestError(error)) {",
+    );
+
+    expect(guardStart).toBeGreaterThan(-1);
+
     const guard: string = source.slice(
-      source.indexOf("error instanceof BadDataException"),
+      guardStart,
       source.indexOf("logger.error(`Error processing telemetry job:`);"),
     );
 
-    expect(guard).toContain("ExceptionMessages.MonitorDisabled");
-    expect(guard).toContain("ExceptionMessages.MonitorArchived");
     expect(guard).toContain("return;");
   });
 });

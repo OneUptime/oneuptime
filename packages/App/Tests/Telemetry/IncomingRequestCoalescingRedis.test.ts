@@ -214,6 +214,18 @@ function evaluationsOf(secretKey: string): Array<number> {
   return evaluated.get(secretKey) || [];
 }
 
+function isJobOf(job: QueueJob | undefined, secretKey: string): boolean {
+  return (
+    (job?.data as TelemetryIngestJobData | undefined)?.incomingRequestIngest
+      ?.secretKey === secretKey
+  );
+}
+
+/*
+ * The monitor's jobs by state, read one state at a time: only for moments
+ * when they are not moving between states (a job held open, waiting with no
+ * worker free, or delayed for a retry).
+ */
 async function jobsOf(secretKey: string): Promise<MonitorJobs> {
   const pick: (
     state: "active" | "waiting" | "delayed",
@@ -223,10 +235,7 @@ async function jobsOf(secretKey: string): Promise<MonitorJobs> {
     const jobs: Array<QueueJob> = await queue.getJobs([state]);
 
     return jobs.filter((job: QueueJob) => {
-      return (
-        (job.data as TelemetryIngestJobData).incomingRequestIngest
-          ?.secretKey === secretKey
-      );
+      return isJobOf(job, secretKey);
     });
   };
 
@@ -245,10 +254,23 @@ function ownSequence(job: QueueJob): number {
   ] as number;
 }
 
+/*
+ * Nothing of the monitor's is waiting, running or delayed. All three states
+ * come from one snapshot (getJobs reads them in a single Lua call): read one
+ * at a time, a job moving from waiting to running between two reads would be
+ * in neither, and the monitor would look settled before its job had run.
+ */
 async function settled(secretKey: string): Promise<void> {
   await waitFor("the monitor's jobs to finish", async () => {
-    const jobs: MonitorJobs = await jobsOf(secretKey);
-    return jobs.active.length + jobs.waiting.length + jobs.delayed.length === 0;
+    const live: Array<QueueJob | undefined> = await queue.getJobs([
+      "active",
+      "waiting",
+      "delayed",
+    ]);
+
+    return !live.some((job: QueueJob | undefined) => {
+      return isJobOf(job, secretKey);
+    });
   });
 }
 
