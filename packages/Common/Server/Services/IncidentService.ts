@@ -4475,7 +4475,10 @@ ${incident.remediationNotes || "No remediation notes provided."}
       const current: PostmortemNotificationStatusRead | null =
         await this.readPostmortemNotificationStatus(data.incidentId);
 
-      if (current && IncidentPostmortemPublication.isHiddenIncidentSkip(current)) {
+      if (
+        current &&
+        IncidentPostmortemPublication.isHiddenIncidentSkip(current)
+      ) {
         await this.setPostmortemNotificationPending({
           incidentId: data.incidentId,
           expectedStatus: current.status,

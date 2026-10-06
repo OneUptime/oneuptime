@@ -1,7 +1,9 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import Permission from "Common/Types/Permission";
-import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
+import IncidentPostmortemPublication, {
+  PostmortemNotificationAction,
+} from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -235,6 +237,78 @@ describe("the subscriber docs on the postmortem", () => {
     );
   });
 
+  /*
+   * A postmortem published while its incident is hidden reached nobody, and
+   * showing the incident used to leave it so (found in #4429). It is sent
+   * when the incident is made visible, once.
+   */
+  test("say a postmortem published while its incident is hidden is sent when the incident is made visible, once", () => {
+    expect(english).toContain(
+      "**A postmortem published while its incident is hidden is sent when the incident is made visible.**",
+    );
+    expect(english).toContain(
+      `the notification's status reads **${IncidentPostmortemPublication.hiddenIncidentLabel}**`,
+    );
+    expect(english).toContain(
+      "Turning **Visible on Status Page** on sends it, once",
+    );
+    expect(english).toContain(
+      "Hiding the incident and showing it again sends nothing more",
+    );
+    expect(english).toContain(
+      "writing `isVisibleOnStatusPage` as `true` for a hidden incident sends a postmortem that waits for it",
+    );
+
+    // As the server decides: showing the incident queues the waiting postmortem...
+    const waiting: Record<string, unknown> = {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: "## What happened",
+      isVisibleOnStatusPage: false,
+      subscriberNotificationStatusOnPostmortemPublished: "Skipped",
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        IncidentPostmortemPublication.hiddenIncidentMessage,
+    };
+
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: waiting as never,
+        written: { isVisibleOnStatusPage: true },
+      }),
+    ).toBe(PostmortemNotificationAction.QueueIfSkippedAsHidden);
+
+    // ...but not one that was sent, nor one that is not published.
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: {
+          ...waiting,
+          subscriberNotificationStatusOnPostmortemPublished: "Success",
+        } as never,
+        written: { isVisibleOnStatusPage: true },
+      }),
+    ).toBe(PostmortemNotificationAction.None);
+    expect(
+      IncidentPostmortemPublication.getNotificationAction({
+        stored: { ...waiting, showPostmortemOnStatusPage: false } as never,
+        written: { isVisibleOnStatusPage: true },
+      }),
+    ).toBe(PostmortemNotificationAction.None);
+  });
+
+  test("quote the labels the incident's pages show for a postmortem that waits for its incident", () => {
+    const settingsPage: string = readSource(
+      "App/FeatureSet/Dashboard/src/Pages/Incidents/View/Settings.tsx",
+    );
+
+    expect(english).toContain("**Visible on Status Page**");
+    expect(settingsPage).toContain('"Visible on Status Page"');
+    // The label is the rule's, drawn by the Postmortem page.
+    expect(
+      readSource(
+        "App/FeatureSet/Dashboard/src/Pages/Incidents/View/Postmortem.tsx",
+      ),
+    ).toContain("IncidentPostmortemPublication.hiddenIncidentLabel");
+  });
+
   test("the Persian page says the same, with the same API names and labels", () => {
     const persian: string = section(
       readDoc("fa", "status-pages/subscribers.md"),
@@ -253,9 +327,43 @@ describe("the subscriber docs on the postmortem", () => {
       "**Edit Postmortem Note**",
       "**Postmortem Note updated**",
       "**Retry**",
+      "**Visible on Status Page**",
+      `**${IncidentPostmortemPublication.hiddenIncidentLabel}**`,
     ]) {
       expect(persian).toContain(label);
     }
+  });
+});
+
+describe("the declaring docs on publishing a hidden incident later", () => {
+  test.each([
+    ["en", "[The postmortem](/docs/status-pages/subscribers#the-postmortem)"],
+    [
+      "fa",
+      `(/docs/status-pages/subscribers#${slugify(FA_HEADING.replace(/^#+ /, ""))})`,
+    ],
+  ])(
+    "the %s page says its postmortem needs no box, and links to the subscriber docs' section",
+    (language: string, link: string) => {
+      const paragraph: string | undefined = readDoc(
+        language,
+        "incidents/declaring-incidents.md",
+      )
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.includes("notifySubscribersOfIncidentCreatedOnPublish");
+        });
+
+      expect(paragraph).toBeDefined();
+      expect(paragraph).toContain("**Visible on Status Page**");
+      expect(paragraph).toContain(link);
+    },
+  );
+
+  test("the English page says it is sent once", () => {
+    expect(readDoc("en", "incidents/declaring-incidents.md")).toContain(
+      "A postmortem published while the incident was hidden needs no box: turning **Visible on Status Page** on sends it once",
+    );
   });
 });
 
@@ -271,6 +379,9 @@ describe("the incident page's Postmortem item", () => {
     );
     expect(bullet).toContain(
       `(/docs/status-pages/subscribers#${slugify(EN_HEADING.replace(/^#+ /, ""))})`,
+    );
+    expect(bullet).toContain(
+      "One published while the incident is hidden is sent when the incident is made visible.",
     );
   });
 

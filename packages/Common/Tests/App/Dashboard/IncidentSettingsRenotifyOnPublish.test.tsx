@@ -159,6 +159,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import IncidentCreatedRenotify from "../../../Types/StatusPage/IncidentCreatedRenotify";
+import IncidentPostmortemPublication from "../../../Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import ModelForm, {
   FormType,
@@ -214,6 +215,16 @@ interface IncidentShape {
   // The pages it is limited to, and the record of the ones told.
   statusPageIds?: Array<string> | undefined;
   notified?: Array<string> | null | undefined;
+  // Its postmortem: none, unless said.
+  postmortem?:
+    | {
+        published: boolean;
+        note: string;
+        notify: boolean;
+        status: StatusPageSubscriberNotificationStatus;
+        message: string;
+      }
+    | undefined;
 }
 
 const SITE_03: string = "b0000000-0000-4000-8000-000000000003";
@@ -245,7 +256,31 @@ function buildIncident(shape: IncidentShape = {}): Incident {
       (shape.isResolved ? RESOLVED_STATE_ID : IDENTIFIED_STATE_ID),
   );
 
+  if (shape.postmortem) {
+    incident.showPostmortemOnStatusPage = shape.postmortem.published;
+    incident.postmortemNote = shape.postmortem.note;
+    incident.notifySubscribersOnPostmortemPublished = shape.postmortem.notify;
+    incident.subscriberNotificationStatusOnPostmortemPublished =
+      shape.postmortem.status;
+    incident.subscriberNotificationStatusMessageOnPostmortemPublished =
+      shape.postmortem.message;
+  }
+
   return incident;
+}
+
+// Published while the incident was hidden, and skipped for that reason.
+function waitingPostmortem(
+  overrides: Partial<NonNullable<IncidentShape["postmortem"]>> = {},
+): NonNullable<IncidentShape["postmortem"]> {
+  return {
+    published: true,
+    note: "## What happened",
+    notify: true,
+    status: StatusPageSubscriberNotificationStatus.Skipped,
+    message: IncidentPostmortemPublication.hiddenIncidentMessage,
+    ...overrides,
+  };
 }
 
 interface SettingsCardProps {
@@ -487,6 +522,189 @@ describe("incident Settings tab: offering to notify subscribers on publish", () 
 
     // ModelForm rebuilds its fields whenever this array changes identity.
     expect(settingsCard().formFields).toBe(before);
+  });
+});
+
+/*
+ * A postmortem published while the incident is hidden is sent when the
+ * incident is made visible (IncidentPostmortemPublication.isShownByUpdate).
+ * Turning 'Visible on Status Page' on is then what sends it, so the switch
+ * says so - and only while it would.
+ */
+describe("incident Settings tab: the switch says it sends a postmortem that waits for the incident", () => {
+  function visibilityField(): Fields<Incident>[number] {
+    return settingsCard().formFields.find(
+      (field: Fields<Incident>[number]): boolean => {
+        return Boolean(
+          (field.field as Record<string, unknown> | undefined)?.[
+            "isVisibleOnStatusPage"
+          ],
+        );
+      },
+    )!;
+  }
+
+  test("reads the postmortem with the settings card's own item", async () => {
+    await renderSettings();
+
+    expect(settingsCard().modelDetailProps.selectMoreFields).toEqual(
+      expect.objectContaining({
+        showPostmortemOnStatusPage: true,
+        postmortemNote: true,
+        notifySubscribersOnPostmortemPublished: true,
+        subscriberNotificationStatusOnPostmortemPublished: true,
+        subscriberNotificationStatusMessageOnPostmortemPublished: true,
+      }),
+    );
+  });
+
+  test("says nothing before the incident has loaded", async () => {
+    await renderSettings();
+
+    expect(visibilityField().description).toBeUndefined();
+  });
+
+  test("says turning it on sends the published postmortem that was skipped because the incident was hidden", async () => {
+    await renderSettings();
+    await loadIncident({ postmortem: waitingPostmortem() });
+
+    expect(visibilityField().title).toBe("Visible on Status Page");
+    expect(visibilityField().description).toBe(
+      IncidentPostmortemPublication.sendsOnShowDescription,
+    );
+  });
+
+  test("says so for a postmortem an earlier release skipped for the same reason", async () => {
+    await renderSettings();
+    await loadIncident({
+      postmortem: waitingPostmortem({
+        message: IncidentPostmortemPublication.earlierHiddenIncidentMessage,
+      }),
+    });
+
+    expect(visibilityField().description).toBe(
+      IncidentPostmortemPublication.sendsOnShowDescription,
+    );
+  });
+
+  test("sits beside the offer to tell subscribers the incident was created", async () => {
+    await renderSettings();
+    await loadIncident({ postmortem: waitingPostmortem() });
+
+    expect(fieldKeys(settingsCard().formFields)).toEqual([
+      "isVisibleOnStatusPage",
+      IncidentCreatedRenotify.miscDataKey,
+      "isPrivate",
+    ]);
+  });
+
+  test.each([
+    ["there is no postmortem", {} as IncidentShape],
+    [
+      "the postmortem is not published",
+      { postmortem: waitingPostmortem({ published: false }) },
+    ],
+    [
+      "the postmortem has no note",
+      { postmortem: waitingPostmortem({ note: "  " }) },
+    ],
+    [
+      "Notify Subscribers is off",
+      { postmortem: waitingPostmortem({ notify: false }) },
+    ],
+    [
+      "the postmortem was sent already",
+      {
+        postmortem: waitingPostmortem({
+          status: StatusPageSubscriberNotificationStatus.Success,
+          message: "Notifications sent successfully to all subscribers.",
+        }),
+      },
+    ],
+    [
+      "the postmortem is on its way",
+      {
+        postmortem: waitingPostmortem({
+          status: StatusPageSubscriberNotificationStatus.Pending,
+          message: IncidentPostmortemPublication.queuedMessage,
+        }),
+      },
+    ],
+    [
+      "the postmortem was skipped for another reason",
+      {
+        postmortem: waitingPostmortem({
+          message:
+            "No monitors are attached to this incident. Skipping notifications to subscribers.",
+        }),
+      },
+    ],
+    [
+      "the incident is visible already",
+      { isVisibleOnStatusPage: true, postmortem: waitingPostmortem() },
+    ],
+  ] as Array<[string, IncidentShape]>)(
+    "says nothing when %s",
+    async (_label: string, shape: IncidentShape) => {
+      await renderSettings();
+      await loadIncident(shape);
+
+      expect(visibilityField().description).toBeUndefined();
+    },
+  );
+
+  test("stops saying it once a save has shown the incident and queued the postmortem", async () => {
+    await renderSettings();
+    await loadIncident({ postmortem: waitingPostmortem() });
+
+    expect(visibilityField().description).toBeDefined();
+
+    // The card reloads its item after every save.
+    await loadIncident({
+      isVisibleOnStatusPage: true,
+      postmortem: waitingPostmortem({
+        status: StatusPageSubscriberNotificationStatus.Pending,
+        message: IncidentPostmortemPublication.shownQueuedMessage,
+      }),
+    });
+
+    expect(visibilityField().description).toBeUndefined();
+  });
+
+  test("the edit form draws what the switch says under it", async () => {
+    const incident: Incident = new Incident();
+    incident.id = new ObjectID(INCIDENT_ID);
+    incident.isVisibleOnStatusPage = false;
+    incident.isPrivate = false;
+    loadedIncident = incident;
+
+    await act(async (): Promise<void> => {
+      render(
+        <ModelForm<Incident>
+          id="incident-settings-form"
+          name="Incident Settings"
+          modelType={Incident}
+          formType={FormType.Update}
+          modelIdToEdit={new ObjectID(INCIDENT_ID)}
+          fields={[
+            {
+              field: { isVisibleOnStatusPage: true },
+              title: "Visible on Status Page",
+              description: IncidentPostmortemPublication.sendsOnShowDescription,
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+            },
+          ]}
+          submitButtonText="Save"
+        />,
+      );
+    });
+
+    await screen.findAllByRole("switch");
+
+    expect(
+      screen.getByText(IncidentPostmortemPublication.sendsOnShowDescription),
+    ).toBeVisible();
   });
 });
 

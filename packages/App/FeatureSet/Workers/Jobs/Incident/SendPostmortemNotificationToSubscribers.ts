@@ -125,47 +125,48 @@ const requeueIfPublishedSinceRead: (
  * postmortem published, the notification goes back in the queue for the
  * next run, unless someone else moved it on since the skip.
  */
-const requeueIfShownSinceRead: (incidentId: ObjectID) => Promise<void> =
-  async (incidentId: ObjectID): Promise<void> => {
-    const current: Incident | null = await IncidentService.findOneById({
-      id: incidentId,
-      select: {
-        isVisibleOnStatusPage: true,
-        showPostmortemOnStatusPage: true,
-        postmortemNote: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+const requeueIfShownSinceRead: (incidentId: ObjectID) => Promise<void> = async (
+  incidentId: ObjectID,
+): Promise<void> => {
+  const current: Incident | null = await IncidentService.findOneById({
+    id: incidentId,
+    select: {
+      isVisibleOnStatusPage: true,
+      showPostmortemOnStatusPage: true,
+      postmortemNote: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
 
-    if (
-      current?.isVisibleOnStatusPage !== true ||
-      !IncidentPostmortemPublication.isPublished(current)
-    ) {
-      return;
-    }
+  if (
+    current?.isVisibleOnStatusPage !== true ||
+    !IncidentPostmortemPublication.isPublished(current)
+  ) {
+    return;
+  }
 
-    logger.debug(
-      `Incident ${incidentId.toString()} was made visible on status pages while this run held its postmortem notification; queueing it again.`,
-    );
+  logger.debug(
+    `Incident ${incidentId.toString()} was made visible on status pages while this run held its postmortem notification; queueing it again.`,
+  );
 
-    await IncidentService.compareAndSetColumnsByIdWithoutHooks({
-      id: incidentId,
-      data: {
-        subscriberNotificationStatusOnPostmortemPublished:
-          StatusPageSubscriberNotificationStatus.Pending,
-        subscriberNotificationStatusMessageOnPostmortemPublished:
-          IncidentPostmortemPublication.shownQueuedMessage,
-      },
-      expectedData: {
-        subscriberNotificationStatusOnPostmortemPublished:
-          StatusPageSubscriberNotificationStatus.Skipped,
-        subscriberNotificationStatusMessageOnPostmortemPublished:
-          IncidentPostmortemPublication.hiddenIncidentMessage,
-      },
-    });
-  };
+  await IncidentService.compareAndSetColumnsByIdWithoutHooks({
+    id: incidentId,
+    data: {
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        IncidentPostmortemPublication.shownQueuedMessage,
+    },
+    expectedData: {
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        IncidentPostmortemPublication.hiddenIncidentMessage,
+    },
+  });
+};
 
 RunCron(
   "Incident:SendPostmortemNotificationToSubscribers",

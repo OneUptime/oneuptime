@@ -410,7 +410,8 @@ export default class IncidentPostmortemPublication {
       this.isPublished(incident) &&
       this.isHiddenIncidentSkip({
         status: incident.subscriberNotificationStatusOnPostmortemPublished,
-        message: incident.subscriberNotificationStatusMessageOnPostmortemPublished,
+        message:
+          incident.subscriberNotificationStatusMessageOnPostmortemPublished,
       })
     );
   }
@@ -470,7 +471,8 @@ export default class IncidentPostmortemPublication {
         this.isHiddenIncidentSkip({
           status: storedStatus,
           message:
-            data.stored?.subscriberNotificationStatusMessageOnPostmortemPublished,
+            data.stored
+              ?.subscriberNotificationStatusMessageOnPostmortemPublished,
         }))
     ) {
       return PostmortemNotificationAction.QueueIfSkippedAsHidden;

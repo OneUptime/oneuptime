@@ -12,7 +12,8 @@ import path from "path";
  * presence on an update, the switch plus a trimmed note), so a save of an
  * unchanged postmortem re-sent it, and a postmortem switched on without a
  * note sent an empty one. They now all ask IncidentPostmortemPublication,
- * and this keeps them asking it.
+ * and this keeps them asking it - for a postmortem that waits for its hidden
+ * incident to be shown too.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../..");
@@ -64,6 +65,66 @@ describe("the postmortem's one publication rule", () => {
     );
     expect(source).not.toMatch(
       /hasOwnProperty\.call\(\s*updatedIncidentData,\s*"postmortemNote"/,
+    );
+  });
+
+  /*
+   * A postmortem published while its incident is hidden waits for the
+   * incident: the job skips it in the rule's words, the update that shows
+   * the incident sends it (found in #4429: nothing did), and both recognise
+   * that skip - the words of this release and of the earlier ones - by the
+   * one rule.
+   */
+  test("the send job's skip for a hidden incident is the rule's, and it looks again after it", () => {
+    const source: string = read(SEND_JOB);
+
+    expect(source).toContain(
+      "IncidentPostmortemPublication.hiddenIncidentMessage,",
+    );
+    expect(source).toContain("await requeueIfShownSinceRead(incident.id!);");
+    // Its own copy of the words, which said nothing would follow, is gone.
+    expect(source).not.toContain(
+      '"Incident is not visible on status page. Skipping notifications to subscribers."',
+    );
+  });
+
+  test("the incident service reads the incident's visibility in its one stored read, and recognises the skip by the rule", () => {
+    const source: string = read(INCIDENT_SERVICE);
+
+    expect(source).toContain(
+      "IncidentPostmortemPublication.isIncidentShownBy(",
+    );
+    expect(source).toContain(
+      "PostmortemNotificationAction.QueueIfSkippedAsHidden",
+    );
+    expect(source).toContain(
+      "IncidentPostmortemPublication.isHiddenIncidentSkip(current)",
+    );
+    // Showing the incident is compared in the read every comparison shares.
+    expect(source).toMatch(
+      /private async recordStoredValuesBeforeUpdate\([\s\S]*?isIncidentShownBy\([\s\S]*?findIncidentsForUpdateHook\(/,
+    );
+  });
+
+  test("the dashboard says a postmortem waits for its incident by the rule", () => {
+    const postmortemPage: string = read(
+      "App/FeatureSet/Dashboard/src/Pages/Incidents/View/Postmortem.tsx",
+    );
+    const settingsPage: string = read(
+      "App/FeatureSet/Dashboard/src/Pages/Incidents/View/Settings.tsx",
+    );
+
+    for (const source of [postmortemPage, settingsPage]) {
+      expect(source).toContain(
+        "IncidentPostmortemPublication.isWaitingForIncidentToShow(",
+      );
+    }
+
+    expect(postmortemPage).toContain(
+      "IncidentPostmortemPublication.hiddenIncidentLabel",
+    );
+    expect(settingsPage).toContain(
+      "IncidentPostmortemPublication.sendsOnShowDescription",
     );
   });
 });

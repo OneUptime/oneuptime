@@ -464,3 +464,91 @@ describe("PUT an incident's postmortem", () => {
     expect(postmortemFeedItems()).toEqual([]);
   });
 });
+
+/*
+ * PUT /api/incident/:id with isVisibleOnStatusPage: a postmortem published
+ * while the incident was hidden reached nobody - the send job skipped it,
+ * waiting for the incident - and showing the incident through the API or
+ * Terraform (is_visible_on_status_page) used to leave it so for good (found
+ * in #4429). It is sent now, once.
+ */
+describe("PUT an incident's Visible on Status Page", () => {
+  beforeEach(() => {
+    // Published while hidden: the job skipped it, waiting for the incident.
+    stored.isVisibleOnStatusPage = false;
+    stored.subscriberNotificationStatusOnPostmortemPublished =
+      StatusPageSubscriberNotificationStatus.Skipped;
+    stored.subscriberNotificationStatusMessageOnPostmortemPublished =
+      IncidentPostmortemPublication.hiddenIncidentMessage;
+  });
+
+  test("showing the incident queues the postmortem that waits for it, once", async () => {
+    await put({ isVisibleOnStatusPage: true });
+
+    expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(postmortemNotificationsQueued()).toEqual([
+      expect.objectContaining({
+        data: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Pending,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.shownQueuedMessage,
+        },
+        expectedData: {
+          subscriberNotificationStatusOnPostmortemPublished:
+            StatusPageSubscriberNotificationStatus.Skipped,
+          subscriberNotificationStatusMessageOnPostmortemPublished:
+            IncidentPostmortemPublication.hiddenIncidentMessage,
+        },
+      }),
+    ]);
+    // The write itself carries no status: the queueing is its own, guarded write.
+    expect(written()).toEqual({ isVisibleOnStatusPage: true });
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("an incident whose postmortem was sent already sends nothing when it is shown again", async () => {
+    stored.subscriberNotificationStatusOnPostmortemPublished =
+      StatusPageSubscriberNotificationStatus.Success;
+    stored.subscriberNotificationStatusMessageOnPostmortemPublished =
+      "Notifications sent successfully to all subscribers.";
+
+    await put({ isVisibleOnStatusPage: true });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(compareAndSet).not.toHaveBeenCalled();
+  });
+
+  test("an incident whose postmortem is not published sends nothing when it is shown", async () => {
+    stored.showPostmortemOnStatusPage = false;
+
+    await put({ isVisibleOnStatusPage: true });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+
+  test("a client writing the whole incident back, already shown, sets off nothing", async () => {
+    stored.isVisibleOnStatusPage = true;
+
+    await put({
+      title: "Checkout errors",
+      isVisibleOnStatusPage: true,
+      postmortemNote: NOTE,
+      showPostmortemOnStatusPage: true,
+      notifySubscribersOnPostmortemPublished: true,
+      postmortemPostedAt: PUBLISHED_AT,
+    });
+
+    expect(postmortemNotificationsQueued()).toEqual([]);
+    expect(postmortemFeedItems()).toEqual([]);
+  });
+
+  test("someone who may only read incidents cannot show it, and nothing is queued", async () => {
+    caller = personWith([Permission.IncidentViewer]);
+
+    await expect(put({ isVisibleOnStatusPage: true })).rejects.toThrow();
+
+    expect(repositoryUpdate).not.toHaveBeenCalled();
+    expect(postmortemNotificationsQueued()).toEqual([]);
+  });
+});

@@ -1046,7 +1046,7 @@ describe("a postmortem published while its incident is hidden from status pages"
     expect(sent()).toEqual(sentTimes(1));
   });
 
-  test("the API or Terraform switching Visible on Status Page on - a hand-written \"true\" too - announces it once", async () => {
+  test('the API or Terraform switching Visible on Status Page on - a hand-written "true" too - announces it once', async () => {
     await saveEditPostmortemForm({ note: NOTE, publish: true });
     await runTheJob();
 
@@ -1136,7 +1136,10 @@ describe("a postmortem published while its incident is hidden from status pages"
     await runTheJob();
 
     await update(
-      { isVisibleOnStatusPage: true, isPrivate: false } as unknown as JSONObject,
+      {
+        isVisibleOnStatusPage: true,
+        isPrivate: false,
+      } as unknown as JSONObject,
       editor(),
       { notifySubscribersOfIncidentCreatedOnPublish: true },
     );
