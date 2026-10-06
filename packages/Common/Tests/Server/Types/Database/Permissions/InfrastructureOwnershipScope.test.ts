@@ -38,6 +38,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import LIMIT_MAX from "../../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
@@ -480,6 +481,8 @@ describe.each(INFRASTRUCTURE)(
       expect(lookups(entry.name).model).toHaveBeenCalledWith({
         query: { labels: [LABEL_ID], projectId: PROJECT_ID },
         select: { _id: true },
+        // Read page by page, in a stable order, to the end of the list.
+        sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
         skip: 0,
         limit: LIMIT_MAX,
