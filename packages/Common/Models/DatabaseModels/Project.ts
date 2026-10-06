@@ -1600,6 +1600,54 @@ export default class Project extends TenantModel {
   public aiDailySpendLimitInUSD?: number = undefined;
 
   /*
+   * When each of the two limits above last stopped OneUptime AI: the first
+   * time it did on the latest UTC day it did (Types/AI/ProjectAiDailyLimits,
+   * PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS). The conditional UPDATE that
+   * writes one, once a day, is what decides the project's owners are emailed
+   * (Server/Utils/AI/ProjectAiDailyLimitOwnerNotice), and the investigation
+   * catch-up reads them to find the projects whose skipped incidents and
+   * alerts may be waiting for the reset. Internal, like the owner notice
+   * flags below: no one reads or writes them through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Daily AI Token Limit Reached At",
+    description:
+      "Internal: when the project's daily AI token limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiDailyTokenLimitReachedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Daily AI Spend Limit Reached At",
+    description:
+      "Internal: when the project's daily AI spend limit last stopped OneUptime AI - the first time on that UTC day. The project's owners are emailed then, once a day.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiDailySpendLimitReachedAt?: Date = undefined;
+
+  /*
    * The per-feature AI switches below (this one down to
    * autoArchiveNonActionableExceptions) are ON for projects created from
    * now on, and their column default stays OFF on purpose. ProjectService's

@@ -260,6 +260,9 @@ export default class AIInvestigationEngine {
         // The project's own daily AI limits, checked last on this same row.
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
+        // When each last stopped AI: telling the owners costs no read then.
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       },
       props: { isRoot: true },
     });

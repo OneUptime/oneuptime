@@ -207,7 +207,7 @@ afterEach(() => {
 });
 
 describe("the sentence a refusal says", () => {
-  test("for the token limit: which limit, how much, when AI starts again, where to change it", () => {
+  test("for the token limit: which limit, how much, when AI starts again, who can change it and where", () => {
     expect(
       getProjectDailyLimitMessage({
         reachedLimit: ProjectAiDailyLimit.Tokens,
@@ -216,7 +216,7 @@ describe("the sentence a refusal says", () => {
         usage: { usedTokensToday: 201234, spentTodayInUSDCents: 0 },
       }),
     ).toBe(
-      "This project has reached its daily AI token limit: 201,234 of 200,000 tokens used today. OneUptime AI starts again at midnight UTC. To raise or remove the limit, go to Project Settings → AI Features → More settings.",
+      "This project has reached its daily AI token limit: 201,234 of 200,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
     );
   });
 
@@ -229,7 +229,7 @@ describe("the sentence a refusal says", () => {
         usage: { usedTokensToday: 9_000_000, spentTodayInUSDCents: 2503 },
       }),
     ).toBe(
-      "This project has reached its daily AI spend limit: $25.03 of $25 spent today. OneUptime AI starts again at midnight UTC. To raise or remove the limit, go to Project Settings → AI Features → More settings.",
+      "This project has reached its daily AI spend limit: $25.03 of $25 spent today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
     );
   });
 
@@ -303,12 +303,17 @@ describe("AIService.getProjectDailyLimitStatus: counting", () => {
     expect(providerForProject).not.toHaveBeenCalled();
   });
 
-  test("reads the two limit columns of this project, as root", async () => {
+  test("reads the two limit columns of this project, and when each last stopped AI, as root", async () => {
     await AIService.getProjectDailyLimitStatus({ projectId: PROJECT_ID });
 
     expect(projectLookup).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { aiDailyTokenLimit: true, aiDailySpendLimitInUSD: true },
+      select: {
+        aiDailyTokenLimit: true,
+        aiDailySpendLimitInUSD: true,
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
+      },
       props: { isRoot: true },
     });
   });
@@ -815,6 +820,9 @@ describe.each([
         aiCurrentBalanceInUSDCents: true,
         aiDailyTokenLimit: true,
         aiDailySpendLimitInUSD: true,
+        // When each limit last stopped AI: telling the owners costs no read.
+        aiDailyTokenLimitReachedAt: true,
+        aiDailySpendLimitReachedAt: true,
       });
     });
 
@@ -858,7 +866,7 @@ describe.each([
         ];
 
         const expected: string =
-          "This project has reached its daily AI token limit: 5,000 of 5,000 tokens used today. OneUptime AI starts again at midnight UTC. To raise or remove the limit, go to Project Settings → AI Features → More settings.";
+          "This project has reached its daily AI token limit: 5,000 of 5,000 tokens used today. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.";
 
         const call: Promise<AILogResponse> = execute(feature);
 
