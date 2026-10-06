@@ -3,7 +3,9 @@ import {
   getAllEnvVars,
 } from "../../../../Server/EnvironmentConfig";
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
-import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -19,10 +21,11 @@ import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
+import Permission, { UserPermission } from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
+import TablePermission from "./TablePermission";
 
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import logger from "../../../Utils/Logger";
@@ -41,6 +44,36 @@ export default class ColumnPermissions {
     return returnArr;
   }
 
+  /*
+   * The caller's permission rows as a column check reads them: the allow
+   * rows (and global permissions) and the block rows the CRUD path reads
+   * (getUserPermissions), so a column follows the rule a table does.
+   */
+  public static getColumnCheckRows(
+    props: DatabaseCommonInteractionProps,
+  ): Array<UserPermission> {
+    return [
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    ];
+  }
+
+  /*
+   * The columns `userPermissions` (a caller's permission rows) may read,
+   * create or update, by the rule every permission check follows
+   * (HeldPermissionsUtil): an allow row for one of the column's
+   * permissions, and no block with no labels on any of them. On an
+   * operational resource, a column that lets in everyone its table does for
+   * the operation accepts the table's *AllOperationalResources wildcard
+   * too, as the table check does; a column narrower than its table on
+   * purpose keeps exactly its own list.
+   */
   @CaptureSpan()
   public static getModelColumnsByPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -53,11 +86,17 @@ export default class ColumnPermissions {
 
     const columns: Array<string> = [];
 
-    const permissions: Array<Permission> = userPermissions.map(
-      (item: UserPermission) => {
-        return item.permission;
-      },
-    );
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: userPermissions,
+    });
+
+    const tablePermissions: Array<Permission> =
+      requestType === DatabaseRequestType.Delete
+        ? []
+        : TablePermission.getTablePermission(
+            modelType as DatabaseBaseModelType,
+            requestType,
+          );
 
     for (const key in accessControl) {
       let columnPermissions: Array<Permission> = [];
@@ -80,10 +119,14 @@ export default class ColumnPermissions {
 
       if (
         columnPermissions &&
-        PermissionHelper.doesPermissionsIntersect(
-          permissions,
-          columnPermissions,
-        )
+        HeldPermissionsUtil.holdsAnyOf(held, columnPermissions, {
+          wildcard: HeldPermissionsUtil.getColumnWildcard({
+            isOperationalResource: model.isOperationalResource,
+            operation: requestType,
+            tablePermissions: tablePermissions,
+            columnPermissions: columnPermissions,
+          }),
+        })
       ) {
         columns.push(key);
       }
@@ -100,15 +143,10 @@ export default class ColumnPermissions {
     requestType: DatabaseRequestType,
   ): void {
     const model: BaseModel = new modelType();
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
 
     const permissionColumns: Columns = this.getModelColumnsByPermissions(
       modelType,
-      userPermissions,
+      ColumnPermissions.getColumnCheckRows(props),
       requestType,
     );
 

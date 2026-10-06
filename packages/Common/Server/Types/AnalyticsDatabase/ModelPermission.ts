@@ -32,6 +32,9 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../Types/HeldPermissions";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
@@ -173,15 +176,9 @@ export default class ModelPermission {
     requestType: DatabaseRequestType,
   ): void {
     const model: BaseModel = new modelType();
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const permissionColumns: Columns = this.getModelColumnsByPermissions(
       modelType,
-      userPermissions,
+      ModelPermission.getColumnCheckRows(props),
       requestType,
     );
 
@@ -402,15 +399,9 @@ export default class ModelPermission {
   ): void {
     const model: BaseModel = new modelType();
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns = this.getModelColumnsByPermissions(
       modelType,
-      userPermissions || [],
+      ModelPermission.getColumnCheckRows(props),
       DatabaseRequestType.Read,
     );
 
@@ -539,6 +530,33 @@ export default class ModelPermission {
     return query;
   }
 
+  /*
+   * The caller's permission rows as a column check reads them: the allow
+   * rows (and global permissions) and the block rows the CRUD path reads.
+   */
+  private static getColumnCheckRows(
+    props: DatabaseCommonInteractionProps,
+  ): Array<UserPermission> {
+    return [
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    ];
+  }
+
+  /*
+   * The columns the caller's rows may read, create or update, by the rule
+   * every permission check follows (HeldPermissionsUtil) - as the database
+   * models' column check reads it (ColumnPermission): an allow row for one
+   * of the column's permissions, no block with no labels on any of them,
+   * and on an operational resource the table's *AllOperationalResources
+   * wildcard for a column that lets in everyone its table does.
+   */
   private static getModelColumnsByPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     userPermissions: Array<UserPermission>,
@@ -549,11 +567,17 @@ export default class ModelPermission {
 
     const columns: Array<string> = [];
 
-    const permissions: Array<Permission> = userPermissions.map(
-      (item: UserPermission) => {
-        return item.permission;
-      },
-    );
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: userPermissions,
+    });
+
+    const tablePermissions: Array<Permission> =
+      requestType === DatabaseRequestType.Delete
+        ? []
+        : this.getModelPermissions(
+            modelType as unknown as AnalyticsBaseModelType,
+            requestType,
+          );
 
     for (const column of tableColumns) {
       let columnPermissions: Array<Permission> = [];
@@ -576,10 +600,14 @@ export default class ModelPermission {
 
       if (
         columnPermissions &&
-        PermissionHelper.doesPermissionsIntersect(
-          permissions,
-          columnPermissions,
-        )
+        HeldPermissionsUtil.holdsAnyOf(held, columnPermissions, {
+          wildcard: HeldPermissionsUtil.getColumnWildcard({
+            isOperationalResource: model.isOperationalResource,
+            operation: requestType,
+            tablePermissions: tablePermissions,
+            columnPermissions: columnPermissions,
+          }),
+        })
       ) {
         columns.push(column.key);
       }
@@ -595,15 +623,9 @@ export default class ModelPermission {
   ): void {
     const model: BaseModel = new modelType();
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns = this.getModelColumnsByPermissions(
       modelType,
-      userPermissions || [],
+      ModelPermission.getColumnCheckRows(props),
       DatabaseRequestType.Read,
     );
 
@@ -680,44 +702,49 @@ export default class ModelPermission {
   }
 
   /*
-   * Mirror of TablePermission.getEffectiveModelPermissions. Adds the
-   * *AllOperationalResources wildcard for @OperationalResource analytics models. See
-   * Internal/Docs/PermissionsSimplification.md.
+   * Mirror of TablePermission.getGrantingPermissions: the model's own list,
+   * and the *AllOperationalResources wildcard for @OperationalResource
+   * analytics models - unless a block with no labels takes the wildcard away
+   * or the list is empty (nobody may do the operation).
    */
   private static getEffectiveModelPermissions(
     modelType: AnalyticsBaseModelType,
     modelPermissions: Array<Permission>,
     type: DatabaseRequestType,
+    props: DatabaseCommonInteractionProps,
   ): Array<Permission> {
     const effective: Array<Permission> = [...modelPermissions];
 
-    const model: any = new modelType();
-    if (model.isOperationalResource) {
-      const wildcard: Permission | null =
-        this.getWildcardPermissionForOperation(type);
-      if (wildcard && !effective.includes(wildcard)) {
-        effective.push(wildcard);
-      }
+    const model: BaseModel = new modelType();
+    const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
+      isOperationalResource: model.isOperationalResource,
+      operation: type,
+    });
+
+    if (
+      !wildcard ||
+      effective.length === 0 ||
+      effective.includes(wildcard) ||
+      ModelPermission.getHeldPermissions(props).blocked.includes(wildcard)
+    ) {
+      return effective;
     }
+
+    effective.push(wildcard);
 
     return effective;
   }
 
-  private static getWildcardPermissionForOperation(
-    type: DatabaseRequestType,
-  ): Permission | null {
-    switch (type) {
-      case DatabaseRequestType.Read:
-        return Permission.ReadAllOperationalResources;
-      case DatabaseRequestType.Update:
-        return Permission.EditAllOperationalResources;
-      case DatabaseRequestType.Delete:
-        return Permission.DeleteAllOperationalResources;
-      case DatabaseRequestType.Create:
-        return Permission.CreateAllOperationalResources;
-      default:
-        return null;
-    }
+  /*
+   * What the caller holds, read as the CRUD path reads it (the database
+   * models' TablePermission.getHeldPermissions).
+   */
+  private static getHeldPermissions(
+    props: DatabaseCommonInteractionProps,
+  ): HeldPermissions {
+    return HeldPermissionsUtil.fromRows({
+      rows: ModelPermission.getColumnCheckRows(props),
+    });
   }
 
   /*
@@ -780,7 +807,12 @@ export default class ModelPermission {
       type,
     );
     const effectivePermissions: Array<Permission> =
-      this.getEffectiveModelPermissions(modelType, modelPermissions, type);
+      this.getEffectiveModelPermissions(
+        modelType,
+        modelPermissions,
+        type,
+        props,
+      );
 
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
@@ -1221,7 +1253,12 @@ export default class ModelPermission {
      * permissions. See Internal/Docs/PermissionsSimplification.md.
      */
     const effectiveModelPermissions: Array<Permission> =
-      this.getEffectiveModelPermissions(modelType, modelPermissions, type);
+      this.getEffectiveModelPermissions(
+        modelType,
+        modelPermissions,
+        type,
+        props,
+      );
 
     if (
       !PermissionHelper.doesPermissionsIntersect(
@@ -1244,6 +1281,31 @@ export default class ModelPermission {
         `You do not have permissions to ${type} ${
           new modelType().singularName
         }. You need one of these permissions: ${permissions.join(", ")}`,
+      );
+    }
+
+    /*
+     * A block with no labels on any of the model's permissions takes the
+     * operation away, whatever else the caller holds - the rule every
+     * permission check follows (HeldPermissionsUtil), and the one the
+     * database models' table check applies
+     * (TablePermission.checkTableLevelBlockPermissions). A block with labels
+     * restricts only records carrying them.
+     */
+    const blocked: Array<Permission> =
+      ModelPermission.getHeldPermissions(props).blocked;
+
+    const tableWideBlock: Permission | undefined = modelPermissions.find(
+      (permission: Permission): boolean => {
+        return blocked.includes(permission);
+      },
+    );
+
+    if (tableWideBlock) {
+      throw new NotAuthorizedException(
+        `You are not authorized to ${type} ${
+          new modelType().singularName
+        } because ${tableWideBlock} is in your team's permission block list.`,
       );
     }
 

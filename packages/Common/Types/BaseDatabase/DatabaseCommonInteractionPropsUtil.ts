@@ -1,4 +1,5 @@
 import Permission, { UserPermission } from "../Permission";
+import HeldPermissionsUtil from "../HeldPermissions";
 import DatabaseCommonInteractionProps from "./DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../Exception/NotAuthorizedException";
@@ -135,14 +136,18 @@ export default class DatabaseCommonInteractionPropsUtil {
     }
 
     if (props.tenantId && props.userTenantAccessPermission) {
-      // Include Tenant Permission in userPermissions.
+      /*
+       * Include Tenant Permission in userPermissions. A row is a block when
+       * it says so and an allow otherwise - the one reading of the flag
+       * (HeldPermissionsUtil.isBlockRow) every permission check shares.
+       */
       userPermissions = [
         ...userPermissions,
         ...(props.userTenantAccessPermission[
           props.tenantId.toString()
         ]?.permissions.filter((userPermission: UserPermission) => {
           return (
-            userPermission.isBlockPermission ===
+            HeldPermissionsUtil.isBlockRow(userPermission) ===
             (permissionType === PermissionType.Block)
           );
         }) || []),

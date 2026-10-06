@@ -180,16 +180,10 @@ export default class QueryPermission {
      */
     OwnerOnlyColumnPermission.checkQueryPermission(modelType, query, props);
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns =
       ColumnPermissions.getModelColumnsByPermissions(
         modelType,
-        userPermissions || [],
+        ColumnPermissions.getColumnCheckRows(props),
         DatabaseRequestType.Read,
       );
 

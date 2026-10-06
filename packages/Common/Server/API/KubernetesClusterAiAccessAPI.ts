@@ -15,11 +15,7 @@ import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailabl
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../Types/Permission";
+import { PermissionHelper } from "../../Types/Permission";
 import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import {
@@ -66,7 +62,7 @@ import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAcc
 import RunnerJobService from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
-import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
 import AiActivityInsightsReader, {
   AiActivityInsightsScope,
@@ -185,10 +181,11 @@ async function findAccessibleCluster(data: {
 }
 
 /*
- * Mirrors KubernetesCluster's update ACL; a block row is a denial, not a
- * grant. The access test is read-only, but it spends the bound Runner's
- * time and prints the RBAC the Runner holds, so it is for the people who
- * may edit the cluster.
+ * Mirrors KubernetesCluster's update ACL, read the way every permission
+ * check reads it (CallerPermission): a block row is a denial, not a grant,
+ * and a block with no labels on that list takes the test away. The access
+ * test is read-only, but it spends the bound Runner's time and prints the
+ * RBAC the Runner holds, so it is for the people who may edit the cluster.
  */
 function assertCanEditCluster(
   props: DatabaseCommonInteractionProps,
@@ -198,19 +195,13 @@ function assertCanEditCluster(
     return;
   }
 
-  const allowed: Array<Permission> =
-    new KubernetesCluster().getUpdatePermissions();
-
-  const tenantPermission: UserTenantAccessPermission | undefined =
-    props.userTenantAccessPermission?.[projectId.toString()];
-
-  const hasPermission: boolean = Boolean(
-    tenantPermission?.permissions?.some((p: UserPermission): boolean => {
-      return !p.isBlockPermission && allowed.includes(p.permission);
-    }),
-  );
-
-  if (!hasPermission) {
+  if (
+    !CallerPermission.holdsModelPermission(
+      props,
+      { model: new KubernetesCluster(), operation: "update" },
+      { projectId: projectId },
+    )
+  ) {
     throw new NotAuthorizedException(
       "You need permission to edit this Kubernetes cluster to run its AI access test.",
     );
@@ -544,12 +535,21 @@ function assertCanResetAiAgent(
   props: DatabaseCommonInteractionProps,
   projectId: ObjectID,
 ): void {
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: resetting reaches the agent whatever labels it has.
+   */
   if (
-    !holdsAnyUnblockedPermission({
+    !props.isRoot &&
+    !props.isMasterAdmin &&
+    !CallerPermission.holdsAnyOf(
       props,
-      projectId,
-      allowed: KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-    })
+      KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+      {
+        projectId: projectId,
+        labelledBlocksRefuse: true,
+      },
+    )
   ) {
     throw new NotAuthorizedException(
       `You need one of these permissions to reset this cluster's Kubernetes AI agent: ${PermissionHelper.getPermissionTitles(
@@ -595,11 +595,19 @@ function canReadCredentials(
   props: DatabaseCommonInteractionProps,
   projectId: ObjectID,
 ): boolean {
-  return holdsAnyUnblockedPermission({
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: a credential's name says nothing about its labels.
+   */
+  if (props.isRoot || props.isMasterAdmin) {
+    return true;
+  }
+
+  return CallerPermission.holdsAnyOf(
     props,
-    projectId,
-    allowed: KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-  });
+    KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+    { projectId: projectId, labelledBlocksRefuse: true },
+  );
 }
 
 router.post(
