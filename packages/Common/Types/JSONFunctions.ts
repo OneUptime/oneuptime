@@ -587,6 +587,17 @@ export default class JSONFunctions {
   public static deserialize(val: JSONObject): JSONObject {
     const newVal: JSONObject = {};
     for (const key in val) {
+      /*
+       * JSON.parse keeps a "__proto__" key as an ordinary property, but
+       * assigning it below would set the new object's prototype instead:
+       * its values would then be read by name - a column of a request
+       * body, say - while every check that lists the object's own keys
+       * missed them. It is never data, so it is not copied.
+       */
+      if (key === "__proto__") {
+        continue;
+      }
+
       if (val[key] === null || val[key] === undefined) {
         newVal[key] = val[key];
       }

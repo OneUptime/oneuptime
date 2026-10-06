@@ -13,6 +13,10 @@ SCIM integration provides the following benefits:
 - **User Attribute Synchronization**: Keep user information synchronized between your IdP and OneUptime
 - **Centralized Access Management**: Manage OneUptime access from your existing identity management system
 
+### Below the Scale plan
+
+On OneUptime Cloud, a SCIM connection a project still has keeps provisioning people after a Scale trial ends or the plan goes down. So below **Scale**, **Project Settings** > **SCIM**, and a status page's **SCIM** page, list the connections under the plan's upsell (**SCIM connections still set up**). Delete a connection to stop it. Adding a connection, changing one or replacing its bearer token needs **Scale**. The list does not show bearer tokens, and only project owners can read a token, on every plan.
+
 ## SCIM for Projects
 
 Project SCIM allows identity providers to manage team members within OneUptime projects.

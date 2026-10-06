@@ -1,4 +1,6 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import BillingPermissions from "../Types/Database/Permissions/BillingPermission";
 import WorkspaceNotificationSummaryService, {
   Service as WorkspaceNotificationSummaryServiceType,
 } from "../Services/WorkspaceNotificationSummaryService";
@@ -32,6 +34,18 @@ export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
 
           const summaryId: ObjectID = new ObjectID(
             req.params["workspaceNotificationSummaryId"] as string,
+          );
+
+          /*
+           * Sending a summary is what the Growth plan sells. A project below
+           * it may still read the summaries it has - to find, switch off and
+           * delete them (Types/Billing/PlanGatedTable) - so the read below
+           * no longer stands in for the plan: it is asked here.
+           */
+          BillingPermissions.checkFeatureIsOnPlan(
+            WorkspaceNotificationSummary,
+            databaseProps,
+            DatabaseRequestType.Read,
           );
 
           // Verify the summary belongs to the user's project

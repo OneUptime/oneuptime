@@ -203,12 +203,12 @@ route:
 ## 疑難排解
 
 - **什麼都沒收到** —— 確認 Alertmanager 能連到該 URL；檢查它的記錄檔有無投遞錯誤。OneUptime 會在驗證任何內容之前就以空的 `200` 回應每個請求，因此 `200` 並不能確認酬載已被接受。請改看監控器的時間軸。
-- **事件會開啟但從不關閉** —— 檢查 Alertmanager 中的 `send_resolved: true`、條件中的復原欄位與值（比較區分大小寫），以及事件 **More fields** 下的 **Auto Resolve Incident**。還有兩個更隱微的原因：當酬載中不同鍵的數量超過 **Max incidents per request** 時，超出上限的鍵對復原同樣看不見；另外，如果被入口合併（見下）丟棄的正好是 `resolved` 通知，該事件就會被永久擱置，因為 Alertmanager 會重送觸發通知，卻不會重送已解決的通知。這些只能手動關閉。
+- **事件會開啟但從不關閉** —— 檢查 Alertmanager 中的 `send_resolved: true`、條件中的復原欄位與值（比較區分大小寫），以及事件 **More fields** 下的 **Auto Resolve Incident**。還有兩個更隱微的原因：當酬載中不同鍵的數量超過 **Max incidents per request** 時，超出上限的鍵對復原同樣看不見；另外，如果在某則 `resolved` 通知被評估之前，就抵達了一則關於其他警示的通知，入口合併（見下）會略過這則 `resolved` 通知，該事件也就會被永久擱置，因為 Alertmanager 會重送觸發通知，卻不會重送已解決的通知。這些只能手動關閉。
 - **完全沒有事件，監控器狀態也沒變** —— 分組路徑必須以字面的 `requestBody.` 開頭，而且路徑中只有第一個 `[*]` 是萬用字元。這兩個錯誤都會靜默失敗。
 - **事件文字中出現原始的 `{{...}}` 佔位符** —— 路徑沒有解析成功，而 OneUptime 會原樣保留未解析的佔位符，而不是清空它們。不同規則設定的註解不同，因此請引用你的規則中確實存在的欄位（`commonAnnotations` 或每則警示各自的 `annotations`）。
 - **一份滿是警示的酬載只產生一個事件** —— 你以一個在通知內部不會變化的標籤分組，最常見的是同時出現在路由 `group_by` 中的那個標籤。請改以 `requestBody.alerts[*].fingerprint` 分組。
 - **事件太多** —— 放寬 `group_by` / `group_interval`，讓 Alertmanager 把相關警示併批。調低 **Max incidents per request** 可以限制數量，但也會讓超出上限的鍵對復原看不見。
-- **在大量突發時似乎有些通知被略過** —— 送往同一個監控器的請求會在入口處合併，以免單一發送端壓垮監控器，因此當通知接連抵達時可能會丟掉中間的某份酬載。加大 `group_wait` 與 `group_interval` 可以把它們拉開。合併由應用程式容器的環境變數 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` 控制，預設為開啟；需要每份酬載都被評估的自架維運人員，可以在該容器上將它設為 `false`。
+- **在大量突發時似乎有些通知被略過** —— 送往同一個監控器的請求會在入口處合併，以免單一發送端壓垮監控器：如果在較早的請求被評估之前，同一個監控器又收到了較新的請求，就只會評估較新的那一則。一次突發中的最後一則通知一定會被評估，但先前的通知會被略過，即使後一則通知涉及的是其他警示，因為 Alertmanager 會把每個 `group_by` 群組當作獨立的通知送到同一個 URL。加大 `group_wait` 與 `group_interval` 可以把它們拉開。合併由應用程式容器的環境變數 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED` 控制，預設為開啟；需要每份酬載都被評估的自架維運人員，可以在該容器上將它設為 `false`。
 
 ## 接下來閱讀什麼
 

@@ -146,6 +146,8 @@ La notification est demandée ligne de chronologie par ligne de chronologie via 
 
 **Une dernière chose qui change le résultat.** Si vous saisissez une **Note publique** dans la fenêtre de changement d'état, la ligne de chronologie est marquée comme déjà notifiée plutôt que mise en file. C'est la note elle-même qui atteint les abonnés : ils reçoivent un message au lieu de deux. Ce message nomme le nouvel état sur chaque canal, comme l'aurait fait le message de changement d'état : par exemple `[Resolved Incident] <title>` dans l'objet de l'e-mail et `**Status:** Resolved` dans Slack et Microsoft Teams. Publier la note demande la permission de créer des notes publiques : sans elle, la fenêtre ne propose pas la note, et un changement d'état envoyé avec une note est refusé, si bien que l'état reste inchangé. Le type d'événement derrière le message de changement d'état simple est `Subscriber Incident State Changed`.
 
+Les alertes, les épisodes d'alertes et les épisodes d'incidents proposent plutôt une note privée avec un changement d'état (**Ajouter une note privée**), et elle fonctionne de la même façon : la publier demande la permission propre à la note (**Create Alert Internal Note**, **Create Alert Episode Internal Note** ou **Create Incident Episode Internal Note** dans un rôle personnalisé ; les rôles intégrés d'alertes, d'incidents et de projet les ont), et un changement d'état envoyé avec une note privée par quelqu'un qui ne l'a pas est refusé en entier, si bien que l'état reste inchangé.
+
 Pour savoir qui reçoit ces messages et comment les modèles sont choisis, voyez [Abonnés et annonces](/docs/status-pages/subscribers).
 
 ## Garder un incident hors de la page de statut

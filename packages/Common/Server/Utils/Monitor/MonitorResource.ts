@@ -66,6 +66,7 @@ import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 
 interface ProbeAgreementResult {
   hasAgreement: boolean;
@@ -411,13 +412,20 @@ export default class MonitorResourceUtil {
              * decorators, so those hooks were inert anyway — a single
              * UPDATE by the id we already hold is equivalent and 3x cheaper.
              * See the Monitor heartbeat writes below for the same pattern.
+             *
+             * The copy written is a storable one: a single NUL in the
+             * response body or headers made Postgres refuse the whole jsonb
+             * value, failing this job before the result was evaluated, on
+             * every retry. dataToProcess itself stays as the probe sent it,
+             * for the criteria below. The other steps' entries were read back
+             * from this column, so they are storable already.
              */
             const updatedLastMonitoringLog: MonitorStepProbeResponse = {
               ...(monitorProbe.lastMonitoringLog || {}),
               [(
                 dataToProcess as ProbeMonitorResponse
               ).monitorStepId.toString()]: {
-                ...JSON.parse(JSON.stringify(dataToProcess)),
+                ...toStorableJson(dataToProcess as ProbeMonitorResponse),
                 monitoredAt: OneUptimeDate.getCurrentDate(),
               },
             };
@@ -495,7 +503,8 @@ export default class MonitorResourceUtil {
               data: {
                 serverMonitorRequestReceivedAt:
                   serverMonitorResponse.requestReceivedAt!,
-                serverMonitorResponse,
+                // A storable copy; the live response is still being evaluated.
+                serverMonitorResponse: toStorableJson(serverMonitorResponse),
               },
             });
 
@@ -527,9 +536,7 @@ export default class MonitorResourceUtil {
             data: {
               incomingRequestMonitorHeartbeatCheckedAt:
                 OneUptimeDate.getCurrentDate(),
-              incomingMonitorRequest: JSON.parse(
-                JSON.stringify(incomingMonitorRequest),
-              ) as IncomingMonitorRequest,
+              incomingMonitorRequest: toStorableJson(incomingMonitorRequest),
             } as any,
           });
 
@@ -1352,9 +1359,9 @@ export default class MonitorResourceUtil {
             monitorSteps.data.defaultMonitorStatusId!;
           monitorStatusTimeline.projectId = monitor.projectId!;
           monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.
-          monitorStatusTimeline.statusChangeLog = JSON.parse(
-            JSON.stringify(dataToProcess),
-          );
+          monitorStatusTimeline.statusChangeLog = toStorableJson(
+            dataToProcess,
+          ) as unknown as JSONObject;
           monitorStatusTimeline.rootCause =
             "No monitoring criteria met. Change to default status. ";
 

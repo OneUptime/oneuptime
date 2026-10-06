@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import PlanGatedPage from "../../../Components/Billing/PlanGatedPage";
+import { StatusPageOidcProvidersLeftover } from "../../../Components/Billing/IdentityPlanLeftovers";
 import { SSO_REQUIRED_PLAN } from "../../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -242,7 +243,10 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
 
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
- * Scale plan, so there a project below Scale sees the plan upsell instead.
+ * Scale plan, so there a project below Scale sees the plan upsell instead,
+ * with the OIDC providers the status page still has under it: they keep
+ * signing people in until they are turned off or deleted
+ * (StatusPageOidcProvidersLeftover).
  */
 const OIDCPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -282,6 +286,7 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
           },
         ],
       }}
+      belowPlan={<StatusPageOidcProvidersLeftover />}
     >
       <OIDCSettings {...props} />
     </PlanGatedPage>

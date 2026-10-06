@@ -65,6 +65,8 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Posts after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @CrudApiEndpoint(new Route("/workspace-notification-rule"))
 @Entity({

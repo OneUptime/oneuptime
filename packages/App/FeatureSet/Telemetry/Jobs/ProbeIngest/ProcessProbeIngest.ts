@@ -38,6 +38,7 @@ import {
   redactMonitorEmailAddress,
   redactMonitorSecret,
 } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
+import { toStorableJson } from "Common/Server/Utils/Database/PostgresStorableValue";
 import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
 import Select from "Common/Server/Types/Database/Select";
 import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowDelivery";
@@ -69,10 +70,13 @@ export async function processProbeFromQueue(
 
     probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
 
-    // save the probe response to the monitor test.
+    /*
+     * save the probe response to the monitor test. A storable copy: one NUL
+     * in the response body would make Postgres refuse the jsonb merge.
+     */
     const stepResponse: MonitorStepProbeResponse = {
       [probeResponse.monitorStepId.toString()]: {
-        ...JSON.parse(JSON.stringify(probeResponse)),
+        ...toStorableJson(probeResponse),
         monitoredAt: OneUptimeDate.getCurrentDate(),
       } as ProbeMonitorResponse,
     };
@@ -532,10 +536,14 @@ export async function processIncomingEmailFromQueue(
     id: new ObjectID(monitor._id.toString()),
     data: {
       incomingEmailMonitorLastEmailReceivedAt: now,
-      incomingEmailMonitorRequest: incomingEmailRequest as unknown as Record<
-        string,
-        unknown
-      >,
+      /*
+       * A storable copy: a NUL in the body or an attachment would make
+       * Postgres refuse the jsonb, and this email would be lost before it
+       * was evaluated. The email itself goes on to monitorResource as sent.
+       */
+      incomingEmailMonitorRequest: toStorableJson(
+        incomingEmailRequest,
+      ) as unknown as Record<string, unknown>,
       incomingEmailMonitorHeartbeatCheckedAt: now,
     },
   });
