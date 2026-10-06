@@ -25327,5 +25327,9 @@
   "This rule runs when any one of these conditions is met:": "Diese Regel wird ausgeführt, wenn eine beliebige dieser Bedingungen erfüllt ist:",
   "This rule runs when this condition is met:": "Diese Regel wird ausgeführt, wenn diese Bedingung erfüllt ist:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Diese Regel hat noch einen Standard-Zuständigen, der von einer älteren Version dieses Formulars festgelegt wurde. Öffnen Sie diesen Abschnitt, um sie als Eigentümer hinzuzufügen oder ihn zu entfernen.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Abonnenten benachrichtigen, wenn diese Nachbetrachtung veröffentlicht wird. Spätere Änderungen benachrichtigen sie nicht erneut."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Abonnenten benachrichtigen, wenn diese Nachbetrachtung veröffentlicht wird. Spätere Änderungen benachrichtigen sie nicht erneut.",
+  "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dies gilt für jede neue Warnung in {{project}}, nicht nur für diesen Cluster. Die Limits finden Sie unter Vorfälle → KI → Einstellungen.",
+  "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dies gilt für jeden neuen Vorfall und jede neue Warnung in {{project}}, nicht nur für diesen Cluster. Die Limits finden Sie unter Vorfälle → KI → Einstellungen.",
+  "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dies gilt für jeden neuen Vorfall in {{project}}, nicht nur für diesen Cluster. Die Limits finden Sie unter Vorfälle → KI → Einstellungen.",
+  "this project": "dieses Projekt"
 }

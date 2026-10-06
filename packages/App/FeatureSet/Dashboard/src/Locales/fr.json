@@ -18134,9 +18134,9 @@
   "Turn off only if the database uses a self-signed certificate.": "Turn off only if the database uses a self-signed certificate.",
   "Turn off two-factor authentication": "Turn off two-factor authentication",
   "Turn off two-factor authentication?": "Turn off two-factor authentication?",
-  "Turn on": "Turn on",
+  "Turn on": "Activer",
   "Turn on Bypass approval?": "Turn on Bypass approval?",
-  "Turn on automatic investigation?": "Turn on automatic investigation?",
+  "Turn on automatic investigation?": "Activer l'investigation automatique ?",
   "Turn the layer on and point its exporter at OneUptime.": "Turn the layer on and point its exporter at OneUptime.",
   "Turn this off to stop accepting telemetry written with this key straight away, without deleting it. This is the fastest response to a key you think is being abused, and it is reversible - if the key leaked rather than just misbehaved, rotate it below as well.": "Turn this off to stop accepting telemetry written with this key straight away, without deleting it. This is the fastest response to a key you think is being abused, and it is reversible - if the key leaked rather than just misbehaved, rotate it below as well.",
   "Turned off in Settings, so not evaluated.": "Turned off in Settings, so not evaluated.",
@@ -25327,5 +25327,9 @@
   "This rule runs when any one of these conditions is met:": "Cette règle s'exécute lorsque l'une de ces conditions est remplie :",
   "This rule runs when this condition is met:": "Cette règle s'exécute lorsque cette condition est remplie :",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Cette règle a encore une personne assignée par défaut, définie par une ancienne version de ce formulaire. Ouvrez cette section pour les ajouter comme propriétaires ou la retirer.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notifier les abonnés lorsque ce post-mortem est publié. Les modifications ultérieures ne les notifient pas à nouveau."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notifier les abonnés lorsque ce post-mortem est publié. Les modifications ultérieures ne les notifient pas à nouveau.",
+  "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Cela s'applique à chaque nouvelle alerte dans {{project}}, pas seulement à ce cluster. Les limites se trouvent dans Incidents → IA → Paramètres.",
+  "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Cela s'applique à chaque nouvel incident et à chaque nouvelle alerte dans {{project}}, pas seulement à ce cluster. Les limites se trouvent dans Incidents → IA → Paramètres.",
+  "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Cela s'applique à chaque nouvel incident dans {{project}}, pas seulement à ce cluster. Les limites se trouvent dans Incidents → IA → Paramètres.",
+  "this project": "ce projet"
 }
