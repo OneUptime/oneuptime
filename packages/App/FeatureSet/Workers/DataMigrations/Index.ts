@@ -117,6 +117,7 @@ import RepairHashedStringEnvelopeSecrets from "./RepairHashedStringEnvelopeSecre
 import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleSecOpsConnectionsToSecurityEventConnections";
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import CorrectBaselineViewHourOfWeek from "./CorrectBaselineViewHourOfWeek";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
 import ScheduleRemindersMissedByReminderRuleLookup from "./ScheduleRemindersMissedByReminderRuleLookup";
 import RepairKubernetesDashboardClusterCpuTile from "./RepairKubernetesDashboardClusterCpuTile";
@@ -623,6 +624,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new AddTelemetryServiceMetricsPermissions(),
+  /*
+   * The baseline views numbered the week from mode 1 of toDayOfWeek, which
+   * starts Monday at 0: Monday landed at 232..255 and every other day one
+   * slot early, so each anomaly lookup read the next day's history. Points
+   * the three views at the corrected models' query in place; the readers
+   * accept both encodings, so the stored history is kept. Cluster-aware,
+   * metadata-only and idempotent; never halts the chain. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new CorrectBaselineViewHourOfWeek(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
