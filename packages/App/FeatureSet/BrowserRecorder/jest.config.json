@@ -1,6 +1,6 @@
 {
   "preset": "ts-jest",
-  "testPathIgnorePatterns": ["node_modules", "public"],
+  "testPathIgnorePatterns": ["/node_modules/", "<rootDir>/public/"],
   "verbose": true,
   "transform": {
     ".(ts|tsx)": [
