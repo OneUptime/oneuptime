@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Underret ejere, når de tilføjes af denne regel. Deaktiver for at tilføje uden notifikation.",
   "Notify Subscribers": "Underret abonnenter",
   "Notify subscribers of this state change.": "Underret abonnenter om denne tilstandsændring.",
-  "Notify subscribers when this postmortem is published.": "Underret abonnenter, når denne postmortem offentliggøres.",
   "Number": "Tal",
   "Number Available": "Antal tilgængelige",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Antal behandlede revisionshændelser. Overvåger gennemstrømning i revisions-pipelinen.",
@@ -25327,5 +25326,6 @@
   "This rule runs when all of these conditions are met:": "Denne regel kører, når alle disse betingelser er opfyldt:",
   "This rule runs when any one of these conditions is met:": "Denne regel kører, når én af disse betingelser er opfyldt:",
   "This rule runs when this condition is met:": "Denne regel kører, når denne betingelse er opfyldt:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Denne regel har stadig en standardtildelt, angivet af en ældre version af denne formular. Åbn dette afsnit for at tilføje dem som ejere eller fjerne den."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Denne regel har stadig en standardtildelt, angivet af en ældre version af denne formular. Åbn dette afsnit for at tilføje dem som ejere eller fjerne den.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Underret abonnenter, når denne postmortem offentliggøres. Senere ændringer underretter dem ikke igen."
 }

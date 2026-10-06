@@ -10,6 +10,10 @@ import { describe, expect, test } from "@jest/globals";
  * ...OnEventCreated, ...OnEpisodeCreated, ...OnNoteCreated,
  * shouldStatusPageSubscribersBeNotified) are choices made when a record is
  * created. Their create hooks turn them into the 'created' message's status.
+ * An incident's notifySubscribersOnPostmortemPublished is read by the job
+ * that sends the postmortem notification, which an update queues when it
+ * publishes the postmortem (IncidentPostmortemPublication), so no update hook
+ * decides that notification from it either.
  * Their update hooks used to do the same, so an update that merely carried
  * the flag - a workflow or a master-key client writing the whole record
  * back - queued the message again and every subscriber got it twice.
@@ -36,9 +40,16 @@ const SERVICES_DIR: string = path.resolve(
 
 const UPDATE_HOOKS: Array<string> = ["onBeforeUpdate", "onUpdateSuccess"];
 
-// A notify flag read off the update's payload.
+/*
+ * A notify flag read off the update's payload: the "should ... be notified"
+ * flags, and an incident's notifySubscribersOnPostmortemPublished. That one
+ * may be changed on update (it is Notify Subscribers on the Edit Postmortem
+ * form), but the postmortem's notification is queued when an update
+ * publishes the postmortem, whatever it says, and the send job reads it
+ * (IncidentPostmortemPublication).
+ */
 const FLAG_ON_PAYLOAD: RegExp =
-  /\b(?:updateBy|onUpdate\.updateBy)\.data(?:\.|\[\s*["'])should\w*Notified\w*/;
+  /\b(?:updateBy|onUpdate\.updateBy)\.data(?:\.|\[\s*["'])(?:should\w*Notified\w*|notifySubscribers\w*)/;
 
 // A write of a notification status column.
 const STATUS_COLUMN: RegExp = /^subscriberNotificationStatus\w*$/;
@@ -337,6 +348,46 @@ class Service {
 
       expect(branched).toHaveLength(1);
       expect(branched[0]!.method).toBe("mapFlag");
+    });
+
+    test("finds a postmortem notification decided from Notify Subscribers", () => {
+      const found: Array<FlagDecidedStatus> = findFlagDecidedStatuses(
+        "Postmortem.ts",
+        `
+class Service {
+  protected override async onBeforeUpdate(updateBy: any): Promise<any> {
+    if (updateBy.data.notifySubscribersOnPostmortemPublished) {
+      updateBy.data.subscriberNotificationStatusOnPostmortemPublished = "Pending";
+    }
+    return { updateBy, carryForward: null };
+  }
+}
+`,
+      );
+
+      expect(found).toHaveLength(1);
+      expect(found[0]!.text).toContain(
+        "subscriberNotificationStatusOnPostmortemPublished",
+      );
+
+      const fromPayloadIndex: Array<FlagDecidedStatus> =
+        findFlagDecidedStatuses(
+          "Postmortem.ts",
+          `
+class Service {
+  protected override async onUpdateSuccess(onUpdate: any): Promise<any> {
+    onUpdate.updateBy.data["subscriberNotificationStatusOnPostmortemPublished"] =
+      onUpdate.updateBy.data["notifySubscribersOnPostmortemPublished"]
+        ? "Pending"
+        : "Skipped";
+    return onUpdate;
+  }
+}
+`,
+        );
+
+      expect(fromPayloadIndex).toHaveLength(1);
+      expect(fromPayloadIndex[0]!.method).toBe("onUpdateSuccess");
     });
 
     test("leaves the create hooks alone: a create decides its message from the flag", () => {

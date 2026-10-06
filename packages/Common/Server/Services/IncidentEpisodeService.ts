@@ -22,6 +22,7 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentEpisodeStateTimelineService from "./IncidentEpisodeStateTimelineService";
+import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -74,6 +75,13 @@ const GROUPING_RULE_KEYS: Array<string> = [
   "incidentGroupingRuleId",
   "incidentGroupingRule",
 ];
+
+/*
+ * Why an episode's first timeline row sends status page subscribers
+ * nothing: the episode's created notification is the one message about it.
+ */
+export const EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE: string =
+  "The episode's first state is part of its created notification, so it is not sent to subscribers on its own.";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -144,14 +152,12 @@ export class Service extends ProjectReferencesService<Model> {
      * An episode carries the same project-scoped state and severity an
      * incident does, on FKs that are equally ON DELETE NO ACTION, so an id
      * from another project here leaves that project undeletable in exactly
-     * the same way. onBeforeCreate overwrites currentIncidentStateId with
-     * this project's created state, which leaves the severity as the only
-     * create-reachable column — but an update can write either. Each by both
-     * of its names: every name that holds an id is checked, and two that
-     * disagree are refused - against the project of every episode the
-     * update changes, the request's or, for an update with none on it,
-     * each episode's own (where an id the episodes already hold is left
-     * alone).
+     * the same way. onBeforeCreate checks both on a create, and an update
+     * can write either. Each by both of its names: every name that holds an
+     * id is checked, and two that disagree are refused - against the project
+     * of every episode the update changes, the request's or, for an update
+     * with none on it, each episode's own (where an id the episodes already
+     * hold is left alone).
      */
     await ProjectScopedReferenceValidator.validateUpdateReferences({
       service: this,
@@ -202,49 +208,83 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
-    // Get the created state for episodes
-    const incidentState: IncidentState | null =
-      await IncidentStateService.findOneBy({
-        query: {
-          projectId: projectId,
-          isCreatedState: true,
-        },
-        select: {
-          _id: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentState || !incidentState.id) {
-      throw new BadDataException(
-        "Created incident state not found for this project. Please add created incident state from settings.",
-      );
-    }
+    const createData: Record<string, unknown> =
+      createBy.data as unknown as Record<string, unknown>;
 
     /*
-     * Every episode starts in the project's created state, whatever state the
-     * write named under either name: stamp leaves no other name of it to be
-     * stored instead.
+     * The state the episode starts in, when the write picks one: the Create
+     * Incident Episode form's Initial State sends the relation, the API,
+     * Terraform and workflows the ID column. Either name, and the two must
+     * agree. With none picked, the episode starts in the project's created
+     * state, where every episode a grouping rule opens starts.
      */
-    RelationIdUtil.stamp(
-      createBy.data as unknown as Record<string, unknown>,
-      INCIDENT_STATE_KEYS,
-      incidentState.id,
-    );
+    const pickedIncidentStateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        createData,
+        INCIDENT_STATE_KEYS,
+        "Incident State",
+      );
 
+    /*
+     * The state picked, if any, and the severity: a state or a severity of
+     * another project is refused, with the same words as one that does not
+     * exist, before a number is used.
+     */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "incident episode",
-      references: getWrittenRelationReferences({
-        payload: createBy.data,
-        idColumn: "incidentSeverityId",
-        relation: "incidentSeverity",
-        modelName: "Incident Severity",
-        service: IncidentSeverityService,
-      }),
+      references: [
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "currentIncidentStateId",
+          relation: "currentIncidentState",
+          modelName: "Incident State",
+          service: IncidentStateService,
+        }),
+        ...getWrittenRelationReferences({
+          payload: createBy.data,
+          idColumn: "incidentSeverityId",
+          relation: "incidentSeverity",
+          modelName: "Incident Severity",
+          service: IncidentSeverityService,
+        }),
+      ],
     });
+
+    /*
+     * The state it starts in, under the ID column alone: stamp leaves no
+     * other name of it to be stored instead, so the state checked above is
+     * the state stored - and the state onCreateSuccess writes the episode's
+     * first timeline row in. The created state is looked up only when the
+     * write picked none.
+     */
+    RelationIdUtil.stamp(
+      createData,
+      INCIDENT_STATE_KEYS,
+      pickedIncidentStateId ||
+        (await IncidentStateService.getCreatedIncidentStateId(projectId)),
+    );
+
+    /*
+     * resolvedAt follows the state the episode starts in. One recorded as
+     * already resolved is resolved from the moment it exists: grouping,
+     * auto-resolve and the unresolved episode lists read resolvedAt, which
+     * the first timeline row would otherwise set only once onCreateSuccess
+     * reaches it, after the workspace channels - and sets again then, to the
+     * moment that row records. Any other episode has none yet, whatever the
+     * write sent: the first timeline row would clear it anyway.
+     */
+    if (
+      pickedIncidentStateId &&
+      (await IncidentStateService.isResolvedIncidentState({
+        projectId: projectId,
+        incidentStateId: pickedIncidentStateId,
+      }))
+    ) {
+      createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createData["resolvedAt"];
+    }
 
     // Auto-generate episode number
     const episodeCounterResult: {
@@ -362,6 +402,8 @@ export class Service extends ProjectReferencesService<Model> {
             incidentStateId: createdItem.currentIncidentStateId!,
             notifyOwners: false,
             rootCause: undefined,
+            // Told with the episode's created notification, if at all.
+            isFirstState: true,
             props: {
               isRoot: true,
             },
@@ -665,6 +707,15 @@ export class Service extends ProjectReferencesService<Model> {
     rootCause: string | undefined;
     props: DatabaseCommonInteractionProps;
     cascadeToIncidents?: boolean;
+    /*
+     * The episode's first state, written when it is created. It is part of
+     * the episode's created notification - which tells subscribers about the
+     * episode, or skips it - and is never sent to them on its own, whichever
+     * state the episode starts in: the row is written as Skipped, saying
+     * why, instead of being queued. Left out, the row is queued for
+     * subscribers like any state change.
+     */
+    isFirstState?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -674,6 +725,7 @@ export class Service extends ProjectReferencesService<Model> {
       rootCause,
       props,
       cascadeToIncidents,
+      isFirstState,
     } = data;
 
     // Get last episode state timeline
@@ -711,6 +763,14 @@ export class Service extends ProjectReferencesService<Model> {
     stateTimeline.incidentStateId = incidentStateId;
     stateTimeline.projectId = projectId;
     stateTimeline.isOwnerNotified = !notifyOwners;
+
+    if (isFirstState) {
+      stateTimeline.shouldStatusPageSubscribersBeNotified = false;
+      stateTimeline.subscriberNotificationStatus =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      stateTimeline.subscriberNotificationStatusMessage =
+        EPISODE_FIRST_STATE_SUBSCRIBER_MESSAGE;
+    }
 
     if (rootCause) {
       stateTimeline.rootCause = rootCause;

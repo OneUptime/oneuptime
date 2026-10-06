@@ -146,6 +146,18 @@ Events created from a template take **When the event is scheduled** from the tem
 
 An incident's messages — created, state changed, public note and postmortem — go to the subscribers of every status page that lists one of its monitors. Two settings narrow that. **Limit to these status pages** on the incident keeps it to the pages you pick among those, and **Only Show Incidents Scoped to This Page** on a status page keeps away every incident that is not limited to it. For an incident limited to specific pages, an email address or phone number subscribed on several of them gets one email or text message per send, not one per page; webhook, Slack and Microsoft Teams messages are never merged. The declare form and the **Public Notes** page show who will be notified before anything is sent. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
+#### The postmortem
+
+Subscribers hear about an incident's postmortem once, when it is published: the first time the status page shows it. The status page shows a postmortem when **Publish on Status Page** is on and the postmortem has a note; its attachments are shown with the note, never without it. So switching publishing on over a written note publishes it, and so does writing the note of a postmortem that is switched on. **Notify Subscribers**, on the same form, decides whether they are told at all. After that:
+
+- **Saving it again tells nobody.** The **Edit Postmortem Note** form sends the whole postmortem with every save, and an API client, Terraform or a workflow may write the whole incident back; what was already published is not news.
+- **Editing a published postmortem tells nobody either.** The status page shows the new note at once, and the incident feed records it once, as **Postmortem Note updated**, but subscribers were told already. Whitespace around the note does not count as a change.
+- **Taking it off the status page tells nobody, and publishing it again tells them again**: they saw it go. Emptying the note of a published postmortem takes it off the status page too.
+- **A postmortem switched on with no note shows nothing**, so nobody is told until its note is written.
+- **Notify Subscribers is read when the notification goes out.** A postmortem published with it off is not announced, and switching it on afterwards does not send the notification it was published without.
+
+The notification's status is on the incident's **Postmortem** page; one that failed offers **Retry** (see [Retry and Resend](#retry-and-resend)). Through the API, writing `showPostmortemOnStatusPage` as `true` over a written `postmortemNote` publishes it, even when the request writes the whole incident back, its notification status as it stands included. Writing `subscriberNotificationStatusOnPostmortemPublished` as `Pending` sends it again. A notification that is already waiting or being sent is not queued a second time, and a postmortem published while one was being prepared is still announced once. The automatic AI postmortem draft is never written into a postmortem that is switched on, so an unreviewed draft never reaches subscribers.
+
 #### Previewing the email before it is sent
 
 **Preview** is a small link beside the value it previews: next to **Yes** under **Notify Status Page Subscribers** on the last step of **Declare New Incident**, and next to the **Notify Status Page Subscribers** checkbox while you write a public note. It opens **Preview notification**, which shows the email each status page's subscribers will get, built and rendered by the same code, template and settings the notification is sent with, so what you see is what they receive:
@@ -179,6 +191,8 @@ An incident episode records whether subscribers were told it was created in `sho
 On an episode created with it set to `false`, new public notes start with **Notify status page subscribers** off, with a line under it explaining why, on the episode's **Public Notes** page and in **Add Public Note** on the **Episode Feed**, which opens the same note composer. You can still tick it. Notes posted without an explicit choice follow the same setting: Slack notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Only this setting counts: unlike an incident, making an episode private does not change where the checkbox starts.
 
 This covers public notes only. The episode's state changes (**Acknowledge**, **Resolve** and auto-resolve) still notify subscribers, because neither the episode's state change modal nor the form on its **State Timeline** page has a **Notify Status Page Subscribers** checkbox.
+
+An episode created in a later state — with **Initial State** on the **Create Episode** form, or a state sent through the API — is announced once, by its created notification: its first state is never sent on its own as a state change, whichever state it is, and an episode created with `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated` set to `false` does not announce it at all. The first row of its state timeline records that notification as skipped, with the reason.
 
 ### Telling subscribers about an edit
 

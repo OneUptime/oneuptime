@@ -77,6 +77,18 @@ resource "oneuptime_alert" "with_labels" {
   labels            = [oneuptime_label.alert_label.id]
 }
 
+# Test Case 4: Alert recorded in a later state
+# current_alert_state_id on create is where the alert starts - the API
+# counterpart of the Create Alert form's Initial State. Left out (the cases
+# above), the server starts the alert in the project's created state.
+resource "oneuptime_alert" "in_initial_state" {
+  title                  = "TF Initial State Alert ${random_id.suffix.hex}"
+  description            = "Alert created in a state of its own"
+  alert_severity_id      = oneuptime_alert_severity.test_severity.id
+  monitor_id             = oneuptime_monitor.for_alert.id
+  current_alert_state_id = oneuptime_alert_state.test_state.id
+}
+
 # Outputs
 output "basic_alert_id" {
   value       = oneuptime_alert.basic.id
@@ -101,6 +113,16 @@ output "root_cause_value" {
 output "labeled_alert_id" {
   value       = oneuptime_alert.with_labels.id
   description = "Labeled alert ID"
+}
+
+output "initial_state_alert_id" {
+  value       = oneuptime_alert.in_initial_state.id
+  description = "Alert created in a state of its own"
+}
+
+output "initial_state_alert_current_state" {
+  value       = oneuptime_alert.in_initial_state.current_alert_state_id
+  description = "The state the alert was created in"
 }
 
 output "severity_id" {

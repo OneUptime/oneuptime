@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "當擁有者透過此規則新增時通知他們。停用以靜默新增。",
   "Notify Subscribers": "通知訂閱者",
   "Notify subscribers of this state change.": "將此狀態變更通知訂閱者。",
-  "Notify subscribers when this postmortem is published.": "當此事後檢討發布時通知訂閱者。",
   "Number": "數字",
   "Number Available": "可用數量",
   "Number of audit events processed. Monitors audit pipeline throughput.": "已處理的稽核事件數量。監測稽核管線的輸送量。",
@@ -25327,5 +25326,6 @@
   "This rule runs when all of these conditions are met:": "滿足以下所有條件時，此規則會執行：",
   "This rule runs when any one of these conditions is met:": "滿足以下任一條件時，此規則會執行：",
   "This rule runs when this condition is met:": "滿足此條件時，此規則會執行：",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此規則仍有一個由此表單的舊版本設定的預設受指派者。開啟此區段，將其新增為擁有者或將其移除。"
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此規則仍有一個由此表單的舊版本設定的預設受指派者。開啟此區段，將其新增為擁有者或將其移除。",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "當此事後檢討發布時通知訂閱者。之後的編輯不會再次通知他們。"
 }

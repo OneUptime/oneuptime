@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Уведомлять владельцев при их добавлении этим правилом. Отключите, чтобы добавлять без уведомления.",
   "Notify Subscribers": "Уведомить подписчиков",
   "Notify subscribers of this state change.": "Уведомить подписчиков об этом изменении состояния.",
-  "Notify subscribers when this postmortem is published.": "Уведомить подписчиков при публикации этого разбора инцидента.",
   "Number": "Число",
   "Number Available": "Доступное количество",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Количество обработанных событий аудита. Отслеживает пропускную способность конвейера аудита.",
@@ -25327,5 +25326,6 @@
   "This rule runs when all of these conditions are met:": "Это правило срабатывает, когда выполнены все эти условия:",
   "This rule runs when any one of these conditions is met:": "Это правило срабатывает, когда выполнено любое из этих условий:",
   "This rule runs when this condition is met:": "Это правило срабатывает, когда выполнено это условие:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "У этого правила всё ещё есть ответственный по умолчанию, заданный в прежней версии этой формы. Откройте этот раздел, чтобы добавить их владельцами или удалить его."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "У этого правила всё ещё есть ответственный по умолчанию, заданный в прежней версии этой формы. Откройте этот раздел, чтобы добавить их владельцами или удалить его.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Уведомить подписчиков при публикации этого разбора инцидента. Последующие правки не уведомляют их повторно."
 }

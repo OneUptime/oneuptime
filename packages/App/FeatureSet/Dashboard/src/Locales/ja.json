@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "このルールによって所有者が追加されたときに通知します。サイレントで追加するには無効にします。",
   "Notify Subscribers": "購読者に通知",
   "Notify subscribers of this state change.": "この状態変更を購読者に通知します。",
-  "Notify subscribers when this postmortem is published.": "このポストモーテムが公開されたときに購読者に通知します。",
   "Number": "数値",
   "Number Available": "利用可能数",
   "Number of audit events processed. Monitors audit pipeline throughput.": "処理された監査イベントの数。監査パイプラインのスループットを監視します。",
@@ -25327,5 +25326,6 @@
   "This rule runs when all of these conditions are met:": "このルールは、次の条件をすべて満たすと実行されます:",
   "This rule runs when any one of these conditions is met:": "このルールは、次の条件のいずれか 1 つを満たすと実行されます:",
   "This rule runs when this condition is met:": "このルールは、次の条件を満たすと実行されます:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。"
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "このポストモーテムが公開されたときに購読者に通知します。後から編集しても、再度通知されることはありません。"
 }

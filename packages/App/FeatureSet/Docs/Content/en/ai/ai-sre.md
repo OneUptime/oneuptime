@@ -291,7 +291,7 @@ Once a limit is reached, new AI work stops until midnight UTC. A call that is al
 
 ## Auto-postmortem
 
-Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem when an incident resolves**, on the incident AI settings page (Incidents > AI > Settings) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
+Separately from investigations, OneUptime AI can draft a postmortem automatically when an incident is resolved. It is its own switch — **Draft a postmortem when an incident resolves**, on the incident AI settings page (Incidents > AI > Settings) — so you can investigate without drafting, or draft without investigating. It is **on by default for new projects**; a project created before this default keeps its setting. The draft never overwrites an existing postmortem note, and is not written into a postmortem already switched on with **Publish on Status Page**: there it would go on the status page unreviewed, and subscribers would be told about it. This uses the same LLM provider and appears in the incident's postmortem tab for human review.
 
 ## Insights — proactive detection
 

@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Notifier les propriétaires lorsqu'ils sont ajoutés par cette règle. Désactivez pour ajouter en silence.",
   "Notify Subscribers": "Notifier les abonnés",
   "Notify subscribers of this state change.": "Notifier les abonnés de ce changement d'état.",
-  "Notify subscribers when this postmortem is published.": "Notifier les abonnés lorsque ce post-mortem est publié.",
   "Number": "Nombre",
   "Number Available": "Nombre disponible",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Nombre d'événements d'audit traités. Surveille le débit du pipeline d'audit.",
@@ -25327,5 +25326,6 @@
   "This rule runs when all of these conditions are met:": "Cette règle s'exécute lorsque toutes ces conditions sont remplies :",
   "This rule runs when any one of these conditions is met:": "Cette règle s'exécute lorsque l'une de ces conditions est remplie :",
   "This rule runs when this condition is met:": "Cette règle s'exécute lorsque cette condition est remplie :",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Cette règle a encore une personne assignée par défaut, définie par une ancienne version de ce formulaire. Ouvrez cette section pour les ajouter comme propriétaires ou la retirer."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Cette règle a encore une personne assignée par défaut, définie par une ancienne version de ce formulaire. Ouvrez cette section pour les ajouter comme propriétaires ou la retirer.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notifier les abonnés lorsque ce post-mortem est publié. Les modifications ultérieures ne les notifient pas à nouveau."
 }

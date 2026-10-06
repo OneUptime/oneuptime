@@ -287,6 +287,15 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   IP itself. Hostname targets are unchanged.
 - **The `oneuptime` CLI reports its real version** for `--version` instead of a
   placeholder.
+- **A new alert or episode starts in the state its create names.** The API,
+  Terraform (`current_alert_state_id`, `current_incident_state_id`) and
+  workflows can name the state an alert, an alert episode or an incident
+  episode starts in, as the dashboard's **Initial State** field does. Before,
+  that state was replaced with the project's created state; a Terraform config
+  that set it got a different value back than it planned. A create that names
+  no state still starts in the created state, and a state of another project
+  is refused. See
+  [The state a new record starts in](/docs/api-reference/api-reference#the-state-a-new-record-starts-in).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next

@@ -3869,7 +3869,6 @@
   "Notify owners when they are added by this rule. Disable to add silently.": "Stel eigenaren op de hoogte wanneer ze door deze regel worden toegevoegd. Schakel uit om ze stil toe te voegen.",
   "Notify Subscribers": "Abonnees op de hoogte stellen",
   "Notify subscribers of this state change.": "Stel abonnees op de hoogte van deze statuswijziging.",
-  "Notify subscribers when this postmortem is published.": "Stel abonnees op de hoogte wanneer deze postmortem wordt gepubliceerd.",
   "Number": "Nummer",
   "Number Available": "Aantal beschikbaar",
   "Number of audit events processed. Monitors audit pipeline throughput.": "Aantal verwerkte auditgebeurtenissen. Bewaakt de doorvoer van de auditpijplijn.",
@@ -25327,5 +25326,6 @@
   "This rule runs when all of these conditions are met:": "Deze regel wordt uitgevoerd wanneer aan al deze voorwaarden is voldaan:",
   "This rule runs when any one of these conditions is met:": "Deze regel wordt uitgevoerd wanneer aan een van deze voorwaarden is voldaan:",
   "This rule runs when this condition is met:": "Deze regel wordt uitgevoerd wanneer aan deze voorwaarde is voldaan:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Deze regel heeft nog een standaard toegewezene, ingesteld door een oudere versie van dit formulier. Open dit gedeelte om ze toe te voegen als eigenaren of om deze te verwijderen."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "Deze regel heeft nog een standaard toegewezene, ingesteld door een oudere versie van dit formulier. Open dit gedeelte om ze toe te voegen als eigenaren of om deze te verwijderen.",
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Stel abonnees op de hoogte wanneer deze postmortem wordt gepubliceerd. Latere bewerkingen stellen hen niet opnieuw op de hoogte."
 }
