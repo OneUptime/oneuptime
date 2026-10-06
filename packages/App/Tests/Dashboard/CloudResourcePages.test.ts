@@ -517,8 +517,13 @@ describe("Cloud breadcrumbs", () => {
 
 describe("Cloud Environment copy", () => {
   test("the view layout, list and inventory catalogue say environment, not resource", () => {
+    /*
+     * The table also holds the resources discovered from cloud monitoring;
+     * the page is titled by the row's kind, and an environment's still says
+     * environment.
+     */
     expect(readCode("Pages/Cloud/View/Layout.tsx")).toContain(
-      'title="Cloud Environment"',
+      'title={isResource ? "Cloud Resource" : "Cloud Environment"}',
     );
     /*
      * The Logs tab renders its viewer bare, like the Traces and Metrics tabs,

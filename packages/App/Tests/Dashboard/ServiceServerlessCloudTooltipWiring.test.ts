@@ -641,10 +641,19 @@ describe("Cloud fleet summary tooltips", () => {
       "const byProvider",
     );
 
-    // Environments: unarchived only.
-    expect(fetch).toContain("query: { isArchived: false },");
+    /*
+     * Environments: unarchived only - and environments only: the Cloud
+     * Resources discovered from cloud monitoring share the table and are
+     * counted on their own list.
+     */
+    expect(fetch).toContain(
+      "query: { isArchived: false, cloudResourceKind: ENVIRONMENT },",
+    );
     expect(CLOUD_FLEET_METRIC_DESCRIPTIONS.environments).toMatch(
       /not counting archived/,
+    );
+    expect(countOf(fetch, "modelType: CloudResource,")).toBe(
+      countOf(fetch, "cloudResourceKind: ENVIRONMENT"),
     );
 
     // Live instances: no archive filter on the parent environment.

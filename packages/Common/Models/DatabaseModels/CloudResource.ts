@@ -1143,7 +1143,7 @@ export default class CloudResource extends BaseModel {
 
   /*
    * When the auto-archive sweep last archived this resource for going
-   * unseen (CloudResourceService.archiveUnseenResources). Only a row the
+   * unseen (CloudResourceService.archiveUnseenMonitoredResources). Only a row the
    * sweep archived is restored when it reports again - never one a person
    * archived - and a row a person restored keeps it until it reports, so the
    * sweep does not archive it again behind their back.

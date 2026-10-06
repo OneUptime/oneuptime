@@ -923,6 +923,16 @@ const DocsNav: NavGroup[] = [
         title: "Cloud Troubleshooting",
         url: "/docs/telemetry/cloud-troubleshooting",
       },
+      /*
+       * The IaaS and PaaS resources discovered from Azure Monitor,
+       * CloudWatch and Cloud Monitoring - the Cloud product's other list,
+       * after the environments' pages. Its URL contains no other link's
+       * path and no other link contains it.
+       */
+      {
+        title: "Cloud Resources (IaaS & PaaS)",
+        url: "/docs/telemetry/cloud-resources",
+      },
     ],
   },
   /*

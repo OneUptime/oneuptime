@@ -118,32 +118,21 @@ const CloudResourceMetrics: FunctionComponent<
     return <ErrorMessage message="Cloud resource not found." />;
   }
 
-  /*
-   * A resource without recorded attributes has no filter either, and the
-   * same fallback to every metric in the project must not happen.
-   */
   if (isResource) {
+    /*
+     * A resource without recorded attributes has no filter either, and the
+     * same fallback to every metric in the project must not happen.
+     */
     if (!isCloudMonitoredResourceScoped(cloudResource)) {
       return (
         <ErrorMessage message="This cloud resource has no metric attributes recorded yet. They are recorded with the next metrics its provider reports about it." />
       );
     }
-
-    return (
-      <Fragment>
-        <MetricsViewer
-          attributeFilters={attributeFilters}
-          attributeFilterDisplayKeys={attributeFilterDisplayKeys}
-        />
-      </Fragment>
-    );
-  }
-
-  /*
-   * No platform means no attribute filter, and the viewer would fall back
-   * to every metric in the project. Show what is actually true instead.
-   */
-  if (!isCloudResourceScoped(cloudResource)) {
+  } else if (!isCloudResourceScoped(cloudResource)) {
+    /*
+     * No platform means no attribute filter, and the viewer would fall back
+     * to every metric in the project. Show what is actually true instead.
+     */
     return (
       <CloudResourceConnectBanner
         modelId={modelId}

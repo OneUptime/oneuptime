@@ -4,6 +4,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 
 /*
  * Cloud:CleanupStaleResources is the sweeper every other inventory pillar
@@ -83,6 +84,9 @@ jest.mock("Common/Server/Services/CloudResourceService", () => {
     __esModule: true,
     default: {
       markDisconnectedResources: jest.fn(),
+      markUnreportedMonitoredResources: jest.fn(),
+      restoreReportingMonitoredResources: jest.fn(),
+      archiveUnseenMonitoredResources: jest.fn(),
       findBy: jest.fn(),
     },
   };
@@ -115,6 +119,9 @@ const RESOURCE_B_ID: ObjectID = new ObjectID("cloud-env-b");
 
 interface ResourceServiceMock {
   markDisconnectedResources: jest.Mock;
+  markUnreportedMonitoredResources: jest.Mock;
+  restoreReportingMonitoredResources: jest.Mock;
+  archiveUnseenMonitoredResources: jest.Mock;
   findBy: jest.Mock;
 }
 
@@ -198,6 +205,9 @@ beforeEach(() => {
    */
   jest.resetAllMocks();
   resourceService.markDisconnectedResources.mockResolvedValue(undefined);
+  resourceService.markUnreportedMonitoredResources.mockResolvedValue(0);
+  resourceService.restoreReportingMonitoredResources.mockResolvedValue(0);
+  resourceService.archiveUnseenMonitoredResources.mockResolvedValue(0);
   resourceService.findBy.mockResolvedValue([]);
   instanceService.getStaleThresholdDate.mockImplementation(thresholdFor);
   instanceService.deleteStaleForResource.mockResolvedValue(0);
@@ -272,7 +282,11 @@ describe("step 2: which environments are pruned", () => {
     const args: FindByArgs = resourceService.findBy.mock
       .calls[0]![0] as FindByArgs;
 
-    expect(args.query).toEqual({ otelCollectorStatus: "connected" });
+    // Only environments have instances: resources are never scanned here.
+    expect(args.query).toEqual({
+      cloudResourceKind: CloudResourceKind.Environment,
+      otelCollectorStatus: "connected",
+    });
     expect(args.props).toEqual({ isRoot: true });
     expect(args.limit).toBe(LIMIT_MAX);
     expect(args.skip).toBe(0);
@@ -448,5 +462,86 @@ describe("reporting", () => {
     await runTick();
 
     expect(mockedLogger.debug).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Steps 3 and 4: the Cloud Resources discovered from cloud monitoring
+ * (CloudResourceKind.Resource). Their status window, archive and restore
+ * live in CloudResourceService (pinned in Common/Tests/Server/Services/
+ * CloudResourceServiceMonitoredResources.test.ts); here, that the tick runs
+ * them, in an order that cannot archive a row the same tick should restore,
+ * and that none of them can take the others down.
+ */
+describe("steps 3 and 4: cloud resources", () => {
+  test("every tick marks unreported resources, then restores the reporting ones, then archives the silent ones", async () => {
+    await runTick();
+
+    expect(
+      resourceService.markUnreportedMonitoredResources,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      resourceService.restoreReportingMonitoredResources,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      resourceService.archiveUnseenMonitoredResources,
+    ).toHaveBeenCalledTimes(1);
+
+    const order: Array<number> = [
+      resourceService.markDisconnectedResources.mock.invocationCallOrder[0]!,
+      resourceService.markUnreportedMonitoredResources.mock
+        .invocationCallOrder[0]!,
+      resourceService.restoreReportingMonitoredResources.mock
+        .invocationCallOrder[0]!,
+      resourceService.archiveUnseenMonitoredResources.mock
+        .invocationCallOrder[0]!,
+      resourceService.findBy.mock.invocationCallOrder[0]!,
+    ];
+    expect([...order].sort((a: number, b: number) => {
+      return a - b;
+    })).toEqual(order);
+  });
+
+  test("a failing status sweep is logged, and archiving and the prune still run", async () => {
+    resourceService.markUnreportedMonitoredResources.mockRejectedValue(
+      new Error("statement timeout"),
+    );
+
+    await expect(runTick()).resolves.toBeUndefined();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("markUnreportedMonitoredResources failed"),
+    );
+    expect(
+      resourceService.archiveUnseenMonitoredResources,
+    ).toHaveBeenCalledTimes(1);
+    expect(resourceService.findBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failing archive pass is logged and the prune still runs", async () => {
+    resourceService.archiveUnseenMonitoredResources.mockRejectedValue(
+      new Error("deadlock detected"),
+    );
+
+    await expect(runTick()).resolves.toBeUndefined();
+
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("cloud resource auto-archive failed"),
+    );
+    expect(mockedLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining("deadlock detected"),
+    );
+    expect(resourceService.findBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("says how many resources it restored and archived, and only when it did", async () => {
+    resourceService.restoreReportingMonitoredResources.mockResolvedValue(2);
+    resourceService.archiveUnseenMonitoredResources.mockResolvedValue(7);
+
+    await runTick();
+
+    expect(mockedLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining("restored 2 and archived 7 cloud resource(s)"),
+    );
   });
 });

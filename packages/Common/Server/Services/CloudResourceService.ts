@@ -22,6 +22,7 @@ import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
 import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
+import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseConfig from "../DatabaseConfig";
 import CloudResourceLabelRuleEngineService from "./CloudResourceLabelRuleEngineService";
 import CloudResourceOwnerRuleEngineService from "./CloudResourceOwnerRuleEngineService";
@@ -131,6 +132,12 @@ export class Service extends ProjectReferencesService<Model> {
 
   public constructor() {
     super(Model);
+  }
+
+  // For tests: forget every cached budget count and budget warning.
+  public clearMonitoredResourceBudgetMemo(): void {
+    this.monitoredResourceCountMemo.clear();
+    this.monitoredResourceBudgetWarningMemo.clear();
   }
 
   // Named the way ingest names it when nobody gave it a name.
@@ -568,9 +575,15 @@ export class Service extends ProjectReferencesService<Model> {
         return { cloudResource: winner, created: false };
       }
 
+      /*
+       * Only a name another writer took in the meantime is retried, and
+       * under the name that cannot clash: anything else is a real failure
+       * - a transient one is retried by the next poll, under the name it
+       * should have.
+       */
       const uniqueName: string = candidates[candidates.length - 1]!;
 
-      if (uniqueName === name) {
+      if (uniqueName === name || !isNameClash(error)) {
         throw error;
       }
 
@@ -1243,6 +1256,17 @@ function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
     })
     .sort();
   return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
+}
+
+/*
+ * The refusal DatabaseService.checkUniqueColumnBy raises when another row of
+ * the project already has the name.
+ */
+function isNameClash(error: unknown): boolean {
+  return (
+    error instanceof BadDataException &&
+    error.message.includes("with the same name already exists")
+  );
 }
 
 // The ShortText columns' width.
