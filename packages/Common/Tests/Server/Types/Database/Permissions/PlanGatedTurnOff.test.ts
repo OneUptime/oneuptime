@@ -666,7 +666,12 @@ describe("table-level plan gates name the plan the operation needs", () => {
     }).toThrow(new PaymentRequiredException(refusalFor(PlanType.Scale)));
   });
 
-  test("every gated operation of every model is refused below its own plan, naming it", () => {
+  /*
+   * Creates and updates. What a project may still do with the records a
+   * table holds below its plans - read them, switch them off, delete them -
+   * is swept table by table in PlanGatedTableLeftovers.test.ts.
+   */
+  test("every gated create and update of every model is refused below its own plan, naming it", () => {
     const operations: Array<
       [DatabaseRequestType, (model: BaseModel) => PlanType | null]
     > = [
@@ -677,21 +682,9 @@ describe("table-level plan gates name the plan the operation needs", () => {
         },
       ],
       [
-        DatabaseRequestType.Read,
-        (model: BaseModel): PlanType | null => {
-          return model.getReadBillingPlan();
-        },
-      ],
-      [
         DatabaseRequestType.Update,
         (model: BaseModel): PlanType | null => {
           return model.getUpdateBillingPlan();
-        },
-      ],
-      [
-        DatabaseRequestType.Delete,
-        (model: BaseModel): PlanType | null => {
-          return model.getDeleteBillingPlan();
         },
       ],
     ];
@@ -738,5 +731,54 @@ describe("table-level plan gates name the plan the operation needs", () => {
     }
 
     expect(checked).toBeGreaterThan(100);
+  });
+
+  test("reads and deletes of the records a table holds name no plan, except the reads a plan sells", () => {
+    const props: DatabaseCommonInteractionProps = {
+      userId: USER_ID,
+      tenantId: PROJECT_ID,
+      currentPlan: PlanType.Free,
+      isSubscriptionUnpaid: false,
+    };
+
+    let checked: number = 0;
+
+    for (const modelType of AllModelTypes) {
+      const model: BaseModel = new modelType();
+
+      for (const [operation, plan] of [
+        [DatabaseRequestType.Read, model.getReadBillingPlan()],
+        [DatabaseRequestType.Delete, model.getDeleteBillingPlan()],
+      ] as Array<[DatabaseRequestType, PlanType | null]>) {
+        if (!plan || plan === PlanType.Free) {
+          continue;
+        }
+
+        let message: string = "allowed";
+
+        try {
+          BillingPermissions.checkBillingPermissions(
+            modelType,
+            props,
+            operation,
+          );
+        } catch (err) {
+          message = (err as Error).message;
+        }
+
+        const staysGated: boolean =
+          operation === DatabaseRequestType.Read && model.readStaysGated;
+
+        expect([modelType.name, operation, message]).toEqual([
+          modelType.name,
+          operation,
+          staysGated ? refusalFor(plan) : "allowed",
+        ]);
+
+        checked++;
+      }
+    }
+
+    expect(checked).toBeGreaterThan(50);
   });
 });

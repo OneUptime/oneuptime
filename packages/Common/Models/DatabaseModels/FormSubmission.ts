@@ -62,6 +62,8 @@ const DELETE_PERMISSIONS: Array<Permission> = [
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // What forms collected: reading it is what the plan sells.
+  readStaysGated: true,
 })
 @EnableDocumentation()
 @TenantColumn("projectId")

@@ -373,10 +373,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * the full permission check asks after the hooks, asked here as well, so a
    * hook never acts - unsetting the project's default, making room in an
    * order, deleting child rows - for someone the write is refused to.
+   *
+   * For an update, `updateData` is what the caller asked to write: below a
+   * table's update plan the one update allowed is the one that only
+   * switches records off (BillingPermission), and the data is what says so.
    */
   private checkCallerBeforeHooks(
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): void {
     if (type !== DatabaseRequestType.Read) {
       DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
@@ -393,7 +398,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       type === DatabaseRequestType.Update ||
       type === DatabaseRequestType.Delete
     ) {
-      ModelPermission.checkTableWritePermission(this.modelType, props, type);
+      ModelPermission.checkTableWritePermission(
+        this.modelType,
+        props,
+        type,
+        type === DatabaseRequestType.Update ? updateData : undefined,
+      );
     }
   }
 
@@ -425,6 +435,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       skip: PositiveNumber | number;
       limit: PositiveNumber | number;
       props: DatabaseCommonInteractionProps;
+      // What an update writes, for its plan check (BillingPermission).
+      data?: unknown;
     },
     type: DatabaseRequestType.Update | DatabaseRequestType.Delete,
     options: { withDeleted?: boolean } = {},
@@ -453,6 +465,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
             this.modelType,
             query,
             write.props,
+            write.data,
           );
 
     const rows: Array<TBaseModel> = await this._findBy(
@@ -4380,7 +4393,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
-      this.checkCallerBeforeHooks(updateBy.props, DatabaseRequestType.Update);
+      this.checkCallerBeforeHooks(
+        updateBy.props,
+        DatabaseRequestType.Update,
+        updateBy.data,
+      );
 
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
 
@@ -4976,6 +4993,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         return await this.findWithAccessControlIds(updateById.id);
       },
       props: updateById.props,
+      // Below the table's update plan, a switch-off still passes.
+      updateData: updateById.data,
     });
 
     return await this.updateOneBy({

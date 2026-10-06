@@ -44,6 +44,8 @@ import Alert from "./Alert";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // On-call logs: reading them is what the plan sells.
+  readStaysGated: true,
 })
 @TableAccessControl({
   create: [],

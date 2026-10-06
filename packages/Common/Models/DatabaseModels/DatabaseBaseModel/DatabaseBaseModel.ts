@@ -156,6 +156,13 @@ export default class DatabaseBaseModel extends BaseEntity {
   public deleteBillingPlan!: PlanType | null;
 
   /*
+   * Set by @TableBillingAccessControl({ readStaysGated: true }) on a table
+   * whose records are what a feature produced (logs), not configuration:
+   * below its read plan they stay unreadable (Types/Billing/PlanGatedTable).
+   */
+  public readStaysGated!: boolean;
+
+  /*
    * Edition gating. When true, the model is only available on the
    * Enterprise self-hosted edition or on the cloud Enterprise plan.
    * Set by the @TableEditionAccessControl decorator.

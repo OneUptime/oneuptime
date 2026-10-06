@@ -11,6 +11,12 @@ import QueryDeepPartialEntity from "../../../../Types/Database/PartialEntity";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 export default class UpdatePermission {
+  /*
+   * `updateData`, when the caller has it, is what the update writes: below
+   * the table's update plan an update that only switches the record off
+   * still passes the plan check (BillingPermission). Without it, it does
+   * not.
+   */
   @CaptureSpan()
   public static async checkUpdatePermissionByModel<
     TBaseModel extends BaseModel,
@@ -18,6 +24,7 @@ export default class UpdatePermission {
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
+    updateData?: unknown;
   }): Promise<void> {
     await AccessControlUtil.checkAccessControlBlockPermissionByModel<TBaseModel>(
       { ...data, type: DatabaseRequestType.Update },
@@ -37,12 +44,18 @@ export default class UpdatePermission {
    * checks need the data a service's hooks have not finished with yet, and
    * checkUpdatePermissions asks them once they have. So this refuses nothing
    * that check would let through.
+   *
+   * `updateData`, when the caller already has it, is what the update
+   * writes: the plan check needs it to let an update that only switches
+   * records off through below the table's update plan (BillingPermission).
+   * Without it, an update below the plan is refused here.
    */
   @CaptureSpan()
   public static async getUpdatableQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
+    updateData?: unknown,
   ): Promise<Query<TBaseModel>> {
     if (props.isRoot || props.isMasterAdmin) {
       return query;
@@ -52,6 +65,7 @@ export default class UpdatePermission {
       modelType,
       props,
       DatabaseRequestType.Update,
+      updateData,
     );
 
     const checkBasePermission: CheckPermissionBaseInterface<TBaseModel> =
@@ -61,6 +75,7 @@ export default class UpdatePermission {
         null,
         props,
         DatabaseRequestType.Update,
+        updateData,
       );
 
     return checkBasePermission.query;
@@ -110,6 +125,7 @@ export default class UpdatePermission {
       modelType,
       props,
       DatabaseRequestType.Update,
+      data,
     );
 
     EditionPermissions.checkEditionPermissions(
@@ -133,6 +149,7 @@ export default class UpdatePermission {
         null,
         props,
         DatabaseRequestType.Update,
+        data,
       );
 
     query = checkBasePermission.query;

@@ -29,6 +29,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Sign-in sessions, not configuration: reads keep the plan.
+  readStaysGated: true,
 })
 @CanAccessIfCanReadOn("statusPage")
 @TenantColumn("projectId")
