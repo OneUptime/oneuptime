@@ -221,7 +221,7 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <div className={`text-sm font-semibold ${headline.titleClassName}`}>
-              {checklist.headline}
+              {translator.translateText(checklist.headline)}
             </div>
             {checklist.headlineConsequence ? (
               <div
@@ -277,10 +277,10 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
                 data-testid={`setup-checklist-section-${section.key}`}
               >
                 <div className="text-sm font-semibold text-gray-900">
-                  {section.title}
+                  {translator.translateText(section.title)}
                 </div>
                 <div className="mb-3 mt-1 text-sm text-gray-500">
-                  {section.description}
+                  {translator.translateText(section.description)}
                 </div>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   {section.steps.map((step: SetupStep): ReactElement => {

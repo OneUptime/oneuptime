@@ -58,6 +58,8 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 
 jest.mock("../../../Server/Utils/Logger");
 
+import logger from "../../../Server/Utils/Logger";
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "77777777-7777-4777-8777-777777777777",
 );
@@ -79,24 +81,24 @@ describe("the link to the switches", () => {
     expect(
       ProjectNotificationChannelOwnerNotice.getSettingsLink(
         PROJECT_ID,
-      ).toString(),
+      )?.toString(),
     ).toBe(LINK);
   });
 
-  test("is refused when the dashboard's address is not configured", () => {
+  test("there is none when the dashboard's address is not configured", () => {
     address.url = undefined;
 
-    expect(() => {
-      ProjectNotificationChannelOwnerNotice.getSettingsLink(PROJECT_ID);
-    }).toThrow("The dashboard's address is not configured.");
+    expect(
+      ProjectNotificationChannelOwnerNotice.getSettingsLink(PROJECT_ID),
+    ).toBeNull();
   });
 
-  test("is refused when the address has no host (HOST is not set)", () => {
+  test("there is none when the address has no host (HOST is not set), and nothing is logged as an error", () => {
     address.url = new URL(Protocol.HTTP, "", new Route("/dashboard"));
 
-    expect(() => {
-      ProjectNotificationChannelOwnerNotice.getSettingsLink(PROJECT_ID);
-    }).toThrow("The dashboard's address is not configured.");
+    expect(
+      ProjectNotificationChannelOwnerNotice.getSettingsLink(PROJECT_ID),
+    ).toBeNull();
 
     // And the notice still says where the switch is.
     expect(
@@ -107,6 +109,12 @@ describe("the link to the switches", () => {
     ).toBe(
       "SMS is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
     );
+
+    /*
+     * A missing HOST is how the install is set up, not a failure of this
+     * email: every refused message would otherwise log a stack trace.
+     */
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });
 

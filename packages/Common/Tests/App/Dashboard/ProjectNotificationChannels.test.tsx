@@ -112,11 +112,14 @@ import ProjectNotificationChannelsStore, {
   canChangeProjectNotificationChannels,
   fetchProjectNotificationChannels,
   getProjectChannelState,
+  getProjectNotificationChannelsAccess,
   getProjectNotificationChannelsSelect,
   isAddingOffered,
   isCodeResendOffered,
+  isKnownNotToChangeProjectNotificationChannels,
   ProjectChannelState,
   ProjectNotificationChannels,
+  ProjectNotificationChannelsAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels";
 import ProjectNotificationChannelsCard, {
   PROJECT_NOTIFICATION_CHANNELS_CARD_TEST_ID,
@@ -1119,6 +1122,81 @@ describe("who may turn the channels on", () => {
     localStorage.removeItem("project_permissions");
 
     expect(canChangeProjectNotificationChannels()).toBe(false);
+  });
+
+  /*
+   * One answer for every place that offers the switch, a link to it, or a
+   * line saying who can: Yes, No - or Unknown while the permission snapshot
+   * is still on its way, when nobody is offered the switch and nobody is
+   * told they lack a permission.
+   */
+  test.each([
+    [
+      "a project owner",
+      { permissions: [Permission.ProjectOwner] },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "someone with Manage Billing",
+      { permissions: [Permission.ManageProjectBilling] },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "a master admin",
+      { permissions: [], isMasterAdmin: true },
+      ProjectNotificationChannelsAccess.Yes,
+    ],
+    [
+      "a project admin",
+      { permissions: [Permission.ProjectAdmin] },
+      ProjectNotificationChannelsAccess.No,
+    ],
+    [
+      "someone who may edit the project",
+      { permissions: [Permission.EditProject] },
+      ProjectNotificationChannelsAccess.No,
+    ],
+    [
+      "a project member",
+      { permissions: [Permission.ProjectMember] },
+      ProjectNotificationChannelsAccess.No,
+    ],
+  ] as Array<[string, Session, ProjectNotificationChannelsAccess]>)(
+    "for %s the answer is %s, the same for every channel",
+    (
+      _who: string,
+      session: Session,
+      expected: ProjectNotificationChannelsAccess,
+    ) => {
+      signIn(session);
+
+      expect(getProjectNotificationChannelsAccess()).toBe(expected);
+
+      for (const channel of Object.values(ProjectNotificationChannel)) {
+        expect([
+          channel,
+          getProjectNotificationChannelsAccess([channel]),
+        ]).toEqual([channel, expected]);
+      }
+
+      expect(canChangeProjectNotificationChannels()).toBe(
+        expected === ProjectNotificationChannelsAccess.Yes,
+      );
+      expect(isKnownNotToChangeProjectNotificationChannels()).toBe(
+        expected === ProjectNotificationChannelsAccess.No,
+      );
+    },
+  );
+
+  test("while the permissions are on their way the answer is Unknown: neither offered the switch nor told who can", () => {
+    localStorage.removeItem("global_permissions");
+    localStorage.removeItem("project_permissions");
+
+    expect(getProjectNotificationChannelsAccess()).toBe(
+      ProjectNotificationChannelsAccess.Unknown,
+    );
+    expect(canChangeProjectNotificationChannels()).toBe(false);
+    expect(isKnownNotToChangeProjectNotificationChannels()).toBe(false);
   });
 
   test("no single project permission but those two lets anyone in", () => {

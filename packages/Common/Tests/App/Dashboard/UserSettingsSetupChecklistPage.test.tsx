@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 
 /*
  * The setup checklist, rendered for real.
@@ -117,12 +118,18 @@ jest.mock("../../../UI/Utils/Navigation", () => {
   };
 });
 
+/*
+ * The translations the page is drawn with: none by default, so every string
+ * reads as its English key; a test may hand it a real locale file.
+ */
+let mockTranslations: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, options?: { defaultValue?: string }): string => {
-          return options?.defaultValue ?? key;
+          return mockTranslations[key] ?? options?.defaultValue ?? key;
         },
       };
     },
@@ -1489,6 +1496,63 @@ describe("setup checklist page - who can turn a channel on", () => {
     },
   );
 
+  /*
+   * The permission snapshot rides on response headers, so it can still be
+   * empty when the page mounts - just after signing in, or after switching
+   * project. The checklist reads it once every one of its own requests has
+   * answered, and those answers are what bring it: an owner whose
+   * permissions arrive with them is still sent to the switches, not told to
+   * ask somebody else.
+   */
+  test("goes by the permissions its own answers bring: an owner whose arrive with them is sent to the switches", async (): Promise<void> => {
+    let hasArrived: boolean = false;
+
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockImplementation((): Array<Permission> => {
+        return hasArrived
+          ? [
+              Permission.Public,
+              Permission.User,
+              Permission.CurrentUser,
+              Permission.ProjectOwner,
+            ]
+          : [];
+      });
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(false);
+
+    let permissionsWhenAsked: Array<Permission> | null = null;
+
+    // The readiness answer is what carries the snapshot here.
+    apiGetMock.mockImplementation(((): Promise<HTTPResponse<JSONObject>> => {
+      if (permissionsWhenAsked === null) {
+        permissionsWhenAsked = [...PermissionUtil.getAllPermissions()];
+      }
+
+      hasArrived = true;
+
+      return Promise.resolve(
+        new HTTPResponse<JSONObject>(200, ONLY_SMS_VERIFIED, {}),
+      );
+    }) as never);
+
+    renderChecklist();
+    await settle();
+
+    // When the checklist asked, nothing was known yet.
+    expect(permissionsWhenAsked).toEqual([]);
+
+    const step: HTMLElement = screen.getByTestId(
+      "setup-checklist-step-channels-enabled",
+    );
+
+    expect(step).toHaveAttribute("data-status", "Incomplete");
+    expect(step).toHaveTextContent(
+      "Go to Project Settings → Notification Settings →",
+    );
+    expect(screen.queryByText("Needs someone else")).not.toBeInTheDocument();
+  });
+
   test("a usable channel is done, whoever reads it", async (): Promise<void> => {
     signInWith([Permission.ProjectAdmin]);
     respondWithProject({ enableSms: true });
@@ -1502,6 +1566,76 @@ describe("setup checklist page - who can turn a channel on", () => {
     expect(
       screen.queryByTestId("setup-checklist-detail-channels-enabled"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("setup checklist page - in the reader's language", () => {
+  /*
+   * The step rows are drawn through the translator; so are the headline
+   * above them and the section headings between them, so a German reader
+   * does not get German rows under English headings. From the real
+   * locale files.
+   */
+  const DE: Record<string, string> = germanLocale as unknown as Record<
+    string,
+    string
+  >;
+
+  afterEach((): void => {
+    mockTranslations = {};
+  });
+
+  test("the headline, section titles and descriptions, and step rows read German", async (): Promise<void> => {
+    mockTranslations = DE;
+
+    respondWithReadiness(
+      readinessJson({
+        status: "NotReachable",
+        methods: [],
+      }),
+    );
+
+    renderChecklist();
+    await settle();
+
+    const headline: HTMLElement = screen.getByTestId(
+      "setup-checklist-headline",
+    );
+
+    expect(DE["Nothing can reach you yet"]).toBeTruthy();
+    expect(headline).toHaveTextContent(DE["Nothing can reach you yet"]!);
+    expect(headline).not.toHaveTextContent("Nothing can reach you yet");
+
+    const section: HTMLElement = screen.getByTestId(
+      "setup-checklist-section-reachability",
+    );
+    const sectionTitle: string = "So we can reach you";
+    const sectionDescription: string =
+      "Where OneUptime sends things. Everything else on this page depends on getting this right first.";
+
+    expect(DE[sectionTitle]).toBeTruthy();
+    expect(DE[sectionDescription]).toBeTruthy();
+    expect(section).toHaveTextContent(DE[sectionTitle]!);
+    expect(section).toHaveTextContent(DE[sectionDescription]!);
+    expect(section).not.toHaveTextContent(sectionTitle);
+
+    // The rows under it, as before.
+    const rowTitle: string = "Add a way for us to reach you";
+
+    expect(DE[rowTitle]).toBeTruthy();
+    expect(section).toHaveTextContent(DE[rowTitle]!);
+  });
+
+  test("every headline the checklist can show has a German translation", () => {
+    for (const headline of [
+      "Nothing can reach you yet",
+      "A few things still need setting up",
+      "You are set up, and not on call right now",
+      "You are all set",
+    ]) {
+      expect([headline, Boolean(DE[headline])]).toEqual([headline, true]);
+      expect(DE[headline]).not.toBe(headline);
+    }
   });
 });
 

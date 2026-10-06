@@ -6,9 +6,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import PermissionGate, {
-  PermissionGateResult,
-} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -23,6 +20,7 @@ import React, {
 import { getProjectChannelSwitchTestId } from "./NotificationChannelOffPanel";
 import ProjectNotificationChannelsStore, {
   fetchProjectNotificationChannels,
+  isKnownNotToChangeProjectNotificationChannels,
 } from "./ProjectNotificationChannels";
 import ProjectNotificationChannelsCopy, {
   EnabledProjectChannels,
@@ -54,20 +52,6 @@ export const PROJECT_NOTIFICATION_CHANNELS_CARD_TEST_ID: string =
 
 export const PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID: string =
   "project-notification-channels-who-can-change";
-
-/*
- * Whether the signed-in person is known not to be allowed to change the
- * switches: refused by the gate, with a reason. Not while the permission
- * snapshot is on its way - an owner is never told to ask someone else.
- */
-const isKnownNotToChangeChannels: () => boolean = (): boolean => {
-  const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
-    new Project(),
-    PROJECT_NOTIFICATION_CHANNELS[0]!.column,
-  );
-
-  return !gate.isAllowed && Boolean(gate.disabledReason);
-};
 
 const ProjectNotificationChannelsCard: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -147,7 +131,7 @@ const ProjectNotificationChannelsCard: FunctionComponent = (): ReactElement => {
 
     return (
       <>
-        {isKnownNotToChangeChannels() ? (
+        {isKnownNotToChangeProjectNotificationChannels() ? (
           <p
             className="mb-4 text-sm text-gray-600"
             data-testid={PROJECT_NOTIFICATION_CHANNELS_WHO_CAN_CHANGE_TEST_ID}

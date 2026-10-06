@@ -5,7 +5,7 @@ import {
   getWhoCanTurnOnClause,
   getWhoCanTurnOnSentence,
   INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE,
-  PROJECT_NOTIFICATION_CHANNEL_COLUMNS,
+  PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL,
   PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
   PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH,
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
@@ -56,7 +56,7 @@ describe("the four channels", () => {
   test("each is a boolean Project column that starts off", () => {
     const project: Project = new Project();
 
-    expect(PROJECT_NOTIFICATION_CHANNEL_COLUMNS).toEqual({
+    expect(PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL).toEqual({
       [ProjectNotificationChannel.SMS]: "enableSmsNotifications",
       [ProjectNotificationChannel.Call]: "enableCallNotifications",
       [ProjectNotificationChannel.WhatsApp]: "enableWhatsAppNotifications",
@@ -64,7 +64,8 @@ describe("the four channels", () => {
     });
 
     for (const channel of ALL_CHANNELS) {
-      const column: string = PROJECT_NOTIFICATION_CHANNEL_COLUMNS[channel];
+      const column: string =
+        PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL[channel];
 
       expect([
         column,
@@ -85,7 +86,8 @@ describe("who may turn them on", () => {
     ]);
 
     for (const channel of ALL_CHANNELS) {
-      const column: string = PROJECT_NOTIFICATION_CHANNEL_COLUMNS[channel];
+      const column: string =
+        PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL[channel];
 
       expect([
         column,
@@ -104,7 +106,7 @@ describe("who may turn them on", () => {
       expect(
         project
           .getColumnAccessControlFor(
-            PROJECT_NOTIFICATION_CHANNEL_COLUMNS[channel],
+            PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL[channel],
           )
           ?.update?.includes(Permission.ProjectAdmin),
       ).toBe(false);

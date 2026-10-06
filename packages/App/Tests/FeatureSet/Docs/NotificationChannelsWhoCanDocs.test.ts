@@ -1,7 +1,7 @@
 import Project from "Common/Models/DatabaseModels/Project";
 import Permission from "Common/Types/Permission";
 import {
-  PROJECT_NOTIFICATION_CHANNEL_COLUMNS,
+  PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL,
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
   ProjectNotificationChannel,
 } from "Common/Utils/Project/NotificationChannels";
@@ -179,7 +179,8 @@ describe("the people the docs name", () => {
     const project: Project = new Project();
 
     for (const channel of Object.values(ProjectNotificationChannel)) {
-      const column: string = PROJECT_NOTIFICATION_CHANNEL_COLUMNS[channel];
+      const column: string =
+        PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL[channel];
 
       expect([
         column,

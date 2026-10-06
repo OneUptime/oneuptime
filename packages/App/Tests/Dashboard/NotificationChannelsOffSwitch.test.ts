@@ -19,6 +19,7 @@ import {
   getProjectNotificationChannelOffMessage,
   getWhoCanTurnOnSentence,
   INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE,
+  PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL,
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
 } from "Common/Utils/Project/NotificationChannels";
 import { describe, expect, test } from "@jest/globals";
@@ -211,6 +212,15 @@ describe("the four channels", () => {
         },
       ),
     ).toEqual(Object.values(ProjectNotificationChannel));
+  });
+
+  test("the server's wording and the dashboard name the same column for each channel", () => {
+    for (const definition of PROJECT_NOTIFICATION_CHANNELS) {
+      expect([
+        definition.channel,
+        PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL[definition.channel],
+      ]).toEqual([definition.channel, definition.column]);
+    }
   });
 
   test("every gated list is defined once, on a channel that exists", () => {

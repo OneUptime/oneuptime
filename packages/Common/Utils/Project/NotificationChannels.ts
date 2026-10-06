@@ -39,7 +39,7 @@ export type ProjectNotificationChannelColumn =
   | "enableWhatsAppNotifications"
   | "enableTelegramNotifications";
 
-export const PROJECT_NOTIFICATION_CHANNEL_COLUMNS: Readonly<
+export const PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL: Readonly<
   Record<ProjectNotificationChannel, ProjectNotificationChannelColumn>
 > = {
   [ProjectNotificationChannel.SMS]: "enableSmsNotifications",

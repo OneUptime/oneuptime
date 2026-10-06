@@ -1069,14 +1069,18 @@ type GetHeadlineFunction = (status: SetupHeadlineStatus) => string;
 const getHeadline: GetHeadlineFunction = (
   status: SetupHeadlineStatus,
 ): string => {
+  /*
+   * Keys, so the page draws them in the reader's language, as it does every
+   * section and step around them.
+   */
   switch (status) {
     case SetupHeadlineStatus.NotReachable:
-      return "Nothing can reach you yet";
+      return translationKey("Nothing can reach you yet");
     case SetupHeadlineStatus.NeedsSetup:
-      return "A few things still need setting up";
+      return translationKey("A few things still need setting up");
     case SetupHeadlineStatus.NotOnCall:
-      return "You are set up, and not on call right now";
+      return translationKey("You are set up, and not on call right now");
     default:
-      return "You are all set";
+      return translationKey("You are all set");
   }
 };

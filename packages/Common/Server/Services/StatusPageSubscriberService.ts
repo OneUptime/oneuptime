@@ -140,9 +140,11 @@ interface UnsubscribedAtCarryForward {
 const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
 
 /*
- * What a visitor signing up by SMS hears while the project has SMS off: the
- * same sentence StatusPageAPI gives while the page's own SMS switch is off.
- * A visitor has no project settings, so nothing about who can turn it on.
+ * What a visitor signing up by SMS hears when SMS sign-ups are not open:
+ * the page's own SMS switch is off (StatusPageAPI's subscribe endpoints), or
+ * the project has SMS off (onBeforeCreate below). One sentence whichever
+ * check refuses. A visitor has no project settings, so nothing about who
+ * can turn it on.
  */
 export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
   "SMS subscribers not enabled for this status page.";
