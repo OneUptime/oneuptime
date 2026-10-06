@@ -13,6 +13,7 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
+import RelatedFileAccess from "../../../../Utils/File/RelatedFileAccess";
 import logComponentError from "./LogComponentError";
 
 export default class FindOneBaseModel<
@@ -140,6 +141,14 @@ export default class FindOneBaseModel<
           isRoot: true,
           tenantId: options.projectId,
         },
+      });
+
+      // The record's files only when they are the project's to see.
+      await RelatedFileAccess.keepReadableFiles({
+        model: this.modelService.getModel(),
+        rows: model ? [model] : [],
+        select: select,
+        reader: RelatedFileAccess.getProjectReader(options.projectId),
       });
 
       return {

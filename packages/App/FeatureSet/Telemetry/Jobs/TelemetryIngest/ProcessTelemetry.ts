@@ -17,7 +17,7 @@ import {
 } from "../ProbeIngest/ProcessProbeIngest";
 import { processServerMonitorFromQueue } from "../ServerMonitorIngest/ProcessServerMonitorIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
-import { processIncomingRequestFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
+import { processIncomingRequestJobFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
@@ -26,8 +26,7 @@ import { runWithInsertDedup } from "Common/Server/Services/AnalyticsDatabaseServ
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import { DisableQueueWorkers } from "Common/Server/EnvironmentConfig";
 import ObjectID from "Common/Types/ObjectID";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import { isNonActionableIngestError } from "../../Utils/NonActionableIngestError";
 import {
   SESSION_REPLAY_WORKER_CONCURRENCY,
   TELEMETRY_CONCURRENCY,
@@ -435,7 +434,7 @@ if (DisableQueueWorkers) {
 
             case TelemetryType.IncomingRequestIngest:
               if (jobData.incomingRequestIngest) {
-                await processIncomingRequestFromQueue(
+                await processIncomingRequestJobFromQueue(
                   jobData.incomingRequestIngest,
                 );
               }
@@ -491,12 +490,7 @@ if (DisableQueueWorkers) {
            * These include disabled monitors (manual, maintenance, explicitly disabled) and missing monitors
            * (e.g. secret key referencing a deleted monitor). Retrying provides no value and only creates noise.
            */
-          if (
-            error instanceof BadDataException &&
-            (error.message === ExceptionMessages.MonitorNotFound ||
-              error.message === ExceptionMessages.MonitorDisabled ||
-              error.message === ExceptionMessages.MonitorArchived)
-          ) {
+          if (isNonActionableIngestError(error)) {
             return;
           }
 

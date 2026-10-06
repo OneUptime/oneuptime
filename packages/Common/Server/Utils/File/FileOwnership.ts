@@ -367,6 +367,50 @@ export default class FileOwnership {
     return Boolean(uploadedBy && uploadedBy === normalizeFileId(userId));
   }
 
+  /**
+   * Whether someone may see a file, the one rule every way of reading a
+   * file's bytes follows (FileViewerAccess for the image routes,
+   * RelatedFileAccess for a record's files): a public file, anyone; a file
+   * of a project, whoever may open that project now (`mayOpenProject`); a
+   * file uploaded with no project, the person who uploaded it. Server
+   * admins and OneUptime itself are decided before this is asked.
+   */
+  public static async maySeeFile(data: {
+    file:
+      | {
+          isPublic?: unknown;
+          projectId?: ObjectID | string | null | undefined;
+          createdByUserId?: ObjectID | string | null | undefined;
+        }
+      | null
+      | undefined;
+    userId: ObjectID | string | null | undefined;
+    mayOpenProject: (projectId: ObjectID) => boolean | Promise<boolean>;
+  }): Promise<boolean> {
+    const file: typeof data.file = data.file;
+
+    if (!file) {
+      return false;
+    }
+
+    // Strictly true: anything else, a loose 'true' string included, is private.
+    if (file.isPublic === true) {
+      return true;
+    }
+
+    const projectId: string = normalizeFileId(file.projectId);
+
+    if (!projectId) {
+      return Boolean(data.userId) && this.isFileOfUser(file, data.userId);
+    }
+
+    if (!ObjectID.isValidUUID(projectId)) {
+      return false;
+    }
+
+    return await data.mayOpenProject(new ObjectID(projectId));
+  }
+
   // Whether a file belongs to the owner a record holds its files to.
   public static isOwnedBy(
     file: FileOwners | undefined,

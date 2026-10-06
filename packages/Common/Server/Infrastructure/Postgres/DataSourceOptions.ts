@@ -36,8 +36,13 @@ const dataSourceOptions: DataSourceOptions = {
   migrationsTableName: "migrations",
   migrations: Migrations,
   /*
-   * Schema migrations run on connect unless disabled (e.g. runtime pods when a
-   * dedicated migrate Job owns migrations). See RunDatabaseMigrationsOnBoot.
+   * Whether this process applies the schema migrations when it connects
+   * (RunDatabaseMigrationsOnBoot: off on runtime pods when a dedicated
+   * migrate Job owns them). PostgresDatabase.connect() reads it and applies
+   * them through SchemaMigrationRunner, on a connection of their own with a
+   * bounded lock wait and retries; it never lets initialize() run them on
+   * this pool. The TypeORM CLI (migration:run, the schema drift check) turns
+   * it off and runs them itself.
    */
   migrationsRun: RunDatabaseMigrationsOnBoot,
   /*
@@ -93,13 +98,15 @@ const dataSourceOptions: DataSourceOptions = {
      * Bound how long a statement WAITS for a lock, so contention on a hot row
      * fails fast instead of forming a queue (see PostgresLockTimeoutMs).
      *
-     * Excluded on the migration path, and that exclusion is load-bearing:
-     * App/Migrate.ts loads these same options and connects DIRECTLY to the
+     * Not on this pool in a process that runs migrations (App/Migrate.ts, and
+     * every boot under docker compose). App/Migrate.ts connects DIRECTLY to the
      * backend (bypassing any pooler), where startup parameters really do take
-     * effect. A 3s lock_timeout there would abort ACCESS EXCLUSIVE DDL on any
-     * table with live traffic — only the two migrations that set their own
-     * `SET LOCAL lock_timeout` expect to fail that way; the rest must be free
-     * to wait.
+     * effect, and its data migrations run on this pool and are left free to
+     * wait for row locks, as they always were. Its SCHEMA migrations do not
+     * run here: SchemaMigrationRunner gives them a connection of their own
+     * with DATABASE_MIGRATION_LOCK_TIMEOUT_MS (2 s, below this 3 s) and
+     * retries a migration that runs out - failing fast instead of queueing
+     * ahead of every query on the table, without failing the deploy.
      */
     ...(PostgresLockTimeoutMs > 0 && !RunDatabaseMigrationsOnBoot
       ? { lock_timeout: PostgresLockTimeoutMs }

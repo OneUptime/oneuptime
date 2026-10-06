@@ -331,6 +331,22 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   makes it hold them again. Incidents from before the upgrade give their
   monitors back on their next resolve, as they always did. See
   [What resolving does](/docs/incidents/states-and-severities#what-resolving-does).
+- **An incident's or alert's episode is set by the episode's members
+  only.** `incidentEpisodeId` and `alertEpisodeId` (and the `incidentEpisode`
+  and `alertEpisode` relations) are read-only. The API, Terraform
+  (`incident_episode_id`, `alert_episode_id`), the MCP tools and workflows
+  could write them without adding the record to the episode: the episode's
+  overview then listed an incident or alert its **Members** page did not, and
+  one created with an episode set was never grouped. A create or update that
+  sends one is now refused, with a message pointing at the episode's members:
+  add the record with `POST /api/incident-episode-member` (or
+  `/api/alert-episode-member`) and delete that member to take it out, and the
+  episode reference follows. Reading it is unchanged. A Terraform
+  configuration that sets `incident_episode_id` or `alert_episode_id` must
+  drop it once you upgrade the provider, which only reads them now; the
+  `oneuptime_incident_episode_member` and `oneuptime_alert_episode_member`
+  resources manage membership. See
+  [The episode an incident or alert is in](/docs/api-reference/api-reference#the-episode-an-incident-or-alert-is-in).
 - **New incoming call escalation rules ring for 20 seconds, not 30.** Many
   phones send an unanswered call to voicemail within 30 seconds, and a
   voicemail that answers ends the call there instead of moving it on to the

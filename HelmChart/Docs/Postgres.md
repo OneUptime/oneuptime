@@ -401,3 +401,35 @@ More on the migration Job:
   same path docker-compose uses.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
   session mode); the app's client-side `query_timeout` still applies.
+
+### Schema migrations and busy tables
+
+A schema migration needs strong table locks (`ALTER TABLE` takes `ACCESS
+EXCLUSIVE`), and Postgres grants locks in queue order: a DDL statement waiting
+for one long transaction blocks every query that arrives on that table after
+it, plain `SELECT`s included. 14.0.13's `ALTER TABLE "Monitor"` did exactly
+that, and monitors stopped being processed while it waited.
+
+The migration Job (and any process with `RUN_DATABASE_MIGRATIONS_ON_BOOT`
+left on) therefore runs schema migrations on a connection of their own where
+a statement waits at most `DATABASE_MIGRATION_LOCK_TIMEOUT_MS` for a lock. A
+migration that runs out is rolled back - releasing everything it held - and
+retried, backing off from one second to thirty, until it gets through or
+`DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS` passes for that migration; then the
+Job fails, and its log names the oldest open transactions in the database and
+the tables they hold, which is usually the culprit (a report, a backup, a
+session left idle in a transaction).
+
+| Variable | Default | |
+| --- | --- | --- |
+| `DATABASE_MIGRATION_LOCK_TIMEOUT_MS` | `2000` | Longest lock wait of one migration statement. Keep it below `DATABASE_LOCK_TIMEOUT_MS` (3000), so app queries queued behind a migration are delayed, not failed. `0` waits without limit (the old behaviour). |
+| `DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS` | `600000` | How long one migration keeps being retried. `0` never retries. |
+
+Set them for the Job alone with `migrate.extraEnv`. Data migrations still run
+on the app's own pool, as before.
+
+Bounding the wait does not bound how long a migration *holds* a lock once it
+has it. Index builds and foreign keys on tables that already hold data are
+therefore written with `OnlineDdl` (`CREATE INDEX CONCURRENTLY`, and `NOT
+VALID` followed by `VALIDATE CONSTRAINT`), which do not block reads or writes;
+see `packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts`.

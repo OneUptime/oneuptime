@@ -9,7 +9,7 @@
 -%>
 <div class="code-block-wrapper not-prose my-6 overflow-hidden rounded-xl code-surface shadow-lg" data-copy-scope>
    <div class="flex min-h-[2.75rem] flex-wrap items-center gap-x-4 border-b code-divider code-surface-raised px-3 sm:px-4">
-      <h4 class="mr-auto py-2 text-xs font-semibold tracking-wide code-text"><%= title -%></h4>
+      <h4 class="me-auto py-2 text-xs font-semibold tracking-wide code-text"><%= title -%></h4>
       <button type="button" class="copy-btn my-1.5" data-copy-button aria-label="<%= t('ui.copyCode') %>">
          <svg class="copy-icon h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round"
@@ -25,7 +25,7 @@
    <% if(requestType && requestUrl){ %>
    <div class="flex flex-wrap items-center gap-2 border-b code-divider-soft code-surface-raised px-3 py-2 sm:flex-nowrap sm:gap-3 sm:px-4">
       <%- include('method-badge', { method: requestType, tone: 'dark' }) -%>
-      <span class="break-all font-mono text-xs code-text-muted sm:text-sm"><%= requestUrl -%></span>
+      <span class="break-all font-mono text-xs code-text-muted sm:text-sm" dir="ltr"><%= requestUrl -%></span>
    </div>
    <% } %>
 

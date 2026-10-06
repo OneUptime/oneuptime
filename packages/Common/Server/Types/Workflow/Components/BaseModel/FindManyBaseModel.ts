@@ -15,6 +15,7 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { normalizeModelKeys } from "./ModelArguments";
+import RelatedFileAccess from "../../../../Utils/File/RelatedFileAccess";
 import logComponentError from "./LogComponentError";
 
 export default class FindManyBaseModel<
@@ -169,6 +170,14 @@ export default class FindManyBaseModel<
           isRoot: true,
           tenantId: options.projectId,
         },
+      });
+
+      // The records' files only when they are the project's to see.
+      await RelatedFileAccess.keepReadableFiles({
+        model: this.modelService.getModel(),
+        rows: models,
+        select: select,
+        reader: RelatedFileAccess.getProjectReader(options.projectId),
       });
 
       return {

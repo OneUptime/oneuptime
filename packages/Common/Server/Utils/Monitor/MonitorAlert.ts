@@ -23,6 +23,7 @@ import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
@@ -717,16 +718,25 @@ export default class MonitorAlert {
           alert.monitor = input.monitor;
           alert.projectId = input.monitor.projectId!;
           alert.rootCause = seriesRootCause;
-          alert.createdStateLog = JSON.parse(
-            JSON.stringify(input.dataToProcess, null, 2),
-          );
+          /*
+           * The jsonb columns below get storable copies: one NUL in the
+           * check's payload (a binary response body, a webhook field) would
+           * otherwise make Postgres refuse the insert, and the alert would
+           * never open. Inputs stay as they are - they are still being read
+           * for this and the next alert.
+           */
+          alert.createdStateLog = toStorableJson(
+            input.dataToProcess,
+          ) as unknown as JSONObject;
 
           /*
            * Same capture on every alert this evaluation opens - they all
-           * came from the one check.
+           * came from the one check. Made storable after serialize(), which
+           * is what keeps its Dates as Dates when the page reads it back.
            */
-          const serializedMonitorSummary: JSONObject | null =
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+          const serializedMonitorSummary: JSONObject | null = toStorableJson(
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+          );
 
           if (serializedMonitorSummary) {
             alert.monitorSummary = serializedMonitorSummary;
@@ -740,7 +750,7 @@ export default class MonitorAlert {
             alert.seriesFingerprint = seriesFingerprint;
           }
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-            alert.seriesLabels = seriesLabels;
+            alert.seriesLabels = toStorableJson(seriesLabels);
 
             /*
              * Attach every resource this series identifies — host, docker
@@ -1036,9 +1046,10 @@ export default class MonitorAlert {
     }
 
     if (input.dataToProcess) {
-      alertStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
+      // Storable copy, for the same reason as createdStateLog above.
+      alertStateTimeline.stateChangeLog = toStorableJson(
+        input.dataToProcess,
+      ) as unknown as JSONObject;
     }
 
     try {
