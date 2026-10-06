@@ -47,6 +47,9 @@ import {
  *             accused of lacking a permission.
  */
 
+// jest.fn from @jest/globals is jest-mock's Mock, not @types/jest's.
+type VoidMock = ReturnType<typeof jest.fn<() => void>>;
+
 const PROJECT_ID: string = "7a000000-0000-4000-8000-0000000000aa";
 
 const BASE_PERMISSIONS: Array<Permission> = [
@@ -184,7 +187,7 @@ describe("the Current Balance card's description", () => {
 
 describe("the Recharge Balance button", () => {
   test("works for someone who may", () => {
-    const onRecharge: jest.Mock = jest.fn();
+    const onRecharge: VoidMock = jest.fn<() => void>();
     const buttons: Array<CardButtonSchema> = getRechargeBalanceButtons({
       access: ProjectBalanceAccess.Yes,
       onRecharge,
@@ -200,7 +203,7 @@ describe("the Recharge Balance button", () => {
   });
 
   test("is locked, saying why, for someone who may not - and pressing it opens nothing", () => {
-    const onRecharge: jest.Mock = jest.fn();
+    const onRecharge: VoidMock = jest.fn<() => void>();
     const buttons: Array<CardButtonSchema> = getRechargeBalanceButtons({
       access: ProjectBalanceAccess.No,
       onRecharge,
@@ -223,7 +226,7 @@ describe("the Recharge Balance button", () => {
     expect(
       getRechargeBalanceButtons({
         access: ProjectBalanceAccess.Unknown,
-        onRecharge: jest.fn(),
+        onRecharge: jest.fn<() => void>(),
       }),
     ).toEqual([]);
   });
