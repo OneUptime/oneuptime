@@ -454,7 +454,21 @@ describe("AlertEpisode:AutoResolve worker", () => {
       PROJECT_1_ID.toString(),
       PROJECT_2_ID.toString(),
     ]);
-    expect(stateArgs.query["isResolvedState"]).toBe(true);
+    /*
+     * Every state of those projects, with its place and flag: the resolved
+     * state is the first flagged from the top, and a state placed after it
+     * counts as resolved too (Common/Utils/ResolvedState).
+     */
+    expect(stateArgs.query["isResolvedState"]).toBeUndefined();
+    expect(
+      (stateArgs as unknown as { select: Record<string, unknown> }).select,
+    ).toEqual(
+      expect.objectContaining({
+        order: true,
+        projectId: true,
+        isResolvedState: true,
+      }),
+    );
 
     // Both batches complete BEFORE the per-episode fan-out starts.
     expect(ruleService.findBy.mock.invocationCallOrder[0]!).toBeLessThan(
@@ -476,6 +490,47 @@ describe("AlertEpisode:AutoResolve worker", () => {
     expect(episodeService.resolveEpisode).toHaveBeenCalledTimes(3);
 
     expectNoPerRowLookups();
+  });
+
+  test("reads the project's resolved state as the first flagged from the top, and a member in a state placed after it as resolved", async () => {
+    const closedMemberId: ObjectID = new ObjectID("alert-closed");
+    const openMemberId: ObjectID = new ObjectID("alert-open");
+
+    function stateAt(order: number, isResolvedState: boolean): AlertState {
+      const state: AlertState = new AlertState();
+      state.projectId = PROJECT_1_ID;
+      state.order = order;
+      state.isResolvedState = isResolvedState;
+      return state;
+    }
+
+    episodeService.findBy.mockResolvedValue([
+      makeEpisode({ id: EPISODE_1_ID, projectId: PROJECT_1_ID }),
+      makeEpisode({ id: EPISODE_2_ID, projectId: PROJECT_1_ID }),
+    ]);
+    // In any order: a second flagged state further down does not move it.
+    stateService.findBy.mockResolvedValue([
+      stateAt(RESOLVED_ORDER + 3, true),
+      stateAt(1, false),
+      stateAt(RESOLVED_ORDER + 1, false),
+      makeResolvedState(PROJECT_1_ID),
+    ]);
+    stubMembers({
+      [EPISODE_1_ID.toString()]: [closedMemberId],
+      [EPISODE_2_ID.toString()]: [openMemberId],
+    });
+    stubAlerts([
+      // Closed: after Resolved, without the flag - resolved all the same.
+      makeAlert(closedMemberId, RESOLVED_ORDER + 1),
+      makeAlert(openMemberId, RESOLVED_ORDER - 1),
+    ]);
+
+    await runWorkerTick();
+
+    const resolves: Array<ResolveEpisodeArgs> = resolveCalls();
+
+    expect(resolves).toHaveLength(1);
+    expect(resolves[0]!.episodeId.toString()).toBe(EPISODE_1_ID.toString());
   });
 
   test("resolves an episode whose members are all at or above the resolved order, stamping allAlertsResolvedAt first", async () => {
