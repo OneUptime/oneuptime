@@ -90,6 +90,10 @@ import ComplianceRule, {
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
+  ChannelPronoun,
+  getWhoCanTurnOnSentence,
+} from "Common/Utils/Project/NotificationChannels";
+import {
   CardSelectOption,
   CardSelectOptionGroup,
 } from "Common/UI/Components/CardSelect/CardSelect";
@@ -115,15 +119,19 @@ const METHOD_RULE_TYPES: Array<ComplianceRuleType> = ALL_RULE_TYPES.filter(
   },
 );
 
-// The notes the preview gives for a project switch, word for word.
+/*
+ * The notes the preview gives for a project switch, word for word. Each ends
+ * by saying who can switch the channel on, and where: a project owner or
+ * someone with Manage Billing - not "a project admin", who may not.
+ */
 const CALL_NOTE: string =
-  "Call notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.";
+  "Call notifications also have to be switched on for the project, or nobody will be reached this way. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 const WHATSAPP_NOTE: string =
-  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project in Project Settings > Notification Settings.";
+  "Members cannot add a WhatsApp number until WhatsApp is switched on for the project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.";
 const CALL_AND_SMS_NOTE: string =
-  "Call and SMS notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached those ways.";
+  "Call and SMS notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 const CALL_SMS_AND_TELEGRAM_NOTE: string =
-  "Call, SMS and Telegram notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached those ways.";
+  "Call, SMS and Telegram notifications also have to be switched on for the project, or nobody will be reached those ways. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.";
 const PAUSED_NOTE: string =
   "This rule is saved paused: it is listed but nobody is checked against it until you turn it on.";
 
@@ -956,7 +964,7 @@ describe("the live preview", () => {
   ])(
     "switched off, %s reaches nobody - and the note says so",
     (channel: ComplianceNotificationChannel, label: string) => {
-      const note: string = `${label} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.`;
+      const note: string = `${label} notifications also have to be switched on for the project, or nobody will be reached this way. A project owner or someone with Manage Billing can turn them on in Project Settings > Notification Settings.`;
 
       expect(getProjectSwitchNote(channel)).toBe(note);
       expect(getProjectSwitchNotes([channel])).toEqual([note]);
@@ -991,6 +999,52 @@ describe("the live preview", () => {
     ).toEqual([WHATSAPP_NOTE]);
     expect(WHATSAPP_NOTE).not.toContain("nobody will be reached");
   });
+
+  /*
+   * Only a project owner or someone with Manage Billing may switch SMS,
+   * calls, WhatsApp or Telegram on - the Project columns' own update
+   * permissions - and whoever writes a team's rules is often neither. So
+   * every project switch note names who can, and where, in the words the
+   * server's compliance warnings use, and never sends the reader to "a
+   * project admin" or tells them to do it themselves.
+   */
+  test.each([
+    [[ComplianceNotificationChannel.Call]],
+    [[ComplianceNotificationChannel.SMS]],
+    [[ComplianceNotificationChannel.Telegram]],
+    [[ComplianceNotificationChannel.WhatsApp]],
+    [
+      [
+        ComplianceNotificationChannel.Call,
+        ComplianceNotificationChannel.SMS,
+        ComplianceNotificationChannel.WhatsApp,
+        ComplianceNotificationChannel.Telegram,
+      ],
+    ],
+  ])(
+    "every project switch note for %j says who can switch it on, and where",
+    (channels: Array<ComplianceNotificationChannel>) => {
+      const notes: Array<string> = getProjectSwitchNotes(channels);
+
+      expect(notes.length).toBeGreaterThan(0);
+
+      for (const note of notes) {
+        const pronoun: ChannelPronoun = note.startsWith("Members cannot add")
+          ? "it"
+          : "them";
+
+        expect(note.endsWith(getWhoCanTurnOnSentence(pronoun))).toBe(true);
+        expect(note).toContain(
+          "A project owner or someone with Manage Billing can turn",
+        );
+        expect(note).toContain("in Project Settings > Notification Settings.");
+        expect(note.toLowerCase()).not.toContain("admin");
+        expect(note).not.toMatch(/\bPlease enable\b/);
+        // The location is said once, at the end - not again in brackets.
+        expect(note.split("Notification Settings").length - 1).toBe(1);
+      }
+    },
+  );
 
   test("a paused rule says so", () => {
     expect(
