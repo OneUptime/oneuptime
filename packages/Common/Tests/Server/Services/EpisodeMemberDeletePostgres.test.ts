@@ -6,9 +6,11 @@ import ObjectID from "../../../Types/ObjectID";
 import { DataSource } from "typeorm";
 
 /*
- * Removing an episode member against a migrated Postgres must clear the
- * incident / alert's episode reference (TypeORM ignores `undefined`, so the
- * cleanup has to write `null`).
+ * Removing an incident or alert from an episode, against a migrated Postgres,
+ * must leave its episode reference on an episode it is still in, or on none.
+ * None has to be written as null: TypeORM leaves a column it is given as
+ * undefined unchanged, which is how the reference used to outlive the
+ * membership.
  *
  * Opt in with RUN_POSTGRES_EPISODE_MEMBER_DELETE_TESTS=true against a database
  * the registered migrations have been applied to, e.g.
@@ -18,7 +20,8 @@ import { DataSource } from "typeorm";
  *   EPISODE_MEMBER_DELETE_TEST_DATABASE_PORT=5400 \
  *   DATABASE_PASSWORD=... npx jest Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts
  *
- * Each test fixture is created under its own project, which is dropped afterwards.
+ * The rows are real ones: each test's fixture is created under its own
+ * project, which is deleted afterwards.
  */
 const describePostgres: typeof describe =
   process.env["RUN_POSTGRES_EPISODE_MEMBER_DELETE_TESTS"] === "true"
@@ -32,11 +35,14 @@ interface Kind {
     | typeof AlertEpisodeMemberService;
 }
 
+/*
+ * One incident or alert and the episodes it is in, in the order it was added
+ * to them: memberIds[i] puts it in episodeIds[i].
+ */
 interface Seeded {
-  projectId: string;
-  episodeId: string;
-  records: Array<string>;
-  members: Array<string>;
+  recordId: string;
+  episodeIds: Array<string>;
+  memberIds: Array<string>;
 }
 
 const KINDS: Array<Kind> = [
@@ -83,7 +89,11 @@ describePostgres("episode member delete against a migrated Postgres", () => {
     }
   });
 
-  async function seed(kind: Kind, count: number): Promise<Seeded> {
+  /*
+   * The record is added to `episodeCount` episodes, one after another, and
+   * points at the last of them - as adding it to each in turn leaves it.
+   */
+  async function seed(kind: Kind, episodeCount: number): Promise<Seeded> {
     const k: string = kind.name;
     const lower: string = k.toLowerCase();
     const id: () => string = () => {
@@ -92,7 +102,7 @@ describePostgres("episode member delete against a migrated Postgres", () => {
     const projectId: string = id();
     const state: string = id();
     const severity: string = id();
-    const episodeId: string = id();
+    const recordId: string = id();
     projects.push(projectId);
 
     await database.query(
@@ -109,99 +119,108 @@ describePostgres("episode member delete against a migrated Postgres", () => {
       `INSERT INTO "${k}Severity" ("_id","projectId","name","slug","color","order","version") VALUES ($1,$2,'s',$3,'#fff',1,1)`,
       [severity, projectId, `s${severity}`],
     );
+
+    const episodeIds: Array<string> = [];
+    for (let i: number = 0; i < episodeCount; i++) {
+      const episodeId: string = id();
+      await database.query(
+        `INSERT INTO "${k}Episode" ("_id","projectId","title","current${k}StateId","version") VALUES ($1,$2,'e',$3,1)`,
+        [episodeId, projectId, state],
+      );
+      episodeIds.push(episodeId);
+    }
+
+    const slugColumn: string = k === "Incident" ? `,"slug"` : "";
+    const slugValue: string = k === "Incident" ? `,'s${recordId}'` : "";
     await database.query(
-      `INSERT INTO "${k}Episode" ("_id","projectId","title","current${k}StateId","version") VALUES ($1,$2,'e',$3,1)`,
-      [episodeId, projectId, state],
+      `INSERT INTO "${k}" ("_id","projectId","title","current${k}StateId","${lower}SeverityId","${lower}EpisodeId","version"${slugColumn}) VALUES ($1,$2,'t',$3,$4,$5,1${slugValue})`,
+      [recordId, projectId, state, severity, episodeIds[episodeCount - 1]],
     );
 
-    const records: Array<string> = [];
-    const members: Array<string> = [];
-    for (let i: number = 0; i < count; i++) {
-      const record: string = id();
-      const member: string = id();
-      const slugColumn: string = k === "Incident" ? `,"slug"` : "";
-      const slugValue: string = k === "Incident" ? `,'s${record}'` : "";
-      await database.query(
-        `INSERT INTO "${k}" ("_id","projectId","title","current${k}StateId","${lower}SeverityId","${lower}EpisodeId","version"${slugColumn}) VALUES ($1,$2,'t',$3,$4,$5,1${slugValue})`,
-        [record, projectId, state, severity, episodeId],
-      );
+    const memberIds: Array<string> = [];
+    for (let i: number = 0; i < episodeCount; i++) {
+      const memberId: string = id();
       await database.query(
         `INSERT INTO "${k}EpisodeMember" ("_id","projectId","${lower}EpisodeId","${lower}Id","version","createdAt") VALUES ($1,$2,$3,$4,1, now() - ($5 || ' seconds')::interval)`,
-        [member, projectId, episodeId, record, String(count - i)],
+        [
+          memberId,
+          projectId,
+          episodeIds[i],
+          recordId,
+          String(episodeCount - i),
+        ],
       );
-      records.push(record);
-      members.push(member);
+      memberIds.push(memberId);
     }
-    return { projectId, episodeId, records, members };
+
+    return { recordId, episodeIds, memberIds };
   }
 
-  async function state(
-    kind: Kind,
-    s: Seeded,
-  ): Promise<{
-    deleted: Array<number>;
-    cleared: Array<number>;
-    count: number;
-  }> {
-    const k: string = kind.name;
-    const lower: string = k.toLowerCase();
-    const kept: Set<string> = new Set(
-      (
-        await database.query(
-          `SELECT "_id" FROM "${k}EpisodeMember" WHERE "_id" = ANY($1)`,
-          [s.members],
-        )
-      ).map((r: { _id: string }) => {
-        return r._id;
-      }),
-    );
-    const refs: Array<{ _id: string; ref: string | null }> =
-      await database.query(
-        `SELECT "_id", "${lower}EpisodeId" AS ref FROM "${k}" WHERE "_id" = ANY($1)`,
-        [s.records],
-      );
-    const refOf: Map<string, string | null> = new Map(
-      refs.map((r: { _id: string; ref: string | null }) => {
-        return [r._id, r.ref];
-      }),
-    );
-    const count: Array<Record<string, number>> = await database.query(
-      `SELECT "${lower}Count" AS c FROM "${k}Episode" WHERE "_id" = $1`,
-      [s.episodeId],
-    );
+  async function removeMember(kind: Kind, memberId: string): Promise<void> {
+    await kind.service.deleteOneById({
+      id: new ObjectID(memberId),
+      props: { isRoot: true },
+    });
+  }
 
-    return {
-      deleted: s.members
-        .map((m: string, i: number) => {
-          return kept.has(m) ? -1 : i;
-        })
-        .filter((i: number) => {
-          return i >= 0;
-        }),
-      cleared: s.records
-        .map((r: string, i: number) => {
-          return refOf.get(r) === null ? i : -1;
-        })
-        .filter((i: number) => {
-          return i >= 0;
-        }),
-      count: Number(count[0]?.["c"]),
-    };
+  async function memberExists(kind: Kind, memberId: string): Promise<boolean> {
+    const rows: Array<unknown> = await database.query(
+      `SELECT 1 FROM "${kind.name}EpisodeMember" WHERE "_id" = $1`,
+      [memberId],
+    );
+    return rows.length > 0;
+  }
+
+  // The record is never deleted with its membership, so it is always found.
+  async function episodeReferenceOf(
+    kind: Kind,
+    recordId: string,
+  ): Promise<string | null> {
+    const rows: Array<{ episodeId: string | null }> = await database.query(
+      `SELECT "${kind.name.toLowerCase()}EpisodeId" AS "episodeId" FROM "${kind.name}" WHERE "_id" = $1`,
+      [recordId],
+    );
+    expect(rows).toHaveLength(1);
+    return rows[0]!.episodeId;
+  }
+
+  async function memberCountOf(kind: Kind, episodeId: string): Promise<number> {
+    const rows: Array<{ count: number }> = await database.query(
+      `SELECT "${kind.name.toLowerCase()}Count" AS "count" FROM "${kind.name}Episode" WHERE "_id" = $1`,
+      [episodeId],
+    );
+    return Number(rows[0]?.count);
   }
 
   describe.each(KINDS)("$name", (kind: Kind) => {
-    test("deleting one member by id clears its record", async () => {
+    test("leaving its only episode clears its episode reference", async () => {
       const s: Seeded = await seed(kind, 1);
 
-      await kind.service.deleteOneById({
-        id: new ObjectID(s.members[0]!),
-        props: { isRoot: true },
-      });
+      await removeMember(kind, s.memberIds[0]!);
 
-      const after: Awaited<ReturnType<typeof state>> = await state(kind, s);
-      expect(after.deleted).toEqual([0]);
-      expect(after.cleared).toEqual([0]);
-      expect(after.count).toBe(0);
+      expect(await memberExists(kind, s.memberIds[0]!)).toBe(false);
+      expect(await episodeReferenceOf(kind, s.recordId)).toBeNull();
+      expect(await memberCountOf(kind, s.episodeIds[0]!)).toBe(0);
+    });
+
+    test("leaving an earlier episode keeps it on the one it points at", async () => {
+      const s: Seeded = await seed(kind, 2);
+
+      await removeMember(kind, s.memberIds[0]!);
+
+      expect(await memberExists(kind, s.memberIds[0]!)).toBe(false);
+      expect(await episodeReferenceOf(kind, s.recordId)).toBe(s.episodeIds[1]);
+      expect(await memberCountOf(kind, s.episodeIds[0]!)).toBe(0);
+    });
+
+    test("leaving the episode it points at moves it to one it is still in", async () => {
+      const s: Seeded = await seed(kind, 2);
+
+      await removeMember(kind, s.memberIds[1]!);
+
+      expect(await memberExists(kind, s.memberIds[1]!)).toBe(false);
+      expect(await episodeReferenceOf(kind, s.recordId)).toBe(s.episodeIds[0]);
+      expect(await memberCountOf(kind, s.episodeIds[1]!)).toBe(0);
     });
   });
 });
