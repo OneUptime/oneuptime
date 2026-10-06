@@ -13,6 +13,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
 } from "react";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
@@ -57,6 +58,8 @@ import OneUptimeDate from "Common/Types/Date";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -94,6 +97,14 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   >(undefined);
   const [showTestSuccessModal, setShowTestSuccessModal] =
     React.useState<boolean>(false);
+
+  // The time zones the Timezone field offers: worked out once, not per render.
+  const timezoneOptions: Array<DropdownOption> = useMemo(
+    (): Array<DropdownOption> => {
+      return TimezoneUtil.getTimezoneDropdownOptions();
+    },
+    [],
+  );
 
   // Map summary type to notification rule event type for filters
   type GetEventTypeFunction = () => NotificationRuleEventType;
@@ -314,18 +325,25 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           values.projectId = ProjectUtil.getCurrentProjectId()!;
           values.workspaceType = props.workspaceType;
 
+          // The time zone the form showed: the creator's own, unless changed.
+          if (!values.timezone) {
+            values.timezone = OneUptimeDate.getCurrentTimezone();
+          }
+
           /*
-           * Left empty, the first summary goes out at 09:00 in the creator's
+           * Left empty, the first summary goes out at 09:00 in the summary's
            * time zone at the start of the next week (or day, or month) - the
            * date the form showed under the field. The server works the next
-           * send out from it (WorkspaceSummaryScheduleUtil): a first summary
-           * dated in the past goes out at the schedule's next occurrence,
-           * not in a burst of catch-up summaries.
+           * send out from it on that zone's clock
+           * (WorkspaceSummaryScheduleUtil): a first summary dated in the past
+           * goes out at the schedule's next occurrence, not in a burst of
+           * catch-up summaries, and later ones keep its time of day there
+           * when the clocks change.
            */
           if (!values.sendFirstReportAt) {
             values.sendFirstReportAt =
               WorkspaceSummaryScheduleUtil.getDefaultFirstSendDate({
-                timezone: OneUptimeDate.getCurrentTimezone(),
+                timezone: values.timezone,
                 intervalType: WorkspaceSummaryScheduleUtil.toRecurring(
                   values.recurringInterval,
                 )?.intervalType,
@@ -488,13 +506,33 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               );
             },
           },
+          /*
+           * The clock the schedule is read on: the summary goes out at the
+           * same time of day there all year, the clocks changing for
+           * daylight saving time included. It starts on the creator's own
+           * time zone, so nobody has to touch it.
+           */
+          {
+            field: {
+              timezone: true,
+            },
+            title: "Timezone",
+            description:
+              "Summaries go out at the same time of day in this timezone all year, also after the clocks change.",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: timezoneOptions,
+            defaultValue: OneUptimeDate.getCurrentTimezone(),
+            required: true,
+            stepId: "schedule",
+            placeholder: "Select Timezone",
+          },
           {
             field: {
               sendFirstReportAt: true,
             },
             title: "Send First Report At",
             description:
-              "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 your time, at the start of the next week, day or month.",
+              "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             stepId: "schedule",
@@ -511,6 +549,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                 <WorkspaceSummaryFirstSendPreview
                   recurringInterval={values.recurringInterval}
                   sendFirstReportAt={values.sendFirstReportAt}
+                  timezone={values.timezone}
                   isSaved={Boolean((values as Record<string, unknown>)["_id"])}
                 />
               );
@@ -788,6 +827,18 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
                 />
               );
             },
+          },
+          /*
+           * The clock the summary keeps its time of day on. One with none
+           * is read in UTC, so that is what it says.
+           */
+          {
+            field: {
+              timezone: true,
+            },
+            noValueMessage: "UTC",
+            title: "Timezone",
+            type: FieldType.Text,
           },
           {
             field: {

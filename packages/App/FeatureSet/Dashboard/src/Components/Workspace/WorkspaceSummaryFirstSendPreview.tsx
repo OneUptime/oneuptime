@@ -18,6 +18,11 @@ export interface ComponentProps {
   recurringInterval?: unknown;
   sendFirstReportAt?: unknown;
   /*
+   * The summary's time zone, as the form holds it. The creator's own while
+   * it holds none, as the form's Timezone field starts on it.
+   */
+  timezone?: unknown;
+  /*
    * A summary already saved has a next send of its own, in the list, which
    * this would not know: it says nothing then.
    */
@@ -28,17 +33,19 @@ export interface ComponentProps {
 
 /*
  * When a summary being created goes out first: the date picked, or - left
- * empty - 09:00 in the creator's time zone at the start of the next week,
+ * empty - 09:00 in the summary's time zone at the start of the next week,
  * day or month; a date already past moves on to the schedule's next
- * occurrence. Worked out the way the server works it out on save
- * (WorkspaceSummaryScheduleUtil.getCreateWrite), so leaving the date empty
- * says what it means.
+ * occurrence on that zone's clock. Worked out the way the server works it
+ * out on save (WorkspaceSummaryScheduleUtil.getCreateWrite), and said in
+ * the summary's time zone, so leaving the date empty says what it means.
  */
 const WorkspaceSummaryFirstSendPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const timezone: string = OneUptimeDate.getCurrentTimezone();
+  const timezone: string =
+    WorkspaceSummaryScheduleUtil.toTimezone(props.timezone) ||
+    OneUptimeDate.getCurrentTimezone();
 
   if (props.isSaved) {
     return <></>;
@@ -51,9 +58,9 @@ const WorkspaceSummaryFirstSendPreview: FunctionComponent<ComponentProps> = (
           props.recurringInterval as WorkspaceSummaryScheduleColumns["recurringInterval"],
         sendFirstReportAt:
           props.sendFirstReportAt as WorkspaceSummaryScheduleColumns["sendFirstReportAt"],
+        timezone: timezone,
       },
       now: props.now,
-      timezone: timezone,
     }).nextSendAt;
 
   if (!firstSendAt) {
