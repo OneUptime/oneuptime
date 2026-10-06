@@ -1,6 +1,6 @@
 {
   "preset": "ts-jest",
-  "testPathIgnorePatterns": ["node_modules", "dist"],
+  "testPathIgnorePatterns": ["/node_modules/", "/dist/"],
   "verbose": true,
   "globals": {
     "ts-jest": {
@@ -49,7 +49,7 @@
   "transform": {
     ".(ts|tsx)": "ts-jest"
   },
-  "transformIgnorePatterns": ["node_modules/(?!(uuid|locter|yaml|@azure)/)"],
+  "transformIgnorePatterns": ["/node_modules/(?!(uuid|locter|yaml|@azure)/)"],
   "testEnvironment": "<rootDir>/Tests/Utils/TimezoneEnvironment.js",
   "setupFilesAfterEnv": ["<rootDir>/Tests/jest.setup.ts"],
   "collectCoverage": false,

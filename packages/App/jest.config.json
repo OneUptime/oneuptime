@@ -1,8 +1,8 @@
 {
   "preset": "ts-jest",
   "testPathIgnorePatterns": [
-    "node_modules",
-    "dist",
+    "/node_modules/",
+    "/dist/",
     "FeatureSet/BrowserRecorder",
     "FeatureSet/MobileRecorder"
   ],
