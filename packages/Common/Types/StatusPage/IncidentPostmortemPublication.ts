@@ -1,4 +1,5 @@
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "./StatusPageVisibility";
 
 /*
  * Status page subscribers hear about an incident's postmortem once, when it
@@ -346,19 +347,14 @@ export default class IncidentPostmortemPublication {
    * Whether the status page shows the incident: Visible on Status Page on
    * (a switch never set reads as off, as the status page and the send job
    * read it), and the incident not private - a private incident is hidden
-   * from every status page, whatever its switch says.
+   * from every status page, whatever its switch says. The one rule every
+   * status page read, subscriber job and write goes by
+   * (StatusPageVisibility.isShown).
    */
   public static isIncidentShown(
     incident: IncidentVisibilityState | undefined | null,
   ): boolean {
-    if (!incident) {
-      return false;
-    }
-
-    return (
-      incident.isVisibleOnStatusPage === true &&
-      !this.isSwitchedOn(incident.isPrivate)
-    );
+    return StatusPageVisibility.isShown(incident);
   }
 
   /*
@@ -492,7 +488,7 @@ export default class IncidentPostmortemPublication {
   ): boolean {
     return (
       this.isWaitingForIncidentToShow(incident) &&
-      !this.isSwitchedOn(incident?.isPrivate)
+      !StatusPageVisibility.isPrivate(incident)
     );
   }
 

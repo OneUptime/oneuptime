@@ -25,6 +25,7 @@ import {
   ExcludedStatusPage,
   StatusPageExclusionReason,
 } from "./StatusPageExclusion";
+import StatusPageVisibilityQuery from "./StatusPageVisibilityQuery";
 
 /*
  * Which status pages an incident reaches - which pages show it, and whose
@@ -59,6 +60,13 @@ import {
  * isScopedToStatusPages), never as a post-filter: those queries are capped at
  * LIMIT_PER_PROJECT, and a filter applied after the cap would silently drop
  * incidents that are in scope.
+ *
+ * A private incident reaches no status page at all (StatusPageVisibility):
+ * the display queries here show only incidents with Visible on Status Page on
+ * that are not private, in SQL like the scope (StatusPageVisibilityQuery);
+ * the one read that links episodes to a page reads hidden incidents too, but
+ * never private ones; and a private incident is scoped to nothing when the
+ * pages its subscribers hear about it on are worked out.
  *
  * Nothing here selects statusPages, isScopedToStatusPages or
  * statusPagesNotifiedOnCreation into the incidents it returns for display, so
@@ -157,7 +165,9 @@ export default class IncidentStatusPageScope {
    * Each incident needs _id and its monitors. Its scope is read from the
    * database here rather than taken from the objects passed in, so a caller
    * that did not select it (or selected it a while ago) cannot widen the
-   * reach. An incident that is no longer found reaches nothing.
+   * reach. An incident that is no longer found reaches nothing, and neither
+   * does a private one: a private member of an episode does not take the
+   * episode to the pages its monitors are on.
    */
   public static async resolvePagesForIncidents(data: {
     incidents: Array<Incident>;
@@ -524,6 +534,12 @@ export default class IncidentStatusPageScope {
    * - incidents scoped to this page (the join-table filter QueryUtil builds
    *   from an id list, as the scheduled maintenance queries use).
    *
+   * Both halves hold only incidents the status page shows: Visible on Status
+   * Page on, and not private (StatusPageVisibilityQuery). With
+   * includeHiddenIncidents, incidents hidden with the switch are read too -
+   * for working out which episodes a page shows, which the episode's own
+   * switches decide - but a private incident never is.
+   *
    * The two halves are disjoint. They are merged, sorted by `sort` as the
    * database would have, and cut to `skip` and `limit` - each half is read up
    * to skip + limit rows, so the cut sees every row that can make the page.
@@ -538,6 +554,7 @@ export default class IncidentStatusPageScope {
     limit: number;
     skip?: number | undefined;
     props: DatabaseCommonInteractionProps;
+    includeHiddenIncidents?: boolean | undefined;
   }): Promise<Array<Incident>> {
     const skip: number = Math.max(0, data.skip || 0);
     const limit: number = Math.max(0, data.limit);
@@ -563,6 +580,7 @@ export default class IncidentStatusPageScope {
       this.getScopedQueries({
         statusPage: data.statusPage,
         query: data.query,
+        includeHiddenIncidents: data.includeHiddenIncidents,
       }).map((query: Query<Incident>): Promise<Array<Incident>> => {
         return IncidentService.findBy({
           query: query,
@@ -592,13 +610,17 @@ export default class IncidentStatusPageScope {
     return incidents;
   }
 
-  // The one incident matching `query` that a status page shows, if any.
+  /*
+   * The one incident matching `query` that a status page shows, if any (with
+   * includeHiddenIncidents, as findIncidentsForStatusPage reads it).
+   */
   public static async findOneIncidentForStatusPage(data: {
     statusPage: StatusPageScopeTarget;
     query: Query<Incident>;
     select: Select<Incident>;
     sort?: Sort<Incident> | undefined;
     props: DatabaseCommonInteractionProps;
+    includeHiddenIncidents?: boolean | undefined;
   }): Promise<Incident | null> {
     const incidents: Array<Incident> = await this.findIncidentsForStatusPage({
       statusPage: data.statusPage,
@@ -608,6 +630,7 @@ export default class IncidentStatusPageScope {
       limit: 1,
       skip: 0,
       props: data.props,
+      includeHiddenIncidents: data.includeHiddenIncidents,
     });
 
     return incidents[0] || null;
@@ -617,7 +640,8 @@ export default class IncidentStatusPageScope {
    * How many incidents matching `query` a status page shows: the unscoped
    * ones (unless the page only shows scoped incidents) plus the ones scoped
    * to it. The two counts are disjoint, so they add up. Only the project's
-   * incidents that are visible on status pages count.
+   * incidents the status page shows count: visible on status pages, and not
+   * private.
    */
   public static async countIncidentsForStatusPage(data: {
     statusPage: StatusPageScopeTarget;
@@ -631,7 +655,6 @@ export default class IncidentStatusPageScope {
         query: {
           ...data.query,
           projectId: data.projectId,
-          isVisibleOnStatusPage: true,
         },
       }).map((query: Query<Incident>): Promise<PositiveNumber> => {
         return IncidentService.countBy({
@@ -715,10 +738,15 @@ export default class IncidentStatusPageScope {
     return (a._id || "").localeCompare(b._id || "");
   }
 
-  // The two halves of a display query for one status page.
+  /*
+   * The two halves of a display query for one status page, each kept to the
+   * incidents the page shows (StatusPageVisibilityQuery): visible on status
+   * pages and not private - or, with includeHiddenIncidents, not private.
+   */
   private static getScopedQueries(data: {
     statusPage: StatusPageScopeTarget;
     query: Query<Incident>;
+    includeHiddenIncidents?: boolean | undefined;
   }): Array<Query<Incident>> {
     const statusPageId: string | undefined = this.getStatusPageId(
       data.statusPage,
@@ -730,17 +758,21 @@ export default class IncidentStatusPageScope {
       );
     }
 
+    const query: Query<Incident> = data.includeHiddenIncidents
+      ? StatusPageVisibilityQuery.notPrivateIncidents(data.query)
+      : StatusPageVisibilityQuery.shownIncidents(data.query);
+
     const queries: Array<Query<Incident>> = [];
 
     if (!this.showsOnlyScopedIncidents(data.statusPage)) {
       queries.push({
-        ...data.query,
+        ...query,
         isScopedToStatusPages: false,
       } as Query<Incident>);
     }
 
     queries.push({
-      ...data.query,
+      ...query,
       isScopedToStatusPages: true,
       // An id list on an entity-array column becomes a join-table filter.
       statusPages: [statusPageId],
@@ -824,7 +856,9 @@ export default class IncidentStatusPageScope {
 
   /*
    * Each incident's scope as stored: the lower-cased ids of the pages it is
-   * limited to, or null when unscoped. Incidents not found are left out.
+   * limited to, or null when unscoped. Incidents not found are left out, and
+   * so are private ones (StatusPageVisibilityQuery): a private incident is
+   * scoped to nothing, so it reaches no page.
    */
   private static async getIncidentScopes(
     incidentIds: Array<string>,
@@ -836,9 +870,9 @@ export default class IncidentStatusPageScope {
     }
 
     const incidents: Array<Incident> = await IncidentService.findBy({
-      query: {
+      query: StatusPageVisibilityQuery.notPrivateIncidents({
         _id: QueryHelper.any(incidentIds),
-      },
+      }),
       select: {
         _id: true,
         isScopedToStatusPages: true,

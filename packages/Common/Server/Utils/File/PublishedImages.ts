@@ -17,9 +17,12 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  * exactly while the record shows it:
  *
  *   - an incident's description, while the incident is shown on status
- *     pages, and its postmortem once it is published there too;
+ *     pages - Visible on Status Page on, and not private
+ *     (StatusPageVisibility) - and its postmortem once it is published
+ *     there too;
  *   - an episode's description, and a scheduled maintenance event's, while
- *     the episode or the event is shown on status pages;
+ *     the episode or the event is shown on status pages (an episode, like an
+ *     incident, never while it is private);
  *   - public notes (of incidents, episodes and scheduled maintenance) and
  *     announcements, always;
  *   - a status page's overview description, and the descriptions of its
@@ -106,6 +109,13 @@ export interface PublishedMarkdown {
    * as the page reads them; none for a record that always does.
    */
   shownWhen: Array<string>;
+  /*
+   * The record's switches any one of which, on, hides that markdown however
+   * the switches above are set: Private, on an incident or an episode
+   * (StatusPageVisibility). A switch never set (null) is off, as the status
+   * page reads it.
+   */
+  hiddenWhen?: Array<string> | undefined;
   // Where everyone sees it.
   shownOn: "statusPage" | "formPage" | "notifications";
 }
@@ -115,12 +125,14 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "Incident",
     markdownColumns: ["description"],
     shownWhen: ["isVisibleOnStatusPage"],
+    hiddenWhen: ["isPrivate"],
     shownOn: "statusPage",
   },
   {
     tableName: "Incident",
     markdownColumns: ["postmortemNote"],
     shownWhen: ["isVisibleOnStatusPage", "showPostmortemOnStatusPage"],
+    hiddenWhen: ["isPrivate"],
     shownOn: "statusPage",
   },
   {
@@ -133,6 +145,7 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "IncidentEpisode",
     markdownColumns: ["description"],
     shownWhen: ["isVisibleOnStatusPage"],
+    hiddenWhen: ["isPrivate"],
     shownOn: "statusPage",
   },
   {
@@ -198,6 +211,7 @@ export const KEPT_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "Incident",
     markdownColumns: ["customFields"],
     shownWhen: ["isVisibleOnStatusPage"],
+    hiddenWhen: ["isPrivate"],
     shownOn: "notifications",
   },
 ];
@@ -340,7 +354,10 @@ const getTextSql: (source: PublishedMarkdown) => string = (
     .join(", ")})`;
 };
 
-// The rows of a source that show their markdown: not deleted, every switch on.
+/*
+ * The rows of a source that show their markdown: not deleted, every switch
+ * on, and no switch that hides it on (NULL is off, as for isPrivate).
+ */
 const getShownWhereSql: (source: PublishedMarkdown) => string = (
   source: PublishedMarkdown,
 ): string => {
@@ -348,6 +365,9 @@ const getShownWhereSql: (source: PublishedMarkdown) => string = (
     `${quote("deletedAt")} IS NULL`,
     ...source.shownWhen.map((column: string): string => {
       return `${quote(column)} = true`;
+    }),
+    ...(source.hiddenWhen || []).map((column: string): string => {
+      return `${quote(column)} IS NOT TRUE`;
     }),
   ].join(" AND ");
 };
@@ -442,6 +462,48 @@ export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (S
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
+/*
+ * Every image token a record a switch hides (hiddenWhen: a private incident
+ * or episode) holds in the markdown it would otherwise show, with the
+ * record's project.
+ */
+const getHiddenTokensSql: (
+  sources: ReadonlyArray<PublishedMarkdown>,
+) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
+  return sources
+    .filter((source: PublishedMarkdown): boolean => {
+      return (source.hiddenWhen || []).length > 0;
+    })
+    .map((source: PublishedMarkdown): string => {
+      const text: string = getTextSql(source);
+      const isHidden: string = (source.hiddenWhen || [])
+        .map((column: string): string => {
+          return `${quote(column)} IS TRUE`;
+        })
+        .join(" OR ");
+
+      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${quote("deletedAt")} IS NULL AND (${isHidden}) AND ${text} LIKE '%/file/image/access-token/%'`;
+    })
+    .join(" UNION ALL ");
+};
+
+/*
+ * Once, for images made public before a private record stopped showing
+ * them: an incident or an episode stored private with Visible on Status Page
+ * still on showed its description, postmortem and custom fields as published
+ * then, so their images were made public. Each such image of the record's
+ * own project becomes private - unless a published record of any project
+ * still shows it, by its token or by its id, or it is an icon, exactly as
+ * HIDE_UNSHOWN_FILES_SQL keeps them. Nothing else moves.
+ */
+export const HIDE_PRIVATE_RECORD_IMAGES_SQL: string = `WITH ${quote("hiddenToken")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${getHiddenTokensSql(
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+)}) AS ${quote("hidden")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+)}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
+  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
+)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${quote("hiddenToken")}.${quote("projectId")} = ${quote("file")}.${quote("projectId")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+
 // The published rows of a table a delete of its parent takes with it.
 export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
   cascade: PublishedCascade,
@@ -481,7 +543,11 @@ export default class PublishedImages {
     const columns: Set<string> = new Set<string>();
 
     for (const source of this.getSources(tableName)) {
-      for (const column of [...source.markdownColumns, ...source.shownWhen]) {
+      for (const column of [
+        ...source.markdownColumns,
+        ...source.shownWhen,
+        ...(source.hiddenWhen || []),
+      ]) {
         columns.add(column);
       }
     }
@@ -501,11 +567,21 @@ export default class PublishedImages {
     });
   }
 
-  // Whether a record shows a kind of markdown: every switch of it is on.
+  /*
+   * Whether a record shows a kind of markdown: every switch of it is on, and
+   * none that hides it is (one that is neither false nor unset hides it).
+   */
   public static isShown(source: PublishedMarkdown, row: Row): boolean {
-    return source.shownWhen.every((column: string): boolean => {
-      return row[column] === true;
-    });
+    return (
+      source.shownWhen.every((column: string): boolean => {
+        return row[column] === true;
+      }) &&
+      (source.hiddenWhen || []).every((column: string): boolean => {
+        const value: unknown = row[column];
+
+        return value === undefined || value === null || value === false;
+      })
+    );
   }
 
   // The image tokens a record shows to everyone.
@@ -579,9 +655,11 @@ export default class PublishedImages {
       const unknownSwitches: Array<string> = Array.from(
         new Set<string>(
           withImages.flatMap((source: PublishedMarkdown): Array<string> => {
-            return source.shownWhen.filter((column: string): boolean => {
-              return row[column] === undefined;
-            });
+            return [...source.shownWhen, ...(source.hiddenWhen || [])].filter(
+              (column: string): boolean => {
+                return row[column] === undefined;
+              },
+            );
           }),
         ),
       );

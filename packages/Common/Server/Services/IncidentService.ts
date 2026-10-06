@@ -77,6 +77,7 @@ import IncidentPostmortemPublication, {
   IncidentPostmortemStoredState,
   PostmortemNotificationAction,
 } from "../../Types/StatusPage/IncidentPostmortemPublication";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
   StatusPageScopeChange,
@@ -255,6 +256,19 @@ type UpdateCarryForward = Dictionary<{
    * a real change (recordStoredValuesBeforeUpdate, EventFieldChange).
    */
   valuesBeforeUpdate?: EventValuesBeforeUpdate | undefined;
+  /*
+   * Whether the incident was private before the update, read only when the
+   * update turns Visible on Status Page on and leaves Private as it is
+   * (StatusPageVisibility.needsStoredPrivacy): a private incident stays
+   * hidden (keepPrivateIncidentsHidden).
+   */
+  isPrivateBeforeUpdate?: boolean | undefined;
+  /*
+   * The update shows the other incidents it writes, and this one is
+   * private: onUpdateSuccess switches its Visible on Status Page back off
+   * once the update is written (keepPrivateIncidentsHidden).
+   */
+  keepHiddenAfterUpdate?: boolean | undefined;
 }>;
 
 /*
@@ -680,9 +694,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.props,
     );
 
-    if (updateBy.data.isPrivate === true) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
+    /*
+     * Visible on Status Page and Private Incident as they are stored, and a
+     * private incident hidden from status pages (StatusPageVisibility):
+     * making an incident private switches Visible on Status Page off with
+     * it, whoever writes it. Before anything below reads the update.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     this.stripServiceOwnedScopeColumns(updateBy);
 
@@ -799,6 +819,12 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     await this.recordStoredValuesBeforeUpdate(updateBy, carryForward);
+
+    /*
+     * Before the hooks below read Visible on Status Page: an update that
+     * turns it on leaves a private incident hidden.
+     */
+    this.keepPrivateIncidentsHidden(updateBy, carryForward);
 
     /*
      * Notifying subscribers that the incident was created
@@ -924,7 +950,10 @@ export class Service extends ProjectReferencesService<Model> {
    *   item records each one that really changed, and a labels change or the
    *   switch flipped matches the reminder rule again, which starts the
    *   reminder interval over (EventFieldChange). The Incident Details card
-   *   sends the title, the severity and the labels with every save.
+   *   sends the title, the severity and the labels with every save;
+   * - whether the incident is private, when the update turns Visible on
+   *   Status Page on and leaves Private Incident as it is: a private incident
+   *   stays hidden from status pages (keepPrivateIncidentsHidden).
    */
   private async recordStoredValuesBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -959,7 +988,17 @@ export class Service extends ProjectReferencesService<Model> {
 
     const isFieldWritten: boolean = EventFieldChange.isAnySet(fieldsWritten);
 
-    if (!writtenSeverityId && !isPostmortemCompared && !isFieldWritten) {
+    // Whether a private incident must be kept hidden (StatusPageVisibility).
+    const needsStoredPrivacy: boolean = StatusPageVisibility.needsStoredPrivacy(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (
+      !writtenSeverityId &&
+      !isPostmortemCompared &&
+      !isFieldWritten &&
+      !needsStoredPrivacy
+    ) {
       return;
     }
 
@@ -986,6 +1025,11 @@ export class Service extends ProjectReferencesService<Model> {
             isVisibleOnStatusPage: true,
             isPrivate: true,
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(needsStoredPrivacy
+        ? {
+            isPrivate: true,
           }
         : {}),
       ...(EventFieldChange.getSelect(fieldsWritten) as Select<Model>),
@@ -1047,7 +1091,94 @@ export class Service extends ProjectReferencesService<Model> {
               }),
             }
           : {}),
+        ...(needsStoredPrivacy
+          ? {
+              isPrivateBeforeUpdate: StatusPageVisibility.isPrivate(incident),
+            }
+          : {}),
       };
+    }
+  }
+
+  /*
+   * A private incident is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private
+   * Incident as it is shows only the incidents that are not private - the
+   * same as the incident's Settings form, which sends both switches with
+   * every save, has always done. It holds whoever writes: the API,
+   * Terraform, a workflow.
+   *
+   * When every incident the update writes is private, it is written with
+   * Visible on Status Page off. When only some are - one write to many
+   * incidents, such as a workflow's - the others are shown, and each private
+   * one is switched back off as soon as the update is written
+   * (onUpdateSuccess, without hooks, so nobody is told anything); every
+   * status page read and subscriber job leaves it out meanwhile, by the same
+   * rule. An incident the read did not see is left to that rule too.
+   */
+  private keepPrivateIncidentsHidden(
+    updateBy: UpdateBy<Model>,
+    carryForward: UpdateCarryForward,
+  ): void {
+    if (
+      !StatusPageVisibility.needsStoredPrivacy(
+        updateBy.data as unknown as Record<string, unknown>,
+      )
+    ) {
+      return;
+    }
+
+    const readIncidentIds: Array<string> = Object.keys(carryForward).filter(
+      (incidentId: string): boolean => {
+        return carryForward[incidentId]?.isPrivateBeforeUpdate !== undefined;
+      },
+    );
+
+    const privateIncidentIds: Array<string> = readIncidentIds.filter(
+      (incidentId: string): boolean => {
+        return carryForward[incidentId]?.isPrivateBeforeUpdate === true;
+      },
+    );
+
+    if (privateIncidentIds.length === 0) {
+      return;
+    }
+
+    if (privateIncidentIds.length === readIncidentIds.length) {
+      updateBy.data.isVisibleOnStatusPage = false;
+      return;
+    }
+
+    for (const incidentId of privateIncidentIds) {
+      carryForward[incidentId]!.keepHiddenAfterUpdate = true;
+    }
+  }
+
+  /*
+   * Switches Visible on Status Page back off on the private incidents an
+   * update showed alongside others (keepPrivateIncidentsHidden), each only
+   * while it is still private. A write of that column alone, without hooks:
+   * it sends nothing, and changes no image - none of a private incident's is
+   * public.
+   */
+  private async hidePrivateIncidentsShownByUpdate(data: {
+    carryForward: UpdateCarryForward | undefined;
+    updatedItemIds: Array<ObjectID>;
+  }): Promise<void> {
+    for (const incidentId of data.updatedItemIds) {
+      if (!data.carryForward?.[incidentId.toString()]?.keepHiddenAfterUpdate) {
+        continue;
+      }
+
+      await this.compareAndSetColumnsByIdWithoutHooks({
+        id: incidentId,
+        data: {
+          isVisibleOnStatusPage: false,
+        } as PartialEntity<Model>,
+        expectedData: {
+          isPrivate: true,
+        } as PartialEntity<Model>,
+      });
     }
   }
 
@@ -2411,8 +2542,17 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("ProjectId required to create incident.");
     }
 
-    if (createBy.data.isPrivate === true) {
-      createBy.data.isVisibleOnStatusPage = false;
+    /*
+     * A private incident is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, and nobody is told it was created - whoever creates
+     * it, with whatever the request says for either.
+     */
+    StatusPageVisibility.normalizeWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
         false;
     }
@@ -4622,6 +4762,11 @@ ${incident.remediationNotes || "No remediation notes provided."}
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    await this.hidePrivateIncidentsShownByUpdate({
+      carryForward: onUpdate.carryForward as UpdateCarryForward | undefined,
+      updatedItemIds: updatedItemIds,
+    });
+
     CustomFieldMappingService.restampAfterMultiRowUpdate({
       definitionModelType: IncidentCustomField,
       updateBy: onUpdate.updateBy,

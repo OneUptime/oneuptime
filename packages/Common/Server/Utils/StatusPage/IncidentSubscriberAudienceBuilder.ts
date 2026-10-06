@@ -13,6 +13,7 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import IncidentScopeAddedPagesNotification from "../../../Types/StatusPage/IncidentScopeAddedPagesNotification";
+import StatusPageVisibility from "../../../Types/StatusPage/StatusPageVisibility";
 import IncidentSubscriberAudience, {
   IncidentSubscriberAudienceCounts,
   IncidentSubscriberAudienceExcludedStatusPage,
@@ -267,12 +268,10 @@ export default class IncidentSubscriberAudienceBuilder {
           ? this.normalizeIds(incidentWithScope.statusPages)
           : [],
       /*
-       * The jobs send nothing for an incident hidden from status pages.
-       * Private incidents are always hidden (IncidentService forces it), but
-       * a row that says private is treated as hidden either way.
+       * The jobs send nothing for an incident the status pages do not show,
+       * by the one rule they read (StatusPageVisibility): hidden, or private.
        */
-      isHiddenFromStatusPages:
-        incident.isVisibleOnStatusPage !== true || incident.isPrivate === true,
+      isHiddenFromStatusPages: !StatusPageVisibility.isShown(incident),
       alreadyNotifiedStatusPageIds: request.excludeStatusPagesNotifiedOnCreation
         ? IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
             incidentWithScope?.statusPagesNotifiedOnCreation,
