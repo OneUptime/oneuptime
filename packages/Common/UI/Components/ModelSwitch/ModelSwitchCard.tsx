@@ -88,6 +88,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   initialItem?: TBaseModel | undefined;
   // See ModelSwitchRow.
   locksWhenPlanNeeded?: boolean | undefined;
+  lockedReason?: string | undefined;
 }
 
 interface ReadOptions {
@@ -312,6 +313,7 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
             }}
             dataTestId={props.dataTestId}
             locksWhenPlanNeeded={props.locksWhenPlanNeeded}
+            lockedReason={props.lockedReason}
           />
         </div>
         {getDetails()}

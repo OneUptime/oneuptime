@@ -25896,5 +25896,22 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}；{{second}}；{{third}}；{{fourth}}",
   "{{mode}} (current)": "{{mode}}（当前）",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "将 {{exampleNamespaces}} 替换为 AI 可以修复的命名空间。每个命名空间都必须已存在：chart 从不创建命名空间，缺少任何一个都会导致整个升级失败。其他任何位置的修复都会被拒绝。若以后要允许整个集群，请使用 {{clusterWideFlag}}（而不是 =null，因为使用 --reuse-values 时它不会重置已存储的命名空间列表）。nodeOperations=false 会使修复不作用于节点；将其设为 true 即可允许对节点执行封锁、解除封锁、排空和添加污点操作（排空、添加污点或修补节点仍需等待人工批准）。",
-  "A team you are on blocks {{permissions}}.": "您所在的某个团队阻止了{{permissions}}。"
+  "A team you are on blocks {{permissions}}.": "您所在的某个团队阻止了{{permissions}}。",
+  "Not working on this plan": "在此套餐中无法使用",
+  "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "这些已停止工作：您的套餐不包含它们，因此您的身份提供商不再在此添加或移除人员。升级到 {{planName}} 套餐后，它们会按原样重新启用。您仍然可以删除它们。",
+  "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "这些已停止工作：您的套餐不包含它们。升级到 {{planName}} 套餐后，它们会按原样重新启用。您仍然可以删除它们。",
+  "This API key stopped working": "此 API 密钥已停止工作",
+  "Your plan does not include API keys, so every request made with this key is refused. Upgrading to the {{planName}} plan turns it back on as it is. You can still delete it.": "您的套餐不包含 API 密钥，因此使用此密钥的每个请求都会被拒绝。升级到 {{planName}} 套餐后，它会按原样重新启用。您仍然可以删除它。",
+  "Your {{count}} API keys stop working on this plan.": "在此套餐中，您的 {{count}} 个 API 密钥将停止工作。",
+  "Your {{count}} API keys stop working on this plan._one": "在此套餐中，您的 API 密钥将停止工作。",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan.": "在此套餐中，您的 {{count}} 个 API 密钥已停止工作。在 {{planName}} 套餐中它们会恢复工作。",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan._one": "在此套餐中，您的 API 密钥已停止工作。在 {{planName}} 套餐中它会恢复工作。",
+  "Your {{count}} SCIM connections stop working on this plan.": "在此套餐中，您的 {{count}} 个 SCIM 连接将停止工作。",
+  "Your {{count}} SCIM connections stop working on this plan._one": "在此套餐中，您的 SCIM 连接将停止工作。",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "在此套餐中，您的 {{count}} 个 SCIM 连接已停止工作，因此您的身份提供商不再添加或移除人员。在 {{planName}} 套餐中它们会恢复工作。",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "在此套餐中，您的 SCIM 连接已停止工作，因此您的身份提供商不再添加或移除人员。在 {{planName}} 套餐中它会恢复工作。",
+  "API keys stop working on this plan.": "在此套餐下，API 密钥将停止工作。",
+  "SCIM connections stop working on this plan.": "在此套餐下，SCIM 连接将停止工作。",
+  "A private episode is never shown on status pages.": "私有片段永远不会显示在状态页面上。",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "此片段为私有，因此已在您的状态页面上隐藏，其订阅者也不会收到相关通知。"
 }

@@ -390,6 +390,7 @@ let storedScopes: Dictionary<StoredIncidentScope> = {};
 
 function episode(overrides?: {
   isVisibleOnStatusPage?: boolean;
+  isPrivate?: boolean;
   withoutTitle?: boolean;
   withoutSeverity?: boolean;
 }): IncidentEpisode {
@@ -401,6 +402,9 @@ function episode(overrides?: {
   row.description = DESCRIPTION;
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  if (overrides?.isPrivate !== undefined) {
+    row.isPrivate = overrides.isPrivate;
+  }
   row.episodeNumber = 3;
 
   if (!overrides?.withoutSeverity) {
@@ -1062,6 +1066,21 @@ describe("IncidentEpisode:SendNotificationToSubscribers default messages", () =>
 
   test("skips an episode that is hidden from the status page", async () => {
     pendingEpisodes = [episode({ isVisibleOnStatusPage: false })];
+
+    await runJob();
+
+    nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatusOnEpisodeCreated:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        "Episode is not visible on status page. Skipping notifications.",
+    });
+  });
+
+  // A private episode is hidden from every status page (StatusPageVisibility).
+  test("skips a private episode, even with its Status Pages switch on", async () => {
+    pendingEpisodes = [episode({ isPrivate: true })];
 
     await runJob();
 

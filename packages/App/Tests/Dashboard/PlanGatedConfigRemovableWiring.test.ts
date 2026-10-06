@@ -265,13 +265,19 @@ describe("the Scale pages draw what is left under their upsell", () => {
 });
 
 describe("the Growth pages become the plan note below the plan", () => {
+  /*
+   * The API key plan lives with the other plan cut-off rules
+   * (Components/Billing/PlanCutoff), which the Billing page and an API key's
+   * own page read too; the on-call schedule plan lives on its page.
+   */
   test.each([
     [
       "Pages/Settings/APIKeys.tsx",
-      "API_KEY_PLAN",
+      "API_KEY_REQUIRED_PLAN",
       "ApiKeysLeftover",
       "APIKeysPage",
       "APIKeys",
+      "Components/Billing/PlanCutoff.ts",
     ],
     [
       "Pages/OnCallDuty/OnCallDutySchedules.tsx",
@@ -279,6 +285,7 @@ describe("the Growth pages become the plan note below the plan", () => {
       "OnCallSchedulesLeftover",
       "OnCallDutySchedulesPage",
       "OnCallDutyPage",
+      "Pages/OnCallDuty/OnCallDutySchedules.tsx",
     ],
   ])(
     "%s",
@@ -288,6 +295,7 @@ describe("the Growth pages become the plan note below the plan", () => {
       leftover: string,
       exported: string,
       inner: string,
+      planSource: string,
     ) => {
       const source: string = readDashboard(page);
 
@@ -296,7 +304,7 @@ describe("the Growth pages become the plan note below the plan", () => {
       );
       expect(source).toContain(`export default ${exported};`);
       // The plan is the model's own: the one the server asks.
-      expect(source).toMatch(
+      expect(readDashboard(planSource)).toMatch(
         new RegExp(
           `const ${plan}: PlanType = new \\w+\\(\\)\\.getCreateBillingPlan\\(\\) \\|\\| PlanType\\.Growth;`,
         ),

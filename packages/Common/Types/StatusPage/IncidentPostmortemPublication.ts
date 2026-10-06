@@ -1,4 +1,5 @@
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "./StatusPageVisibility";
 
 /*
  * Status page subscribers hear about an incident's postmortem once, when it
@@ -204,16 +205,14 @@ export default class IncidentPostmortemPublication {
   }
 
   /*
-   * Whether a written Publish on Status Page value switches it on. The API
-   * passes a boolean through as it is sent, and Postgres stores the string
-   * "true" as true, so a hand-written request's "true" switches it on too:
-   * the status page would show it.
+   * Whether a written switch value switches it on, as the database stores it
+   * (StatusPageVisibility.toStoredBoolean). The API passes a value through as
+   * it is sent, and Postgres stores "true", "yes", "on" or 1 as true, so a
+   * hand-written request's switches it on too: the status page would show
+   * it.
    */
   public static isSwitchedOn(value: unknown): boolean {
-    return (
-      value === true ||
-      (typeof value === "string" && value.trim().toLowerCase() === "true")
-    );
+    return StatusPageVisibility.toStoredBoolean(value) === true;
   }
 
   /*
@@ -346,25 +345,20 @@ export default class IncidentPostmortemPublication {
    * Whether the status page shows the incident: Visible on Status Page on
    * (a switch never set reads as off, as the status page and the send job
    * read it), and the incident not private - a private incident is hidden
-   * from every status page, whatever its switch says.
+   * from every status page, whatever its switch says. The one rule every
+   * status page read, subscriber job and write goes by
+   * (StatusPageVisibility.isShown).
    */
   public static isIncidentShown(
     incident: IncidentVisibilityState | undefined | null,
   ): boolean {
-    if (!incident) {
-      return false;
-    }
-
-    return (
-      incident.isVisibleOnStatusPage === true &&
-      !this.isSwitchedOn(incident.isPrivate)
-    );
+    return StatusPageVisibility.isShown(incident);
   }
 
   /*
    * Whether an update may show the incident, and so has the incident's
    * visibility read before the write: it switches Visible on Status Page on
-   * (true, or a hand-written "true"; isSwitchedOn), or writes Private
+   * (as the database stores the value written; isSwitchedOn), or writes Private
    * Incident as off. An update that writes Visible on Status Page as off
    * leaves the incident hidden, whatever else it writes - the incident's
    * Settings form sends both switches with every save, so saving a hidden
@@ -416,17 +410,17 @@ export default class IncidentPostmortemPublication {
     written: Record<string, unknown>;
   }): boolean {
     const writtenVisibility: unknown = data.written["isVisibleOnStatusPage"];
-    const writtenPrivate: unknown = data.written["isPrivate"];
 
     const isShownAfterUpdate: boolean = this.isIncidentShown({
       isVisibleOnStatusPage:
         writtenVisibility !== undefined
           ? this.isSwitchedOn(writtenVisibility)
           : data.stored?.isVisibleOnStatusPage === true,
-      isPrivate:
-        writtenPrivate !== undefined
-          ? this.isSwitchedOn(writtenPrivate)
-          : this.isSwitchedOn(data.stored?.isPrivate),
+      // Private as the update leaves it, by the one rule (StatusPageVisibility).
+      isPrivate: StatusPageVisibility.isPrivateAfterWrite({
+        written: data.written,
+        stored: data.stored,
+      }),
     });
 
     return isShownAfterUpdate && !this.isIncidentShown(data.stored);
@@ -492,7 +486,7 @@ export default class IncidentPostmortemPublication {
   ): boolean {
     return (
       this.isWaitingForIncidentToShow(incident) &&
-      !this.isSwitchedOn(incident?.isPrivate)
+      !StatusPageVisibility.isPrivate(incident)
     );
   }
 

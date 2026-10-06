@@ -25896,5 +25896,22 @@
   "{{first}}; {{second}}; {{third}}; and {{fourth}}": "{{first}}. {{second}}. {{third}}. 또한 {{fourth}}",
   "{{mode}} (current)": "{{mode}}(현재)",
   "Replace {{exampleNamespaces}} with the namespaces AI may fix. Each one must already exist: the chart never creates a namespace, and a missing one fails the whole upgrade. A fix anywhere else is refused. To allow the whole cluster later, use {{clusterWideFlag}} (not =null, which does not reset a stored list under --reuse-values). nodeOperations=false keeps fixes off nodes; set it to true to allow cordon, uncordon, drain and taint (a drain, a taint or a node patch still waits for a person).": "{{exampleNamespaces}} 부분을 AI가 수정할 수 있는 네임스페이스로 바꾸세요. 각 네임스페이스는 이미 존재해야 합니다. 차트는 네임스페이스를 생성하지 않으며, 존재하지 않는 네임스페이스가 하나라도 있으면 업그레이드 전체가 실패합니다. 그 밖의 위치에 대한 수정은 거부됩니다. 나중에 클러스터 전체를 허용하려면 {{clusterWideFlag}} 플래그를 사용하세요(=null은 --reuse-values와 함께 쓰면 저장된 네임스페이스 목록을 초기화하지 않으므로 사용하지 마세요). nodeOperations=false이면 수정이 노드에 적용되지 않습니다. cordon, uncordon, drain, taint를 허용하려면 true로 설정하세요(drain, taint, 노드 patch는 여전히 사람의 승인을 기다립니다).",
-  "A team you are on blocks {{permissions}}.": "소속된 팀 중 하나가 {{permissions}}을(를) 차단합니다."
+  "A team you are on blocks {{permissions}}.": "소속된 팀 중 하나가 {{permissions}}을(를) 차단합니다.",
+  "Not working on this plan": "이 요금제에서는 작동하지 않습니다",
+  "These stopped working: your plan does not include them, so your identity provider no longer adds or removes people here. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "작동이 중지되었습니다. 현재 요금제에 포함되어 있지 않으므로 ID 공급자가 더 이상 여기에서 사용자를 추가하거나 제거하지 않습니다. {{planName}} 요금제로 업그레이드하면 그대로 다시 켜집니다. 계속 삭제할 수 있습니다.",
+  "These stopped working: your plan does not include them. Upgrading to the {{planName}} plan turns them back on as they are. You can still delete them.": "작동이 중지되었습니다. 현재 요금제에 포함되어 있지 않습니다. {{planName}} 요금제로 업그레이드하면 그대로 다시 켜집니다. 계속 삭제할 수 있습니다.",
+  "This API key stopped working": "이 API 키는 작동이 중지되었습니다",
+  "Your plan does not include API keys, so every request made with this key is refused. Upgrading to the {{planName}} plan turns it back on as it is. You can still delete it.": "현재 요금제에 API 키가 포함되어 있지 않으므로 이 키로 보낸 모든 요청이 거부됩니다. {{planName}} 요금제로 업그레이드하면 그대로 다시 켜집니다. 계속 삭제할 수 있습니다.",
+  "Your {{count}} API keys stop working on this plan.": "이 요금제에서는 API 키 {{count}}개가 작동하지 않게 됩니다.",
+  "Your {{count}} API keys stop working on this plan._one": "이 요금제에서는 API 키가 작동하지 않게 됩니다.",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan.": "이 요금제에서 API 키 {{count}}개의 작동이 중지되었습니다. {{planName}} 요금제에서 다시 작동합니다.",
+  "Your {{count}} API keys stopped working on this plan. They work again on the {{planName}} plan._one": "이 요금제에서 API 키의 작동이 중지되었습니다. {{planName}} 요금제에서 다시 작동합니다.",
+  "Your {{count}} SCIM connections stop working on this plan.": "이 요금제에서는 SCIM 연결 {{count}}개가 작동하지 않게 됩니다.",
+  "Your {{count}} SCIM connections stop working on this plan._one": "이 요금제에서는 SCIM 연결이 작동하지 않게 됩니다.",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "이 요금제에서 SCIM 연결 {{count}}개의 작동이 중지되어 ID 공급자가 더 이상 사용자를 추가하거나 제거하지 않습니다. {{planName}} 요금제에서 다시 작동합니다.",
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "이 요금제에서 SCIM 연결의 작동이 중지되어 ID 공급자가 더 이상 사용자를 추가하거나 제거하지 않습니다. {{planName}} 요금제에서 다시 작동합니다.",
+  "API keys stop working on this plan.": "이 플랜에서는 API 키가 더 이상 작동하지 않습니다.",
+  "SCIM connections stop working on this plan.": "이 플랜에서는 SCIM 연결이 더 이상 작동하지 않습니다.",
+  "A private episode is never shown on status pages.": "비공개 에피소드는 상태 페이지에 표시되지 않습니다.",
+  "This episode is private, so it is hidden from your status pages and their subscribers are not notified about it.": "이 에피소드는 비공개이므로 상태 페이지에서 숨겨지며 구독자에게도 알림이 가지 않습니다."
 }

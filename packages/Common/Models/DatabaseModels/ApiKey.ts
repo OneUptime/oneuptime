@@ -26,7 +26,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
-  // Authenticates after a downgrade: readable on every plan.
+  /*
+   * Kept after a downgrade, but stops authenticating until the project is
+   * back on the plan (Types/Billing/PlanCutoffCredentials): readable on
+   * every plan, to see what stopped and delete it.
+   */
   readableBelowPlan: true,
 })
 @EnableDocumentation()
