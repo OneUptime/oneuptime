@@ -770,8 +770,7 @@ describe("editing a workspace summary", () => {
   test("shows the time zone it is read in, not the one of whoever edits it", async () => {
     modalMode = "edit";
     const saved: WorkspaceNotificationSummary = savedSummary();
-    saved.timezone =
-      "America/New_York" as Timezone;
+    saved.timezone = "America/New_York" as Timezone;
     getItemMock.mockResolvedValue(saved);
 
     const user: UserEvent = await renderForm();
@@ -790,8 +789,7 @@ describe("editing a workspace summary", () => {
   test("sends the time zone back as it was when only the name changes, so its schedule stays", async () => {
     modalMode = "edit";
     const saved: WorkspaceNotificationSummary = savedSummary();
-    saved.timezone =
-      "America/New_York" as Timezone;
+    saved.timezone = "America/New_York" as Timezone;
     getItemMock.mockResolvedValue(saved);
 
     const user: UserEvent = await renderForm();
