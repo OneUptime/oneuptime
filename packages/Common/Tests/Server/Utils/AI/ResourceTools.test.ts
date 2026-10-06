@@ -636,10 +636,13 @@ describe("parent resource and signal permissions", () => {
   test.each(["metrics", "logs", "traces"])(
     "requires both parent and %s access",
     async (signal: string) => {
+      // Each signal is read with its own family's permission.
       const signalRead: Permission =
         signal === "logs"
           ? Permission.ReadTelemetryServiceLog
-          : Permission.ReadTelemetryServiceTraces;
+          : signal === "metrics"
+            ? Permission.ReadTelemetryServiceMetrics
+            : Permission.ReadTelemetryServiceTraces;
       for (const allow of [[Permission.ReadHost], [signalRead]]) {
         const outcome: ToolCallOutcome = await AIToolbox.executeTool({
           name: QueryResourceTelemetryTool.name,
@@ -661,7 +664,36 @@ describe("parent resource and signal permissions", () => {
     },
   );
 
-  test.each([Permission.ReadHost, Permission.ReadTelemetryServiceTraces])(
+  /*
+   * Metrics are read with the metric permission only: the trace and log
+   * permissions, which the Metric model's lists used to name, read none.
+   */
+  test.each([
+    [[Permission.ReadTelemetryServiceTraces]],
+    [[Permission.ReadTelemetryServiceLog]],
+    [
+      [
+        Permission.ReadTelemetryServiceTraces,
+        Permission.ReadTelemetryServiceLog,
+      ],
+    ],
+  ])(
+    "a host's metrics are not read with %j",
+    async (signalPermissions: Array<Permission>) => {
+      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+        name: QueryResourceTelemetryTool.name,
+        args: args(AIResourceType.Host, "metrics"),
+        ctx: context([Permission.ReadHost, ...signalPermissions]),
+      });
+
+      expect(outcome.success).toBe(false);
+      expect(metric).not.toHaveBeenCalled();
+      expect(HostService.findBy).not.toHaveBeenCalled();
+    },
+  );
+
+  // args() asks for metrics, which are read with the metric permission.
+  test.each([Permission.ReadHost, Permission.ReadTelemetryServiceMetrics])(
     "blocks selected permission %s despite a broad grant",
     async (blocked: Permission) => {
       const outcome: ToolCallOutcome = await AIToolbox.executeTool({

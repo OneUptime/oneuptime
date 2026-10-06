@@ -128,6 +128,7 @@ import NormalizeListOrder from "./NormalizeListOrder";
 import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
 import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
 import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
+import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -611,6 +612,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * migration that adds the column, so it sits before the last slot.
    */
   new SetWorkspaceSummaryTimezones(),
+  /*
+   * Metric data points are read with Read Telemetry Service Metrics now,
+   * where their table, routes and AI tools named Read Telemetry Service
+   * Traces. Keeps the metric reads of every team and API key holding Read
+   * Traces where they were: a Read Metrics with the same scope and labels,
+   * added or set (copied, never renamed; blocks and writes are not
+   * copied). Postgres-only and idempotent; every grantee whose reads
+   * change, and every write it cannot make, is logged. No ordering
+   * requirement, so it sits before the last slot.
+   */
+  new AddTelemetryServiceMetricsPermissions(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
