@@ -1,0 +1,198 @@
+# OBI's other client calls that belong to no trace can be dropped in the
+# collector — opt in, ebpf.dropUnlinkedClientCalls.
+#
+# After OBI v0.14 linked request traces, what still arrived as one-span
+# "traces" on the test cluster were calls made outside any request: a worker's
+# HTTP queries to ClickHouse (`POST /`, ~57k an hour), KEDA renewing its lease
+# (`PUT /apis/*/.../leases/*`), the agent polling for AI jobs. They are about
+# 2% of what OBI sent there.
+#
+# Off by default because a stateless filter cannot see what hangs under a
+# span: about one in ten of those calls were the ROOT of a trace (a probe or
+# a worker calling the API on the same node, which OBI links under the call),
+# and dropping them leaves those traces without a root. The service map also
+# reads these calls (ServiceDependencyDiscovery). Database calls belong to
+# filter/ebpf-unlinked-db; messaging and GenAI calls are always kept.
+#
+# These tests pin the switch (off by default and when the key is missing, as
+# after --reuse-values), the condition text (its behaviour against a real
+# collector is covered by Tests/Ops/agent-trace-filter-behaviour.sh), its
+# interplay with the database switches, and its place in the traces pipeline.
+suite: collector drops unlinked eBPF client calls when asked
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/configmap-daemonset.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: is off by default, leaving the traces pipeline as it was
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-client"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kind == SPAN_KIND_CLIENT"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n        - batch\\n"
+
+  - it: stays off for a release upgraded with --reuse-values from values that predate it
+    set:
+      ebpf.dropUnlinkedClientCalls: null
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-client"
+
+  - it: stays off when set false
+    set:
+      ebpf.dropUnlinkedClientCalls: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-client"
+
+  - it: defines the filter when asked, scoped to OBI client spans with no parent that are no database, messaging or GenAI call
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-client:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and kind == SPAN_KIND_CLIENT and parent_span_id == SpanID\\(0x0000000000000000\\) and attributes\\[\"db\\.system\\.name\"\\] == nil and attributes\\[\"db\\.system\"\\] == nil and attributes\\[\"messaging\\.system\"\\] == nil and attributes\\[\"gen_ai\\.operation\\.name\"\\] == nil and attributes\\[\"gen_ai\\.system\"\\] == nil'\\n(?:\\n|  [#a-z])"
+
+  - it: runs it right after the database filter, before batch
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      # A strict line chain, not a [\s\S]*? gap: a lazy gap can run out of the
+      # traces pipeline and match something in another one.
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n        - batch\\n"
+
+  - it: runs it before the user's span filters and the sampler, so neither works on spans about to be dropped
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+      sampling.traces.percentage: 25
+      namespaceFilters.rules:
+        - action: exclude
+          namespaces: [noisy]
+          scopes: [traces]
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-db\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n(?: *#[^\\n]*\\n)*        - filter/telemetry\\n(?: *#[^\\n]*\\n)*        - probabilistic_sampler\\n        - batch\\n"
+
+  - it: leaves the database filter exactly as it is
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:\\n    error_mode: ignore\\n    traces:\\n      span:\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and kind == SPAN_KIND_SERVER'\\n        - 'resource\\.attributes\\[\"telemetry\\.distro\\.name\"\\] == \"opentelemetry-ebpf-instrumentation\" and \\(attributes\\[\"db\\.system\\.name\"\\] != nil or attributes\\[\"db\\.system\"\\] != nil\\) and parent_span_id == SpanID\\(0x0000000000000000\\) and kind != SPAN_KIND_SERVER'\\n"
+
+  # The database switches decide about database spans alone: with
+  # dropUnlinkedDatabaseCalls=false an application's unlinked database calls
+  # must survive, whatever this switch says. The condition leaves out every
+  # span the database filter's base condition matches.
+  - it: never drops a database call, so dropUnlinkedDatabaseCalls=false keeps them
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+      ebpf.dropUnlinkedDatabaseCalls: false
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-client:\\n(?:[^\\n]*\\n){3}        - '[^\\n]*and attributes\\[\"db\\.system\\.name\"\\] == nil and attributes\\[\"db\\.system\"\\] == nil and [^\\n]*'\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "kind != SPAN_KIND_SERVER"
+
+  - it: works on its own with both database switches off
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+      ebpf.dropDatabaseServerSpans: false
+      ebpf.dropUnlinkedDatabaseCalls: false
+    asserts:
+      # A processor referenced but not defined (or the reverse) is a collector
+      # that refuses to start. (The comments still name the database filter.)
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-db:|- filter/ebpf-unlinked-db\\n|SPAN_KIND_SERVER"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/ebpf-unlinked-client:\\n"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    traces:\\n      receivers:\\n        - otlp\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-unlinked-client\\n        - batch\\n"
+
+  - it: never touches messaging spans — PRODUCER and CONSUMER are not CLIENT, and a CLIENT one names its messaging.system
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "SPAN_KIND_PRODUCER|SPAN_KIND_CONSUMER|kind != SPAN_KIND_CLIENT"
+      - template: templates/configmap-deployment.yaml
+        matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - '[^\\n]* and kind == SPAN_KIND_CLIENT and [^\\n]* and attributes\\[\"messaging\\.system\"\\] == nil and [^\\n]*'\\n"
+
+  - it: never runs it on metrics or logs
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- filter/ebpf-unlinked-client\\n"
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    logs:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- filter/ebpf-unlinked-client\\n"
+
+  - it: does not exist when eBPF is off, since there is no traces pipeline to run it in
+    set:
+      ebpf.enabled: false
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      - template: templates/configmap-deployment.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-client"
+
+  - it: is never added to the node collector, which has no traces pipeline
+    set:
+      ebpf.dropUnlinkedClientCalls: true
+    asserts:
+      - template: templates/configmap-daemonset.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "filter/ebpf-unlinked-client"
+
+  - it: refuses a value that is not a boolean
+    set:
+      ebpf.dropUnlinkedClientCalls: "yes"
+    asserts:
+      - failedTemplate:
+          errorPattern: "dropUnlinkedClientCalls: Invalid type. Expected: boolean, given: string"

@@ -458,6 +458,26 @@ data:
             {{- end }}
       {{- end }}
 
+      {{- if eq (include "kubernetes-agent.dropUnlinkedClientCalls" .) "true" }}
+      # Drop OBI's other client calls that belong to no trace — HTTP, gRPC
+      # and the like made by work no request triggered: a worker's HTTP
+      # queries to ClickHouse, a controller renewing its lease, a probe's
+      # checks (ebpf.dropUnlinkedClientCalls, off by default). Database calls
+      # are filter/ebpf-unlinked-db's; messaging and GenAI calls are kept, as
+      # are SERVER, PRODUCER, CONSUMER and INTERNAL spans and spans
+      # applications push from their own SDKs. A processor of its own rather
+      # than a third condition in filter/ebpf-unlinked-db: the two never match
+      # the same span, and the collector reports what each one drops under
+      # its own name. The cost — a call that is the root of a trace, because
+      # OBI linked the request it reached on the same node under it, goes too,
+      # leaving that trace without its root — is in values.yaml.
+      filter/ebpf-unlinked-client:
+        error_mode: ignore
+        traces:
+          span:
+            - '{{ include "kubernetes-agent.ebpfUnlinkedClientSpanCondition" . | replace "'" "''" }}'
+      {{- end }}
+
       {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
       # Drop the HTTP server datapoints OBI v0.14 records for its own Node.js
       # agent injection: GET /json/list (and /json/version) and the WebSocket
@@ -590,6 +610,11 @@ data:
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.
             - filter/ebpf-unlinked-db
+            {{- end }}
+            {{- if eq (include "kubernetes-agent.dropUnlinkedClientCalls" .) "true" }}
+            # Before the user's filters and the sampler too. It never matches
+            # a span filter/ebpf-unlinked-db does, so their order is free.
+            - filter/ebpf-unlinked-client
             {{- end }}
             {{- if and .Values.ebpf.enabled (eq (include "kubernetes-agent.traceFiltersEnabled" .) "true") }}
             # k8sattributes resolves the sending pod to a namespace, so this

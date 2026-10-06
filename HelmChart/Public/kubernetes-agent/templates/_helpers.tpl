@@ -382,6 +382,46 @@ resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentat
 {{- end }}
 
 {{/*
+Whether to drop OBI's other client calls that belong to no trace in
+`filter/ebpf-unlinked-client` (ebpf.dropUnlinkedClientCalls). Only with eBPF
+on, and OFF unless explicitly set to true — the opposite of the database
+switches above. A stateless filter cannot tell a one-span call from the root
+of a trace: when the callee is traced by OBI on the same node, OBI links its
+request under the call, and dropping the call leaves that trace without its
+root (see the value for what else it costs). So a release upgraded with
+--reuse-values, whose values predate the key, keeps every span as before.
+*/}}
+{{- define "kubernetes-agent.dropUnlinkedClientCalls" -}}
+{{- and (.Values.ebpf.enabled | default false) (eq (toString .Values.ebpf.dropUnlinkedClientCalls) "true") -}}
+{{- end -}}
+
+{{/*
+OTTL span condition of `filter/ebpf-unlinked-client`: an OBI CLIENT span with
+no parent that is none of the calls other features read from spans.
+
+  - telemetry.distro.name and the "no parent" form as for the database
+    condition above (parent_span_id == SpanID(0x0000000000000000) is what the
+    pinned collector, 0.96.0, understands).
+  - kind == SPAN_KIND_CLIENT only: PRODUCER and CONSUMER spans are messaging
+    and always kept, as are SERVER spans (a request is a trace's root) and
+    INTERNAL ones.
+  - Database calls (db.system.name / db.system) are left to
+    filter/ebpf-unlinked-db, so the two filters never match the same span and
+    ebpf.dropUnlinkedDatabaseCalls=false keeps them whatever this switch says.
+  - Messaging calls (messaging.system): OBI v0.14 types a receive or settle
+    as CLIENT, and OneUptime's queue discovery reads every messaging span
+    that is not SERVER.
+  - GenAI calls (gen_ai.operation.name, which OBI v0.14 sets on every GenAI
+    span; gen_ai.system for an OBI on the older semantic conventions):
+    OneUptime's LLM cost and token figures come from these spans, and it
+    turns to the GenAI metrics only when there are none at all, so dropping
+    a batch job's calls would under-count them, not hand them to the metrics.
+*/}}
+{{- define "kubernetes-agent.ebpfUnlinkedClientSpanCondition" -}}
+resource.attributes["telemetry.distro.name"] == "opentelemetry-ebpf-instrumentation" and kind == SPAN_KIND_CLIENT and parent_span_id == SpanID(0x0000000000000000) and attributes["db.system.name"] == nil and attributes["db.system"] == nil and attributes["messaging.system"] == nil and attributes["gen_ai.operation.name"] == nil and attributes["gen_ai.system"] == nil
+{{- end }}
+
+{{/*
 Whether to drop OBI's HTTP server metrics for its own Node.js inspector
 requests in `filter/ebpf-node-inspector` (ebpf.dropNodeInspectorMetrics).
 Only with eBPF on (OBI is what sends them) and its Node.js agent on (with

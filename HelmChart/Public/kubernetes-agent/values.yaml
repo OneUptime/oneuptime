@@ -1162,6 +1162,43 @@ ebpf:
   # map as a remote endpoint rather than a database. Its metrics are
   # unaffected. Set false to keep these spans — and the one-span traces.
   dropUnlinkedDatabaseCalls: true
+  # OBI's other client calls that belong to no trace: the HTTP, gRPC and
+  # other calls (not database, messaging or GenAI calls) made by work no
+  # request triggered — a worker querying ClickHouse over HTTP, a controller
+  # renewing its Kubernetes lease, a poller, a monitor checking a website.
+  # Each reaches OneUptime as a trace of one span named after the bare request
+  # (`POST /`, `PUT /apis/*/...`).
+  #
+  # OFF by default, because the agent's collector decides span by span and
+  # cannot see what hangs under a span, so dropping these costs data:
+  #   - When the service a call went to runs on the same node and OBI traces
+  #     it, OBI links the request it served under the call. The call is then
+  #     the root of a whole trace (a cron job's call into your API and
+  #     everything the API did for it), and dropping it leaves that trace
+  #     without its root: it no longer shows in the Traces list's root-span
+  #     view, and the service map loses the traced edge between the two
+  #     (OBI's service graph metrics still draw it, without latency). On the
+  #     cluster this was measured on, about one in ten of the calls this
+  #     drops were such roots.
+  #   - The service map reads these calls. A service or endpoint that only
+  #     background work calls (an external API a worker syncs with) is then
+  #     drawn from OBI's service graph metrics alone — under the name OBI gives
+  #     it there, which for an address outside the cluster is `outgoing` — and
+  #     an edge also seen inside requests counts only those calls: its rate,
+  #     errors and latency describe the request traffic, not all of it.
+  #   - Trace searches and trace monitors find none of these calls, failed
+  #     ones included: the status does not matter.
+  # Only OBI's spans are considered, never spans your apps push from their
+  # own SDKs, and only CLIENT spans without a parent. Database calls are
+  # dropUnlinkedDatabaseCalls's business, and messaging calls (queue
+  # discovery reads them) and GenAI calls (LLM cost and token figures come
+  # from them) are always kept. OBI's metrics are unaffected:
+  # `http.client.request.duration`, `rpc.client.call.duration` and the
+  # service graph counters still count every call.
+  #
+  # Only an explicit true turns it on: a key missing from your values (a
+  # release upgraded with --reuse-values) counts as off.
+  dropUnlinkedClientCalls: false
 
   # Drop the HTTP metrics OBI records for its own Node.js agent injection
   # (see `nodejs` above). OBI v0.14 starts tracing a Node.js process before
