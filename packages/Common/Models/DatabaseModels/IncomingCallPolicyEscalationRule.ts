@@ -366,6 +366,11 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
   })
   public order?: number = undefined;
 
+  /*
+   * How long the phone rings before the call moves on to the next rule: the
+   * timeout of Twilio's <Dial>. A new rule rings for 20 seconds; rules made
+   * when the default was 30 keep the 30 they hold (IncomingCallRingTime).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -394,11 +399,6 @@ export default class IncomingCallPolicyEscalationRule extends BaseModel {
       Permission.EditProjectIncomingCallPolicyEscalationRule,
     ],
   })
-  /*
-   * How long the phone rings before the call moves on to the next rule: the
-   * timeout of Twilio's <Dial>. A new rule rings for 20 seconds; rules made
-   * when the default was 30 keep the 30 they hold (IncomingCallRingTime).
-   */
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
