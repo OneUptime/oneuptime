@@ -89,11 +89,13 @@ describe("getCloudMonitoredResourceAttributeFilters", () => {
     "a resource with %s has no filter and is unscoped",
     (_label: string, telemetryAttributes: unknown) => {
       expect(
-        getCloudMonitoredResourceAttributeFilters(resource(telemetryAttributes)),
+        getCloudMonitoredResourceAttributeFilters(
+          resource(telemetryAttributes),
+        ),
       ).toEqual({});
-      expect(isCloudMonitoredResourceScoped(resource(telemetryAttributes))).toBe(
-        false,
-      );
+      expect(
+        isCloudMonitoredResourceScoped(resource(telemetryAttributes)),
+      ).toBe(false);
     },
   );
 
@@ -143,7 +145,10 @@ describe("getCloudMonitoredResourceAttributeFilters", () => {
 
     filters["added"] = "x";
 
-    expect(attributes).toEqual({ "azuremonitor.resource_id": ARM_ID, empty: "" });
+    expect(attributes).toEqual({
+      "azuremonitor.resource_id": ARM_ID,
+      empty: "",
+    });
   });
 });
 

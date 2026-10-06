@@ -573,4 +573,5 @@ The pipeline has a `resourcedetection` processor: see [Keep the pipeline free of
 
 - Only metrics: the providers' monitoring APIs publish no logs or traces about a resource. Send those from your workloads with OpenTelemetry.
 - Discovery follows the metrics: a resource the provider publishes no metrics about — or the collector does not read — is not discovered.
+- A resource has no retention setting of its own: its metrics are kept as long as the rest of the metrics its collector sends.
 - Polling the cloud APIs costs money and counts against their limits; see each provider's notes above.

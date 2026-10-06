@@ -242,6 +242,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Telemetry/InventoryMirrorPostgres.test.ts --forceExit
 
+      # Clones the migrated CloudResource table into an isolated schema and
+      # runs the discovered resources' sweeps against it: Not reporting,
+      # auto-archive, restore when a resource reports again, and the budget's
+      # count - set-based raw SQL only a real database can check.
+      - name: Test the Cloud Resource sweeps against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_RESOURCE_SWEEP_TESTS: "true"
+          CLOUD_RESOURCE_SWEEP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_RESOURCE_SWEEP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_RESOURCE_SWEEP_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudResourceMonitoredSweepsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
       - name: Test IncidentAlert link table on migrated Postgres

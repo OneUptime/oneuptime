@@ -68,8 +68,8 @@ const NOW: Date = new Date("2026-10-06T12:00:00.000Z");
 const service: any = CloudResourceService;
 
 function vm(name: string = "vm-prod-01"): CloudMonitoredResource {
-  const resource: CloudMonitoredResource | null =
-    resolveCloudMonitoredResource({
+  const resource: CloudMonitoredResource | null = resolveCloudMonitoredResource(
+    {
       metricName: "azure_percentage_cpu_average",
       attributes: {
         "resource.azuremonitor.subscription_id": SUBSCRIPTION,
@@ -77,7 +77,8 @@ function vm(name: string = "vm-prod-01"): CloudMonitoredResource {
         name: name,
         location: "westeurope",
       },
-    });
+    },
+  );
   if (!resource) {
     throw new Error("fixture did not resolve");
   }
@@ -269,7 +270,10 @@ describe("findOrCreateMonitoredResource", () => {
   });
 
   test("the budget counts the project's live resources, and refuses at the budget with one warning", async () => {
-    const restore: () => void = withEnv("CLOUD_RESOURCE_AUTO_CREATE_BUDGET", "3");
+    const restore: () => void = withEnv(
+      "CLOUD_RESOURCE_AUTO_CREATE_BUDGET",
+      "3",
+    );
     try {
       query = mockRawQueries({ count: 3 });
 
@@ -297,7 +301,10 @@ describe("findOrCreateMonitoredResource", () => {
       expect(sql).toContain(`"isArchived" = false`);
       expect(sql).toContain(`"deletedAt" IS NULL`);
       expect(sql).toContain(`"cloudResourceKind" = $2`);
-      expect(params).toEqual([PROJECT_ID.toString(), CloudResourceKind.Resource]);
+      expect(params).toEqual([
+        PROJECT_ID.toString(),
+        CloudResourceKind.Resource,
+      ]);
 
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn.mock.calls[0]![0]).toContain(
@@ -309,7 +316,10 @@ describe("findOrCreateMonitoredResource", () => {
   });
 
   test("every create counts against the cached budget at once", async () => {
-    const restore: () => void = withEnv("CLOUD_RESOURCE_AUTO_CREATE_BUDGET", "2");
+    const restore: () => void = withEnv(
+      "CLOUD_RESOURCE_AUTO_CREATE_BUDGET",
+      "2",
+    );
     try {
       query = mockRawQueries({ count: 1 });
 
@@ -334,7 +344,10 @@ describe("findOrCreateMonitoredResource", () => {
   });
 
   test("a budget of 0 turns discovery off", async () => {
-    const restore: () => void = withEnv("CLOUD_RESOURCE_AUTO_CREATE_BUDGET", "0");
+    const restore: () => void = withEnv(
+      "CLOUD_RESOURCE_AUTO_CREATE_BUDGET",
+      "0",
+    );
     try {
       const result: CloudMonitoredResourceFindOrCreateResult =
         await service.findOrCreateMonitoredResource({
@@ -423,9 +436,9 @@ describe("recordMonitoredResourceSighting", () => {
   let write: jest.SpyInstance;
 
   beforeEach(() => {
-    write = jest.spyOn(ResourceHeartbeat, "write").mockResolvedValue(
-      undefined as never,
-    );
+    write = jest
+      .spyOn(ResourceHeartbeat, "write")
+      .mockResolvedValue(undefined as never);
   });
 
   test("one gated heartbeat: liveness, and what the provider reports - never the name", async () => {
@@ -544,7 +557,9 @@ describe("the sweeps", () => {
     expect(sql).toContain(`cr."cloudResourceKind" = $1`);
     expect(sql).toContain(`cr."isArchived" = false`);
     expect(sql).toContain(`cr."autoArchivedAt" IS NULL`);
-    expect(sql).toContain(`ORDER BY COALESCE(cr."lastSeenAt", cr."createdAt") ASC`);
+    expect(sql).toContain(
+      `ORDER BY COALESCE(cr."lastSeenAt", cr."createdAt") ASC`,
+    );
     expect(sql).toContain(`"autoArchivedAt" = $3`);
     expect(sql).toContain(`"archivedByUserId" = NULL`);
     expect(params).toEqual([
@@ -585,9 +600,7 @@ describe("the sweeps", () => {
   test("restore: only rows the sweep archived that reported since - then forget the mark of those a person restored", async () => {
     const query: jest.Mock = mockRawQueries({ updated: 3 });
 
-    await expect(service.restoreReportingMonitoredResources()).resolves.toBe(
-      3,
-    );
+    await expect(service.restoreReportingMonitoredResources()).resolves.toBe(3);
 
     expect(query).toHaveBeenCalledTimes(2);
     const restoreSql: string = query.mock.calls[0]![0] as string;
@@ -618,13 +631,13 @@ describe("the sweeps", () => {
     const args: any = findBy.mock.calls[0]![0];
     expect(args.query.cloudResourceKind).toBe(CloudResourceKind.Environment);
     expect(args.query.otelCollectorStatus).toBe("connected");
-    expect(Object.values(args.query.lastSeenAt.objectLiteralParameters)).toEqual(
-      [
-        new Date(
-          NOW.getTime() - CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES * 60 * 1000,
-        ),
-      ],
-    );
+    expect(
+      Object.values(args.query.lastSeenAt.objectLiteralParameters),
+    ).toEqual([
+      new Date(
+        NOW.getTime() - CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES * 60 * 1000,
+      ),
+    ]);
     expect(CLOUD_ENVIRONMENT_DISCONNECTED_MINUTES).toBe(15);
   });
 });
@@ -713,7 +726,8 @@ describe("the created feed item", () => {
       row({
         cloudResourceKind: CloudResourceKind.Resource,
         resourceIdentifier: "azure:abc",
-        providerResourceId: "/subscriptions/x/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm",
+        providerResourceId:
+          "/subscriptions/x/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm",
       }),
       onCreate,
     );
@@ -744,15 +758,18 @@ describe("getMonitoredResourceAutoCreateBudget", () => {
     ["0", 0],
     ["-1", 0],
     ["many", 5000],
-  ])("CLOUD_RESOURCE_AUTO_CREATE_BUDGET=%p is %p", (value: string | undefined, budget: number) => {
-    const restore: () => void = withEnv(
-      "CLOUD_RESOURCE_AUTO_CREATE_BUDGET",
-      value,
-    );
-    try {
-      expect(service.getMonitoredResourceAutoCreateBudget()).toBe(budget);
-    } finally {
-      restore();
-    }
-  });
+  ])(
+    "CLOUD_RESOURCE_AUTO_CREATE_BUDGET=%p is %p",
+    (value: string | undefined, budget: number) => {
+      const restore: () => void = withEnv(
+        "CLOUD_RESOURCE_AUTO_CREATE_BUDGET",
+        value,
+      );
+      try {
+        expect(service.getMonitoredResourceAutoCreateBudget()).toBe(budget);
+      } finally {
+        restore();
+      }
+    },
+  );
 });

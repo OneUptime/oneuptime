@@ -77,8 +77,8 @@ const baseService: Record<string, any> =
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 function vm(name: string): CloudMonitoredResource {
-  const resource: CloudMonitoredResource | null =
-    resolveCloudMonitoredResource({
+  const resource: CloudMonitoredResource | null = resolveCloudMonitoredResource(
+    {
       metricName: "azure_percentage_cpu_average",
       attributes: {
         "resource.azuremonitor.subscription_id": SUBSCRIPTION,
@@ -86,7 +86,8 @@ function vm(name: string): CloudMonitoredResource {
         name: name,
         location: "westeurope",
       },
-    });
+    },
+  );
   if (!resource) {
     throw new Error("fixture did not resolve");
   }
@@ -133,9 +134,11 @@ beforeEach(() => {
     });
   jest
     .spyOn(GlobalCache, "setString")
-    .mockImplementation(async (namespace: string, key: string, value: string) => {
-      fakeRedis.set(`${namespace}:${key}`, value);
-    });
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        fakeRedis.set(`${namespace}:${key}`, value);
+      },
+    );
   jest
     .spyOn(GlobalCache, "setStringIfNotExists")
     .mockImplementation(async (namespace: string, key: string) => {
@@ -192,8 +195,9 @@ describe("finding the row", () => {
     );
     expect(sighting).toHaveBeenCalledTimes(1);
     expect(
-      (sighting.mock.calls[0]![0] as { cloudResourceId: ObjectID })
-        .cloudResourceId.toString(),
+      (
+        sighting.mock.calls[0]![0] as { cloudResourceId: ObjectID }
+      ).cloudResourceId.toString(),
     ).toBe(ROW_ID);
   });
 

@@ -95,12 +95,21 @@ const CloudResourceSettings: FunctionComponent<
           isResource ? RESOURCE_IDENTITY_DETAILS : ENVIRONMENT_IDENTITY_DETAILS
         }
       />
-      <TelemetryResourceRetentionSettings<CloudResource>
-        modelType={CloudResource}
-        modelId={modelId}
-        resourceName="cloud resource"
-        modelDetailIdPrefix="cloud-resource"
-      />
+      {/*
+       * Retention follows the row telemetry is filed under. A resource
+       * discovered from cloud monitoring is never that row: its metrics
+       * arrive under the collector's OpenTelemetry resource, shared by every
+       * resource the collector reads, so a retention set here would change
+       * nothing. Only an environment gets the card.
+       */}
+      {isResource ? null : (
+        <TelemetryResourceRetentionSettings<CloudResource>
+          modelType={CloudResource}
+          modelId={modelId}
+          resourceName="cloud resource"
+          modelDetailIdPrefix="cloud-resource"
+        />
+      )}
       <ArchiveResourceCard<CloudResource>
         modelType={CloudResource}
         modelId={modelId}

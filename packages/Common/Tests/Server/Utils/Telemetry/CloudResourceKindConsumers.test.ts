@@ -1,11 +1,5 @@
 import "../../TestingUtils/Init";
-import {
-  afterEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import ResourceFacetResolver from "../../../../Server/Utils/Telemetry/ResourceFacetResolver";
 import {
   ErasedInventorySource,
@@ -68,12 +62,12 @@ describe("CloudResourceKind", () => {
 
     expect(column.defaultValue).toBe(CloudResourceKind.Environment);
     expect(column.isDefaultValueColumn).toBe(true);
-    expect(model.getColumnAccessControlFor("cloudResourceKind")?.create).toEqual(
-      [],
-    );
-    expect(model.getColumnAccessControlFor("cloudResourceKind")?.update).toEqual(
-      [],
-    );
+    expect(
+      model.getColumnAccessControlFor("cloudResourceKind")?.create,
+    ).toEqual([]);
+    expect(
+      model.getColumnAccessControlFor("cloudResourceKind")?.update,
+    ).toEqual([]);
   });
 
   test.each([
@@ -82,14 +76,17 @@ describe("CloudResourceKind", () => {
     "cloudResourceGroup",
     "telemetryAttributes",
     "autoArchivedAt",
-  ])("%s is ingest's alone: readable, never set by a person", (column: string) => {
-    const model: CloudResource = new CloudResource();
-    const access: any = model.getColumnAccessControlFor(column);
+  ])(
+    "%s is ingest's alone: readable, never set by a person",
+    (column: string) => {
+      const model: CloudResource = new CloudResource();
+      const access: any = model.getColumnAccessControlFor(column);
 
-    expect(access.create).toEqual([]);
-    expect(access.update).toEqual([]);
-    expect(access.read.length).toBeGreaterThan(0);
-  });
+      expect(access.create).toEqual([]);
+      expect(access.update).toEqual([]);
+      expect(access.read.length).toBeGreaterThan(0);
+    },
+  );
 });
 
 describe("the explorers' Cloud Resource facet", () => {
@@ -149,7 +146,9 @@ describe("the inventory mirror of a Cloud Resource", () => {
   }
 
   async function mirror(row: CloudResource): Promise<InventoryRowProjection> {
-    jest.spyOn(CloudResourceService, "findBy").mockResolvedValue([row] as never);
+    jest
+      .spyOn(CloudResourceService, "findBy")
+      .mockResolvedValue([row] as never);
     const page: Array<InventoryRowProjection> = await cloudSource().fetchPage({
       skip: 0,
       limit: 10,

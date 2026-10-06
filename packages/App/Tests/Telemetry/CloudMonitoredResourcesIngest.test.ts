@@ -125,16 +125,18 @@ function setup(rules?: MetricRulesForProject): Harness {
   }
   harness.discover = jest
     .spyOn(service, "autoDiscoverCloudMonitoredResources")
-    .mockImplementation(
-      async (data: {
+    .mockImplementation(async (...args: Array<unknown>): Promise<number> => {
+      const data: {
         projectId: ObjectID;
         resources: Array<CloudMonitoredResource>;
-      }): Promise<number> => {
-        harness.discovered.push(data.resources);
-        harness.rowsAtDiscovery.push(harness.rows.length);
-        return data.resources.length;
-      },
-    );
+      } = args[0] as {
+        projectId: ObjectID;
+        resources: Array<CloudMonitoredResource>;
+      };
+      harness.discovered.push(data.resources);
+      harness.rowsAtDiscovery.push(harness.rows.length);
+      return data.resources.length;
+    });
   jest
     .spyOn(service, "resolveTelemetryResource")
     .mockImplementation(async (): Promise<TelemetryServiceMetadata> => {
@@ -271,12 +273,13 @@ function azureDatapoint(
 
 const AZURE_RESOURCE: Array<OtlpAttribute> = [
   stringAttribute("azuremonitor.subscription_id", SUBSCRIPTION),
-  stringAttribute("azuremonitor.tenant_id", "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b"),
+  stringAttribute(
+    "azuremonitor.tenant_id",
+    "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b",
+  ),
 ];
 
-function summaryOf(
-  resources: Array<CloudMonitoredResource>,
-): Array<string> {
+function summaryOf(resources: Array<CloudMonitoredResource>): Array<string> {
   return resources.map((resource: CloudMonitoredResource): string => {
     return `${resource.source} ${resource.resourceType} ${resource.name}`;
   });

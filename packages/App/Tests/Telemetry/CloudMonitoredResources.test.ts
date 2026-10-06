@@ -206,8 +206,12 @@ describe("observeMetricRow", () => {
     const collector: CloudMonitoredResourceCollector =
       new CloudMonitoredResourceCollector();
 
-    collector.observeMetricRow(azureRow("azure_percentage_cpu_average", "vm-2"));
-    collector.observeMetricRow(azureRow("azure_percentage_cpu_average", "vm-1"));
+    collector.observeMetricRow(
+      azureRow("azure_percentage_cpu_average", "vm-2"),
+    );
+    collector.observeMetricRow(
+      azureRow("azure_percentage_cpu_average", "vm-1"),
+    );
     collector.observeMetricRow(azureRow("azure_network_in_total", "vm-2"));
     collector.observeMetricRow(azureRow("azure_disk_read_bytes_total", "vm-1"));
     // The same VM's id in another case is the same VM.
@@ -279,16 +283,12 @@ describe("observeMetricRow", () => {
     const collector: CloudMonitoredResourceCollector =
       new CloudMonitoredResourceCollector();
 
-    expect(
-      collector.observeMetricRow(azureRow("azure_x", "vm-1")),
-    ).toBe(false);
-    expect(
-      collector.observeMetricRow(azureRow("azure_x", "vm-2")),
-    ).toBe(false);
+    expect(collector.observeMetricRow(azureRow("azure_x", "vm-1"))).toBe(false);
+    expect(collector.observeMetricRow(azureRow("azure_x", "vm-2"))).toBe(false);
     for (const row of [null, undefined, 42, "row", [], { attributes: null }]) {
-      expect(
-        collector.observeMetricRow(row as unknown as JSONObject),
-      ).toBe(false);
+      expect(collector.observeMetricRow(row as unknown as JSONObject)).toBe(
+        false,
+      );
     }
 
     expect(logger.error).toHaveBeenCalledTimes(1);
@@ -369,17 +369,23 @@ describe("buildCloudMonitoredResourceMemoKey", () => {
     ).not.toBe(key);
   });
 
-  test("a value's type is part of the key, so 1 and \"1\" never share an answer", () => {
+  test('a value\'s type is part of the key, so 1 and "1" never share an answer', () => {
     expect(
-      buildCloudMonitoredResourceMemoKey(CloudMonitoringSource.AwsCloudWatchJson, {
-        "resource.service.name": "EC2",
-        InstanceId: 1,
-      }),
+      buildCloudMonitoredResourceMemoKey(
+        CloudMonitoringSource.AwsCloudWatchJson,
+        {
+          "resource.service.name": "EC2",
+          InstanceId: 1,
+        },
+      ),
     ).not.toBe(
-      buildCloudMonitoredResourceMemoKey(CloudMonitoringSource.AwsCloudWatchJson, {
-        "resource.service.name": "EC2",
-        InstanceId: "1",
-      }),
+      buildCloudMonitoredResourceMemoKey(
+        CloudMonitoringSource.AwsCloudWatchJson,
+        {
+          "resource.service.name": "EC2",
+          InstanceId: "1",
+        },
+      ),
     );
   });
 

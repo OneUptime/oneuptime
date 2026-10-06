@@ -66,7 +66,10 @@ const DOCS_CONTENT: string = path.join(
   REPO_ROOT,
   "packages/App/FeatureSet/Docs/Content/en",
 );
-const DOCS_PAGE: string = path.join(DOCS_CONTENT, "telemetry/cloud-resources.md");
+const DOCS_PAGE: string = path.join(
+  DOCS_CONTENT,
+  "telemetry/cloud-resources.md",
+);
 
 const ONEUPTIME_URL: string = "https://oneuptime.example.com";
 const KEY: string = "tik_secret_123";
@@ -74,6 +77,7 @@ const PICK_KEY_NOTE: string = `Pick an ingestion key in step 1 to fill in \`${SE
 const CONTAINER_NAME: string = "oneuptime-cloud-collector";
 const CONFIG_PATH: string = "/etc/otelcol-contrib/config.yaml";
 const EXPORTER: string = "otlphttp/oneuptime";
+const HEADING_LINE: RegExp = /^#{2,6} /;
 
 const ALL_OPTIONS: Array<CloudMonitoringGuideOption> = Object.values(
   CloudMonitoringGuideOption,
@@ -84,11 +88,10 @@ const PIPELINE_RECEIVERS: Readonly<
   Record<CloudMonitoringGuideOption, Array<string>>
 > = {
   [CloudMonitoringGuideOption.AzureMonitor]: ["azure_monitor"],
-  [CloudMonitoringGuideOption.AwsCloudWatch]: AWS_POLLING_EXAMPLE_NAMESPACES.map(
-    (namespace: string): string => {
+  [CloudMonitoringGuideOption.AwsCloudWatch]:
+    AWS_POLLING_EXAMPLE_NAMESPACES.map((namespace: string): string => {
       return `aws_cloudwatch/${namespace.split("/")[1]!.toLowerCase()}`;
-    },
-  ),
+    }),
   [CloudMonitoringGuideOption.AwsMetricStreams]: ["awsfirehose"],
   [CloudMonitoringGuideOption.GoogleCloudMonitoring]: ["googlecloudmonitoring"],
 };
@@ -114,7 +117,10 @@ function guideFor(
   });
 }
 
-function markdownOf(option: CloudMonitoringGuideOption, apiKey?: string): string {
+function markdownOf(
+  option: CloudMonitoringGuideOption,
+  apiKey?: string,
+): string {
   return getSetupGuideMarkdown(guideFor(option, apiKey));
 }
 
@@ -144,7 +150,8 @@ function dockerRun(markdown: string): string {
   const blocks: Array<FencedBlock> = fencedBlocks(markdown).filter(
     (block: FencedBlock): boolean => {
       return (
-        block.language === "bash" && block.body.trimStart().startsWith("docker run")
+        block.language === "bash" &&
+        block.body.trimStart().startsWith("docker run")
       );
     },
   );
@@ -158,7 +165,9 @@ function stepTitles(option: CloudMonitoringGuideOption): Array<string> {
   });
 }
 
-function topicTitles(topics: Array<SetupGuideTopic> | undefined): Array<string> {
+function topicTitles(
+  topics: Array<SetupGuideTopic> | undefined,
+): Array<string> {
   return (topics || []).map((topic: SetupGuideTopic): string => {
     return topic.title;
   });
@@ -188,7 +197,9 @@ describe("the guide picker", () => {
           return [
             group.label,
             group.options.map(
-              (option: SetupGuideOption<CloudMonitoringGuideOption>): string => {
+              (
+                option: SetupGuideOption<CloudMonitoringGuideOption>,
+              ): string => {
                 return option.key;
               },
             ),
@@ -221,9 +232,9 @@ describe("the guide picker", () => {
     expect(DEFAULT_CLOUD_MONITORING_GUIDE_OPTION).toBe(
       CloudMonitoringGuideOption.AwsCloudWatch,
     );
-    expect(resolveSetupGuideOption(CLOUD_MONITORING_GUIDE_OPTIONS, "nope")).toBe(
-      DEFAULT_CLOUD_MONITORING_GUIDE_OPTION,
-    );
+    expect(
+      resolveSetupGuideOption(CLOUD_MONITORING_GUIDE_OPTIONS, "nope"),
+    ).toBe(DEFAULT_CLOUD_MONITORING_GUIDE_OPTION);
   });
 
   test("resolves every guide to itself", () => {
@@ -259,198 +270,248 @@ describe("the guide picker", () => {
 });
 
 describe("every guide", () => {
-  test.each(ALL_OPTIONS)("%s: grants read access, configures, runs, verifies", (option: CloudMonitoringGuideOption) => {
-    const titles: Array<string> = stepTitles(option);
+  test.each(ALL_OPTIONS)(
+    "%s: grants read access, configures, runs, verifies",
+    (option: CloudMonitoringGuideOption) => {
+      const titles: Array<string> = stepTitles(option);
 
-    expect(titles[titles.length - 1]).toBe("Verify");
-    expect(titles).toContain("Configure the collector");
-    expect(titles).toContain("Run the collector");
-    expect(titles.indexOf("Configure the collector")).toBeLessThan(
-      titles.indexOf("Run the collector"),
-    );
+      expect(titles[titles.length - 1]).toBe("Verify");
+      expect(titles).toContain("Configure the collector");
+      expect(titles).toContain("Run the collector");
+      expect(titles.indexOf("Configure the collector")).toBeLessThan(
+        titles.indexOf("Run the collector"),
+      );
 
-    if (option === CloudMonitoringGuideOption.AwsMetricStreams) {
-      // Firehose needs the collector's address, so the stream comes after it runs.
-      expect(titles).toEqual([
-        "Configure the collector",
-        "Run the collector",
-        "Create the Firehose stream and the metric stream",
-        "Verify",
+      if (option === CloudMonitoringGuideOption.AwsMetricStreams) {
+        // Firehose needs the collector's address, so the stream comes after it runs.
+        expect(titles).toEqual([
+          "Configure the collector",
+          "Run the collector",
+          "Create the Firehose stream and the metric stream",
+          "Verify",
+        ]);
+      } else {
+        expect(titles).toEqual([
+          "Give the collector read access",
+          "Configure the collector",
+          "Run the collector",
+          "Verify",
+        ]);
+      }
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: every step has a one-line plain-text description",
+    (option: CloudMonitoringGuideOption) => {
+      for (const step of guideFor(option).steps) {
+        expect(step.description).toBeDefined();
+        expect(step.description!).not.toContain("\n");
+        expect(step.description!).not.toContain("`");
+        expect(step.description!.trim().endsWith(".")).toBe(true);
+      }
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: step 1 shows the OTLP endpoint",
+    (option: CloudMonitoringGuideOption) => {
+      const guide: SetupGuideContent = guideFor(option);
+
+      expect(guide.keyStep?.endpointLabel).toBe("OTLP Endpoint");
+      expect(guide.keyStep?.endpointValue).toBe(`${ONEUPTIME_URL}/otlp`);
+      expect(guide.keyStep?.description).toContain("environment variable");
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: lists what to have ready, one line each",
+    (option: CloudMonitoringGuideOption) => {
+      const prerequisites: Array<string> = guideFor(option).prerequisites || [];
+
+      expect(prerequisites.length).toBeGreaterThan(0);
+      for (const line of prerequisites) {
+        expect(line).not.toContain("\n");
+      }
+      expect(prerequisites.join(" ")).toContain("OpenTelemetry Collector");
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: says OneUptime never holds the cloud credentials, or why the collector must be reachable",
+    (option: CloudMonitoringGuideOption) => {
+      const intro: string = guideFor(option).intro || "";
+
+      expect(intro).toContain("**Cloud → All Resources**");
+      if (option === CloudMonitoringGuideOption.AwsMetricStreams) {
+        expect(intro).toContain("reachable from AWS over HTTPS");
+      } else {
+        expect(intro).toContain("OneUptime never holds your");
+      }
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: verifies the token with /otlp/v1/validate, then points at Cloud → All Resources and alerting",
+    (option: CloudMonitoringGuideOption) => {
+      const guide: SetupGuideContent = guideFor(option);
+      const verify: SetupGuideStep = guide.steps[guide.steps.length - 1]!;
+
+      expect(verify.markdown).toContain(
+        `curl -i ${ONEUPTIME_URL}/otlp/v1/validate \\`,
+      );
+      expect(verify.markdown).toContain(`-H "x-oneuptime-token: ${KEY}"`);
+      expect(verify.markdown).toContain("**Cloud → All Resources**");
+      expect(verify.markdown).toContain("**Create monitor from this view**");
+      expect(verify.markdown).not.toContain(PICK_KEY_NOTE);
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: folds resource detection and identity under Advanced, each with a summary",
+    (option: CloudMonitoringGuideOption) => {
+      const advanced: Array<SetupGuideTopic> = guideFor(option).advanced || [];
+
+      expect(topicTitles(advanced)).toEqual(
+        expect.arrayContaining([
+          "Keep this pipeline free of resource detection",
+          "How a resource is identified",
+        ]),
+      );
+      for (const topic of advanced) {
+        expect(topic.summary).toBeDefined();
+        expect(topic.summary!.trim().length).toBeGreaterThan(0);
+        expect(topic.summary!).not.toContain("\n");
+      }
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: troubleshooting is titled by symptom and ends at the docs page",
+    (option: CloudMonitoringGuideOption) => {
+      const troubleshooting: Array<SetupGuideTopic> =
+        guideFor(option).troubleshooting || [];
+
+      expect(troubleshooting[0]!.title).toBe("No resources appear");
+      expect(topicTitles(troubleshooting)).toContain(
+        "A resource reads Not reporting",
+      );
+      expect(troubleshooting[0]!.markdown.trim().split("\n").pop()).toContain(
+        `(${CLOUD_RESOURCES_DOCS_URL}#troubleshooting)`,
+      );
+      expect(troubleshooting[0]!.markdown).toContain(
+        `docker logs ${CONTAINER_NAME}`,
+      );
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: links to the Cloud Resources docs page",
+    (option: CloudMonitoringGuideOption) => {
+      expect(guideFor(option).links).toEqual([
+        {
+          title: "Cloud Resources documentation",
+          url: CLOUD_RESOURCES_DOCS_URL,
+        },
       ]);
-    } else {
-      expect(titles).toEqual([
-        "Give the collector read access",
-        "Configure the collector",
-        "Run the collector",
-        "Verify",
-      ]);
-    }
-  });
+    },
+  );
 
-  test.each(ALL_OPTIONS)("%s: every step has a one-line plain-text description", (option: CloudMonitoringGuideOption) => {
-    for (const step of guideFor(option).steps) {
-      expect(step.description).toBeDefined();
-      expect(step.description!).not.toContain("\n");
-      expect(step.description!).not.toContain("`");
-      expect(step.description!.trim().endsWith(".")).toBe(true);
-    }
-  });
+  test.each(ALL_OPTIONS)(
+    "%s: every /docs link it makes is a page on disk",
+    (option: CloudMonitoringGuideOption) => {
+      const targets: Array<string> = Array.from(
+        markdownOf(option).matchAll(/\]\((\/docs\/[^)#]+)(?:#[^)]*)?\)/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      });
 
-  test.each(ALL_OPTIONS)("%s: step 1 shows the OTLP endpoint", (option: CloudMonitoringGuideOption) => {
-    const guide: SetupGuideContent = guideFor(option);
+      expect(targets.length).toBeGreaterThan(0);
+      for (const target of targets) {
+        expect({
+          target,
+          exists: fs.existsSync(
+            path.join(DOCS_CONTENT, `${target.replace("/docs/", "")}.md`),
+          ),
+        }).toEqual({ target, exists: true });
+      }
+    },
+  );
 
-    expect(guide.keyStep?.endpointLabel).toBe("OTLP Endpoint");
-    expect(guide.keyStep?.endpointValue).toBe(`${ONEUPTIME_URL}/otlp`);
-    expect(guide.keyStep?.description).toContain("environment variable");
-  });
+  test.each(ALL_OPTIONS)(
+    "%s: closes every code fence",
+    (option: CloudMonitoringGuideOption) => {
+      const fences: number = markdownOf(option)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.trimStart().startsWith("```");
+        }).length;
 
-  test.each(ALL_OPTIONS)("%s: lists what to have ready, one line each", (option: CloudMonitoringGuideOption) => {
-    const prerequisites: Array<string> = guideFor(option).prerequisites || [];
-
-    expect(prerequisites.length).toBeGreaterThan(0);
-    for (const line of prerequisites) {
-      expect(line).not.toContain("\n");
-    }
-    expect(prerequisites.join(" ")).toContain("OpenTelemetry Collector");
-  });
-
-  test.each(ALL_OPTIONS)("%s: says OneUptime never holds the cloud credentials, or why the collector must be reachable", (option: CloudMonitoringGuideOption) => {
-    const intro: string = guideFor(option).intro || "";
-
-    expect(intro).toContain("**Cloud → All Resources**");
-    if (option === CloudMonitoringGuideOption.AwsMetricStreams) {
-      expect(intro).toContain("reachable from AWS over HTTPS");
-    } else {
-      expect(intro).toContain("OneUptime never holds your");
-    }
-  });
-
-  test.each(ALL_OPTIONS)("%s: verifies the token with /otlp/v1/validate, then points at Cloud → All Resources and alerting", (option: CloudMonitoringGuideOption) => {
-    const guide: SetupGuideContent = guideFor(option);
-    const verify: SetupGuideStep = guide.steps[guide.steps.length - 1]!;
-
-    expect(verify.markdown).toContain(
-      `curl -i ${ONEUPTIME_URL}/otlp/v1/validate \\`,
-    );
-    expect(verify.markdown).toContain(`-H "x-oneuptime-token: ${KEY}"`);
-    expect(verify.markdown).toContain("**Cloud → All Resources**");
-    expect(verify.markdown).toContain("**Create monitor from this view**");
-    expect(verify.markdown).not.toContain(PICK_KEY_NOTE);
-  });
-
-  test.each(ALL_OPTIONS)("%s: folds resource detection and identity under Advanced, each with a summary", (option: CloudMonitoringGuideOption) => {
-    const advanced: Array<SetupGuideTopic> = guideFor(option).advanced || [];
-
-    expect(topicTitles(advanced)).toEqual(
-      expect.arrayContaining([
-        "Keep this pipeline free of resource detection",
-        "How a resource is identified",
-      ]),
-    );
-    for (const topic of advanced) {
-      expect(topic.summary).toBeDefined();
-      expect(topic.summary!.trim().length).toBeGreaterThan(0);
-      expect(topic.summary!).not.toContain("\n");
-    }
-  });
-
-  test.each(ALL_OPTIONS)("%s: troubleshooting is titled by symptom and ends at the docs page", (option: CloudMonitoringGuideOption) => {
-    const troubleshooting: Array<SetupGuideTopic> =
-      guideFor(option).troubleshooting || [];
-
-    expect(troubleshooting[0]!.title).toBe("No resources appear");
-    expect(topicTitles(troubleshooting)).toContain(
-      "A resource reads Not reporting",
-    );
-    expect(
-      troubleshooting[0]!.markdown.trim().split("\n").pop(),
-    ).toContain(`(${CLOUD_RESOURCES_DOCS_URL}#troubleshooting)`);
-    expect(troubleshooting[0]!.markdown).toContain(
-      `docker logs ${CONTAINER_NAME}`,
-    );
-  });
-
-  test.each(ALL_OPTIONS)("%s: links to the Cloud Resources docs page", (option: CloudMonitoringGuideOption) => {
-    expect(guideFor(option).links).toEqual([
-      { title: "Cloud Resources documentation", url: CLOUD_RESOURCES_DOCS_URL },
-    ]);
-  });
-
-  test.each(ALL_OPTIONS)("%s: every /docs link it makes is a page on disk", (option: CloudMonitoringGuideOption) => {
-    const targets: Array<string> = Array.from(
-      markdownOf(option).matchAll(/\]\((\/docs\/[^)#]+)(?:#[^)]*)?\)/g),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
-
-    expect(targets.length).toBeGreaterThan(0);
-    for (const target of targets) {
-      expect({
-        target,
-        exists: fs.existsSync(
-          path.join(DOCS_CONTENT, `${target.replace("/docs/", "")}.md`),
-        ),
-      }).toEqual({ target, exists: true });
-    }
-  });
-
-  test.each(ALL_OPTIONS)("%s: closes every code fence", (option: CloudMonitoringGuideOption) => {
-    const fences: number = markdownOf(option)
-      .split("\n")
-      .filter((line: string): boolean => {
-        return line.trimStart().startsWith("```");
-      }).length;
-
-    expect(fences % 2).toBe(0);
-  });
+      expect(fences % 2).toBe(0);
+    },
+  );
 });
 
 describe("the collector configuration", () => {
-  test.each(ALL_OPTIONS)("%s: is valid YAML with a metrics pipeline only", (option: CloudMonitoringGuideOption) => {
-    const config: YamlConfig = collectorConfig(option);
+  test.each(ALL_OPTIONS)(
+    "%s: is valid YAML with a metrics pipeline only",
+    (option: CloudMonitoringGuideOption) => {
+      const config: YamlConfig = collectorConfig(option);
 
-    expect(Object.keys(config.service.pipelines)).toEqual(["metrics"]);
-    expect(config.service.pipelines.metrics.receivers).toEqual(
-      PIPELINE_RECEIVERS[option],
-    );
-    expect(config.service.pipelines.metrics.processors).toEqual(["batch"]);
-    expect(config.service.pipelines.metrics.exporters).toEqual([EXPORTER]);
-  });
+      expect(Object.keys(config.service.pipelines)).toEqual(["metrics"]);
+      expect(config.service.pipelines.metrics.receivers).toEqual(
+        PIPELINE_RECEIVERS[option],
+      );
+      expect(config.service.pipelines.metrics.processors).toEqual(["batch"]);
+      expect(config.service.pipelines.metrics.exporters).toEqual([EXPORTER]);
+    },
+  );
 
-  test.each(ALL_OPTIONS)("%s: defines every component it uses, and uses every one it defines", (option: CloudMonitoringGuideOption) => {
-    const config: YamlConfig = collectorConfig(option);
-    const pipeline: YamlConfig = config.service.pipelines.metrics;
+  test.each(ALL_OPTIONS)(
+    "%s: defines every component it uses, and uses every one it defines",
+    (option: CloudMonitoringGuideOption) => {
+      const config: YamlConfig = collectorConfig(option);
+      const pipeline: YamlConfig = config.service.pipelines.metrics;
 
-    expect(Object.keys(config.receivers).sort()).toEqual(
-      [...pipeline.receivers].sort(),
-    );
-    expect(Object.keys(config.processors).sort()).toEqual(
-      [...pipeline.processors].sort(),
-    );
-    expect(Object.keys(config.exporters).sort()).toEqual(
-      [...pipeline.exporters].sort(),
-    );
-    expect(Object.keys(config.extensions || {}).sort()).toEqual(
-      [...(config.service.extensions || [])].sort(),
-    );
-  });
+      expect(Object.keys(config.receivers).sort()).toEqual(
+        [...pipeline.receivers].sort(),
+      );
+      expect(Object.keys(config.processors).sort()).toEqual(
+        [...pipeline.processors].sort(),
+      );
+      expect(Object.keys(config.exporters).sort()).toEqual(
+        [...pipeline.exporters].sort(),
+      );
+      expect(Object.keys(config.extensions || {}).sort()).toEqual(
+        [...(config.service.extensions || [])].sort(),
+      );
+    },
+  );
 
-  test.each(ALL_OPTIONS)("%s: exports to the reader's OTLP endpoint with the token from the environment", (option: CloudMonitoringGuideOption) => {
-    const config: YamlConfig = collectorConfig(option);
+  test.each(ALL_OPTIONS)(
+    "%s: exports to the reader's OTLP endpoint with the token from the environment",
+    (option: CloudMonitoringGuideOption) => {
+      const config: YamlConfig = collectorConfig(option);
 
-    expect(config.exporters[EXPORTER]).toEqual({
-      endpoint: `${ONEUPTIME_URL}/otlp`,
-      headers: { "x-oneuptime-token": "${env:ONEUPTIME_TOKEN}" },
-    });
-    expect(collectorYaml(markdownOf(option))).not.toContain(KEY);
-  });
+      expect(config.exporters[EXPORTER]).toEqual({
+        endpoint: `${ONEUPTIME_URL}/otlp`,
+        headers: { "x-oneuptime-token": "${env:ONEUPTIME_TOKEN}" },
+      });
+      expect(collectorYaml(markdownOf(option))).not.toContain(KEY);
+    },
+  );
 
-  test.each(ALL_OPTIONS)("%s: has no resource detection, which would file the metrics under the collector's host", (option: CloudMonitoringGuideOption) => {
-    const text: string = collectorYaml(markdownOf(option));
+  test.each(ALL_OPTIONS)(
+    "%s: has no resource detection, which would file the metrics under the collector's host",
+    (option: CloudMonitoringGuideOption) => {
+      const text: string = collectorYaml(markdownOf(option));
 
-    expect(text).not.toMatch(/resourcedetection/);
-    expect(Object.keys(collectorConfig(option).processors)).toEqual(["batch"]);
-  });
+      expect(text).not.toMatch(/resourcedetection/);
+      expect(Object.keys(collectorConfig(option).processors)).toEqual([
+        "batch",
+      ]);
+    },
+  );
 
   test("Azure: reads every resource type of the subscription through the azure_auth extension", () => {
     const config: YamlConfig = collectorConfig(
@@ -555,46 +616,55 @@ describe("the collector configuration", () => {
 });
 
 describe("running the collector", () => {
-  test.each(ALL_OPTIONS)("%s: one flag per line, every line but the last continued", (option: CloudMonitoringGuideOption) => {
-    const lines: Array<string> = dockerRun(markdownOf(option)).split("\n");
+  test.each(ALL_OPTIONS)(
+    "%s: one flag per line, every line but the last continued",
+    (option: CloudMonitoringGuideOption) => {
+      const lines: Array<string> = dockerRun(markdownOf(option)).split("\n");
 
-    expect(lines[0]).toBe(
-      `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped \\`,
-    );
-    lines.slice(0, -1).forEach((line: string): void => {
-      expect(line.endsWith(" \\")).toBe(true);
-    });
-    expect(lines[lines.length - 1]).toBe(`  ${COLLECTOR_IMAGE}`);
-  });
-
-  test.each(ALL_OPTIONS)("%s: passes the token as ONEUPTIME_TOKEN and mounts the configuration where the image reads it", (option: CloudMonitoringGuideOption) => {
-    const command: string = dockerRun(markdownOf(option));
-
-    expect(command).toContain(`  -e ONEUPTIME_TOKEN=${KEY} \\`);
-    expect(command).toContain(`  -v "$(pwd)/config.yaml:${CONFIG_PATH}" \\`);
-  });
-
-  test.each(ALL_OPTIONS)("%s: sets every variable the configuration reads", (option: CloudMonitoringGuideOption) => {
-    const markdown: string = markdownOf(option);
-    const command: string = dockerRun(markdown);
-    const read: Array<string> = Array.from(
-      new Set(
-        Array.from(
-          collectorYaml(markdown).matchAll(/\$\{env:([A-Z0-9_]+)\}/g),
-        ).map((match: RegExpMatchArray): string => {
-          return match[1]!;
-        }),
-      ),
-    );
-
-    expect(read).toContain("ONEUPTIME_TOKEN");
-    for (const variable of read) {
-      expect({ variable, set: command.includes(`-e ${variable}=`) }).toEqual({
-        variable,
-        set: true,
+      expect(lines[0]).toBe(
+        `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped \\`,
+      );
+      lines.slice(0, -1).forEach((line: string): void => {
+        expect(line.endsWith(" \\")).toBe(true);
       });
-    }
-  });
+      expect(lines[lines.length - 1]).toBe(`  ${COLLECTOR_IMAGE}`);
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: passes the token as ONEUPTIME_TOKEN and mounts the configuration where the image reads it",
+    (option: CloudMonitoringGuideOption) => {
+      const command: string = dockerRun(markdownOf(option));
+
+      expect(command).toContain(`  -e ONEUPTIME_TOKEN=${KEY} \\`);
+      expect(command).toContain(`  -v "$(pwd)/config.yaml:${CONFIG_PATH}" \\`);
+    },
+  );
+
+  test.each(ALL_OPTIONS)(
+    "%s: sets every variable the configuration reads",
+    (option: CloudMonitoringGuideOption) => {
+      const markdown: string = markdownOf(option);
+      const command: string = dockerRun(markdown);
+      const read: Array<string> = Array.from(
+        new Set(
+          Array.from(
+            collectorYaml(markdown).matchAll(/\$\{env:([A-Z0-9_]+)\}/g),
+          ).map((match: RegExpMatchArray): string => {
+            return match[1]!;
+          }),
+        ),
+      );
+
+      expect(read).toContain("ONEUPTIME_TOKEN");
+      for (const variable of read) {
+        expect({ variable, set: command.includes(`-e ${variable}=`) }).toEqual({
+          variable,
+          set: true,
+        });
+      }
+    },
+  );
 
   test("Metric Streams: publishes the port the receiver listens on, and mounts the certificate it reads", () => {
     const markdown: string = markdownOf(
@@ -609,9 +679,7 @@ describe("running the collector", () => {
     )[1]!;
 
     expect(command).toContain(`-p ${port}:${port}`);
-    expect(command).toContain(
-      '-v "$(pwd)/tls:/etc/otelcol-contrib/tls:ro"',
-    );
+    expect(command).toContain('-v "$(pwd)/tls:/etc/otelcol-contrib/tls:ro"');
     expect(config.receivers.awsfirehose.tls.cert_file).toMatch(
       /^\/etc\/otelcol-contrib\/tls\//,
     );
@@ -630,7 +698,9 @@ describe("running the collector", () => {
   });
 
   test("CloudWatch polling: the region the receivers read is set, and the role's credentials can replace the keys", () => {
-    const markdown: string = markdownOf(CloudMonitoringGuideOption.AwsCloudWatch);
+    const markdown: string = markdownOf(
+      CloudMonitoringGuideOption.AwsCloudWatch,
+    );
 
     expect(dockerRun(markdown)).toContain("-e AWS_REGION=us-east-1");
     expect(markdown).toContain("leave out the two key variables");
@@ -647,39 +717,52 @@ describe("running the collector", () => {
 });
 
 describe("before a key is picked", () => {
-  test.each(ALL_OPTIONS)("%s: the placeholder is quoted for the shell, and step 1 is pointed at once", (option: CloudMonitoringGuideOption) => {
-    const markdown: string = markdownOf(option, SETUP_GUIDE_API_KEY_PLACEHOLDER);
+  test.each(ALL_OPTIONS)(
+    "%s: the placeholder is quoted for the shell, and step 1 is pointed at once",
+    (option: CloudMonitoringGuideOption) => {
+      const markdown: string = markdownOf(
+        option,
+        SETUP_GUIDE_API_KEY_PLACEHOLDER,
+      );
 
-    expect(dockerRun(markdown)).toContain(
-      `-e ONEUPTIME_TOKEN='${SETUP_GUIDE_API_KEY_PLACEHOLDER}' \\`,
-    );
-    expect(markdown.split(PICK_KEY_NOTE).length - 1).toBe(1);
-  });
+      expect(dockerRun(markdown)).toContain(
+        `-e ONEUPTIME_TOKEN='${SETUP_GUIDE_API_KEY_PLACEHOLDER}' \\`,
+      );
+      expect(markdown.split(PICK_KEY_NOTE).length - 1).toBe(1);
+    },
+  );
 
-  test.each(ALL_OPTIONS)("%s: the placeholder URL keeps the /otlp path", (option: CloudMonitoringGuideOption) => {
-    const guide: SetupGuideContent = guideFor(
-      option,
-      SETUP_GUIDE_API_KEY_PLACEHOLDER,
-      SETUP_GUIDE_URL_PLACEHOLDER,
-    );
-    const config: YamlConfig = yaml.load(
-      collectorYaml(getSetupGuideMarkdown(guide)),
-    ) as YamlConfig;
+  test.each(ALL_OPTIONS)(
+    "%s: the placeholder URL keeps the /otlp path",
+    (option: CloudMonitoringGuideOption) => {
+      const guide: SetupGuideContent = guideFor(
+        option,
+        SETUP_GUIDE_API_KEY_PLACEHOLDER,
+        SETUP_GUIDE_URL_PLACEHOLDER,
+      );
+      const config: YamlConfig = yaml.load(
+        collectorYaml(getSetupGuideMarkdown(guide)),
+      ) as YamlConfig;
 
-    expect(config.exporters[EXPORTER].endpoint).toBe(
-      `${SETUP_GUIDE_URL_PLACEHOLDER}/otlp`,
-    );
-    expect(guide.keyStep?.endpointValue).toBe(
-      `${SETUP_GUIDE_URL_PLACEHOLDER}/otlp`,
-    );
-  });
+      expect(config.exporters[EXPORTER].endpoint).toBe(
+        `${SETUP_GUIDE_URL_PLACEHOLDER}/otlp`,
+      );
+      expect(guide.keyStep?.endpointValue).toBe(
+        `${SETUP_GUIDE_URL_PLACEHOLDER}/otlp`,
+      );
+    },
+  );
 });
 
 describe("read access", () => {
   test("AWS: the policy only reads CloudWatch and asks who it is", () => {
     const policy: {
       Version: string;
-      Statement: Array<{ Effect: string; Action: Array<string>; Resource: string }>;
+      Statement: Array<{
+        Effect: string;
+        Action: Array<string>;
+        Resource: string;
+      }>;
     } = JSON.parse(AWS_READ_POLICY);
 
     expect(policy.Version).toBe("2012-10-17");
@@ -696,7 +779,9 @@ describe("read access", () => {
   });
 
   test("Azure: Monitoring Reader on the subscription, nothing more", () => {
-    const markdown: string = markdownOf(CloudMonitoringGuideOption.AzureMonitor);
+    const markdown: string = markdownOf(
+      CloudMonitoringGuideOption.AzureMonitor,
+    );
 
     expect(markdown).toContain('--role "Monitoring Reader"');
     expect(markdown).toContain("--scopes /subscriptions/<SUBSCRIPTION_ID>");
@@ -724,7 +809,9 @@ describe("the examples read what OneUptime turns into Cloud Resources", () => {
   });
 
   test("the polling guide lists every namespace OneUptime recognises, and only those", () => {
-    const markdown: string = markdownOf(CloudMonitoringGuideOption.AwsCloudWatch);
+    const markdown: string = markdownOf(
+      CloudMonitoringGuideOption.AwsCloudWatch,
+    );
     const listed: string | undefined = markdown
       .split("\n")
       .find((line: string): boolean => {
@@ -759,7 +846,9 @@ describe("the examples read what OneUptime turns into Cloud Resources", () => {
     for (const prefix of GCP_EXAMPLE_METRIC_PREFIXES) {
       expect({
         prefix,
-        recognised: Boolean(getGcpMonitoredResourceRule(GCP_PREFIX_TYPES[prefix]!)),
+        recognised: Boolean(
+          getGcpMonitoredResourceRule(GCP_PREFIX_TYPES[prefix]!),
+        ),
       }).toEqual({ prefix, recognised: true });
     }
   });
@@ -843,7 +932,7 @@ describe("against the docs page", () => {
       docs
         .split("\n")
         .filter((line: string): boolean => {
-          return /^#{2,6} /.test(line);
+          return HEADING_LINE.test(line);
         })
         .map((line: string): string => {
           return line
@@ -861,7 +950,11 @@ describe("against the docs page", () => {
         new RegExp(`\\(${CLOUD_RESOURCES_DOCS_URL}#([^)]+)\\)`, "g"),
       )) {
         checked++;
-        expect({ option, anchor: match[1], exists: anchors.has(match[1]!) }).toEqual({
+        expect({
+          option,
+          anchor: match[1],
+          exists: anchors.has(match[1]!),
+        }).toEqual({
           option,
           anchor: match[1],
           exists: true,

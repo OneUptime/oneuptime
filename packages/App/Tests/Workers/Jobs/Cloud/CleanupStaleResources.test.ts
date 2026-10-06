@@ -497,9 +497,11 @@ describe("steps 3 and 4: cloud resources", () => {
         .invocationCallOrder[0]!,
       resourceService.findBy.mock.invocationCallOrder[0]!,
     ];
-    expect([...order].sort((a: number, b: number) => {
-      return a - b;
-    })).toEqual(order);
+    expect(
+      [...order].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(order);
   });
 
   test("a failing status sweep is logged, and archiving and the prune still run", async () => {

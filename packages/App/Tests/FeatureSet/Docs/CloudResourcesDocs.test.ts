@@ -38,6 +38,7 @@ const PAGE: string = "telemetry/cloud-resources";
 const PAGE_URL: string = `/docs/${PAGE}`;
 
 const FENCE_LINE: RegExp = /^\s*```/;
+const HEADING_LINE: RegExp = /^#{2,6} /;
 
 function pageFile(relative: string): string {
   return path.join(CONTENT_DIR, `${relative}.md`);
@@ -108,7 +109,7 @@ function headingAnchors(markdown: string): Set<string> {
     markdown
       .split("\n")
       .filter((line: string): boolean => {
-        return /^#{2,6} /.test(line);
+        return HEADING_LINE.test(line);
       })
       .map((line: string): string => {
         return line
@@ -174,7 +175,7 @@ describe("Cloud Resources docs", (): void => {
       const headings: Array<string> = readPage()
         .split("\n")
         .filter((line: string): boolean => {
-          return /^## /.test(line);
+          return line.startsWith("## ");
         });
 
       expect(headings).toEqual([
@@ -259,7 +260,9 @@ describe("Cloud Resources docs", (): void => {
             getCloudResourceTypeDescriptor(CloudProvider.AWS, rule.type);
           expect(descriptor).not.toBeNull();
 
-          const identity: string = rule.identityDimensions.map(code).join(" + ");
+          const identity: string = rule.identityDimensions
+            .map(code)
+            .join(" + ");
           const without: string =
             rule.excludedDimensions && rule.excludedDimensions.length > 0
               ? ` (without ${rule.excludedDimensions.map(code).join(", ")})`
@@ -329,7 +332,9 @@ describe("Cloud Resources docs", (): void => {
       process.env["CLOUD_RESOURCE_AUTO_ARCHIVE_DAYS"] = "0";
       process.env["CLOUD_RESOURCE_AUTO_CREATE_BUDGET"] = "0";
 
-      expect(CloudResourceService.getMonitoredResourceAutoArchiveDays()).toBe(1);
+      expect(CloudResourceService.getMonitoredResourceAutoArchiveDays()).toBe(
+        1,
+      );
       expect(CloudResourceService.getMonitoredResourceAutoCreateBudget()).toBe(
         0,
       );
