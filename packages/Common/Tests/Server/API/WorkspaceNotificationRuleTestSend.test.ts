@@ -3,6 +3,8 @@ import WorkspaceNotificationRuleAPI, {
 } from "../../../Server/API/WorkspaceNotificationRuleAPI";
 import ProjectService from "../../../Server/Services/ProjectService";
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
+import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import BillingPermissions from "../../../Server/Types/Database/Permissions/BillingPermission";
 import {
   ExpressResponse,
   OneUptimeRequest,
@@ -10,6 +12,7 @@ import {
 import Response from "../../../Server/Utils/Response";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -81,11 +84,13 @@ jest.mock("../../../Server/Utils/Logger");
  * in-memory table; only the send itself (testRule) and the plan lookup are
  * stubbed. It asks, in this order:
  *
- *  - the plan: posting through a rule is what Growth sells. Below Growth a
- *    project may still read the rules it has, to switch them off or delete
- *    them, so the read does not stand in for the plan;
+ *  - the plan: posting through a rule is what Growth sells, the plan adding a
+ *    rule needs. Below Growth a project may still read the rules it has, to
+ *    switch them off or delete them, so the read does not stand in for the
+ *    plan;
  *  - permission to post into the workspace: whoever could create a rule, team
- *    blocks included - what a channel's own Send Test asks;
+ *    blocks included, and never through a credential issued for reading
+ *    only - what a channel's own Send Test asks;
  *  - a rule the caller may read, in their own project, read with their own
  *    permissions (never as root).
  *
@@ -423,6 +428,22 @@ describe("Test Rule on OneUptime Cloud (billing on): the Growth plan", () => {
     expect((answer as Error).message).toBe(GROWTH_REFUSAL);
     expect(rules.repository.find).not.toHaveBeenCalled();
   });
+
+  test("the plan asked is the one adding a rule needs, without what a project below it may still do with its rules", async () => {
+    const planCheck: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      BillingPermissions,
+      "checkFeatureIsOnPlan",
+    );
+
+    expect(await sendTest(requestFrom(PROJECT_MEMBER))).toBe("sent");
+
+    expect(planCheck).toHaveBeenCalledTimes(1);
+    expect(planCheck.mock.calls[0]![0]).toBe(WorkspaceNotificationRule);
+    expect(planCheck.mock.calls[0]![2]).toBe(DatabaseRequestType.Create);
+    expect(new WorkspaceNotificationRule().createBillingPlan).toBe(
+      PlanType.Growth,
+    );
+  });
 });
 
 describe("Test Rule on a self-hosted install (billing off)", () => {
@@ -523,6 +544,40 @@ describe("who may send a test: whoever could create a rule", () => {
 
     expect(answer).toBeInstanceOf(NotAuthorizedException);
     expect(testRule).not.toHaveBeenCalled();
+  });
+});
+
+describe("the credential: one that may make changes", () => {
+  // The same member, through an MCP client they connected with OAuth.
+  const throughMcpClient: (isReadOnly: boolean) => OneUptimeRequest = (
+    isReadOnly: boolean,
+  ): OneUptimeRequest => {
+    const req: OneUptimeRequest = requestFrom(PROJECT_MEMBER);
+
+    req.mcpOAuth = {
+      grantId: new ObjectID("7a000000-0000-4000-8000-000000000007"),
+      clientId: "test-mcp-client",
+      clientName: "Test MCP client",
+      isReadOnly: isReadOnly,
+    };
+
+    return req;
+  };
+
+  test("an MCP client connected read-only is refused, whatever its member may do, before the rule is read or anything is sent", async () => {
+    const answer: "sent" | Error = await sendTest(throughMcpClient(true));
+
+    expect(answer).toBeInstanceOf(NotAuthorizedException);
+    expect((answer as Error).message).toBe(
+      DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+    );
+    expect(rules.repository.find).not.toHaveBeenCalled();
+    expect(testRule).not.toHaveBeenCalled();
+  });
+
+  test("the same member through an MCP client allowed to make changes: the test is sent", async () => {
+    expect(await sendTest(throughMcpClient(false))).toBe("sent");
+    expect(testRule).toHaveBeenCalledTimes(1);
   });
 });
 

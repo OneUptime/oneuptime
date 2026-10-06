@@ -42,13 +42,14 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
      *  2. the plan: posting through a rule is what the Growth plan sells. A
      *     project below it may still read the rules it has - to find, switch
      *     off and delete them (Types/Billing/PlanGatedTable) - so the read in
-     *     step 4 does not stand in for the plan: it is asked here, as a
-     *     summary's test send asks it;
+     *     step 4 does not stand in for the plan: it is asked here, the plan
+     *     adding a rule needs, without that allowance (checkFeatureIsOnPlan);
      *  3. someone who may post into the workspace: posting is a side effect,
      *     so seeing the rule is not enough. Whoever could create a rule could
      *     make OneUptime post into these channels anyway, so that is the
-     *     permission asked, team blocks included - the one a channel's own
-     *     Send Test asks (assertCanCreateTable);
+     *     permission asked, team blocks included, and never of a credential
+     *     issued for reading only - the one a channel's own Send Test asks
+     *     (assertCanCreateTable);
      *  4. a rule the caller may read, in the project they are a member of:
      *     read with their own permissions, never as root. A rule of another
      *     project, one they may not see and one that does not exist all
@@ -76,7 +77,7 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
           BillingPermissions.checkFeatureIsOnPlan(
             WorkspaceNotificationRule,
             databaseProps,
-            DatabaseRequestType.Read,
+            DatabaseRequestType.Create,
           );
 
           CommonAPI.assertCanCreateTable({

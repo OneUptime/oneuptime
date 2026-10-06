@@ -163,7 +163,10 @@ export default class StateChangeNote {
   /*
    * Posts the notes preparePrivateNotes built, once the change is saved: at
    * the time and in the project the change was saved with, as the person who
-   * changed the state.
+   * changed the state. preparePrivateNotes filled both in from the change as
+   * it was sent, so the check saw the note that is posted; the saved change
+   * has the last word on them, as the note belongs with the change it is
+   * posted with.
    */
   public static async postPrivateNotes<TNote extends BaseModel>(data: {
     notes: Array<TNote> | undefined;

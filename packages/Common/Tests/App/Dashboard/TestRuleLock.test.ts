@@ -17,7 +17,9 @@ import path from "path";
  * so the rule's row asks it too: someone the dashboard knows may not gets
  * the button locked, saying what it takes, rather than a dialog whose Test
  * is refused. Someone it does not know yet (the permissions not loaded)
- * keeps the button, and the server decides.
+ * keeps the button, and the server decides. A team block on creating rules
+ * counts as the server counts it: a block of the whole table locks the
+ * button, and a block row is never a grant.
  */
 
 let isMasterAdminForTest: boolean = false;
@@ -42,7 +44,9 @@ import {
   TestRuleLock,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/TestRuleLock";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
-import Permission from "../../../Types/Permission";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, { UserPermission } from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 
 const DASHBOARD_SRC: string = path.resolve(
   __dirname,
@@ -133,6 +137,142 @@ describe("Test Rule's lock", () => {
     isMasterAdminForTest = true;
 
     expect(lockFor([])).toEqual({ isLocked: false });
+  });
+});
+
+describe("Test Rule's lock, from the permissions the dashboard stores", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "7b000000-0000-4000-8000-000000000001",
+  );
+  const LABEL_ID: ObjectID = new ObjectID(
+    "7b000000-0000-4000-8000-000000000002",
+  );
+
+  const row: (
+    permission: Permission,
+    isBlockPermission: boolean,
+    labelIds?: Array<ObjectID>,
+  ) => UserPermission = (
+    permission: Permission,
+    isBlockPermission: boolean,
+    labelIds?: Array<ObjectID>,
+  ): UserPermission => {
+    return {
+      _type: "UserPermission",
+      permission: permission,
+      labelIds: labelIds || [],
+      isBlockPermission: isBlockPermission,
+    };
+  };
+
+  // What the API's permission headers leave in storage for this project.
+  const storeSnapshot: (rows: Array<UserPermission>) => void = (
+    rows: Array<UserPermission>,
+  ): void => {
+    PermissionUtil.setGlobalPermissions({
+      _type: "UserGlobalAccessPermission",
+      projectIds: [PROJECT_ID],
+      globalPermissions: [Permission.Public, Permission.CurrentUser],
+    });
+
+    PermissionUtil.setProjectPermissions({
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT_ID,
+      permissions: rows,
+    });
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  test("a Project Member: the button works", () => {
+    storeSnapshot([row(Permission.ProjectMember, false)]);
+
+    expect(getTestRuleLock()).toEqual({ isLocked: false });
+  });
+
+  test("a Project Member whose team blocks creating rules: locked, as the server refuses the send", () => {
+    storeSnapshot([
+      row(Permission.ProjectMember, false),
+      row(Permission.CreateWorkspaceNotificationRule, true),
+    ]);
+
+    expect(getTestRuleLock()).toEqual({
+      isLocked: true,
+      tooltip: TEST_RULE_LOCKED_TOOLTIP,
+    });
+  });
+
+  test.each(new WorkspaceNotificationRule().getCreatePermissions())(
+    "a block of the whole table on %s, one of the permissions that create a rule: locked",
+    (blocked: Permission) => {
+      storeSnapshot([row(Permission.ProjectAdmin, false), row(blocked, true)]);
+
+      expect(getTestRuleLock().isLocked).toBe(true);
+    },
+  );
+
+  test("a block with labels blocks those labels' records, not the table: the button works, as the server sends", () => {
+    storeSnapshot([
+      row(Permission.ProjectMember, false),
+      row(Permission.CreateWorkspaceNotificationRule, true, [LABEL_ID]),
+    ]);
+
+    expect(getTestRuleLock()).toEqual({ isLocked: false });
+  });
+
+  test("a block row is no grant: a Viewer whose team has one on creating rules is locked", () => {
+    storeSnapshot([
+      row(Permission.Viewer, false),
+      row(Permission.CreateWorkspaceNotificationRule, true, [LABEL_ID]),
+    ]);
+
+    expect(getTestRuleLock()).toEqual({
+      isLocked: true,
+      tooltip: TEST_RULE_LOCKED_TOOLTIP,
+    });
+  });
+
+  test("a block on something other than creating rules does not lock it", () => {
+    storeSnapshot([
+      row(Permission.ProjectMember, false),
+      row(Permission.DeleteWorkspaceNotificationRule, true),
+    ]);
+
+    expect(getTestRuleLock()).toEqual({ isLocked: false });
+  });
+
+  test("a master admin is never blocked", () => {
+    isMasterAdminForTest = true;
+
+    storeSnapshot([
+      row(Permission.Viewer, false),
+      row(Permission.CreateWorkspaceNotificationRule, true),
+    ]);
+
+    expect(getTestRuleLock()).toEqual({ isLocked: false });
+  });
+
+  test("nothing stored yet - the permissions not loaded: the button works, and the server decides", () => {
+    expect(getTestRuleLock()).toEqual({ isLocked: false });
+  });
+
+  test("a snapshot handed in is read the same way as the stored one", () => {
+    expect(
+      getTestRuleLock({
+        permissions: [Permission.CurrentUser, Permission.ProjectMember],
+        projectPermissions: {
+          _type: "UserTenantAccessPermission",
+          projectId: PROJECT_ID,
+          permissions: [row(Permission.CreateWorkspaceNotificationRule, true)],
+        },
+      }),
+    ).toEqual({ isLocked: true, tooltip: TEST_RULE_LOCKED_TOOLTIP });
   });
 });
 
