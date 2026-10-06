@@ -1,5 +1,8 @@
-import { getUserInitials } from "../OnCallScheduleLayer/LayerUserColors";
-import { getTimelineColorForUserId } from "./TimelineColors";
+import {
+  getColorForUserId,
+  getUserAvatarStyle,
+  getUserInitials,
+} from "../OnCallScheduleLayer/LayerUserColors";
 import { OVERRIDE_TITLE_MARKER } from "../OnCallScheduleLayer/OverridePresentation";
 import { TimelineShift } from "./TimelineModel";
 import ScheduleTimelineLayout, {
@@ -57,7 +60,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const shift: TimelineShift = props.positioned.item;
-  const color: string = getTimelineColorForUserId(shift.userId);
+  const color: string = getColorForUserId(shift.userId);
   const isActive: boolean =
     shift.start.getTime() <= props.now.getTime() &&
     shift.end.getTime() > props.now.getTime();
@@ -206,10 +209,7 @@ export const ShiftBar: FunctionComponent<ShiftBarProps> = (
           <span
             aria-hidden="true"
             className="inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-[9px] font-bold"
-            style={{
-              backgroundColor: color,
-              color: ScheduleTimelineLayout.getContrastTextColor(color),
-            }}
+            style={getUserAvatarStyle(shift.userId)}
           >
             {getUserInitials(shift.userName, "")}
           </span>
@@ -316,7 +316,7 @@ export const OverriddenSegment: FunctionComponent<OverriddenSegmentProps> = (
     return <></>;
   }
 
-  const originalColor: string = getTimelineColorForUserId(
+  const originalColor: string = getColorForUserId(
     shift.override.originalUserId,
   );
 

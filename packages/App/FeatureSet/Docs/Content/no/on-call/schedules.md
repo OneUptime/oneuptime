@@ -22,6 +22,8 @@ Rotasjonen i en plan består av lag, på siden **Lag**. Lagene leses ovenfra og 
 
 **Legg til lag** legger til et lag som starter slik det første gjør: på vakt fra nå, hver person i en uke, døgnet rundt. Utvid et lag for å legge til personer og endre når det starter, hvor ofte det overleverer, når det overleverer første gang og hvilke timer det har vakt.
 
+Hver person har samme farge overalt, så du kan følge dem med ett blikk: på hvert lag, i den endelige planen og overstyringene i den, og på **Tidslinje for vaktplaner**.
+
 ## Opprett planer med API-et eller Terraform
 
 Vaktplaner er ressursen `/api/on-call-duty-policy-schedule`; lagene deres og personene i dem er ressursene `/api/on-call-duty-schedule-layer` og `/api/on-call-duty-schedule-layer-user`.

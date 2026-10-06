@@ -97,7 +97,7 @@ Wil je een workflow pauzeren zonder hem te verwijderen, zet **Ingeschakeld** dan
 - Sleep blokken om ze te verplaatsen. De indeling wordt bewaard.
 - Wil je een lijn verwijderen, sleep dan een van de uiteinden van de stip af en laat het los op leeg canvas.
 - Wil je een blok verwijderen, klik het dan aan en gebruik **Verwijderen** onderaan zijn instellingenvenster. Een blok of lijn selecteren en op Backspace drukken werkt ook.
-- Eén los blok dupliceren kan niet. **Duplicate Workflow** op de pagina **Instellingen** van de workflow kopieert het geheel, en de kopie komt uitgeschakeld binnen.
+- Eén los blok dupliceren kan niet. **Duplicate Workflow** op de pagina **Instellingen** van de workflow kopieert het geheel. De naam van de kopie is al ingevuld, doorgenummerd voorbij de workflows van het project ("Nightly Sync" wordt gekopieerd als "Nightly Sync 2"), en de kopie opent, uitgeschakeld.
 - Stapel blokken van boven naar beneden, zodat ze lezen in de richting waarin ze draaien — invoer zit op de bovenrand, uitgangen op de onderrand, dus de stroom loopt vanzelf omlaag.
 
 ## Waar je verder kunt lezen

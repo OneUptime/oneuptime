@@ -375,6 +375,42 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
     expect(feed).not.toHaveBeenCalled();
   });
 
+  /*
+   * Saved into a postmortem switched on for the status page, the draft would
+   * be what the status page shows the moment it is written: published
+   * unreviewed, and announced to every subscriber.
+   */
+  it("never drafts into a postmortem switched on for the status page", async () => {
+    incidentRead.mockResolvedValue({
+      id: INCIDENT_ID,
+      incidentNumber: 42,
+      postmortemNote: undefined,
+      showPostmortemOnStatusPage: true,
+    } as unknown as Incident);
+
+    await resolve();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(incidentUpdate).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+  });
+
+  it("reads whether the postmortem is switched on before drafting", async () => {
+    await resolve();
+
+    expect(
+      (incidentRead.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual(
+      expect.objectContaining({
+        postmortemNote: true,
+        showPostmortemOnStatusPage: true,
+      }),
+    );
+    // Switched off, so the draft is saved for review.
+    expect(incidentUpdate).toHaveBeenCalledTimes(1);
+  });
+
   it("writes nothing when the model returns an empty draft", async () => {
     generate.mockResolvedValue("   ");
 

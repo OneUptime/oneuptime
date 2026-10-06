@@ -31,6 +31,7 @@ import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscri
 import StatusPageSubscriberNotificationTemplate from "Common/Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
@@ -61,7 +62,56 @@ import SubscriberNotificationRunLimit, {
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
 import Email from "Common/Types/Email";
+import ObjectID from "Common/Types/ObjectID";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
+
+/*
+ * A run decides from the incident as it read it, which was before it
+ * claimed the notification. An update that published the postmortem after
+ * that read - while this run held the notification, so the update found it
+ * on its way and queued nothing - would be skipped here as not shown, and
+ * never announced. So once such a skip is settled, the incident is looked
+ * at again: if the status page shows its postmortem now, the notification
+ * goes back in the queue for the next run, unless someone else moved it on
+ * since the skip. (The update looks again too, for a skip settled before
+ * it was written; see IncidentPostmortemPublication.getNotificationAction.)
+ */
+const requeueIfPublishedSinceRead: (
+  incidentId: ObjectID,
+) => Promise<void> = async (incidentId: ObjectID): Promise<void> => {
+  const current: Incident | null = await IncidentService.findOneById({
+    id: incidentId,
+    select: {
+      showPostmortemOnStatusPage: true,
+      postmortemNote: true,
+    },
+    props: {
+      isRoot: true,
+    },
+  });
+
+  if (!IncidentPostmortemPublication.isPublished(current)) {
+    return;
+  }
+
+  logger.debug(
+    `Incident ${incidentId.toString()}'s postmortem was published while this run held its notification; queueing it again.`,
+  );
+
+  await IncidentService.compareAndSetColumnsByIdWithoutHooks({
+    id: incidentId,
+    data: {
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Pending,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        IncidentPostmortemPublication.queuedMessage,
+    },
+    expectedData: {
+      subscriberNotificationStatusOnPostmortemPublished:
+        StatusPageSubscriberNotificationStatus.Skipped,
+    },
+  });
+};
 
 RunCron(
   "Incident:SendPostmortemNotificationToSubscribers",
@@ -191,9 +241,21 @@ RunCron(
             continue;
           }
 
-          if (!incident.showPostmortemOnStatusPage) {
+          /*
+           * The status page shows the postmortem only while Publish on
+           * Status Page is on and its note says something
+           * (IncidentPostmortemPublication), so one it does not show -
+           * switched off, switched on and never written, emptied after it
+           * was queued, or sent again through the API - has nothing to
+           * announce.
+           */
+          if (!IncidentPostmortemPublication.isPublished(incident)) {
+            const skipMessage: string = incident.showPostmortemOnStatusPage
+              ? IncidentPostmortemPublication.noNoteMessage
+              : IncidentPostmortemPublication.notShownMessage;
+
             logger.debug(
-              `Incident ${incident.id} is not set to show postmortem on status page; marking as Skipped.`,
+              `Incident ${incident.id}'s postmortem is not on the status page; marking as Skipped.`,
               {
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
@@ -205,13 +267,15 @@ RunCron(
                 subscriberNotificationStatusOnPostmortemPublished:
                   StatusPageSubscriberNotificationStatus.Skipped,
                 subscriberNotificationStatusMessageOnPostmortemPublished:
-                  "Incident is not set to show postmortem on status page. Skipping notifications to subscribers.",
+                  skipMessage,
               },
               props: {
                 isRoot: true,
                 ignoreHooks: true,
               },
             });
+
+            await requeueIfPublishedSinceRead(incident.id!);
             continue;
           }
 

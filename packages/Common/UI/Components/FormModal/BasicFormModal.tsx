@@ -1,7 +1,6 @@
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, {
   BaseComponentProps as BasicFormComponentProps,
   BasicFormHandle,
@@ -108,7 +107,11 @@ const BasicFormModal: <T extends GenericObject>(
       >
         {isLoading && <ComponentLoader />}
 
-        {props.error && <ErrorMessage message={props.error} />}
+        {/*
+         * props.error is drawn once, by the Modal (it is among the props
+         * handed to it above): a red alert at the top of the body. It used
+         * to be drawn a second time here, as grey text under the alert.
+         */}
 
         {!isLoading && (
           <BasicForm

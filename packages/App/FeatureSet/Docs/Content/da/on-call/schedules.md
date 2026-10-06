@@ -22,6 +22,8 @@ En plans rotation består af lag på dens side **Lag**. Lagene læses oppefra og
 
 **Tilføj lag** tilføjer et lag, der starter som det første: på vagt fra nu af, hver person i en uge, døgnet rundt. Fold et lag ud for at tilføje personer og ændre, hvornår det starter, hvor ofte det overdrager, hvornår det overdrager første gang, og hvilke timer det har vagt.
 
+Hver person har den samme farve overalt, så du kan følge dem med ét blik: på hvert lag, i den endelige plan og dens tilsidesættelser og på **Tidslinje for vagtplaner**.
+
 ## Opret planer med API'et eller Terraform
 
 Vagtplaner er ressourcen `/api/on-call-duty-policy-schedule`; deres lag og personerne i dem er ressourcerne `/api/on-call-duty-schedule-layer` og `/api/on-call-duty-schedule-layer-user`.
