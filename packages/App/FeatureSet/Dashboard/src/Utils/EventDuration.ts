@@ -2,6 +2,7 @@ import OneUptimeDate from "Common/Types/Date";
 
 export interface EventTimelineDate {
   eventId: string;
+  stateId?: string | undefined;
   startsAt?: Date | undefined;
 }
 
@@ -90,35 +91,101 @@ export function getLatestTimelineDateByEventId(
 }
 
 /**
- * Return an event's completion date only when its latest state is resolved.
- * An event that was resolved and subsequently reopened must keep counting.
+ * For each event, when it was resolved this time (getEventEndDateForCurrentState):
+ * an event whose latest state is not resolved has none.
  */
-export function getEventEndDateForCurrentState(
-  timelines: Array<EventStateTimelineDate>,
-  resolvedStateId: string | undefined,
-): Date | undefined {
-  if (!resolvedStateId) {
-    return undefined;
-  }
-
-  let latestTimeline: EventStateTimelineDate | undefined = undefined;
+export function getResolvedAtByEventId(
+  timelines: Array<EventTimelineDate>,
+  resolvedStateIds: Array<string>,
+): Record<string, Date> {
+  const timelinesByEventId: Map<string, Array<EventStateTimelineDate>> =
+    new Map();
 
   for (const timeline of timelines) {
-    if (!timeline.startsAt) {
+    if (!timeline.eventId) {
       continue;
     }
 
-    if (
-      !latestTimeline?.startsAt ||
-      timeline.startsAt.getTime() >= latestTimeline.startsAt.getTime()
-    ) {
-      latestTimeline = timeline;
+    const eventTimelines: Array<EventStateTimelineDate> =
+      timelinesByEventId.get(timeline.eventId) || [];
+
+    eventTimelines.push({
+      stateId: timeline.stateId,
+      startsAt: timeline.startsAt,
+    });
+
+    timelinesByEventId.set(timeline.eventId, eventTimelines);
+  }
+
+  const resolvedAtByEventId: Record<string, Date> = {};
+
+  for (const [eventId, eventTimelines] of timelinesByEventId) {
+    const resolvedAt: Date | undefined = getEventEndDateForCurrentState(
+      eventTimelines,
+      resolvedStateIds,
+    );
+
+    if (resolvedAt) {
+      resolvedAtByEventId[eventId] = resolvedAt;
     }
   }
 
-  if (latestTimeline?.stateId !== resolvedStateId) {
+  return resolvedAtByEventId;
+}
+
+/**
+ * Return an event's completion date only when its latest state is resolved:
+ * the moment it became resolved this time. `resolvedStateIds` are the
+ * project's states that count as resolved - its resolved state and any
+ * state placed after it (Common/Utils/ResolvedState) - so moving on from
+ * "Resolved" to "Closed" does not move the end. An event that was resolved
+ * and subsequently reopened must keep counting.
+ */
+export function getEventEndDateForCurrentState(
+  timelines: Array<EventStateTimelineDate>,
+  resolvedStateIds: Array<string>,
+): Date | undefined {
+  if (resolvedStateIds.length === 0) {
     return undefined;
   }
 
-  return latestTimeline.startsAt;
+  const resolved: Set<string> = new Set(resolvedStateIds);
+
+  // Dated entries oldest first; a later entry in the list wins a tie.
+  const dated: Array<EventStateTimelineDate> = timelines
+    .map((timeline: EventStateTimelineDate, index: number) => {
+      return { timeline, index };
+    })
+    .filter((entry: { timeline: EventStateTimelineDate }) => {
+      return Boolean(entry.timeline.startsAt);
+    })
+    .sort(
+      (
+        a: { timeline: EventStateTimelineDate; index: number },
+        b: { timeline: EventStateTimelineDate; index: number },
+      ) => {
+        return (
+          a.timeline.startsAt!.getTime() - b.timeline.startsAt!.getTime() ||
+          a.index - b.index
+        );
+      },
+    )
+    .map((entry: { timeline: EventStateTimelineDate }) => {
+      return entry.timeline;
+    });
+
+  let endDate: Date | undefined = undefined;
+
+  // Back from the latest entry, through the resolved states it is in now.
+  for (let index: number = dated.length - 1; index >= 0; index--) {
+    const timeline: EventStateTimelineDate = dated[index]!;
+
+    if (!timeline.stateId || !resolved.has(timeline.stateId)) {
+      break;
+    }
+
+    endDate = timeline.startsAt;
+  }
+
+  return endDate;
 }

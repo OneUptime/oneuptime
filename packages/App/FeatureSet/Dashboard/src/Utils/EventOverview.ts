@@ -12,7 +12,11 @@ export interface EventResponseTimesInput {
   // declaredAt for an incident, createdAt for an alert.
   startedAt?: Date | undefined;
   acknowledgedStateId?: string | undefined;
-  resolvedStateId?: string | undefined;
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  resolvedStateIds?: Array<string> | undefined;
 }
 
 export interface EventResponseTimes {
@@ -93,10 +97,19 @@ export const getEventResponseTimes: (
     input.acknowledgedStateId,
   );
 
-  const resolvedAt: Date | undefined = getFirstTimelineDateForState(
-    input.timelines,
-    input.resolvedStateId,
-  );
+  // The first move into any state that counts as resolved.
+  let resolvedAt: Date | undefined = undefined;
+
+  for (const resolvedStateId of input.resolvedStateIds || []) {
+    const reachedAt: Date | undefined = getFirstTimelineDateForState(
+      input.timelines,
+      resolvedStateId,
+    );
+
+    if (reachedAt && (!resolvedAt || reachedAt.getTime() < resolvedAt.getTime())) {
+      resolvedAt = reachedAt;
+    }
+  }
 
   const isAcknowledgedByResolution: boolean = Boolean(
     resolvedAt &&

@@ -31,6 +31,8 @@ import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -279,10 +281,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
       return;
     }
 
+    /*
+     * Where the project's resolved state sits: an incident or episode in it,
+     * or in a state placed after it, is resolved (Common/Utils/ResolvedState).
+     */
     const resolvedIncidentStateOrder: number =
-      incidentStates.find((state: IncidentState) => {
-        return state.isResolvedState;
-      })?.order || 0;
+      ResolvedStateUtil.getResolvedOrder({
+        list: StateListType.IncidentState,
+        states: incidentStates,
+      }) || 0;
 
     // Build combined events list with incidents and episodes
     const allEvents: Array<EventWithDate> = [];
@@ -304,6 +311,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           incident,
           incidentPublicNotes,
           incidentStateTimelines,
+          incidentStates,
           statusPageResources,
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),
@@ -330,6 +338,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           episode,
           episodePublicNotes,
           episodeStateTimelines,
+          incidentStates,
           statusPageResources,
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),

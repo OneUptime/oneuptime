@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import AlertEpisodeFeedElement from "../../../Components/AlertEpisode/AlertEpisodeFeed";
 import PageComponentProps from "../../PageComponentProps";
@@ -278,10 +279,12 @@ const AlertEpisodeView: FunctionComponent<
     // Alert episodes have no declaredAt: they start when they are created.
     startedAt: episode?.createdAt || undefined,
     resolvedAt: episode?.resolvedAt || undefined,
+    list: StateListType.AlertState,
     states: alertStates.map((state: AlertState) => {
       return {
         id: state.id?.toString() || "",
         name: state.name,
+        order: state.order,
         isAcknowledgedState: state.isAcknowledgedState,
         isResolvedState: state.isResolvedState,
       };

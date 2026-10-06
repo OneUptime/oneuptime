@@ -1,4 +1,6 @@
 import ChangeAlertState from "../../../Components/Alert/ChangeState";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
@@ -642,13 +644,29 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   };
 
+  /*
+   * The project's resolved state, by name, and every state that counts as
+   * resolved: it and any state placed after it (Common/Utils/ResolvedState).
+   */
   const getResolvedState: GetAlertStateFunction = ():
     | AlertState
     | undefined => {
-    return alertStates.find((state: AlertState) => {
-      return state.isResolvedState;
-    });
+    return (
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.AlertState,
+        states: alertStates,
+      }) || undefined
+    );
   };
+
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.AlertState,
+      states: alertStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
 
   const acknowledgeState: AlertState | undefined = getAcknowledgeState();
   const resolvedState: AlertState | undefined = getResolvedState();
@@ -672,13 +690,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     timelines: timelineDates,
     startedAt: alertStartedAt,
     acknowledgedStateId: acknowledgeState?._id?.toString(),
-    resolvedStateId: resolvedState?._id?.toString(),
+    resolvedStateIds: resolvedStateIds,
   });
 
   const durationStartDate: Date | undefined = responseTimes.startedAt;
   const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
     timelineDates,
-    resolvedState?._id?.toString(),
+    resolvedStateIds,
   );
 
   type FormatDateFunction = (date: Date | undefined) => string | undefined;

@@ -1,4 +1,6 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentElement from "./Incident";
@@ -131,9 +133,31 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     useState<BulkActionOnClickProps<Incident> | null>(null);
   const [visibleIncidents, setVisibleIncidents] = useState<Array<Incident>>([]);
 
+  /*
+   * The project's states that count as resolved: its resolved state and any
+   * state placed after it (Common/Utils/ResolvedState).
+   */
+  const resolvedStateIds: Array<string> = ResolvedStateUtil.getResolvedStateIds(
+    {
+      list: StateListType.IncidentState,
+      states: incidentStates,
+    },
+  ).map((stateId: ObjectID) => {
+    return stateId.toString();
+  });
+
+  const isIncidentResolved: (incident: Incident) => boolean = (
+    incident: Incident,
+  ): boolean => {
+    const stateId: string | undefined =
+      incident.currentIncidentState?._id?.toString();
+
+    return Boolean(stateId && resolvedStateIds.includes(stateId));
+  };
+
   const resolvedIncidentIds: Array<string> = visibleIncidents
     .filter((incident: Incident) => {
-      return Boolean(incident.currentIncidentState?.isResolvedState);
+      return isIncidentResolved(incident);
     })
     .map((incident: Incident) => {
       return incident.id?.toString() || "";
@@ -148,7 +172,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   } = useEventTimelineEndDates<IncidentStateTimeline>({
     eventIds: resolvedIncidentIds,
     eventIdField: "incidentId",
+    stateIdField: "incidentStateId",
     timelineModelType: IncidentStateTimeline,
+    resolvedStateIds: resolvedStateIds,
   });
 
   const { noteTemplates } = useNoteTemplates<IncidentNoteTemplate>({
@@ -814,9 +840,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               currentIncidentState: {
+                _id: true,
                 name: true,
                 color: true,
-                isResolvedState: true,
               },
             },
             title: "State",
@@ -982,9 +1008,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             disableCsvExport: true,
             getElement: (item: Incident): ReactElement => {
               const incidentId: string = item.id?.toString() || "";
-              const isResolved: boolean = Boolean(
-                item.currentIncidentState?.isResolvedState,
-              );
+              const isResolved: boolean = isIncidentResolved(item);
               const resolvedAt: Date | undefined = incidentId
                 ? resolvedAtByIncidentId[incidentId]
                 : undefined;
