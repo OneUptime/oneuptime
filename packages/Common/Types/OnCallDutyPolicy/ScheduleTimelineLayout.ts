@@ -544,25 +544,6 @@ export default class ScheduleTimelineLayout {
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${clamped})`;
   }
 
-  /*
-   * Near-black or white, whichever reads on `color`. The per-user palette
-   * runs from black to yellow and lime, so a fixed text colour is unreadable
-   * on some avatars.
-   */
-  public static getContrastTextColor(color: string): string {
-    const rgb: [number, number, number] | null =
-      ScheduleTimelineLayout.parseHex(color);
-
-    if (!rgb) {
-      return "#ffffff";
-    }
-
-    const luminance: number =
-      (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
-
-    return luminance > 0.62 ? "#111827" : "#ffffff";
-  }
-
   private static parseHex(color: string): [number, number, number] | null {
     const hex: string = color.trim().replace(/^#/, "");
 
