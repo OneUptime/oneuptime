@@ -17,6 +17,72 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
+import IncomingRequestLatestPayloadStore, {
+  LatestIncomingRequestPayload,
+} from "../../Utils/IncomingRequestLatestPayloadStore";
+import { isNonActionableIngestError } from "../../Utils/NonActionableIngestError";
+
+/*
+ * Entry point for a queued Incoming Request job.
+ *
+ * A coalesced job (one carrying coalescedPayloadId) does not evaluate the
+ * request it was created with. While it waited, coalescing may have
+ * discarded newer requests for the same monitor in its favour, so it
+ * evaluates the monitor's newest request from
+ * IncomingRequestLatestPayloadStore - which may be its own - and then clears
+ * it, unless an even newer one was stored meanwhile; that one is evaluated by
+ * the job queued behind this one. If nothing is stored, an earlier job already
+ * evaluated a request at least as new as this one, and there is nothing to do.
+ *
+ * A job without the marker - queued with coalescing off, or before the store
+ * existed - evaluates its own request, as before.
+ */
+export async function processIncomingRequestJobFromQueue(
+  jobData: IncomingRequestIngestJobData,
+): Promise<void> {
+  if (!jobData.coalescedPayloadId) {
+    return processIncomingRequestFromQueue(jobData);
+  }
+
+  const latest: LatestIncomingRequestPayload | null =
+    await IncomingRequestLatestPayloadStore.getLatest(jobData.secretKey);
+
+  if (!latest) {
+    logger.debug(
+      `Incoming request ${jobData.coalescedPayloadId} needs no evaluation: a request at least as new was already evaluated for its monitor.`,
+    );
+    return;
+  }
+
+  if (latest.payloadId !== jobData.coalescedPayloadId) {
+    logger.debug(
+      `Incoming request ${jobData.coalescedPayloadId} was superseded: evaluating the monitor's newest request ${latest.payloadId} instead.`,
+    );
+  }
+
+  try {
+    await processIncomingRequestFromQueue(latest.payload);
+  } catch (err) {
+    /*
+     * A failure the worker retries leaves the request stored, so the retry
+     * evaluates it - or anything newer - again. One it completes the job on
+     * (an unknown, disabled or archived monitor) is final, so clear it.
+     */
+    if (isNonActionableIngestError(err)) {
+      await IncomingRequestLatestPayloadStore.clearIfUnchanged({
+        secretKey: jobData.secretKey,
+        payloadId: latest.payloadId,
+      });
+    }
+
+    throw err;
+  }
+
+  await IncomingRequestLatestPayloadStore.clearIfUnchanged({
+    secretKey: jobData.secretKey,
+    payloadId: latest.payloadId,
+  });
+}
 
 export async function processIncomingRequestFromQueue(
   jobData: IncomingRequestIngestJobData,
@@ -86,9 +152,9 @@ export async function processIncomingRequestFromQueue(
   /*
    * The heartbeat is recorded at the time it ARRIVED, not the time this
    * worker got to it. Under a Telemetry backlog those are minutes apart, and
-   * because same-monitor jobs are coalesced, newer requests for this monitor
-   * may have arrived (and been dropped from the queue) since this one. The
-   * store returns the latest arrival the endpoint saw.
+   * newer requests for this monitor may have arrived since this one;
+   * coalescing leaves them to the job queued behind this one. The store
+   * returns the latest arrival the endpoint saw.
    *
    * It is judged as of now, exactly as the heartbeat cron judges it, so the
    * two can never disagree and flap the monitor: a sender that is still

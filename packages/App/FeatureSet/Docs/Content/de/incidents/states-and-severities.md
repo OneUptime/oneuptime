@@ -146,6 +146,8 @@ Die Benachrichtigung wird pro Zeitachsenzeile über **Statusseiten-Abonnenten be
 
 **Noch etwas, das das Ergebnis verändert.** Tippen Sie eine **Öffentliche Notiz** in den Statuswechsel-Dialog, wird die Zeitachsenzeile als bereits benachrichtigt markiert statt eingereiht. Die Notiz selbst ist es, die die Abonnenten erreicht, sie bekommen also eine Nachricht statt zwei. Diese Nachricht nennt auf jedem Kanal den neuen Status, wie es die Statuswechsel-Nachricht getan hätte: etwa `[Resolved Incident] <title>` im Betreff der E-Mail und `**Status:** Resolved` in Slack und Microsoft Teams. Die Notiz braucht die Berechtigung, öffentliche Notizen anzulegen: Ohne sie bietet der Dialog die Notiz nicht an, und ein Statuswechsel, der mit einer Notiz gesendet wird, wird abgelehnt – der Status bleibt, wie er war. Der Ereignistyp hinter der schlichten Statuswechsel-Nachricht heißt `Subscriber Incident State Changed`.
 
+Alarme, Alarm-Episoden und Vorfall-Episoden bieten beim Statuswechsel stattdessen eine private Notiz an (**Private Notiz hinzufügen**), und sie funktioniert genauso: Die Notiz braucht ihre eigene Berechtigung (**Create Alert Internal Note**, **Create Alert Episode Internal Note** oder **Create Incident Episode Internal Note** in einer eigenen Rolle; die eingebauten Alarm-, Vorfall- und Projektrollen haben sie), und ein Statuswechsel, den jemand ohne sie mit einer privaten Notiz sendet, wird ganz abgelehnt – der Status bleibt, wie er war.
+
 Wer diese erhält und wie die Vorlagen gewählt werden, steht unter [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
 
 ## Einen Vorfall von der Statusseite fernhalten

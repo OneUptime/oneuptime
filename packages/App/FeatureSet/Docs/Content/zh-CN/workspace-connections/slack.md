@@ -20,6 +20,12 @@
 4. **配置告警和计划维护通知**
    - 类似的规则也可以应用于告警和计划维护，方法是导航到各自的页面并配置所需规则。
 
+## 测试规则
+
+规则所在行的 **测试规则** 会把这条规则的一条测试消息发到它指定的频道，让你看到消息送达。如果规则会为每个事件创建频道，测试也会创建一个，并邀请规则中的人员加入。
+
+和 **项目设置** > **Workspace** > **Slack** 中频道旁边的 **发送测试** 一样，它需要创建通知规则的权限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自定义角色中的 **Create Workspace Notification Rule** 和 **Read Workspace Notification Rule**。对于只能查看规则的人（例如 **Viewer**），**测试规则** 是锁定的，它的提示会说明需要什么；API 会以 "You do not have permission to send test notifications in this project." 拒绝其测试。在 OneUptime Cloud 上，测试规则和添加规则一样需要 **Growth** 套餐。
+
 ## 自托管部署的网络访问
 
 有关出站连接、入站回调和私有部署的说明，请参阅[Slack 集成](/docs/self-hosted/slack-integration)中的网络访问部分。

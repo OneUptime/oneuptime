@@ -144,7 +144,7 @@ Lägg till dem som får logga in på **Statussidor → din sida → Säkerhet �
 
 För en privat sida knuten till er identitetsleverantör konfigurerar **Statussidor → din sida → Säkerhet → SSO** SAML (du anger inloggnings-URL, utfärdare och x509-certifikat, och signatur- och sammandragsmetoderna fylls i under **Fler fält**) och **Statussidor → din sida → Säkerhet → OIDC** konfigurerar OpenID Connect: du anger utfärdare, klient-ID och hemlighet, och upptäckts-URL, scopes och claim-namn fylls i under **Fler fält**. **SCIM** provisionerar privata användare från identitetsleverantören automatiskt. På OneUptime Cloud kräver alla tre Scale-planen eller högre. I en självhostad installation ingår SSO och OIDC i alla utgåvor, medan SCIM kräver [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Ett kort **SSO-inställningar** exponerar **Tvinga SSO för inloggning** (`requireSsoForLogin`, av som standard). Testa er SSO-konfiguration innan ni slår på den — fungerar den inte låser ni ut er själva från statussidan.
+Ett kort **SSO-inställningar** exponerar **Tvinga SSO för inloggning** (`requireSsoForLogin`, av som standard). Testa er SSO-konfiguration innan ni slår på den — fungerar den inte låser ni ut er själva från statussidan. På OneUptime Cloud kräver det planen **Scale** att slå på den, medan den kan slås av på alla planer. En sida som fortfarande kräver SSO när en Scale-provperiod tar slut, eller efter ett byte till en lägre plan, fortsätter att kräva det tills någon slår av det: sidans **SSO** och **OIDC** visar växeln under planens uppgraderingserbjudande för det.
 
 ### IP-vitlista
 

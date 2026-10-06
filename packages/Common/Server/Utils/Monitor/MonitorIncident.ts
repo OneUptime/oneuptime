@@ -22,6 +22,7 @@ import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import TeamMemberService from "../../Services/TeamMemberService";
@@ -770,16 +771,25 @@ export default class MonitorIncident {
           incident.monitors = [input.monitor];
           incident.projectId = input.monitor.projectId!;
           incident.rootCause = seriesRootCause;
-          incident.createdStateLog = JSON.parse(
-            JSON.stringify(input.dataToProcess, null, 2),
-          );
+          /*
+           * The jsonb columns below get storable copies: one NUL in the
+           * check's payload (a binary response body, a webhook field) would
+           * otherwise make Postgres refuse the insert, and the incident
+           * would never open. Inputs stay as they are - they are still
+           * being read for this and the next incident.
+           */
+          incident.createdStateLog = toStorableJson(
+            input.dataToProcess,
+          ) as unknown as JSONObject;
 
           /*
            * Same capture on every incident this evaluation opens - they all
-           * came from the one check.
+           * came from the one check. Made storable after serialize(), which
+           * is what keeps its Dates as Dates when the page reads it back.
            */
-          const serializedMonitorSummary: JSONObject | null =
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+          const serializedMonitorSummary: JSONObject | null = toStorableJson(
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+          );
 
           if (serializedMonitorSummary) {
             incident.monitorSummary = serializedMonitorSummary;
@@ -805,7 +815,7 @@ export default class MonitorIncident {
             incident.seriesFingerprint = seriesFingerprint;
           }
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-            incident.seriesLabels = seriesLabels;
+            incident.seriesLabels = toStorableJson(seriesLabels);
 
             await SeriesResourceLinker.linkSeriesResourcesToModel({
               model: incident,
@@ -1162,9 +1172,10 @@ export default class MonitorIncident {
     }
 
     if (input.dataToProcess) {
-      incidentStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
+      // Storable copy, for the same reason as createdStateLog above.
+      incidentStateTimeline.stateChangeLog = toStorableJson(
+        input.dataToProcess,
+      ) as unknown as JSONObject;
     }
 
     try {
