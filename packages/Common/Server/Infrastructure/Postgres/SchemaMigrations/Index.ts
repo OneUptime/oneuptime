@@ -48,6 +48,7 @@ import { AddPublicNotePostedWithState1798400000000 } from "./1798400000000-AddPu
 import { StartIncomingCallRulesAtTwentySeconds1798600000000 } from "./1798600000000-StartIncomingCallRulesAtTwentySeconds";
 import { AddStorageArrayTables1798700000000 } from "./1798700000000-AddStorageArrayTables";
 import { AddWorkspaceSummaryTimezone1798900000000 } from "./1798900000000-AddWorkspaceSummaryTimezone";
+import { AddProjectAiDailyLimitReachedAt1799000000000 } from "./1799000000000-AddProjectAiDailyLimitReachedAt";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1296,4 +1297,5 @@ export default [
   StartIncomingCallRulesAtTwentySeconds1798600000000,
   AddStorageArrayTables1798700000000,
   AddWorkspaceSummaryTimezone1798900000000,
+  AddProjectAiDailyLimitReachedAt1799000000000,
 ];
