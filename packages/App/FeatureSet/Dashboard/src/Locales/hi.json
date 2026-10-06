@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, नाम इसके द्वारा जोड़े जाने वाले स्वामियों या उनके इनहेरिट होने के स्रोत के आधार पर रखा जाता है।",
   "Not sent yet: incident hidden from status pages": "अभी तक नहीं भेजा गया: घटना स्थिति पृष्ठों से छिपी हुई है",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "इस घटना का पोस्टमॉर्टम तब प्रकाशित हुआ था जब घटना छिपी हुई थी, इसलिए यह अभी तक सब्सक्राइबर्स को नहीं भेजा गया है। इसे चालू करने पर यह उन्हें भेज दिया जाता है।",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "किसी सत्र को समाप्त करना",
+  "marking an OSD out, setting noout or repairing a PG": "किसी OSD को out चिह्नित करना, noout सेट करना या किसी PG की मरम्मत करना",
+  "powering a VM off, resetting or suspending it": "किसी VM को बंद करना, रीसेट करना या निलंबित करना",
+  "scaling a service to zero or changing its image": "किसी सेवा को शून्य तक स्केल करना या उसकी इमेज बदलना",
+  "shutting down, stopping or resetting a guest": "किसी गेस्ट को शट डाउन करना, रोकना या रीसेट करना",
+  "stopping a unit or vacuuming the journal": "किसी यूनिट को रोकना या जर्नल को साफ़ करना",
+  "stopping, killing or updating a container": "किसी कंटेनर को रोकना, ज़बरदस्ती बंद करना या अपडेट करना"
 }

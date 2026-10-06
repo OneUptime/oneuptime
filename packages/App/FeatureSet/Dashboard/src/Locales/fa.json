@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس مالکانی که می‌افزاید یا جایی که آن‌ها را از آن به ارث می‌برد نام‌گذاری می‌شود.",
   "Not sent yet: incident hidden from status pages": "هنوز ارسال نشده: حادثه در صفحات وضعیت پنهان است",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "گزارش پس از حادثه این حادثه زمانی منتشر شد که حادثه پنهان بود، بنابراین هنوز برای مشترکان ارسال نشده است. روشن کردن این گزینه آن را برای آن‌ها ارسال می‌کند.",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "پایان دادن به یک نشست",
+  "marking an OSD out, setting noout or repairing a PG": "علامت‌گذاری یک OSD به‌عنوان out، تنظیم noout یا تعمیر یک PG",
+  "powering a VM off, resetting or suspending it": "خاموش کردن، بازنشانی یا تعلیق یک ماشین مجازی",
+  "scaling a service to zero or changing its image": "مقیاس‌دهی یک سرویس به صفر یا تغییر ایمیج آن",
+  "shutting down, stopping or resetting a guest": "خاموش کردن، متوقف کردن یا بازنشانی یک سیستم مهمان",
+  "stopping a unit or vacuuming the journal": "متوقف کردن یک یونیت یا پاک‌سازی ژورنال",
+  "stopping, killing or updating a container": "توقف، خاتمهٔ اجباری یا به‌روزرسانی یک کانتینر"
 }

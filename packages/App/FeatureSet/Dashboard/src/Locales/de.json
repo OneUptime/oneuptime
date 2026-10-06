@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Nach den hinzugefügten Eigentümern benannt oder danach, woher sie geerbt werden, bis Sie einen eigenen Namen eingeben.",
   "Not sent yet: incident hidden from status pages": "Noch nicht gesendet: Vorfall auf Statusseiten ausgeblendet",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Die Nachbetrachtung dieses Vorfalls wurde veröffentlicht, während der Vorfall ausgeblendet war, daher wurde sie den Abonnenten noch nicht gesendet. Wenn Sie dies aktivieren, wird sie ihnen gesendet.",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "das Beenden einer Sitzung",
+  "marking an OSD out, setting noout or repairing a PG": "das Markieren eines OSD als out, das Setzen von noout oder das Reparieren einer PG",
+  "powering a VM off, resetting or suspending it": "das Ausschalten, Zurücksetzen oder Anhalten einer VM",
+  "scaling a service to zero or changing its image": "das Skalieren eines Dienstes auf null oder das Ändern seines Images",
+  "shutting down, stopping or resetting a guest": "das Herunterfahren, Stoppen oder Zurücksetzen eines Gastes",
+  "stopping a unit or vacuuming the journal": "das Stoppen einer Unit oder das Bereinigen des Journals",
+  "stopping, killing or updating a container": "das Stoppen, erzwungene Beenden oder Aktualisieren eines Containers"
 }

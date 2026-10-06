@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "직접 이름을 입력할 때까지 추가하는 소유자나 소유자를 상속받는 곳에 따라 이름이 지정됩니다.",
   "Not sent yet: incident hidden from status pages": "아직 보내지 않음: 인시던트가 상태 페이지에서 숨겨짐",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "이 인시던트의 사후 분석은 인시던트가 숨겨져 있는 동안 게시되었으므로 아직 구독자에게 보내지 않았습니다. 이 항목을 켜면 구독자에게 보냅니다.",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "세션 종료",
+  "marking an OSD out, setting noout or repairing a PG": "OSD를 out으로 표시, noout 설정 또는 PG 복구",
+  "powering a VM off, resetting or suspending it": "VM 전원 끄기, 재설정 또는 일시 중단",
+  "scaling a service to zero or changing its image": "서비스를 0으로 스케일링 또는 이미지 변경",
+  "shutting down, stopping or resetting a guest": "게스트 종료, 중지 또는 재설정",
+  "stopping a unit or vacuuming the journal": "유닛 중지 또는 저널 정리",
+  "stopping, killing or updating a container": "컨테이너 중지, 강제 종료 또는 업데이트"
 }

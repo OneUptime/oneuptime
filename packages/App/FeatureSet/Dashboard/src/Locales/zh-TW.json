@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的擁有者或繼承擁有者的來源命名。",
   "Not sent yet: incident hidden from status pages": "尚未傳送：事件在狀態頁面上隱藏",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "此事件的事後檢討是在事件隱藏期間發布的，因此尚未傳送給訂閱者。開啟此項後將傳送給他們。",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "終止工作階段",
+  "marking an OSD out, setting noout or repairing a PG": "將 OSD 標記為 out、設定 noout 或修復 PG",
+  "powering a VM off, resetting or suspending it": "關閉虛擬機器電源、將其重設或暫停",
+  "scaling a service to zero or changing its image": "將服務縮減至零或變更其映像",
+  "shutting down, stopping or resetting a guest": "關機、停止或重設客體",
+  "stopping a unit or vacuuming the journal": "停止單元或清理 journal 日誌",
+  "stopping, killing or updating a container": "停止、強制終止或更新容器"
 }

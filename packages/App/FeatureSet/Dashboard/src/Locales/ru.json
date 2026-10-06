@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Название дано по добавляемым владельцам или по тому, откуда они наследуются, пока вы не введёте своё.",
   "Not sent yet: incident hidden from status pages": "Ещё не отправлено: инцидент скрыт со страниц состояния",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Разбор этого инцидента был опубликован, пока инцидент был скрыт, поэтому подписчикам он ещё не отправлен. Если включить этот параметр, он будет им отправлен.",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "завершение сессии",
+  "marking an OSD out, setting noout or repairing a PG": "пометка OSD как out, установка флага noout или исправление PG",
+  "powering a VM off, resetting or suspending it": "выключение, сброс или приостановка ВМ",
+  "scaling a service to zero or changing its image": "масштабирование сервиса до нуля или смена его образа",
+  "shutting down, stopping or resetting a guest": "завершение работы, остановка или сброс гостевой системы",
+  "stopping a unit or vacuuming the journal": "остановка модуля или очистка журнала",
+  "stopping, killing or updating a container": "остановка, принудительное завершение или обновление контейнера"
 }

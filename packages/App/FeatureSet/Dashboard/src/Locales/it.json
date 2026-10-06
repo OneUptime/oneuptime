@@ -25820,11 +25820,11 @@
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "Prende il nome dai proprietari che aggiunge, o da dove li eredita, finché non digiti un nome tuo.",
   "Not sent yet: incident hidden from status pages": "Non ancora inviato: incidente nascosto dalle pagine di stato",
   "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "Il post mortem di questo incidente è stato pubblicato mentre l'incidente era nascosto, quindi non è ancora stato inviato agli iscritti. Attivando questa opzione, viene inviato loro.",
-  "ending a session": "ending a session",
-  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
-  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
-  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
-  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
-  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
-  "stopping, killing or updating a container": "stopping, killing or updating a container"
+  "ending a session": "terminare una sessione",
+  "marking an OSD out, setting noout or repairing a PG": "contrassegnare un OSD come out, impostare noout o riparare un PG",
+  "powering a VM off, resetting or suspending it": "spegnere una VM, reimpostarla o sospenderla",
+  "scaling a service to zero or changing its image": "scalare un servizio a zero o cambiarne l'immagine",
+  "shutting down, stopping or resetting a guest": "spegnere, arrestare o reimpostare un guest",
+  "stopping a unit or vacuuming the journal": "arrestare un'unità o ripulire il journal",
+  "stopping, killing or updating a container": "arrestare, terminare forzatamente o aggiornare un container"
 }
