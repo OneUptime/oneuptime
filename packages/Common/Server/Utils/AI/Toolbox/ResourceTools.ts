@@ -57,6 +57,7 @@ import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
+import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
@@ -284,10 +285,15 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     },
     fields: [
       "resourceIdentifier",
+      "cloudResourceKind",
+      "cloudResourceType",
+      "providerResourceId",
       "cloudPlatform",
       "cloudProvider",
       "cloudAccountId",
       "cloudRegion",
+      "cloudResourceGroup",
+      "telemetryAttributes",
       "runtimeName",
     ],
   },
@@ -595,6 +601,38 @@ export function buildAIResourceTelemetryScope(data: {
     };
   }
   if (data.type === AIResourceType.CloudResource) {
+    /*
+     * A resource discovered from cloud monitoring (Azure Monitor,
+     * CloudWatch, Cloud Monitoring) is scoped by the exact metric
+     * attributes ingest recorded for it - never by cloud.* resource
+     * attributes, which every resource of its account shares.
+     */
+    if (data.resource["cloudResourceKind"] === CloudResourceKind.Resource) {
+      const telemetryAttributes: unknown = data.resource["telemetryAttributes"];
+      const attributes: Record<string, string> = {};
+      if (
+        telemetryAttributes &&
+        typeof telemetryAttributes === "object" &&
+        !Array.isArray(telemetryAttributes)
+      ) {
+        for (const [key, value] of Object.entries(
+          telemetryAttributes as Record<string, unknown>,
+        )) {
+          if (typeof value === "string" && value) {
+            attributes[key] = value;
+          }
+        }
+      }
+      if (Object.keys(attributes).length === 0) {
+        throw new BadDataException(
+          "This cloud resource has no recorded metric attributes yet; its telemetry cannot be scoped safely.",
+        );
+      }
+      return {
+        attributes,
+        note: `${note} A cloud resource discovered from cloud monitoring has the metrics its provider publishes about it (Azure Monitor, CloudWatch, Cloud Monitoring) - no logs or traces of its own.`,
+      };
+    }
     const attributes: Record<string, string> = {};
     for (const [column, key] of [
       ["cloudPlatform", "resource.cloud.platform"],

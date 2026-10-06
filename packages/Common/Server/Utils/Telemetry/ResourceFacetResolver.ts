@@ -21,6 +21,7 @@ import RumApplicationService from "../../Services/RumApplicationService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import CaptureSpan from "./CaptureSpan";
+import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 
 /*
  * Facet keys whose values are entity IDs backed by a Postgres source-of-truth
@@ -88,6 +89,16 @@ interface ResourceFacetListing {
    * search `name` alone.
    */
   identifierField: string | null;
+  /*
+   * Narrows which rows of the table are the facet's values. The Cloud
+   * Resource facet lists environments only: a facet value matches
+   * telemetry by its primaryEntityId, and only an environment is ever a
+   * row's primary entity - a resource discovered from cloud monitoring is
+   * scoped by its metrics' attributes instead (CloudResource
+   * .telemetryAttributes), so listing one would offer a filter that
+   * matches nothing.
+   */
+  baseQuery?: Record<string, unknown> | undefined;
 }
 
 /*
@@ -163,7 +174,11 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
     ],
     [
       "cloudResourceId",
-      { service: CloudResourceService, identifierField: "resourceIdentifier" },
+      {
+        service: CloudResourceService,
+        identifierField: "resourceIdentifier",
+        baseQuery: { cloudResourceKind: CloudResourceKind.Environment },
+      },
     ],
     [
       "rumApplicationId",
@@ -309,7 +324,10 @@ export default class ResourceFacetResolver {
         : undefined;
     const identifierField: string | null = listing.identifierField;
 
-    const query: Record<string, unknown> = { projectId };
+    const query: Record<string, unknown> = {
+      ...(listing.baseQuery || {}),
+      projectId,
+    };
     const select: Record<string, boolean> = { _id: true, name: true };
 
     if (identifierField) {
