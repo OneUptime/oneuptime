@@ -732,6 +732,24 @@ describe("DuplicateModel", () => {
       expect(order).toEqual(["onDuplicateSuccess", "navigate"]);
     });
 
+    test("opens nothing, and reports nothing, when the copy comes back without an id", async () => {
+      serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
+      mockCreate.mockImplementation(async (): Promise<unknown> => {
+        return { data: new Workflow() };
+      });
+
+      renderWorkflowDuplicate();
+      await openDialog();
+      await pressDuplicateInDialog();
+
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      expect(mockCreate).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(screen.queryByText("Duplicate Error")).not.toBeInTheDocument();
+    });
+
     test("opens nothing when the card is given nowhere to go", async () => {
       serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
 

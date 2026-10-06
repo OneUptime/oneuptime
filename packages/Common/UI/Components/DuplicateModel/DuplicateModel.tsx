@@ -248,11 +248,12 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
       return;
     }
 
-    if (props.navigateToOnSuccess) {
+    // The copy opens: its own page, under the list's route.
+    const copyId: string | undefined = newItem?.id?.toString();
+
+    if (props.navigateToOnSuccess && copyId) {
       Navigation.navigate(
-        new Route(props.navigateToOnSuccess.toString()).addRoute(
-          `/${newItem.id!.toString()}`,
-        ),
+        new Route(props.navigateToOnSuccess.toString()).addRoute(`/${copyId}`),
         {
           forceNavigate: true,
         },
