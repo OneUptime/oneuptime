@@ -102,6 +102,12 @@ import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -699,17 +705,23 @@ export class Service extends ProjectReferencesService<Model> {
    * write names, each by both of its names (getWrittenRelationReferences):
    * every name that holds an id is a reference to check, and two names that
    * disagree are refused. On a create, the state is the one the write
-   * picked, if any (onBeforeCreate).
+   * picked, if any, and only when where it starts did not already find it
+   * among the project's states (onBeforeCreate).
    */
-  private getWrittenReferences(data: unknown): Array<ProjectScopedReference> {
+  private getWrittenReferences(
+    data: unknown,
+    options: { withState: boolean } = { withState: true },
+  ): Array<ProjectScopedReference> {
     return [
-      ...getWrittenRelationReferences({
-        payload: data,
-        idColumn: "currentAlertStateId",
-        relation: "currentAlertState",
-        modelName: "Alert State",
-        service: AlertStateService,
-      }),
+      ...(options.withState
+        ? getWrittenRelationReferences({
+            payload: data,
+            idColumn: "currentAlertStateId",
+            relation: "currentAlertState",
+            modelName: "Alert State",
+            service: AlertStateService,
+          })
+        : []),
       ...getWrittenRelationReferences({
         payload: data,
         idColumn: "alertSeverityId",
@@ -802,16 +814,36 @@ export class Service extends ProjectReferencesService<Model> {
      * The state the alert starts in, when the write picks one: the Create
      * Alert form's Initial State sends the relation, the API, Terraform and
      * workflows the ID column. Either name, and the two must agree. The pick
-     * is checked against the project with the alert's other references
-     * below, so a state of another project is refused like any of them.
-     * With none picked, the alert starts in the project's created state,
-     * where every alert a monitor raises starts.
+     * is checked against the project below, and a state of another project
+     * is refused like any of the alert's other references. With none
+     * picked, the alert starts in the project's created state, where every
+     * alert a monitor raises starts.
      */
     const pickedAlertStateId: ObjectID | null = RelationIdUtil.readConsistent(
       createData,
       ALERT_STATE_KEYS,
       "Alert State",
     );
+
+    /*
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * alert recorded already acknowledged pages nobody, and one recorded
+     * resolved also sets off nothing that answers a live problem. The read
+     * holds only the project's own states, so it also checks the state
+     * picked: one it finds needs no other check below. With none picked the
+     * alert starts in the created state - open, as every alert a monitor
+     * raises - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedAlertStateId
+      ? await AlertStateService.getStartingState({
+          projectId: projectId,
+          alertStateId: pickedAlertStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
 
     /*
      * The state picked, the severity and the monitor status stamped on the
@@ -835,10 +867,15 @@ export class Service extends ProjectReferencesService<Model> {
       subject: "alert",
       references: [
         /*
-         * The state as the write picked it, if it did: the created state
-         * stamped below is the project's own and needs no check.
+         * The state as the write picked it, unless the read above found it
+         * among the project's states: one it did not find is refused here,
+         * with the alert's other references and in the same words. The
+         * created state stamped below is the project's own and needs no
+         * check.
          */
-        ...this.getWrittenReferences(createBy.data),
+        ...this.getWrittenReferences(createBy.data, {
+          withState: !pickedStart,
+        }),
         ...ProjectScopedReferenceValidator.getRelationReferences({
           payload: createBy.data,
           relations: this.getProjectScopedRelations(),
@@ -916,7 +953,11 @@ export class Service extends ProjectReferencesService<Model> {
       )}`;
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: StartingStageCarryForward = {
+      startingStage: startingStage,
+    };
+
+    return { createBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
@@ -935,6 +976,19 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createdItem.currentAlertStateId) {
       throw new BadDataException("currentAlertStateId is required");
     }
+
+    /*
+     * How far along the alert starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, it is over, and nothing below that answers a live
+     * problem runs either: no channel, runbook, grouping, AI investigation
+     * or remediation. Its rules, its owners, its feed and its first state
+     * still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+    const isOngoing: boolean = StartingStageUtil.isOngoing(startingStage);
 
     /*
      * Whether an AI investigation run was enqueued for this alert — set by
@@ -965,7 +1019,11 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        if (createdItem.projectId && createdItem.id) {
+        /*
+         * No channel is opened for an alert created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
           try {
             return await this.handleAlertWorkspaceOperationsAsync(createdItem);
           } catch (error) {
@@ -1088,6 +1146,11 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        // No runbook is started for an alert created resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await RunbookRuleEngineService.applyRulesToAlert(createdItem);
         } catch (error) {
@@ -1106,7 +1169,10 @@ export class Service extends ProjectReferencesService<Model> {
           createdItem.onCallDutyPolicies?.length > 0
         ) {
           try {
-            return await this.executeAlertOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeAlertOnCallDutyPoliciesAsync(
+              createdItem,
+              startingStage,
+            );
           } catch (error) {
             logger.error(
               `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
@@ -1121,9 +1187,21 @@ export class Service extends ProjectReferencesService<Model> {
         return Promise.resolve();
       })
       .then(async () => {
-        // Process alert for grouping into episodes
+        /*
+         * Process alert for grouping into episodes - unless it was created
+         * resolved: it is over. One created already acknowledged may join an
+         * episode that is open, but never opens or reopens one
+         * (GroupingOptions): a new episode runs its own on-call policies, and
+         * would page for the alert after all.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
-          await AlertGroupingEngineService.processAlert(createdItem);
+          await AlertGroupingEngineService.processAlert(createdItem, {
+            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+          });
         } catch (error) {
           logger.error(
             `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
@@ -1163,10 +1241,17 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
+            /*
+             * An alert created resolved was over before it was recorded:
+             * nothing to investigate. The runner records why on its AI card -
+             * after what stops OneUptime AI for the whole project, such as AI
+             * being off, which the card then names instead.
+             */
             aiInvestigationEnqueued =
               await AIAlertInvestigationRunner.investigateNewAlert({
                 alertId: createdItem.id,
                 projectId: createdItem.projectId,
+                createdResolved: !isOngoing,
               });
           }
         } catch (error) {
@@ -1192,6 +1277,11 @@ export class Service extends ProjectReferencesService<Model> {
          * Remediation card says it waits for the analysis
          * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
+        // Nothing is left to remediate for an alert created resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await AutoRemediationRuleEngineService.onAlertCreated({
             alert: createdItem,
@@ -1436,15 +1526,32 @@ ${alert.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  /*
+   * Runs the alert's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeAlertOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
+        if (!StartingStageUtil.pagesOnCall(startingStage)) {
+          await OnCallNotRunOnCreate.createFeedItem({
+            record: { alertId: createdItem.id! },
+            projectId: createdItem.projectId!,
+            stage: startingStage,
+            policies: createdItem.onCallDutyPolicies,
+          });
+          return;
+        }
+
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {

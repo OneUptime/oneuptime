@@ -247,6 +247,8 @@ Gebruikers moeten een geverifieerd telefoonnummer hebben om inkomende gesprekken
 
 Alleen gebruikers met geverifieerde telefoonnummers kunnen worden gebeld via escalatieregels.
 
+Nummers voor inkomende gesprekken worden via sms geverifieerd, dus **SMS** moet eerst aan staan voor het project. Een projecteigenaar of iemand met **Manage Billing** zet het aan in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+
 ## Een telefoonnummer vrijgeven
 
 Als u een telefoonnummer niet meer nodig heeft:

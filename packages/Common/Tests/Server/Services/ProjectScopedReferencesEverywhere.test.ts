@@ -207,6 +207,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "ServiceLevelObjectiveFeedService.ts",
   "ServiceLevelObjectiveService.ts",
   "SmsLogService.ts",
+  "StorageArrayFeedService.ts",
   "TelegramLogService.ts",
   "VMwareVCenterFeedService.ts",
   "WebhookLogService.ts",

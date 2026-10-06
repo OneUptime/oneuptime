@@ -9,6 +9,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
+import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -26,6 +27,7 @@ import KubernetesClusterService from "../../Services/KubernetesClusterService";
 import PodmanHostService from "../../Services/PodmanHostService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
+import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import SeriesResourceLabels, {
@@ -74,6 +76,7 @@ export interface SeriesLinkableModel {
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
+  storageArrays?: Array<StorageArray> | undefined;
 }
 
 /*
@@ -92,6 +95,7 @@ export interface SeriesResolvedResourceIds {
   dockerSwarmClusterIds: Array<string>;
   iotFleetIds: Array<string>;
   databaseServerIds: Array<string>;
+  storageArrayIds: Array<string>;
 }
 
 /*
@@ -174,7 +178,7 @@ export default class SeriesResourceLinker {
     const refs: SeriesResourceRefs = input.refs;
 
     /*
-     * Proxmox / VMware / Ceph / Docker Swarm / IoT carry no
+     * Proxmox / VMware / Ceph / Docker Swarm / IoT / storage arrays carry no
      * `oneuptime.*.id` stamp at ingest — they are addressable by name
      * only — so their `ids` lists are empty by construction, not by
      * omission. Databases are the reverse: never addressable by name (see
@@ -255,6 +259,12 @@ export default class SeriesResourceLinker {
         nameColumn: "name",
         findBy: DatabaseServerService.findBy.bind(DatabaseServerService),
       },
+      {
+        ids: [],
+        names: refs.storageArrayNames,
+        nameColumn: "name",
+        findBy: StorageArrayService.findBy.bind(StorageArrayService),
+      },
     ];
 
     const [resolvedBySpec, databaseServerIdsByEndpoint] = await Promise.all([
@@ -288,6 +298,7 @@ export default class SeriesResourceLinker {
       dockerSwarmClusterIds,
       iotFleetIds,
       databaseServerIdsById,
+      storageArrayIds,
     ] = resolvedBySpec;
 
     /*
@@ -313,6 +324,7 @@ export default class SeriesResourceLinker {
       dockerSwarmClusterIds: dockerSwarmClusterIds || [],
       iotFleetIds: iotFleetIds || [],
       databaseServerIds: databaseServerIds,
+      storageArrayIds: storageArrayIds || [],
     };
   }
 
@@ -533,6 +545,16 @@ export default class SeriesResourceLinker {
         resolved.databaseServerIds,
         (): DatabaseServer => {
           return new DatabaseServer();
+        },
+      );
+    }
+
+    if (resolved.storageArrayIds.length > 0) {
+      model.storageArrays = this.mergeById(
+        model.storageArrays,
+        resolved.storageArrayIds,
+        (): StorageArray => {
+          return new StorageArray();
         },
       );
     }

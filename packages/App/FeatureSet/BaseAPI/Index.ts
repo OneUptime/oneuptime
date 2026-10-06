@@ -171,6 +171,7 @@ import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
+import StorageArrayResourceAPI from "Common/Server/API/StorageArrayResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -428,6 +429,14 @@ import CephClusterOwnerRuleService, {
 import CephClusterLabelRuleService, {
   Service as CephClusterLabelRuleServiceType,
 } from "Common/Server/Services/CephClusterLabelRuleService";
+
+import StorageArrayOwnerRuleService, {
+  Service as StorageArrayOwnerRuleServiceType,
+} from "Common/Server/Services/StorageArrayOwnerRuleService";
+
+import StorageArrayLabelRuleService, {
+  Service as StorageArrayLabelRuleServiceType,
+} from "Common/Server/Services/StorageArrayLabelRuleService";
 
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
@@ -743,6 +752,9 @@ import DockerSwarmClusterService, {
 import CephClusterService, {
   Service as CephClusterServiceType,
 } from "Common/Server/Services/CephClusterService";
+import StorageArrayService, {
+  Service as StorageArrayServiceType,
+} from "Common/Server/Services/StorageArrayService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -773,6 +785,12 @@ import CephClusterOwnerTeamService, {
 import CephClusterOwnerUserService, {
   Service as CephClusterOwnerUserServiceType,
 } from "Common/Server/Services/CephClusterOwnerUserService";
+import StorageArrayOwnerTeamService, {
+  Service as StorageArrayOwnerTeamServiceType,
+} from "Common/Server/Services/StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService, {
+  Service as StorageArrayOwnerUserServiceType,
+} from "Common/Server/Services/StorageArrayOwnerUserService";
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
@@ -1264,6 +1282,8 @@ import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
+import StorageArrayOwnerRule from "Common/Models/DatabaseModels/StorageArrayOwnerRule";
+import StorageArrayLabelRule from "Common/Models/DatabaseModels/StorageArrayLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -1367,6 +1387,9 @@ import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwar
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
@@ -1578,6 +1601,10 @@ import CephClusterFeed from "Common/Models/DatabaseModels/CephClusterFeed";
 import CephClusterFeedService, {
   Service as CephClusterFeedServiceType,
 } from "Common/Server/Services/CephClusterFeedService";
+import StorageArrayFeed from "Common/Models/DatabaseModels/StorageArrayFeed";
+import StorageArrayFeedService, {
+  Service as StorageArrayFeedServiceType,
+} from "Common/Server/Services/StorageArrayFeedService";
 import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
 import DatabaseServerFeedService, {
   Service as DatabaseServerFeedServiceType,
@@ -2236,6 +2263,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterFeed, CephClusterFeedServiceType>(
         CephClusterFeed,
         CephClusterFeedService,
+      ).getRouter(),
+    );
+
+    // Storage array feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayFeed, StorageArrayFeedServiceType>(
+        StorageArrayFeed,
+        StorageArrayFeedService,
       ).getRouter(),
     );
 
@@ -2958,6 +2994,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerRule, StorageArrayOwnerRuleServiceType>(
+        StorageArrayOwnerRule,
+        StorageArrayOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayLabelRule, StorageArrayLabelRuleServiceType>(
+        StorageArrayLabelRule,
+        StorageArrayLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerOwnerRule, DatabaseServerOwnerRuleServiceType>(
         DatabaseServerOwnerRule,
         DatabaseServerOwnerRuleService,
@@ -3318,6 +3370,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CephResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new StorageArrayResourceAPI().getRouter(),
     );
 
     app.use(
@@ -4715,6 +4772,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CephClusterOwnerUser, CephClusterOwnerUserServiceType>(
         CephClusterOwnerUser,
         CephClusterOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArray, StorageArrayServiceType>(
+        StorageArray,
+        StorageArrayService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerTeam, StorageArrayOwnerTeamServiceType>(
+        StorageArrayOwnerTeam,
+        StorageArrayOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayOwnerUser, StorageArrayOwnerUserServiceType>(
+        StorageArrayOwnerUser,
+        StorageArrayOwnerUserService,
       ).getRouter(),
     );
 

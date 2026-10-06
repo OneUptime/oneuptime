@@ -44,6 +44,7 @@ const OTHER_DISCOVERIES_RETURNING_NULL: Array<string> = [
   "autoDiscoverKubernetesCluster",
   "autoDiscoverProxmoxCluster",
   "autoDiscoverCephCluster",
+  "autoDiscoverStorageArray",
   "autoDiscoverDockerSwarmCluster",
   "autoDiscoverIoTFleet",
   "autoDiscoverVMwareVCenter",

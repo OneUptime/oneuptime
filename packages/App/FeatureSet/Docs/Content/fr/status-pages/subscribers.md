@@ -12,7 +12,7 @@ Une page de statut prend en charge cinq canaux. Eux et la page où les visiteurs
 
 - **Afficher la page des abonnés** (`showSubscriberPageOnStatusPage`) — activé par défaut. Ajoute l'entrée **S'abonner** à la barre de navigation de la page de statut, où les visiteurs s'inscrivent via les canaux ci-dessous.
 - **E-mail** (`enableEmailSubscribers`) — activé par défaut. Tout le reste est désactivé tant que vous ne l'activez pas.
-- **SMS** (`enableSmsSubscribers`) — désactivé par défaut. Sur OneUptime Cloud, chaque SMS est payé sur le solde SMS et appels du projet, sauf si la page a sa propre **Configuration Twilio**. Pour l'activer, le projet doit aussi avoir **SMS** activé dans la carte **Canaux de notification**, dans **Paramètres du projet > Notifications > Paramètres de notification**.
+- **SMS** (`enableSmsSubscribers`) — désactivé par défaut. Sur OneUptime Cloud, chaque SMS est payé sur le solde SMS et appels du projet, sauf si la page a sa propre **Configuration Twilio**. Pour l'activer, le projet doit aussi avoir **SMS** activé dans la carte **Canaux de notification**, dans **Paramètres du projet > Notifications > Paramètres de notification**. Un propriétaire du projet ou une personne disposant de **Manage Billing** peut l'activer.
 - **Slack** (`enableSlackSubscribers`) — désactivé par défaut.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — désactivé par défaut.
 - **Webhook** (`enableWebhookSubscribers`) — désactivé par défaut.

@@ -196,6 +196,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — ノード、VM、コンテナ、ストレージ、HA 状態、バックアップの網羅状況、レプリケーションの健全性。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter、ESXi ホスト、仮想マシン、データストア、クラスタ、リソースプール、vSAN。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — クラスターの健全性、容量予測、OSD / プール / PG / モニターの可視化。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **ストレージアレイ** — Pure Storage FlashArray と FlashBlade の容量、レイテンシー、ボリューム、ホスト、レプリケーション、ハードウェアの健全性、ファイルシステム、バケット。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
 - **データベース** — PostgreSQL、MySQL、Redis、MongoDB など。アプリケーションのトレース、Kubernetes、Docker から自動検出し、設定のみの Collector エージェントからエンジンのメトリクス、クエリサンプル、ログを取得。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---

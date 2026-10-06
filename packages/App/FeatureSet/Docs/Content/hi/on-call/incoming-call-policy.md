@@ -224,6 +224,8 @@ Users को incoming calls receive करने के लिए, उनके 
 
 केवल verified phone numbers वाले users को escalation rules के माध्यम से call किया जा सकता है।
 
+Incoming call नंबर SMS से verify होते हैं, इसलिए प्रोजेक्ट में पहले **SMS** चालू होना चाहिए। प्रोजेक्ट का मालिक या **Manage Billing** वाला कोई व्यक्ति इसे **प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना सेटिंग्स** के **सूचना चैनल** कार्ड में चालू करता है।
+
 ## Phone Number Release करना
 
 यदि आपको phone number की अब आवश्यकता नहीं है:

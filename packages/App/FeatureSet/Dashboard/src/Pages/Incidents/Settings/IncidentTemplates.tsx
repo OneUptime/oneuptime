@@ -352,7 +352,7 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             title: "Initial Incident State",
             stepId: "incident-details",
             description:
-              "Incidents declared from this template start in this state. Leave it empty for the usual starting state.",
+              "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.",
             fieldType: FormFieldSchemaType.Dropdown,
             /*
              * Listed in the order an incident moves through its states, each

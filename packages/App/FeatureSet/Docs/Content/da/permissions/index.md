@@ -54,6 +54,8 @@ Teamsene **Owners** og **Admin** er bevidst låst: deres tilladelser kan ikke re
 
 `ProjectOwner` er det højeste adgangsniveau: fakturering, sletning af projektet og alt, hvad en administrator kan. `ProjectAdmin` dækker alt undtagen fakturering og sletning af projektet.
 
+At slå SMS, telefonopkald, WhatsApp eller Telegram til eller fra for projektet hører under fakturering, fordi hver besked koster penge. Kun `ProjectOwner` og tilladelsen `ManageProjectBilling` (**Manage Billing**) kan slå dem til eller fra, under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** — ikke `ProjectAdmin`.
+
 Opret så mange ekstra teams, du vil — "Frontend-vagt", "Support", "Skrivebeskyttede revisorer" — og giv hvert enkelt de tilladelser, det har brug for.
 
 Hvor du finder det: **Indstillinger → Teams**. Åbn et team for at nå **Members** og **Permissions**; **Block Permissions** ligger under **More settings** nederst på siden Permissions.

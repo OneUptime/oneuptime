@@ -120,6 +120,7 @@ Passen Sie die Nachrichten an, die Anrufer hören:
 ### Anrufe verbinden sich nicht mit Ingenieuren
 
 - Überprüfen Sie, ob Benutzer verifizierte Telefonnummern in ihren Benachrichtigungseinstellungen haben
+- Nummern für eingehende Anrufe werden per SMS verifiziert, daher muss **SMS** für das Projekt zuerst eingeschaltet sein. Ein Projekteigentümer oder jemand mit **Manage Billing** schaltet es in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ein.
 - Prüfen Sie, ob Eskalationsregeln korrekt konfiguriert sind
 - Stellen Sie sicher, dass Bereitschaftspläne für den aktuellen Zeitraum Benutzer zugewiesen haben
 - Landen Anrufe auf der Mailbox eines Ingenieurs, stellen Sie die **Klingeldauer** der Regel kürzer ein als die Zeit, nach der sein Telefon zur Mailbox wechselt

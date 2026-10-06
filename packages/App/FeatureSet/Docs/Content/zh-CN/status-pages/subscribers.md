@@ -12,7 +12,7 @@
 
 - **显示订阅者页面**（`showSubscriberPageOnStatusPage`）——默认开启。在状态页导航栏里放上 **订阅** 项，访客在那里通过下面的渠道订阅。
 - **电子邮件**（`enableEmailSubscribers`）——默认开启。在你打开它们之前，其余的全是关着的。
-- **SMS**（`enableSmsSubscribers`）——默认关闭。在 OneUptime Cloud 上，除非该页面有自己的 **Twilio 配置**，否则每条短信都从项目的短信和电话余额中支付。要打开它，项目还需要在 **项目设置 > 通知 > 通知设置** 的 **通知渠道** 卡片中打开 **SMS**。
+- **SMS**（`enableSmsSubscribers`）——默认关闭。在 OneUptime Cloud 上，除非该页面有自己的 **Twilio 配置**，否则每条短信都从项目的短信和电话余额中支付。要打开它，项目还需要在 **项目设置 > 通知 > 通知设置** 的 **通知渠道** 卡片中打开 **SMS**。项目所有者或拥有 **Manage Billing** 权限的用户可以开启它。
 - **Slack**（`enableSlackSubscribers`）——默认关闭。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）——默认关闭。
 - **Webhook**（`enableWebhookSubscribers`）——默认关闭。

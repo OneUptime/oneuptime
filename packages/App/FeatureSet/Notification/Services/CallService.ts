@@ -22,6 +22,11 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -268,7 +273,9 @@ export default class CallService {
 
         if (!project.enableCallNotifications) {
           callLog.status = CallStatus.Error;
-          callLog.statusMessage = `Call notifications are not enabled for this project. Please enable Call notifications in Project Settings.`;
+          callLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.Call,
+          );
           // The project turned calls off. Refusing to dial is the setting working.
           logger.error(callLog.statusMessage, EXTERNAL_FAULT);
           await CallLogService.create({
@@ -291,7 +298,12 @@ export default class CallService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "Call notifications not enabled for " + (project.name || ""),
-              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This Call was not sent because call notifications are not enabled for this project. Please enable call notifications in Project Settings.`,
+              `We tried to make a call to ${callRequest.to.toString()}. <br/> <br/> This call was not made. ${ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.Call,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
           return;

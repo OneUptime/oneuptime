@@ -32,6 +32,7 @@ import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMainte
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import BaseService from "../../../Server/Services/BaseService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
+import StorageArrayService from "../../../Server/Services/StorageArrayService";
 import DatabaseServerEndpointService from "../../../Server/Services/DatabaseServerEndpointService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "../../../Server/Services/DatabaseServerLabelRuleEngineService";
@@ -458,6 +459,7 @@ describe("TelemetryUsageBillingService.buildTelemetryRetentionMap", () => {
       ProxmoxClusterService,
       VMwareVCenterService,
       CephClusterService,
+      StorageArrayService,
       IoTFleetService,
     ]) {
       jest

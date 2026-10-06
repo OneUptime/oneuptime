@@ -275,6 +275,7 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"vmware_monitor", "vmwareMonitor"},
 	{"docker_swarm_monitor", "dockerSwarmMonitor"},
 	{"ceph_monitor", "cephMonitor"},
+	{"storage_array_monitor", "storageArrayMonitor"},
 	{"iot_monitor", "iotMonitor"},
 }
 
@@ -939,6 +940,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"vmware_monitor":               "Raw JSON escape hatch for the VMware monitor config (vcenterIdentifier, resourceFilters, ...).",
 		"docker_swarm_monitor":         "Raw JSON escape hatch for the Docker Swarm monitor config (clusterIdentifier, ...).",
 		"ceph_monitor":                 "Raw JSON escape hatch for the Ceph monitor config (clusterIdentifier, ...).",
+		"storage_array_monitor":        "Raw JSON escape hatch for the Storage Array monitor config (arrayIdentifier, storageSystem, resourceFilters, ...).",
 		"iot_monitor":                  "Raw JSON escape hatch for the IoT monitor config (fleetIdentifier, ...).",
 	}
 

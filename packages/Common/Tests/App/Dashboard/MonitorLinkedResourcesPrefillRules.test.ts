@@ -55,6 +55,7 @@ describe("what a monitor can be linked to", () => {
       "ProxmoxCluster",
       "VMwareVCenter",
       "CephCluster",
+      "StorageArray",
       "DockerSwarmCluster",
       "IoTFleet",
       "DatabaseServer",
@@ -109,6 +110,23 @@ describe("getLinkedResourcesOfMonitors", () => {
     ]);
   });
 
+  test("reads a monitor's linked storage arrays under their own relation", () => {
+    expect(
+      getLinkedResourcesOfMonitors([
+        {
+          _id: MONITOR_ID,
+          storageArrays: [{ _id: "sa-1", name: "fa-prod-01" }],
+          cephClusters: [{ _id: "ceph-1", name: "ceph-prod" }],
+        },
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        linked("storageArrays", "sa-1", "fa-prod-01"),
+        linked("cephClusters", "ceph-1", "ceph-prod"),
+      ]),
+    );
+  });
+
   test("ignores what is not a linked resource row", () => {
     expect(
       getLinkedResourcesOfMonitors([
@@ -156,6 +174,7 @@ describe("getLinkedResourcesToAdd", () => {
       proxmoxClusters: [],
       vmwareVCenters: [],
       cephClusters: [],
+      storageArrays: [],
       dockerSwarmClusters: [],
       iotFleets: [],
       databaseServers: [],
@@ -206,6 +225,22 @@ describe("buildPrefillPayload", () => {
 
     expect(payload.networkSites).toEqual([SITE_ID]);
     expect(payload.kubernetesClusters).toEqual([CLUSTER_ID]);
+  });
+
+  test("adds a monitor's storage array to every create form's field", () => {
+    for (const payloadKeys of [
+      INCIDENT_PREFILL_PAYLOAD_KEYS,
+      ALERT_PREFILL_PAYLOAD_KEYS,
+      SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS,
+    ]) {
+      const payload: AffectedResourcesPayload = buildPrefillPayload({
+        values: { storageArrays: [{ _id: "sa-1", name: "fa-prod-01" }] },
+        toAdd: [linked("storageArrays", "sa-2", "fb-lab")],
+        payloadKeys,
+      });
+
+      expect(payload.storageArrays).toEqual(["sa-1", "sa-2"]);
+    }
   });
 
   test("never adds what the form already holds", () => {

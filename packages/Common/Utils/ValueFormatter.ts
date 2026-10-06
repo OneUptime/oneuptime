@@ -747,6 +747,17 @@ export default class ValueFormatter {
       return false;
     }
 
+    /*
+     * Same for a storage array's data reduction ratio (Pure's
+     * `purefa_array_space_data_reduction_ratio`,
+     * `purefb_file_systems_space_data_reduction_ratio`, ...): logical over
+     * physical space, so 4.2 means 4.2:1 — never "420.00%".
+     */
+    const dataReductionRatio: RegExp = /data_reduction_ratio$/i;
+    if (dataReductionRatio.test(metricName.trim())) {
+      return false;
+    }
+
     const fractionMetricSuffixRegex: RegExp =
       /[._](utilization|ratio|fraction|percent|percentage)$/i;
     return fractionMetricSuffixRegex.test(metricName);

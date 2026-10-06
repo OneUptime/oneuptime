@@ -7,6 +7,8 @@ import { RouteUtil } from "../../../Utils/RouteMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Navigation from "Common/UI/Utils/Navigation";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -28,6 +30,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   step: SetupStep;
 }
+
+/*
+ * The right-hand label of a Blocked row. It does not name a role: the row's
+ * own detail says exactly who can move it ("A project owner or someone with
+ * Manage Billing can turn it on..."). It used to say "Needs an admin", and
+ * the one step that is ever Blocked - a channel the project has off - is
+ * one a project admin may not change.
+ */
+export const BLOCKED_STEP_LABEL: string = translationKey("Needs someone else");
 
 interface StepPresentation {
   /** The colour block behind the icon when the step is not complete. */
@@ -53,7 +64,7 @@ const getPresentation: GetPresentationFunction = (
       iconClassName: "text-emerald-600",
       containerClassName: "border-gray-200 bg-gray-50",
       titleClassName: "text-gray-500",
-      rightLabel: "Done",
+      rightLabel: translationKey("Done"),
       rightLabelClassName: "text-emerald-600",
     };
   }
@@ -72,7 +83,7 @@ const getPresentation: GetPresentationFunction = (
       iconClassName: "text-amber-600",
       containerClassName: "border-amber-200 bg-amber-50",
       titleClassName: "text-gray-900",
-      rightLabel: "Needs an admin",
+      rightLabel: BLOCKED_STEP_LABEL,
       rightLabelClassName: "text-amber-700",
     };
   }
@@ -90,7 +101,7 @@ const getPresentation: GetPresentationFunction = (
       iconClassName: "text-gray-500",
       containerClassName: "border-gray-200 bg-gray-50",
       titleClassName: "text-gray-600",
-      rightLabel: "Not needed",
+      rightLabel: translationKey("Not needed"),
       rightLabelClassName: "text-gray-600",
     };
   }
@@ -110,6 +121,7 @@ const getPresentation: GetPresentationFunction = (
 const SetupChecklistTile: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const step: SetupStep = props.step;
 
   /*
@@ -165,14 +177,16 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
         <div
           className={`flex items-center gap-2 text-sm font-medium ${presentation.titleClassName}`}
         >
-          <span>{step.title}</span>
+          <span>{translator.translateText(step.title)}</span>
           {step.importance === SetupStepImportance.Optional && (
             <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-              Optional
+              {translator.translateText("Optional")}
             </span>
           )}
         </div>
-        <div className="mt-1 text-sm text-gray-500">{step.description}</div>
+        <div className="mt-1 text-sm text-gray-500">
+          {translator.translateText(step.description)}
+        </div>
         {step.detail ? (
           <div
             data-testid={`setup-checklist-detail-${step.key}`}
@@ -184,14 +198,14 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
                   : "text-gray-700"
             }`}
           >
-            {step.detail}
+            {translator.translateText(step.detail)}
           </div>
         ) : (
           <></>
         )}
         {isActionable ? (
           <div className="mt-2 text-sm font-medium text-indigo-600 transition group-hover:text-indigo-700">
-            {step.actionTitle} →
+            {translator.translateText(step.actionTitle)} →
           </div>
         ) : (
           <></>
@@ -201,7 +215,7 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
         <span
           className={`mt-0.5 flex-shrink-0 text-xs font-medium ${presentation.rightLabelClassName}`}
         >
-          {presentation.rightLabel}
+          {translator.translateText(presentation.rightLabel)}
         </span>
       ) : (
         <Icon

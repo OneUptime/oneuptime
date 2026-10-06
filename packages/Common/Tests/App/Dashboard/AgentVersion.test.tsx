@@ -83,6 +83,11 @@ import {
   getVMwareAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { getHostCollectorUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
+import {
+  STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
+  getStorageArrayAgentDownloadCommand,
+  getStorageArrayAgentUpgradeCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import Route from "../../../Types/API/Route";
 
 const SETUP_GUIDE: Route = new Route("/dashboard/p1/docker/h1/documentation");
@@ -631,10 +636,10 @@ describe("the hero chip", () => {
 });
 
 /*
- * Hosts, Proxmox, Ceph and VMware: their agents now report the collector
- * release their files pin, so an older one gets the sign, compared with the
- * pin whatever the server's own version is, and the dialog shows that
- * agent's own upgrade, taken from its setup guide.
+ * Hosts, Proxmox, Ceph, VMware and storage arrays: their agents now report
+ * the collector release their files pin, so an older one gets the sign,
+ * compared with the pin whatever the server's own version is, and the dialog
+ * shows that agent's own upgrade, taken from its setup guide.
  */
 describe("the agents that report the collector they pin", () => {
   const OUTDATED_COLLECTOR: string =
@@ -645,6 +650,7 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.ProxmoxAgent],
     [AgentKind.CephAgent],
     [AgentKind.VMwareAgent],
+    [AgentKind.StorageArrayAgent],
   ])(
     "%s: an older collector shows the sign, compared with the pin even when the server knows no version",
     (kind: AgentKind) => {
@@ -664,6 +670,7 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.ProxmoxAgent],
     [AgentKind.CephAgent],
     [AgentKind.VMwareAgent],
+    [AgentKind.StorageArrayAgent],
   ])(
     "%s: the pinned release, or a newer one, is drawn exactly as before",
     (kind: AgentKind) => {
@@ -682,6 +689,7 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.ProxmoxAgent],
     [AgentKind.CephAgent],
     [AgentKind.VMwareAgent],
+    [AgentKind.StorageArrayAgent],
   ])(
     "%s: an install from before the pin reports nothing, which reads Not reported, never outdated",
     (kind: AgentKind) => {
@@ -801,6 +809,63 @@ describe("the agents that report the collector they pin", () => {
       getVMwareAgentDownloadCommand(),
       VMWARE_AGENT_RECREATE_COMMAND,
     ]);
+  });
+
+  test("Storage Array: the install script again with a note for another array's folder, or every file again", async () => {
+    render(
+      <AgentVersion kind={AgentKind.StorageArrayAgent} version="0.154.0" />,
+    );
+    const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+
+    expect(
+      within(dialog).getByRole("heading", {
+        name: "Upgrade the OneUptime Storage Array Agent",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "This agent runs version 0.154.0. Version 0.161.0 is available.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual(["Install script", "Docker Compose"]);
+
+    expect(codeBlocksIn(dialog)).toEqual([
+      getStorageArrayAgentUpgradeCommand(),
+    ]);
+    expect(
+      within(dialog).getByText("Run the install script again"),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByTestId("agent-upgrade-method-note"),
+    ).toHaveTextContent(
+      "Installed it outside /opt/oneuptime-storage-array-agent? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.",
+    );
+    // Nothing to fill in from a guide.
+    expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Docker Compose" }),
+    );
+    expect(codeBlocksIn(dialog)).toEqual([
+      getStorageArrayAgentDownloadCommand(),
+      STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
+    ]);
+    expect(within(dialog).getByText("Download the latest files")).toBeVisible();
+    expect(
+      within(dialog).getByText(
+        "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
+      ),
+    ).toBeVisible();
+    expect(
+      within(dialog).queryByTestId("agent-upgrade-method-note"),
+    ).not.toBeInTheDocument();
+    expect(findNestedControls(document.body)).toEqual([]);
   });
 
   test("Host on Linux: a tab per Linux install, the config from the setup guide, then the new release", async () => {

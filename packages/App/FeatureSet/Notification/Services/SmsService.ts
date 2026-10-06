@@ -23,6 +23,11 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import SmsLogService from "Common/Server/Services/SmsLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
@@ -299,7 +304,9 @@ export default class SmsService {
 
         if (!project.enableSmsNotifications) {
           smsLog.status = SmsStatus.Error;
-          smsLog.statusMessage = `SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`;
+          smsLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.SMS,
+          );
           // The project turned SMS off. Refusing to send is the setting working.
           logger.error(smsLog.statusMessage, EXTERNAL_FAULT);
           await SmsLogService.create({
@@ -321,7 +328,12 @@ export default class SmsService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               "SMS notifications not enabled for " + (project.name || ""),
-              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent because SMS notifications are not enabled for this project. Please enable SMS notifications in Project Settings.`,
+              `We tried to send an SMS to ${to.toString()} with message: <br/> <br/> ${loggedMessageHtml} <br/> <br/> This SMS was not sent. ${ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.SMS,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
           return smsLog.statusMessage!;

@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -57,6 +58,7 @@ export type AffectedResourceType =
   | "ProxmoxCluster"
   | "VMwareVCenter"
   | "CephCluster"
+  | "StorageArray"
   | "DockerSwarmCluster"
   | "IoTFleet"
   | "DatabaseServer"
@@ -94,6 +96,7 @@ export interface AffectedResourcesPayload {
   proxmoxClusters: Array<string> | undefined;
   vmwareVCenters: Array<string> | undefined;
   cephClusters: Array<string> | undefined;
+  storageArrays: Array<string> | undefined;
   dockerSwarmClusters: Array<string> | undefined;
   iotFleets: Array<string> | undefined;
   databaseServers: Array<string> | undefined;
@@ -115,6 +118,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
+  storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
   databaseServers?: Array<DatabaseServer> | undefined;
@@ -222,6 +226,14 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     key: "cephClusters",
     supportsLabels: true,
   },
+  StorageArray: {
+    label: "Storage Array",
+    pluralLabel: "Storage Arrays",
+    icon: IconProp.StorageArray,
+    modelType: StorageArray,
+    key: "storageArrays",
+    supportsLabels: true,
+  },
   DockerSwarmCluster: {
     label: "Docker Swarm Cluster",
     pluralLabel: "Docker Swarm Clusters",
@@ -269,10 +281,11 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
 };
 
 /*
- * The default set. Proxmox / VMware / Ceph / Docker Swarm / IoT / Database are
- * deliberately NOT here: a page only gets them by naming them in `resourceTypes`,
- * because offering a type the page's onChange handler does not write
- * back would silently drop the user's selection on save.
+ * The default set. Proxmox / VMware / Ceph / Storage Array / Docker Swarm /
+ * IoT / Database are deliberately NOT here: a page only gets them by naming
+ * them in `resourceTypes`, because offering a type the page's onChange
+ * handler does not write back would silently drop the user's selection on
+ * save.
  */
 const ALL_TYPES: Array<AffectedResourceType> = [
   "Monitor",
@@ -717,6 +730,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("CephCluster")) {
       items.push(...toItems(props.cephClusters, "CephCluster", cache, failed));
     }
+    if (resourceTypes.includes("StorageArray")) {
+      items.push(
+        ...toItems(props.storageArrays, "StorageArray", cache, failed),
+      );
+    }
     if (resourceTypes.includes("DockerSwarmCluster")) {
       items.push(
         ...toItems(
@@ -751,6 +769,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.proxmoxClusters,
     props.vmwareVCenters,
     props.cephClusters,
+    props.storageArrays,
     props.dockerSwarmClusters,
     props.iotFleets,
     props.databaseServers,
@@ -1208,6 +1227,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       proxmoxClusters: idsFor("ProxmoxCluster"),
       vmwareVCenters: idsFor("VMwareVCenter"),
       cephClusters: idsFor("CephCluster"),
+      storageArrays: idsFor("StorageArray"),
       dockerSwarmClusters: idsFor("DockerSwarmCluster"),
       iotFleets: idsFor("IoTFleet"),
       databaseServers: idsFor("DatabaseServer"),

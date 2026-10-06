@@ -54,5 +54,10 @@
   },
   "allowScripts": {
     "msnodesqlv8@5.2.2": true
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

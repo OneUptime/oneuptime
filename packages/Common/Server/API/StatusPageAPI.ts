@@ -34,7 +34,9 @@ import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregat
 import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
-import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
+import StatusPageSubscriberService, {
+  SMS_SIGN_UP_UNAVAILABLE_MESSAGE,
+} from "../Services/StatusPageSubscriberService";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -3080,9 +3082,7 @@ export default class StatusPageAPI extends BaseAPI<
         `SMS subscribers not enabled for status page with ID: ${statusPageId}`,
         getLogAttributesFromRequest(req as any),
       );
-      throw new BadDataException(
-        "SMS subscribers not enabled for this status page.",
-      );
+      throw new BadDataException(SMS_SIGN_UP_UNAVAILABLE_MESSAGE);
     }
 
     const identifiers: Array<unknown> = [
@@ -3594,9 +3594,7 @@ export default class StatusPageAPI extends BaseAPI<
         `SMS subscribers not enabled for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
-      throw new BadDataException(
-        "SMS subscribers not enabled for this status page.",
-      );
+      throw new BadDataException(SMS_SIGN_UP_UNAVAILABLE_MESSAGE);
     }
 
     // if no email or phone, throw error.

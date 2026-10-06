@@ -25,6 +25,7 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
@@ -38,6 +39,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
+import StorageArrayService from "./StorageArrayService";
 import DatabaseServerService from "./DatabaseServerService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
@@ -1093,6 +1095,23 @@ export default class OTelIngestService {
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.StorageArray) {
+      const storageArray: StorageArray | null =
+        await StorageArrayService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays:
+          storageArray?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig:
+          storageArray?.telemetryRetentionConfig ?? null,
       };
     }
     if (primaryEntityType === ServiceType.DatabaseServer) {

@@ -9,6 +9,7 @@ import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService"
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
+import StorageArrayService from "../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
@@ -20,6 +21,7 @@ import {
   keyForHost,
   keyForKubernetesCluster,
   keyForProxmoxCluster,
+  keyForStorageArray,
   keyForVMwareVCenter,
 } from "../../../Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
@@ -256,8 +258,8 @@ async function resolveDatabaseServerEntityKeys(data: {
  * DockerHost / PodmanHost are inventory-mirrored types that no resource
  * ever declares (see EntityType).
  *
- * Docker Swarm / Proxmox / vCenter / Ceph clusters are root entities whose
- * identity is their name alone (`<type>.name`, see the root identities in
+ * Docker Swarm / Proxmox / vCenter / Ceph clusters and storage arrays are
+ * root entities whose identity is their name alone (`<type>.name`, see the root identities in
  * Utils/Telemetry/TelemetryEntity.ts), and
  * that name is the Postgres row's `name` — the join key ingest writes with
  * `findOrCreateByName`. Keys canonicalize (trim + lowercase) on both sides,
@@ -355,6 +357,11 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
       attributeKey: "resource.ceph.cluster.name",
       entityKeyFor: keyForCephCluster,
       findIdentifiers: findIdentifierColumn(CephClusterService, "name"),
+    },
+    storageArrayId: {
+      attributeKey: "resource.storage.array.name",
+      entityKeyFor: keyForStorageArray,
+      findIdentifiers: findIdentifierColumn(StorageArrayService, "name"),
     },
     serverlessFunctionId: {
       attributeKey: "resource.faas.name",

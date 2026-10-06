@@ -58,6 +58,9 @@ import ServiceFeed, {
 import ServiceLevelObjectiveFeed, {
   ServiceLevelObjectiveFeedEventType,
 } from "../../../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import StorageArrayFeed, {
+  StorageArrayFeedEventType,
+} from "../../../../Models/DatabaseModels/StorageArrayFeed";
 import VMwareVCenterFeed, {
   VMwareVCenterFeedEventType,
 } from "../../../../Models/DatabaseModels/VMwareVCenterFeed";
@@ -297,6 +300,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(ServiceLevelObjectiveFeedEventType),
     resourceIdColumn: "serviceLevelObjectiveId",
     eventTypeColumn: "serviceLevelObjectiveFeedEventType",
+  },
+  {
+    file: "StorageArrayFeed",
+    enumName: "StorageArrayFeedEventType",
+    modelType: StorageArrayFeed,
+    eventTypes: Object.values(StorageArrayFeedEventType),
+    resourceIdColumn: "storageArrayId",
+    eventTypeColumn: "storageArrayFeedEventType",
   },
   {
     file: "VMwareVCenterFeed",

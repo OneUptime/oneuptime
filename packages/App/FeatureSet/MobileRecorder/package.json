@@ -62,5 +62,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }

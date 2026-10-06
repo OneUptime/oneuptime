@@ -15,6 +15,7 @@ import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmCl
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
+import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import IoTFleetService from "../../../../Server/Services/IoTFleetService";
 import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../../Types/Telemetry/ResourceFacetCatalog";
@@ -110,8 +111,9 @@ const SERVICES: Array<{
     identifierField: "appIdentifier",
   },
   /*
-   * Docker Swarm and Ceph join on `name` at ingest but carry a stable
-   * descriptive id (`swarmId` / `fsid`) that is searched too.
+   * Docker Swarm, Ceph and storage arrays join on `name` at ingest but carry
+   * a stable descriptive id (`swarmId` / `fsid` / `systemId`) that is
+   * searched too.
    */
   {
     name: "DockerSwarmCluster",
@@ -124,6 +126,12 @@ const SERVICES: Array<{
     service: CephClusterService as any,
     facetKeys: ["cephClusterId"],
     identifierField: "fsid",
+  },
+  {
+    name: "StorageArray",
+    service: StorageArrayService as any,
+    facetKeys: ["storageArrayId"],
+    identifierField: "systemId",
   },
   // `name` IS the ingest join key — no second column to search.
   {
@@ -204,6 +212,7 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "proxmoxClusterId",
     "vmwareVCenterId",
     "cephClusterId",
+    "storageArrayId",
     "iotFleetId",
     "databaseServerId",
   ])("%s is a resource facet", (facetKey: string) => {
@@ -242,8 +251,8 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     },
   );
 
-  test("the exported key set has exactly the fifteen supported keys, each routed to a service", () => {
-    expect(RESOURCE_FACET_KEYS.size).toBe(15);
+  test("the exported key set has exactly the sixteen supported keys, each routed to a service", () => {
+    expect(RESOURCE_FACET_KEYS.size).toBe(16);
     const routed: Array<string> = SERVICES.flatMap(
       (entry: { facetKeys: Array<string> }) => {
         return entry.facetKeys;

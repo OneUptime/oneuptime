@@ -10,6 +10,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
+import StartingStageUtil, { StartingState } from "../../Utils/StartingStage";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -183,7 +184,8 @@ export class Service extends DatabaseService<AlertState> {
   /*
    * The project's created state: where a new alert or alert episode starts
    * when its create names no state (AlertService, AlertEpisodeService), as
-   * every one OneUptime raises itself does.
+   * every one OneUptime raises itself does. Such a record starts open
+   * (StartingStage), with no need to read the rest of the list.
    */
   @CaptureSpan()
   public async getCreatedAlertStateId(projectId: ObjectID): Promise<ObjectID> {
@@ -209,26 +211,31 @@ export class Service extends DatabaseService<AlertState> {
     return createdAlertState.id;
   }
 
-  // Whether one of the project's alert states is its resolved state.
+  /*
+   * Where an alert or an alert episode starts when it is created in
+   * `alertStateId` (StartingStage): open, acknowledged or resolved, and so
+   * what its create sets off - no on-call from acknowledged on, nothing that
+   * answers a live problem once resolved. One read of the project's whole
+   * list, as OneUptime, which only holds the project's own states: null
+   * when `alertStateId` is not one of them, which also checks that it is.
+   */
   @CaptureSpan()
-  public async isResolvedAlertState(data: {
+  public async getStartingState(data: {
     projectId: ObjectID;
     alertStateId: ObjectID;
-  }): Promise<boolean> {
-    const alertState: AlertState | null = await this.findOneBy({
-      query: {
-        _id: data.alertStateId.toString(),
-        projectId: data.projectId,
-      },
-      select: {
-        isResolvedState: true,
-      },
+  }): Promise<StartingState | null> {
+    const alertStates: Array<AlertState> = await this.getAllAlertStates({
+      projectId: data.projectId,
       props: {
         isRoot: true,
       },
     });
 
-    return Boolean(alertState?.isResolvedState);
+    return StartingStageUtil.getStartingState({
+      definition: STATE_LISTS[StateListType.AlertState],
+      states: alertStates,
+      stateId: data.alertStateId,
+    });
   }
 }
 export default new Service();

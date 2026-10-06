@@ -247,6 +247,8 @@ Affinché gli utenti possano ricevere chiamate in entrata, devono avere un numer
 
 Solo gli utenti con numeri di telefono verificati possono essere chiamati attraverso le regole di escalation.
 
+I numeri per le chiamate in entrata vengono verificati via SMS, quindi prima il progetto deve avere **SMS** attivo. Un proprietario del progetto o qualcuno con **Manage Billing** lo attiva nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
+
 ## Rilascio di un Numero di Telefono
 
 Se non si ha più bisogno di un numero di telefono:

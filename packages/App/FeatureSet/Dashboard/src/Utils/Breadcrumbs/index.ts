@@ -21,6 +21,7 @@ export * from "./VMwareBreadcrumbs";
 export * from "./IoTBreadcrumbs";
 export * from "./DockerSwarmBreadcrumbs";
 export * from "./CephBreadcrumbs";
+export * from "./StorageArrayBreadcrumbs";
 export * from "./HostBreadcrumbs";
 export * from "./DatabaseBreadcrumbs";
 export * from "./MessageQueueBreadcrumbs";

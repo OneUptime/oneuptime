@@ -13,6 +13,7 @@ import PodmanHostService from "../../Services/PodmanHostService";
 import PodmanResourceService from "../../Services/PodmanResourceService";
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import ServiceService from "../../Services/ServiceService";
+import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import { ProjectScopedRelation } from "./ProjectScopedReferenceValidator";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -124,6 +125,11 @@ function getAllAffectedResourceRelations(): Array<ProjectScopedRelation> {
       column: "cephClusters",
       modelName: "Ceph Cluster",
       service: CephClusterService,
+    },
+    {
+      column: "storageArrays",
+      modelName: "Storage Array",
+      service: StorageArrayService,
     },
     {
       column: "databaseServers",

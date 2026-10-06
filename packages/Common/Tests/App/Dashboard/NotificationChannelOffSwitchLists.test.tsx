@@ -25,9 +25,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * A person's SMS, call, WhatsApp and Telegram lists (User Settings ->
  * Notification Methods) and their incoming call numbers each need a project
  * switch on, and all four switches start off. The server refuses a method on
- * a channel that is off - "SMS notifications are disabled for this project.
- * Please enable them in Project Settings > Notification Settings." - so an
- * Add button there was an invitation to that refusal, on every new project.
+ * a channel that is off ("SMS is off in this project. A project owner or
+ * someone with Manage Billing can turn it on in Project Settings >
+ * Notification Settings.") - so an Add button there was an invitation to
+ * that refusal, on every new project.
  *
  * These render the real lists through the real ModelTable, with only the
  * network stubbed, and pin what a person sees in each state of the channel:
@@ -483,6 +484,15 @@ describe.each(METHOD_LISTS)("$name", (list: MethodList) => {
     expect(
       screen.getByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
     ).toHaveTextContent(definition().offSentence);
+    // Who can: a project owner or someone with Manage Billing - not "a project admin".
+    expect(
+      screen.getByTestId(NOTIFICATION_CHANNEL_OFF_SENTENCE_TEST_ID),
+    ).toHaveTextContent(
+      "A project owner or someone with Manage Billing can turn",
+    );
+    expect(document.body.textContent?.toLowerCase()).not.toContain(
+      "project admin",
+    );
   });
 
   test("while its channel is on it offers Add, and nothing new is drawn", async () => {

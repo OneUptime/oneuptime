@@ -54,6 +54,8 @@ As equipes **Owners** e **Admin** são travadas de propósito: suas permissões 
 
 `ProjectOwner` é o nível de acesso mais alto: faturamento, excluir o projeto e tudo o que um administrador pode fazer. `ProjectAdmin` cobre tudo, exceto faturamento e exclusão do projeto.
 
+Ligar ou desligar SMS, chamadas telefônicas, WhatsApp ou Telegram para o projeto conta como faturamento, porque cada mensagem custa dinheiro. Somente `ProjectOwner` e a permissão `ManageProjectBilling` (**Manage Billing**) podem alterar essas chaves, em **Configurações do projeto > Notificações > Configurações de notificação** — não `ProjectAdmin`.
+
 Crie quantas equipes adicionais quiser — "Plantão do Frontend", "Suporte", "Auditores somente leitura" — e dê a cada uma as permissões de que ela precisa.
 
 Onde encontrar: **Configurações → Equipes**. Abra uma equipe para chegar a **Members** e **Permissions**; **Block Permissions** fica em **More settings**, no fim da página Permissions.

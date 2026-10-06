@@ -186,6 +186,7 @@ describe("the phone menu folds the products like the desktop menu", () => {
       "Proxmox",
       "VMware",
       "Ceph",
+      "Storage Arrays",
       "Network",
       "IoT",
       "User Settings",

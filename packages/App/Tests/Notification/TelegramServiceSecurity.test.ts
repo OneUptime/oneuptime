@@ -7,6 +7,10 @@ import API from "Common/Utils/API";
 import ObjectID from "Common/Types/ObjectID";
 import TelegramMessage from "Common/Types/Telegram/TelegramMessage";
 import TelegramStatus from "Common/Types/TelegramStatus";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import TelegramService from "../../FeatureSet/Notification/Services/TelegramService";
 
@@ -30,7 +34,19 @@ jest.mock("../../FeatureSet/Notification/Config", () => {
 });
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
-  return { IsBillingEnabled: true };
+  const URLType: { fromString: (url: string) => unknown } = (
+    jest.requireActual("Common/Types/API/URL") as {
+      default: { fromString: (url: string) => unknown };
+    }
+  ).default;
+
+  return {
+    IsBillingEnabled: true,
+    // Where the owners' notice links to the switch.
+    DashboardClientUrl: URLType.fromString(
+      "https://oneuptime.example.com/dashboard",
+    ),
+  };
 });
 
 jest.mock("Common/Server/Services/NotificationService", () => {
@@ -198,7 +214,12 @@ describe("TelegramService credential containment", () => {
     expect(persistedLog.status).toBe(TelegramStatus.Error);
     expect(persistedLog.telegramCostInUSDCents).toBe(0);
     expect(persistedLog.statusMessage).toBe(
-      "Telegram notifications are not enabled for this project. Please enable Telegram notifications in Project Settings.",
+      getProjectNotificationChannelOffMessage(
+        ProjectNotificationChannel.Telegram,
+      ),
+    );
+    expect(persistedLog.statusMessage).toBe(
+      "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
     );
   });
 
@@ -222,7 +243,11 @@ describe("TelegramService credential containment", () => {
     expect(serializedOwnerEmail).not.toContain(CHAT_ID);
     expect(serializedOwnerEmail).not.toContain(MESSAGE_BODY);
     expect(serializedOwnerEmail).toContain(
-      "Telegram notifications are disabled",
+      "A Telegram notification was not sent. Telegram is off in this project. If it should be on, turn it on in Project Settings &gt; Notification Settings.",
+    );
+    // And the switch, one click away: the owners may flip it.
+    expect(serializedOwnerEmail).toContain(
+      `https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/settings/notification-settings`,
     );
   });
 

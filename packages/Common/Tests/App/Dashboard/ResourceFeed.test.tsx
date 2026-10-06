@@ -814,6 +814,7 @@ describe("getIconForEventType", () => {
       "DockerHost",
       "DockerSwarmCluster",
       "CephCluster",
+      "StorageArray",
       "PodmanHost",
       "ProxmoxCluster",
       "VMwareVCenter",

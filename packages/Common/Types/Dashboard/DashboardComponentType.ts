@@ -55,6 +55,8 @@ enum DashboardComponentType {
   DockerSwarmServiceList = `DockerSwarmServiceList`,
   CephOsdList = `CephOsdList`,
   CephPoolList = `CephPoolList`,
+  StorageArrayVolumeList = `StorageArrayVolumeList`,
+  StorageArrayHardwareList = `StorageArrayHardwareList`,
   NetworkMap = `NetworkMap`,
   Html = `Html`,
 }

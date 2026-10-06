@@ -145,6 +145,11 @@ import StatusPageLabelRule from "../../../../Models/DatabaseModels/StatusPageLab
 import StatusPageOwnerRule from "../../../../Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageOwnerTeam from "../../../../Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "../../../../Models/DatabaseModels/StatusPageOwnerUser";
+import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
+import StorageArrayLabelRule from "../../../../Models/DatabaseModels/StorageArrayLabelRule";
+import StorageArrayOwnerRule from "../../../../Models/DatabaseModels/StorageArrayOwnerRule";
+import StorageArrayOwnerTeam from "../../../../Models/DatabaseModels/StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "../../../../Models/DatabaseModels/StorageArrayOwnerUser";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
 import VMwareVCenterLabelRule from "../../../../Models/DatabaseModels/VMwareVCenterLabelRule";
 import VMwareVCenterOwnerRule from "../../../../Models/DatabaseModels/VMwareVCenterOwnerRule";
@@ -305,6 +310,11 @@ import StatusPageLabelRuleService from "../../../Services/StatusPageLabelRuleSer
 import StatusPageOwnerRuleEngineService from "../../../Services/StatusPageOwnerRuleEngineService";
 import StatusPageOwnerRuleService from "../../../Services/StatusPageOwnerRuleService";
 import StatusPageService from "../../../Services/StatusPageService";
+import StorageArrayLabelRuleEngineService from "../../../Services/StorageArrayLabelRuleEngineService";
+import StorageArrayLabelRuleService from "../../../Services/StorageArrayLabelRuleService";
+import StorageArrayOwnerRuleEngineService from "../../../Services/StorageArrayOwnerRuleEngineService";
+import StorageArrayOwnerRuleService from "../../../Services/StorageArrayOwnerRuleService";
+import StorageArrayService from "../../../Services/StorageArrayService";
 import VMwareVCenterLabelRuleEngineService from "../../../Services/VMwareVCenterLabelRuleEngineService";
 import VMwareVCenterLabelRuleService from "../../../Services/VMwareVCenterLabelRuleService";
 import VMwareVCenterOwnerRuleEngineService from "../../../Services/VMwareVCenterOwnerRuleEngineService";
@@ -827,6 +837,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: StatusPageService,
     engine: StatusPageOwnerRuleEngineService,
     ownerModelTypes: [StatusPageOwnerUser, StatusPageOwnerTeam],
+  }),
+  [RuleRunType.StorageArrayLabelRule]: defineRuleRun({
+    ruleModelType: StorageArrayLabelRule,
+    resourceModelType: StorageArray,
+    ruleService: StorageArrayLabelRuleService,
+    resourceService: StorageArrayService,
+    engine: StorageArrayLabelRuleEngineService,
+  }),
+  [RuleRunType.StorageArrayOwnerRule]: defineRuleRun({
+    ruleModelType: StorageArrayOwnerRule,
+    resourceModelType: StorageArray,
+    ruleService: StorageArrayOwnerRuleService,
+    resourceService: StorageArrayService,
+    engine: StorageArrayOwnerRuleEngineService,
+    ownerModelTypes: [StorageArrayOwnerUser, StorageArrayOwnerTeam],
   }),
   [RuleRunType.VMwareVCenterLabelRule]: defineRuleRun({
     ruleModelType: VMwareVCenterLabelRule,

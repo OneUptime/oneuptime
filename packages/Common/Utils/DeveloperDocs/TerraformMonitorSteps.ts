@@ -63,6 +63,7 @@ export const MONITOR_STEP_SUB_CONFIGS: ReadonlyArray<{
   { attributeName: "vmware_monitor", apiKey: "vmwareMonitor" },
   { attributeName: "docker_swarm_monitor", apiKey: "dockerSwarmMonitor" },
   { attributeName: "ceph_monitor", apiKey: "cephMonitor" },
+  { attributeName: "storage_array_monitor", apiKey: "storageArrayMonitor" },
   { attributeName: "iot_monitor", apiKey: "iotMonitor" },
 ];
 

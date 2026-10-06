@@ -14,6 +14,7 @@ enum MonitorType {
   Proxmox = "Proxmox",
   VMware = "VMware",
   Ceph = "Ceph",
+  StorageArray = "Storage Array",
   IoTDevice = "IoT Device",
   IP = "IP",
   IncomingRequest = "Incoming Request",
@@ -167,6 +168,7 @@ export class MonitorTypeHelper {
           MonitorType.Proxmox,
           MonitorType.VMware,
           MonitorType.Ceph,
+          MonitorType.StorageArray,
           MonitorType.IoTDevice,
         ],
       },
@@ -211,6 +213,7 @@ export class MonitorTypeHelper {
       monitorType === MonitorType.Proxmox ||
       monitorType === MonitorType.VMware ||
       monitorType === MonitorType.Ceph ||
+      monitorType === MonitorType.StorageArray ||
       monitorType === MonitorType.IoTDevice
     );
   }
@@ -441,6 +444,27 @@ export class MonitorTypeHelper {
           "rados",
           "cluster",
           "object storage",
+        ],
+      },
+      {
+        monitorType: MonitorType.StorageArray,
+        title: "Storage Array",
+        description:
+          "Array health, alerts, capacity, latency and hardware of Pure Storage FlashArray and FlashBlade.",
+        icon: IconProp.StorageArray,
+        keywords: [
+          "storage",
+          "storage array",
+          "san",
+          "nas",
+          "pure storage",
+          "everpure",
+          "flasharray",
+          "flashblade",
+          "volume",
+          "capacity",
+          "latency",
+          "replication",
         ],
       },
       {
@@ -908,6 +932,7 @@ export class MonitorTypeHelper {
       MonitorType.Proxmox,
       MonitorType.VMware,
       MonitorType.Ceph,
+      MonitorType.StorageArray,
       MonitorType.IoTDevice,
     ];
   }
