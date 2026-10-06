@@ -2,6 +2,7 @@ import DatabaseService from "../../../../Services/DatabaseService";
 import Query from "../../../Database/Query";
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "../../../../../Types/Database/PartialEntity";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -13,6 +14,10 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import {
+  getCustomFieldsToMerge,
+  updateOneMergingCustomFields,
+} from "./CustomFieldsArgument";
 import logComponentError from "./LogComponentError";
 
 export default class UpdateOneBaseModel<
@@ -133,14 +138,33 @@ export default class UpdateOneBaseModel<
         ] = options.projectId;
       }
 
-      const itemsUpdated: number = await this.modelService.updateOneBy({
-        query: query,
-        data: args["data"] as QueryDeepPartialEntity<TBaseModel>,
-        props: {
-          isRoot: true,
-          tenantId: options.projectId,
-        },
-      });
+      const data: JSONObject = args["data"] as JSONObject;
+
+      const props: DatabaseCommonInteractionProps = {
+        isRoot: true,
+        tenantId: options.projectId,
+      };
+
+      // Custom fields are merged into what the record holds. See the helper.
+      const customFields: JSONObject | null = getCustomFieldsToMerge(
+        data,
+        this.modelService.getModel(),
+      );
+
+      const itemsUpdated: number = customFields
+        ? await updateOneMergingCustomFields({
+            modelService: this.modelService,
+            query: query,
+            data: data,
+            customFields: customFields,
+            props: props,
+            log: options.log,
+          })
+        : await this.modelService.updateOneBy({
+            query: query,
+            data: data as QueryDeepPartialEntity<TBaseModel>,
+            props: props,
+          });
 
       /*
        * A query that matches nothing is not an error, but reporting it as a
