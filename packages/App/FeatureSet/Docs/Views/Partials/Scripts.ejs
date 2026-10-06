@@ -149,12 +149,23 @@
                     tocPanel.style.display = 'none';
                 }
             } else {
+                /*
+                 * Entries keep the article's direction, which is not the
+                 * page's when an untranslated page shows the English copy:
+                 * in a right-to-left list "1. Is the token valid?" would be
+                 * drawn "?Is the token valid .1".
+                 */
+                var articleDirection = window.getComputedStyle(article).direction;
+
                 headings.forEach(function (heading) {
                     var textNode = heading.querySelector('.docs-heading__text');
                     var item = document.createElement('li');
                     var anchor = document.createElement('a');
+                    var label = document.createElement('span');
                     anchor.href = '#' + heading.id;
-                    anchor.textContent = (textNode ? textNode.textContent : heading.textContent).trim();
+                    label.dir = articleDirection;
+                    label.textContent = (textNode ? textNode.textContent : heading.textContent).trim();
+                    anchor.appendChild(label);
                     anchor.className = 'docs-toc__link';
                     anchor.setAttribute('data-level', heading.tagName.slice(1));
                     anchor.setAttribute('data-toc-id', heading.id);
@@ -293,7 +304,7 @@
                     '<span class="docs-search__item-title block truncate">' + highlightMatch(item.title, query) + '</span>' +
                     '<span class="docs-search__item-meta block truncate">' + highlightMatch(item.category, query) + '</span>' +
                     '</span>' +
-                    '<svg class="h-3.5 w-3.5 flex-none opacity-30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
+                    '<svg class="docs-rtl-mirror h-3.5 w-3.5 flex-none opacity-30" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>' +
                     '</a>';
             }).join('');
             searchInput.setAttribute('aria-activedescendant', 'search-result-0');

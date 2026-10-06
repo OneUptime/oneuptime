@@ -1,4 +1,4 @@
-<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" class="h-full antialiased">
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" dir="<%= typeof dir !== 'undefined' ? dir : 'ltr' %>" class="h-full antialiased">
 
 <head>
     <%- include('./Partials/Head.ejs', {
@@ -45,15 +45,15 @@
             <% if (hasNav) { %>
             <!-- Desktop sidebar -->
             <div class="docs-layout-sidebar max-lg:hidden lg:relative lg:block lg:flex-none">
-                <div class="docs-sidebar-tint absolute inset-y-0 right-0 w-[50vw]" aria-hidden="true"></div>
-                <div id="docs-sidebar-scroll" class="docs-scroll sticky top-14 -ml-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 pl-0.5 pr-6">
+                <div class="docs-sidebar-tint absolute inset-y-0 end-0 w-[50vw]" aria-hidden="true"></div>
+                <div id="docs-sidebar-scroll" class="docs-scroll sticky top-14 -ms-0.5 h-[calc(100vh-3.5rem)] w-64 overflow-y-auto overflow-x-hidden py-8 ps-0.5 pe-6">
                     <%- include('./Partials/Nav.ejs', { nav: nav, category: null, link: null, t: t, lang: lang, navIdPrefix: 'sidebar' }) %>
                 </div>
             </div>
             <% } %>
 
             <!-- Error content -->
-            <div id="docs-content" class="min-w-0 flex-auto px-5 py-16 sm:px-6 lg:pl-10 lg:pr-0 xl:pl-14 xl:pr-8">
+            <div id="docs-content" class="min-w-0 flex-auto px-5 py-16 sm:px-6 lg:ps-10 lg:pe-0 xl:ps-14 xl:pe-8">
                 <div class="mx-auto flex max-w-md flex-col items-center py-12 text-center">
                     <div class="docs-state__icon docs-state__icon--danger mb-6">
                         <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -77,7 +77,7 @@
                             <%- t('ui.tryAgain') %>
                         </button>
                         <a href="/docs/<%= lang %>/introduction/getting-started" class="docs-btn docs-btn--secondary">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <svg class="docs-rtl-mirror h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                             </svg>
                             <%- t('ui.backToDocs') %>
