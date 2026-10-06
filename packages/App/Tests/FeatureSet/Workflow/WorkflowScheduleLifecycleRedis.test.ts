@@ -115,7 +115,7 @@ import WorkflowAPI from "../../../FeatureSet/Workflow/API/Workflow";
 const EVERY_SECOND: string = "* * * * * *";
 const sleep: (ms: number) => Promise<void> = (ms: number) => {
   return new Promise((r: () => void) => {
-    return setTimeout(r, ms);
+    setTimeout(r, ms);
   });
 };
 
@@ -310,12 +310,14 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
     expect(await QueueWorkflow.isScheduleCurrent(id)).toBe(true);
   });
 
-  // Kill the connection server-side; ioredis reconnects and the Queue's
-  // "ready" handler replays its registry (through the guard).
+  /*
+   * Kill the connection server-side; ioredis reconnects and the Queue's
+   * "ready" handler replays its registry (through the guard).
+   */
   const reconnect: () => Promise<void> = async () => {
     const client: any = await Queue.getQueue(QueueName.Workflow).client;
     const ready: Promise<void> = new Promise((r: () => void) => {
-      return client.once("ready", r);
+      client.once("ready", r);
     });
     client.disconnect(true);
     await ready;
@@ -345,8 +347,10 @@ describe("Workflow schedule lifecycle (real Valkey)", () => {
     guardWithDatabase();
     addRow(id1);
     await notify(id1);
-    // another pod: persisted state changes and the repeatable goes, this
-    // process's registry still holds it
+    /*
+     * another pod: persisted state changes and the repeatable goes, this
+     * process's registry still holds it
+     */
     table.get(id1)!["triggerId"] = ComponentID.Manual;
     const q: any = Queue.getQueue(QueueName.Workflow);
     for (const r of await q.getRepeatableJobs()) {
