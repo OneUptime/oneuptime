@@ -119,23 +119,14 @@ export default class TablePermission {
 
   /*
    * What the caller holds, read as the CRUD path reads it: the allow rows
-   * and global permissions getUserPermissions(Allow) returns (Public among
-   * them for everyone), and the block rows of getUserPermissions(Block).
+   * and global permissions (Public among them for everyone) and the block
+   * rows (DatabaseCommonInteractionPropsUtil.getPermissionRows).
    */
   public static getHeldPermissions(
     props: DatabaseCommonInteractionProps,
   ): HeldPermissions {
     return HeldPermissionsUtil.fromRows({
-      rows: [
-        ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-          props,
-          PermissionType.Allow,
-        ),
-        ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-          props,
-          PermissionType.Block,
-        ),
-      ],
+      rows: DatabaseCommonInteractionPropsUtil.getPermissionRows(props),
     });
   }
 
@@ -157,35 +148,24 @@ export default class TablePermission {
   }
 
   /*
-   * The permissions whose allow rows grant this operation: the model's own
-   * list, and its wildcard unless a block with no labels takes the wildcard
-   * away or the list is empty (nobody may do the operation). For a later
-   * step that weighs the scope of the rows that grant (OwnedScopePermission).
+   * The permissions whose allow rows grant this operation
+   * (HeldPermissionsUtil.getGrantingPermissions): the model's own list, and
+   * its wildcard unless a block with no labels takes the wildcard away or
+   * the list is empty (nobody may do the operation). For a later step that
+   * weighs the scope of the rows that grant (OwnedScopePermission).
    */
   public static getGrantingPermissions(
     modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
     props: DatabaseCommonInteractionProps,
   ): Array<Permission> {
-    const modelPermissions: Array<Permission> = [
-      ...TablePermission.getTablePermission(modelType, type),
-    ];
-
-    const wildcard: Permission | null = TablePermission.getModelWildcard(
-      modelType,
-      type,
+    return HeldPermissionsUtil.getGrantingPermissions(
+      TablePermission.getHeldPermissions(props),
+      {
+        modelPermissions: TablePermission.getTablePermission(modelType, type),
+        wildcard: TablePermission.getModelWildcard(modelType, type),
+      },
     );
-
-    if (
-      !wildcard ||
-      modelPermissions.length === 0 ||
-      modelPermissions.includes(wildcard) ||
-      TablePermission.getHeldPermissions(props).blocked.includes(wildcard)
-    ) {
-      return modelPermissions;
-    }
-
-    return [...modelPermissions, wildcard];
   }
 
   @CaptureSpan()

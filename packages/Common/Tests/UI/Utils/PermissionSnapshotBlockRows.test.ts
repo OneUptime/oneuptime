@@ -39,10 +39,15 @@ jest.mock("../../../UI/Utils/User", () => {
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate, {
   BLOCKED_PERMISSION_TEMPLATE,
+  ColumnPermissionCheckableModel,
   ModelAction,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
-import { HeldPermissions } from "../../../Types/HeldPermissions";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../Types/HeldPermissions";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import Dictionary from "../../../Types/Dictionary";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -459,5 +464,87 @@ describe("PermissionGate.holdsColumnPermission", () => {
         "update",
       ),
     ).toBe(false);
+  });
+});
+
+describe("PermissionGate.canReadColumn: the one rule every select follows", () => {
+  const MONITOR_READ: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ReadProjectMonitor,
+  ];
+
+  // A model whose columns name each kind of read rule.
+  const model: ColumnPermissionCheckableModel = {
+    getColumnAccessControlForAllColumns:
+      (): Dictionary<ColumnAccessControl> => {
+        return {
+          everyone: { read: [Permission.Public], create: [], update: [] },
+          nobody: { read: [], create: [], update: [] },
+          readers: { read: [...MONITOR_READ], create: [], update: [] },
+          editors: {
+            read: [Permission.ProjectOwner, Permission.EditProjectMonitor],
+            create: [],
+            update: [],
+          },
+        };
+      },
+    getReadPermissions: (): Array<Permission> => {
+      return [...MONITOR_READ];
+    },
+    isOperationalResource: true,
+  };
+
+  test("the columns every select may name, whatever is held", () => {
+    for (const column of ["_id", "createdAt", "updatedAt", "version"]) {
+      expect(PermissionGate.canReadColumn(model, column)).toBe(true);
+    }
+  });
+
+  test("a column Public reads is read by everyone, before the snapshot lands too", () => {
+    expect(PermissionGate.canReadColumn(model, "everyone")).toBe(true);
+  });
+
+  test("a column that names no read permission is closed, as the server closes it", () => {
+    store([row(Permission.ProjectOwner)]);
+
+    expect(PermissionGate.canReadColumn(model, "nobody")).toBe(false);
+    expect(PermissionGate.canReadColumn(model, "undeclared")).toBe(false);
+  });
+
+  test("a grant reads it; a block with no labels on its permissions takes it away", () => {
+    store([row(Permission.ReadProjectMonitor)]);
+    expect(PermissionGate.canReadColumn(model, "readers")).toBe(true);
+
+    store([
+      row(Permission.ReadProjectMonitor),
+      row(Permission.ProjectOwner, { isBlock: true }),
+    ]);
+    expect(PermissionGate.canReadColumn(model, "readers")).toBe(false);
+  });
+
+  test("the wildcard reads a column that admits everyone its table does, not a narrower one", () => {
+    store([row(Permission.ReadAllOperationalResources)]);
+
+    expect(PermissionGate.canReadColumn(model, "readers")).toBe(true);
+    expect(PermissionGate.canReadColumn(model, "editors")).toBe(false);
+  });
+
+  test("a master admin reads every column", () => {
+    store([]);
+    isMasterAdminForTest = true;
+
+    expect(PermissionGate.canReadColumn(model, "nobody")).toBe(true);
+  });
+
+  test("a snapshot handed in is read instead of the stored one", () => {
+    store([]);
+
+    expect(
+      PermissionGate.canReadColumn(model, "readers", {
+        held: HeldPermissionsUtil.fromPermissions([
+          Permission.ReadProjectMonitor,
+        ]),
+      }),
+    ).toBe(true);
   });
 });

@@ -8,7 +8,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -118,10 +117,8 @@ function EventNotes<TNote extends BaseModel>(
   }, [props.modelType]);
 
   const isPublic: boolean = props.visibility === "public";
-  // What the viewer holds, and what a team of theirs blocks.
+  // What the viewer holds, blocks included.
   const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
-  const userPermissions: Array<Permission> = heldPermissions.allowed;
-  const blockedPermissions: Array<Permission> = heldPermissions.blocked;
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string, action: "create" | "update") => boolean = (
@@ -134,8 +131,7 @@ function EventNotes<TNote extends BaseModel>(
         model,
         column,
         action,
-        userPermissions,
-        blockedPermissions,
+        held: heldPermissions,
         isMasterAdmin,
       })
     );
@@ -235,8 +231,7 @@ function EventNotes<TNote extends BaseModel>(
       model,
       visibility: props.visibility,
       isAttachmentsEnabled: hasAttachments,
-      userPermissions,
-      blockedPermissions,
+      held: heldPermissions,
       isMasterAdmin,
     });
   }, [
@@ -244,8 +239,8 @@ function EventNotes<TNote extends BaseModel>(
     props.visibility,
     hasAttachments,
     isMasterAdmin,
-    userPermissions.join(","),
-    blockedPermissions.join(","),
+    heldPermissions.allowed.join(","),
+    heldPermissions.blocked.join(","),
   ]);
 
   const timestampField: string =

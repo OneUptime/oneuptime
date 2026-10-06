@@ -617,29 +617,19 @@ export function getNotesCopy(
 
 /*
  * Whether the viewer holds one of a column's permissions for an operation,
- * read the way the server's column check reads it (HeldPermissionsUtil): one
- * of the permissions held - Public by everyone - no team block on any of
- * them, and the table's operational-resource wildcard for a column that
- * admits everyone its table does.
+ * by the server's column rule (HeldPermissionsUtil.holdsColumnPermission):
+ * one of the permissions held - Public by everyone - no team block on any of
+ * them, the table's operational-resource wildcard for a column that admits
+ * everyone its table does, and a column that names no permission closed.
  */
 function holdsColumnPermission(data: {
   model: BaseModel;
+  column: string;
   operation: "create" | "read" | "update";
-  columnPermissions: Array<Permission>;
-  userPermissions: Array<Permission>;
-  blockedPermissions?: Array<Permission> | undefined;
+  held: HeldPermissions;
 }): boolean {
-  const allowed: Array<Permission> = [
-    ...data.userPermissions,
-    Permission.Public,
-  ];
-
-  const held: HeldPermissions = {
-    allowed: allowed,
-    allowedProjectWide: allowed,
-    blocked: data.blockedPermissions || [],
-    blockedForSomeLabels: [],
-  };
+  const accessControl: Dictionary<ColumnAccessControl> =
+    data.model.getColumnAccessControlForAllColumns();
 
   let tablePermissions: Array<Permission> = data.model.getUpdatePermissions();
 
@@ -649,51 +639,37 @@ function holdsColumnPermission(data: {
     tablePermissions = data.model.getReadPermissions();
   }
 
-  return HeldPermissionsUtil.holdsAnyOf(held, data.columnPermissions, {
-    wildcard: HeldPermissionsUtil.getColumnWildcard({
-      isOperationalResource: data.model.isOperationalResource,
-      operation: data.operation,
-      tablePermissions: tablePermissions || [],
-      columnPermissions: data.columnPermissions,
-    }),
+  return HeldPermissionsUtil.holdsColumnPermission(data.held, {
+    isOperationalResource: data.model.isOperationalResource,
+    operation: data.operation,
+    tablePermissions: tablePermissions || [],
+    columnPermissions: accessControl[data.column]?.[data.operation] || [],
   });
 }
 
 /*
- * Whether the viewer may read one column. Mirrors the notes table this feed
- * replaced: a column with no read rule is readable, and one with a rule needs
- * a matching permission that no team of the viewer's blocks
- * (holdsColumnPermission). Asking for a column the viewer cannot read fails
- * the whole list request, so the feed only selects what passes this.
+ * Whether the viewer may read one column, by the rule every select follows
+ * (HeldPermissionsUtil.canSelectColumn, which PermissionGate.canReadColumn
+ * asks too). Asking for a column the viewer cannot read fails the whole list
+ * request, so the feed only selects what passes this.
  */
 export function canReadNoteColumn(data: {
   model: BaseModel;
   column: string;
-  userPermissions: Array<Permission>;
-  // What a team of the viewer's blocks (PermissionGate.getHeldPermissions).
-  blockedPermissions?: Array<Permission> | undefined;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  const accessControl: Dictionary<ColumnAccessControl> =
-    data.model.getColumnAccessControlForAllColumns();
-
-  const readPermissions: Array<Permission> | undefined =
-    accessControl[data.column]?.read;
-
-  if (!readPermissions) {
-    return true;
-  }
-
-  return holdsColumnPermission({
-    model: data.model,
-    operation: "read",
-    columnPermissions: readPermissions,
-    userPermissions: data.userPermissions,
-    blockedPermissions: data.blockedPermissions,
+  return HeldPermissionsUtil.canSelectColumn(data.held, {
+    column: data.column,
+    isOperationalResource: data.model.isOperationalResource,
+    tablePermissions: data.model.getReadPermissions() || [],
+    readPermissions:
+      data.model.getColumnAccessControlForAllColumns()[data.column]?.read,
   });
 }
 
@@ -712,8 +688,8 @@ export function buildNotesSelect(data: {
   model: BaseModel;
   visibility: NoteVisibility;
   isAttachmentsEnabled: boolean;
-  userPermissions: Array<Permission>;
-  blockedPermissions?: Array<Permission> | undefined;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): JSONObject {
   const candidates: JSONObject = {
@@ -746,7 +722,7 @@ export function buildNotesSelect(data: {
 
   const select: JSONObject = {};
   const isPermissionSnapshotLoaded: boolean =
-    data.isMasterAdmin || data.userPermissions.length > 0;
+    data.isMasterAdmin || HeldPermissionsUtil.isLoaded(data.held);
 
   for (const column of Object.keys(candidates)) {
     const isKnownColumn: boolean =
@@ -762,8 +738,7 @@ export function buildNotesSelect(data: {
       canReadNoteColumn({
         model: data.model,
         column,
-        userPermissions: data.userPermissions,
-        blockedPermissions: data.blockedPermissions,
+        held: data.held,
         isMasterAdmin: data.isMasterAdmin,
       })
     ) {
@@ -788,31 +763,19 @@ export function canWriteNoteColumn(data: {
   model: BaseModel;
   column: string;
   action: ColumnAction;
-  userPermissions: Array<Permission>;
-  // What a team of the viewer's blocks (PermissionGate.getHeldPermissions).
-  blockedPermissions?: Array<Permission> | undefined;
+  // What the viewer holds (PermissionGate.getHeldPermissions).
+  held: HeldPermissions;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  const accessControl: Dictionary<ColumnAccessControl> =
-    data.model.getColumnAccessControlForAllColumns();
-
-  const columnPermissions: Array<Permission> =
-    accessControl[data.column]?.[data.action] || [];
-
-  if (columnPermissions.length === 0) {
-    return false;
-  }
-
   return holdsColumnPermission({
     model: data.model,
+    column: data.column,
     operation: data.action,
-    columnPermissions: columnPermissions,
-    userPermissions: data.userPermissions,
-    blockedPermissions: data.blockedPermissions,
+    held: data.held,
   });
 }
 

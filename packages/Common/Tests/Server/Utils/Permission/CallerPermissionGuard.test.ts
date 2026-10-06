@@ -22,8 +22,9 @@ import ts from "typescript";
  *      parameter typed as one - are read only to hand them to the rule
  *      (`HeldPermissionsUtil.fromRows({ rows: ... })`), or in a file listed
  *      in ROW_READERS.
- *   2. DatabaseCommonInteractionPropsUtil.getUserPermissions is called only
- *      in a file listed in USER_PERMISSIONS_CALLERS.
+ *   2. DatabaseCommonInteractionPropsUtil.getUserPermissions, and
+ *      getPermissionRows (both kinds of row together), are called only in a
+ *      file listed in USER_PERMISSIONS_CALLERS.
  *
  * Both lists only shrink: an entry whose file no longer does what it is
  * listed for fails the guard until the entry goes.
@@ -81,10 +82,12 @@ const ROW_READERS: Record<string, string> = {
 };
 
 /*
- * The files that call DatabaseCommonInteractionPropsUtil.getUserPermissions,
- * and why.
+ * The files that call DatabaseCommonInteractionPropsUtil.getUserPermissions
+ * or getPermissionRows, and why.
  */
 const USER_PERMISSIONS_CALLERS: Record<string, string> = {
+  "packages/Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil.ts":
+    "getPermissionRows: the allow and block rows of getUserPermissions together, for the rule.",
   "packages/Common/Server/Types/Database/Permissions/TablePermission.ts":
     "The CRUD table check: hands the rows to HeldPermissionsUtil and refuses a block with no labels in a step of its own.",
   "packages/Common/Server/Types/Database/Permissions/ColumnPermission.ts":
@@ -308,9 +311,19 @@ function findRowReads(file: string, text: string): Array<Finding> {
   return findings;
 }
 
-// Every call of DatabaseCommonInteractionPropsUtil.getUserPermissions.
+// The CRUD path's row readers: either kind of row, or both together.
+const ROW_READER_METHODS: ReadonlyArray<string> = [
+  "getUserPermissions",
+  "getPermissionRows",
+];
+
+// Every call of DatabaseCommonInteractionPropsUtil's row readers.
 function findUserPermissionsCalls(file: string, text: string): Array<Finding> {
-  if (!text.includes("getUserPermissions")) {
+  if (
+    !ROW_READER_METHODS.some((method: string): boolean => {
+      return text.includes(method);
+    })
+  ) {
     return [];
   }
 
@@ -321,7 +334,7 @@ function findUserPermissionsCalls(file: string, text: string): Array<Finding> {
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.text === "getUserPermissions" &&
+      ROW_READER_METHODS.includes(node.expression.name.text) &&
       node.expression.expression.getText(sourceFile) ===
         "DatabaseCommonInteractionPropsUtil"
     ) {
@@ -417,13 +430,14 @@ describe("CallerPermissionGuard: the detector", () => {
     ).toEqual([]);
   });
 
-  test("finds the CRUD path's row reader by its call", () => {
+  test("finds the CRUD path's row readers by their calls", () => {
     expect(
       findUserPermissionsCalls(
         "Example.ts",
-        `const rows = DatabaseCommonInteractionPropsUtil.getUserPermissions(props, PermissionType.Allow);`,
+        `const rows = DatabaseCommonInteractionPropsUtil.getUserPermissions(props, PermissionType.Allow);
+        const both = DatabaseCommonInteractionPropsUtil.getPermissionRows(props);`,
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 });
 

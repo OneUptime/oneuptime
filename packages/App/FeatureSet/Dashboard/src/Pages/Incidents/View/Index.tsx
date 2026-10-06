@@ -617,8 +617,7 @@ const IncidentView: FunctionComponent<
       model: incidentModelForPermissions,
       column: "subscriberNotificationStatusOnIncidentCreated",
       action: "update",
-      userPermissions: PermissionGate.getHeldPermissions().allowed,
-      blockedPermissions: PermissionGate.getHeldPermissions().blocked,
+      held: PermissionGate.getHeldPermissions(),
       isMasterAdmin: User.isMasterAdmin(),
     });
 

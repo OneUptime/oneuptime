@@ -572,3 +572,274 @@ describe("HeldPermissionsUtil wildcards", () => {
     ).toBeNull();
   });
 });
+
+describe("HeldPermissionsUtil.holdsModelPermission", () => {
+  const MONITOR_UPDATE: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.EditProjectMonitor,
+  ];
+
+  test("the model's own permission grants, and on an operational resource its wildcard does too", () => {
+    expect(
+      HeldPermissionsUtil.holdsModelPermission(
+        held([row(Permission.EditProjectMonitor)]),
+        {
+          isOperationalResource: true,
+          operation: "update",
+          modelPermissions: MONITOR_UPDATE,
+        },
+      ),
+    ).toBe(true);
+
+    expect(
+      HeldPermissionsUtil.holdsModelPermission(
+        held([row(Permission.EditAllOperationalResources)]),
+        {
+          isOperationalResource: true,
+          operation: "update",
+          modelPermissions: MONITOR_UPDATE,
+        },
+      ),
+    ).toBe(true);
+
+    expect(
+      HeldPermissionsUtil.holdsModelPermission(
+        held([row(Permission.EditAllOperationalResources)]),
+        {
+          isOperationalResource: false,
+          operation: "update",
+          modelPermissions: MONITOR_UPDATE,
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("a block with no labels on the model's list refuses the wildcard holder", () => {
+    expect(
+      HeldPermissionsUtil.holdsModelPermission(
+        held([
+          row(Permission.EditAllOperationalResources),
+          row(Permission.EditProjectMonitor, { isBlock: true }),
+        ]),
+        {
+          isOperationalResource: true,
+          operation: "update",
+          modelPermissions: MONITOR_UPDATE,
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("options reach the rule: a labelled block refuses where the check asks it to", () => {
+    const rows: HeldPermissions = held([
+      row(Permission.EditProjectMonitor),
+      row(Permission.EditProjectMonitor, { isBlock: true, labelled: true }),
+    ]);
+
+    expect(
+      HeldPermissionsUtil.holdsModelPermission(rows, {
+        isOperationalResource: true,
+        operation: "update",
+        modelPermissions: MONITOR_UPDATE,
+      }),
+    ).toBe(true);
+    expect(
+      HeldPermissionsUtil.holdsModelPermission(
+        rows,
+        {
+          isOperationalResource: true,
+          operation: "update",
+          modelPermissions: MONITOR_UPDATE,
+        },
+        { labelledBlocksRefuse: true },
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("HeldPermissionsUtil.holdsColumnPermission", () => {
+  const TABLE_READ: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ReadProjectMonitor,
+  ];
+
+  type ColumnFunction = (
+    rows: HeldPermissions,
+    columnPermissions: Array<Permission>,
+  ) => boolean;
+
+  const readColumn: ColumnFunction = (
+    rows: HeldPermissions,
+    columnPermissions: Array<Permission>,
+  ): boolean => {
+    return HeldPermissionsUtil.holdsColumnPermission(rows, {
+      isOperationalResource: true,
+      operation: "read",
+      tablePermissions: TABLE_READ,
+      columnPermissions: columnPermissions,
+    });
+  };
+
+  test("one of the column's permissions grants it", () => {
+    expect(
+      readColumn(held([row(Permission.ReadProjectMonitor)]), TABLE_READ),
+    ).toBe(true);
+    expect(readColumn(held([row(Permission.ProjectMember)]), TABLE_READ)).toBe(
+      false,
+    );
+  });
+
+  test("Public counts for everyone, held or not, as the server adds it", () => {
+    expect(readColumn(held([]), [Permission.Public])).toBe(true);
+    expect(
+      readColumn(HeldPermissionsUtil.fromPermissions([Permission.Public]), [
+        Permission.Public,
+      ]),
+    ).toBe(true);
+  });
+
+  test("a column that names no permission is closed to everyone", () => {
+    expect(readColumn(held([row(Permission.ProjectOwner)]), [])).toBe(false);
+  });
+
+  test("a block with no labels on any of the column's permissions takes it away", () => {
+    expect(
+      readColumn(
+        held([
+          row(Permission.ProjectOwner),
+          row(Permission.ReadProjectMonitor, { isBlock: true }),
+        ]),
+        TABLE_READ,
+      ),
+    ).toBe(false);
+  });
+
+  test("the wildcard opens a column that lets in everyone its table does, and no narrower one", () => {
+    const wildcardHolder: HeldPermissions = held([
+      row(Permission.ReadAllOperationalResources),
+    ]);
+
+    expect(
+      readColumn(wildcardHolder, [...TABLE_READ, Permission.ProjectAdmin]),
+    ).toBe(true);
+    expect(
+      readColumn(wildcardHolder, [
+        Permission.ProjectOwner,
+        Permission.EditProjectMonitor,
+      ]),
+    ).toBe(false);
+  });
+});
+
+describe("HeldPermissionsUtil.getGrantingPermissions", () => {
+  const MONITOR_READ: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ReadProjectMonitor,
+  ];
+
+  test("the model's own list, and the wildcard of an operational resource", () => {
+    expect(
+      HeldPermissionsUtil.getGrantingPermissions(held([]), {
+        modelPermissions: MONITOR_READ,
+        wildcard: Permission.ReadAllOperationalResources,
+      }),
+    ).toEqual([...MONITOR_READ, Permission.ReadAllOperationalResources]);
+
+    expect(
+      HeldPermissionsUtil.getGrantingPermissions(held([]), {
+        modelPermissions: MONITOR_READ,
+        wildcard: null,
+      }),
+    ).toEqual(MONITOR_READ);
+  });
+
+  test("no wildcard when a block with no labels takes it away, or nobody may do the operation", () => {
+    expect(
+      HeldPermissionsUtil.getGrantingPermissions(
+        held([row(Permission.ReadAllOperationalResources, { isBlock: true })]),
+        {
+          modelPermissions: MONITOR_READ,
+          wildcard: Permission.ReadAllOperationalResources,
+        },
+      ),
+    ).toEqual(MONITOR_READ);
+
+    expect(
+      HeldPermissionsUtil.getGrantingPermissions(held([]), {
+        modelPermissions: [],
+        wildcard: Permission.ReadAllOperationalResources,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("HeldPermissionsUtil.isLoaded", () => {
+  test("a snapshot with anything in it, a block included, is loaded", () => {
+    expect(HeldPermissionsUtil.isLoaded(held([]))).toBe(false);
+    expect(
+      HeldPermissionsUtil.isLoaded(held([row(Permission.ProjectMember)])),
+    ).toBe(true);
+    expect(
+      HeldPermissionsUtil.isLoaded(
+        held([row(Permission.ProjectMember, { isBlock: true })]),
+      ),
+    ).toBe(true);
+    expect(
+      HeldPermissionsUtil.isLoaded(
+        held([
+          row(Permission.ProjectMember, { isBlock: true, labelled: true }),
+        ]),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("DatabaseCommonInteractionPropsUtil.getPermissionRows", () => {
+  test("the allow rows (globals among them) and the block rows, together", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const props: DatabaseCommonInteractionProps = {
+      tenantId: projectId,
+      userId: ObjectID.generate(),
+      userTenantAccessPermission: {
+        [projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: projectId,
+          permissions: [
+            row(Permission.ReadProjectMonitor),
+            row(Permission.EditProjectMonitor, { isBlock: true }),
+          ],
+        },
+      },
+    };
+
+    const rows: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getPermissionRows(props);
+
+    expect(
+      rows
+        .filter((value: UserPermission): boolean => {
+          return HeldPermissionsUtil.isBlockRow(value);
+        })
+        .map((value: UserPermission): Permission => {
+          return value.permission;
+        }),
+    ).toEqual([Permission.EditProjectMonitor]);
+    expect(
+      rows.map((value: UserPermission): Permission => {
+        return value.permission;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        Permission.Public,
+        Permission.ReadProjectMonitor,
+        Permission.EditProjectMonitor,
+      ]),
+    );
+    expect(rows).toHaveLength(
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ).length + 1,
+    );
+  });
+});

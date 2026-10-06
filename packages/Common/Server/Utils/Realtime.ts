@@ -465,10 +465,13 @@ export default abstract class Realtime {
 
   /*
    * Whether the user may listen to a model's events: whether they may read
-   * the model, by the rule its CRUD read follows (HeldPermissionsUtil) - an
-   * allow row for its read list or, for an operational resource, the Read
-   * All Operational Resources wildcard, and no block with no labels on that
-   * list. Records come to the room unfiltered, so this is the whole check.
+   * the model, by the table half of the rule its CRUD read follows
+   * (HeldPermissionsUtil.holdsModelPermission) - an allow row for its read
+   * list or, for an operational resource, the Read All Operational Resources
+   * wildcard, and no block with no labels on that list. An event carries
+   * only the id of the record that changed; the record itself is read
+   * through the CRUD path, which weighs labels, owned scope and labelled
+   * blocks, so the room asks what a route guard asks.
    */
   @CaptureSpan()
   public static hasPermissionsByModelName(
@@ -499,11 +502,10 @@ export default abstract class Realtime {
         })
       : HeldPermissionsUtil.fromPermissions(userProjectPermissions);
 
-    return HeldPermissionsUtil.holdsAnyOf(held, model.getReadPermissions(), {
-      wildcard: HeldPermissionsUtil.getModelWildcard({
-        isOperationalResource: model.isOperationalResource,
-        operation: "read",
-      }),
+    return HeldPermissionsUtil.holdsModelPermission(held, {
+      isOperationalResource: model.isOperationalResource,
+      operation: "read",
+      modelPermissions: model.getReadPermissions(),
     });
   }
 

@@ -30,6 +30,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import ActionButtonSchema, {
@@ -2773,10 +2774,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   type HasPermissionToReadFieldFunction = (field: keyof TBaseModel) => boolean;
 
   /*
-   * Whether a field may be selected: a column that declares no read
-   * permissions is readable, and one that does is read by the rule the
-   * server's column check follows (PermissionGate.holdsColumnPermission) -
-   * one of its permissions held, Public by everyone, no team block on any of
+   * What the user holds, read once per draw: every field below is weighed
+   * against it.
+   */
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
+  /*
+   * Whether a field may be selected, by the one rule for that
+   * (PermissionGate.canReadColumn): the columns every select may name, and
+   * any other by the rule the server's column check follows - one of its
+   * read permissions held, Public by everyone, no team block on any of
    * them. A master admin reads every field: secondary fields use this check
    * when building the request, so they need the same master-admin access as
    * the visible columns that render them.
@@ -2784,15 +2791,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     field: keyof TBaseModel,
   ): boolean => {
-    if (!field || User.isMasterAdmin()) {
+    if (!field) {
       return true;
     }
 
-    if (!model.getColumnAccessControlForAllColumns()[field as string]?.read) {
-      return true;
-    }
-
-    return PermissionGate.holdsColumnPermission(model, field as string, "read");
+    return PermissionGate.canReadColumn(model, field as string, {
+      held: heldPermissions,
+    });
   };
 
   useEffect(() => {

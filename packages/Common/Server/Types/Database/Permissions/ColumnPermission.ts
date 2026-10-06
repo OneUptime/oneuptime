@@ -9,9 +9,7 @@ import BaseModel, {
 import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
 import ColumnBillingAccessControl from "../../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import DatabaseCommonInteractionPropsUtil from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { isPlanGatedColumnDefault } from "../../../../Types/Billing/PlanGatedColumnDefault";
 import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 import Columns from "../../../../Types/Database/Columns";
@@ -45,30 +43,21 @@ export default class ColumnPermissions {
   }
 
   /*
-   * The caller's permission rows as a column check reads them: the allow
-   * rows (and global permissions) and the block rows the CRUD path reads
-   * (getUserPermissions), so a column follows the rule a table does.
+   * The caller's permission rows as a column check reads them - the rows the
+   * table check weighs (DatabaseCommonInteractionPropsUtil
+   * .getPermissionRows), so a column follows the rule a table does.
    */
   public static getColumnCheckRows(
     props: DatabaseCommonInteractionProps,
   ): Array<UserPermission> {
-    return [
-      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ),
-      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Block,
-      ),
-    ];
+    return DatabaseCommonInteractionPropsUtil.getPermissionRows(props);
   }
 
   /*
    * The columns `userPermissions` (a caller's permission rows) may read,
    * create or update, by the rule every permission check follows
-   * (HeldPermissionsUtil): an allow row for one of the column's
-   * permissions, and no block with no labels on any of them. On an
+   * (HeldPermissionsUtil.holdsColumnPermission): an allow row for one of the
+   * column's permissions, and no block with no labels on any of them. On an
    * operational resource, a column that lets in everyone its table does for
    * the operation accepts the table's *AllOperationalResources wildcard
    * too, as the table check does; a column narrower than its table on
@@ -118,14 +107,11 @@ export default class ColumnPermissions {
       }
 
       if (
-        columnPermissions &&
-        HeldPermissionsUtil.holdsAnyOf(held, columnPermissions, {
-          wildcard: HeldPermissionsUtil.getColumnWildcard({
-            isOperationalResource: model.isOperationalResource,
-            operation: requestType,
-            tablePermissions: tablePermissions,
-            columnPermissions: columnPermissions,
-          }),
+        HeldPermissionsUtil.holdsColumnPermission(held, {
+          isOperationalResource: model.isOperationalResource,
+          operation: requestType,
+          tablePermissions: tablePermissions,
+          columnPermissions: columnPermissions,
         })
       ) {
         columns.push(key);

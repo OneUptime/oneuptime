@@ -156,4 +156,26 @@ export default class DatabaseCommonInteractionPropsUtil {
 
     return userPermissions;
   }
+
+  /*
+   * Every row the CRUD path weighs for a caller: the allow rows (global
+   * permissions among them, Public for everyone) and the block rows of
+   * getUserPermissions. Only ever handed to the rule (HeldPermissionsUtil
+   * .fromRows, or a column check that does): mapped to a flat list of
+   * permission names, it would count a block as a grant.
+   */
+  public static getPermissionRows(
+    props: DatabaseCommonInteractionProps,
+  ): Array<UserPermission> {
+    return [
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ),
+      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Block,
+      ),
+    ];
+  }
 }

@@ -155,16 +155,17 @@ export default class CallerPermission {
     },
     options?: CallerPermissionOptions | undefined,
   ): boolean {
-    return CallerPermission.holdsAnyOf(
-      carrier,
-      CallerPermission.getModelPermissions(data.model, data.operation),
+    return HeldPermissionsUtil.holdsModelPermission(
+      CallerPermission.getHeld(carrier, options?.projectId),
       {
-        ...options,
-        wildcard: HeldPermissionsUtil.getModelWildcard({
-          isOperationalResource: data.model.isOperationalResource,
-          operation: data.operation,
-        }),
+        isOperationalResource: data.model.isOperationalResource,
+        operation: data.operation,
+        modelPermissions: CallerPermission.getModelPermissions(
+          data.model,
+          data.operation,
+        ),
       },
+      options,
     );
   }
 

@@ -112,32 +112,17 @@ export interface ComponentProps extends PageComponentProps {
   page: DeveloperDocsPageType;
 }
 
-// Columns every request may select (ColumnPermissions.getExcludedColumnNames).
-const ALWAYS_READABLE_COLUMNS: ReadonlyArray<string> = [
-  "_id",
-  "createdAt",
-  "updatedAt",
-];
-
 /*
- * Whether the viewer may read a column (ModelDetail's rule), read the way the
- * server reads it (PermissionGate): one of the column's read permissions, no
- * team block on any of them.
+ * Whether the viewer may read a column of a model, by name: the one rule
+ * every select follows (PermissionGate.canReadColumn) - the columns every
+ * select may name, and any other by the server's column check, the table's
+ * operational-resource wildcard included.
  */
-function canReadColumn(descriptor: TerraformAttributeDescriptor): boolean {
-  return PermissionGate.holdsAnyOf(descriptor.readPermissions);
-}
-
-// Whether the viewer may read a column of any model, by name.
 function canReadModelColumn(
   modelType: DatabaseBaseModelType,
   column: string,
 ): boolean {
-  if (ALWAYS_READABLE_COLUMNS.includes(column)) {
-    return true;
-  }
-
-  return PermissionGate.holdsColumnPermission(new modelType(), column, "read");
+  return PermissionGate.canReadColumn(new modelType(), column);
 }
 
 // Whether the viewer may list a model at all.
@@ -613,7 +598,9 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
           select: getDeveloperDocsRecordSelect({
             modelType,
             page: props.page,
-            canRead: canReadColumn,
+            canRead: (descriptor: TerraformAttributeDescriptor): boolean => {
+              return canReadModelColumn(modelType, descriptor.columnName);
+            },
             canReadColumn: (column: string): boolean => {
               return canReadModelColumn(modelType, column);
             },

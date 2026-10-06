@@ -35,7 +35,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { HeldPermissions } from "Common/Types/HeldPermissions";
-import Permission from "Common/Types/Permission";
 import CommandPalette from "Common/UI/Components/CommandPalette/CommandPalette";
 import { MoreMenuItem, NavItem } from "Common/UI/Components/Navbar/NavBar";
 import {
@@ -336,14 +335,11 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
      */
     const heldPermissions: HeldPermissions =
       PermissionGate.getHeldPermissions();
-    const permissions: Array<Permission> = heldPermissions.allowed;
-    const blockedPermissions: Array<Permission> = heldPermissions.blocked;
     const isMasterAdmin: boolean = User.isMasterAdmin();
 
     const visibleActionIds: Array<PaletteActionId> = getVisibleActionIds({
       ...computeCreateActionGates({
-        permissions,
-        blockedPermissions,
+        held: heldPermissions,
         isMasterAdmin,
       }),
       hasProjectSelected,
@@ -542,7 +538,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
       canDeleteProject:
         hasProjectSelected &&
-        canDeleteProject({ permissions, blockedPermissions, isMasterAdmin }),
+        canDeleteProject({ held: heldPermissions, isMasterAdmin }),
     };
 
     commands = [...actionCommands, ...navigationCommands];

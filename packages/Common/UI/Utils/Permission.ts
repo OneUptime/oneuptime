@@ -27,12 +27,14 @@ import Permission, {
  */
 export default class PermissionUtil {
   public static getGlobalPermissions(): UserGlobalAccessPermission | null {
-    if (!LocalStorage.getItem("global_permissions")) {
+    // Read (and parsed) once: every permission check on a page asks.
+    const globalPermissions: JSONObject | null = LocalStorage.getItem(
+      "global_permissions",
+    ) as JSONObject | null;
+
+    if (!globalPermissions) {
       return null;
     }
-    const globalPermissions: JSONObject = LocalStorage.getItem(
-      "global_permissions",
-    ) as JSONObject;
 
     return globalPermissions as UserGlobalAccessPermission;
   }
@@ -60,12 +62,14 @@ export default class PermissionUtil {
   }
 
   public static getProjectPermissions(): UserTenantAccessPermission | null {
-    if (!LocalStorage.getItem("project_permissions")) {
+    // Read (and parsed) once: every permission check on a page asks.
+    const permissions: JSONObject | null = LocalStorage.getItem(
+      "project_permissions",
+    ) as JSONObject | null;
+
+    if (!permissions) {
       return null;
     }
-    const permissions: JSONObject = LocalStorage.getItem(
-      "project_permissions",
-    ) as JSONObject;
 
     const userTenantAccessPermission: UserTenantAccessPermission =
       permissions as UserTenantAccessPermission;

@@ -10,6 +10,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 import User from "../../Utils/User";
 import { ButtonStyleType } from "../Button/Button";
 import {
@@ -380,6 +381,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return relationSelect;
     };
 
+  // What the user holds, read once per draw: every field is weighed against it.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
   const hasPermissionOnField: (fieldName: string) => boolean = (
     fieldName: string,
   ): boolean => {
@@ -397,6 +401,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
       model,
       fieldName,
       FormType.Create === props.formType ? "create" : "update",
+      { held: heldPermissions },
     );
   };
 

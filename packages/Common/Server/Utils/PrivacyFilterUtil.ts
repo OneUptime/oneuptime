@@ -18,7 +18,9 @@ export const PRIVATE_RECORD_BYPASS_PERMISSIONS: ReadonlyArray<Permission> = [
  * project, not only the ones they own: root and master-admin contexts, and
  * project owners and admins - held the way every permission check reads it
  * (CallerPermission). A block row for either role is no grant, and a block
- * with no labels on either takes it away.
+ * with no labels on either takes it away. Seeing every private record
+ * reaches the whole project, so only a grant that reaches the whole project
+ * counts (projectWideOnly): one limited to some labels does not.
  */
 export function shouldBypassRecordPrivacy(
   props: DatabaseCommonInteractionProps,
@@ -31,7 +33,9 @@ export function shouldBypassRecordPrivacy(
     return false;
   }
 
-  return CallerPermission.holdsAnyOf(props, PRIVATE_RECORD_BYPASS_PERMISSIONS);
+  return CallerPermission.holdsAnyOf(props, PRIVATE_RECORD_BYPASS_PERMISSIONS, {
+    projectWideOnly: true,
+  });
 }
 
 /*

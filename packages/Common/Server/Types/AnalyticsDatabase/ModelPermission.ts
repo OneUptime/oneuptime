@@ -531,31 +531,24 @@ export default class ModelPermission {
   }
 
   /*
-   * The caller's permission rows as a column check reads them: the allow
-   * rows (and global permissions) and the block rows the CRUD path reads.
+   * The caller's permission rows as a column check reads them - the rows the
+   * database models' checks weigh (DatabaseCommonInteractionPropsUtil
+   * .getPermissionRows).
    */
   private static getColumnCheckRows(
     props: DatabaseCommonInteractionProps,
   ): Array<UserPermission> {
-    return [
-      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ),
-      ...DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Block,
-      ),
-    ];
+    return DatabaseCommonInteractionPropsUtil.getPermissionRows(props);
   }
 
   /*
    * The columns the caller's rows may read, create or update, by the rule
-   * every permission check follows (HeldPermissionsUtil) - as the database
-   * models' column check reads it (ColumnPermission): an allow row for one
-   * of the column's permissions, no block with no labels on any of them,
-   * and on an operational resource the table's *AllOperationalResources
-   * wildcard for a column that lets in everyone its table does.
+   * every permission check follows (HeldPermissionsUtil
+   * .holdsColumnPermission) - as the database models' column check reads it
+   * (ColumnPermission): an allow row for one of the column's permissions, no
+   * block with no labels on any of them, and on an operational resource the
+   * table's *AllOperationalResources wildcard for a column that lets in
+   * everyone its table does.
    */
   private static getModelColumnsByPermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -599,14 +592,11 @@ export default class ModelPermission {
       }
 
       if (
-        columnPermissions &&
-        HeldPermissionsUtil.holdsAnyOf(held, columnPermissions, {
-          wildcard: HeldPermissionsUtil.getColumnWildcard({
-            isOperationalResource: model.isOperationalResource,
-            operation: requestType,
-            tablePermissions: tablePermissions,
-            columnPermissions: columnPermissions,
-          }),
+        HeldPermissionsUtil.holdsColumnPermission(held, {
+          isOperationalResource: model.isOperationalResource,
+          operation: requestType,
+          tablePermissions: tablePermissions,
+          columnPermissions: columnPermissions,
         })
       ) {
         columns.push(column.key);
@@ -702,10 +692,12 @@ export default class ModelPermission {
   }
 
   /*
-   * Mirror of TablePermission.getGrantingPermissions: the model's own list,
-   * and the *AllOperationalResources wildcard for @OperationalResource
-   * analytics models - unless a block with no labels takes the wildcard away
-   * or the list is empty (nobody may do the operation).
+   * The permissions whose allow rows grant the operation, as the database
+   * models' table check counts them (HeldPermissionsUtil
+   * .getGrantingPermissions): the model's own list, and the
+   * *AllOperationalResources wildcard for @OperationalResource analytics
+   * models - unless a block with no labels takes the wildcard away or the
+   * list is empty (nobody may do the operation).
    */
   private static getEffectiveModelPermissions(
     modelType: AnalyticsBaseModelType,
@@ -713,31 +705,21 @@ export default class ModelPermission {
     type: DatabaseRequestType,
     props: DatabaseCommonInteractionProps,
   ): Array<Permission> {
-    const effective: Array<Permission> = [...modelPermissions];
-
-    const model: BaseModel = new modelType();
-    const wildcard: Permission | null = HeldPermissionsUtil.getModelWildcard({
-      isOperationalResource: model.isOperationalResource,
-      operation: type,
-    });
-
-    if (
-      !wildcard ||
-      effective.length === 0 ||
-      effective.includes(wildcard) ||
-      ModelPermission.getHeldPermissions(props).blocked.includes(wildcard)
-    ) {
-      return effective;
-    }
-
-    effective.push(wildcard);
-
-    return effective;
+    return HeldPermissionsUtil.getGrantingPermissions(
+      ModelPermission.getHeldPermissions(props),
+      {
+        modelPermissions: modelPermissions,
+        wildcard: HeldPermissionsUtil.getModelWildcard({
+          isOperationalResource: new modelType().isOperationalResource,
+          operation: type,
+        }),
+      },
+    );
   }
 
   /*
-   * What the caller holds, read as the CRUD path reads it (the database
-   * models' TablePermission.getHeldPermissions).
+   * What the caller holds, read as the database models' checks read it
+   * (TablePermission.getHeldPermissions).
    */
   private static getHeldPermissions(
     props: DatabaseCommonInteractionProps,

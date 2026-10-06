@@ -3,7 +3,6 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import { NoteTemplateVariables } from "Common/Utils/Incident/IncidentNoteTemplateVariables";
 import GenerateFromAIModal from "Common/UI/Components/AI/GenerateFromAIModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -150,10 +149,8 @@ function EventNoteComposer<TNote extends BaseModel>(
   }, [kind.modelType]);
 
   const isPublic: boolean = kind.visibility === "public";
-  // What the viewer holds, and what a team of theirs blocks.
+  // What the viewer holds, blocks included.
   const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
-  const userPermissions: Array<Permission> = heldPermissions.allowed;
-  const blockedPermissions: Array<Permission> = heldPermissions.blocked;
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string) => boolean = (column: string): boolean => {
@@ -163,8 +160,7 @@ function EventNoteComposer<TNote extends BaseModel>(
         model,
         column,
         action: "create",
-        userPermissions,
-        blockedPermissions,
+        held: heldPermissions,
         isMasterAdmin,
       })
     );

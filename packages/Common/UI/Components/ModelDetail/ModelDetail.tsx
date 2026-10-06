@@ -22,6 +22,7 @@ import {
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import PermissionGate from "../../Utils/PermissionGate";
+import { HeldPermissions } from "../../../Types/HeldPermissions";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -77,15 +78,16 @@ const ModelDetail: <TBaseModel extends BaseModel>(
    * from the render, so the fetch has to drop them too - the same thing
    * BaseModelTable does for its selectMoreFields.
    */
+  // What the user holds, read once per draw: every field is weighed against it.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
+
   const hasPermissionToReadField: HasPermissionToReadFieldFunction = (
     fieldName: string,
   ): boolean => {
-    // Read the way the server's column check reads it (PermissionGate).
-    return PermissionGate.holdsColumnPermission(
-      new props.modelType(),
-      fieldName,
-      "read",
-    );
+    // The one rule for what a select may name (PermissionGate.canReadColumn).
+    return PermissionGate.canReadColumn(new props.modelType(), fieldName, {
+      held: heldPermissions,
+    });
   };
 
   type GetSelectFields = () => Select<TBaseModel>;
@@ -182,11 +184,11 @@ const ModelDetail: <TBaseModel extends BaseModel>(
       if (keys.length > 0) {
         const key: keyof TBaseModel = keys[0] as keyof TBaseModel;
 
-        // Read the way the server's column check reads it (PermissionGate).
-        const hasPermissions: boolean = PermissionGate.holdsColumnPermission(
+        // Shown when it may be read, by the rule the select follows.
+        const hasPermissions: boolean = PermissionGate.canReadColumn(
           model,
           key as string,
-          "read",
+          { held: heldPermissions },
         );
 
         if (hasPermissions || User.isMasterAdmin()) {

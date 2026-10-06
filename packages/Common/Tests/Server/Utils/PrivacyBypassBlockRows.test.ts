@@ -12,8 +12,9 @@ import { describe, expect, test } from "@jest/globals";
  * the ones they own: root and master-admin contexts, and project owners and
  * admins - held by the rule every permission check follows, so a block row
  * for either role is no grant and a block with no labels on either takes it
- * away. The incident, alert and episode privacy filters all ask this one
- * helper.
+ * away. Seeing every record reaches the whole project, so a role granted
+ * only for some labels does not count. The incident, alert and episode
+ * privacy filters all ask this one helper.
  */
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
@@ -109,6 +110,27 @@ describe("shouldBypassRecordPrivacy", () => {
       [
         row(Permission.ProjectAdmin),
         row(Permission.ProjectAdmin, { isBlock: true, labelled: true }),
+      ],
+      true,
+    ],
+    [
+      "an admin only for some labels: seeing every record reaches the whole project",
+      [row(Permission.ProjectAdmin, { labelled: true })],
+      false,
+    ],
+    [
+      "an admin for some labels beside a member of the whole project",
+      [
+        row(Permission.ProjectAdmin, { labelled: true }),
+        row(Permission.ProjectMember),
+      ],
+      false,
+    ],
+    [
+      "an owner for some labels beside an admin of the whole project",
+      [
+        row(Permission.ProjectOwner, { labelled: true }),
+        row(Permission.ProjectAdmin),
       ],
       true,
     ],

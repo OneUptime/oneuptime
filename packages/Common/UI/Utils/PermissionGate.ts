@@ -236,16 +236,12 @@ export default class PermissionGate {
   }
 
   /*
-   * Whether `held` is a snapshot at all: anything in it, a block included -
-   * a member whose every row is a block has a snapshot, and it refuses. An
-   * empty one has not landed yet.
+   * Whether `held` is a snapshot at all (HeldPermissionsUtil.isLoaded):
+   * anything in it, a block included - a member whose every row is a block
+   * has a snapshot, and it refuses. An empty one has not landed yet.
    */
   private static isLoaded(held: HeldPermissions): boolean {
-    return (
-      held.allowed.length > 0 ||
-      held.blocked.length > 0 ||
-      held.blockedForSomeLabels.length > 0
-    );
+    return HeldPermissionsUtil.isLoaded(held);
   }
 
   /*
@@ -348,11 +344,12 @@ export default class PermissionGate {
     action: ModelAction,
     options?: PermissionGateOptions | undefined,
   ): boolean {
-    return HeldPermissionsUtil.holdsAnyOf(
+    return HeldPermissionsUtil.holdsModelPermission(
       this.getHeldPermissions(options),
-      this.getModelPermissions(model, action),
       {
-        wildcard: this.getOperationalWildcard(model, action),
+        isOperationalResource: model.isOperationalResource,
+        operation: action,
+        modelPermissions: this.getModelPermissions(model, action),
       },
     );
   }
@@ -398,8 +395,11 @@ export default class PermissionGate {
     }
 
     if (
-      HeldPermissionsUtil.holdsAnyOf(held, columnPermissions, {
-        wildcard: this.getColumnWildcard(model, "update", columnPermissions),
+      HeldPermissionsUtil.holdsColumnPermission(held, {
+        isOperationalResource: model.isOperationalResource,
+        operation: "update",
+        tablePermissions: this.getTablePermissions(model, "update"),
+        columnPermissions: columnPermissions,
       })
     ) {
       return recordGate;
@@ -541,48 +541,24 @@ export default class PermissionGate {
   }
 
   /*
-   * The wildcard that covers this operation on this model, or null when the
-   * model is not an operational resource. Kept out of getModelPermissions on
-   * purpose: that list is what the "you need one of these permissions"
-   * sentence is built from, and the server names only the model's own
-   * permissions there too.
+   * The table's own list for an operation, which decides whether a column
+   * that lets in everyone it does accepts the table's operational-resource
+   * wildcard (HeldPermissionsUtil.getColumnWildcard), as the server's column
+   * check reads it.
    */
-  private static getOperationalWildcard(
-    model: PermissionCheckableModel,
-    action: ModelAction,
-  ): Permission | null {
-    return HeldPermissionsUtil.getModelWildcard({
-      isOperationalResource: model.isOperationalResource,
-      operation: action,
-    });
-  }
-
-  /*
-   * The wildcard a column accepts: the table's, when the column lets in
-   * everyone the table does for the operation (HeldPermissionsUtil
-   * .getColumnWildcard), as the server's column check reads it.
-   */
-  private static getColumnWildcard(
+  private static getTablePermissions(
     model: ColumnPermissionCheckableModel,
     operation: ColumnOperation,
-    columnPermissions: Array<Permission>,
-  ): Permission | null {
-    let tablePermissions: Array<Permission> = [];
-
+  ): Array<Permission> {
     if (operation === "create") {
-      tablePermissions = model.getCreatePermissions?.() || [];
-    } else if (operation === "read") {
-      tablePermissions = model.getReadPermissions?.() || [];
-    } else {
-      tablePermissions = model.getUpdatePermissions?.() || [];
+      return model.getCreatePermissions?.() || [];
     }
 
-    return HeldPermissionsUtil.getColumnWildcard({
-      isOperationalResource: model.isOperationalResource,
-      operation: operation,
-      tablePermissions: tablePermissions,
-      columnPermissions: columnPermissions,
-    });
+    if (operation === "read") {
+      return model.getReadPermissions?.() || [];
+    }
+
+    return model.getUpdatePermissions?.() || [];
   }
 
   /*
@@ -623,28 +599,30 @@ export default class PermissionGate {
   }
 
   /*
-   * Whether the signed-in user may SELECT a column.
+   * Whether the signed-in user may SELECT a column - the one rule every
+   * table, detail, form and page asks before building a select.
    *
    * Column access control is enforced differently from record access control:
    * asking for a column you cannot read is not degraded, it is fatal.
-   * ColumnPermission throws `User is not allowed to read on <column> column of
-   * <model>` and the whole request fails, so one unreadable field in a select
-   * takes down the entire page rather than blanking one value. That is why
-   * ModelAction has no column-level members (see the comment on the enum) and
-   * why callers must ask this BEFORE building the select, not after.
+   * SelectPermission refuses the whole request for one column the caller may
+   * not read, so one unreadable field in a select takes down the entire page
+   * rather than blanking one value. That is why ModelAction has no
+   * column-level members (see the comment on the enum) and why callers must
+   * ask this BEFORE building the select, not after.
    *
-   * Asked the way the server's column check asks it (ColumnPermission): an
-   * allow row for one of the column's permissions, no block with no labels
-   * on any of them, and the table's wildcard for a column that admits
-   * everyone its table does.
+   * Asked the way the server asks it (HeldPermissionsUtil.canSelectColumn):
+   * a column the server never checks (_id, createdAt, updatedAt, deletedAt,
+   * version) when the model declares no read rule for it - a database model
+   * gives them its own read list, which is then followed - and any other
+   * column by holdsColumnPermission: one of its read permissions held,
+   * Public by everyone, no block with no labels on any of them, the table's
+   * wildcard for a column that admits everyone its table does, and a column
+   * that declares no read permission closed, as the server closes it.
    *
    * Deliberately fails closed. When the permission snapshot has not landed yet
-   * this returns false and the caller omits the field: the page renders
-   * without that one value, which is recoverable. Failing open would send the
+   * only Public is held and the caller omits the rest: the page renders
+   * without those values, which is recoverable. Failing open would send the
    * column anyway and hard-fail the request, which is not.
-   *
-   * A column with no declared read ACL is readable - there is nothing to
-   * enforce, and ColumnPermission agrees.
    */
   public static canReadColumn(
     model: ColumnPermissionCheckableModel,
@@ -655,34 +633,31 @@ export default class PermissionGate {
       return true;
     }
 
-    const accessControl: ColumnAccessControl | undefined =
-      model.getColumnAccessControlForAllColumns()[columnName];
-
-    const columnPermissions: Array<Permission> = accessControl?.read || [];
-
-    if (columnPermissions.length === 0) {
-      return true;
-    }
-
-    return HeldPermissionsUtil.holdsAnyOf(
+    return HeldPermissionsUtil.canSelectColumn(
       this.getHeldPermissions(options),
-      columnPermissions,
       {
-        wildcard: this.getColumnWildcard(model, "read", columnPermissions),
+        column: columnName,
+        isOperationalResource: model.isOperationalResource,
+        tablePermissions: this.getTablePermissions(model, "read"),
+        readPermissions:
+          model.getColumnAccessControlForAllColumns()[columnName]?.read,
       },
     );
   }
 
   /*
    * Whether the user may read, create or update one column, exactly as the
-   * server's column check decides it (ColumnPermission): an allow row for
-   * one of the column's permissions for the operation - Public counts for
-   * everyone, as the server adds it - no block with no labels on any of
+   * server's column check decides it (HeldPermissionsUtil
+   * .holdsColumnPermission, which ColumnPermission asks too): an allow row
+   * for one of the column's permissions for the operation - Public counts
+   * for everyone, as the server adds it - no block with no labels on any of
    * them, and the table's wildcard for a column that admits everyone its
    * table does. A column that names no permission for the operation is
    * closed to everyone. Before the snapshot has loaded only Public is held -
    * a public form still shows its fields to a visitor - so a caller that
    * wants the server to decide until then asks hasPermissionSnapshot first.
+   * A select asks canReadColumn, which adds the columns every select may
+   * name.
    */
   public static holdsColumnPermission(
     model: ColumnPermissionCheckableModel,
@@ -698,21 +673,13 @@ export default class PermissionGate {
       model.getColumnAccessControlForAllColumns()[columnName]?.[operation] ||
       [];
 
-    if (columnPermissions.length === 0) {
-      return false;
-    }
-
-    const held: HeldPermissions = this.getHeldPermissions(options);
-
-    return HeldPermissionsUtil.holdsAnyOf(
+    return HeldPermissionsUtil.holdsColumnPermission(
+      this.getHeldPermissions(options),
       {
-        ...held,
-        allowed: [...held.allowed, Permission.Public],
-        allowedProjectWide: [...held.allowedProjectWide, Permission.Public],
-      },
-      columnPermissions,
-      {
-        wildcard: this.getColumnWildcard(model, operation, columnPermissions),
+        isOperationalResource: model.isOperationalResource,
+        operation: operation,
+        tablePermissions: this.getTablePermissions(model, operation),
+        columnPermissions: columnPermissions,
       },
     );
   }
