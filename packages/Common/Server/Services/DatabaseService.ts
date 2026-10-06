@@ -4831,6 +4831,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       const affectedItems: Array<TBaseModel> = [];
 
       /*
+       * A query that names the row's version is a compare-and-set: the row
+       * is written only while it still holds that version. The find above is
+       * a statement of its own, so the UPDATE asks again - a write landing
+       * between the two would otherwise be overwritten by values computed
+       * from what the row held before it. The workflow Update steps merge
+       * custom fields this way (CustomFieldsArgument). Rows written through
+       * save(), for a many-to-many column, are not guarded.
+       */
+      const expectedVersion: unknown = (
+        beforeUpdateBy.query as Dictionary<unknown>
+      )["version"];
+
+      /*
        * The per-item debug payload below is a pretty-printed JSON.stringify
        * of every matched row; skip building it entirely unless the log level
        * is DEBUG, since logger.debug() no-ops at any other level.
@@ -4973,7 +4986,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         } else {
           const { _id, ...updateData } = updatedItem;
           const updateResult: UpdateResult = await this.getRepository().update(
-            { _id: _id } as any,
+            {
+              _id: _id,
+              ...(typeof expectedVersion === "number"
+                ? { version: expectedVersion }
+                : {}),
+            } as any,
             {
               ...updateData,
               /*
@@ -4988,10 +5006,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           );
 
           /*
-           * The row was hard-deleted between the find above and this write.
-           * Nothing was updated, so skip the success hooks for it: they
-           * re-read the row and would dereference null (and would report a
-           * change that never happened).
+           * The row was hard-deleted between the find above and this write,
+           * or moved past the version the query named. Nothing was updated,
+           * so skip the success hooks for it: they re-read the row and would
+           * dereference null (and would report a change that never happened).
            */
           if (updateResult.affected === 0) {
             continue;

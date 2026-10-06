@@ -201,11 +201,12 @@ type ResolveArgumentsFunction = (
 
 /*
  * A copy of RunWorkflow.getComponentArguments, kept step for step: falsy
- * values are skipped; VMAPI.replaceValueInPlace substitutes, escaping for
- * JSON only when the argument is JSON typed (an object-valued argument is
- * stringified, substituted with escaping and parsed back); and a string left
- * for a JSON, Query or Select argument is parsed, with a template that built
- * invalid JSON failing the run — and the test — the way it fails the runner.
+ * values are skipped; VMAPI.replaceValueInPlace substitutes, writing each
+ * value as JSON for a JSON, Query or Select argument - escaped inside quotes,
+ * the value itself on its own - (an object-valued argument is stringified,
+ * substituted with escaping and parsed back); and a string left for one of
+ * those three is parsed, with a template that built invalid JSON failing the
+ * run — and the test — the way it fails the runner.
  */
 const resolveArguments: ResolveArgumentsFunction = (
   storageMap: StorageMap,
@@ -223,7 +224,7 @@ const resolveArguments: ResolveArgumentsFunction = (
     let value: JSONValue = VMUtil.replaceValueInPlace(
       storageMap as unknown as JSONObject,
       content as string,
-      argument.type === ComponentInputType.JSON,
+      PARSED_ARGUMENT_TYPES.includes(argument.type),
     ) as JSONValue;
 
     if (
