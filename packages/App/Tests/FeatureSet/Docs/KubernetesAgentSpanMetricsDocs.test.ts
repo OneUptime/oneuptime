@@ -112,10 +112,10 @@ const lineAfter: NextLineFunction = (
 
 /*
  * The last line of the plain upgrade command. Other sections pass
- * --reuse-values along with a --set, so only the upgrade section has it
- * on a line of its own.
+ * --reset-then-reuse-values along with a --set, so only the upgrade section
+ * has it on a line of its own.
  */
-const UPGRADE_COMMAND_END: RegExp = /^ *--reuse-values$/m;
+const UPGRADE_COMMAND_END: RegExp = /^ *--reset-then-reuse-values$/m;
 
 describe("kubernetes-agent docs: eBPF span metrics under their new names", () => {
   test("every docs language is checked", () => {

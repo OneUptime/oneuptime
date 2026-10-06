@@ -63,7 +63,7 @@ tests:
       # aiAgent.fixes grants the write RBAC; investigation is named too, so
       # the command never leaves it to a default.
       - matchRegexRaw:
-          pattern: "  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reuse-values --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval --set \"aiAgent.remediation.namespaces=\\{web,api\\}\" --set aiAgent.remediation.nodeOperations=false\n"
+          pattern: "  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --reset-then-reuse-values --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval --set \"aiAgent.remediation.namespaces=\\{web,api\\}\" --set aiAgent.remediation.nodeOperations=false\n"
       - matchRegexRaw:
           pattern: "pick how fixes run and the\nnamespaces it may change \\(each must already exist\\)"
       - notMatchRegexRaw:
@@ -101,7 +101,7 @@ tests:
       - matchRegexRaw:
           pattern: "The Kubernetes AI agent is off \\(aiAgent.enabled=false\\)."
       - matchRegexRaw:
-          pattern: "  helm repo update\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reuse-values --set aiAgent.enabled=true\n"
+          pattern: "  helm repo update\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set aiAgent.enabled=true\n"
       - notMatchRegexRaw:
           pattern: "component=ai-agent"
       - notMatchRegexRaw:
@@ -176,7 +176,8 @@ tests:
       - notMatchRegexRaw:
           pattern: "bound cluster-wide"
       # A RoleBinding in a namespace that does not exist fails the upgrade;
-      # say so, and how to go back to cluster-wide under --reuse-values.
+      # say so, and how to go back to cluster-wide (leaving the flag out of an
+      # upgrade keeps a stored list).
       - matchRegexRaw:
           pattern: "Each listed namespace must already exist: the chart creates a RoleBinding in\neach and never creates a namespace, so a missing one fails every install or\nupgrade with 'namespaces \"<name>\" not found'."
       - matchRegexRaw:
@@ -200,7 +201,7 @@ tests:
       - matchRegexRaw:
           pattern: "Kubernetes AI agent: on, read-only."
       - matchRegexRaw:
-          pattern: "--reuse-values --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval"
+          pattern: "--reset-then-reuse-values --set aiAgent.investigation=true --set aiAgent.fixes=ask-for-approval"
       # Nothing names the settings: the agent's defaults, unless chosen in OneUptime.
       - matchRegexRaw:
           pattern: "This release does not set what OneUptime AI may do on this cluster"

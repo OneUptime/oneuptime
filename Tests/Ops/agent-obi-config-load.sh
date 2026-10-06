@@ -44,7 +44,8 @@
 # v0.14 added) follow the rendered tag and the version OBI reports, so the
 # same script covers the pinned release and a newer build tried with
 # OBI_IMAGE. The one variant that renders an older tag on purpose (v0.13.0,
-# the release a --reuse-values upgrade keeps) always loads in that tag.
+# what a --reuse-values upgrade from chart 14.0.12 keeps) always loads in
+# that tag.
 #
 # Needs docker, helm and node. Usage: bash Tests/Ops/agent-obi-config-load.sh
 
@@ -609,9 +610,10 @@ variant profiling '{"populateTraceContext":true}' --set profiling.enabled=true
 variant span-metrics-off \
   '{"features":["application","application_service_graph","network","stats_tcp_rtt","stats_tcp_failed_connections","stats_tcp_retransmits"]}' \
   --set ebpf.features.spanMetrics=false
-# The release a --reuse-values upgrade keeps (README, "Upgrading"): v0.13.0
-# also deprecates application_span, and has to take the same render, minus the
-# v0.14-only span-attribute selection. Loaded in v0.13.0 even with OBI_IMAGE.
+# v0.13.0, what a --reuse-values upgrade from chart 14.0.12 keeps (README,
+# "Troubleshooting"), also deprecates application_span, and has to take the
+# same render, minus the v0.14-only span-attribute selection. Loaded in
+# v0.13.0 even with OBI_IMAGE.
 PIN_IMAGE=1 variant pinned-v0.13.0 '{}' --set ebpf.image.tag=v0.13.0
 
 # Negative control: the default render with a metrics feature no OBI knows —

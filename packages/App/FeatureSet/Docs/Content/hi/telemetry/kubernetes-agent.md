@@ -226,7 +226,7 @@ Multi-line events दोनों modes में **फ़िल्टरिं�
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -310,7 +310,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -360,10 +360,19 @@ clusterName: prod
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` आपकी मौजूदा कॉन्फ़िगरेशन (preset, क्लस्टर नाम, फ़िल्टर) को बनाए रखता है; इसके ऊपर कोई भी नया `--set` ओवरराइड पास करें।
+`--reset-then-reuse-values` (Helm 3.14+) आपके सेट किए गए मानों (preset, क्लस्टर नाम, फ़िल्टर) को बनाए रखता है और बाकी सभी मान नए chart से लेता है; इसके ऊपर कोई भी नया `--set` ओवरराइड पास करें। Helm 3.13 या उससे पहले के संस्करण पर, इसके बजाय अपने सेट किए गए मानों के साथ अपग्रेड करें:
+
+```bash
+helm repo update
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
+```
+
+`--reuse-values` का उपयोग न करें: यह उस chart के डिफ़ॉल्ट भी बनाए रखता है जिससे आप अपग्रेड कर रहे हैं, इसलिए नए chart के डिफ़ॉल्ट (उसकी eBPF इमेज सहित) कभी लागू नहीं होते। जब कोई रिलीज़ किसी पुराने chart के डिफ़ॉल्ट पर चलती है, तो इंस्टॉल या अपग्रेड के बाद Helm जो नोट्स दिखाता है, वे एक चेतावनी और उसे ठीक करने वाले कमांड के साथ समाप्त होते हैं।
 
 > **eBPF span मेट्रिक्स के नाम बदल गए हैं।** `ebpf.features.spanMetrics` अब `traces_spanmetrics_calls_total` और `traces_spanmetrics_latency` की जगह `traces.span.metrics.calls` और `traces.span.metrics.duration` (सेकंड) भेजता है: वही सीरीज़, उन नामों से जिन्हें OBI रखता है (पुराने नाम OBI ने deprecated कर दिए हैं)। किसी पुराने नाम पर बना डैशबोर्ड, चार्ट या मेट्रिक्स मॉनिटर अपग्रेड के बाद बिना किसी त्रुटि के नया डेटा पाना बंद कर देता है — उसे नए नाम पर ले जाएँ, और पुराने नाम वाली `filters.metrics` एंट्रीज़ भी बदलें।
 
@@ -436,7 +445,7 @@ Cross-service trace context प्रसार — जिसमें OBI एक
 
 डिफ़ॉल्ट रूप से एजेंट **coverage** के लिए ट्यून किया गया है — यह पूरे क्लस्टर से मेट्रिक्स, pod logs, और eBPF traces भेजता है ताकि प्रत्येक डैशबोर्ड और मॉनिटर पहले ही दिन काम करे। बड़े या व्यस्त क्लस्टरों पर यह आपकी आवश्यकता से अधिक telemetry हो सकती है, जो उच्च ingest volume के रूप में दिखाई देती है (और, OneUptime Cloud पर, उच्च लागत)। यहाँ कुछ भी आवश्यक नहीं है, लेकिन यदि कोई क्लस्टर आपकी इच्छा से अधिक भेज रहा है, तो ये घुमाने के लिए घुंडियाँ हैं — मोटे तौर पर प्रभाव के क्रम में।
 
-तरकीब यह है कि **जो आप नहीं देखेंगे उसे एकत्र करना बंद करें**, बजाय इसके कि सब कुछ एकत्र करें और उसे संग्रहीत करने के लिए भुगतान करें। नीचे दिया गया प्रत्येक लीवर एक Helm value है, इसलिए आप इसे `helm upgrade --reuse-values` पर `--set` के साथ लागू कर सकते हैं और उसी तरह वापस रोल कर सकते हैं।
+तरकीब यह है कि **जो आप नहीं देखेंगे उसे एकत्र करना बंद करें**, बजाय इसके कि सब कुछ एकत्र करें और उसे संग्रहीत करने के लिए भुगतान करें। नीचे दिया गया प्रत्येक लीवर एक Helm value है, इसलिए आप इसे `helm upgrade --reset-then-reuse-values` पर `--set` के साथ लागू कर सकते हैं और उसी तरह वापस रोल कर सकते हैं।
 
 ### मात्रा कहाँ से आती है
 
@@ -464,7 +473,7 @@ Container logs लगभग हमेशा ingest का सबसे बड़
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
@@ -474,7 +483,7 @@ Container logs लगभग हमेशा ingest का सबसे बड़
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.logs.minSeverity=WARN
   ```
 
@@ -484,7 +493,7 @@ Container logs लगभग हमेशा ingest का सबसे बड़
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set logs.enabled=false
   ```
 
@@ -498,7 +507,7 @@ eBPF आपको बिना किसी कोड परिवर्तन �
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.enabled=false
   ```
 
@@ -506,7 +515,7 @@ eBPF आपको बिना किसी कोड परिवर्तन �
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.features.networkMetrics=false \
     --set ebpf.features.tcpStats=false \
     --set ebpf.features.spanMetrics=false
@@ -518,7 +527,7 @@ eBPF आपको बिना किसी कोड परिवर्तन �
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
@@ -530,7 +539,7 @@ Metric volume सीधे इस बात के समानुपाती �
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set collectionInterval=60s \
   --set hostMetrics.collectionInterval=60s \
   --set cadvisor.scrapeInterval=60s
@@ -558,7 +567,7 @@ Cardinality (विशिष्ट time series की संख्या) आव
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.metrics.matchType=regexp \
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
@@ -569,7 +578,7 @@ Cardinality (विशिष्ट time series की संख्या) आव
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
@@ -593,7 +602,7 @@ Cardinality (विशिष्ट time series की संख्या) आव
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -687,7 +696,7 @@ Telemetry उपयोग प्रति दिन एकत्रित कि
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
@@ -709,7 +718,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-     --namespace oneuptime-agent --reuse-values \
+     --namespace oneuptime-agent --reset-then-reuse-values \
      --set oneuptime.apiKey=<LIVE_KEY>
    ```
 

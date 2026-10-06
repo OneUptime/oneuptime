@@ -234,24 +234,19 @@ chart 还可以采集：
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` 会保留您现有的配置；任何新增的 `--set` 覆盖项可以在其之上传入。
+`--reset-then-reuse-values`（Helm 3.14+）会保留你设置的值（预设、集群名称、过滤器），其他所有值都取自新的 chart；可在其之上传递任何新的 `--set` 覆盖项。在 Helm 3.13 或更早版本上，请改为用你设置的值进行升级：
 
-> **请注意：`--reuse-values` 不会合并 chart 的新默认值。** Helm 会原样复用您先前渲染的值 —— 因此较新 chart 版本中新增的任何顶层字段（例如 `profiling.*`、`ebpf.features.*`）在您现有的 release 中仍然未设置，模板渲染时就好像您禁用了它一样。
->
-> **Helm 3.14+** —— 切换到 `--reset-then-reuse-values`。它会为您未覆盖的键重新读取 chart 默认值：
->
-> ```bash
-> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->   --namespace oneuptime-kubernetes-agent \
->   --reset-then-reuse-values
-> ```
->
-> **Helm 3.13 或更早版本** —— 去掉 `--reuse-values`，显式传入原始的 `--set` 标志（或 `-f values.yaml`）。对于您未覆盖的所有项，将会应用新的 chart 默认值。
->
-> 如果升级后某项新功能的 Pod（例如 `kubernetes-agent-profiling-*`）没有出现，几乎总是因为这个原因。`helm get values <release>` 显示 Helm 实际持有的内容 —— 输出中缺失的字段意味着没有为它们合并默认值。
+```bash
+helm repo update
+helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+不要使用 `--reuse-values`：它还会保留你升级前所用 chart 的默认值，因此较新 chart 的默认值（包括其 eBPF 镜像）永远不会生效。当某个 release 使用较旧 chart 的默认值运行时，Helm 在安装或升级后打印的说明末尾会给出警告以及修复它的命令。
 
 > **eBPF span 指标已更名。** `ebpf.features.spanMetrics` 现在发送 `traces.span.metrics.calls` 和 `traces.span.metrics.duration`（秒），不再发送 `traces_spanmetrics_calls_total` 和 `traces_spanmetrics_latency`：数据序列相同，只是改用 OBI 保留的名称（旧名称已被 OBI 弃用）。基于旧名称的仪表板、图表或指标监控器在升级后将收不到新数据，且不会报错——请将其改为新名称，并同时更新 `filters.metrics` 中引用旧名称的条目。
 
@@ -271,7 +266,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 

@@ -233,7 +233,7 @@ The filters above remove a **category** of telemetry — a namespace, a severity
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -302,7 +302,7 @@ The cluster's **Control Plane** page charts etcd, the API server, the scheduler 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set controlPlane.enabled=true
 ```
 
@@ -311,7 +311,7 @@ Each component is scraped at the addresses in its own list: `controlPlane.etcd.e
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set controlPlane.enabled=true \
   --set "controlPlane.apiServer.endpoints={https://kubernetes.default.svc:443/metrics}"
 ```
@@ -334,7 +334,7 @@ The **CoreDNS** tab of the Control Plane page charts DNS queries, latency, the c
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set coreDns.enabled=true
 ```
 
@@ -347,7 +347,7 @@ The cluster's **Service Mesh** page charts Istio and Linkerd. The agent scrapes 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set serviceMesh.enabled=true \
   --set serviceMesh.provider=istio
 ```
@@ -365,7 +365,7 @@ See what every namespace, workload, and pod actually costs — including idle ca
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -418,7 +418,7 @@ On an agent installed before the AI agent existed, refresh your chart index firs
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
@@ -440,7 +440,7 @@ Fixes are off until you turn them on with `aiAgent.fixes` — a separate, option
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -453,14 +453,14 @@ Or cluster-wide:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
   --set-json 'aiAgent.remediation.namespaces=[]'
 ```
 
-Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole upgrade — the collector's too — with `namespaces "api" not found`. Create it first, or take it off the list, and take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the stored list; `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) goes back to cluster-wide — not `={}`, which Helm reads as one empty name. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes.
+Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole upgrade — the collector's too — with `namespaces "api" not found`. Create it first, or take it off the list, and take a namespace off the list before you delete it. Leaving the flag out of an upgrade keeps the stored list; `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+) goes back to cluster-wide — not `={}`, which Helm reads as one empty name. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes.
 
 `aiAgent.fixes` picks how fixes run; to turn them off again, upgrade with `--set aiAgent.fixes=off`, which also removes the write access:
 
@@ -513,10 +513,19 @@ When the agent is older than your OneUptime, a warning sign appears beside **Age
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` keeps your existing configuration (preset, cluster name, filters); pass any new `--set` overrides on top of it. It never picks up defaults a newer chart added, though — on Helm 3.14+ use `--reset-then-reuse-values` instead, which keeps your overrides and fills in the new defaults for everything else.
+`--reset-then-reuse-values` (Helm 3.14+) keeps the values you set (preset, cluster name, filters) and takes every other value from the new chart; pass any new `--set` overrides on top of it. On Helm 3.13 or earlier, upgrade with the values you set instead:
+
+```bash
+helm repo update
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
+```
+
+Don't use `--reuse-values`: it also keeps the defaults of the chart you upgrade from, so a newer chart's defaults (its eBPF image among them) never apply. When a release runs on an older chart's defaults, the notes Helm prints after the install or upgrade end with a warning and the command that fixes it.
 
 If the upgrade fails with `namespaces "<name>" not found`, `aiAgent.remediation.namespaces` (or the older `aiAccess.remediation.namespaces`) lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set "aiAgent.remediation.namespaces={web}"`), or with `--set-json 'aiAgent.remediation.namespaces=[]'` to go back to the cluster-wide binding. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`, so it fails with the same error.
 
@@ -630,7 +639,7 @@ It is off because injecting the header means rewriting traffic that is already i
 
 Out of the box the agent is tuned for **coverage** — it ships metrics, pod logs, and eBPF traces from the whole cluster so every dashboard and monitor works on day one. On large or busy clusters that can be more telemetry than you need, which shows up as higher ingest volume (and, on OneUptime Cloud, higher cost). Nothing here is required, but if a cluster is sending more than you want, these are the knobs to turn — roughly in order of impact.
 
-The trick is to **stop collecting what you will not look at**, rather than to collect everything and pay to store it. Every lever below is a Helm value, so you can apply it with `--set` on `helm upgrade --reuse-values` and roll it back the same way.
+The trick is to **stop collecting what you will not look at**, rather than to collect everything and pay to store it. Every lever below is a Helm value, so you can apply it with `--set` on `helm upgrade --reset-then-reuse-values` and roll it back the same way.
 
 ### Where the volume comes from
 
@@ -658,7 +667,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
@@ -668,7 +677,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.logs.minSeverity=WARN
   ```
 
@@ -678,7 +687,7 @@ Container logs are almost always the largest slice of ingest, because it is one 
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set logs.enabled=false
   ```
 
@@ -692,7 +701,7 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.enabled=false
   ```
 
@@ -700,7 +709,7 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.features.networkMetrics=false \
     --set ebpf.features.tcpStats=false \
     --set ebpf.features.spanMetrics=false
@@ -712,7 +721,7 @@ eBPF gives you traces, RED metrics, the service map, and network-flow metrics wi
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set 'ebpf.autoTargetExe=*/python\,*/java'
   ```
 
@@ -724,7 +733,7 @@ Metric volume is directly proportional to how often the agent scrapes. Doubling 
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set collectionInterval=60s \
   --set hostMetrics.collectionInterval=60s \
   --set cadvisor.scrapeInterval=60s
@@ -752,7 +761,7 @@ Cardinality (the number of distinct time series) matters as much as frequency, b
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.metrics.matchType=regexp \
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
@@ -763,7 +772,7 @@ Cardinality (the number of distinct time series) matters as much as frequency, b
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
@@ -787,7 +796,7 @@ Every lever above buys volume by giving something up: a namespace you stop watch
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -881,7 +890,7 @@ Your cluster blocks `hostPath` — common on **GKE Autopilot** and **EKS Fargate
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
@@ -903,7 +912,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-     --namespace oneuptime-agent --reuse-values \
+     --namespace oneuptime-agent --reset-then-reuse-values \
      --set oneuptime.apiKey=<LIVE_KEY>
    ```
 

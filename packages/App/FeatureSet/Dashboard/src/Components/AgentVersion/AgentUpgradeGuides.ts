@@ -18,7 +18,10 @@ import {
   getHostCollectorMethodsForOsType,
   getHostCollectorUpgradeCommand,
 } from "../../Pages/Host/Utils/DocumentationMarkdown";
-import { getKubernetesAgentChartUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  getKubernetesAgentChartUpgradeCommand,
+  getKubernetesAgentChartUpgradeFallbackCommand,
+} from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../Pages/Podman/Utils/DocumentationMarkdown";
 import {
   PROXMOX_AGENT_RECREATE_COMMAND,
@@ -153,20 +156,47 @@ const OUTSIDE_INSTALL_DIRECTORY: string = translationKey(
 
 // ---- per kind ------------------------------------------------------------------
 
+/*
+ * The Kubernetes agent: a Helm release, upgraded so that it keeps the
+ * values it was given and takes every other value from the new chart.
+ * --reset-then-reuse-values does that from Helm 3.14; an older Helm gets it
+ * by passing the release's own values back with -f. Never --reuse-values,
+ * which keeps the old chart's defaults too, so the new chart's (a newer eBPF
+ * image among them) never apply: both tabs say so, since it is the upgrade
+ * many readers already know.
+ */
+const KUBERNETES_NOT_REUSE_VALUES: string = translationKey(
+  "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.",
+);
+
 function getKubernetesAgentGuide(): AgentUpgradeGuide {
   return {
     methods: [
       {
-        label: translationKey("Helm"),
+        label: translationKey("Helm 3.14 or later"),
         steps: [
           {
             title: translationKey("Upgrade the Helm release"),
             description: translationKey(
-              "Run this with kubectl pointed at the cluster. --reuse-values keeps your settings: the cluster name, the preset and any flags you added.",
+              "Run this with kubectl pointed at the cluster. --reset-then-reuse-values keeps the values you set (the cluster name, the preset and any flags you added) and takes every other value from the new chart.",
             ),
             code: getKubernetesAgentChartUpgradeCommand(),
           },
         ],
+        note: KUBERNETES_NOT_REUSE_VALUES,
+      },
+      {
+        label: translationKey("Helm 3.13 or earlier"),
+        steps: [
+          {
+            title: translationKey("Upgrade the Helm release"),
+            description: translationKey(
+              "Run this with kubectl pointed at the cluster. It saves the values you set to values.yaml and upgrades with them, so every other value comes from the new chart.",
+            ),
+            code: getKubernetesAgentChartUpgradeFallbackCommand(),
+          },
+        ],
+        note: KUBERNETES_NOT_REUSE_VALUES,
       },
     ],
   };
