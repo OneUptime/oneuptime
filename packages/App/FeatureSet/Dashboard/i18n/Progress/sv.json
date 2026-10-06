@@ -5,6 +5,7 @@
   },
   "sameAsEnglish": [
     "Incident {{number}}: {{title}}",
+    "Offline",
     "Precision",
     "Runbook: {{name}}"
   ]

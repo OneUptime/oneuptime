@@ -345,6 +345,7 @@
     "Webhook",
     "Webhooks",
     "Zone",
+    "cluster",
     "{{count}} minutes"
   ]
 }
