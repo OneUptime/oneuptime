@@ -18,9 +18,9 @@ import { createHash } from "crypto";
  * that had stopped, and every heartbeat monitor on the platform flipped
  * Offline together while its sender was still getting 2xx responses. Same-
  * monitor coalescing made it worse: a request that arrives while the
- * monitor's previous job is still WAITING in the queue is dropped, so under a
- * backlog a monitor's persisted heartbeat advanced only once per trip through
- * the queue.
+ * monitor's previous job is still WAITING in the queue gets no job of its
+ * own, so under a backlog a monitor's persisted heartbeat advanced only once
+ * per trip through the queue.
  *
  * The receipt time is recorded at the edge, when the request arrives, so
  * liveness no longer depends on how far behind the queue is or on which

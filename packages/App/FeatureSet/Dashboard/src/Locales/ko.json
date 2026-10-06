@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "이 클러스터뿐 아니라 {{project}}의 모든 새 경고에 적용됩니다. 한도는 인시던트 → AI → 설정에서 관리합니다.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "이 클러스터뿐 아니라 {{project}}의 모든 새 인시던트와 경고에 적용됩니다. 한도는 인시던트 → AI → 설정에서 관리합니다.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "이 클러스터뿐 아니라 {{project}}의 모든 새 인시던트에 적용됩니다. 한도는 인시던트 → AI → 설정에서 관리합니다.",
-  "this project": "이 프로젝트"
+  "this project": "이 프로젝트",
+  "API keys still set up": "아직 설정되어 있는 API 키",
+  "Available on the {{planName}} plan": "{{planName}} 요금제에서 사용할 수 있습니다",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "즉시 작동이 중지됩니다. 다시 켜려면 {{planName}} 요금제가 필요합니다.",
+  "Nothing is left here.": "여기에 남은 항목이 없습니다.",
+  "Notification rules still set up": "아직 설정되어 있는 알림 규칙",
+  "OIDC providers still set up": "아직 설정되어 있는 OIDC 공급자",
+  "On-call schedules still set up": "아직 설정되어 있는 온콜 스케줄",
+  "SAML providers still set up": "아직 설정되어 있는 SAML 공급자",
+  "SCIM connections still set up": "아직 설정되어 있는 SCIM 연결",
+  "Summaries still set up": "아직 설정되어 있는 요약",
+  "This project's plan does not include this, so nothing new can be added here.": "이 프로젝트의 요금제에는 이 기능이 포함되어 있지 않으므로 여기에 새 항목을 추가할 수 없습니다.",
+  "Turn off": "끄기",
+  "Turn this off?": "끄시겠습니까?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "현재 요금제에는 더 이상 포함되어 있지 않지만 계속 작동합니다. 삭제할 수 있습니다. 변경하거나 새로 추가하려면 {{planName}} 요금제가 필요합니다.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "현재 요금제에는 더 이상 포함되어 있지 않습니다. 켜져 있는 항목은 계속 작동합니다. 끄거나 삭제할 수 있습니다. 다시 켜거나 새로 추가하려면 {{planName}} 요금제가 필요합니다.",
+  "Sending a test needs permission to create notification rules.": "테스트를 보내려면 알림 규칙을 만들 권한이 필요합니다."
 }

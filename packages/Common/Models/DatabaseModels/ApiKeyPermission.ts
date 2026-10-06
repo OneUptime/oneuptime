@@ -36,6 +36,13 @@ import {
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // What a leftover API key can do: readable on every plan.
+  readableBelowPlan: true,
+  /*
+   * A block permission restricts the key: deleting one gives the key more,
+   * so below the plan these are not deleted one by one (delete the key).
+   */
+  deleteStaysGated: true,
 })
 @EnableDocumentation()
 @TableAccessControl({

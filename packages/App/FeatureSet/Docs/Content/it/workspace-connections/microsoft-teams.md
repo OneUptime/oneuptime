@@ -20,6 +20,12 @@
 4. **Configurare le Notifiche di Avvisi e Manutenzioni Programmate**
    - Regole simili possono essere applicate agli Avvisi e alle Manutenzioni Programmate navigando alle rispettive pagine e configurando le regole desiderate.
 
+## Provare una regola
+
+**Regola di test** sulla riga di una regola pubblica un messaggio di prova di quella regola nei canali che indica, così puoi vederlo arrivare. Se la regola crea un canale per ogni evento, anche la prova ne crea uno e vi invita le persone della regola.
+
+Come **Invia prova** accanto a un canale in **Impostazioni del progetto** > **Workspace** > **Microsoft Teams**, serve il permesso di creare regole di notifica: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create Workspace Notification Rule** e **Read Workspace Notification Rule** in un ruolo personalizzato. Per chi può soltanto vedere le regole, come un **Viewer**, **Regola di test** è bloccato e il suo suggerimento dice cosa serve; l'API rifiuta la sua prova con "You do not have permission to send test notifications in this project." Su OneUptime Cloud, provare una regola richiede il piano **Growth**, come aggiungerne una.
+
 ## Accesso alla rete per le installazioni self-hosted
 
 Per le connessioni in uscita, i callback in ingresso e le installazioni private, consultare la sezione sull’accesso alla rete della [Integrazione Microsoft Teams](/docs/self-hosted/microsoft-teams-integration).

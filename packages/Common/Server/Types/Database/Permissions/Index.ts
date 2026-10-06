@@ -60,6 +60,11 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * `updateData` is what the update writes, when the caller has it: below
+   * the table's update plan, an update that only switches the record off
+   * still passes the plan check (BillingPermission).
+   */
   @CaptureSpan()
   public static async checkUpdatePermissionByModel<
     TBaseModel extends BaseModel,
@@ -67,6 +72,7 @@ export default class ModelPermission {
     modelType: { new (): TBaseModel };
     fetchModelWithAccessControlIds: () => Promise<TBaseModel | null>;
     props: DatabaseCommonInteractionProps;
+    updateData?: unknown;
   }): Promise<void> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(data.props);
 
@@ -105,6 +111,10 @@ export default class ModelPermission {
    * nothing they would let through. DatabaseService asks it before a
    * service's hooks run, so a hook never acts for a caller the write is
    * going to be refused for anyway.
+   *
+   * For an update, `updateData` is what the caller asked to write: below
+   * the table's update plan, an update that only switches records off is
+   * allowed (BillingPermission), and only the data shows that.
    */
   public static checkTableWritePermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -113,6 +123,7 @@ export default class ModelPermission {
       | DatabaseRequestType.Create
       | DatabaseRequestType.Update
       | DatabaseRequestType.Delete,
+    updateData?: unknown,
   ): void {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
@@ -125,7 +136,12 @@ export default class ModelPermission {
         CreatePermission.checkCreateBlockPermissions(modelType, props);
       }
 
-      TablePermission.checkTableLevelPermissions(modelType, props, type);
+      TablePermission.checkTableLevelPermissions(
+        modelType,
+        props,
+        type,
+        updateData,
+      );
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
     }
@@ -134,18 +150,25 @@ export default class ModelPermission {
   /*
    * The rows an update may change, as a query - see
    * UpdatePermission.getUpdatableQuery. For a root or master admin caller the
-   * query comes back as it is.
+   * query comes back as it is. `updateData` is what the update writes, when
+   * the caller already has it (for the plan check, see BillingPermission).
    */
   @CaptureSpan()
   public static async getUpdatableQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
+    updateData?: unknown,
   ): Promise<Query<TBaseModel>> {
     DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
 
     try {
-      return await UpdatePermission.getUpdatableQuery(modelType, query, props);
+      return await UpdatePermission.getUpdatableQuery(
+        modelType,
+        query,
+        props,
+        updateData,
+      );
     } catch (error) {
       throw ModelPermission.toAnonymousRefusal(error, props);
     }

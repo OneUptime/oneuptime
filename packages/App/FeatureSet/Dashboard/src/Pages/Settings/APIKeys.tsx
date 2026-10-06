@@ -22,6 +22,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import PlanLeftoverPage from "../../Components/Billing/PlanLeftoverPage";
+import PlanLeftoverTable from "../../Components/Billing/PlanLeftoverTable";
+import { PlanLeftoverTitle } from "../../Components/Billing/PlanLeftoverCopy";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import React, {
   Fragment,
   FunctionComponent,
@@ -229,4 +233,59 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   );
 };
 
-export default APIKeys;
+// The plan API keys are sold at.
+const API_KEY_PLAN: PlanType =
+  new ApiKey().getCreateBillingPlan() || PlanType.Growth;
+
+// The keys a project below the plan still has: each can be deleted.
+const ApiKeysLeftover: FunctionComponent = (): ReactElement => {
+  return (
+    <PlanLeftoverTable<ApiKey>
+      modelType={ApiKey}
+      id="api-keys"
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      }}
+      requiredPlan={API_KEY_PLAN}
+      title={PlanLeftoverTitle.apiKeys}
+      columns={[
+        {
+          field: {
+            name: true,
+          },
+          title: "Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            expiresAt: true,
+          },
+          title: "Expires",
+          type: FieldType.Date,
+        },
+      ]}
+    />
+  );
+};
+
+/*
+ * API keys are sold on the Growth plan, and a key keeps working after a
+ * project drops below it. Below the plan this page is the plan note with
+ * the keys the project still has under it, so one can always be deleted -
+ * revoked - whatever the plan (PlanLeftoverPage); on the plan, and with
+ * billing off, it is the page.
+ */
+const APIKeysPage: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  return (
+    <PlanLeftoverPage
+      requiredPlan={API_KEY_PLAN}
+      leftovers={<ApiKeysLeftover />}
+    >
+      <APIKeys {...props} />
+    </PlanLeftoverPage>
+  );
+};
+
+export default APIKeysPage;

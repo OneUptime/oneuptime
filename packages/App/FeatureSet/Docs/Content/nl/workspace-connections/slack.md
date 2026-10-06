@@ -20,6 +20,12 @@
 4. **Meldingen en notificaties voor gepland onderhoud configureren**
    - Vergelijkbare regels kunnen worden toegepast op Meldingen en Gepland onderhoud door naar de respectievelijke pagina's te navigeren en de gewenste regels te configureren.
 
+## Een regel testen
+
+**Testregel** op de rij van een regel plaatst een testbericht van die regel in de kanalen die de regel noemt, zodat je het ziet aankomen. Maakt de regel voor elke gebeurtenis een kanaal aan, dan maakt de test er ook een en nodigt de mensen van de regel uit.
+
+Net als **Test verzenden** naast een kanaal in **Projectinstellingen** > **Workspace** > **Slack** vraagt dit toestemming om meldingsregels aan te maken: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** of **Create Workspace Notification Rule** en **Read Workspace Notification Rule** in een eigen rol. Voor wie de regels alleen kan zien, zoals een **Viewer**, is **Testregel** vergrendeld en zegt de tooltip wat ervoor nodig is; de API weigert de test met "You do not have permission to send test notifications in this project." Op OneUptime Cloud vraagt het testen van een regel het abonnement **Growth**, net als het toevoegen ervan.
+
 ## Netwerktoegang voor zelfgehoste implementaties
 
 Raadpleeg het gedeelte over netwerktoegang in de [Slack-integratie](/docs/self-hosted/slack-integration) voor uitgaande verbindingen, inkomende callbacks en privé-implementaties.

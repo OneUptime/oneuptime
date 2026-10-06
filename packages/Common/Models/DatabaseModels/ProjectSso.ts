@@ -36,6 +36,8 @@ import {
   read: PlanType.Scale,
   update: PlanType.Scale,
   delete: PlanType.Scale,
+  // Signs people in after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @TenantColumn("projectId")
 @TableAccessControl({

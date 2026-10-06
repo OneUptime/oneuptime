@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "यह केवल इस क्लस्टर पर नहीं, बल्कि {{project}} के हर नए अलर्ट पर लागू होता है। सीमाएं घटनाएं → एआई → सेटिंग्स में सेट की जाती हैं।",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "यह केवल इस क्लस्टर पर नहीं, बल्कि {{project}} की हर नई घटना और अलर्ट पर लागू होता है। सीमाएं घटनाएं → एआई → सेटिंग्स में सेट की जाती हैं।",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "यह केवल इस क्लस्टर पर नहीं, बल्कि {{project}} की हर नई घटना पर लागू होता है। सीमाएं घटनाएं → एआई → सेटिंग्स में सेट की जाती हैं।",
-  "this project": "यह प्रोजेक्ट"
+  "this project": "यह प्रोजेक्ट",
+  "API keys still set up": "अभी भी सेट अप की गई API कुंजियाँ",
+  "Available on the {{planName}} plan": "{{planName}} प्लान में उपलब्ध",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "यह तुरंत काम करना बंद कर देगा। इसे फिर से चालू करने के लिए {{planName}} प्लान चाहिए।",
+  "Nothing is left here.": "यहाँ अब कुछ नहीं बचा है।",
+  "Notification rules still set up": "अभी भी सेट अप किए गए सूचना नियम",
+  "OIDC providers still set up": "अभी भी सेट अप किए गए OIDC प्रदाता",
+  "On-call schedules still set up": "अभी भी सेट अप की गई ऑन-कॉल अनुसूचियाँ",
+  "SAML providers still set up": "अभी भी सेट अप किए गए SAML प्रदाता",
+  "SCIM connections still set up": "अभी भी सेट अप किए गए SCIM कनेक्शन",
+  "Summaries still set up": "अभी भी सेट अप किए गए सारांश",
+  "This project's plan does not include this, so nothing new can be added here.": "इस प्रोजेक्ट के प्लान में यह शामिल नहीं है, इसलिए यहाँ कुछ नया नहीं जोड़ा जा सकता।",
+  "Turn off": "बंद करें",
+  "Turn this off?": "इसे बंद करें?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "आपके प्लान में अब ये शामिल नहीं हैं, लेकिन ये अभी भी काम करते हैं। आप इन्हें हटा सकते हैं। इन्हें बदलने या नए जोड़ने के लिए {{planName}} प्लान चाहिए।",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "आपके प्लान में अब ये शामिल नहीं हैं। जो चालू हैं वे अभी भी काम करते हैं: आप उन्हें बंद कर सकते हैं या हटा सकते हैं। उन्हें फिर से चालू करने या नए जोड़ने के लिए {{planName}} प्लान चाहिए।",
+  "Sending a test needs permission to create notification rules.": "परीक्षण भेजने के लिए सूचना नियम बनाने की अनुमति चाहिए।"
 }

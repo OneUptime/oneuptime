@@ -144,7 +144,7 @@ Voeg de mensen die mogen inloggen toe op **Statuspagina's → jouw pagina → Be
 
 Voor een private pagina die aan je identity provider hangt, configureer je op **Statuspagina's → jouw pagina → Beveiliging → SSO** de SAML-kant (je vult de sign-on-URL, issuer en het x509-certificaat in; de handtekening- en digestmethoden worden onder **Meer velden** ingevuld) en op **Statuspagina's → jouw pagina → Beveiliging → OIDC** de OpenID Connect-kant: je vult de issuer, client-ID en secret in, en de discovery-URL, scopes en claimnamen worden onder **Meer velden** ingevuld. **SCIM** provisioneert privégebruikers automatisch vanuit de IdP. In OneUptime Cloud vereisen alle drie het Scale-abonnement of hoger. Op een zelfgehoste installatie horen SSO en OIDC bij elke editie, en vereist SCIM de [Enterprise Edition](/docs/self-hosted/enterprise).
 
-Een kaart **SSO-instellingen** bevat **SSO afdwingen voor inloggen** (`requireSsoForLogin`, standaard uit). Test je SSO-configuratie voordat je dit aanzet — werkt het niet, dan sluit je jezelf buiten je eigen statuspagina.
+Een kaart **SSO-instellingen** bevat **SSO afdwingen voor inloggen** (`requireSsoForLogin`, standaard uit). Test je SSO-configuratie voordat je dit aanzet — werkt het niet, dan sluit je jezelf buiten je eigen statuspagina. Op OneUptime Cloud vraagt aanzetten het abonnement **Scale**; uitzetten werkt op elk abonnement. Een pagina die na het einde van een Scale-proefperiode, of na een overstap naar een lager abonnement, nog SSO vereist, blijft dat vereisen tot iemand het uitzet: de pagina's **SSO** en **OIDC** tonen de schakelaar daarvoor onder de upgrade-melding van het abonnement.
 
 ### IP-whitelist
 

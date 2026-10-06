@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dette gjelder alle nye varsler i {{project}}, ikke bare denne klyngen. Grensene finner du under Hendelser → KI → Innstillinger.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dette gjelder alle nye hendelser og varsler i {{project}}, ikke bare denne klyngen. Grensene finner du under Hendelser → KI → Innstillinger.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dette gjelder alle nye hendelser i {{project}}, ikke bare denne klyngen. Grensene finner du under Hendelser → KI → Innstillinger.",
-  "this project": "dette prosjektet"
+  "this project": "dette prosjektet",
+  "API keys still set up": "API-nøkler som fortsatt er satt opp",
+  "Available on the {{planName}} plan": "Tilgjengelig med {{planName}}-abonnementet",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Den slutter å virke med en gang. For å slå den på igjen trenger du {{planName}}-abonnementet.",
+  "Nothing is left here.": "Det er ingenting igjen her.",
+  "Notification rules still set up": "Varslingsregler som fortsatt er satt opp",
+  "OIDC providers still set up": "OIDC-leverandører som fortsatt er satt opp",
+  "On-call schedules still set up": "Vaktplaner som fortsatt er satt opp",
+  "SAML providers still set up": "SAML-leverandører som fortsatt er satt opp",
+  "SCIM connections still set up": "SCIM-tilkoblinger som fortsatt er satt opp",
+  "Summaries still set up": "Sammendrag som fortsatt er satt opp",
+  "This project's plan does not include this, so nothing new can be added here.": "Abonnementet til dette prosjektet omfatter ikke dette, så ingenting nytt kan legges til her.",
+  "Turn off": "Slå av",
+  "Turn this off?": "Slå den av?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Abonnementet ditt omfatter dem ikke lenger, men de virker fortsatt. Du kan slette dem. For å endre dem eller legge til nye trenger du {{planName}}-abonnementet.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Abonnementet ditt omfatter dem ikke lenger. De som er slått på, virker fortsatt: du kan slå dem av eller slette dem. For å slå dem på igjen eller legge til nye trenger du {{planName}}-abonnementet.",
+  "Sending a test needs permission to create notification rules.": "Å sende en test krever tillatelse til å opprette varslingsregler."
 }

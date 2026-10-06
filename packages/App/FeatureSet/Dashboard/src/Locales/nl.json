@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dit geldt voor elke nieuwe waarschuwing in {{project}}, niet alleen voor dit cluster. De limieten vind je onder Incidenten → AI → Instellingen.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dit geldt voor elk nieuw incident en elke nieuwe waarschuwing in {{project}}, niet alleen voor dit cluster. De limieten vind je onder Incidenten → AI → Instellingen.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Dit geldt voor elk nieuw incident in {{project}}, niet alleen voor dit cluster. De limieten vind je onder Incidenten → AI → Instellingen.",
-  "this project": "dit project"
+  "this project": "dit project",
+  "API keys still set up": "Nog ingestelde API-sleutels",
+  "Available on the {{planName}} plan": "Beschikbaar met het {{planName}}-abonnement",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Het werkt meteen niet meer. Om het weer aan te zetten hebt u het {{planName}}-abonnement nodig.",
+  "Nothing is left here.": "Hier is niets meer over.",
+  "Notification rules still set up": "Nog ingestelde meldingsregels",
+  "OIDC providers still set up": "Nog ingestelde OIDC-providers",
+  "On-call schedules still set up": "Nog ingestelde bereikbaarheidsschema's",
+  "SAML providers still set up": "Nog ingestelde SAML-providers",
+  "SCIM connections still set up": "Nog ingestelde SCIM-verbindingen",
+  "Summaries still set up": "Nog ingestelde samenvattingen",
+  "This project's plan does not include this, so nothing new can be added here.": "Het abonnement van dit project bevat dit niet, dus hier kan niets nieuws worden toegevoegd.",
+  "Turn off": "Uitzetten",
+  "Turn this off?": "Uitzetten?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Uw abonnement bevat deze niet meer, maar ze werken nog. U kunt ze verwijderen. Om ze te wijzigen of nieuwe toe te voegen hebt u het {{planName}}-abonnement nodig.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Uw abonnement bevat deze niet meer. Die welke aan staan, werken nog: u kunt ze uitzetten of verwijderen. Om ze weer aan te zetten of nieuwe toe te voegen hebt u het {{planName}}-abonnement nodig.",
+  "Sending a test needs permission to create notification rules.": "Voor het versturen van een test heb je toestemming nodig om meldingsregels aan te maken."
 }

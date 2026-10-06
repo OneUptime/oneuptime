@@ -1,5 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import PlanGatedPage from "../../../Components/Billing/PlanGatedPage";
+import { StatusPageSamlProvidersLeftover } from "../../../Components/Billing/IdentityPlanLeftovers";
 import StatusPageRequireSsoCard from "../../../Components/StatusPage/StatusPageRequireSsoCard";
 import { SSO_REQUIRED_PLAN } from "../../../Enterprise/EnterpriseEligibility";
 import URL from "Common/Types/API/URL";
@@ -263,7 +264,11 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
 
 /*
  * Every edition includes single sign-on. OneUptime Cloud sells it on the
- * Scale plan, so there a project below Scale sees the plan upsell instead.
+ * Scale plan, so there a project below Scale sees the plan upsell instead,
+ * with what a Scale trial left under it: "Require SSO for Login" while the
+ * status page still requires SSO, and the SAML providers it still has,
+ * which keep signing people in until they are turned off or deleted
+ * (StatusPageSamlProvidersLeftover).
  */
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -303,6 +308,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
           },
         ],
       }}
+      belowPlan={<StatusPageSamlProvidersLeftover />}
     >
       <SSOSettings {...props} />
     </PlanGatedPage>

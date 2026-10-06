@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Questo vale per ogni nuovo avviso in {{project}}, non solo per questo cluster. I limiti si trovano in Incidenti → IA → Impostazioni.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Questo vale per ogni nuovo incidente e ogni nuovo avviso in {{project}}, non solo per questo cluster. I limiti si trovano in Incidenti → IA → Impostazioni.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Questo vale per ogni nuovo incidente in {{project}}, non solo per questo cluster. I limiti si trovano in Incidenti → IA → Impostazioni.",
-  "this project": "questo progetto"
+  "this project": "questo progetto",
+  "API keys still set up": "Chiavi API ancora configurate",
+  "Available on the {{planName}} plan": "Disponibile con il piano {{planName}}",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Smette subito di funzionare. Per riattivarlo serve il piano {{planName}}.",
+  "Nothing is left here.": "Qui non è rimasto nulla.",
+  "Notification rules still set up": "Regole di notifica ancora configurate",
+  "OIDC providers still set up": "Provider OIDC ancora configurati",
+  "On-call schedules still set up": "Pianificazioni di reperibilità ancora configurate",
+  "SAML providers still set up": "Provider SAML ancora configurati",
+  "SCIM connections still set up": "Connessioni SCIM ancora configurate",
+  "Summaries still set up": "Riepiloghi ancora configurati",
+  "This project's plan does not include this, so nothing new can be added here.": "Il piano di questo progetto non include questa funzione, quindi qui non si può aggiungere nulla di nuovo.",
+  "Turn off": "Disattiva",
+  "Turn this off?": "Disattivarlo?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Il tuo piano non li include più, ma funzionano ancora. Puoi eliminarli. Per modificarli o aggiungerne di nuovi serve il piano {{planName}}.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Il tuo piano non li include più. Quelli attivi funzionano ancora: puoi disattivarli o eliminarli. Per riattivarli o aggiungerne di nuovi serve il piano {{planName}}.",
+  "Sending a test needs permission to create notification rules.": "Per inviare una prova serve il permesso di creare regole di notifica."
 }

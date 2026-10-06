@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Это относится к каждому новому оповещению в проекте {{project}}, а не только к этому кластеру. Лимиты настраиваются в разделе Инциденты → ИИ → Настройки.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Это относится к каждому новому инциденту и оповещению в проекте {{project}}, а не только к этому кластеру. Лимиты настраиваются в разделе Инциденты → ИИ → Настройки.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "Это относится к каждому новому инциденту в проекте {{project}}, а не только к этому кластеру. Лимиты настраиваются в разделе Инциденты → ИИ → Настройки.",
-  "this project": "этот проект"
+  "this project": "этот проект",
+  "API keys still set up": "Оставшиеся ключи API",
+  "Available on the {{planName}} plan": "Доступно в тарифе {{planName}}",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "Это сразу перестанет работать. Чтобы снова включить, нужен тариф {{planName}}.",
+  "Nothing is left here.": "Здесь больше ничего не осталось.",
+  "Notification rules still set up": "Оставшиеся правила уведомлений",
+  "OIDC providers still set up": "Оставшиеся поставщики OIDC",
+  "On-call schedules still set up": "Оставшиеся расписания дежурств",
+  "SAML providers still set up": "Оставшиеся поставщики SAML",
+  "SCIM connections still set up": "Оставшиеся подключения SCIM",
+  "Summaries still set up": "Оставшиеся сводки",
+  "This project's plan does not include this, so nothing new can be added here.": "Тариф этого проекта этого не включает, поэтому здесь нельзя добавить ничего нового.",
+  "Turn off": "Выключить",
+  "Turn this off?": "Выключить?",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Ваш тариф больше их не включает, но они продолжают работать. Вы можете их удалить. Чтобы изменить их или добавить новые, нужен тариф {{planName}}.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Ваш тариф больше их не включает. Включённые продолжают работать: вы можете выключить или удалить их. Чтобы снова включить их или добавить новые, нужен тариф {{planName}}.",
+  "Sending a test needs permission to create notification rules.": "Чтобы отправить тест, нужно право создавать правила уведомлений."
 }

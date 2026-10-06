@@ -157,13 +157,14 @@ describe("the Settings pages draw switches, not Edit dialogs", () => {
    * A paid feature can always be switched off, on any plan. Below Scale the
    * page is the plan's upsell, but a project a Scale trial left requiring
    * SSO still requires it: the switch is drawn under the upsell while it
-   * does, without the test link's line (the link is not on that page).
+   * does, without the test link's line (the link is not on that page). The
+   * providers the project still has come after it, to switch off or delete.
    */
   test("Settings > SSO below Scale: the Require SSO switch under the upsell, while the project requires SSO", () => {
     const page: string = readDashboard("Pages/Settings/SSO.tsx");
 
     expect(page).toContain(
-      "belowPlan={ <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> }",
+      "belowPlan={ <> <RequireSsoForLoginLeftover projectId={ProjectUtil.getCurrentProjectId()!} /> <ProjectSamlProvidersLeftover /> </> }",
     );
 
     const leftover: string = readDashboard(

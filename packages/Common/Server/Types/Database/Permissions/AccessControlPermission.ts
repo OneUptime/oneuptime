@@ -139,6 +139,11 @@ export default class AccessControlPermission {
     }
   }
 
+  /*
+   * `updateData` is what an update writes, when the caller has it, for the
+   * plan check: an update that only switches the record off passes it below
+   * the table's update plan (BillingPermission).
+   */
   @CaptureSpan()
   public static async checkAccessControlPermissionByModel<
     TBaseModel extends BaseModel,
@@ -147,6 +152,7 @@ export default class AccessControlPermission {
     modelType: { new (): TBaseModel };
     props: DatabaseCommonInteractionProps;
     type: DatabaseRequestType;
+    updateData?: unknown;
   }): Promise<void> {
     const { modelType, props, type } = data;
 
@@ -155,7 +161,12 @@ export default class AccessControlPermission {
     }
 
     // Check if the user has permission to delete or update the object in this table.
-    TablePermission.checkTableLevelPermissions(modelType, props, type);
+    TablePermission.checkTableLevelPermissions(
+      modelType,
+      props,
+      type,
+      data.updateData,
+    );
 
     // if the control is here, then the user has table level permissions.
     const model: TBaseModel = new modelType();

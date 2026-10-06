@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -25,6 +25,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  * standing in for the Enterprise bundle; left empty it is the Community
  * bundle. Billing, the edition and the plan are pinned in every test: CI's
  * config.env sets BILLING_ENABLED=true.
+ *
+ * On OneUptime Cloud below Scale, the SCIM connections a project or status
+ * page still has keep provisioning people, so they are listed under the
+ * upsell to delete (IdentityPlanLeftovers, PlanLeftoverTable). The table is
+ * a stand-in here, and the count it asks for answers what each test says.
  */
 
 let billingEnabledForTest: boolean = false;
@@ -76,6 +81,9 @@ jest.mock("../../../UI/Utils/Project", () => {
     ...actual,
     default: {
       ...actual["default"],
+      getCurrentProjectId: (): string => {
+        return "33333333-3333-4333-8333-333333333333";
+      },
       getCurrentPlan: (): string | null => {
         if (currentPlanThrows) {
           throw new Error("Plan ID is invalid");
@@ -97,6 +105,49 @@ jest.mock("@oneuptime/ee-dashboard", () => {
   return { __esModule: true, default: mockEnterprisePlugins };
 });
 
+// How many SCIM connections a page still has, and what was counted.
+const mockLeftovers: {
+  count: number;
+  countedModels: Array<string>;
+} = { count: 0, countedModels: [] };
+
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      count: async (request: {
+        modelType: { new (): { tableName?: string | undefined } };
+      }): Promise<number> => {
+        mockLeftovers.countedModels.push(
+          new request.modelType().tableName || "",
+        );
+        return mockLeftovers.count;
+      },
+    },
+  };
+});
+
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  const react: typeof React = jest.requireActual("react") as typeof React;
+
+  return {
+    __esModule: true,
+    default: (props: {
+      id: string;
+      isCreateable: boolean;
+      isEditable?: boolean;
+      isDeleteable: boolean;
+    }): ReactElement => {
+      return react.createElement("div", {
+        "data-testid": `model-table-${props.id}`,
+        "data-createable": String(props.isCreateable),
+        "data-editable": String(Boolean(props.isEditable)),
+        "data-deleteable": String(props.isDeleteable),
+      });
+    },
+  };
+});
+
 import SettingsSCIM from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SCIM";
 import StatusPageViewSCIM from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/SCIM";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -114,6 +165,9 @@ interface ShellCase {
   // The upsell copy the page showed before it moved to ee/.
   upsellTitle: string;
   featureName: string;
+  // Below Scale: the connections the page still has, and their table.
+  leftoverModel: string;
+  leftoverTable: string;
 }
 
 const SHELLS: Array<ShellCase> = [
@@ -123,6 +177,8 @@ const SHELLS: Array<ShellCase> = [
     pluginKey: "SettingsSCIM",
     upsellTitle: "SCIM User Provisioning",
     featureName: "SCIM User Provisioning",
+    leftoverModel: "ProjectSCIM",
+    leftoverTable: "plan-leftover-project-scim-connections",
   },
   {
     name: "Status page > SCIM",
@@ -130,6 +186,8 @@ const SHELLS: Array<ShellCase> = [
     pluginKey: "StatusPageSCIM",
     upsellTitle: "Status Page SCIM",
     featureName: "Status Page SCIM Provisioning",
+    leftoverModel: "StatusPageSCIM",
+    leftoverTable: "plan-leftover-status-page-scim-connections",
   },
 ];
 
@@ -193,6 +251,8 @@ beforeEach(() => {
   enterpriseEditionForTest = false;
   currentPlanForTest = null;
   currentPlanThrows = false;
+  mockLeftovers.count = 0;
+  mockLeftovers.countedModels = [];
   clearPlugins();
 });
 
@@ -250,6 +310,54 @@ describe.each(SHELLS)("$name shell", (shell: ShellCase) => {
     expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(0);
     expect(screen.getAllByText(shell.featureName).length).toBeGreaterThan(0);
     expect(screen.queryByTestId("enterprise-screen")).not.toBeInTheDocument();
+  });
+
+  test("OneUptime Cloud below Scale: the connections it still has are listed under the upsell, to delete", async () => {
+    billingEnabledForTest = true;
+    enterpriseEditionForTest = true;
+    currentPlanForTest = PlanType.Free;
+    mockLeftovers.count = 1;
+    installPlugins([shell.pluginKey]);
+
+    await act(async () => {
+      render(<shell.Shell {...PAGE_PROPS} />);
+    });
+
+    expect(mockLeftovers.countedModels).toEqual([shell.leftoverModel]);
+
+    const table: HTMLElement = await screen.findByTestId(
+      `model-table-${shell.leftoverTable}`,
+    );
+
+    expect(table).toHaveAttribute("data-createable", "false");
+    expect(table).toHaveAttribute("data-editable", "false");
+    expect(table).toHaveAttribute("data-deleteable", "true");
+    expect(screen.getAllByText("Upgrade to Scale").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("enterprise-screen")).not.toBeInTheDocument();
+  });
+
+  test("on the plan, self-hosted, or with no plan known, nothing is counted for the connections", async () => {
+    installPlugins([shell.pluginKey]);
+    mockLeftovers.count = 1;
+
+    for (const state of [
+      { billing: false, edition: true, plan: null },
+      { billing: false, edition: false, plan: null },
+      { billing: true, edition: true, plan: PlanType.Scale },
+      { billing: true, edition: true, plan: null },
+    ]) {
+      billingEnabledForTest = state.billing;
+      enterpriseEditionForTest = state.edition;
+      currentPlanForTest = state.plan;
+
+      await act(async () => {
+        render(<shell.Shell {...PAGE_PROPS} />);
+      });
+
+      cleanup();
+    }
+
+    expect(mockLeftovers.countedModels).toEqual([]);
   });
 
   test("OneUptime Cloud with no plan, or one the Dashboard cannot read: the plan upsell (fails closed)", () => {

@@ -25725,5 +25725,21 @@
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "این نه فقط برای این خوشه، بلکه برای هر هشدار جدید در {{project}} اعمال می‌شود. محدودیت‌ها را در حوادث ← هوش مصنوعی ← تنظیمات مشخص می‌کنید.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "این نه فقط برای این خوشه، بلکه برای هر حادثه و هشدار جدید در {{project}} اعمال می‌شود. محدودیت‌ها را در حوادث ← هوش مصنوعی ← تنظیمات مشخص می‌کنید.",
   "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.": "این نه فقط برای این خوشه، بلکه برای هر حادثه جدید در {{project}} اعمال می‌شود. محدودیت‌ها را در حوادث ← هوش مصنوعی ← تنظیمات مشخص می‌کنید.",
-  "this project": "این پروژه"
+  "this project": "این پروژه",
+  "API keys still set up": "کلیدهای API که هنوز تنظیم شده‌اند",
+  "Available on the {{planName}} plan": "در طرح {{planName}} در دسترس است",
+  "It stops working right away. Turning it on again needs the {{planName}} plan.": "بلافاصله از کار می‌افتد. برای روشن کردن دوباره‌اش به طرح {{planName}} نیاز دارید.",
+  "Nothing is left here.": "اینجا دیگر چیزی باقی نمانده است.",
+  "Notification rules still set up": "قواعد اعلان که هنوز تنظیم شده‌اند",
+  "OIDC providers still set up": "ارائه‌دهندگان OIDC که هنوز تنظیم شده‌اند",
+  "On-call schedules still set up": "زمان‌بندی‌های آنکال که هنوز تنظیم شده‌اند",
+  "SAML providers still set up": "ارائه‌دهندگان SAML که هنوز تنظیم شده‌اند",
+  "SCIM connections still set up": "اتصال‌های SCIM که هنوز تنظیم شده‌اند",
+  "Summaries still set up": "خلاصه‌هایی که هنوز تنظیم شده‌اند",
+  "This project's plan does not include this, so nothing new can be added here.": "طرح این پروژه این مورد را ندارد، پس اینجا نمی‌توان چیز جدیدی افزود.",
+  "Turn off": "خاموش کردن",
+  "Turn this off?": "خاموش شود؟",
+  "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "طرح شما دیگر این‌ها را ندارد، اما هنوز کار می‌کنند. می‌توانید آن‌ها را حذف کنید. برای تغییر آن‌ها یا افزودن موارد جدید به طرح {{planName}} نیاز دارید.",
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "طرح شما دیگر این‌ها را ندارد. مواردی که روشن هستند هنوز کار می‌کنند: می‌توانید آن‌ها را خاموش یا حذف کنید. برای روشن کردن دوباره یا افزودن موارد جدید به طرح {{planName}} نیاز دارید.",
+  "Sending a test needs permission to create notification rules.": "برای فرستادن آزمایشی به مجوز ساختن قواعد اعلان نیاز است."
 }

@@ -27,6 +27,7 @@ import IncidentEpisodeService from "./IncidentEpisodeService";
 import IncidentEpisodeInternalNote from "../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeInternalNoteService from "./IncidentEpisodeInternalNoteService";
 import { JSONObject } from "../../Types/JSON";
+import StateChangeNote from "../Utils/StateChangeNote";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   public constructor() {
@@ -52,6 +53,26 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       if (!createBy.data.startsAt) {
         createBy.data.startsAt = OneUptimeDate.getCurrentDate();
       }
+
+      /*
+       * The private note that comes with the change, if any (a blank one is
+       * none). It is posted once the change is saved (onCreateSuccess), as
+       * the person changing the state, so that it comes after the change in
+       * the episode's feed and a change that fails leaves no note behind.
+       * Whether they may post it is asked now, before the change takes its
+       * lock or reads the timeline, with the check the note's own create
+       * runs: a change whose note they may not post is refused whole, with
+       * one plain message, rather than saved and then answered with an
+       * error (StateChangeNote).
+       */
+      const privateNotesToPost: Array<IncidentEpisodeInternalNote> =
+        StateChangeNote.preparePrivateNotes({
+          noteModelType: IncidentEpisodeInternalNote,
+          stateChange: createBy.data,
+          eventColumn: "incidentEpisodeId",
+          miscDataProps: createBy.miscDataProps as JSONObject | undefined,
+          props: createBy.props,
+        });
 
       try {
         mutex = await Semaphore.lock({
@@ -190,21 +211,12 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
         incidentEpisodeId: createBy.data.incidentEpisodeId?.toString(),
       } as LogAttributes);
 
-      /*
-       * The note a user writes when they change the state. It is not a column
-       * on this model, so it travels alongside the create and becomes an
-       * internal note on the episode once the timeline row exists.
-       */
-      const privateNote: string | undefined = (
-        createBy.miscDataProps as JSONObject | undefined
-      )?.["privateNote"] as string | undefined;
-
       return {
         createBy,
         carryForward: {
           statusTimelineBeforeThisStatus: stateBeforeThis || null,
           statusTimelineAfterThisStatus: stateAfterThis || null,
-          privateNote: privateNote,
+          privateNotesToPost: privateNotesToPost,
           mutex: mutex,
         },
       };
@@ -454,21 +466,17 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       },
     });
 
-    if (onCreate.carryForward.privateNote) {
-      const privateNote: string = onCreate.carryForward.privateNote;
-
-      const episodeInternalNote: IncidentEpisodeInternalNote =
-        new IncidentEpisodeInternalNote();
-      episodeInternalNote.incidentEpisodeId = createdItem.incidentEpisodeId;
-      episodeInternalNote.note = privateNote;
-      episodeInternalNote.createdAt = createdItem.startsAt!;
-      episodeInternalNote.projectId = createdItem.projectId!;
-
-      await IncidentEpisodeInternalNoteService.create({
-        data: episodeInternalNote,
-        props: onCreate.createBy.props,
-      });
-    }
+    /*
+     * The private notes that came with the change, which onBeforeCreate built
+     * and made sure may be posted: posted now, after the change, at the time
+     * the change was saved with, as the person who changed the state.
+     */
+    await StateChangeNote.postPrivateNotes({
+      notes: onCreate.carryForward.privateNotesToPost,
+      noteService: IncidentEpisodeInternalNoteService,
+      savedStateChange: createdItem,
+      props: onCreate.createBy.props,
+    });
 
     return createdItem;
   }
