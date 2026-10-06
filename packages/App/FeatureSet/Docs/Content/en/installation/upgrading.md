@@ -316,11 +316,13 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   **Active Alerts** lists and their side-menu counts, the incident and
   alert lists on dashboards, the active episodes and the mobile app's
   lists of open records; Slack and Microsoft Teams summaries count them as
-  resolved, and status page timelines show such a row as resolved. Moving
-  an incident straight into such a state resolves it as **Resolved**
-  does, and moving one on from **Resolved** no longer reopens an episode
-  or starts a new SLA for the incident. Projects whose custom states all
-  sit above the resolved state see no change. See
+  resolved, and status page timelines show such a row as resolved. A
+  monitor or an SLO burn-rate rule whose incident or alert sits in such a
+  state opens a new one the next time it fires, where it used to take the
+  old one for still open. Moving an incident straight into such a state
+  resolves it as **Resolved** does, and moving one on from **Resolved** no
+  longer reopens an episode or starts a new SLA for the incident. Projects
+  whose custom states all sit above the resolved state see no change. See
   [The Active Incidents list](/docs/incidents/states-and-severities#the-active-incidents-list).
 - **Resolving an incident gives back only the monitors it holds.**
   OneUptime now records whether an incident holds its monitors' status. An

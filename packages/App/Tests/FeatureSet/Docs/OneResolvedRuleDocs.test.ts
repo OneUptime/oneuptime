@@ -310,7 +310,10 @@ describe("the 14 upgrade notes", () => {
     );
     expect(otherChanges).toContain("used to count as resolved");
     expect(otherChanges).toContain(
-      "Projects whose custom states all\n  sit above the resolved state see no change.",
+      "Projects\n  whose custom states all sit above the resolved state see no change.",
+    );
+    expect(otherChanges).toContain(
+      "opens a new one the next time it fires, where it used to take the\n  old one for still open.",
     );
     expect(otherChanges).toContain(
       `(/docs/incidents/states-and-severities#${slugify("The Active Incidents list")})`,
