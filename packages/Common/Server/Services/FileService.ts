@@ -16,6 +16,11 @@ import FileOwnership, {
   FileOwners,
   normalizeFileId,
 } from "../Utils/File/FileOwnership";
+import { FileAccessFacts } from "../Utils/File/RelatedFileAccess";
+import {
+  HIDE_UNSHOWN_FILES_SQL,
+  PUBLISH_SHOWN_IMAGES_SQL,
+} from "../Utils/File/PublishedImages";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
@@ -23,6 +28,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import crypto from "crypto";
+import { SelectQueryBuilder } from "typeorm";
 
 const generateImageAccessToken: () => string = (): string => {
   return crypto.randomBytes(32).toString("hex");
@@ -182,9 +188,47 @@ export class Service extends DatabaseService<File> {
   ): Promise<Map<string, FileOwners>> {
     const owners: Map<string, FileOwners> = new Map();
 
+    for (const [fileId, facts] of await this.readFileFacts({
+      fileIds: fileIds,
+      withVisibility: false,
+    })) {
+      owners.set(fileId, {
+        projectId: facts.projectId,
+        createdByUserId: facts.createdByUserId,
+      });
+    }
+
+    return owners;
+  }
+
+  /**
+   * Who may see each file - the project it was uploaded in, the user who
+   * uploaded it, and whether it is public - keyed by its id in lower case,
+   * read in one query and never with the bytes (RelatedFileAccess). A file
+   * that does not exist, or an id that is not one, is absent from the
+   * answer. Public is strictly true, as FileViewerAccess reads it.
+   */
+  @CaptureSpan()
+  public async getFileAccess(
+    fileIds: Array<ObjectID>,
+  ): Promise<Map<string, FileAccessFacts>> {
+    return await this.readFileFacts({ fileIds: fileIds, withVisibility: true });
+  }
+
+  /*
+   * The one read behind getFileOwners and getFileAccess: each file's owners
+   * (and, asked for, whether it is public) in one query, never the bytes.
+   * An id that is not one is never sent to Postgres.
+   */
+  private async readFileFacts(data: {
+    fileIds: Array<ObjectID>;
+    withVisibility: boolean;
+  }): Promise<Map<string, FileAccessFacts>> {
+    const facts: Map<string, FileAccessFacts> = new Map();
+
     const ids: Array<string> = Array.from(
       new Set(
-        fileIds
+        data.fileIds
           .map((fileId: ObjectID): string => {
             return normalizeFileId(fileId);
           })
@@ -195,18 +239,25 @@ export class Service extends DatabaseService<File> {
     );
 
     if (ids.length === 0) {
-      return owners;
+      return facts;
+    }
+
+    let query: SelectQueryBuilder<File> = this.getRepository()
+      .createQueryBuilder("file")
+      .select('"file"."_id"', "_id")
+      .addSelect('"file"."projectId"', "projectId")
+      .addSelect('"file"."createdByUserId"', "createdByUserId");
+
+    if (data.withVisibility) {
+      query = query.addSelect('"file"."isPublic"', "isPublic");
     }
 
     const rows: Array<{
       _id?: unknown;
       projectId?: unknown;
       createdByUserId?: unknown;
-    }> = await this.getRepository()
-      .createQueryBuilder("file")
-      .select('"file"."_id"', "_id")
-      .addSelect('"file"."projectId"', "projectId")
-      .addSelect('"file"."createdByUserId"', "createdByUserId")
+      isPublic?: unknown;
+    }> = await query
       .where('"file"."_id" IN (:...ids)', { ids: ids })
       .andWhere('"file"."deletedAt" IS NULL')
       .getRawMany();
@@ -216,13 +267,46 @@ export class Service extends DatabaseService<File> {
         continue;
       }
 
-      owners.set(normalizeFileId(row._id), {
+      facts.set(normalizeFileId(row._id), {
         projectId: readStoredId(row.projectId),
         createdByUserId: readStoredId(row.createdByUserId),
+        isPublic: row.isPublic === true,
       });
     }
 
-    return owners;
+    return facts;
+  }
+
+  /**
+   * Once, for files from before a file was public only while a record shows
+   * it to everyone (PublishedImages): every image a published record of its
+   * own project shows becomes public, and every other public file - one
+   * nothing published shows, which is not a probe's or an AI agent's icon -
+   * becomes private. Safe to run more than once, and at once: each statement
+   * moves only rows not yet where they belong. Returns how many files moved
+   * each way.
+   */
+  @CaptureSpan()
+  public async setVisibilityFromPublishedRecords(): Promise<{
+    madePublic: number;
+    madePrivate: number;
+  }> {
+    const countOf: (result: unknown) => number = (result: unknown): number => {
+      // An UPDATE answers [rows, affected count].
+      return Array.isArray(result) && typeof result[1] === "number"
+        ? result[1]
+        : 0;
+    };
+
+    const madePublic: number = countOf(
+      await this.getRepository().manager.query(PUBLISH_SHOWN_IMAGES_SQL),
+    );
+
+    const madePrivate: number = countOf(
+      await this.getRepository().manager.query(HIDE_UNSHOWN_FILES_SQL),
+    );
+
+    return { madePublic, madePrivate };
   }
 
   /**

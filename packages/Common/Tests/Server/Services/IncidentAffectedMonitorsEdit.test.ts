@@ -125,6 +125,12 @@ interface StoredIncident {
   // Resolved before the update, and after it unless the update moves it.
   isResolved: boolean;
   isCreatedAutomatically: boolean;
+  /*
+   * Whether it holds its monitors (Incident.holdsMonitors): false for one
+   * declared already resolved, or resolved since; null for one from before
+   * it was recorded.
+   */
+  holdsMonitors: boolean | null;
 }
 
 function storedIncident(
@@ -137,6 +143,7 @@ function storedIncident(
     changeMonitorStatusToId: OFFLINE,
     isResolved: false,
     isCreatedAutomatically: false,
+    holdsMonitors: true,
     ...overrides,
   };
 }
@@ -181,6 +188,8 @@ let disableActiveMonitoring: MockFunction;
 let isIncidentResolved: MockFunction;
 let createFeedItem: MockFunction;
 let monitorUpdateOneById: MockFunction;
+// What the edits recorded about the monitors each incident holds.
+let holdsRecorded: Array<{ incidentId: string; holdsMonitors: boolean }> = [];
 
 /*
  * Whether an incident is resolved at this point of the update: as stored
@@ -380,6 +389,7 @@ beforeEach(() => {
         incident._id = stored.id;
         incident.projectId = projectId;
         incident.monitors = stored.monitorIds.map(monitorStub);
+        incident.holdsMonitors = stored.holdsMonitors as boolean;
         if (stored.changeMonitorStatusToId) {
           incident.changeMonitorStatusToId = new ObjectID(
             stored.changeMonitorStatusToId,
@@ -424,6 +434,20 @@ beforeEach(() => {
   jest
     .spyOn(IncidentService, "isIncidentResolved")
     .mockImplementation(isIncidentResolved as never);
+
+  holdsRecorded = [];
+  jest
+    .spyOn(IncidentService, "recordHoldsMonitors")
+    .mockImplementation(((data: {
+      incidentId: ObjectID;
+      holdsMonitors: boolean;
+    }): Promise<void> => {
+      holdsRecorded.push({
+        incidentId: data.incidentId.toString(),
+        holdsMonitors: data.holdsMonitors,
+      });
+      return Promise.resolve();
+    }) as never);
 
   markMonitorsActive = getJestMockFunction();
   markMonitorsActive.mockResolvedValue(undefined);
@@ -515,6 +539,77 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+describe("IncidentService: an edit and the monitors the incident holds (Incident.holdsMonitors)", () => {
+  test("a monitor taken off an incident that holds nothing (declared resolved, reopened since) is not restored: there is nothing of the incident's to give back", async () => {
+    storedIncidents = [
+      storedIncident({
+        monitorIds: [MONITOR_A, MONITOR_B],
+        holdsMonitors: false,
+      }),
+    ];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(markMonitorsActive).not.toHaveBeenCalled();
+  });
+
+  test("a monitor taken off an incident from before it was recorded (null) is restored, as it always was", async () => {
+    storedIncidents = [
+      storedIncident({
+        monitorIds: [MONITOR_A, MONITOR_B],
+        holdsMonitors: null,
+      }),
+    ];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(monitorsRestored()).toEqual([[MONITOR_B]]);
+  });
+
+  test("an edit that puts an open incident's monitors in its status makes it hold them, before it does - so its resolve gives them back", async () => {
+    storedIncidents = [storedIncident({ holdsMonitors: false })];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(holdsRecorded).toEqual([
+      { incidentId: INCIDENT_ID, holdsMonitors: true },
+    ]);
+    expect(statusChanges()).toEqual([[[MONITOR_B], OFFLINE]]);
+  });
+
+  test("an incident that holds its monitors already records nothing more", async () => {
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(holdsRecorded).toEqual([]);
+  });
+
+  test("an edit of a resolved incident records nothing: it touches no monitor", async () => {
+    storedIncidents = [
+      storedIncident({ isResolved: true, holdsMonitors: false }),
+    ];
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(holdsRecorded).toEqual([]);
+    expect(changeMonitorStatus).not.toHaveBeenCalled();
+  });
 });
 
 describe("IncidentService: editing the monitors of a resolved incident", () => {
@@ -1348,13 +1443,34 @@ describe("IncidentService.onBeforeUpdate: which monitors an update adds and remo
     },
   );
 
-  test("an update that touches neither reads no incident", async () => {
+  test("an update that touches neither reads no monitors and changes none", async () => {
     const onUpdate: OnUpdate<Incident> = await runBeforeUpdate(
       makeUpdateBy({ title: "Renamed" }),
     );
 
-    expect(onUpdate.carryForward).toEqual({});
-    expect(IncidentService.findBy).not.toHaveBeenCalled();
+    /*
+     * The title is read before the write, so its feed line follows a real
+     * change (EventFieldChange): that read asks for no monitor, and what it
+     * carries forward takes no monitor off, puts none on and sets no status.
+     */
+    for (const entry of Object.values(
+      (onUpdate.carryForward || {}) as Record<string, Record<string, unknown>>,
+    )) {
+      expect(entry["monitorsRemoved"]).toEqual([]);
+      expect(entry["monitorsAdded"]).toEqual([]);
+      expect(entry["newMonitorChangeStatusIdTo"]).toBeUndefined();
+      expect(entry["isChangeMonitorStatusToCleared"]).toBeUndefined();
+    }
+
+    for (const call of (
+      IncidentService.findBy as unknown as { mock: { calls: Array<unknown> } }
+    ).mock.calls) {
+      const select: Record<string, unknown> =
+        (call as Array<{ select?: Record<string, unknown> }>)[0]?.select || {};
+
+      expect(select["monitors"]).toBeUndefined();
+      expect(select["changeMonitorStatusToId"]).toBeUndefined();
+    }
   });
 });
 

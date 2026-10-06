@@ -267,6 +267,43 @@ export const PostgresLockTimeoutMs: number = parseInt(
 );
 
 /*
+ * How long (ms) a statement of a SCHEMA migration may wait for a lock before
+ * the migration gives up, rolls back and is tried again
+ * (Postgres/SchemaMigrationRunner.ts).
+ *
+ * DDL needs strong table locks (ALTER TABLE takes ACCESS EXCLUSIVE), and a DDL
+ * statement waiting in a table's lock queue blocks every query that arrives on
+ * that table after it - reads included - until it gets the lock or gives up.
+ * Without this bound a migration queued behind one long transaction on
+ * "Monitor" parked every probe result, heartbeat and ingest lookup for as long
+ * as that transaction lived. With it, that queue lasts this long at most, and
+ * the runner tries again in the gaps.
+ *
+ * Kept BELOW DATABASE_LOCK_TIMEOUT_MS (3 s): an app query queued behind a
+ * migration's lock request then outlives the request, so it is delayed rather
+ * than failed with its own lock_timeout.
+ *
+ * Only the schema-migration connection gets this. 0 lets migration statements
+ * wait as long as it takes, as they did before.
+ */
+export const PostgresMigrationLockTimeoutMs: number = parseInt(
+  process.env["DATABASE_MIGRATION_LOCK_TIMEOUT_MS"] || "2000",
+  10,
+);
+
+/*
+ * How long (ms) the schema-migration runner keeps retrying ONE migration that
+ * keeps running out of DATABASE_MIGRATION_LOCK_TIMEOUT_MS before it fails the
+ * run, with the lock error. Counted per migration: a run that applies several
+ * migrations gives each its own window. 0 never retries.
+ */
+export const PostgresMigrationLockRetryTimeoutMs: number = parseInt(
+  process.env["DATABASE_MIGRATION_LOCK_RETRY_TIMEOUT_MS"] ||
+    String(10 * 60 * 1000),
+  10,
+);
+
+/*
  * Node-postgres client-side query timeout (ms). Belt-and-braces for the
  * server-side statement_timeout — fires even if the connection has gone
  * silent or the server-side timeout doesn't kick in.

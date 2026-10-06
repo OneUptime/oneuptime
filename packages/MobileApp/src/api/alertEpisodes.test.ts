@@ -178,10 +178,50 @@ describe("fetchAlertEpisodes", () => {
   });
 
   test("narrows to the unresolved states when asked to", async () => {
+    /*
+     * Which states are open is the project's to say: every state above its
+     * resolved state. "Closed", placed after Resolved and not flagged, is
+     * resolved too, so the project's states are read first and the list asks
+     * for the open ones by id (utils/resolvedState).
+     */
+    postSpy().mockResolvedValueOnce({
+      data: makeListResponse([
+        makeAlertState({ _id: "alert-state-created", order: 1 }),
+        makeAlertState({
+          _id: "alert-state-acknowledged",
+          name: "Acknowledged",
+          isCreatedState: false,
+          isAcknowledgedState: true,
+          order: 2,
+        }),
+        makeAlertState({
+          _id: "alert-state-resolved",
+          name: "Resolved",
+          isCreatedState: false,
+          isResolvedState: true,
+          order: 3,
+        }),
+        makeAlertState({
+          _id: "alert-state-closed",
+          name: "Closed",
+          isCreatedState: false,
+          order: 4,
+        }),
+      ]),
+    } as never);
+
     await fetchAlertEpisodes("project-1", { unresolvedOnly: true });
 
+    const calls: Array<Array<unknown>> = postSpy().mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0]![0]).toBe("/api/alert-state/get-list?skip=0&limit=20");
+    expect(calls[0]![2]).toEqual({ headers: { tenantid: "project-1" } });
+    expect(lastUrl()).toBe("/api/alert-episode/get-list?skip=0&limit=20");
     expect(lastQuery()).toEqual({
-      currentAlertState: { isResolvedState: false },
+      currentAlertStateId: {
+        _type: "Includes",
+        value: ["alert-state-created", "alert-state-acknowledged"],
+      },
     });
   });
 
@@ -341,14 +381,6 @@ describe("fetchAllAlertEpisodes", () => {
     await fetchAllAlertEpisodes();
 
     expect(lastQuery()).toEqual({});
-  });
-
-  test("narrows to the unresolved states when asked to", async () => {
-    await fetchAllAlertEpisodes({ unresolvedOnly: true });
-
-    expect(lastQuery()).toEqual({
-      currentAlertState: { isResolvedState: false },
-    });
   });
 
   test("asks for the newest episodes first", async () => {

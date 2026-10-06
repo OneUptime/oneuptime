@@ -8,6 +8,7 @@ import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import AlertService from "../../../Services/AlertService";
+import AlertStateService from "../../../Services/AlertStateService";
 import AlertOwnerTeamService from "../../../Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "../../../Services/AlertOwnerUserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -273,14 +274,20 @@ export const QueryAlertsTool: ObservabilityTool = {
     const query: Query<Alert> = {};
 
     /*
-     * State is matched through the AlertState flags rather than the state
-     * name, so custom state names ("Firing", "Triaged", …) still classify
-     * correctly: anything not flagged resolved counts as active.
+     * State is matched through the project's own states rather than the
+     * state name, so custom state names ("Firing", "Triaged", …) still
+     * classify correctly: resolved is the project's resolved state and any
+     * state placed after it, everything above it is active
+     * (Common/Utils/ResolvedState).
      */
     if (state === "active") {
-      query.currentAlertState = { isResolvedState: false };
+      query.currentAlertStateId = QueryHelper.any(
+        await AlertStateService.getUnresolvedAlertStateIds(ctx.projectId),
+      );
     } else if (state === "resolved") {
-      query.currentAlertState = { isResolvedState: true };
+      query.currentAlertStateId = QueryHelper.any(
+        await AlertStateService.getResolvedAlertStateIds(ctx.projectId),
+      );
     }
 
     /*

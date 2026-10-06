@@ -2,7 +2,7 @@
 
 Jeder Vorfall trägt zwei Einordnungen: einen **Status**, der sagt, wo er in Ihrer Reaktion steht, und einen **Schweregrad**, der sagt, wie sehr es wehtut. Im Dashboard sehen sie sich ähnlich – beide erscheinen als farbige Pillen in der Vorfallliste, beide sind projektbezogene Listen, die Sie umbenennen und umfärben können. Ihre Aufgaben sind grundverschieden.
 
-Status steuern Verhalten. Drei boolesche Flags auf den Statusdatensätzen entscheiden, welche Vorfälle als aktiv gelten, welche Schaltflächen im Vorfall-Header erscheinen, wann die SLA-Uhr stehen bleibt und wann der Vorfall von Ihrer Statusseite verschwindet. Schweregrade steuern von sich aus gar nichts – sie sind Beschriftungen, die die Auswirkung beschreiben und auf die andere Regeln passen können.
+Status steuern Verhalten. Drei boolesche Flags auf den Statusdatensätzen entscheiden zusammen mit der Reihenfolge der Status, welche Vorfälle als aktiv gelten, welche Schaltflächen im Vorfall-Header erscheinen, wann die SLA-Uhr stehen bleibt und wann der Vorfall von Ihrer Statusseite verschwindet. Schweregrade steuern von sich aus gar nichts – sie sind Beschriftungen, die die Auswirkung beschreiben und auf die andere Regeln passen können.
 
 Beide Listen werden beim Anlegen Ihres Projekts erzeugt, und beide bearbeiten Sie unter **Vorfälle → Einstellungen**. Dieser Abschnitt im Seitenmenü Vorfälle ist standardmäßig eingeklappt – klappen Sie also **Einstellungen** auf, bevor Sie danach suchen.
 
@@ -36,7 +36,7 @@ Achten Sie auf den Namen: Der erste Status heißt **Identified**, auch wenn ihn 
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | Der Status, den ein Vorfall erhält, wenn niemand einen gewählt hat. Trägt kein Status im Projekt dieses Flag, schlägt das Anlegen eines Vorfalls mit einem Fehler fehl, der Sie auffordert, in den Einstellungen einen Erstellungsstatus anzulegen. |
 | `isAcknowledgedState` | Treibt die Schaltfläche **Acknowledge** und die Kennzahlkachel „<Statusname> in" auf der **Übersicht** des Vorfalls an. Bei einem Wechsel in diesen Status wird die SLA des Vorfalls als beantwortet markiert. |
-| `isResolvedState`     | Treibt die Schaltfläche **Beheben** und die Behoben-Kachel an, definiert die Liste **Aktive Vorfälle** und nimmt den Vorfall aus dem aktiven Bereich einer Statusseite. Markiert die SLA als behoben.   |
+| `isResolvedState`     | Kennzeichnet den behobenen Status des Projekts: den, in den **Beheben** einen Vorfall setzt und den die Behoben-Kachel zeigt. Ein Vorfall in diesem Status oder in einem Status danach ist behoben – er verlässt **Aktive Vorfälle** und den aktiven Bereich einer Statusseite, und seine SLA wird als behoben markiert. |
 
 Pro Projekt sollte jedes Flag nur ein einziger Status tragen – die Abfragen holen jeweils genau eine Zeile. Die drei Status mit Flag lassen sich umbenennen, umfärben und umsortieren, aber die Einstellungsseite verweigert das Löschen und zeigt einen Fehler, der den erstellten, den bestätigten und den behobenen Status benennt.
 
@@ -44,7 +44,7 @@ Weil die Oberfläche Statusnamen dynamisch ausliest, ändert das Umbenennen eine
 
 ## Eigene Status ergänzen
 
-Gehen Sie zu **Vorfälle → Einstellungen → Vorfallsstatus**. Die Seite ist eine nach `order` aufsteigend sortierte Liste, und neue Status hängen sich ans Ende. Ziehen Sie eine Zeile, um ihre Position zu ändern.
+Gehen Sie zu **Vorfälle → Einstellungen → Vorfallsstatus**. Die Seite ist eine nach `order` aufsteigend sortierte Liste, und ein neuer Status wird direkt über dem behobenen Status eingefügt. Ziehen Sie eine Zeile, um ihre Position zu ändern.
 
 **Felder eines Status:**
 
@@ -54,7 +54,7 @@ Gehen Sie zu **Vorfälle → Einstellungen → Vorfallsstatus**. Die Seite ist e
 
 Die drei Flags können Sie in diesem Formular nicht setzen – sie gehören zu den vorangelegten Datensätzen. Ein von Ihnen ergänzter Status ist damit ein Status ohne Flag, und das hat zwei Folgen, die Sie einplanen sollten:
 
-- **Er zählt als aktiv.** **Aktive Vorfälle** ist definiert als „der aktuelle Status ist nicht der behobene Status" – alles, was Sie außer dem behobenen Status ergänzen, hält den Vorfall also in der aktiven Liste und im Zähler der Seitenleiste.
+- **Über dem behobenen Status hält er den Vorfall aktiv.** **Aktive Vorfälle** enthält die Vorfälle, deren aktueller Status über dem behobenen Status liegt – ein Status, den Sie dort ergänzen, hält den Vorfall also in der aktiven Liste und im Zähler der Seitenleiste. Ein Status, den Sie unter den behobenen Status ziehen, gilt überall als behoben – in den aktiven Listen, auf Statusseiten, bei Erinnerungen und in der SLA –, und einen Vorfall von **Behoben** dorthin zu setzen, ist kein zweites Beheben.
 - **Seine Übergangs-Schaltfläche ist generisch.** Statt **Acknowledge** oder **Beheben** trägt der Bestätigungsdialog den Titel **Vorfall markieren als `<state name>`** mit einer Absende-Schaltfläche **Mark as `<state name>`**.
 
 Ein häufiger Zuschnitt ist ein Triage- oder Eindämmungsschritt zwischen dem bestätigten und dem behobenen Status – ziehen Sie zum Beispiel einen neuen Status „Eingedämmt" so, dass er nach **Bestätigt** und vor **Behoben** steht.
@@ -104,6 +104,15 @@ Es gibt vier Wege, wie ein Vorfall den Status wechselt:
 
 Jeder dieser Wege schreibt eine Zeitachsenzeile. Ein Statuswechsel erledigt außerdem ein paar Dinge, um die Sie nicht bitten müssen: Er schreibt einen Eintrag in den Vorfall-Feed, bestimmt einen Incident Commander, falls der Vorfall noch keinen hat, und aktualisiert die SLA-Uhr. Einen behobenen Vorfall wieder zu öffnen startet einen frischen SLA-Datensatz ab dem Zeitpunkt der Wiedereröffnung.
 
+## Was das Beheben bewirkt
+
+Ein Vorfall ist behoben, wenn er aus einem Status über Ihrem behobenen Status in den behobenen Status oder in einen Status danach wechselt – gleich, welcher der vier Wege oben ihn dorthin bringt. Jedes Beheben:
+
+- **Gibt die Monitore zurück, die der Vorfall hält.** Ein offen gemeldeter Vorfall hält seine Monitore: Er hat sie in seinen **Change Monitor Status to**-Status gesetzt, sofern er einen nennt, und, von Hand gemeldet, ihre Überwachung pausiert. Eine Bearbeitung, solange er offen ist – hinzugefügte Monitore oder ein geänderter Status –, lässt ihn sie ebenfalls halten. Das Beheben nimmt ihre Überwachung wieder auf und setzt sie auf betriebsbereit zurück, sofern kein anderer offener Vorfall noch auf ihnen liegt, und danach hält der Vorfall nichts mehr. Ein bereits behoben gemeldeter Vorfall gibt also nichts zurück, und ein zweites Beheben nach einem Wiedereröffnen ebenso wenig: Ein Status, den die Monitore zwischendurch bekommen haben – von ihren Probes, durch Wartung oder von Hand –, bleibt.
+- **Markiert die SLA als behoben** und entwirft, wenn die Postmortem-Entwürfe von OneUptime AI eingeschaltet sind, ein Postmortem.
+
+Von **Behoben** in einen Status danach weiterzugehen – etwa **Geschlossen** – ist kein zweites Beheben: Nichts davon läuft erneut, und keine neue SLA beginnt. Ein Vorfall, der gemeldet wurde, bevor OneUptime dies festhielt, gibt seine Monitore beim nächsten Beheben zurück, wie bisher.
+
 ## Die Zustands-Zeitachse
 
 Die Seite **Zustands-Zeitachse** im Seitenmenü des Vorfalls ist der Prüfpfad über jeden Status, in dem der Vorfall war. Die Karte auf dieser Seite heißt **Status-Zeitachse** und ist neueste zuerst sortiert.
@@ -125,11 +134,11 @@ Zeitachsenzeilen lassen sich anlegen und löschen, aber nicht bearbeiten. Die fa
 
 ## Die Liste Aktive Vorfälle
 
-**Vorfälle → Aktive Vorfälle** ist die Liste, die Sie während einer Schicht im Blick haben. Ihre Definition besteht aus genau einer Bedingung: Der aktuelle Status des Vorfalls ist ein Status, bei dem `isResolvedState` falsch ist. Sonst zählt nichts – nicht der Schweregrad, nicht das Alter, nicht, ob jemand ihn bestätigt hat.
+**Vorfälle → Aktive Vorfälle** ist die Liste, die Sie während einer Schicht im Blick haben. Ihre Definition besteht aus genau einer Bedingung: Der aktuelle Status des Vorfalls liegt über Ihrem behobenen Status – dem ersten Status in der Reihenfolge mit dem Flag `isResolvedState`. Sonst zählt nichts – nicht der Schweregrad, nicht das Alter, nicht, ob jemand ihn bestätigt hat.
 
 Der Eintrag im Seitenmenü trägt ein rotes Zähler-Badge auf Basis derselben Abfrage, Badge und Liste stimmen also immer überein. Gibt es nichts zu sehen, sagt die Seite das.
 
-Die praktische Folge: Jeder eigene Status, den Sie ergänzen, hält Vorfälle in dieser Liste. Meist ist das genau richtig – „Eingedämmt" ist nicht „erledigt" –, es bedeutet aber auch, dass sich das Badge erst leert, wenn Vorfälle tatsächlich den behobenen Status erreichen.
+Die praktische Folge: Ein eigener Status, den Sie über dem behobenen Status ergänzen, hält Vorfälle in dieser Liste – „Eingedämmt" ist nicht „erledigt" –, und einer, den Sie danach einordnen, nimmt sie heraus, wie es der behobene Status tut. Alerts und Episoden folgen derselben Regel mit ihren eigenen Status, und die Zähler im Seitenmenü, Erinnerungen, Statusseiten und die mobile App lesen sie alle.
 
 ## Statusseiten-Abonnenten über einen Statuswechsel informieren
 
@@ -146,6 +155,8 @@ Die Benachrichtigung wird pro Zeitachsenzeile über **Statusseiten-Abonnenten be
 
 **Noch etwas, das das Ergebnis verändert.** Tippen Sie eine **Öffentliche Notiz** in den Statuswechsel-Dialog, wird die Zeitachsenzeile als bereits benachrichtigt markiert statt eingereiht. Die Notiz selbst ist es, die die Abonnenten erreicht, sie bekommen also eine Nachricht statt zwei. Diese Nachricht nennt auf jedem Kanal den neuen Status, wie es die Statuswechsel-Nachricht getan hätte: etwa `[Resolved Incident] <title>` im Betreff der E-Mail und `**Status:** Resolved` in Slack und Microsoft Teams. Die Notiz braucht die Berechtigung, öffentliche Notizen anzulegen: Ohne sie bietet der Dialog die Notiz nicht an, und ein Statuswechsel, der mit einer Notiz gesendet wird, wird abgelehnt – der Status bleibt, wie er war. Der Ereignistyp hinter der schlichten Statuswechsel-Nachricht heißt `Subscriber Incident State Changed`.
 
+Alarme, Alarm-Episoden und Vorfall-Episoden bieten beim Statuswechsel stattdessen eine private Notiz an (**Private Notiz hinzufügen**), und sie funktioniert genauso: Die Notiz braucht ihre eigene Berechtigung (**Create Alert Internal Note**, **Create Alert Episode Internal Note** oder **Create Incident Episode Internal Note** in einer eigenen Rolle; die eingebauten Alarm-, Vorfall- und Projektrollen haben sie), und ein Statuswechsel, den jemand ohne sie mit einer privaten Notiz sendet, wird ganz abgelehnt – der Status bleibt, wie er war.
+
 Wer diese erhält und wie die Vorlagen gewählt werden, steht unter [Abonnenten & Ankündigungen](/docs/status-pages/subscribers).
 
 ## Einen Vorfall von der Statusseite fernhalten
@@ -154,7 +165,7 @@ Drei voneinander unabhängige Dinge entscheiden, ob ein Vorfall überhaupt auf d
 
 - **Vorfälle anzeigen** (`showIncidentsOnStatusPage`) auf der Statusseite selbst.
 - **Auf Statusseite sichtbar** (`isVisibleOnStatusPage`) am Vorfall – ein Schalter auf der Seite **Einstellungen** des Vorfalls. Er ist standardmäßig an und steht nicht im Melde-Assistenten; ein Monitor-Kriterium kann ihn über **Vorfall auf der Statusseite anzeigen** setzen.
-- **Der aktuelle Status ist nicht der behobene Status.** Das ist es, was einen Vorfall aus dem aktiven Bereich nimmt: Die Statusseiten-Abfrage holt Vorfälle, deren aktueller Status irgendein unbehobener Status ist. Sie archivieren oder schließen nichts – Sie beheben es, und es wandert in die Historie.
+- **Der aktuelle Status liegt über dem behobenen Status.** Das ist es, was einen Vorfall aus dem aktiven Bereich nimmt: Die Statusseiten-Abfrage holt Vorfälle, deren aktueller Status über Ihrem behobenen Status liegt – der behobene Status und jeder Status danach nehmen den Vorfall also heraus. Sie archivieren oder schließen nichts – Sie beheben es, und es wandert in die Historie.
 
 **Private Vorfälle erscheinen nie.** **Privater Vorfall** einzuschalten blendet den Vorfall auf jeder Statusseite aus, unabhängig von den Schaltern oben, und beschränkt ihn auf seine Eigentümer plus Projektadministratoren und -eigentümer.
 

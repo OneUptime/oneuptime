@@ -32,7 +32,7 @@ Select the group you want the resource to land in (or **Top of page** for an ung
 
 - **Monitor** — the dropdown of monitors in your project, placeholder **Select Monitor**. Required.
 - **Display Name** — the text visitors read. It fills in with the monitor's name as you pick it, and follows when you pick another monitor, until you type a name of your own. It is stored separately from the monitor's own name, so you can rename it here without touching monitoring.
-- **More fields** — folded. It holds **Description** (optional markdown shown under the row, good for a sentence explaining what the service actually does) and the [display options](#display-options-on-a-resource). Leave it closed and the resource gets their defaults.
+- **More fields** — folded. It holds **Description** (optional markdown shown under the row, good for a sentence explaining what the service actually does; an image in it is shown to every visitor) and the [display options](#display-options-on-a-resource). Leave it closed and the resource gets their defaults.
 
 Pick a monitor, click **Add Monitor**, and the row is on the page. In a grid group the dialog also asks for the row and the column the monitor goes in, above **More fields** — see [List layout vs grid layout](#list-layout-vs-grid-layout).
 
@@ -86,7 +86,7 @@ Click **New Group** to open **Create New Status Page Group**. It is one page: tw
 - **Parent Group** (`parentStatusPageGroupId`) — optional. Leave it at **No parent group (top level)** to keep the group at the top level. **Add a sub group** fills it in for you.
 - **Layout** — folded, and its header says **List** or **Grid**. It holds **View Mode** and a grid's axes (see [List layout vs grid layout](#list-layout-vs-grid-layout)), and it opens by itself on a grid group.
 - **More fields** — folded. It holds the rest, and mirrors the resource options at group level:
-  - **Group Description** (`description`) — optional markdown, shown under the heading.
+  - **Group Description** (`description`) — optional markdown, shown under the heading. An image in it is shown to every visitor.
   - **Expand on Status Page by Default** (`isExpandedByDefault`) — on by default: whether the section starts open or collapsed for visitors.
   - **Show Current Group Status** (`showCurrentStatus`) — on by default. Shows a status beside the group heading.
   - **Show Uptime %** (`showUptimePercent`) — off by default, with **Select Uptime Precision** appearing once it's on.

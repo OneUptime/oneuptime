@@ -34,7 +34,7 @@ Only the first step has required fields, plus any custom field your admins marke
 
 - **Title** — required. The one-line summary everyone will see in the list, in Slack, and (if the incident is visible) on your status page. Placeholder: `Incident Title`.
 - **Incident Severity** — required. One of the severities configured for your project; new projects are seeded with **Critical Incident**, **Major Incident** and **Minor Incident**.
-- **Description** — optional, written in Markdown. This is the field that renders on the status page, so write it for customers rather than for your team. You can edit it later from **Description** in the incident side menu.
+- **Description** — optional, written in Markdown. This is the field that renders on the status page, so write it for customers rather than for your team. An image you put in it is shown to everyone while the incident is visible on status pages, and only to your project's members while it is hidden. You can edit it later from **Description** in the incident side menu.
 
 Under **More fields**:
 
@@ -228,7 +228,7 @@ Picking a later **Initial State** — on the form, through a template's **Initia
 
 Alerts, alert episodes and incident episodes follow the same rule: one created already acknowledged pages no one, and one created resolved is also not grouped, remediated or investigated by AI, and gets no channel of its own. An incident or alert in the created state — the default, and every one a monitor opens — sets off everything as before.
 
-From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state not flagged `isResolvedState` counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording.
+From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state above your resolved state counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording.
 
 ## Where to read next
 

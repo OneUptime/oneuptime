@@ -20,6 +20,18 @@
 4. **Configurare le Notifiche di Avvisi e Manutenzioni Programmate**
    - Regole simili possono essere applicate agli Avvisi e alle Manutenzioni Programmate navigando alle rispettive pagine e configurando le regole desiderate.
 
+## Provare una regola
+
+**Regola di test** sulla riga di una regola pubblica un messaggio di prova di quella regola nei canali che indica, così puoi vederlo arrivare. Se la regola crea un canale per ogni evento, anche la prova ne crea uno e vi invita le persone della regola.
+
+Come **Invia prova** accanto a un canale in **Impostazioni del progetto** > **Workspace** > **Microsoft Teams**, serve il permesso di creare regole di notifica: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create Workspace Notification Rule** e **Read Workspace Notification Rule** in un ruolo personalizzato. Per chi può soltanto vedere le regole, come un **Viewer**, **Regola di test** è bloccato e il suo suggerimento dice cosa serve; l'API rifiuta la sua prova con "You do not have permission to send test notifications in this project." Su OneUptime Cloud, provare una regola richiede il piano **Growth**, come aggiungerne una.
+
+## Riepiloghi
+
+La scheda **Summary** di **Incidenti** > **Workspace** > **Microsoft Teams** (e quella di **Avvisi**) pubblica un riepilogo periodico nei canali che indichi: quanti incidenti o avvisi ci sono stati, quanto rapidamente sono stati confermati e risolti, e un elenco con i link. Un nuovo riepilogo viene inviato ogni settimana e copre gli ultimi 7 giorni. Lascia vuoto **Invia il primo report alle** e il primo viene inviato alle 09:00 all'inizio della prossima settimana, del prossimo giorno o mese; il modulo indica quando.
+
+Un riepilogo segue l'orologio del suo **Fuso orario**, che all'inizio è il tuo. Lì mantiene la sua ora tutto l'anno: uno impostato per le 09:00 a Berlino continua a partire alle 09:00, ora di Berlino, dopo il cambio dell'ora, e anche le date del suo messaggio sono quelle di Berlino. Tramite l'API, invia `timezone` come nome di fuso orario IANA, ad esempio `Europe/Berlin`. Un riepilogo creato senza fuso orario prende quello del profilo di chi lo crea, oppure UTC quando lo crea una chiave API.
+
 ## Accesso alla rete per le installazioni self-hosted
 
 Per le connessioni in uscita, i callback in ingresso e le installazioni private, consultare la sezione sull’accesso alla rete della [Integrazione Microsoft Teams](/docs/self-hosted/microsoft-teams-integration).

@@ -79,20 +79,21 @@ import {
 import {
   PROXMOX_AGENT_INSTALL_DIR,
   PROXMOX_AGENT_RAW_URL,
+  PROXMOX_AGENT_RECREATE_COMMAND,
   PROXMOX_CONNECT_METHODS,
-  ProxmoxAgentInstallMethod,
   ProxmoxConnectMethod,
   getProxmoxAgentDownloadCommand,
-  getProxmoxAgentRecreateCommand,
+  getProxmoxAgentUpgradeCommand,
   getProxmoxSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
   CEPH_AGENT_INSTALL_DIR,
   CEPH_AGENT_RAW_URL,
+  CEPH_AGENT_RECREATE_COMMAND,
   CEPH_INSTALL_METHODS,
   CephInstallMethod,
   getCephAgentDownloadCommand,
-  getCephAgentRecreateCommand,
+  getCephAgentUpgradeCommand,
   getCephSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import {
@@ -919,17 +920,19 @@ describe("Resource AI agent: its compose service pulled and recreated", () => {
 });
 
 /*
- * The Proxmox and Ceph agents: the stock collector and a config, pinned in
- * the docker-compose.yml beside it. Installed with the install script or
- * with Docker Compose, they upgrade the same way in the folder that holds
- * them: both files again (the pin and the version stamp live in them), then
- * the images pulled and the containers recreated, because the collector
- * reads its config only when it starts.
+ * The Proxmox, Ceph and VMware agents: the stock collector and a config,
+ * pinned in the docker-compose.yml beside it. Their install scripts reuse
+ * the .env they find (nothing is asked again), download both files and
+ * recreate the containers, so running one again is the upgrade. A Docker
+ * Compose install takes both files again itself (the pin and the version
+ * stamp live in them), then the images pulled and the containers recreated,
+ * because the collector reads its config only when it starts.
  */
 describe.each([
   {
     name: "Proxmox",
     kind: AgentKind.ProxmoxAgent,
+    agentDir: "ProxmoxAgent",
     installDir: PROXMOX_AGENT_INSTALL_DIR,
     rawUrl: PROXMOX_AGENT_RAW_URL,
     methods: PROXMOX_CONNECT_METHODS.filter(
@@ -937,16 +940,9 @@ describe.each([
         return option.key !== "native-push";
       },
     ) as Array<SetupGuideOption<string>>,
-    download: (method: string): string => {
-      return getProxmoxAgentDownloadCommand(
-        method as ProxmoxAgentInstallMethod,
-      );
-    },
-    recreate: (method: string): string => {
-      return getProxmoxAgentRecreateCommand(
-        method as ProxmoxAgentInstallMethod,
-      );
-    },
+    upgrade: getProxmoxAgentUpgradeCommand(),
+    download: getProxmoxAgentDownloadCommand(),
+    recreate: PROXMOX_AGENT_RECREATE_COMMAND,
     setupGuide: (method: string): SetupGuideContent => {
       return getProxmoxSetupGuide({
         oneuptimeUrl: URL,
@@ -959,15 +955,13 @@ describe.each([
   {
     name: "Ceph",
     kind: AgentKind.CephAgent,
+    agentDir: "CephAgent",
     installDir: CEPH_AGENT_INSTALL_DIR,
     rawUrl: CEPH_AGENT_RAW_URL,
     methods: CEPH_INSTALL_METHODS as Array<SetupGuideOption<string>>,
-    download: (method: string): string => {
-      return getCephAgentDownloadCommand(method as CephInstallMethod);
-    },
-    recreate: (method: string): string => {
-      return getCephAgentRecreateCommand(method as CephInstallMethod);
-    },
+    upgrade: getCephAgentUpgradeCommand(),
+    download: getCephAgentDownloadCommand(),
+    recreate: CEPH_AGENT_RECREATE_COMMAND,
     setupGuide: (method: string): SetupGuideContent => {
       return getCephSetupGuide({
         oneuptimeUrl: URL,
@@ -977,16 +971,37 @@ describe.each([
       });
     },
   },
+  {
+    name: "VMware",
+    kind: AgentKind.VMwareAgent,
+    agentDir: "VMwareAgent",
+    installDir: VMWARE_AGENT_INSTALL_DIR,
+    rawUrl: VMWARE_AGENT_RAW_URL,
+    methods: VMWARE_INSTALL_METHODS as Array<SetupGuideOption<string>>,
+    upgrade: getVMwareAgentUpgradeCommand(),
+    download: getVMwareAgentDownloadCommand(),
+    recreate: VMWARE_AGENT_RECREATE_COMMAND,
+    setupGuide: (method: string): SetupGuideContent => {
+      return getVMwareSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        hasApiKey: true,
+        method: method as VMwareInstallMethod,
+      });
+    },
+  },
 ])(
-  "$name agent: the files again, then the containers recreated",
+  "$name agent: the install script again, or the files again",
   (agent: {
     name: string;
     kind: AgentKind;
+    agentDir: string;
     installDir: string;
     rawUrl: string;
     methods: Array<SetupGuideOption<string>>;
-    download: (method: string) => string;
-    recreate: (method: string) => string;
+    upgrade: string;
+    download: string;
+    recreate: string;
     setupGuide: (method: string) => SetupGuideContent;
   }) => {
     const guide: AgentUpgradeGuide = guideFor(agent.kind);
@@ -1000,67 +1015,103 @@ describe.each([
       expect(labelsOf(guide)).toEqual(["Install script", "Docker Compose"]);
     });
 
-    test.each(["install-script", "docker-compose"])(
-      "%s: the files, then the recreate, each the guide's own upgrade block",
-      (key: string) => {
-        const label: string =
-          key === "install-script" ? "Install script" : "Docker Compose";
-        const method: AgentUpgradeMethod = methodLabelled(guide, label);
-        expect(codesOf(method)).toEqual([
-          agent.download(key),
-          agent.recreate(key),
-        ]);
-        expect(
-          method.steps.map((step: AgentUpgradeStep) => {
-            return step.title;
-          }),
-        ).toEqual([
-          "Download the latest files",
-          "Pull the latest images and recreate the agent",
-        ]);
-        // Nothing here needs a key, so nothing sends the reader to the guide.
-        expect(
-          method.steps.some((step: AgentUpgradeStep): boolean => {
-            return Boolean(step.needsSetupGuide);
-          }),
-        ).toBe(false);
-
+    test.each(
+      agent.methods.map((option: SetupGuideOption<string>) => {
+        return [option.key, option.label];
+      }),
+    )(
+      "%s: every command is that guide's own upgrade block",
+      (key: string, label: string) => {
         const setupGuide: SetupGuideContent = agent.setupGuide(key);
+        const method: AgentUpgradeMethod = methodLabelled(guide, label);
         expectCommandsFromGuide(method, setupGuide);
         expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
-          expect.arrayContaining([agent.download(key), agent.recreate(key)]),
+          expect.arrayContaining(codesOf(method)),
         );
       },
     );
 
-    test("the install script's folder is entered first; a Compose install runs where it is", () => {
-      for (const code of codesOf(methodLabelled(guide, "Install script"))) {
-        expect(code.split("\n")[0]).toBe(`cd ${agent.installDir}`);
-      }
-      for (const code of codesOf(methodLabelled(guide, "Docker Compose"))) {
-        expect(code).not.toContain("cd ");
-      }
+    test("the script tab runs the install script with nothing in its environment: it reuses the .env", () => {
+      const script: AgentUpgradeMethod = methodLabelled(
+        guide,
+        "Install script",
+      );
+      expect(
+        script.steps.map((step: AgentUpgradeStep) => {
+          return step.title;
+        }),
+      ).toEqual(["Run the install script again"]);
+      expect(script.steps[0]!.description).toBe(
+        "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
+      );
+      expect(codesOf(script)).toEqual([agent.upgrade]);
+      expect(agent.upgrade).toBe(
+        `curl -sSL ${agent.rawUrl}/install.sh -o install.sh\nbash install.sh`,
+      );
+      // A key or URL on the command would override what .env holds.
+      expect(agent.upgrade).not.toContain("ONEUPTIME_");
+      // Nothing here needs a key, so nothing sends the reader to the guide.
+      expect(
+        guide.methods.some((method: AgentUpgradeMethod): boolean => {
+          return method.steps.some((step: AgentUpgradeStep): boolean => {
+            return Boolean(step.needsSetupGuide);
+          });
+        }),
+      ).toBe(false);
     });
 
-    test("both files are downloaded again, from the agent's own folder of the repository", () => {
-      const download: string = agent.download("docker-compose");
-      expect(download).toBe(
+    test("the install script reuses the .env, installs where the guide says and recreates the containers it starts", () => {
+      const script: string = fs.readFileSync(
+        path.join(REPO_ROOT, "agents", agent.agentDir, "install.sh"),
+        "utf8",
+      );
+      expect(script).toContain("reusing it.");
+      expect(script).toContain(
+        'printf -v "$name" \'%s\' "$(dotenv_get "$name" "$ENV_FILE")"',
+      );
+      expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
+      expect(script).toContain(
+        `INSTALL_DIR="\${INSTALL_DIR:-${agent.installDir}}"`,
+      );
+      expect(script).toContain(`REPO_BASE="${agent.rawUrl}"`);
+    });
+
+    test("the Compose tab downloads both files from the agent's folder of the repository, then pulls and recreates", () => {
+      const compose: AgentUpgradeMethod = methodLabelled(
+        guide,
+        "Docker Compose",
+      );
+      expect(
+        compose.steps.map((step: AgentUpgradeStep) => {
+          return step.title;
+        }),
+      ).toEqual([
+        "Download the latest files",
+        "Pull the latest images and recreate the agent",
+      ]);
+      expect(codesOf(compose)).toEqual([agent.download, agent.recreate]);
+      expect(agent.download).toBe(
         [
           `curl -fsSLO ${agent.rawUrl}/docker-compose.yml`,
           `curl -fsSLO ${agent.rawUrl}/otel-collector-config.yaml`,
         ].join("\n"),
       );
-      // The same files the guide's own Compose install downloads.
-      const compose: string = getSetupGuideMarkdown(
-        agent.setupGuide("docker-compose"),
-      );
-      expect(compose).toContain(download);
-    });
-
-    test("the recreate pulls and forces new containers, so the new config is read", () => {
-      expect(agent.recreate("docker-compose")).toBe(
+      expect(agent.recreate).toBe(
         "docker compose pull\ndocker compose up -d --force-recreate",
       );
+      // The same files the guide's own Compose install downloads.
+      expect(
+        getSetupGuideMarkdown(agent.setupGuide("docker-compose")),
+      ).toContain(agent.download);
+    });
+
+    test("no command enters the install directory: the script finds it, a Compose install runs where it is", () => {
+      for (const method of guide.methods) {
+        for (const code of codesOf(method)) {
+          expect(code).not.toContain("cd ");
+          expect(code).not.toContain(agent.installDir);
+        }
+      }
     });
   },
 );
@@ -1076,80 +1127,6 @@ test("a Proxmox cluster on the native push runs no agent, so its guide has nothi
   );
   expect(markdown).not.toContain("Upgrade or uninstall the agent");
   expect(markdown).not.toContain("docker compose");
-});
-
-/*
- * The VMware agent's install script reuses the .env it finds and recreates
- * the containers, so running it again is the upgrade; a Docker Compose
- * install takes both files again itself.
- */
-describe("VMware agent: the install script again, or the files again", () => {
-  const guide: AgentUpgradeGuide = guideFor(AgentKind.VMwareAgent);
-
-  test("the tabs are the setup guide's own install methods, in its order", () => {
-    expect(labelsOf(guide)).toEqual(
-      VMWARE_INSTALL_METHODS.map(
-        (option: SetupGuideOption<VMwareInstallMethod>): string => {
-          return option.label;
-        },
-      ),
-    );
-  });
-
-  test.each(
-    VMWARE_INSTALL_METHODS.map(
-      (option: SetupGuideOption<VMwareInstallMethod>) => {
-        return [option.key, option.label];
-      },
-    ),
-  )(
-    "%s: every command is the guide's own upgrade block",
-    (key: string, label: string) => {
-      const setupGuide: SetupGuideContent = getVMwareSetupGuide({
-        oneuptimeUrl: URL,
-        apiKey: KEY,
-        hasApiKey: true,
-        method: key as VMwareInstallMethod,
-      });
-      const method: AgentUpgradeMethod = methodLabelled(guide, label);
-      expectCommandsFromGuide(method, setupGuide);
-      expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toEqual(
-        expect.arrayContaining(codesOf(method)),
-      );
-    },
-  );
-
-  test("the script tab runs the install script with no key or URL: it reuses the .env", () => {
-    const script: AgentUpgradeMethod = methodLabelled(guide, "Install script");
-    expect(codesOf(script)).toEqual([getVMwareAgentUpgradeCommand()]);
-    expect(getVMwareAgentUpgradeCommand()).toBe(
-      `curl -sSL ${VMWARE_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
-    );
-    // A key or URL on the command would override what .env holds.
-    expect(getVMwareAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
-  });
-
-  test("the install script reuses the .env and recreates the containers it starts", () => {
-    const script: string = fs.readFileSync(
-      path.join(REPO_ROOT, "agents/VMwareAgent/install.sh"),
-      "utf8",
-    );
-    expect(script).toContain("reusing it.");
-    expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
-    expect(script).toContain(
-      `INSTALL_DIR="\${INSTALL_DIR:-${VMWARE_AGENT_INSTALL_DIR}}"`,
-    );
-  });
-
-  test("the Compose tab downloads both files, then pulls and recreates", () => {
-    expect(codesOf(methodLabelled(guide, "Docker Compose"))).toEqual([
-      getVMwareAgentDownloadCommand(),
-      VMWARE_AGENT_RECREATE_COMMAND,
-    ]);
-    expect(VMWARE_AGENT_RECREATE_COMMAND).toBe(
-      "docker compose pull\ndocker compose up -d --force-recreate",
-    );
-  });
 });
 
 /*

@@ -33,6 +33,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * A monitor criteria can assign incident roles ("make Alice the commander of
@@ -124,6 +125,11 @@ describe("MonitorIncident - incident roles from the criteria", () => {
   let createdMembers: Array<IncidentMember> = [];
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdMembers = [];
 
     jest.spyOn(logger, "debug").mockImplementation((): void => {

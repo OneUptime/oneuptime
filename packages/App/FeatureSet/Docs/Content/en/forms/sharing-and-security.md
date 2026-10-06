@@ -33,6 +33,8 @@ To stop taking submissions without deleting the form, turn **Accepting Submissio
 
 After a submission, the page says "Thank you — your response was submitted." and gives the number of what was created, then your **Thank-You Message**, in Markdown. Use it to say what happens next, and where to go when something is urgent. Without one, the page shows only the standard message.
 
+An image in the form's description or thank-you message is shown to everyone who opens the link while the form is **Accepting Submissions**. Turn the form off, or take the image out, and the image is private again, unless something else everyone sees still has it in it.
+
 ## What protects a form
 
 Every request passes these checks, in this order:

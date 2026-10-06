@@ -439,7 +439,7 @@ Both are on for new projects; a project created before they were on by default k
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
 - **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.
-- **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated from the top of the list down and the first matching rule wins; drag a rule to change its place.
+- **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated from the top of the list down and the first matching rule wins; drag a rule to change its place. An incident's rule is matched again, and the wait for its next reminder starts over, when its severity or labels change or its **Send reminders** switch is flipped. Saving the severity and labels it already has — every save of the **Incident Details** card sends them — leaves its next reminder where it was. Alerts work the same way.
 
 **Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated, and their lists are put in order by dragging: a new rule is added to the end. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
 

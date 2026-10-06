@@ -6,6 +6,7 @@ import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluste
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -25,6 +26,7 @@ import {
   getTerraformModelOperations,
   getTerraformTypeName,
   isServerManagedColumn,
+  SERVER_MANAGED_COLUMNS_BY_TABLE,
   TerraformAttributeDescriptor,
   TerraformSecretKind,
   TerraformValueKind,
@@ -243,8 +245,53 @@ describe("server-managed columns", () => {
     );
     expect(isServerManagedColumn("AnyTable", "lastSeenAt")).toBe(true);
     expect(isServerManagedColumn("AnyTable", "nextPollAt")).toBe(true);
-    expect(isServerManagedColumn("Incident", "incidentEpisodeId")).toBe(true);
+    expect(isServerManagedColumn("Incident", "postmortemPostedAt")).toBe(true);
     expect(isServerManagedColumn("StatusPage", "sendNextReportBy")).toBe(true);
+  });
+
+  test("every column listed by table is an attribute of that table's resource", () => {
+    /*
+     * The list is for columns a configuration could set but should leave to
+     * the server. A listed column that is no attribute at all - nobody may
+     * write it - contradicts its own model, as the episode an incident or
+     * alert is in once did.
+     */
+    const notAttributes: Array<string> = [];
+
+    for (const [tableName, columns] of Object.entries(
+      SERVER_MANAGED_COLUMNS_BY_TABLE,
+    )) {
+      const modelType: DatabaseBaseModelType | undefined = (
+        Models as Array<DatabaseBaseModelType>
+      ).find((candidate: DatabaseBaseModelType): boolean => {
+        return new candidate().tableName === tableName;
+      });
+
+      expect({ tableName, found: Boolean(modelType) }).toEqual({
+        tableName,
+        found: true,
+      });
+
+      for (const column of columns) {
+        if (!getTerraformAttribute(modelType!, column)) {
+          notAttributes.push(`${tableName}.${column}`);
+        }
+      }
+    }
+
+    expect(notAttributes).toEqual([]);
+  });
+
+  test("an incident's or alert's episode is no attribute: OneUptime sets it from the episode's members", () => {
+    for (const [modelType, column] of [
+      [Incident, "incidentEpisodeId"],
+      [Alert, "alertEpisodeId"],
+    ] as Array<[DatabaseBaseModelType, string]>) {
+      expect(getTerraformAttribute(modelType, column)).toBeUndefined();
+      expect(attributeNames(modelType)).not.toContain(
+        toTerraformSnakeCase(column),
+      );
+    }
   });
 
   test("configuration is not", () => {

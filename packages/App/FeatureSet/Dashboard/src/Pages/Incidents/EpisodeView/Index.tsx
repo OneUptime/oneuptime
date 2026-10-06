@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
@@ -282,10 +283,12 @@ const IncidentEpisodeView: FunctionComponent<
     // Older episodes predate declaredAt; they started when they were created.
     startedAt: episode?.declaredAt || episode?.createdAt || undefined,
     resolvedAt: episode?.resolvedAt || undefined,
+    list: StateListType.IncidentState,
     states: incidentStates.map((state: IncidentState) => {
       return {
         id: state.id?.toString() || "",
         name: state.name,
+        order: state.order,
         isAcknowledgedState: state.isAcknowledgedState,
         isResolvedState: state.isResolvedState,
       };

@@ -49,7 +49,7 @@ Essa distinção importa mais do que parece:
 
 - `isCreatedState` decide onde um novo incidente começa. Se nenhum estado for explicitamente selecionado na criação, o OneUptime procura o estado de criação do projeto e o utiliza.
 - `isAcknowledgedState` e `isResolvedState` alimentam os botões **Acknowledge** e **Resolver** no cabeçalho do incidente, os dois blocos de estatística na **Visão geral** do incidente e o contador **Incidentes ativos** no menu lateral.
-- **Incidentes ativos** é definido puramente como "o estado atual não é o estado resolvido". Qualquer estado personalizado que você adicionar é, portanto, ativo, a menos que seja o resolvido.
+- **Incidentes ativos** é definido puramente como "o estado atual fica acima do estado resolvido". Um estado personalizado que você adicionar acima do estado resolvido é, portanto, ativo; um que você colocar depois dele conta como resolvido, como o próprio estado resolvido.
 
 **Repare na nomenclatura.** O primeiro estado inicial se chama **Identified**, mesmo que várias descrições dentro do produto ainda o chamem de estado de criação. Se você estiver procurando por "Created" na lista de estados do seu projeto, é a linha chamada **Identified**.
 
@@ -102,7 +102,7 @@ Respondentes confirmam o incidente, anexam recursos afetados, executam runbooks,
 
 ### 4. Ele é resolvido
 
-Clicar em **Resolver** move o incidente para o estado resolvido, carimba a linha do tempo de estado, para o cronômetro de duração e remove o incidente da seção ativa de qualquer página de status em que ele aparecia. Nada mais precisa mudar para isso acontecer — a flag de estado resolvido é o que a consulta da página de status observa.
+Clicar em **Resolver** move o incidente para o estado resolvido, carimba a linha do tempo de estado, para o cronômetro de duração, devolve os monitores que ele retém e remove o incidente da seção ativa de qualquer página de status em que ele aparecia. Nada mais precisa mudar para isso acontecer — uma página de status mostra apenas incidentes em um estado acima do estado resolvido. Veja [Estados e severidades de incidentes](/docs/incidents/states-and-severities).
 
 Depois disso você pode escrever um post-mortem e, opcionalmente, publicá-lo na página de status.
 
@@ -112,7 +112,7 @@ Abra **Incidentes** na navegação à esquerda. Seu menu lateral está organizad
 
 | Seção                     | O que você faz ali                                                                                                                                                    |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Visão geral**           | **Todos os incidentes** e **Incidentes ativos** — este último traz um selo vermelho com a contagem de incidentes que não estão no estado resolvido.                    |
+| **Visão geral**           | **Todos os incidentes** e **Incidentes ativos** — este último traz um selo vermelho com a contagem de incidentes em um estado acima do estado resolvido.                    |
 | **Episódios**             | Episódios de incidente, um recurso de agrupamento à parte com suas próprias páginas.                                                                                  |
 | **IA** | **Insights**, **Registros**, **Configurações**, **Regras de remediação automática**: o que a OneUptime AI aprendeu com seus incidentes e tudo o que fez por eles, o que ela pode fazer por conta própria e as regras que corrigem incidentes com runbooks. Veja [AI SRE](/docs/ai/ai-sre). |
 | **Espaço de trabalho**    | Conexões **Slack** e **Microsoft Teams** para incidentes.                                                                                                             |
@@ -145,7 +145,7 @@ Abra um incidente e você ganha um menu lateral à esquerda, agrupado assim:
 - **Monitores detectam o problema; incidentes o registram.** Uma regra de critérios de monitor pode declarar um incidente automaticamente, pré-preenchendo título, severidade, políticas de plantão, proprietários, rótulos e notas de remediação. Veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating) para as variáveis disponíveis ali.
 - **Políticas de plantão fazem o acionamento.** Anexe políticas na etapa **Plantão** do assistente de declaração, em um modelo, ou por meio de **Incidentes → Regras → Regras de Plantão**. Toda regra correspondente dispara — o conjunto executado é a união de todas as correspondências mais qualquer coisa anexada diretamente, sem duplicatas.
 - **Runbooks dizem às pessoas o que fazer.** Regras de runbook anexam um procedimento automaticamente quando um incidente correspondente é criado, e os respondentes podem iniciar um à mão a partir do incidente. Veja [Visão geral dos Runbooks](/docs/runbooks/index).
-- **Páginas de status avisam os clientes.** Um incidente aparece na lista ativa de uma página de status quando a página tem incidentes habilitados, o incidente está marcado como visível na página de status e seu estado atual não é o estado resolvido. Incidentes privados ficam ocultos de toda página de status, sempre. Veja [Visão geral das páginas de status](/docs/status-pages/index).
+- **Páginas de status avisam os clientes.** Um incidente aparece na lista ativa de uma página de status quando a página tem incidentes habilitados, o incidente está marcado como visível na página de status e seu estado atual fica acima do estado resolvido. Incidentes privados ficam ocultos de toda página de status, sempre. Veja [Visão geral das páginas de status](/docs/status-pages/index).
 - **Workflows automatizam em torno dele.** Os gatilhos **On Create Incident**, **On Update Incident** e **On Delete Incident** permitem construir automação sem código sobre o ciclo de vida do incidente. Veja [Visão geral dos workflows](/docs/workflows/index).
 
 ## Onde ler a seguir

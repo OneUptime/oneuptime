@@ -92,19 +92,21 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
 > = (): ReactElement => {
   const monitorTemplateColumn: Column<NetworkDeviceAutoImportRule> | null =
     getReadableMonitorTemplateColumn();
-  const canReadMonitorTemplate: boolean = Boolean(monitorTemplateColumn);
-
   /*
-   * The same gate the monitor template beside it goes through, for the same
-   * reason (see getReadableMonitorTemplateColumn): a relation the user cannot
-   * read is not degraded to a blank value, it fails the WHOLE request — so
-   * offering this field to a granular rule-editor who lacks
-   * ReadNetworkDeviceOidTemplate would break the edit form rather than one
-   * dropdown. They keep an inventory-only page; only the field goes away.
+   * The two template pickers list the project's templates, so each is
+   * offered only to somebody who may list those templates as well as read
+   * the rule (PermissionGate.canPickRelation). Without one, the rest of the
+   * form stays: an inventory-only rule needs neither template.
    */
-  const canReadOidTemplate: boolean = PermissionGate.canReadColumn(
+  const canPickMonitorTemplate: boolean = PermissionGate.canPickRelation(
+    new NetworkDeviceAutoImportRule(),
+    "monitorTemplate",
+    new MonitorTemplate(),
+  );
+  const canPickOidTemplate: boolean = PermissionGate.canPickRelation(
     new NetworkDeviceAutoImportRule(),
     "oidTemplate",
+    new NetworkDeviceOidTemplate(),
   );
 
   const fetchNetworkDeviceMonitorTemplates: () => Promise<
@@ -324,7 +326,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria", columns: 2 },
           { title: "Behavior", id: "behavior" },
-          ...(canReadMonitorTemplate
+          ...(canPickMonitorTemplate
             ? [
                 {
                   title: "Monitor",
@@ -462,7 +464,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
               );
             },
           },
-          ...(canReadOidTemplate
+          ...(canPickOidTemplate
             ? [
                 {
                   field: { oidTemplate: true },
@@ -485,7 +487,7 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
                 },
               ]
             : []),
-          ...(canReadMonitorTemplate
+          ...(canPickMonitorTemplate
             ? [
                 {
                   field: { monitorTemplate: true },

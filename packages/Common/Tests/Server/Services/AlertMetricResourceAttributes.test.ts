@@ -22,6 +22,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import {
+  ALERT_STATE_IDS,
+  mockProjectStates,
+} from "../TestingUtils/Services/ProjectStatesHelper";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -85,7 +89,12 @@ function buildStateTimeline(input: {
   timeline._id = ObjectID.generate().toString();
   timeline.id = new ObjectID(timeline._id);
   timeline.projectId = PROJECT_ID;
-  timeline.alertStateId = ObjectID.generate();
+  // The project's state the row is in, by its flags (ProjectStatesHelper).
+  timeline.alertStateId = input.isResolvedState
+    ? ALERT_STATE_IDS.resolved
+    : input.isAcknowledgedState
+      ? ALERT_STATE_IDS.acknowledged
+      : ALERT_STATE_IDS.created;
   timeline.startsAt = input.startsAt;
 
   if (input.endsAt) {
@@ -132,6 +141,15 @@ describe("Alert metric label and custom field attributes", () => {
   }
 
   beforeEach(() => {
+    /*
+     *
+     * The project's states: the refresh times a resolve as the move into
+     *
+     * a state that counts as resolved (Common/Utils/ResolvedState).
+     *
+     */
+
+    mockProjectStates();
     savedMetrics = [];
 
     mockAlert({});

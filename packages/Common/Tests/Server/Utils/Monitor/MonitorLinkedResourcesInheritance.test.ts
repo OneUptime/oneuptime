@@ -42,6 +42,7 @@ import {
   jest,
 } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * A monitor can say what it watches (Monitor > Overview > Linked
@@ -157,6 +158,11 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
   >;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
     createdAlerts = [];
     stepContext = resolved();

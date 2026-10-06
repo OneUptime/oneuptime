@@ -73,12 +73,14 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import { getRunnerUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
 import {
+  PROXMOX_AGENT_RECREATE_COMMAND,
   getProxmoxAgentDownloadCommand,
-  getProxmoxAgentRecreateCommand,
+  getProxmoxAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
+  CEPH_AGENT_RECREATE_COMMAND,
   getCephAgentDownloadCommand,
-  getCephAgentRecreateCommand,
+  getCephAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import {
   VMWARE_AGENT_RECREATE_COMMAND,
@@ -735,26 +737,34 @@ describe("the agents that report the collector they pin", () => {
     },
   );
 
+  /*
+   * Their install scripts reuse the .env they find (nothing is asked
+   * again), so running one again is the upgrade: one command, nothing to
+   * fill in. A Docker Compose install takes both files and a recreate.
+   */
   test.each([
     [
       AgentKind.ProxmoxAgent,
       "Upgrade the OneUptime Proxmox Agent",
-      getProxmoxAgentDownloadCommand,
-      getProxmoxAgentRecreateCommand,
+      getProxmoxAgentUpgradeCommand(),
+      getProxmoxAgentDownloadCommand(),
+      PROXMOX_AGENT_RECREATE_COMMAND,
     ],
     [
       AgentKind.CephAgent,
       "Upgrade the OneUptime Ceph Agent",
-      getCephAgentDownloadCommand,
-      getCephAgentRecreateCommand,
+      getCephAgentUpgradeCommand(),
+      getCephAgentDownloadCommand(),
+      CEPH_AGENT_RECREATE_COMMAND,
     ],
   ])(
-    "%s: the files again and a recreate, in the install script's folder or the reader's own",
+    "%s: the install script again, which keeps the .env, or the files and a recreate",
     async (
       kind: AgentKind,
       title: string,
-      download: (method: "install-script" | "docker-compose") => string,
-      recreate: (method: "install-script" | "docker-compose") => string,
+      upgrade: string,
+      download: string,
+      recreate: string,
     ) => {
       render(<AgentVersion kind={kind} version="0.154.0" />);
       const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
@@ -775,10 +785,28 @@ describe("the agents that report the collector they pin", () => {
           }),
       ).toEqual(["Install script", "Docker Compose"]);
 
-      expect(codeBlocksIn(dialog)).toEqual([
-        download("install-script"),
-        recreate("install-script"),
-      ]);
+      expect(codeBlocksIn(dialog)).toEqual([upgrade]);
+      expect(
+        within(dialog).getByText("Run the install script again"),
+      ).toBeVisible();
+      expect(
+        within(dialog).getByText(
+          "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
+        ),
+      ).toBeVisible();
+      expect(
+        within(dialog).getAllByRole("button", { name: "Copy to clipboard" }),
+      ).toHaveLength(1);
+      // Nothing to fill in from a guide, and no folder note.
+      expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
+      expect(
+        within(dialog).queryByTestId("agent-upgrade-method-note"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(
+        within(dialog).getByRole("tab", { name: "Docker Compose" }),
+      );
+      expect(codeBlocksIn(dialog)).toEqual([download, recreate]);
       expect(
         within(dialog).getByText("Download the latest files"),
       ).toBeVisible();
@@ -787,19 +815,7 @@ describe("the agents that report the collector they pin", () => {
           "Pull the latest images and recreate the agent",
         ),
       ).toBeVisible();
-      expect(
-        within(dialog).getAllByRole("button", { name: "Copy to clipboard" }),
-      ).toHaveLength(2);
-      // Nothing to fill in from a guide.
-      expect(within(dialog).queryByRole("link")).not.toBeInTheDocument();
-
-      fireEvent.click(
-        within(dialog).getByRole("tab", { name: "Docker Compose" }),
-      );
-      expect(codeBlocksIn(dialog)).toEqual([
-        download("docker-compose"),
-        recreate("docker-compose"),
-      ]);
+      expect(findNestedControls(document.body)).toEqual([]);
     },
   );
 

@@ -10,6 +10,7 @@ import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
+import IncidentStateService from "../../../Services/IncidentStateService";
 import IncidentOwnerTeamService from "../../../Services/IncidentOwnerTeamService";
 import IncidentOwnerUserService from "../../../Services/IncidentOwnerUserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
@@ -345,18 +346,19 @@ export const QueryIncidentsTool: ObservabilityTool = {
     }
 
     /*
-     * currentIncidentState is resolved through the state's flags rather than
-     * by name, because state names are user-configurable per project while
-     * isResolvedState is the canonical "closed" marker.
+     * Active or resolved by the project's own states rather than by name,
+     * because state names are user-configurable per project: resolved is
+     * the project's resolved state and any state placed after it
+     * (Common/Utils/ResolvedState).
      */
     if (stateFilter === "active") {
-      query.currentIncidentState = {
-        isResolvedState: false,
-      };
+      query.currentIncidentStateId = QueryHelper.any(
+        await IncidentStateService.getUnresolvedIncidentStateIds(ctx.projectId),
+      );
     } else if (stateFilter === "resolved") {
-      query.currentIncidentState = {
-        isResolvedState: true,
-      };
+      query.currentIncidentStateId = QueryHelper.any(
+        await IncidentStateService.getResolvedIncidentStateIds(ctx.projectId),
+      );
     }
 
     const totalCount: PositiveNumber = await IncidentService.countBy({

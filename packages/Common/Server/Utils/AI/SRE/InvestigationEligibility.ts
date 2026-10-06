@@ -95,8 +95,13 @@ export default class InvestigationEligibility {
         description: recorded
           ? `This project had reached one of its own daily AI limits when this ${kind} was created, so its automatic investigation did not start.`
           : "This project has reached one of its own daily AI limits today, so new automatic investigations cannot start.",
+        /*
+         * A recorded skip is taken back once the limit no longer stops AI
+         * (InvestigationLimitCatchUp): after the reset, or as soon as the
+         * limit is raised or removed, while the record is still open.
+         */
         nextStep: recorded
-          ? "Review the project's daily AI limits under Project Settings → AI Features → More settings. Usage resets at midnight UTC; skipped records are not automatically retried after the reset."
+          ? `OneUptime AI investigates this ${kind} after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI Features → More settings.`
           : "Raise or remove the limit under Project Settings → AI Features → More settings, or wait for midnight UTC, when usage resets. Existing records are not automatically retried.",
       },
       severity_below_threshold: {

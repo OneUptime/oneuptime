@@ -18,12 +18,18 @@ import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/Inciden
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The records these tests name are their project's own: the services check
  * every reference against the project (ProjectReferencesService).
  */
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   stubProjectDirectory({});
 });
 
@@ -32,9 +38,11 @@ beforeEach(() => {
  * episode overview panel or from the bulk "Change State" action on the
  * episodes table. The note is not a column on the state timeline: it rides
  * along under `miscDataProps`. These tests cover both halves of that trip.
- * onBeforeCreate has to pick the note up, and onCreateSuccess has to turn it
- * into an internal note on the episode. Miss either half and the textbox
- * silently throws the user's note away.
+ * onBeforeCreate has to pick the note up and build the internal note it
+ * becomes - checking, before anything is written, that the person changing
+ * the state may post it (StateChangePrivateNotePermission.test.ts) - and
+ * onCreateSuccess has to post it on the episode. Miss either half and the
+ * textbox silently throws the user's note away.
  */
 
 interface EpisodeTimelineHooks<TTimeline> {
@@ -121,12 +129,14 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
       .mockResolvedValue(new IncidentEpisodeInternalNote() as never);
   }
 
-  test("onBeforeCreate carries the private note forward", async () => {
+  test("onBeforeCreate builds the private note and carries it forward", async () => {
     mockOnBeforeCreateLookups();
+
+    const timeline: IncidentEpisodeStateTimeline = buildTimeline();
 
     const onCreate: OnCreate<never> = await incidentEpisodeHooks.onBeforeCreate(
       {
-        data: buildTimeline(),
+        data: timeline,
         miscDataProps: {
           privateNote: NOTE_ON_INCIDENT_EPISODE,
         },
@@ -134,7 +144,18 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
       },
     );
 
-    expect(onCreate.carryForward.privateNote).toBe(NOTE_ON_INCIDENT_EPISODE);
+    const notes: Array<IncidentEpisodeInternalNote> =
+      onCreate.carryForward.privateNotesToPost;
+
+    expect(notes).toHaveLength(1);
+
+    const note: IncidentEpisodeInternalNote = notes[0]!;
+
+    expect(note).toBeInstanceOf(IncidentEpisodeInternalNote);
+    expect(note.note).toBe(NOTE_ON_INCIDENT_EPISODE);
+    expect(note.incidentEpisodeId?.toString()).toBe(EPISODE_ID.toString());
+    expect(note.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(note.createdAt).toEqual(timeline.startsAt);
   });
 
   test("onBeforeCreate leaves the note undefined when none was written", async () => {
@@ -147,14 +168,19 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
       },
     );
 
-    expect(onCreate.carryForward.privateNote).toBeUndefined();
+    expect(onCreate.carryForward.privateNotesToPost).toEqual([]);
   });
 
-  test("onCreateSuccess turns the carried note into an episode internal note", async () => {
+  test("onCreateSuccess posts the carried note on the episode", async () => {
     mockOnCreateSuccessLookups();
     const createNote: jest.SpyInstance = mockInternalNoteCreate();
 
     const createdItem: IncidentEpisodeStateTimeline = buildTimeline();
+
+    const noteToPost: IncidentEpisodeInternalNote =
+      new IncidentEpisodeInternalNote();
+    noteToPost.incidentEpisodeId = EPISODE_ID;
+    noteToPost.note = NOTE_ON_INCIDENT_EPISODE;
 
     await incidentEpisodeHooks.onCreateSuccess(
       {
@@ -162,7 +188,7 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
         carryForward: {
           statusTimelineBeforeThisStatus: null,
           statusTimelineAfterThisStatus: null,
-          privateNote: NOTE_ON_INCIDENT_EPISODE,
+          privateNotesToPost: [noteToPost],
           mutex: null,
         },
       },
@@ -191,7 +217,7 @@ describe("IncidentEpisodeStateTimelineService note handling", () => {
         carryForward: {
           statusTimelineBeforeThisStatus: null,
           statusTimelineAfterThisStatus: null,
-          privateNote: undefined,
+          privateNotesToPost: [],
           mutex: null,
         },
       },
@@ -236,18 +262,31 @@ describe("AlertEpisodeStateTimelineService note handling", () => {
       .mockResolvedValue(new AlertEpisodeInternalNote() as never);
   }
 
-  test("onBeforeCreate carries the private note forward", async () => {
+  test("onBeforeCreate builds the private note and carries it forward", async () => {
     mockOnBeforeCreateLookups();
 
+    const timeline: AlertEpisodeStateTimeline = buildTimeline();
+
     const onCreate: OnCreate<never> = await alertEpisodeHooks.onBeforeCreate({
-      data: buildTimeline(),
+      data: timeline,
       miscDataProps: {
         privateNote: NOTE_ON_ALERT_EPISODE,
       },
       props: { isRoot: true },
     });
 
-    expect(onCreate.carryForward.privateNote).toBe(NOTE_ON_ALERT_EPISODE);
+    const notes: Array<AlertEpisodeInternalNote> =
+      onCreate.carryForward.privateNotesToPost;
+
+    expect(notes).toHaveLength(1);
+
+    const note: AlertEpisodeInternalNote = notes[0]!;
+
+    expect(note).toBeInstanceOf(AlertEpisodeInternalNote);
+    expect(note.note).toBe(NOTE_ON_ALERT_EPISODE);
+    expect(note.alertEpisodeId?.toString()).toBe(EPISODE_ID.toString());
+    expect(note.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(note.createdAt).toEqual(timeline.startsAt);
   });
 
   test("onBeforeCreate leaves the note undefined when none was written", async () => {
@@ -258,14 +297,18 @@ describe("AlertEpisodeStateTimelineService note handling", () => {
       props: { isRoot: true },
     });
 
-    expect(onCreate.carryForward.privateNote).toBeUndefined();
+    expect(onCreate.carryForward.privateNotesToPost).toEqual([]);
   });
 
-  test("onCreateSuccess turns the carried note into an episode internal note", async () => {
+  test("onCreateSuccess posts the carried note on the episode", async () => {
     mockOnCreateSuccessLookups();
     const createNote: jest.SpyInstance = mockInternalNoteCreate();
 
     const createdItem: AlertEpisodeStateTimeline = buildTimeline();
+
+    const noteToPost: AlertEpisodeInternalNote = new AlertEpisodeInternalNote();
+    noteToPost.alertEpisodeId = EPISODE_ID;
+    noteToPost.note = NOTE_ON_ALERT_EPISODE;
 
     await alertEpisodeHooks.onCreateSuccess(
       {
@@ -273,7 +316,7 @@ describe("AlertEpisodeStateTimelineService note handling", () => {
         carryForward: {
           statusTimelineBeforeThisStatus: null,
           statusTimelineAfterThisStatus: null,
-          privateNote: NOTE_ON_ALERT_EPISODE,
+          privateNotesToPost: [noteToPost],
           mutex: null,
         },
       },

@@ -14,6 +14,8 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
 
 RunCron(
   "IncidentEpisode:AutoResolve",
@@ -149,28 +151,53 @@ const fetchResolvedStates: FetchResolvedStatesFunction = async (
     return resolvedStateByProjectId;
   }
 
-  const resolvedStates: Array<IncidentState> =
-    await IncidentStateService.findBy({
-      query: {
-        projectId: QueryHelper.any([...distinctProjectIds.values()]),
-        isResolvedState: true,
-      },
-      select: {
-        _id: true,
-        order: true,
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-    });
+  /*
+   * Every state of those projects, and of each its resolved state: the
+   * first from the top flagged resolved (Common/Utils/ResolvedState). A
+   * member at or below it - in the resolved state, or one placed after it -
+   * is resolved.
+   */
+  const states: Array<IncidentState> = await IncidentStateService.findBy({
+    query: {
+      projectId: QueryHelper.any([...distinctProjectIds.values()]),
+    },
+    select: {
+      _id: true,
+      order: true,
+      projectId: true,
+      isResolvedState: true,
+    },
+    props: {
+      isRoot: true,
+    },
+    limit: LIMIT_MAX,
+    skip: 0,
+  });
 
-  for (const state of resolvedStates) {
+  const statesByProjectId: Map<string, Array<IncidentState>> = new Map();
+
+  for (const state of states) {
     const projectKey: string | undefined = state.projectId?.toString();
-    if (projectKey && !resolvedStateByProjectId.has(projectKey)) {
-      resolvedStateByProjectId.set(projectKey, state);
+
+    if (!projectKey) {
+      continue;
+    }
+
+    const projectStates: Array<IncidentState> =
+      statesByProjectId.get(projectKey) || [];
+    projectStates.push(state);
+    statesByProjectId.set(projectKey, projectStates);
+  }
+
+  for (const [projectKey, projectStates] of statesByProjectId) {
+    const resolvedState: IncidentState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: projectStates,
+      });
+
+    if (resolvedState) {
+      resolvedStateByProjectId.set(projectKey, resolvedState);
     }
   }
 

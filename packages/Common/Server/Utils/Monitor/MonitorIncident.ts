@@ -16,12 +16,15 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
+import IncidentStateService from "../../Services/IncidentStateService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import LabelService from "../../Services/LabelService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
 import DatabaseService from "../../Services/DatabaseService";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
+import { toStorableJson } from "../Database/PostgresStorableValue";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import TeamMemberService from "../../Services/TeamMemberService";
@@ -53,6 +56,11 @@ export default class MonitorIncident {
   @CaptureSpan()
   public static async checkOpenIncidentsAndCloseIfResolved(input: {
     monitorId: ObjectID;
+    /*
+     * The monitor's project: its incident states say which of the monitor's
+     * incidents are still open (Common/Utils/ResolvedState).
+     */
+    projectId: ObjectID;
     autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
       Array<string>
     >;
@@ -99,13 +107,20 @@ export default class MonitorIncident {
      */
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
   }): Promise<Array<Incident>> {
-    // check active incidents and if there are open incidents, do not create another incident.
+    /*
+     * check active incidents and if there are open incidents, do not create
+     * another incident. Open: in a state above the project's resolved state
+     * - an incident in a state placed after Resolved is over, and a new one
+     * is declared.
+     */
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitorId],
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.projectId,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -234,9 +249,11 @@ export default class MonitorIncident {
     const openIncidents: Array<Incident> = await IncidentService.findBy({
       query: {
         monitors: [input.monitor.id!],
-        currentIncidentState: {
-          isResolvedState: false,
-        },
+        currentIncidentStateId: QueryHelper.any(
+          await IncidentStateService.getUnresolvedIncidentStateIds(
+            input.monitor.projectId!,
+          ),
+        ),
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -409,6 +426,7 @@ export default class MonitorIncident {
         ? input.openIncidents
         : await this.checkOpenIncidentsAndCloseIfResolved({
             monitorId: input.monitor.id!,
+            projectId: input.monitor.projectId!,
             autoResolveCriteriaInstanceIdIncidentIdsDictionary:
               input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
             rootCause: input.rootCause,
@@ -770,16 +788,25 @@ export default class MonitorIncident {
           incident.monitors = [input.monitor];
           incident.projectId = input.monitor.projectId!;
           incident.rootCause = seriesRootCause;
-          incident.createdStateLog = JSON.parse(
-            JSON.stringify(input.dataToProcess, null, 2),
-          );
+          /*
+           * The jsonb columns below get storable copies: one NUL in the
+           * check's payload (a binary response body, a webhook field) would
+           * otherwise make Postgres refuse the insert, and the incident
+           * would never open. Inputs stay as they are - they are still
+           * being read for this and the next incident.
+           */
+          incident.createdStateLog = toStorableJson(
+            input.dataToProcess,
+          ) as unknown as JSONObject;
 
           /*
            * Same capture on every incident this evaluation opens - they all
-           * came from the one check.
+           * came from the one check. Made storable after serialize(), which
+           * is what keeps its Dates as Dates when the page reads it back.
            */
-          const serializedMonitorSummary: JSONObject | null =
-            MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+          const serializedMonitorSummary: JSONObject | null = toStorableJson(
+            MonitorSummarySnapshotUtil.serialize(input.monitorSummary),
+          );
 
           if (serializedMonitorSummary) {
             incident.monitorSummary = serializedMonitorSummary;
@@ -805,7 +832,7 @@ export default class MonitorIncident {
             incident.seriesFingerprint = seriesFingerprint;
           }
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
-            incident.seriesLabels = seriesLabels;
+            incident.seriesLabels = toStorableJson(seriesLabels);
 
             await SeriesResourceLinker.linkSeriesResourcesToModel({
               model: incident,
@@ -1162,9 +1189,10 @@ export default class MonitorIncident {
     }
 
     if (input.dataToProcess) {
-      incidentStateTimeline.stateChangeLog = JSON.parse(
-        JSON.stringify(input.dataToProcess),
-      );
+      // Storable copy, for the same reason as createdStateLog above.
+      incidentStateTimeline.stateChangeLog = toStorableJson(
+        input.dataToProcess,
+      ) as unknown as JSONObject;
     }
 
     try {

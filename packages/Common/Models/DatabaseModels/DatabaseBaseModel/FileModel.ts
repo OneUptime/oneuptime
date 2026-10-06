@@ -93,12 +93,12 @@ export default class FileModel extends BaseModel {
   /*
    * Whether anyone may read the file, signed in or not. OneUptime decides
    * it, never the upload: every upload starts private (FileService), and a
-   * file becomes public only when a record that shows it to everyone is
-   * published - an image in a public note, an announcement or a published
-   * postmortem, a probe's or an AI agent's icon - and private again when
-   * that record stops showing it (InlineImageAccessTokenSync,
-   * FileService.makeRecordFilesPublic). Files uploaded before uploads
-   * started private keep the visibility they had.
+   * file is public only while a record shows it to everyone - an image in a
+   * public note, an announcement, a published postmortem, a description or
+   * a status page's text on a status page (PublishedImages) - or while it
+   * is a probe's or an AI agent's icon (FileService.makeRecordFilesPublic).
+   * Files from before this rule were set to it once
+   * (SetFileVisibilityFromPublishedRecords).
    *
    * Computed and closed to every write, as File.projectId is: a value a
    * request sends is replaced, never refused, so a client that still sends

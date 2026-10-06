@@ -49,7 +49,7 @@ Den skelnen betyder mere, end den lyder til:
 
 - `isCreatedState` afgør, hvor en ny hændelse starter. Vælges der ingen tilstand udtrykkeligt ved oprettelsen, finder OneUptime projektets oprettede tilstand og bruger den.
 - `isAcknowledgedState` og `isResolvedState` driver knapperne **Acknowledge** og **Løs** i hændelsens sidehoved, de to nøgletalsfelter på hændelsens **Oversigt** og tælleren **Aktive hændelser** i sidemenuen.
-- **Aktive hændelser** er defineret udelukkende som "den aktuelle tilstand er ikke den løste tilstand". Enhver egen tilstand, du tilføjer, er derfor aktiv, medmindre den er den løste.
+- **Aktive hændelser** er defineret udelukkende som "den aktuelle tilstand ligger over den løste tilstand". En egen tilstand, du tilføjer over den løste tilstand, er derfor aktiv; en, du placerer efter den, tæller som løst, ligesom den løste tilstand.
 
 **Bemærk navngivningen.** Den første forudoprettede tilstand hedder **Identified**, selv om flere beskrivelser inde i produktet stadig kalder den den oprettede tilstand. Leder du efter "Created" i dit projekts tilstandsliste, er det rækken, der hedder **Identified**.
 
@@ -102,7 +102,7 @@ Respondere bekræfter hændelsen, knytter berørte ressourcer til, kører runboo
 
 ### 4. Den bliver løst
 
-Et klik på **Løs** flytter hændelsen til den løste tilstand, stempler tilstandstidslinjen, stopper varighedsuret og fjerner hændelsen fra den aktive sektion på enhver statusside, den blev vist på. Der skal ikke ændres andet, for at det sker — det er flaget for løst tilstand, statussidens forespørgsel kigger på.
+Et klik på **Løs** flytter hændelsen til den løste tilstand, stempler tilstandstidslinjen, stopper varighedsuret, giver de monitorer tilbage, som den holder, og fjerner hændelsen fra den aktive sektion på enhver statusside, den blev vist på. Der skal ikke ændres andet, for at det sker — en statusside viser kun hændelser i en tilstand over den løste tilstand. Se [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities).
 
 Derefter kan du skrive en postmortem og eventuelt offentliggøre den på statussiden.
 
@@ -112,7 +112,7 @@ Derefter kan du skrive en postmortem og eventuelt offentliggøre den på statuss
 
 | Sektion            | Hvad du gør der                                                                                                                                                        |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Oversigt**       | **Alle hændelser** og **Aktive hændelser** — sidstnævnte har et rødt mærke med antallet af hændelser, der ikke er i den løste tilstand.                                 |
+| **Oversigt**       | **Alle hændelser** og **Aktive hændelser** — sidstnævnte har et rødt mærke med antallet af hændelser i en tilstand over den løste tilstand.                                 |
 | **Episoder**       | Hændelsesepisoder, en separat grupperingsfunktion med sine egne sider.                                                                                                  |
 | **AI** | **Indsigter**, **Protokoller**, **Indstillinger**, **Regler for automatisk afhjælpning**: hvad OneUptime AI har lært af dine hændelser og alt, hvad den har gjort for dem, hvad den må gøre på egen hånd, og reglerne, der retter hændelser med runbooks. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbejdsområde**  | **Slack**- og **Microsoft Teams**-forbindelser til hændelser.                                                                                                           |
@@ -145,7 +145,7 @@ Selve listen over hændelser viser **Hændelsesnummer**, **Titel**, **Tilstand**
 - **Monitorer opdager problemet; hændelser registrerer det.** En regel i en monitors kriterier kan erklære en hændelse automatisk og forudfylde titel, alvorsgrad, vagtpolitikker, ejere, etiketter og afhjælpningsnoter. Se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating) for de variabler, du kan bruge dér.
 - **Vagtpolitikker står for tilkaldelsen.** Knyt politikker på trinnet **Vagt** i erklæringsguiden, på en skabelon eller via **Hændelser → Regler → Vagtregler**. Hver regel, der matcher, udløses — det udførte sæt er foreningsmængden af alle match plus alt, der er knyttet direkte, uden dubletter.
 - **Runbooks fortæller folk, hvad de skal gøre.** Runbook-regler knytter automatisk en procedure, når en matchende hændelse oprettes, og respondere kan starte en i hånden fra hændelsen. Se [Runbooks – Oversigt](/docs/runbooks/index).
-- **Statussider fortæller kunderne det.** En hændelse vises på en statussides aktive liste, når siden har hændelser slået til, hændelsen er markeret som synlig på statussiden, og dens aktuelle tilstand ikke er den løste. Private hændelser er altid skjult fra alle statussider. Se [Statussider – Oversigt](/docs/status-pages/index).
+- **Statussider fortæller kunderne det.** En hændelse vises på en statussides aktive liste, når siden har hændelser slået til, hændelsen er markeret som synlig på statussiden, og dens aktuelle tilstand ligger over den løste tilstand. Private hændelser er altid skjult fra alle statussider. Se [Statussider – Oversigt](/docs/status-pages/index).
 - **Workflows automatiserer omkring den.** Triggerne **On Create Incident**, **On Update Incident** og **On Delete Incident** lader dig bygge no-code-automatisering oven på hændelsers livscyklus. Se [Workflows – Oversigt](/docs/workflows/index).
 
 ## Læs videre
