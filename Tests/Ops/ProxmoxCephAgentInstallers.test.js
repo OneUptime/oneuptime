@@ -281,7 +281,9 @@ function composeCalls(docker) {
   return docker
     .split("\n")
     .filter((line) => {
-      return line.includes(" | compose ") && !line.endsWith("| compose version");
+      return (
+        line.includes(" | compose ") && !line.endsWith("| compose version")
+      );
     })
     .map((line) => {
       const [cwd, args] = line.split(" | ");
@@ -290,7 +292,10 @@ function composeCalls(docker) {
 }
 
 function sha256(file) {
-  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(file))
+    .digest("hex");
 }
 
 // A newer upstream whose config stamps a newer collector version.
@@ -333,18 +338,20 @@ function realComposeConfig(installDir) {
   if (!HAS_COMPOSE) {
     throw new Error(
       `CI is set but \`docker compose\` does not run (${
-        COMPOSE_PROBE.error
-          ? COMPOSE_PROBE.error.message
-          : COMPOSE_PROBE.stderr
+        COMPOSE_PROBE.error ? COMPOSE_PROBE.error.message : COMPOSE_PROBE.stderr
       }). This round-trip must not pass by skipping.`,
     );
   }
-  const result = spawnSync("docker", ["compose", "config", "--format", "json"], {
-    cwd: installDir,
-    env: { PATH: process.env.PATH, HOME: installDir },
-    encoding: "utf8",
-    timeout: 60000,
-  });
+  const result = spawnSync(
+    "docker",
+    ["compose", "config", "--format", "json"],
+    {
+      cwd: installDir,
+      env: { PATH: process.env.PATH, HOME: installDir },
+      encoding: "utf8",
+      timeout: 60000,
+    },
+  );
   if (result.status !== 0) {
     throw new Error(`docker compose config failed: ${result.stderr}`);
   }
@@ -421,7 +428,16 @@ describe("agents/ProxmoxAgent/install.sh", () => {
     const run = install("proxmox", dir, {
       // ... no bundled exporter, its address, no token for the AI agent,
       // no fixes.
-      input: answers(URL, KEY, "pve-prod", "192.168.1.10", "n", "10.0.0.5:9221", "", "n"),
+      input: answers(
+        URL,
+        KEY,
+        "pve-prod",
+        "192.168.1.10",
+        "n",
+        "10.0.0.5:9221",
+        "",
+        "n",
+      ),
     });
 
     expect(run.status).toBe(0);
@@ -589,7 +605,18 @@ describe("agents/ProxmoxAgent/install.sh", () => {
     // Fixes on, with no token of the AI agent's own and no protected guests:
     // the fresh install's answers, which a re-run must not ask again.
     const first = install("proxmox", dir, {
-      input: answers(URL, KEY, "pve-prod", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "y", "", ""),
+      input: answers(
+        URL,
+        KEY,
+        "pve-prod",
+        "192.168.1.10",
+        "",
+        TOKEN_ID,
+        TOKEN_SECRET,
+        "y",
+        "",
+        "",
+      ),
     });
     expect(first.status).toBe(0);
     expect(envLines(first.envFile).ONEUPTIME_AI_ALLOW_WRITES).toBe("true");
@@ -800,176 +827,185 @@ describe("agents/CephAgent/install.sh", () => {
 
 /* ======================================================== both installers */
 
-describe.each([["proxmox"], ["ceph"]])("%s install.sh, as the upgrade", (agent) => {
-  // The answers after the OneUptime URL and key.
-  const REST =
-    agent === "proxmox"
-      ? ["pve-prod", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "n"]
-      : ["ceph-prod", "mon1:9283", "n"];
-  const FRESH = answers(URL, KEY, ...REST);
+describe.each([["proxmox"], ["ceph"]])(
+  "%s install.sh, as the upgrade",
+  (agent) => {
+    // The answers after the OneUptime URL and key.
+    const REST =
+      agent === "proxmox"
+        ? ["pve-prod", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "n"]
+        : ["ceph-prod", "mon1:9283", "n"];
+    const FRESH = answers(URL, KEY, ...REST);
 
-  test("pulls the images, then recreates the containers in the install directory", () => {
-    const dir = scratch();
-    const run = install(agent, dir, { input: FRESH });
+    test("pulls the images, then recreates the containers in the install directory", () => {
+      const dir = scratch();
+      const run = install(agent, dir, { input: FRESH });
 
-    expect(run.status).toBe(0);
-    const installDir = fs.realpathSync(run.installDir);
-    expect(composeCalls(run.docker)).toEqual([
-      { cwd: installDir, args: "compose pull" },
-      { cwd: installDir, args: "compose up -d --force-recreate" },
-    ]);
-  });
-
-  test("a failed pull is not fatal: the agent still starts on the images it has", () => {
-    const dir = scratch();
-    installStubs(dir, agent);
-    fs.writeFileSync(path.join(dir, "pull.fail"), "");
-
-    const run = install(agent, dir, { input: FRESH });
-
-    expect(run.status).toBe(0);
-    expect(run.output).toContain(
-      "Warning: could not pull the latest images; starting with the ones this machine has.",
-    );
-    expect(run.docker).toContain("| compose up -d --force-recreate");
-  });
-
-  test("a failed start fails the script", () => {
-    const dir = scratch();
-    installStubs(dir, agent);
-    fs.writeFileSync(path.join(dir, "up.fail"), "");
-
-    const run = install(agent, dir, { input: FRESH });
-
-    expect(run.status).not.toBe(0);
-    expect(run.output).not.toContain("is running!");
-  });
-
-  test("Compose gets no variable from the script's environment: it reads them all from .env", () => {
-    const dir = scratch();
-    // The setup guide's command carries the URL and key in the environment.
-    const run = install(agent, dir, {
-      input: answers(...REST),
-      env: { ONEUPTIME_URL: URL, ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY },
+      expect(run.status).toBe(0);
+      const installDir = fs.realpathSync(run.installDir);
+      expect(composeCalls(run.docker)).toEqual([
+        { cwd: installDir, args: "compose pull" },
+        { cwd: installDir, args: "compose up -d --force-recreate" },
+      ]);
     });
 
-    expect(run.status).toBe(0);
-    const atUp = readIfExists(path.join(dir, "env-at-up.txt"));
-    expect(atUp).toContain("STUB_DIR=");
-    for (const name of envNames(agentFile(agent, "install.sh"))) {
-      expect({ name, inEnvironment: new RegExp(`^${name}=`, "m").test(atUp) }).toEqual({
-        name,
-        inEnvironment: false,
-      });
-    }
-  });
+    test("a failed pull is not fatal: the agent still starts on the images it has", () => {
+      const dir = scratch();
+      installStubs(dir, agent);
+      fs.writeFileSync(path.join(dir, "pull.fail"), "");
 
-  test("a re-run starts the collector on the config it just downloaded", () => {
-    const dir = scratch();
-    expect(install(agent, dir, { input: FRESH }).status).toBe(0);
+      const run = install(agent, dir, { input: FRESH });
 
-    const upstream = newerUpstream(agent);
-    const upgraded = install(agent, dir, { env: { SERVE_DIR: upstream } });
-
-    expect(upgraded.status).toBe(0);
-    expect(fs.readFileSync(path.join(dir, "config-at-up.yaml"), "utf8")).toBe(
-      fs.readFileSync(path.join(upstream, "otel-collector-config.yaml"), "utf8"),
-    );
-    // Nobody edited the files: replaced, no copies, no notes.
-    expect(backupsIn(upgraded.installDir)).toEqual([]);
-    expect(upgraded.output).not.toContain("NOTE:");
-  });
-
-  test("records a sha256 of every file it installed, and leaves nothing from the download behind", () => {
-    const dir = scratch();
-    const run = install(agent, dir, { input: FRESH });
-    expect(run.status).toBe(0);
-
-    const record = fs
-      .readFileSync(path.join(run.installDir, ".agent-files.sha256"), "utf8")
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        return line.split(/\s+/);
-      });
-    expect(
-      record.map(([, file]) => {
-        return file;
-      }),
-    ).toEqual(["docker-compose.yml", "otel-collector-config.yaml"]);
-    for (const [hash, file] of record) {
-      expect(hash).toBe(sha256(path.join(run.installDir, file)));
-      // The collector reads its config as a non-root user.
-      expect(fs.statSync(path.join(run.installDir, file)).mode & 0o777).toBe(
-        0o644,
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(
+        "Warning: could not pull the latest images; starting with the ones this machine has.",
       );
-    }
-    expect(
-      fs.readdirSync(run.installDir).filter((file) => {
-        return file.includes(".download") || file.endsWith(".new");
-      }),
-    ).toEqual([]);
-  });
-
-  test("an upgrade keeps a file you edited as <file>.bak.<timestamp>, and says so", () => {
-    const dir = scratch();
-    expect(install(agent, dir, { input: FRESH }).status).toBe(0);
-    const config = path.join(dir, "agent", "otel-collector-config.yaml");
-    const edited = `${fs.readFileSync(config, "utf8")}# my edit\n`;
-    fs.writeFileSync(config, edited);
-
-    const upgraded = install(agent, dir, {
-      env: { SERVE_DIR: newerUpstream(agent) },
+      expect(run.docker).toContain("| compose up -d --force-recreate");
     });
 
-    expect(upgraded.status).toBe(0);
-    const backups = backupsIn(upgraded.installDir);
-    expect(backups).toHaveLength(1);
-    expect(backups[0]).toMatch(/^otel-collector-config\.yaml\.bak\.\d{14}$/);
-    expect(
-      fs.readFileSync(path.join(upgraded.installDir, backups[0]), "utf8"),
-    ).toBe(edited);
-    expect(upgraded.output).toContain(
-      "NOTE: you had edited these files since install.sh installed them.",
-    );
-    expect(upgraded.output).toContain(backups[0]);
-    expect(upgraded.output).not.toContain("no record");
-  });
+    test("a failed start fails the script", () => {
+      const dir = scratch();
+      installStubs(dir, agent);
+      fs.writeFileSync(path.join(dir, "up.fail"), "");
 
-  test("without a record (an agent installed by an older script), every file that differs is kept", () => {
-    const dir = scratch();
-    const first = install(agent, dir, { input: FRESH });
-    expect(first.status).toBe(0);
-    fs.rmSync(path.join(first.installDir, ".agent-files.sha256"));
+      const run = install(agent, dir, { input: FRESH });
 
-    const upgraded = install(agent, dir, {
-      env: { SERVE_DIR: newerUpstream(agent) },
+      expect(run.status).not.toBe(0);
+      expect(run.output).not.toContain("is running!");
     });
 
-    expect(upgraded.status).toBe(0);
-    // Only the config changed upstream.
-    expect(
-      backupsIn(upgraded.installDir).map((file) => {
-        return file.replace(/\.bak\.\d{14}$/, "");
-      }),
-    ).toEqual(["otel-collector-config.yaml"]);
-    expect(upgraded.output).toContain(
-      "There was no record\nof what install.sh had installed",
-    );
-    expect(
-      fs.existsSync(path.join(upgraded.installDir, ".agent-files.sha256")),
-    ).toBe(true);
-  });
+    test("Compose gets no variable from the script's environment: it reads them all from .env", () => {
+      const dir = scratch();
+      // The setup guide's command carries the URL and key in the environment.
+      const run = install(agent, dir, {
+        input: answers(...REST),
+        env: { ONEUPTIME_URL: URL, ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY },
+      });
 
-  test("ends by saying that running it again is the upgrade", () => {
-    const dir = scratch();
-    const run = install(agent, dir, { input: FRESH });
-    expect(run.status).toBe(0);
-    expect(run.output).toContain(
-      `To upgrade:       run this installer again; it reuses ${path.join(run.installDir, ".env")}`,
-    );
-  });
-});
+      expect(run.status).toBe(0);
+      const atUp = readIfExists(path.join(dir, "env-at-up.txt"));
+      expect(atUp).toContain("STUB_DIR=");
+      for (const name of envNames(agentFile(agent, "install.sh"))) {
+        expect({
+          name,
+          inEnvironment: new RegExp(`^${name}=`, "m").test(atUp),
+        }).toEqual({
+          name,
+          inEnvironment: false,
+        });
+      }
+    });
+
+    test("a re-run starts the collector on the config it just downloaded", () => {
+      const dir = scratch();
+      expect(install(agent, dir, { input: FRESH }).status).toBe(0);
+
+      const upstream = newerUpstream(agent);
+      const upgraded = install(agent, dir, { env: { SERVE_DIR: upstream } });
+
+      expect(upgraded.status).toBe(0);
+      expect(fs.readFileSync(path.join(dir, "config-at-up.yaml"), "utf8")).toBe(
+        fs.readFileSync(
+          path.join(upstream, "otel-collector-config.yaml"),
+          "utf8",
+        ),
+      );
+      // Nobody edited the files: replaced, no copies, no notes.
+      expect(backupsIn(upgraded.installDir)).toEqual([]);
+      expect(upgraded.output).not.toContain("NOTE:");
+    });
+
+    test("records a sha256 of every file it installed, and leaves nothing from the download behind", () => {
+      const dir = scratch();
+      const run = install(agent, dir, { input: FRESH });
+      expect(run.status).toBe(0);
+
+      const record = fs
+        .readFileSync(path.join(run.installDir, ".agent-files.sha256"), "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => {
+          return line.split(/\s+/);
+        });
+      expect(
+        record.map(([, file]) => {
+          return file;
+        }),
+      ).toEqual(["docker-compose.yml", "otel-collector-config.yaml"]);
+      for (const [hash, file] of record) {
+        expect(hash).toBe(sha256(path.join(run.installDir, file)));
+        // The collector reads its config as a non-root user.
+        expect(fs.statSync(path.join(run.installDir, file)).mode & 0o777).toBe(
+          0o644,
+        );
+      }
+      expect(
+        fs.readdirSync(run.installDir).filter((file) => {
+          return file.includes(".download") || file.endsWith(".new");
+        }),
+      ).toEqual([]);
+    });
+
+    test("an upgrade keeps a file you edited as <file>.bak.<timestamp>, and says so", () => {
+      const dir = scratch();
+      expect(install(agent, dir, { input: FRESH }).status).toBe(0);
+      const config = path.join(dir, "agent", "otel-collector-config.yaml");
+      const edited = `${fs.readFileSync(config, "utf8")}# my edit\n`;
+      fs.writeFileSync(config, edited);
+
+      const upgraded = install(agent, dir, {
+        env: { SERVE_DIR: newerUpstream(agent) },
+      });
+
+      expect(upgraded.status).toBe(0);
+      const backups = backupsIn(upgraded.installDir);
+      expect(backups).toHaveLength(1);
+      expect(backups[0]).toMatch(/^otel-collector-config\.yaml\.bak\.\d{14}$/);
+      expect(
+        fs.readFileSync(path.join(upgraded.installDir, backups[0]), "utf8"),
+      ).toBe(edited);
+      expect(upgraded.output).toContain(
+        "NOTE: you had edited these files since install.sh installed them.",
+      );
+      expect(upgraded.output).toContain(backups[0]);
+      expect(upgraded.output).not.toContain("no record");
+    });
+
+    test("without a record (an agent installed by an older script), every file that differs is kept", () => {
+      const dir = scratch();
+      const first = install(agent, dir, { input: FRESH });
+      expect(first.status).toBe(0);
+      fs.rmSync(path.join(first.installDir, ".agent-files.sha256"));
+
+      const upgraded = install(agent, dir, {
+        env: { SERVE_DIR: newerUpstream(agent) },
+      });
+
+      expect(upgraded.status).toBe(0);
+      // Only the config changed upstream.
+      expect(
+        backupsIn(upgraded.installDir).map((file) => {
+          return file.replace(/\.bak\.\d{14}$/, "");
+        }),
+      ).toEqual(["otel-collector-config.yaml"]);
+      expect(upgraded.output).toContain(
+        "There was no record\nof what install.sh had installed",
+      );
+      expect(
+        fs.existsSync(path.join(upgraded.installDir, ".agent-files.sha256")),
+      ).toBe(true);
+    });
+
+    test("ends by saying that running it again is the upgrade", () => {
+      const dir = scratch();
+      const run = install(agent, dir, { input: FRESH });
+      expect(run.status).toBe(0);
+      expect(run.output).toContain(
+        `To upgrade:       run this installer again; it reuses ${path.join(run.installDir, ".env")}`,
+      );
+    });
+  },
+);
 
 /* ===================================================== the scripts' shape */
 
@@ -988,9 +1024,10 @@ describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
   });
 
   test("quotes every value but the validated ones for Compose", () => {
-    const bare = agent === "proxmox"
-      ? ["ONEUPTIME_AI_ALLOW_WRITES"]
-      : ["CEPH_CLIENT_ID", "ONEUPTIME_AI_ALLOW_WRITES"];
+    const bare =
+      agent === "proxmox"
+        ? ["ONEUPTIME_AI_ALLOW_WRITES"]
+        : ["CEPH_CLIENT_ID", "ONEUPTIME_AI_ALLOW_WRITES"];
     const heredoc = script.match(
       /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
     )[1];
@@ -1029,7 +1066,7 @@ describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
     const starts = script.split("\n").filter((line) => {
       return /^\s*docker compose up\b/.test(line);
     });
-    expect(starts).toEqual(["    docker compose up -d --force-recreate"]);
+    expect(starts).toEqual(["docker compose up -d --force-recreate"]);
   });
 
   test("installs where the systemd unit and the doctor script look", () => {
@@ -1038,7 +1075,9 @@ describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
     expect(agentFile(agent, AGENTS[agent].unit)).toContain(
       `WorkingDirectory=${installDir}\n`,
     );
-    expect(agentFile(agent, "troubleshoot.sh")).toContain(`DIR="${installDir}"`);
+    expect(agentFile(agent, "troubleshoot.sh")).toContain(
+      `DIR="${installDir}"`,
+    );
   });
 
   test("the doctor reads a quoted .env the way install.sh writes it", () => {
@@ -1055,7 +1094,9 @@ describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
   });
 
   test("passes bash -n", () => {
-    const result = spawnSync("bash", ["-n", "-c", script], { encoding: "utf8" });
+    const result = spawnSync("bash", ["-n", "-c", script], {
+      encoding: "utf8",
+    });
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
   });
@@ -1066,69 +1107,99 @@ describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
 describe("the .env the installers write, as the real Docker Compose reads it (required in CI)", () => {
   const maybe = HAS_COMPOSE || IN_CI ? test : test.skip;
 
-  maybe("Proxmox: the profile starts the bundled exporter and every value reaches its container as typed", () => {
-    const dir = scratch();
-    const run = install("proxmox", dir, {
-      input: answers(URL, KEY, "pve prod #1", "192.168.1.10", "", TOKEN_ID, TOKEN_SECRET, "n"),
-    });
-    expect(run.status).toBe(0);
+  maybe(
+    "Proxmox: the profile starts the bundled exporter and every value reaches its container as typed",
+    () => {
+      const dir = scratch();
+      const run = install("proxmox", dir, {
+        input: answers(
+          URL,
+          KEY,
+          "pve prod #1",
+          "192.168.1.10",
+          "",
+          TOKEN_ID,
+          TOKEN_SECRET,
+          "n",
+        ),
+      });
+      expect(run.status).toBe(0);
 
-    const config = realComposeConfig(run.installDir);
-    expect(Object.keys(config.services).sort()).toEqual([
-      "oneuptime-proxmox-agent",
-      "oneuptime-proxmox-ai-agent",
-      "pve-exporter",
-    ]);
-    expect(serviceEnvironment(config, "oneuptime-proxmox-agent")).toMatchObject({
-      ONEUPTIME_URL: URL,
-      ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
-      PROXMOX_CLUSTER_NAME: "pve prod #1",
-      PVE_HOST: "192.168.1.10",
-      PVE_EXPORTER_URL: "pve-exporter:9221",
-    });
-    expect(serviceEnvironment(config, "pve-exporter")).toMatchObject({
-      PVE_API_TOKEN_ID: TOKEN_ID,
-      PVE_TOKEN_VALUE: TOKEN_SECRET,
-      PVE_VERIFY_SSL: "false",
-    });
-    expect(serviceEnvironment(config, "oneuptime-proxmox-ai-agent")).toMatchObject({
-      PVE_API_TOKEN_SECRET: TOKEN_SECRET,
-      ONEUPTIME_AI_ALLOW_WRITES: "false",
-      LOG_LEVEL: "info",
-    });
-  });
+      const config = realComposeConfig(run.installDir);
+      expect(Object.keys(config.services).sort()).toEqual([
+        "oneuptime-proxmox-agent",
+        "oneuptime-proxmox-ai-agent",
+        "pve-exporter",
+      ]);
+      expect(
+        serviceEnvironment(config, "oneuptime-proxmox-agent"),
+      ).toMatchObject({
+        ONEUPTIME_URL: URL,
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
+        PROXMOX_CLUSTER_NAME: "pve prod #1",
+        PVE_HOST: "192.168.1.10",
+        PVE_EXPORTER_URL: "pve-exporter:9221",
+      });
+      expect(serviceEnvironment(config, "pve-exporter")).toMatchObject({
+        PVE_API_TOKEN_ID: TOKEN_ID,
+        PVE_TOKEN_VALUE: TOKEN_SECRET,
+        PVE_VERIFY_SSL: "false",
+      });
+      expect(
+        serviceEnvironment(config, "oneuptime-proxmox-ai-agent"),
+      ).toMatchObject({
+        PVE_API_TOKEN_SECRET: TOKEN_SECRET,
+        ONEUPTIME_AI_ALLOW_WRITES: "false",
+        LOG_LEVEL: "info",
+      });
+    },
+  );
 
   maybe("Proxmox: your own exporter starts no bundled one", () => {
     const dir = scratch();
     const run = install("proxmox", dir, {
-      input: answers(URL, KEY, "pve-prod", "192.168.1.10", "n", "10.0.0.5:9221", "", "n"),
+      input: answers(
+        URL,
+        KEY,
+        "pve-prod",
+        "192.168.1.10",
+        "n",
+        "10.0.0.5:9221",
+        "",
+        "n",
+      ),
     });
     expect(run.status).toBe(0);
 
     const config = realComposeConfig(run.installDir);
     expect(Object.keys(config.services)).not.toContain("pve-exporter");
-    expect(serviceEnvironment(config, "oneuptime-proxmox-agent").PVE_EXPORTER_URL).toBe(
-      "10.0.0.5:9221",
-    );
+    expect(
+      serviceEnvironment(config, "oneuptime-proxmox-agent").PVE_EXPORTER_URL,
+    ).toBe("10.0.0.5:9221");
   });
 
-  maybe("Ceph: the bracketed mgr list and a protected-target list with spaces reach the containers as typed", () => {
-    const dir = scratch();
-    const run = install("ceph", dir, {
-      input: answers(URL, KEY, "ceph #prod", "mon1:9283,mon2:9283", "n"),
-      env: { ONEUPTIME_AI_PROTECTED_TARGETS: "osd.0, osd.1 #hot" },
-    });
-    expect(run.status).toBe(0);
+  maybe(
+    "Ceph: the bracketed mgr list and a protected-target list with spaces reach the containers as typed",
+    () => {
+      const dir = scratch();
+      const run = install("ceph", dir, {
+        input: answers(URL, KEY, "ceph #prod", "mon1:9283,mon2:9283", "n"),
+        env: { ONEUPTIME_AI_PROTECTED_TARGETS: "osd.0, osd.1 #hot" },
+      });
+      expect(run.status).toBe(0);
 
-    const config = realComposeConfig(run.installDir);
-    expect(serviceEnvironment(config, "oneuptime-ceph-agent")).toMatchObject({
-      CEPH_CLUSTER_NAME: "ceph #prod",
-      CEPH_MGR_ENDPOINTS: "[mon1:9283,mon2:9283]",
-    });
-    expect(serviceEnvironment(config, "oneuptime-ceph-ai-agent")).toMatchObject({
-      CEPH_CLIENT_ID: "oneuptime-ai",
-      ONEUPTIME_AI_PROTECTED_TARGETS: "osd.0, osd.1 #hot",
-      ONEUPTIME_AI_ALLOW_WRITES: "false",
-    });
-  });
+      const config = realComposeConfig(run.installDir);
+      expect(serviceEnvironment(config, "oneuptime-ceph-agent")).toMatchObject({
+        CEPH_CLUSTER_NAME: "ceph #prod",
+        CEPH_MGR_ENDPOINTS: "[mon1:9283,mon2:9283]",
+      });
+      expect(
+        serviceEnvironment(config, "oneuptime-ceph-ai-agent"),
+      ).toMatchObject({
+        CEPH_CLIENT_ID: "oneuptime-ai",
+        ONEUPTIME_AI_PROTECTED_TARGETS: "osd.0, osd.1 #hot",
+        ONEUPTIME_AI_ALLOW_WRITES: "false",
+      });
+    },
+  );
 });

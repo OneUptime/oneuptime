@@ -347,28 +347,26 @@ echo "Starting OneUptime Ceph Agent..."
 cd "$INSTALL_DIR"
 # Compose gives variables in its environment precedence over .env, and this
 # script's variables are exported whenever the user exported them to answer
-# a prompt (a mgr list without its brackets, say). Start from .env alone, so
-# this start runs exactly what every later `docker compose up` (and the
-# systemd unit) will.
-(
-    for name in $ENV_NAMES; do
-        unset "$name"
-    done
-    # Pull first, so a re-run also moves the AI agent, whose image tag
-    # (release) does not change. A failed pull (a host without registry
-    # access, its images loaded by hand) is not fatal: `up` still pulls any
-    # image this machine does not have.
-    if ! docker compose pull; then
-        echo "Warning: could not pull the latest images; starting with the ones this machine has."
-    fi
-    # --force-recreate, because running this again on an installed agent is how
-    # it picks up new files: Compose recreates a running container only when its
-    # service definition or environment changed, never for a new
-    # otel-collector-config.yaml (a bind mount), and the collector reads its
-    # config only when it starts. A plain `up -d` would keep the old config —
-    # and the old oneuptime.agent.version — running after the new one arrived.
-    docker compose up -d --force-recreate
-)
+# a prompt (a mgr list without its brackets, say). Hand Compose none of them,
+# so this start runs exactly what every later `docker compose up` (and the
+# systemd unit) will: .env alone.
+for name in $ENV_NAMES; do
+    export -n "$name"
+done
+# Pull first, so a re-run also moves the AI agent, whose image tag (release)
+# does not change. A failed pull (a host without registry access, its images
+# loaded by hand) is not fatal: `up` still pulls any image this machine does
+# not have.
+if ! docker compose pull; then
+    echo "Warning: could not pull the latest images; starting with the ones this machine has."
+fi
+# --force-recreate, because running this again on an installed agent is how
+# it picks up new files: Compose recreates a running container only when its
+# service definition or environment changed, never for a new
+# otel-collector-config.yaml (a bind mount), and the collector reads its
+# config only when it starts. A plain `up -d` would keep the old config —
+# and the old oneuptime.agent.version — running after the new one arrived.
+docker compose up -d --force-recreate
 
 echo ""
 echo "=========================================="
