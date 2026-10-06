@@ -190,11 +190,6 @@ export function getEveryModeProtectionsSentence(
 export function getResourceRemediationModeOptionDescriptions(
   descriptor: ResourceAiAgentDescriptor,
 ): Record<ResourceAiRemediationMode, string> {
-  const riskier: string = descriptor.riskierExamples.replace(
-    /^riskier changes such as /,
-    "",
-  );
-
   return {
     [ResourceAiRemediationMode.Disabled]: translateTemplate(
       "AI never proposes or runs a fix. It can still investigate.",
@@ -204,7 +199,7 @@ export function getResourceRemediationModeOptionDescriptions(
     ),
     [ResourceAiRemediationMode.Automatic]: translateTemplate(
       "Safe changes, each on one named object, run on their own. Riskier ones, such as {{riskier}}, wait for one-click approval unless the command allowlist names them.",
-      { riskier: translatableTerm(riskier) },
+      { riskier: translatableTerm(descriptor.riskierChanges) },
     ),
     [ResourceAiRemediationMode.BypassApproval]: descriptor.alwaysHumanExamples
       ? translateTemplate(
