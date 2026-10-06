@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * backfilled: the timeline alone cannot tell which of them held their
  * monitors.
  */
-export class AddIncidentHoldsMonitors1798900000000
+export class AddIncidentHoldsMonitors1798950000000
   implements MigrationInterface
 {
-  public name: string = "AddIncidentHoldsMonitors1798900000000";
+  public name: string = "AddIncidentHoldsMonitors1798950000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -1,4 +1,4 @@
-import { AddIncidentHoldsMonitors1798900000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1798900000000-AddIncidentHoldsMonitors";
+import { AddIncidentHoldsMonitors1798950000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1798950000000-AddIncidentHoldsMonitors";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import ColumnType from "../../../Types/Database/ColumnType";
@@ -39,7 +39,7 @@ const MIGRATION_DIRECTORY: string = path.join(
   "../../../Server/Infrastructure/Postgres/SchemaMigrations",
 );
 
-const MIGRATION_TIMESTAMP: string = "1798900000000";
+const MIGRATION_TIMESTAMP: string = "1798950000000";
 
 const MIGRATION_NAME: string = `AddIncidentHoldsMonitors${MIGRATION_TIMESTAMP}`;
 
@@ -68,7 +68,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("up() adds exactly the one column: a boolean, nullable, with no default", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddIncidentHoldsMonitors1798900000000().up(runner);
+    await new AddIncidentHoldsMonitors1798950000000().up(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "Incident" ADD "holdsMonitors" boolean`,
@@ -80,7 +80,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("nothing is backfilled: no UPDATE of the incidents already stored", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddIncidentHoldsMonitors1798900000000().up(runner);
+    await new AddIncidentHoldsMonitors1798950000000().up(runner);
 
     for (const sql of statements) {
       expect(sql).not.toMatch(/\bUPDATE\b/i);
@@ -90,7 +90,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("down() drops exactly what up() added", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddIncidentHoldsMonitors1798900000000().down(runner);
+    await new AddIncidentHoldsMonitors1798950000000().down(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "Incident" DROP COLUMN "holdsMonitors"`,
@@ -126,10 +126,10 @@ describe("registration", () => {
 
   // TypeORM records applied migrations by `name`, not by file name.
   test("its declared name matches its class name", () => {
-    expect(new AddIncidentHoldsMonitors1798900000000().name).toBe(
+    expect(new AddIncidentHoldsMonitors1798950000000().name).toBe(
       MIGRATION_NAME,
     );
-    expect(AddIncidentHoldsMonitors1798900000000.name).toBe(MIGRATION_NAME);
+    expect(AddIncidentHoldsMonitors1798950000000.name).toBe(MIGRATION_NAME);
   });
 
   test("exactly one file on disk carries its timestamp, and it is this one", () => {
