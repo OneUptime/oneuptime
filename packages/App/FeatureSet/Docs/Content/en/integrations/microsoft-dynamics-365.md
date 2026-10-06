@@ -196,6 +196,7 @@ State and status names used as keys must be spelled exactly as they are named, c
 ### Limitations
 
 - **Microsoft's commercial cloud.** The token URL is `login.microsoftonline.com`. For US Government (GCC High, DoD) or China clouds, open `dynamicsAccessToken`, use **Edit Settings**, and change the token URL to your cloud's sign-in host, such as `login.microsoftonline.us`.
+- **Dynamics 365 can refuse to resolve a case.** Your Customer Service settings can stop a case being resolved while it has open activities or open child cases, and a business rule or plug-in can refuse it too. The run ends in `❌ Dynamics 365 did not resolve the case`, with Dynamics 365's reason, and the case stays as it was.
 - **Records and cases never move backwards.** Reopening a case changes nothing in OneUptime, and reopening a record is not possible. A case that is already resolved or cancelled is never reopened to be closed again.
 - **Notes are plain text.** A note written in Dynamics 365's rich-text editor arrives in OneUptime as text, and a OneUptime note arrives in Dynamics 365 as its raw characters, Markdown and all. Attachments stay in Dynamics 365; the note in OneUptime names the file.
 - **Edited notes are not copied** — only new ones, unless you add `'Update'` to `MESSAGES`.
