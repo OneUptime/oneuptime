@@ -5,6 +5,7 @@ import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTa
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
 import WorkspaceConnectionGate from "../../Components/Workspace/WorkspaceConnectionGate";
+import WorkspacePlanLeftoverGate from "../../Components/Workspace/WorkspacePlanLeftoverGate";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -62,14 +63,20 @@ const IncidentsTeamsPage: FunctionComponent<
   ];
 
   return (
-    <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
-      <Tabs
-        tabs={tabs}
-        onTabChange={() => {
-          // Tab changed
-        }}
-      />
-    </WorkspaceConnectionGate>
+    <WorkspacePlanLeftoverGate
+      workspaceType={WorkspaceType.MicrosoftTeams}
+      eventTypes={[NotificationRuleEventType.Incident, NotificationRuleEventType.IncidentEpisode]}
+      summaryTypes={[WorkspaceNotificationSummaryType.Incident, WorkspaceNotificationSummaryType.IncidentEpisode]}
+    >
+      <WorkspaceConnectionGate workspaceType={WorkspaceType.MicrosoftTeams}>
+        <Tabs
+          tabs={tabs}
+          onTabChange={() => {
+            // Tab changed
+          }}
+        />
+      </WorkspaceConnectionGate>
+    </WorkspacePlanLeftoverGate>
   );
 };
 

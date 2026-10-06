@@ -23,6 +23,16 @@ import {
 
 export interface ComponentProps {
   statusPageId: ObjectID;
+  /*
+   * Drawn under the Scale plan's upsell (StatusPageRequireSsoLeftover), not
+   * on the SSO page with its providers and test link: the line about the
+   * test link is left out.
+   */
+  isPlanLeftover?: boolean | undefined;
+  // The status page, already read with requireSsoForLogin: no second read.
+  initialStatusPage?: StatusPage | undefined;
+  // Told whether SSO is required, each time the switch is saved.
+  onSaved?: ((isOn: boolean) => void) | undefined;
 }
 
 export const getStatusPageRequireSsoConfirmation: (
@@ -51,7 +61,11 @@ const StatusPageRequireSsoCard: FunctionComponent<ComponentProps> = (
       modelId={props.statusPageId}
       column={STATUS_PAGE_REQUIRE_SSO_COLUMN}
       cardTitle={StatusPageRequireSsoCopy.cardTitle}
-      cardDescription={StatusPageRequireSsoCopy.cardDescription}
+      cardDescription={
+        props.isPlanLeftover
+          ? undefined
+          : StatusPageRequireSsoCopy.cardDescription
+      }
       title={StatusPageRequireSsoCopy.switchTitle}
       getDescription={(isOn: boolean): string => {
         return isOn
@@ -61,6 +75,8 @@ const StatusPageRequireSsoCard: FunctionComponent<ComponentProps> = (
       note={StatusPageRequireSsoCopy.note}
       getConfirmation={getStatusPageRequireSsoConfirmation}
       dataTestId={STATUS_PAGE_REQUIRE_SSO_SWITCH_TEST_ID}
+      initialItem={props.initialStatusPage}
+      onSaved={props.onSaved}
     />
   );
 };
