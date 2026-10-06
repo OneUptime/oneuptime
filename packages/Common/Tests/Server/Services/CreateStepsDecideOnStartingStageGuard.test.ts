@@ -501,7 +501,8 @@ describe.each(SERVICES)(
       eachNode(fanOut!, (node: ts.Node) => {
         if (
           ts.isCallExpression(node) &&
-          node.expression.getText(source) === "OnCallNotRunOnCreate.createFeedItem"
+          node.expression.getText(source) ===
+            "OnCallNotRunOnCreate.createFeedItem"
         ) {
           lines.push(node);
         }

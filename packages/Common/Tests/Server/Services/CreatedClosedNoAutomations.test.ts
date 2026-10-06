@@ -400,8 +400,13 @@ const INCIDENT: Kind = {
       probes.createdFeed.push(args[0]);
     });
     stub(IncidentService, "changeIncidentState", (args: Array<unknown>) => {
-      const change: { incidentStateId: unknown; neverHeldItsMonitors?: unknown } =
-        args[0] as { incidentStateId: unknown; neverHeldItsMonitors?: unknown };
+      const change: {
+        incidentStateId: unknown;
+        neverHeldItsMonitors?: unknown;
+      } = args[0] as {
+        incidentStateId: unknown;
+        neverHeldItsMonitors?: unknown;
+      };
       probes.firstRows.push(idOf(change.incidentStateId));
       probes.firstRowNeverHeld.push(change.neverHeldItsMonitors);
     });
@@ -1491,19 +1496,17 @@ describe("an incident or alert created resolved tells its AI card why it was not
     let gated: number = 0;
     let queued: number = 0;
 
-    const runnerClass: Record<string, AnyFunction> = (
-      kind === INCIDENT
-        ? AIIncidentInvestigationRunner
-        : AIAlertInvestigationRunner
-    ) as unknown as Record<string, AnyFunction>;
+    const runnerClass: Record<string, AnyFunction> = (kind === INCIDENT
+      ? AIIncidentInvestigationRunner
+      : AIAlertInvestigationRunner) as unknown as Record<string, AnyFunction>;
 
     await create(kind, RESOLVED, [PRIMARY_POLICY_ID], {
       extraStubs: () => {
-        jest
-          .spyOn(runnerClass, runnerName)
-          .mockImplementation(((...args: Array<unknown>): unknown => {
-            return runner.apply(runnerClass, args);
-          }) as never);
+        jest.spyOn(runnerClass, runnerName).mockImplementation(((
+          ...args: Array<unknown>
+        ): unknown => {
+          return runner.apply(runnerClass, args);
+        }) as never);
         jest
           .spyOn(AIInvestigationEngine, "getDisabledReason")
           .mockResolvedValue(disabledReason as never);
@@ -1744,9 +1747,7 @@ describe.each(KINDS)(
       expect(toldCreatedResolved(probes)).toEqual(
         kind.has.investigation ? [false] : [],
       );
-      expect(probes.monitorStatus).toHaveLength(
-        kind.has.monitorStatus ? 1 : 0,
-      );
+      expect(probes.monitorStatus).toHaveLength(kind.has.monitorStatus ? 1 : 0);
       expect(probes.monitoringPaused).toHaveLength(
         kind.has.monitorStatus ? 1 : 0,
       );

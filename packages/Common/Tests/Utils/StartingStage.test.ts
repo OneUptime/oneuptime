@@ -176,7 +176,7 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's fla
   });
 
   test("an empty id names no state, not even a row read without an id", () => {
-    const withoutId: Array<Record<string, unknown>> = [
+    const withoutId: Array<unknown> = [
       { name: "Nameless", order: 9, isResolvedState: true },
       ...ROWS,
     ];

@@ -42,7 +42,9 @@ jest.mock("../../../Server/Utils/Logger");
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-5a7e-4abc-8def-000000000001",
 );
-const RECORD_ID: ObjectID = new ObjectID("0193c0de-5a7e-4abc-8def-0000000000d1");
+const RECORD_ID: ObjectID = new ObjectID(
+  "0193c0de-5a7e-4abc-8def-0000000000d1",
+);
 const RULE_ID: ObjectID = new ObjectID("0193c0de-5a7e-4abc-8def-0000000000c1");
 const OPEN_EPISODE_ID: ObjectID = new ObjectID(
   "0193c0de-5a7e-4abc-8def-0000000000e1",
@@ -166,9 +168,7 @@ function stubEngine(
   jest
     .spyOn(engine.engine, "buildGroupingKey")
     .mockResolvedValue("checkout" as never);
-  jest
-    .spyOn(Semaphore, "lock")
-    .mockResolvedValue({ key: "checkout" } as never);
+  jest.spyOn(Semaphore, "lock").mockResolvedValue({ key: "checkout" } as never);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined as never);
 
   jest
@@ -187,13 +187,17 @@ function stubEngine(
       seen.opened++;
       return { id: NEW_EPISODE_ID };
     }) as never);
+  jest.spyOn(engine.engine, engine.addMethod).mockImplementation((async (
+    _record: unknown,
+    episodeId: unknown,
+  ) => {
+    seen.joined.push(String(episodeId));
+  }) as never);
   jest
-    .spyOn(engine.engine, engine.addMethod)
-    .mockImplementation((async (_record: unknown, episodeId: unknown) => {
-      seen.joined.push(String(episodeId));
-    }) as never);
-  jest
-    .spyOn(engine.episodeService as Record<string, AnyFunction>, "reopenEpisode")
+    .spyOn(
+      engine.episodeService as Record<string, AnyFunction>,
+      "reopenEpisode",
+    )
     .mockImplementation((async (episodeId: unknown) => {
       seen.reopened.push(String(episodeId));
     }) as never);

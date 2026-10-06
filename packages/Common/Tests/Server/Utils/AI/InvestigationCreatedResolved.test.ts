@@ -121,9 +121,11 @@ let disabledReason: InvestigationNotStartedCode | null = null;
 function stubAround(runner: RunnerCase): void {
   jest
     .spyOn(AIInvestigationEngine, "getDisabledReason")
-    .mockImplementation((async (): Promise<InvestigationNotStartedCode | null> => {
-      return disabledReason;
-    }) as never);
+    .mockImplementation(
+      (async (): Promise<InvestigationNotStartedCode | null> => {
+        return disabledReason;
+      }) as never,
+    );
 
   jest
     .spyOn(runner.runnerClass as Record<string, () => unknown>, runner.gateName)
