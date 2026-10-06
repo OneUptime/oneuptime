@@ -3,12 +3,8 @@ import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCo
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
 import CommonAPI from "Common/Server/API/CommonAPI";
+import CallerPermission from "Common/Server/Utils/Permission/CallerPermission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
@@ -138,21 +134,17 @@ export default class ManualAPI {
       return;
     }
 
-    const tenantPermission: UserTenantAccessPermission | undefined =
-      data.databaseProps.userTenantAccessPermission?.[
-        data.projectId.toString()
-      ];
-
-    const callerPermissions: Array<Permission> = (
-      tenantPermission?.permissions || []
-    ).map((userPermission: UserPermission) => {
-      return userPermission.permission;
-    });
-
+    /*
+     * Held the way every permission check reads it (CallerPermission): a
+     * team's block row is no grant, a block with no labels on the update
+     * list takes it away, and Edit All Operational Resources counts, as it
+     * does for saving the workflow.
+     */
     if (
-      !PermissionHelper.doesPermissionsIntersect(
-        callerPermissions,
-        new Workflow().getUpdatePermissions(),
+      !CallerPermission.holdsModelPermission(
+        data.databaseProps,
+        { model: new Workflow(), operation: "update" },
+        { projectId: data.projectId },
       )
     ) {
       throw new NotAuthorizedException(

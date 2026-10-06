@@ -79,7 +79,7 @@ import RunnerJobService from "../Services/RunnerJobService";
 import VMwareVCenterService from "../Services/VMwareVCenterService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
-import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import InvestigationReportSummary from "../Utils/AI/SRE/InvestigationReportSummary";
 import AiActivityInsightsReader, {
   AiActivityInsightsScope,
@@ -378,12 +378,18 @@ function assertCanResetAiAgent(data: {
   projectId: ObjectID;
   resourceType: AiResourceType;
 }): void {
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: resetting reaches the agent whatever labels it has.
+   */
   if (
-    !holdsAnyUnblockedPermission({
-      props: data.props,
-      projectId: data.projectId,
-      allowed: RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
-    })
+    !data.props.isRoot &&
+    !data.props.isMasterAdmin &&
+    !CallerPermission.holdsAnyOf(
+      data.props,
+      RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+      { projectId: data.projectId, labelledBlocksRefuse: true },
+    )
   ) {
     throw new NotAuthorizedException(
       getResourceAiAgentResetRefusal(data.resourceType),
@@ -1518,11 +1524,17 @@ async function getLogInvestigations(data: {
     })
     .slice(0, data.limit);
 
-  const mayReadSubjectlessTldr: boolean = holdsAnyUnblockedPermission({
-    props: data.props,
-    projectId: data.projectId,
-    allowed: getSubjectlessRunTldrReadPermissions(),
-  });
+  /*
+   * A block row for any of these is a denial even when a grant is present,
+   * labelled or not: the run has no record whose labels it could be held to.
+   */
+  const mayReadSubjectlessTldr: boolean =
+    Boolean(data.props.isRoot || data.props.isMasterAdmin) ||
+    CallerPermission.holdsAnyOf(
+      data.props,
+      getSubjectlessRunTldrReadPermissions(),
+      { projectId: data.projectId, labelledBlocksRefuse: true },
+    );
 
   /*
    * A completed run without a TL;DR still published a report on its

@@ -97,7 +97,7 @@ Cada equipe tem duas listas:
 
 Uma permissão não pode carregar rótulos de restrição nas duas listas ao mesmo tempo; o OneUptime rejeita a segunda com uma explicação.
 
-Como o acesso de um usuário é a união de todas as suas equipes, um bloqueio em uma equipe **não** cancela uma permissão concedida em outra. Bloqueios restringem a equipe em que foram definidos. Se alguém tem mais acesso do que você esperava, verifique todas as equipes a que essa pessoa pertence.
+As permissões concedidas a um usuário se somam entre todas as suas equipes, mas um bloqueio vale para tudo o que o usuário faz: um bloqueio sem rótulos em uma equipe remove a capacidade mesmo que outra equipe a conceda, e uma entrada de bloqueio nunca concede nada. Se alguém tem menos acesso do que você esperava, procure um bloqueio em cada uma das equipes dessa pessoa; se tem mais, procure uma permissão em cada uma.
 
 ## Escopo: até onde vai uma permissão concedida
 
@@ -154,12 +154,16 @@ Para um usuário autenticado, na ordem:
 
 1. Encontrar as equipes a que o usuário pertence neste projeto, contando apenas convites aceitos.
 2. Reunir todas as linhas de permissão dessas equipes — permitidas e bloqueadas — cada uma com seus rótulos e seu escopo.
-3. Verificar primeiro a lista de bloqueios. Um bloqueio correspondente sem rótulos rejeita a requisição de imediato.
-4. Verificar a lista de permitidas. A requisição precisa de pelo menos uma permissão que a tabela de destino aceite para essa operação.
+3. Verificar primeiro a lista de bloqueios. Um bloqueio sem rótulos em qualquer permissão que a tabela de destino aceite para essa operação rejeita a requisição de imediato, seja qual for a equipe em que estiver.
+4. Verificar a lista de permitidas. A requisição precisa de pelo menos uma permissão que a tabela de destino aceite para essa operação. Em um recurso operacional — um monitor, um incidente, um painel e afins — a permissão **All Operational Resources** correspondente (Create, Read, Edit ou Delete) também conta, a menos que ela própria esteja bloqueada.
 5. Aplicar o escopo. Concessões com escopo Próprios restringem a consulta aos recursos próprios; as de rótulos restringem aos rótulos correspondentes. Se qualquer outra concessão para a mesma operação for mais ampla, a mais ampla vence.
 6. Aplicar os bloqueios por rótulos. Um bloqueio com rótulos rejeita a requisição se o recurso de destino carregar um deles.
 
 Cada campo de um registro é lido com a permissão de leitura do próprio registro: uma permissão de outro tipo de registro nunca o abre. Alguns campos são mais restritos de propósito. Os segredos só são lidos por quem pode editar ou administrar o registro a que pertencem, como as chaves de requisições recebidas e de e-mails recebidos de um monitor e a chave do seu agente de servidor, ou as chaves de webhook e de e-mail de entrada de um fluxo de trabalho. Assistir à gravação de uma reprodução de sessão exige **Watch Session Replays**, não apenas **List Session Replays**. A telemetria é lida sinal a sinal: **Read Telemetry Service Log** lê os logs, **Read Telemetry Service Traces** lê os traces e **Read Telemetry Service Metrics** lê as métricas, incluindo os gráficos de métricas.
+
+Os campos seguem a mesma regra. Um bloqueio sem rótulos na permissão de um campo remove esse campo, e em um recurso operacional a permissão **All Operational Resources** correspondente abre todo campo que pode abrir qualquer pessoa que possa ler ou alterar o registro — mas não um campo mais restrito de propósito, como uma chave secreta.
+
+A mesma regra decide tudo o mais que pergunta se você tem uma permissão: as ações que não são uma simples leitura ou escrita — adicionar crédito de SMS, chamadas ou IA, pagar uma fatura ou testar uma regra de notificação — e os botões que o OneUptime mostra. Um botão que você não pode usar aparece travado e diz por quê; quando o motivo é um bloqueio em uma de suas equipes, ele nomeia a permissão bloqueada.
 
 Todo usuário autenticado detém ainda um pequeno conjunto de permissões automáticas que cobrem coisas como ler o próprio perfil e as próprias regras de notificação. Não são permissões administrativas e não dão acesso aos dados de mais ninguém.
 

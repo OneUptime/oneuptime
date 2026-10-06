@@ -171,11 +171,17 @@ describe("metric data points are read with the metric permissions", () => {
   });
 
   test("a chart's columns are read by exactly the metric readers, each on its own", () => {
+    /*
+     * A metric is an operational resource, so its columns - which let in
+     * everyone the table does - accept Read All Operational Resources too.
+     */
     expect(
       GRANTABLE.filter((permission: Permission) => {
         return mayRead([permission], CHART_SELECT);
       }),
-    ).toEqual(METRIC_READERS);
+    ).toEqual(
+      [...METRIC_READERS, Permission.ReadAllOperationalResources].sort(),
+    );
   });
 
   test("every column of a data point is read by who reads the table", () => {
@@ -228,11 +234,14 @@ describe("metric data points are read with the metric permissions", () => {
 
 describe("metric data points are written with the metric permissions", () => {
   test("a data point is created by exactly the metric creators, each on its own", () => {
+    // And Create All Operational Resources, as for every operational resource.
     expect(
       GRANTABLE.filter((permission: Permission) => {
         return mayCreate([permission]);
       }),
-    ).toEqual(METRIC_CREATORS);
+    ).toEqual(
+      [...METRIC_CREATORS, Permission.CreateAllOperationalResources].sort(),
+    );
   });
 
   test("the trace and log create permissions, even together, do not create one", () => {

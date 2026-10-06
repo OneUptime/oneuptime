@@ -12,9 +12,9 @@ import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import PermissionUtil from "Common/UI/Utils/Permission";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import User from "Common/UI/Utils/User";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * Device Registry for a fleet — registered devices and their
@@ -44,14 +44,11 @@ const IoTFleetDeviceRegistry: FunctionComponent<
    */
   const canReadSecret: boolean =
     User.isMasterAdmin() ||
-    PermissionHelper.doesPermissionsIntersect(
-      PermissionUtil.getAllPermissions(),
-      [
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        Permission.ReadIoTDeviceCredential,
-      ],
-    );
+    PermissionGate.holdsAnyOf([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadIoTDeviceCredential,
+    ]);
 
   const secretColumn: Column<IoTDeviceCredential> = {
     field: {

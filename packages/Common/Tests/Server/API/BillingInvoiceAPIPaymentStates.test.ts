@@ -12,11 +12,12 @@ import {
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { tenantPermissionsFor } from "./PermissionRows";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
 import BillingInvoice, {
   InvoiceStatus,
 } from "../../../Models/DatabaseModels/BillingInvoice";
@@ -225,14 +226,6 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
     project.paymentProviderSubscriptionId = "sub_stale_card_plan";
     project.paymentProviderMeteredSubscriptionId = "sub_pinned_metered";
 
-    jest
-      .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-      .mockResolvedValue([
-        {
-          permission: Permission.ProjectOwner,
-        } as UserPermission,
-      ]);
-
     loggerError = getJestSpyOn(logger, "error").mockImplementation(() => {
       return undefined;
     });
@@ -263,6 +256,9 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
 
     mockRequest = {
       tenantId: projectId,
+      userTenantAccessPermission: tenantPermissionsFor(projectId, [
+        Permission.ProjectOwner,
+      ]),
       body: {
         data: {
           paymentProviderInvoiceId: INVOICE_ID,
@@ -928,11 +924,9 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
     });
 
     it("rejects a caller without ProjectOwner or EditInvoices", async () => {
-      jest
-        .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-        .mockResolvedValue([
-          { permission: Permission.ProjectMember } as UserPermission,
-        ]);
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(projectId, [
+        Permission.ProjectMember,
+      ]);
 
       await callPay();
 
@@ -944,9 +938,10 @@ describe("BillingInvoiceAPI POST /billing-invoices/pay payment states", () => {
     });
 
     it("lets a master admin pay without project permissions", async () => {
-      jest
-        .spyOn(BillingInvoiceAPI.prototype, "getPermissionsForTenant")
-        .mockResolvedValue([]);
+      mockRequest.userTenantAccessPermission = tenantPermissionsFor(
+        projectId,
+        [],
+      );
       (mockRequest as unknown as Record<string, unknown>)["userAuthorization"] =
         { isMasterAdmin: true };
 

@@ -9,11 +9,6 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
 import { APP_API_URL } from "Common/UI/Config";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -22,9 +17,7 @@ import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
-import User from "Common/UI/Utils/User";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -52,6 +45,7 @@ import {
 import ExceptionInstanceTable from "../../Exceptions/ExceptionInstanceTable";
 import DashboardLogsViewer from "../../Logs/LogsViewer";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export type CorrelatedSignalTab = "logs" | "exceptions" | "metrics" | "profile";
 
@@ -71,44 +65,18 @@ const MAX_SAMPLED_METRIC_VALUES: number = 5;
  * Whether to offer the Metrics tab. Metrics are read with their own
  * permission, not the trace one, so the tab is left out for somebody who
  * may read this trace but not metrics, rather than offered and then
- * refused. It asks what POST /telemetry/metrics/for-trace asks: one of the
- * Metric model's own read permissions (PermissionGate.check would also
- * count the operational-resources wildcard, which that route does not),
- * held as an allow (a block row names a permission to deny it, and the
- * route counts only allows). Offered while the permission snapshot is
- * still loading: the server has the last word.
+ * refused. It asks what POST /telemetry/metrics/for-trace asks: the Metric
+ * model's own read gate (PermissionGate.check) - one of its read
+ * permissions or the Read All Operational Resources wildcard, held as an
+ * allow, with no team block on any of them. Offered while the permission
+ * snapshot is still loading: the server has the last word.
  */
 function canOfferTraceMetrics(): boolean {
-  if (User.isMasterAdmin()) {
+  if (!PermissionGate.hasPermissionSnapshot()) {
     return true;
   }
 
-  const globalPermissions: Array<Permission> =
-    PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
-  const projectPermissions: UserTenantAccessPermission | null =
-    PermissionUtil.getProjectPermissions();
-  const projectRows: Array<UserPermission> =
-    projectPermissions?.permissions || [];
-
-  if (globalPermissions.length === 0 && projectRows.length === 0) {
-    return true;
-  }
-
-  const allowed: Array<Permission> = [
-    ...globalPermissions,
-    ...projectRows
-      .filter((row: UserPermission): boolean => {
-        return !row.isBlockPermission;
-      })
-      .map((row: UserPermission): Permission => {
-        return row.permission;
-      }),
-  ];
-
-  return PermissionHelper.doesPermissionsIntersect(
-    allowed,
-    new Metric().getReadPermissions(),
-  );
+  return PermissionGate.check(new Metric(), ModelAction.Read).isAllowed;
 }
 
 export function formatTraceMetricValue(value: number): string {

@@ -97,7 +97,7 @@ Ogni team ha due elenchi:
 
 Un'autorizzazione non può portare etichette di restrizione in entrambi gli elenchi contemporaneamente; OneUptime rifiuta la seconda con una spiegazione.
 
-Poiché l'accesso di un utente è l'unione su tutti i suoi team, un blocco su un team **non** annulla una concessione su un altro team. I blocchi limitano il team su cui sono impostati. Se qualcuno ha più accesso del previsto, controllate tutti i team a cui appartiene.
+Le concessioni di un utente si sommano su tutti i suoi team, ma un blocco vale per tutto ciò che l'utente fa: un blocco senza etichette su un team toglie la capacità anche se un altro team la concede, e una voce di blocco non concede mai nulla. Se qualcuno ha meno accesso del previsto, cercate un blocco in ciascuno dei suoi team; se ne ha di più, cercate una concessione in ciascuno.
 
 ## Ambito: fin dove arriva un'autorizzazione concessa
 
@@ -154,12 +154,16 @@ Per un utente autenticato, nell'ordine:
 
 1. Trovare i team a cui l'utente appartiene in questo progetto, contando solo gli inviti accettati.
 2. Raccogliere tutte le righe di autorizzazione di quei team — concesse e bloccate — ciascuna con le sue etichette e il suo ambito.
-3. Controllare prima l'elenco dei blocchi. Un blocco corrispondente senza etichette rifiuta subito la richiesta.
-4. Controllare l'elenco delle concessioni. La richiesta ha bisogno di almeno un'autorizzazione che la tabella di destinazione accetta per quell'operazione.
+3. Controllare prima l'elenco dei blocchi. Un blocco senza etichette su una qualsiasi autorizzazione che la tabella di destinazione accetta per quell'operazione rifiuta subito la richiesta, qualunque sia il team su cui è impostato.
+4. Controllare l'elenco delle concessioni. La richiesta ha bisogno di almeno un'autorizzazione che la tabella di destinazione accetta per quell'operazione. Su una risorsa operativa — un monitor, un incidente, una dashboard e simili — conta anche l'autorizzazione **All Operational Resources** corrispondente (Create, Read, Edit o Delete), a meno che non sia bloccata a sua volta.
 5. Applicare l'ambito. Le concessioni con ambito Possedute restringono la query alle risorse possedute; quelle per etichette la restringono alle etichette corrispondenti. Se un'altra concessione per la stessa operazione è più ampia, vince quella più ampia.
 6. Applicare i blocchi per etichette. Un blocco con etichette rifiuta la richiesta se la risorsa di destinazione ne porta una.
 
 Ogni campo di un record si legge con l'autorizzazione di lettura del record stesso: un'autorizzazione per un altro tipo di record non lo apre mai. Alcuni campi sono volutamente più ristretti. I segreti li leggono solo le persone che possono modificare o amministrare il record a cui appartengono, come le chiavi delle richieste in arrivo e delle email in arrivo di un monitor e la chiave del suo agente server, o le chiavi del webhook e delle email in arrivo di un workflow. Guardare la registrazione di una riproduzione di sessione richiede **Watch Session Replays**, non solo **List Session Replays**. La telemetria si legge segnale per segnale: **Read Telemetry Service Log** legge i log, **Read Telemetry Service Traces** legge le tracce e **Read Telemetry Service Metrics** legge le metriche, grafici delle metriche compresi.
+
+I campi seguono la stessa regola. Un blocco senza etichette sull'autorizzazione di un campo toglie quel campo, e su una risorsa operativa l'autorizzazione **All Operational Resources** corrispondente apre ogni campo che può aprire chiunque possa leggere o modificare il record — ma non un campo volutamente più ristretto, come una chiave segreta.
+
+La stessa regola decide tutto il resto che chiede se detenete un'autorizzazione: le azioni che non sono una semplice lettura o scrittura — aggiungere credito SMS, chiamate o IA, pagare una fattura, provare una regola di notifica — e i pulsanti che OneUptime mostra. Un pulsante che non potete usare appare bloccato e dice perché; quando la ragione è un blocco su uno dei vostri team, nomina l'autorizzazione bloccata.
 
 Ogni utente autenticato detiene inoltre un piccolo insieme di autorizzazioni automatiche che coprono cose come leggere il proprio profilo e le proprie regole di notifica. Non sono autorizzazioni amministrative e non danno accesso ai dati di nessun altro.
 

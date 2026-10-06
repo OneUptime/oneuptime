@@ -29,7 +29,9 @@ import {
  * the metrics explorer's facets, and the metrics recorded with a trace - do
  * not go through BaseAnalyticsAPI, so their guard is the access control,
  * and it lets in exactly who the Metric model's own read list lets in:
- * the Telemetry Service Metrics permission or a role that reads telemetry.
+ * the Telemetry Service Metrics permission or a role that reads telemetry -
+ * and, a metric being an operational resource, Read All Operational
+ * Resources, as the model's table check does.
  * The trace and log permissions, which the model's lists used to name, are
  * refused here as they are on the model.
  *
@@ -236,7 +238,12 @@ describe("the metric routes read with the metric permissions", () => {
         }
       }
 
-      expect(admitted).toEqual([...new Metric().getReadPermissions()].sort());
+      expect(admitted).toEqual(
+        [
+          ...new Metric().getReadPermissions(),
+          Permission.ReadAllOperationalResources,
+        ].sort(),
+      );
       expect(admitted).toContain(Permission.ReadTelemetryServiceMetrics);
     },
   );
@@ -283,12 +290,33 @@ describe("the metric routes read with the metric permissions", () => {
     },
   );
 
-  test("a block next to an allow of the same permission leaves the allow standing", async () => {
+  /*
+   * A block with no labels takes the permission away, whatever another team
+   * allows - as it takes away the Metric table itself.
+   */
+  test("a block next to an allow of the same permission takes it away", async () => {
     expect(
       await passesGuards(
         "/telemetry/metrics/get-attributes",
         [Permission.ReadTelemetryServiceMetrics],
         [Permission.ReadTelemetryServiceMetrics],
+      ),
+    ).toBe(false);
+  });
+
+  test("a blocked wildcard opens nothing, and does not take away the metric permission", async () => {
+    expect(
+      await passesGuards(
+        "/telemetry/metrics/get-attributes",
+        [Permission.ReadAllOperationalResources],
+        [Permission.ReadAllOperationalResources],
+      ),
+    ).toBe(false);
+    expect(
+      await passesGuards(
+        "/telemetry/metrics/get-attributes",
+        [Permission.ReadTelemetryServiceMetrics],
+        [Permission.ReadAllOperationalResources],
       ),
     ).toBe(true);
   });

@@ -141,18 +141,40 @@ describe("IncidentSubscriberAudienceBuilder.assertCallerMaySeeAudience", () => {
     expect(refusalFor(blocked)).toBeInstanceOf(NotAuthorizedException);
   });
 
-  test("a block row does not cancel a real grant carried alongside it", () => {
+  test("a block with no labels on any permission the gate accepts refuses it, as the table check does", () => {
     /*
-     * Both rows are for permissions on the list. Only the allow row counts,
-     * and one allow row is all the gate asks for - this is a gate on the
-     * route, not the label-level filtering the queries underneath still do.
+     * Both rows are for permissions on the list. The allow row grants, but
+     * a block with no labels on one of the permissions the gate accepts
+     * takes the gate away - exactly as it takes away a table whose list
+     * holds the blocked permission.
      */
     const mixed: DatabaseCommonInteractionProps = callerWith([
       userPermission(Permission.IncidentMember, true),
       userPermission(Permission.IncidentAdmin),
     ]);
 
-    expect(refusalFor(mixed)).toBeNull();
+    expect(refusalFor(mixed)).toBeInstanceOf(NotAuthorizedException);
+  });
+
+  test("a block with labels does not refuse the gate: it restricts the labelled incidents", () => {
+    const labelled: DatabaseCommonInteractionProps = callerWith([
+      {
+        ...userPermission(Permission.IncidentMember, true),
+        labelIds: [new ObjectID("6f1d6c39-0a8e-4f4a-9e43-0d8d4fb0a005")],
+      },
+      userPermission(Permission.IncidentAdmin),
+    ]);
+
+    expect(refusalFor(labelled)).toBeNull();
+  });
+
+  test("a block on a permission the gate does not accept changes nothing", () => {
+    const unrelated: DatabaseCommonInteractionProps = callerWith([
+      userPermission(Permission.DeleteProject, true),
+      userPermission(Permission.IncidentAdmin),
+    ]);
+
+    expect(refusalFor(unrelated)).toBeNull();
   });
 
   /*

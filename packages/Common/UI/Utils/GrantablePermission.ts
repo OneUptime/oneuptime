@@ -1,4 +1,5 @@
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
+import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import Permission, {
   UserGlobalAccessPermission,
   UserPermission,
@@ -30,8 +31,9 @@ import User from "./User";
  * a default makes, and it is never looser than the server: what it says yes
  * to, the server accepts. A no only means the default is not offered - the
  * person can still pick the team or the role by hand, and the server
- * explains its own refusal. That is why a row whose kind is unknown counts
- * as a block here and never as an allow.
+ * explains its own refusal. It splits the rows into allows and blocks as
+ * the server does (HeldPermissionsUtil.isBlockRow: a row is a block only
+ * when it says so).
  *
  * canGrantTeamPermission weighs one of a team's own rows at the scope and
  * labels it has, as the server does when someone is added to the team: the
@@ -322,11 +324,11 @@ export const toPermissionRows: ToPermissionRowsFunction = (data: {
   const block: Array<UserPermission> = [];
 
   for (const row of data.projectPermissions?.permissions || []) {
-    // The server counts a row as an allow only when it says it is one.
-    if (row.isBlockPermission === false) {
-      allow.push(row);
-    } else {
+    // A row is a block only when it says so, as the server reads it.
+    if (HeldPermissionsUtil.isBlockRow(row)) {
       block.push(row);
+    } else {
+      allow.push(row);
     }
   }
 

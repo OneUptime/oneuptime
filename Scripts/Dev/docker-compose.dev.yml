@@ -72,7 +72,6 @@ services:
       - "9141:9229" # Debugging port.
       - "3800:3800"
     build:
-      network: host
       context: .
       dockerfile: ./packages/TestServer/Dockerfile
 
@@ -104,7 +103,6 @@ services:
     ports:
       - "9212:9229" # Debugging port.
     build:
-      network: host
       context: .
       dockerfile: ./packages/Home/Dockerfile
 
@@ -162,7 +160,6 @@ services:
     ports:
       - "9232:9229" # Debugging port.
     build:
-      network: host
       context: .
       dockerfile: ./packages/App/Dockerfile
 
@@ -193,7 +190,6 @@ services:
     depends_on:
       <<: *common-depends-on
     build:
-      network: host
       context: .
       dockerfile: ./packages/Probe/Dockerfile
 
@@ -224,7 +220,6 @@ services:
     depends_on:
       <<: *common-depends-on
     build:
-      network: host
       context: .
       dockerfile: ./packages/Probe/Dockerfile
 
@@ -255,7 +250,6 @@ services:
     depends_on:
       <<: *common-depends-on
     build:
-      network: host
       context: .
       dockerfile: ./packages/Runner/Dockerfile
 
@@ -274,7 +268,6 @@ services:
     volumes:
       - ./Examples/log-collectors/fluentd/fluent.conf:/fluentd/etc/fluent.conf
     build:
-      network: host
       context: ./Examples/log-collectors/fluentd
       dockerfile: ./Dockerfile
 
@@ -290,13 +283,11 @@ services:
     volumes:
       - ./Examples/log-collectors/fluent-bit/etc:/fluent-bit/etc/
     build:
-      network: host
       context: .
       dockerfile: ./Examples/log-collectors/fluent-bit/Dockerfile
 
   ingress:
     build:
-      network: host
       context: .
       dockerfile: ./packages/Nginx/Dockerfile
     extends:
@@ -314,7 +305,6 @@ services:
       - ./packages/E2E/playwright-report:/usr/src/app/playwright-report
       - ./packages/E2E/test-results:/usr/src/app/test-results
     build:
-      network: host
       context: .
       dockerfile: ./packages/E2E/Dockerfile
 

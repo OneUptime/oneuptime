@@ -97,7 +97,7 @@ Hvert team har to lister:
 
 En tilladelse kan ikke bære begrænsningslabels i begge lister samtidig; OneUptime afviser den anden med en forklaring.
 
-Da en brugers adgang er foreningen på tværs af alle vedkommendes teams, ophæver en blokering i ét team **ikke** en tilladelse i et andet. Blokeringer begrænser det team, de er sat på. Har nogen mere adgang, end du forventer, så tjek alle de teams, vedkommende tilhører.
+En brugers tilladelser lægges sammen på tværs af alle vedkommendes teams, men en blokering gælder alt, hvad brugeren gør: en blokering uden labels i ét team fjerner funktionen, også hvor et andet team tillader den, og en blokering giver aldrig noget. Har nogen mindre adgang, end du forventer, så kig efter en blokering i hvert af vedkommendes teams; har de mere, så kig efter en tilladelse i hvert team.
 
 ## Omfang: hvor langt en tilladt rettighed rækker
 
@@ -154,12 +154,16 @@ For en logget ind bruger, i rækkefølge:
 
 1. Find de teams, brugeren tilhører i dette projekt — kun accepterede invitationer tæller.
 2. Saml alle tilladelsesrækker fra de teams — tilladte og blokerede, hver med labels og omfang.
-3. Tjek blokeringslisten først. En matchende blokering uden labels afviser forespørgslen med det samme.
-4. Tjek tilladelseslisten. Forespørgslen kræver mindst én tilladelse, som måltabellen accepterer for denne handling.
+3. Tjek blokeringslisten først. En blokering uden labels på en hvilken som helst tilladelse, som måltabellen accepterer for denne handling, afviser forespørgslen med det samme, uanset hvilket team den er sat på.
+4. Tjek tilladelseslisten. Forespørgslen kræver mindst én tilladelse, som måltabellen accepterer for denne handling. For en driftsressource — en monitor, en hændelse, et dashboard og lignende — tæller den tilsvarende **All Operational Resources**-tilladelse (Create, Read, Edit eller Delete) også, medmindre den selv er blokeret.
 5. Anvend omfanget. Tildelinger med omfanget Ejede indsnævrer forespørgslen til ejede ressourcer; labelbaserede indsnævrer til matchende labels. Er en anden tildeling for samme handling bredere, vinder den bredere.
 6. Anvend labelblokeringer. En blokering med labels afviser forespørgslen, hvis målressourcen bærer et af dem.
 
 Hvert felt i en post læses med postens egen læsetilladelse: en tilladelse til en anden slags post åbner det aldrig. Nogle felter er bevidst snævrere. Hemmeligheder læses kun af personer, der må redigere eller administrere den post, de hører til, f.eks. en monitors nøgler til indgående anmodninger og indgående e-mail og dens serveragentnøgle eller et workflows webhook- og e-mailnøgler. At se optagelsen af en sessionsafspilning kræver **Watch Session Replays**, ikke kun **List Session Replays**. Telemetri læses signal for signal: **Read Telemetry Service Log** læser logs, **Read Telemetry Service Traces** læser traces, og **Read Telemetry Service Metrics** læser metrics, metrikdiagrammer inklusive.
+
+Felter følger samme regel. En blokering uden labels på et felts tilladelse fjerner feltet, og for en driftsressource åbner den tilsvarende **All Operational Resources**-tilladelse hvert felt, som alle, der må læse eller ændre posten, må åbne — men ikke et felt, der bevidst er snævrere, som en hemmelig nøgle.
+
+Samme regel afgør alt andet, der spørger, om du har en tilladelse: handlinger, der ikke er en simpel læsning eller skrivning — at tilføje SMS-, opkalds- eller AI-kredit, betale en faktura eller teste en notifikationsregel — og de knapper, OneUptime viser. En knap, du ikke må bruge, vises låst og siger hvorfor; er en blokering i et af dine teams grunden, nævner den den blokerede tilladelse.
 
 Enhver logget ind bruger har derudover et lille sæt automatiske tilladelser, der dækker ting som at læse sin egen profil og sine egne notifikationsregler. Det er ikke administratorrettigheder, og de giver ikke adgang til andres data.
 

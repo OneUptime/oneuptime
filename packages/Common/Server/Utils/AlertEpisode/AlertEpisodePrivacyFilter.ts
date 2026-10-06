@@ -1,37 +1,16 @@
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../../Types/Permission";
 import Text from "../../../Types/Text";
-import { combineWithPrivacyClause } from "../PrivacyFilterUtil";
+import {
+  combineWithPrivacyClause,
+  shouldBypassRecordPrivacy,
+} from "../PrivacyFilterUtil";
 import { Raw } from "typeorm";
 
 export function shouldBypassAlertEpisodePrivacy(
   props: DatabaseCommonInteractionProps,
 ): boolean {
-  if (props.isRoot || props.isMasterAdmin) {
-    return true;
-  }
-
-  if (props.tenantId && props.userTenantAccessPermission) {
-    const tenantPerm: UserTenantAccessPermission | undefined =
-      props.userTenantAccessPermission[props.tenantId.toString()];
-
-    if (
-      tenantPerm?.permissions?.some((p: UserPermission): boolean => {
-        return (
-          p.permission === Permission.ProjectOwner ||
-          p.permission === Permission.ProjectAdmin
-        );
-      })
-    ) {
-      return true;
-    }
-  }
-
-  return false;
+  return shouldBypassRecordPrivacy(props);
 }
 
 export function getAlertEpisodeSelfPrivacyRaw(

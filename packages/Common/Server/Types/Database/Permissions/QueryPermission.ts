@@ -7,9 +7,6 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
 import Columns from "../../../../Types/Database/Columns";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
@@ -18,10 +15,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { JSONObject } from "../../../../Types/JSON";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
+import Permission, { PermissionHelper } from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
 import Typeof from "../../../../Types/Typeof";
 
 export default class QueryPermission {
@@ -45,13 +42,15 @@ export default class QueryPermission {
     props: DatabaseCommonInteractionProps,
   ): void {
     const model: BaseModel = new modelType();
-    const userPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((i: UserPermission) => {
-        return i.permission;
-      });
+
+    /*
+     * What the caller holds, read the way the select check reads it
+     * (ColumnPermission): allow rows grant, and a block with no labels takes
+     * a permission away.
+     */
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: ColumnPermissions.getColumnCheckRows(props),
+    });
 
     const excludedColumnNames: Array<string> =
       ColumnPermissions.getExcludedColumnNames();
@@ -130,35 +129,73 @@ export default class QueryPermission {
               continue;
             }
 
-            // check if the user has permission to read this column
-            if (userPermissions) {
-              const hasPermission: boolean = relatedModel.hasReadPermissions(
-                userPermissions,
-                innerKey,
-              );
-
-              if (!hasPermission) {
-                let readPermissions: Array<Permission> = [];
-                if (relatedModel.getColumnAccessControlFor(innerKey)) {
-                  readPermissions =
-                    relatedModel.getColumnAccessControlFor(innerKey)!.read;
-                }
-
-                throw new NotAuthorizedException(
-                  `You do not have permissions to read ${
-                    relatedModel.singularName
-                  } on ${
-                    model.singularName
-                  }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                    readPermissions,
-                  ).join(", ")}`,
-                );
+            /*
+             * Whether the caller may read this column of the related record,
+             * by the rule every permission check follows (HeldPermissionsUtil),
+             * as the select check reads a column: one of its read permissions
+             * held, no block with no labels on any of them, and the related
+             * table's operational-resource wildcard for a column that lets in
+             * everyone its table does. A column without its own access
+             * control is read with its table's permissions.
+             */
+            if (
+              !QueryPermission.canReadRelatedColumn({
+                relatedModel: relatedModel,
+                column: innerKey,
+                held: held,
+              })
+            ) {
+              let readPermissions: Array<Permission> = [];
+              if (relatedModel.getColumnAccessControlFor(innerKey)) {
+                readPermissions =
+                  relatedModel.getColumnAccessControlFor(innerKey)!.read;
               }
+
+              throw new NotAuthorizedException(
+                `You do not have permissions to read ${
+                  relatedModel.singularName
+                } on ${
+                  model.singularName
+                }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
+                  readPermissions,
+                ).join(", ")}`,
+              );
             }
           }
         }
       }
     }
+  }
+
+  // Whether `held` may read one column of a record reached by a relation.
+  private static canReadRelatedColumn(data: {
+    relatedModel: BaseModel;
+    column: string;
+    held: HeldPermissions;
+  }): boolean {
+    const tablePermissions: Array<Permission> =
+      data.relatedModel.getReadPermissions() || [];
+
+    if (!data.relatedModel.getColumnAccessControlFor(data.column)) {
+      return HeldPermissionsUtil.holdsAnyOf(data.held, tablePermissions, {
+        wildcard: HeldPermissionsUtil.getModelWildcard({
+          isOperationalResource: data.relatedModel.isOperationalResource,
+          operation: "read",
+        }),
+      });
+    }
+
+    const columnPermissions: Array<Permission> =
+      data.relatedModel.getColumnAccessControlFor(data.column)!.read || [];
+
+    return HeldPermissionsUtil.holdsAnyOf(data.held, columnPermissions, {
+      wildcard: HeldPermissionsUtil.getColumnWildcard({
+        isOperationalResource: data.relatedModel.isOperationalResource,
+        operation: "read",
+        tablePermissions: tablePermissions,
+        columnPermissions: columnPermissions,
+      }),
+    });
   }
 
   @CaptureSpan()
@@ -180,16 +217,10 @@ export default class QueryPermission {
      */
     OwnerOnlyColumnPermission.checkQueryPermission(modelType, query, props);
 
-    const userPermissions: Array<UserPermission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      );
-
     const canReadOnTheseColumns: Columns =
       ColumnPermissions.getModelColumnsByPermissions(
         modelType,
-        userPermissions || [],
+        ColumnPermissions.getColumnCheckRows(props),
         DatabaseRequestType.Read,
       );
 

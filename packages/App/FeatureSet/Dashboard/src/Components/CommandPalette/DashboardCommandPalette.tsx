@@ -34,7 +34,7 @@ import Sort from "Common/Types/BaseDatabase/Sort";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import CommandPalette from "Common/UI/Components/CommandPalette/CommandPalette";
 import { MoreMenuItem, NavItem } from "Common/UI/Components/Navbar/NavBar";
 import {
@@ -47,7 +47,6 @@ import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -69,6 +68,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * The dashboard's command palette host: always mounted (App.tsx, next to
@@ -329,12 +329,19 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
         },
       );
 
-    // --- actions ----------------------------------------------------------
-    const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
+    /*
+     * --- actions ----------------------------------------------------------
+     * What the user holds, and what a team of theirs blocks.
+     */
+    const heldPermissions: HeldPermissions =
+      PermissionGate.getHeldPermissions();
     const isMasterAdmin: boolean = User.isMasterAdmin();
 
     const visibleActionIds: Array<PaletteActionId> = getVisibleActionIds({
-      ...computeCreateActionGates({ permissions, isMasterAdmin }),
+      ...computeCreateActionGates({
+        held: heldPermissions,
+        isMasterAdmin,
+      }),
       hasProjectSelected,
       isMasterAdmin,
     });
@@ -530,7 +537,8 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       isBillingEnabled: BILLING_ENABLED,
       isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
       canDeleteProject:
-        hasProjectSelected && canDeleteProject({ permissions, isMasterAdmin }),
+        hasProjectSelected &&
+        canDeleteProject({ held: heldPermissions, isMasterAdmin }),
     };
 
     commands = [...actionCommands, ...navigationCommands];

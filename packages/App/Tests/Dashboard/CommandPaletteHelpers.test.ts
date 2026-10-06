@@ -1,3 +1,4 @@
+import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import {
   buildEntitySearchQuery,
   buildEntitySearchSelect,
@@ -162,7 +163,7 @@ describe("buildNavigationCommandDescriptors", () => {
 describe("computeCreateActionGates (BaseModelTable's create gating, mirrored)", () => {
   test("a master admin can run every create action regardless of permissions", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
-      permissions: null,
+      held: null,
       isMasterAdmin: true,
     });
 
@@ -175,7 +176,7 @@ describe("computeCreateActionGates (BaseModelTable's create gating, mirrored)", 
 
   test("a missing permission snapshot (e.g. right after SSO) hides all create actions", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
-      permissions: null,
+      held: null,
       isMasterAdmin: false,
     });
 
@@ -188,7 +189,7 @@ describe("computeCreateActionGates (BaseModelTable's create gating, mirrored)", 
 
   test("an empty permission list grants nothing", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
-      permissions: [],
+      held: HeldPermissionsUtil.fromPermissions([]),
       isMasterAdmin: false,
     });
 
@@ -201,7 +202,7 @@ describe("computeCreateActionGates (BaseModelTable's create gating, mirrored)", 
 
   test("a project owner can create all five entity types", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
-      permissions: [Permission.ProjectOwner],
+      held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
       isMasterAdmin: false,
     });
 
@@ -214,7 +215,9 @@ describe("computeCreateActionGates (BaseModelTable's create gating, mirrored)", 
 
   test("a scoped permission unlocks only its own create action", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
-      permissions: [Permission.CreateProjectIncident],
+      held: HeldPermissionsUtil.fromPermissions([
+        Permission.CreateProjectIncident,
+      ]),
       isMasterAdmin: false,
     });
 

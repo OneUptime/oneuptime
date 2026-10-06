@@ -6,7 +6,7 @@ import { OnUpdate } from "../../../Types/Database/Hooks";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import UpdateBy from "../../../Types/Database/UpdateBy";
 import logger from "../../Logger";
-import { holdsAnyPermission } from "../../Runbook/RunbookExecutePermission";
+import CallerPermission from "../../Permission/CallerPermission";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
@@ -534,11 +534,11 @@ export default class ResourceAiAccessSettings {
 
       if (
         !baseline.projectId ||
-        !holdsAnyPermission({
-          props: data.props,
-          projectId: baseline.projectId,
-          allowed: RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
-        })
+        !CallerPermission.holdsAnyOf(
+          data.props,
+          RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS,
+          { projectId: baseline.projectId },
+        )
       ) {
         return getResourceAiAccessAdminRefusal(data.resourceType);
       }
