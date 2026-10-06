@@ -45,6 +45,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { StartingStage } from "../../../Utils/StartingStage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -114,9 +115,22 @@ const MAY_NOT_CHANGE_STATE_MESSAGE: string =
 
 // What onBeforeCreate hands to onCreateSuccess when declaring from alerts.
 type CarriedForward = {
+  // Where the incident starts (StartingStage): open for these declares.
+  startingStage: StartingStage;
   alertIdsToLink: Array<ObjectID>;
   acknowledgedAlertStateId: ObjectID | null;
   alertIdsToAcknowledge: Array<ObjectID>;
+};
+
+/*
+ * What onBeforeCreate hands onCreateSuccess for an incident declared in the
+ * created state from no alerts: only where it starts.
+ */
+const NOTHING_CARRIED: CarriedForward = {
+  startingStage: StartingStage.Open,
+  alertIdsToLink: [],
+  acknowledgedAlertStateId: null,
+  alertIdsToAcknowledge: [],
 };
 
 type AuthorizeArgs = {
@@ -602,6 +616,7 @@ function carried(
   ),
 ): CarriedForward {
   return {
+    startingStage: StartingStage.Open,
     alertIdsToLink: alertIds,
     acknowledgedAlertStateId: acknowledgedAlertStateId,
     alertIdsToAcknowledge: alertIdsToAcknowledge,
@@ -655,7 +670,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     expect(args.projectId!.toString()).toBe(PROJECT_ID.toString());
     expect(args.props).toBe(props);
 
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
     expect(findAcknowledgedState).not.toHaveBeenCalled();
     expect(alertStateReads()).toEqual([]);
     expect(authorize).not.toHaveBeenCalled();
@@ -685,7 +700,9 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "acknowledgedAlertStateId",
       "alertIdsToAcknowledge",
       "alertIdsToLink",
+      "startingStage",
     ]);
+    expect(carriedForward.startingStage).toBe(StartingStage.Open);
     expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
     expect(carriedForward.acknowledgedAlertStateId).toBeNull();
     expect(carriedForward.alertIdsToAcknowledge).toEqual([]);
@@ -729,7 +746,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       [INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY]: false,
     });
 
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
     expect(validateAlertIds).not.toHaveBeenCalled();
     expect(counter).toHaveBeenCalledTimes(1);
   });
@@ -758,6 +775,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "acknowledgedAlertStateId",
       "alertIdsToAcknowledge",
       "alertIdsToLink",
+      "startingStage",
     ]);
     expect(ids(carriedForward.alertIdsToLink)).toEqual([ALERT_ID, ALERT_ID_2]);
     expect(carriedForward.acknowledgedAlertStateId).toBeInstanceOf(ObjectID);
@@ -1044,6 +1062,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     });
 
     expect(result.carryForward).toEqual({
+      startingStage: StartingStage.Open,
       alertIdsToLink: [new ObjectID(ALERT_ID)],
       acknowledgedAlertStateId: null,
       alertIdsToAcknowledge: [],
@@ -1260,6 +1279,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
     );
 
     expect(withoutKey.carryForward).toEqual({
+      startingStage: StartingStage.Open,
       alertIdsToLink: [new ObjectID(ALERT_ID)],
       acknowledgedAlertStateId: null,
       alertIdsToAcknowledge: [],

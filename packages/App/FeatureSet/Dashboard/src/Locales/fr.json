@@ -22404,9 +22404,6 @@
   "Enter a whole number of days, 1 or more.": "Saisissez un nombre entier de jours, 1 ou plus.",
   "Hidden from visitors, and subscribers aren't notified about them.": "Invisibles pour les visiteurs, et les abonnés n'en sont pas notifiés.",
   "How many days the uptime bars and uptime percentages cover, up to {{max}}.": "Le nombre de jours couverts par les barres et les pourcentages de disponibilité, jusqu'à {{max}}.",
-  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.": "Laissez vide pour l'état de départ habituel. Choisissez un état ultérieur pour enregistrer une alerte déjà prise en compte ou résolue.",
-  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.": "Laissez vide pour l'état de départ habituel. Choisissez un état ultérieur pour enregistrer un épisode déjà pris en compte ou résolu.",
-  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.": "Laissez vide pour l'état de départ habituel. Choisissez un état ultérieur pour enregistrer un incident déjà pris en compte ou résolu.",
   "Logo and Cover Image": "Logo et image de couverture",
   "Nobody picked. You take any role marked Primary.": "Personne n'est choisi. Vous assumez tout rôle marqué Principal.",
   "On-Call & Owners": "Astreinte et propriétaires",
@@ -24870,7 +24867,6 @@
   "Max {{size}} each.": "{{size}} maximum chacun.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Ces fichiers dépassent la limite de {{size}} : {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "Types : {{types}}. {{size}} maximum chacun.",
-  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Les incidents déclarés à partir de ce modèle commencent dans cet état. Laissez vide pour l'état de départ habituel.",
   "The usual starting state": "L'état de départ habituel",
   "Their names could not be loaded.": "Impossible de charger leurs noms.",
   "Who takes each role on this incident.": "Qui assume chaque rôle sur cet incident.",
@@ -25707,5 +25703,10 @@
   "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Lorsque cette règle correspond, ces personnes et équipes sont ajoutées comme propriétaires. Les propriétaires déjà attribués ne sont pas ajoutés deux fois. Laissez ce champ vide si la règle hérite uniquement des propriétaires.",
   "Inherit Owners From Monitor": "Hériter des propriétaires du moniteur",
   "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Lancez ceci dans le dossier de l'agent. Votre .env est conservé ; réappliquez toute modification que vous aviez apportée à docker-compose.yml ou otel-collector-config*.yaml."
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Lancez ceci dans le dossier de l'agent. Votre .env est conservé ; réappliquez toute modification que vous aviez apportée à docker-compose.yml ou otel-collector-config*.yaml.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.": "Les incidents déclarés à partir de ce modèle commencent dans cet état. Laissez vide pour l'état de départ habituel. Un incident qui commence pris en compte ou résolu n'alerte personne.",
+  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "Laissez vide pour l'état de départ habituel. Choisissez un état ultérieur pour enregistrer une alerte déjà prise en compte ou résolue. Personne n'est alerté.",
+  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "Laissez vide pour l'état de départ habituel. Choisissez un état ultérieur pour enregistrer un épisode déjà pris en compte ou résolu. Personne n'est alerté.",
+  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.": "Laissez vide pour l'état de départ habituel. Choisissez un état ultérieur pour enregistrer un incident déjà pris en compte ou résolu. Personne n'est alerté.",
+  "They were created already resolved.": "Leur résolution était antérieure à leur création."
 }

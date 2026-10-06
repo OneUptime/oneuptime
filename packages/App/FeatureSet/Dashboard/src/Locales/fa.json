@@ -22404,9 +22404,6 @@
   "Enter a whole number of days, 1 or more.": "یک عدد صحیح روز وارد کنید، ۱ یا بیشتر.",
   "Hidden from visitors, and subscribers aren't notified about them.": "از بازدیدکنندگان پنهان است و مشترکان درباره آن اعلانی دریافت نمی‌کنند.",
   "How many days the uptime bars and uptime percentages cover, up to {{max}}.": "تعداد روزهایی که نوارها و درصدهای زمان کارکرد پوشش می‌دهند، حداکثر {{max}}.",
-  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت هشداری که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید.",
-  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت اپیزودی که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید.",
-  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت حادثه‌ای که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید.",
   "Logo and Cover Image": "لوگو و تصویر جلد",
   "Nobody picked. You take any role marked Primary.": "کسی انتخاب نشده است. هر نقشی با برچسب «اصلی» را خودتان بر عهده می‌گیرید.",
   "On-Call & Owners": "آنکال و مالکان",
@@ -24870,7 +24867,6 @@
   "Max {{size}} each.": "هر فایل حداکثر {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}.",
-  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید.",
   "The usual starting state": "وضعیت آغازین معمول",
   "Their names could not be loaded.": "نام‌هایشان بارگیری نشد.",
   "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد.",
@@ -25707,5 +25703,10 @@
   "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "وقتی این قاعده مطابقت کند، این افراد و تیم‌ها به‌عنوان مالک افزوده می‌شوند. مالکانی که از قبل تعیین شده‌اند دوباره افزوده نمی‌شوند. اگر قاعده فقط مالکان را به ارث می‌برد، این را خالی بگذارید.",
   "Inherit Owners From Monitor": "به ارث بردن مالکان از مانیتور",
   "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "این را در پوشه عامل اجرا کنید. فایل .env شما نگه داشته می‌شود؛ هر تغییری را که در docker-compose.yml یا otel-collector-config*.yaml داده بودید دوباره اعمال کنید."
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "این را در پوشه عامل اجرا کنید. فایل .env شما نگه داشته می‌شود؛ هر تغییری را که در docker-compose.yml یا otel-collector-config*.yaml داده بودید دوباره اعمال کنید.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید. حادثه‌ای که تأییدشده یا برطرف‌شده آغاز شود، کسی را فرانمی‌خواند.",
+  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت هشداری که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید. برای آن کسی فراخوانده نمی‌شود.",
+  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت اپیزودی که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید. برای آن کسی فراخوانده نمی‌شود.",
+  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت حادثه‌ای که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید. برای آن کسی فراخوانده نمی‌شود.",
+  "They were created already resolved.": "هنگام ایجاد، از پیش برطرف شده بودند."
 }

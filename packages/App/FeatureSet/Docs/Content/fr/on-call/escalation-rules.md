@@ -29,6 +29,8 @@ Repliée, la section **Plus de champs** nomme les deux dans son en-tête et affi
 
 Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses intervenants immédiatement. Si personne n'accuse réception dans son délai, **Level 2** est alerté, et ainsi de suite. Une fois le délai du dernier niveau écoulé sans accusé de réception, la politique recommence à **Level 1** si sa **Politique de répétition** (sous les règles) prévoit une répétition, autant de fois qu'elle le permet, et s'arrête sinon.
 
+Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu — enregistré après coup — n'exécute aucune de ses politiques : personne n'est alerté, et son fil d'activité l'indique en les nommant.
+
 Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : quand chaque niveau est alerté, qui il alerte et ce qui se passe après le dernier. Un niveau dont tous les intervenants ne peuvent pas être alertés l'indique sur sa carte ; cliquez sur le libellé pour voir qui et pourquoi.
 
 Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Règles d'astreinte**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Règles d'astreinte**.

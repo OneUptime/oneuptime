@@ -854,8 +854,12 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     const acknowledgeAt: number = onBeforeCreate.indexOf(
       "constalertsToAcknowledge:AlertsToAcknowledgeOnDeclare|null=awaitIncidentAlertService.validateAcknowledgeAlertsForNewIncident({projectId:projectId,acknowledgeAlerts:createBy.miscDataProps?.[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY],alertIds:validatedAlertIds,props:createBy.props,});",
     );
+    /*
+     * Carried forward beside where the incident starts (StartingStage),
+     * which every create hands its success hook.
+     */
     const carryForwardAt: number = onBeforeCreate.indexOf(
-      "if(validatedAlertIds.length>0){carryForward={alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],};}",
+      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],};",
     );
     const counterAt: number = onBeforeCreate.indexOf(
       "awaitProjectService.incrementAndGetIncidentCounter(projectId);",
@@ -880,7 +884,7 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     const code: string = denseCommon(INCIDENT_SERVICE);
 
     expect(code).toContain(
-      "typeIncidentCreateCarryForward={alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;}|null;",
+      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;})|null;",
     );
     expect(code).toContain(
       'importIncidentAlertService,{AcknowledgeDeclaredAlertsResult,AlertsToAcknowledgeOnDeclare,LinkAlertsToIncidentResult,}from"./IncidentAlertService";',

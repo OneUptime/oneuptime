@@ -22404,9 +22404,6 @@
   "Enter a whole number of days, 1 or more.": "1 이상의 정수로 일수를 입력하세요.",
   "Hidden from visitors, and subscribers aren't notified about them.": "방문자에게 표시되지 않으며 구독자에게도 알림이 전송되지 않습니다.",
   "How many days the uptime bars and uptime percentages cover, up to {{max}}.": "가동 시간 막대와 가동률이 포함하는 일수입니다. 최대 {{max}}일입니다.",
-  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.": "비워 두면 일반적인 시작 상태가 됩니다. 이미 인지되었거나 해결된 경고를 기록하려면 이후 상태를 선택하세요.",
-  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.": "비워 두면 일반적인 시작 상태가 됩니다. 이미 인지되었거나 해결된 에피소드를 기록하려면 이후 상태를 선택하세요.",
-  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.": "비워 두면 일반적인 시작 상태가 됩니다. 이미 인지되었거나 해결된 인시던트를 기록하려면 이후 상태를 선택하세요.",
   "Logo and Cover Image": "로고 및 표지 이미지",
   "Nobody picked. You take any role marked Primary.": "선택된 사람이 없습니다. 기본으로 표시된 역할은 본인이 맡습니다.",
   "On-Call & Owners": "온콜 및 소유자",
@@ -24870,7 +24867,6 @@
   "Max {{size}} each.": "파일당 최대 {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "다음 파일이 {{size}} 제한을 초과합니다: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "형식: {{types}}. 파일당 최대 {{size}}.",
-  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "이 템플릿으로 선언된 인시던트는 이 상태에서 시작합니다. 비워 두면 일반적인 시작 상태가 됩니다.",
   "The usual starting state": "일반적인 시작 상태",
   "Their names could not be loaded.": "이름을 불러오지 못했습니다.",
   "Who takes each role on this incident.": "이 인시던트에서 각 역할을 누가 맡는지 정합니다.",
@@ -25707,5 +25703,10 @@
   "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "이 규칙이 일치하면 이 사람과 팀이 소유자로 추가됩니다. 이미 지정된 소유자는 중복으로 추가되지 않습니다. 규칙이 소유자를 상속하기만 한다면 비워 두세요.",
   "Inherit Owners From Monitor": "모니터에서 소유자 상속",
   "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "에이전트 폴더에서 실행하세요. .env는 그대로 유지됩니다. docker-compose.yml이나 otel-collector-config*.yaml에 했던 변경 사항은 다시 적용하세요."
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "에이전트 폴더에서 실행하세요. .env는 그대로 유지됩니다. docker-compose.yml이나 otel-collector-config*.yaml에 했던 변경 사항은 다시 적용하세요.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.": "이 템플릿으로 선언된 인시던트는 이 상태에서 시작합니다. 비워 두면 일반적인 시작 상태가 됩니다. 인지됨 또는 해결됨 상태로 시작하는 인시던트는 아무도 호출하지 않습니다.",
+  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "비워 두면 일반적인 시작 상태가 됩니다. 이미 인지되었거나 해결된 경고를 기록하려면 이후 상태를 선택하세요. 아무도 호출되지 않습니다.",
+  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "비워 두면 일반적인 시작 상태가 됩니다. 이미 인지되었거나 해결된 에피소드를 기록하려면 이후 상태를 선택하세요. 아무도 호출되지 않습니다.",
+  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.": "비워 두면 일반적인 시작 상태가 됩니다. 이미 인지되었거나 해결된 인시던트를 기록하려면 이후 상태를 선택하세요. 아무도 호출되지 않습니다.",
+  "They were created already resolved.": "생성될 때 이미 해결된 상태였습니다."
 }

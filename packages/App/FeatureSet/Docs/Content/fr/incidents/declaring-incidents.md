@@ -160,7 +160,7 @@ L'appel de création fait bien plus qu'écrire une ligne. Dans l'ordre :
 5. **Les règles d'étiquettes s'exécutent**, ajoutant les étiquettes qui correspondent à l'incident.
 6. **Les règles d'astreinte s'exécutent.** Chaque règle activée dans **Incidents → Règles → Règles d'astreinte** dont les critères correspondent ajoute ses politiques à l'incident. Il n'y a ni ordre de priorité ni court-circuit — toutes les règles correspondantes se déclenchent et les politiques sont dédupliquées.
 7. **Les règles de runbook s'exécutent**, rattachant et démarrant les runbooks correspondants. Voyez [Runbooks](/docs/runbooks/index).
-8. **Les politiques d'astreinte s'exécutent.** Chaque politique portée par l'incident — choisie dans l'assistant, héritée d'un modèle ou ajoutée par une règle — est exécutée en parallèle avec le type d'événement `IncidentCreated`. L'échec d'une politique n'arrête pas les autres.
+8. **Les politiques d'astreinte s'exécutent.** Chaque politique portée par l'incident — choisie dans l'assistant, héritée d'un modèle ou ajoutée par une règle — est exécutée en parallèle avec le type d'événement `IncidentCreated`. L'échec d'une politique n'arrête pas les autres. Un incident déclaré déjà pris en compte ou résolu n'en exécute aucune : personne n'est alerté, et son fil d'activité l'indique en les nommant.
 9. **Les abonnés sont mis en file**, si **Notifier les abonnés de la page de statut** est resté activé et que l'incident est visible sur la page de statut. La livraison est prise en charge par une tâche de fond, pas en ligne avec votre requête.
 10. **Les workflows se déclenchent.** Le déclencheur **On Create Incident** lance tout workflow bâti dessus. Voyez [Présentation des workflows](/docs/workflows/index).
 

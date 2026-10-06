@@ -22404,9 +22404,6 @@
   "Enter a whole number of days, 1 or more.": "Введите целое число дней, не меньше 1.",
   "Hidden from visitors, and subscribers aren't notified about them.": "Скрыты от посетителей, и подписчики не получают о них уведомлений.",
   "How many days the uptime bars and uptime percentages cover, up to {{max}}.": "Сколько дней охватывают полосы и проценты безотказной работы, не более {{max}}.",
-  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.": "Оставьте пустым для обычного начального состояния. Выберите более позднее состояние, чтобы записать оповещение, которое уже подтверждено или устранено.",
-  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.": "Оставьте пустым для обычного начального состояния. Выберите более позднее состояние, чтобы записать эпизод, который уже подтверждён или устранён.",
-  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.": "Оставьте пустым для обычного начального состояния. Выберите более позднее состояние, чтобы записать инцидент, который уже подтверждён или устранён.",
   "Logo and Cover Image": "Логотип и изображение обложки",
   "Nobody picked. You take any role marked Primary.": "Никто не выбран. Вы берёте любую роль с отметкой «Основная».",
   "On-Call & Owners": "Дежурство и владельцы",
@@ -24870,7 +24867,6 @@
   "Max {{size}} each.": "Не более {{size}} каждый.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "Эти файлы превышают ограничение в {{size}}: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "Типы: {{types}}. Не более {{size}} каждый.",
-  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "Инциденты, объявленные из этого шаблона, начинаются в этом состоянии. Оставьте пустым для обычного начального состояния.",
   "The usual starting state": "Обычное начальное состояние",
   "Their names could not be loaded.": "Не удалось загрузить их имена.",
   "Who takes each role on this incident.": "Кто берёт каждую роль в этом инциденте.",
@@ -25707,5 +25703,10 @@
   "When this rule matches, these people and teams are added as owners. Owners already assigned are not added twice. Leave it empty if the rule only inherits owners.": "Когда это правило срабатывает, эти люди и команды добавляются как владельцы. Уже назначенные владельцы повторно не добавляются. Оставьте поле пустым, если правило только наследует владельцев.",
   "Inherit Owners From Monitor": "Наследовать владельцев от монитора",
   "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Выполните это в папке агента. Ваш .env сохраняется; снова внесите изменения, которые вы делали в docker-compose.yml или otel-collector-config*.yaml."
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Выполните это в папке агента. Ваш .env сохраняется; снова внесите изменения, которые вы делали в docker-compose.yml или otel-collector-config*.yaml.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.": "Инциденты, объявленные из этого шаблона, начинаются в этом состоянии. Оставьте пустым для обычного начального состояния. Инцидент, который начинается подтверждённым или устранённым, никого не вызывает.",
+  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "Оставьте пустым для обычного начального состояния. Выберите более позднее состояние, чтобы записать оповещение, которое уже подтверждено или устранено. Никого не вызывают.",
+  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "Оставьте пустым для обычного начального состояния. Выберите более позднее состояние, чтобы записать эпизод, который уже подтверждён или устранён. Никого не вызывают.",
+  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.": "Оставьте пустым для обычного начального состояния. Выберите более позднее состояние, чтобы записать инцидент, который уже подтверждён или устранён. Никого не вызывают.",
+  "They were created already resolved.": "К моменту создания они уже были устранены."
 }

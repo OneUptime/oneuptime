@@ -160,7 +160,7 @@ La chiamata di creazione fa molto più che scrivere una riga. Nell'ordine:
 5. **Vengono eseguite le regole delle etichette**, che aggiungono le etichette corrispondenti all'incidente.
 6. **Vengono eseguite le regole di reperibilità.** Ogni regola attiva in **Incidenti → Regole → Regole di reperibilità** i cui criteri corrispondono aggiunge le proprie policy all'incidente. Non c'è un ordine di priorità né un'interruzione anticipata: scattano tutte le regole corrispondenti e le policy vengono deduplicate.
 7. **Vengono eseguite le regole di runbook**, che collegano e avviano i runbook corrispondenti. Vedete [Runbook](/docs/runbooks/index).
-8. **Vengono eseguite le policy di reperibilità.** Ogni policy sull'incidente — scelta nella procedura guidata, ereditata da un modello o aggiunta da una regola — viene eseguita in parallelo con il tipo di evento `IncidentCreated`. Se una policy fallisce, le altre proseguono.
+8. **Vengono eseguite le policy di reperibilità.** Ogni policy sull'incidente — scelta nella procedura guidata, ereditata da un modello o aggiunta da una regola — viene eseguita in parallelo con il tipo di evento `IncidentCreated`. Se una policy fallisce, le altre proseguono. Un incidente dichiarato già riconosciuto o risolto non ne esegue nessuna: nessuno viene avvisato, e il suo feed lo indica nominandole.
 9. **Gli iscritti vengono messi in coda**, se **Notifica gli iscritti alla pagina di stato** è rimasta attiva e l'incidente è visibile sulla pagina di stato. La consegna è gestita da un job in background, non in linea con la vostra richiesta.
 10. **Scattano i workflow.** Il trigger **On Create Incident** avvia qualsiasi workflow costruito su di esso. Vedete [Panoramica dei workflow](/docs/workflows/index).
 

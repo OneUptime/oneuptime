@@ -29,6 +29,8 @@ Ihopfälld nämner rubriken för **Fler fält** de två och visar dem som regeln
 
 När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen kvitterar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan kvittering börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger den tillåter, och annars slutar den.
 
+En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn.
+
 Översikten högst upp på sidan **Eskaleringsregler** visar hela stegen: när varje nivå larmas, vem den larmar och vad som händer efter den sista. En nivå där inte alla mottagare kan larmas säger det på sitt kort; klicka på etiketten för att se vem och varför.
 
 Hur varje person som en nivå larmar nås bestäms av personens egna jourregler: **Användarinställningar** > **Jourregler**, med en flik för incidenter, incidentepisoder, larm och larmepisoder och ett kort per allvarlighetsgrad som visar vilken aviseringsmetod som används och efter hur lång tid. En projektadministratör kan se och ändra en medlems regler under **Användare** > medlemmen > **Jourregler**.

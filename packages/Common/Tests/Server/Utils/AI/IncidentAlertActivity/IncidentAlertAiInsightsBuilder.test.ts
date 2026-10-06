@@ -1291,6 +1291,26 @@ describe("build: what needs attention", () => {
     ).toBeUndefined();
   });
 
+  test("records created already resolved are no problem either: there was nothing to investigate", () => {
+    const insights: ReturnType<typeof IncidentAlertAiInsightsBuilder.build> =
+      IncidentAlertAiInsightsBuilder.build(
+        input({
+          subjectsInWindow: 9,
+          notInvestigatedReasons: new Map<string, InvestigationNotStartedCode>([
+            ["s1", "created_resolved"],
+            ["s2", "created_resolved"],
+            ["s3", "created_resolved"],
+          ]),
+        }),
+      );
+
+    expect(
+      attentionOf(insights, AiActivityAttentionKind.InvestigationsNotStarted),
+    ).toBeUndefined();
+    // Still counted where the skipped ones are listed, with their reason.
+    expect(JSON.stringify(insights)).toContain("created_resolved");
+  });
+
   test("the most common reason worth acting on is the one named", () => {
     const item: AiActivityAttentionItem | undefined = attentionOf(
       IncidentAlertAiInsightsBuilder.build(

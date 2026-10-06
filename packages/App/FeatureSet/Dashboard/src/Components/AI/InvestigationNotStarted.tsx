@@ -80,6 +80,7 @@ const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
+  "created_resolved",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -205,10 +206,16 @@ export function getSettingsAction(
     };
   }
 
+  /*
+   * No setting would have changed these, so there is no page to send anyone
+   * to - a record created already resolved among them: the reason's own next
+   * step says what to do.
+   */
   if (
     code === "budget_check_failed" ||
     code === "enqueue_failed" ||
-    code === "eligibility_check_failed"
+    code === "eligibility_check_failed" ||
+    code === "created_resolved"
   ) {
     return null;
   }

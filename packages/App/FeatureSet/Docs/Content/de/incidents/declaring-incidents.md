@@ -160,7 +160,7 @@ Der Erstellungsaufruf schreibt mehr als nur eine Zeile. Der Reihe nach:
 5. **Beschriftungsregeln laufen** und ergänzen Beschriftungen, die zum Vorfall passen.
 6. **Bereitschaftsregeln laufen.** Jede aktivierte Regel unter **Vorfälle → Regeln → Bereitschaftsregeln**, deren Kriterien greifen, ergänzt ihre Richtlinien am Vorfall. Es gibt keine Prioritätsreihenfolge und keinen Abbruch – alle passenden Regeln greifen, und die Richtlinien werden dublettenfrei zusammengelegt.
 7. **Runbook-Regeln laufen** und hängen passende Runbooks an und starten sie. Siehe [Runbooks](/docs/runbooks/index).
-8. **Bereitschaftsrichtlinien werden ausgeführt.** Jede Richtlinie am Vorfall – im Assistenten gewählt, aus einer Vorlage geerbt oder von einer Regel ergänzt – läuft parallel mit dem Ereignistyp `IncidentCreated`. Scheitert eine Richtlinie, stoppt das die anderen nicht.
+8. **Bereitschaftsrichtlinien werden ausgeführt.** Jede Richtlinie am Vorfall – im Assistenten gewählt, aus einer Vorlage geerbt oder von einer Regel ergänzt – läuft parallel mit dem Ereignistyp `IncidentCreated`. Scheitert eine Richtlinie, stoppt das die anderen nicht. Ein Vorfall, der bereits bestätigt oder behoben gemeldet wird, führt keine davon aus: Niemand wird alarmiert, und sein Feed vermerkt das und nennt die Richtlinien.
 9. **Abonnenten werden eingereiht**, sofern **Statusseiten-Abonnenten benachrichtigen** aktiv blieb und der Vorfall auf der Statusseite sichtbar ist. Die Zustellung übernimmt ein Hintergrundjob, nicht Ihre Anfrage selbst.
 10. **Workflows starten.** Der Trigger **On Create Incident** startet jeden darauf aufgebauten Workflow. Siehe [Workflows – Übersicht](/docs/workflows/index).
 

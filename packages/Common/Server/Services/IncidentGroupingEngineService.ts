@@ -35,6 +35,7 @@ import { Green500 } from "../../Types/BrandColors";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 
 export interface GroupingResult {
@@ -69,7 +70,10 @@ export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
 
 class IncidentGroupingEngineServiceClass {
   @CaptureSpan()
-  public async processIncident(incident: Incident): Promise<GroupingResult> {
+  public async processIncident(
+    incident: Incident,
+    options: GroupingOptions = {},
+  ): Promise<GroupingResult> {
     logger.debug(`Processing incident ${incident.id} for grouping`, {
       projectId: incident.projectId?.toString(),
     } as LogAttributes);
@@ -199,6 +203,7 @@ class IncidentGroupingEngineServiceClass {
           const result: GroupingResult = await this.groupIncidentWithRule(
             incident,
             rule,
+            options,
           );
           return result;
         }
@@ -508,6 +513,7 @@ class IncidentGroupingEngineServiceClass {
   private async groupIncidentWithRule(
     incident: Incident,
     rule: IncidentGroupingRule,
+    options: GroupingOptions = {},
   ): Promise<GroupingResult> {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(incident, rule);
@@ -576,6 +582,15 @@ class IncidentGroupingEngineServiceClass {
           episodeId: existingEpisode.id,
           isNewEpisode: false,
         };
+      }
+
+      /*
+       * No open episode to join, and the incident may not open or reopen one
+       * (GroupingOptions): a new episode would page its own on-call policies
+       * for an incident that pages nobody. It stays on its own.
+       */
+      if (options.mayOpenEpisode === false) {
+        return { grouped: false };
       }
 
       // Check if we can reopen a recently resolved episode (only if enabled)
