@@ -121,8 +121,11 @@ async function installFixtures(page, { signedIn = true, loginMode = "normal", re
     else if (url.pathname.includes("/monitor-status/get-list")) { rows = statuses; }
     else if (url.pathname.includes("-note/get-list")) { rows = [{ _id: "note-1", note: "Investigating database connections. Next update in 15 minutes.", createdAt: "2026-09-10T09:50:00Z", createdByUser: user }]; }
     if (body.query?._id) { rows = rows.filter((item) => { return item._id === body.query._id; }); }
-    if (body.query?.currentIncidentState?.isResolvedState === false) { rows = rows.filter((item) => { return !item.currentIncidentState?.isResolvedState; }); }
-    if (body.query?.currentAlertState?.isResolvedState === false) { rows = rows.filter((item) => { return !item.currentAlertState?.isResolvedState; }); }
+    // Open records are asked for by state id (utils/resolvedState): { _type: "Includes", value: [open state ids] }.
+    for (const [idKey, stateKey] of [["currentIncidentStateId", "currentIncidentState"], ["currentAlertStateId", "currentAlertState"]]) {
+      const stateIds = body.query?.[idKey];
+      if (stateIds?._type === "Includes") { rows = rows.filter((item) => { return stateIds.value.includes(item[idKey] ?? item[stateKey]?._id); }); }
+    }
     if (body.query?.disableActiveMonitoring === true) { rows = rows.filter((item) => { return item.disableActiveMonitoring; }); }
     if (body.query?.currentMonitorStatus?.isOperationalState === false) { rows = rows.filter((item) => { return !item.currentMonitorStatus?.isOperationalState; }); }
     if (!url.pathname.includes("get-list") && request.method() !== "GET") { mutations.push({ path: url.pathname, projectId, body }); }
