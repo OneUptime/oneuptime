@@ -644,11 +644,9 @@ describe("countPeople / hasOverrides", () => {
  * pages give them - one colour per person, on every page.
  */
 describe("timeline colours", () => {
-  const PALETTE: Array<string> = DISTINCT_COLORS.map(
-    (color: Color): string => {
-      return color.toString();
-    },
-  );
+  const PALETTE: Array<string> = DISTINCT_COLORS.map((color: Color): string => {
+    return color.toString();
+  });
 
   test("each person's colour is the one the schedule's own pages give them", () => {
     const people: Array<TimelinePerson> = TimelineModel.collectPeople({

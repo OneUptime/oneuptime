@@ -261,9 +261,10 @@ describe("a person's colour on the on-call screens", () => {
     const share: number = ids.length / PALETTE.length;
 
     for (const [color, count] of Array.from(counts.entries())) {
-      expect({ color, fair: count > share * 0.8 && count < share * 1.2 }).toEqual(
-        { color, fair: true },
-      );
+      expect({
+        color,
+        fair: count > share * 0.8 && count < share * 1.2,
+      }).toEqual({ color, fair: true });
     }
   });
 

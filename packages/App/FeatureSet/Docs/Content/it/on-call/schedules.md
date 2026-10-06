@@ -22,6 +22,8 @@ La rotazione di una pianificazione è fatta di livelli, nella sua pagina **Livel
 
 **Aggiungi livello** aggiunge un livello che parte come il primo: reperibile da subito, ogni persona per una settimana, 24 ore su 24. Espandi un livello per aggiungervi persone e per cambiare quando inizia, ogni quanto passa il turno, quando lo passa la prima volta e in quali ore è reperibile.
 
+Ogni persona mantiene lo stesso colore ovunque, così puoi seguirla a colpo d'occhio: su ogni livello, nella pianificazione finale e nelle sue sostituzioni, e nella **Cronologia delle reperibilità**.
+
 ## Creare pianificazioni con l'API o Terraform
 
 Le pianificazioni di reperibilità sono la risorsa `/api/on-call-duty-policy-schedule`; i loro livelli e le persone al loro interno sono le risorse `/api/on-call-duty-schedule-layer` e `/api/on-call-duty-schedule-layer-user`.

@@ -22,6 +22,8 @@
 
 **新增層** 會新增一個與第一層同樣開始的層：從現在開始待命，每人一週，全天候。展開一層即可新增人員，並變更其開始時間、交接頻率、首次交接時間以及待命時段。
 
+每個人在所有地方都使用同一種顏色，方便一眼找到：在每一層、最終排程及其覆寫中，以及在 **待命時間軸** 上。
+
 ## 使用 API 或 Terraform 建立排程
 
 待命排程是 `/api/on-call-duty-policy-schedule` 資源；其層以及層中的人員是 `/api/on-call-duty-schedule-layer` 和 `/api/on-call-duty-schedule-layer-user` 資源。
