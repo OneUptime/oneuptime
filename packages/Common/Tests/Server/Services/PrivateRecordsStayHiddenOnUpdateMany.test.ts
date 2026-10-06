@@ -18,6 +18,10 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
+  applyUpdateValues,
+  returnedColumns,
+} from "../TestingUtils/RowWriteSql";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -31,17 +35,21 @@ import { FindOperator } from "typeorm";
  * One write to many incidents or episodes - a workflow's Update Many, which
  * writes as root within its project - that turns Visible on Status Page on
  * shows the ones that are not private and leaves every private one hidden
- * (StatusPageVisibility), whatever the others are. Each record is read with
- * its privacy right before its own write and decided by that read alone
- * (getColumnsForRowWriteOverrides, getRowWriteOverrides): a private one is
- * written with the switch off, so nothing is stored that is then put back,
- * and its workflow trigger and audit log entry say what was stored: never
- * that it was shown. The same holds for an update of one record.
+ * (StatusPageVisibility), whatever the others are. The database decides
+ * each record in its own row's write (getRowWriteSql): the switch is stored
+ * on only while the record is not private as it is then - a privacy write
+ * landing at any moment before, even right before that row's write, is
+ * never overtaken. Nothing is stored that is then put back, and each
+ * record's workflow trigger and audit log entry say what the write stored
+ * (handed back by the write itself): never that a private one was shown.
+ * The same holds for an update of one record.
  *
  * The service runs as written, DatabaseService's update loop and both
  * services' hooks included; only the database is a stand-in: the rows every
- * read finds, the repository each row is written through, the conditional
- * hook-free write, and what the workflows and the audit log are handed.
+ * read finds, the repository each row is written through (working out the
+ * SQL a row is written with on the row as it is then, as Postgres does -
+ * RowWriteSql), the conditional hook-free write, and what the workflows and
+ * the audit log are handed.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -92,6 +100,14 @@ interface FakeTable {
    * after the next repository write.
    */
   afterNextWrite: Array<(rows: Map<string, StoredRow>) => void>;
+  /*
+   * What lands on a row after the update read it and right before its own
+   * write reaches it - a privacy rule committing first - by row id: the
+   * write then finds the row so.
+   */
+  rightBeforeWrite: Map<string, (row: StoredRow) => void>;
+  // What each repository write was asked to hand back, by row id.
+  returningAsked: Array<{ id: string; returning: unknown }>;
 }
 
 // The ids a query's _id condition names: one id, or a list (In / any).
@@ -137,6 +153,8 @@ function fakeTable(
     arrivingAtWrite: new Set<string>(),
     beforeWriteRead: [],
     afterNextWrite: [],
+    rightBeforeWrite: new Map(),
+    returningAsked: [],
   };
 
   const stubbable: StubbableService = service as unknown as StubbableService;
@@ -177,39 +195,42 @@ function fakeTable(
       });
   }) as never);
 
+  /*
+   * One row's UPDATE, as Postgres runs it: what lands right before it is
+   * there first, every value - an SQL expression too - is worked out on the
+   * row as the write finds it, and the write hands back what it stored.
+   */
   const repositoryUpdate: MockFunction = getJestMockFunction();
   repositoryUpdate.mockImplementation((async (
     criteria: { _id: string },
     data: StoredRow,
+    options?: { returning?: unknown },
   ): Promise<unknown> => {
     const id: string = String(criteria._id);
     const row: StoredRow | undefined = table.rows.get(id);
 
     if (!row) {
-      return { affected: 0 };
+      return { affected: 0, raw: [] };
     }
 
-    const set: StoredRow = {};
+    table.rightBeforeWrite.get(id)?.(row);
+    table.rightBeforeWrite.delete(id);
 
-    for (const [column, value] of Object.entries(data)) {
-      if (column !== "version") {
-        set[column] = value;
-        row[column] = value;
-      }
-    }
+    const set: StoredRow = applyUpdateValues(row, data);
 
     table.repositoryWrites.push({ id: id, data: set });
+    table.returningAsked.push({ id: id, returning: options?.returning });
 
     for (const change of table.afterNextWrite.splice(0)) {
       change(table.rows);
     }
 
-    return { affected: 1 };
+    return { affected: 1, raw: returnedColumns(row, options) };
   }) as never);
 
   jest.spyOn(stubbable, "getRepository").mockReturnValue({
     update: repositoryUpdate,
-    save: repositoryUpdate,
+    metadata: undefined,
   } as never);
 
   jest.spyOn(stubbable, "onTriggerWorkflow").mockImplementation((async (
@@ -516,8 +537,8 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
     }
   });
 
-  test("each incident is read with its privacy for its own write, whatever else the update reads", async () => {
-    // Nothing about images decides what the update reads of each row.
+  test("each incident is decided by the database in its own write, whatever else the update reads", async () => {
+    // Nothing about images decides what the update writes of each row.
     jest.spyOn(PublishedImages, "isWrittenBy").mockReturnValue(false);
 
     const table: FakeTable = fakeTable(
@@ -534,7 +555,7 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
     });
   });
 
-  test("an incident made private while the update runs is written hidden: the row as read for its write decides", async () => {
+  test("an incident made private while the update runs is written hidden: the row as the database holds it when written decides", async () => {
     const table: FakeTable = fakeTable(
       IncidentService as unknown as DatabaseService<BaseModel>,
       Incident as unknown as { new (): BaseModel },
@@ -571,7 +592,7 @@ describe("Update Many on incidents turns Visible on Status Page on", () => {
       [PUBLIC_ID]: true,
     });
   });
-  test("an incident made private while the update writes the ones before it is written hidden: each row is read again right before its own write", async () => {
+  test("an incident made private while the update writes the ones before it is written hidden: each row is decided in its own write", async () => {
     const table: FakeTable = fakeTable(
       IncidentService as unknown as DatabaseService<BaseModel>,
       Incident as unknown as { new (): BaseModel },
@@ -684,7 +705,7 @@ describe("Update Many on episodes turns their Status Pages switch on", () => {
     });
   });
 
-  test("each episode is read with its privacy for its own write, whatever else the update reads", async () => {
+  test("each episode is decided by the database in its own write, whatever else the update reads", async () => {
     jest.spyOn(PublishedImages, "isWrittenBy").mockReturnValue(false);
 
     const table: FakeTable = fakeTable(
@@ -754,5 +775,226 @@ describe("Update Many on episodes turns their Status Pages switch on", () => {
       [PUBLIC_ID]: true,
       [PRIVATE_ID]: false,
     });
+  });
+});
+
+/*
+ * The moment a read cannot cover: a record made private after the update
+ * read it and right before its own row's write. The database decides the
+ * switch in that write, so the record is stored hidden - never both private
+ * and visible - and every account of the write (workflow, realtime, audit
+ * log, images) is told what was stored, not what the update asked for.
+ */
+describe("a record made private right before its own write", () => {
+  const image: (token: string) => string = (token: string): string => {
+    return `![shot](https://oneuptime.example/file/image/access-token/${token})`;
+  };
+
+  // What each image was asked to be: "aaa111:public", "bbb222:private".
+  function imagesAsked(setImagesVisibility: MockFunction): Array<string> {
+    return setImagesVisibility.mock.calls.flatMap(
+      (call: Array<unknown>): Array<string> => {
+        const request: {
+          publish: Iterable<string>;
+          unpublish: Iterable<string>;
+        } = call[0] as {
+          publish: Iterable<string>;
+          unpublish: Iterable<string>;
+        };
+
+        return [
+          ...Array.from(request.publish).map((token: string): string => {
+            return `${token}:public`;
+          }),
+          ...Array.from(request.unpublish).map((token: string): string => {
+            return `${token}:private`;
+          }),
+        ];
+      },
+    );
+  }
+
+  function recordImages(): MockFunction {
+    const setImagesVisibility: MockFunction = getJestMockFunction();
+    setImagesVisibility.mockResolvedValue(undefined as never);
+
+    jest
+      .spyOn(PublishedImages, "setImagesVisibility")
+      .mockImplementation(setImagesVisibility as never);
+
+    return setImagesVisibility;
+  }
+
+  test("an incident is stored hidden, and its workflow and audit log are told so", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [incidentRow(PUBLIC_ID, false), incidentRow(PRIVATE_ID, false)],
+    );
+
+    // A privacy rule commits first: the write finds the incident private.
+    table.rightBeforeWrite.set(PRIVATE_ID, (row: StoredRow): void => {
+      row["isPrivate"] = true;
+    });
+
+    await updateManyIncidents({ isVisibleOnStatusPage: true });
+
+    expect(visibilityOf(table)).toEqual({
+      [PUBLIC_ID]: true,
+      [PRIVATE_ID]: false,
+    });
+    expect(table.rows.get(PRIVATE_ID)!["isPrivate"]).toBe(true);
+
+    for (const recorded of [table.workflowTriggers, table.auditedUpdates]) {
+      const byId: Record<string, unknown> = {};
+
+      for (const entry of recorded) {
+        byId[entry.id] = (entry.updatedFields as Record<string, unknown>)[
+          "isVisibleOnStatusPage"
+        ];
+      }
+
+      expect(byId[PUBLIC_ID]).toBe(true);
+      expect(byId[PRIVATE_ID] === undefined || byId[PRIVATE_ID] === false).toBe(
+        true,
+      );
+    }
+  });
+
+  test("an episode is stored hidden too", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentEpisodeService as unknown as DatabaseService<BaseModel>,
+      IncidentEpisode as unknown as { new (): BaseModel },
+      [episodeRow(PUBLIC_ID, false), episodeRow(PRIVATE_ID, false)],
+    );
+
+    table.rightBeforeWrite.set(PRIVATE_ID, (row: StoredRow): void => {
+      row["isPrivate"] = true;
+    });
+
+    await updateManyEpisodes({ isVisibleOnStatusPage: true });
+
+    expect(visibilityOf(table)).toEqual({
+      [PUBLIC_ID]: true,
+      [PRIVATE_ID]: false,
+    });
+
+    for (const trigger of table.workflowTriggers) {
+      expect(
+        (trigger.updatedFields as Record<string, unknown>)[
+          "isVisibleOnStatusPage"
+        ],
+      ).toBe(trigger.id === PUBLIC_ID);
+    }
+  });
+
+  test("its images stay private: they are decided by what the write stored, not by what it asked for", async () => {
+    const setImagesVisibility: MockFunction = recordImages();
+
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [
+        { ...incidentRow(PUBLIC_ID, false), description: image("aaa111") },
+        { ...incidentRow(PRIVATE_ID, false), description: image("bbb222") },
+      ],
+    );
+
+    table.rightBeforeWrite.set(PRIVATE_ID, (row: StoredRow): void => {
+      row["isPrivate"] = true;
+    });
+
+    await updateManyIncidents({ isVisibleOnStatusPage: true });
+
+    const asked: Array<string> = imagesAsked(setImagesVisibility);
+
+    expect(asked).toContain("aaa111:public");
+    expect(asked).not.toContain("bbb222:public");
+  });
+
+  test("each row's write asks back what decides it, and what the row shows", async () => {
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [incidentRow(PRIVATE_ID, true), incidentRow(PUBLIC_ID, false)],
+    );
+
+    await updateManyIncidents({ isVisibleOnStatusPage: true });
+
+    expect(table.returningAsked).toHaveLength(2);
+
+    for (const asked of table.returningAsked) {
+      expect(asked.returning).toEqual(
+        expect.arrayContaining(["isVisibleOnStatusPage", "isPrivate"]),
+      );
+    }
+
+    // The switch is written as an expression, never as the value asked for.
+    expect(
+      table.repositoryWrites.map((write: { id: string; data: StoredRow }) => {
+        return [write.id, write.data["isVisibleOnStatusPage"]];
+      }),
+    ).toEqual([
+      [PRIVATE_ID, false],
+      [PUBLIC_ID, true],
+    ]);
+  });
+
+  test("a write that cannot tell what it stored claims nothing about the switch", async () => {
+    const setImagesVisibility: MockFunction = recordImages();
+
+    const table: FakeTable = fakeTable(
+      IncidentService as unknown as DatabaseService<BaseModel>,
+      Incident as unknown as { new (): BaseModel },
+      [{ ...incidentRow(PUBLIC_ID, false), description: image("ccc333") }],
+    );
+
+    // The write hands nothing back.
+    const repository: {
+      update: MockFunction;
+    } = (
+      IncidentService as unknown as { getRepository: () => unknown }
+    ).getRepository() as { update: MockFunction };
+    const update: MockFunction = repository.update;
+    const writeAndForget: (
+      criteria: unknown,
+      data: unknown,
+      options: unknown,
+    ) => Promise<unknown> = update.getMockImplementation() as (
+      criteria: unknown,
+      data: unknown,
+      options: unknown,
+    ) => Promise<unknown>;
+
+    update.mockImplementation((async (
+      criteria: unknown,
+      data: unknown,
+      options: unknown,
+    ): Promise<unknown> => {
+      await writeAndForget(criteria, data, options);
+      return { affected: 1 };
+    }) as never);
+
+    await updateManyIncidents({
+      isVisibleOnStatusPage: true,
+      title: "Checkout errors in Europe",
+    });
+
+    // Stored as the database decided...
+    expect(visibilityOf(table)).toEqual({ [PUBLIC_ID]: true });
+
+    // ...but told to nobody as written, and never taken as shown.
+    for (const recorded of [table.workflowTriggers, table.auditedUpdates]) {
+      for (const entry of recorded) {
+        expect(entry.updatedFields).not.toHaveProperty(
+          "isVisibleOnStatusPage",
+        );
+        expect(entry.updatedFields).toEqual(
+          expect.objectContaining({ title: "Checkout errors in Europe" }),
+        );
+      }
+    }
+
+    expect(imagesAsked(setImagesVisibility)).not.toContain("ccc333:public");
   });
 });

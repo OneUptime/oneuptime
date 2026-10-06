@@ -7,7 +7,12 @@ import PublishedImages, {
   CASCADES,
   getCascadedRowsSql,
   PublishedCascade,
+  ShownParents,
 } from "../../../Server/Utils/File/PublishedImages";
+import StatusPageOverviewCache from "../../../Server/Utils/StatusPage/StatusPageOverviewCache";
+import { VISIBLE_UNLESS_PRIVATE_SQL } from "../../../Server/Utils/StatusPage/StatusPageVisibilityQuery";
+import Dictionary from "../../../Types/Dictionary";
+import PartialEntity from "../../../Types/Database/PartialEntity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
@@ -28,7 +33,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -55,6 +60,19 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 const RECORD_ID: string = "eeeeeeee-0000-4000-8000-000000000001";
 const NOTE_ID: string = "eeeeeeee-0000-4000-8000-000000000002";
+// The incident a public note is shown under.
+const INCIDENT_ID: string = "eeeeeeee-0000-4000-8000-000000000003";
+
+// Which incidents notes are shown under are shown now, as the database says.
+function incidentsShown(ids: Array<string>): void {
+  const shown: ShownParents = new Map(
+    ids.map((id: string): [string, string] => {
+      return [id, PROJECT_ID.toString()];
+    }),
+  );
+
+  jest.spyOn(PublishedImages, "readShownParents").mockResolvedValue(shown);
+}
 
 const image: (token: string) => string = (token: string): string => {
   return `![shot](https://oneuptime.example/file/image/access-token/${token})`;
@@ -96,7 +114,11 @@ interface FakeRepository {
   find: Mock<(options: Record<string, unknown>) => Promise<Array<BaseModel>>>;
   save: Mock<(entity: unknown) => Promise<unknown>>;
   update: Mock<
-    (criteria: unknown, data: unknown) => Promise<{ affected: number }>
+    (
+      criteria: unknown,
+      data: unknown,
+      options?: unknown,
+    ) => Promise<{ affected: number; raw?: unknown }>
   >;
   delete: Mock<(criteria: unknown) => Promise<{ affected: number }>>;
   manager: {
@@ -484,13 +506,17 @@ describe("update", () => {
     expect(visibilityAsked()).toEqual(["bbb222:public", "aaa111:private"]);
   });
 
-  test("a public note edited with a new image", async () => {
+  test("a public note edited with a new image, on a shown incident", async () => {
     const service: NoteWrites = new NoteWrites();
     const stored: IncidentPublicNote = new IncidentPublicNote();
     stored._id = RECORD_ID;
     stored.projectId = PROJECT_ID;
+    stored.incidentId = new ObjectID(INCIDENT_ID);
     stored.note = "Investigating.";
-    useRepository(service as never, [stored]);
+    const repository: FakeRepository = useRepository(service as never, [
+      stored,
+    ]);
+    incidentsShown([INCIDENT_ID]);
 
     await service.updateOneById({
       id: new ObjectID(RECORD_ID),
@@ -499,6 +525,429 @@ describe("update", () => {
     });
 
     expect(visibilityAsked()).toEqual(["eee555:public"]);
+    // The note was read with the incident it is shown under.
+    expect(selectsAsked(repository)[0]).toContain("incidentId");
+  });
+
+  test("a public note edited with a new image, on a hidden or private incident, makes nothing public", async () => {
+    const service: NoteWrites = new NoteWrites();
+    const stored: IncidentPublicNote = new IncidentPublicNote();
+    stored._id = RECORD_ID;
+    stored.projectId = PROJECT_ID;
+    stored.incidentId = new ObjectID(INCIDENT_ID);
+    stored.note = "Investigating.";
+    useRepository(service as never, [stored]);
+    incidentsShown([]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { note: `Found it: ${image("eee555")}` },
+      props: rootProps(),
+    });
+
+    expect(visibilityAsked()).toEqual(["eee555:private"]);
+  });
+
+  test("a public note posted on a hidden incident leaves its images private", async () => {
+    const service: NoteWrites = new NoteWrites();
+    useRepository(service as never);
+    incidentsShown([]);
+
+    const note: IncidentPublicNote = new IncidentPublicNote();
+    note.note = image("eee555");
+    note.incidentId = new ObjectID(INCIDENT_ID);
+
+    await service.create({ data: note, props: rootProps() });
+
+    expect(visibilityAsked()).toEqual([]);
+  });
+
+  test("a public note posted on a shown incident makes its images public", async () => {
+    const service: NoteWrites = new NoteWrites();
+    useRepository(service as never);
+    incidentsShown([INCIDENT_ID]);
+
+    const note: IncidentPublicNote = new IncidentPublicNote();
+    note.note = image("eee555");
+    note.incidentId = new ObjectID(INCIDENT_ID);
+
+    await service.create({ data: note, props: rootProps() });
+
+    expect(visibilityAsked()).toEqual(["eee555:public"]);
+  });
+});
+
+/*
+ * What a write stored decides: each row's write hands back the columns that
+ * decide what it shows (RETURNING), and its images follow that - not what
+ * the update asked for, which a write landing first can have overtaken.
+ */
+describe("update: what the write stored decides", () => {
+  test("the row's write asks back what it shows; a write of nothing it shows asks back nothing", async () => {
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: false }),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true },
+      props: rootProps(),
+    });
+
+    expect(repository.update.mock.calls[0]![2]).toEqual({
+      returning: expect.arrayContaining([
+        ...INCIDENT_SHOWN_COLUMNS,
+        "isPrivate",
+      ]),
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { title: "Renamed" },
+      props: rootProps(),
+    });
+
+    expect(repository.update.mock.calls[1]).toHaveLength(2);
+  });
+
+  test("a row stored hidden by a write that asked to show it shows nothing", async () => {
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({
+        description: image("aaa111"),
+        isVisibleOnStatusPage: false,
+      }),
+    ]);
+
+    // Made private by a write that landed first: stored hidden.
+    repository.update.mockResolvedValue({
+      affected: 1,
+      raw: [
+        {
+          description: image("aaa111"),
+          isVisibleOnStatusPage: false,
+          isPrivate: true,
+        },
+      ],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true },
+      props: rootProps(),
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private"]);
+  });
+
+  test("a row stored as the write asked shows what it holds", async () => {
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({
+        description: image("aaa111"),
+        isVisibleOnStatusPage: false,
+      }),
+    ]);
+
+    repository.update.mockResolvedValue({
+      affected: 1,
+      raw: [
+        {
+          description: image("aaa111"),
+          isVisibleOnStatusPage: true,
+          isPrivate: false,
+        },
+      ],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true },
+      props: rootProps(),
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:public"]);
+  });
+});
+
+/*
+ * A column a service writes in SQL (getRowWriteSql) is worked out by the
+ * database in the row's own write, and recorded as the database stored it.
+ */
+describe("update: a column the service writes in SQL", () => {
+  // An incident service that writes Visible on Status Page as StatusPageVisibility does.
+  class GuardedIncidentWrites extends IncidentWrites {
+    protected override getRowWriteSql(
+      data: PartialEntity<Incident>,
+    ): Dictionary<string> {
+      return (data as Record<string, unknown>)["isVisibleOnStatusPage"] ===
+        true
+        ? { isVisibleOnStatusPage: VISIBLE_UNLESS_PRIVATE_SQL }
+        : {};
+    }
+  }
+
+  function workflowFields(service: IncidentWrites): Array<unknown> {
+    return (
+      (service as unknown as { onTriggerWorkflow: Mock<() => unknown> })
+        .onTriggerWorkflow as unknown as Mock<
+        (id: unknown, tenantId: unknown, trigger: unknown, data: unknown) => unknown
+      >
+    ).mock.calls.map((call: Array<unknown>): unknown => {
+      return (call[3] as { updatedFields?: unknown }).updatedFields;
+    });
+  }
+
+  function auditedFields(): Array<unknown> {
+    return (
+      AuditLogService.recordUpdate as unknown as Mock<
+        (data: { updatedFields: unknown }) => unknown
+      >
+    ).mock.calls.map((call: Array<unknown>): unknown => {
+      return (call[0] as { updatedFields: unknown }).updatedFields;
+    });
+  }
+
+  test("is written as its expression, never as the value the update carries", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: false }),
+    ]);
+
+    repository.update.mockResolvedValue({
+      affected: 1,
+      raw: [{ isVisibleOnStatusPage: true, isPrivate: false }],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true },
+      props: rootProps(),
+    });
+
+    const values: Record<string, unknown> = repository.update.mock
+      .calls[0]![1] as Record<string, unknown>;
+
+    expect(typeof values["isVisibleOnStatusPage"]).toBe("function");
+    expect((values["isVisibleOnStatusPage"] as () => string)()).toBe(
+      VISIBLE_UNLESS_PRIVATE_SQL,
+    );
+    expect(
+      (repository.update.mock.calls[0]![2] as { returning: Array<string> })
+        .returning,
+    ).toContain("isVisibleOnStatusPage");
+  });
+
+  test("its workflow and audit log are told what the database stored", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: false }),
+    ]);
+
+    // The incident was private by the time the write reached it.
+    repository.update.mockResolvedValue({
+      affected: 1,
+      raw: [{ isVisibleOnStatusPage: false, isPrivate: true }],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true, title: "Checkout is down" },
+      props: rootProps(),
+    });
+
+    for (const fields of [...workflowFields(service), ...auditedFields()]) {
+      expect(fields).toEqual(
+        expect.objectContaining({
+          isVisibleOnStatusPage: false,
+          title: "Checkout is down",
+        }),
+      );
+    }
+
+    expect(workflowFields(service)).toHaveLength(1);
+  });
+
+  test("one the write did not hand back is told to nobody, and nothing is taken as shown", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    useRepository(service as never, [
+      storedIncident({
+        description: image("aaa111"),
+        isVisibleOnStatusPage: false,
+      }),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true, title: "Checkout is down" },
+      props: rootProps(),
+    });
+
+    for (const fields of [...workflowFields(service), ...auditedFields()]) {
+      expect(fields).not.toHaveProperty("isVisibleOnStatusPage");
+    }
+
+    expect(visibilityAsked()).not.toContain("aaa111:public");
+  });
+
+  test("a write that does not ask for it writes plain values", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: true }),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: false },
+      props: rootProps(),
+    });
+
+    expect(
+      (repository.update.mock.calls[0]![1] as Record<string, unknown>)[
+        "isVisibleOnStatusPage"
+      ],
+    ).toBe(false);
+  });
+
+  test("a write that skips the service's hooks writes plain values", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: false }),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true },
+      props: { ...rootProps(), ignoreHooks: true },
+    });
+
+    expect(
+      (repository.update.mock.calls[0]![1] as Record<string, unknown>)[
+        "isVisibleOnStatusPage"
+      ],
+    ).toBe(true);
+  });
+
+  test("with a list written alongside, the rest is saved and the column written by a statement of its own", async () => {
+    const service: GuardedIncidentWrites = new GuardedIncidentWrites();
+    const repository: FakeRepository = useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: false }),
+    ]);
+
+    repository.update.mockResolvedValue({
+      affected: 1,
+      raw: [{ isVisibleOnStatusPage: false, isPrivate: true }],
+    });
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: true, labels: [] } as never,
+      props: rootProps(),
+    });
+
+    // save() never carries the column...
+    expect(repository.save).toHaveBeenCalledTimes(1);
+    expect(repository.save.mock.calls[0]![0]).not.toHaveProperty(
+      "isVisibleOnStatusPage",
+    );
+
+    // ...a statement of its own writes it as its expression, and hands it back.
+    expect(repository.update).toHaveBeenCalledTimes(1);
+    expect(
+      Object.keys(repository.update.mock.calls[0]![1] as Dictionary<unknown>),
+    ).toEqual(["isVisibleOnStatusPage"]);
+    expect(
+      (repository.update.mock.calls[0]![2] as { returning: Array<string> })
+        .returning,
+    ).toContain("isVisibleOnStatusPage");
+
+    for (const fields of workflowFields(service)) {
+      expect(fields).toEqual(
+        expect.objectContaining({ isVisibleOnStatusPage: false }),
+      );
+    }
+  });
+});
+
+/*
+ * A record a status page stops showing leaves its cached overview at once
+ * (StatusPageOverviewCache): every write of a switch that decides it, and
+ * every delete, starts a new generation of the project's overviews.
+ */
+describe("the status page overview cache follows the writes", () => {
+  test("a write of a switch that decides what a status page shows forgets the project's overviews", async () => {
+    const forgetProjects: SpyInstance<
+      typeof StatusPageOverviewCache.forgetProjects
+    > = jest
+      .spyOn(StatusPageOverviewCache, "forgetProjects")
+      .mockResolvedValue(undefined);
+
+    const service: IncidentWrites = new IncidentWrites();
+    useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: true }),
+    ]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { isVisibleOnStatusPage: false },
+      props: rootProps(),
+    });
+
+    expect(forgetProjects).toHaveBeenCalledTimes(1);
+    expect(forgetProjects.mock.calls[0]![0]).toEqual([
+      PROJECT_ID.toString(),
+    ]);
+  });
+
+  test("a write of anything else keeps them", async () => {
+    const forgetProjects: SpyInstance<
+      typeof StatusPageOverviewCache.forgetProjects
+    > = jest
+      .spyOn(StatusPageOverviewCache, "forgetProjects")
+      .mockResolvedValue(undefined);
+
+    const service: IncidentWrites = new IncidentWrites();
+    useRepository(service as never, [storedIncident({})]);
+
+    await service.updateOneById({
+      id: new ObjectID(RECORD_ID),
+      data: { title: "Renamed" },
+      props: rootProps(),
+    });
+
+    expect(forgetProjects).not.toHaveBeenCalled();
+  });
+
+  test("a delete, and a purge, forget them", async () => {
+    const forgetProjects: SpyInstance<
+      typeof StatusPageOverviewCache.forgetProjects
+    > = jest
+      .spyOn(StatusPageOverviewCache, "forgetProjects")
+      .mockResolvedValue(undefined);
+
+    const service: IncidentWrites = new IncidentWrites();
+    useRepository(service as never, [
+      storedIncident({ isVisibleOnStatusPage: true }),
+    ]);
+
+    await service.deleteOneById({
+      id: new ObjectID(RECORD_ID),
+      props: rootProps(),
+    });
+
+    await service.hardDeleteBy({
+      query: {},
+      limit: 100,
+      skip: 0,
+      props: rootProps(),
+    });
+
+    expect(forgetProjects).toHaveBeenCalledTimes(2);
+
+    for (const call of forgetProjects.mock.calls) {
+      expect(call[0]).toEqual([PROJECT_ID.toString()]);
+    }
   });
 });
 

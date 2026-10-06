@@ -22,6 +22,8 @@ import IncidentCreatedRenotify from "../../../Types/StatusPage/IncidentCreatedRe
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { evaluateRowWriteSql } from "../TestingUtils/RowWriteSql";
+import Dictionary from "../../../Types/Dictionary";
 import {
   afterEach,
   beforeEach,
@@ -40,11 +42,11 @@ import {
  *   - a write that makes a record private switches Visible on Status Page
  *     off with it (as the incident's Settings form has always done);
  *   - a write that turns Visible on Status Page on and leaves Private as it
- *     is leaves a private record hidden: each record is read with its
- *     privacy right before its own write, and a private one is written with
- *     the switch off in that write (getColumnsForRowWriteOverrides,
- *     getRowWriteOverrides) - decided by that record alone, never by a read
- *     made earlier or by the other records the write reaches;
+ *     is leaves a private record hidden: the database works the switch out
+ *     in each record's own write, from the record as it is then
+ *     (getRowWriteSql), so a private one is stored with it off - decided by
+ *     that record alone, never by a read made earlier or by the other
+ *     records the write reaches;
  *   - both switches are stored as the database stores them, so a
  *     hand-written "true" counts;
  *   - creating a private incident or episode creates it hidden, and tells
@@ -73,11 +75,34 @@ type OnBeforeUpdate<T extends BaseModel> = (
 type OnBeforeCreate<T extends BaseModel> = (
   createBy: CreateBy<T>,
 ) => Promise<OnCreate<T>>;
-type GetColumnsForRowWriteOverrides = (data: unknown) => Array<string>;
-type GetRowWriteOverrides<T extends BaseModel> = (data: {
-  row: T;
-  data: unknown;
-}) => unknown;
+type GetRowWriteSql = (data: unknown) => Dictionary<string>;
+
+/*
+ * What the database stores for a row in place of what an update asked for:
+ * each column the service writes in SQL (getRowWriteSql), worked out on the
+ * row as the write finds it (RowWriteSql), where that differs from the
+ * value the update carries.
+ */
+function storedInPlaceOfWritten(
+  rowWriteSql: Dictionary<string>,
+  written: Record<string, unknown>,
+  row: BaseModel,
+): Record<string, unknown> {
+  const stored: Record<string, unknown> = {};
+
+  for (const [column, expression] of Object.entries(rowWriteSql)) {
+    const value: unknown = evaluateRowWriteSql(
+      expression,
+      row as unknown as Record<string, unknown>,
+    );
+
+    if (value !== written[column]) {
+      stored[column] = value;
+    }
+  }
+
+  return stored;
+}
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -152,28 +177,29 @@ describe("IncidentService keeps a private incident hidden on update", () => {
     return onUpdate.updateBy.data as unknown as Record<string, unknown>;
   }
 
-  // The columns each incident is read with right before its own write.
-  function rowColumns(onUpdate: OnUpdate<Incident>): Array<string> {
+  // The columns the database works out in each incident's own write.
+  function rowWriteSql(onUpdate: OnUpdate<Incident>): Dictionary<string> {
     return (
       IncidentService as unknown as {
-        getColumnsForRowWriteOverrides: GetColumnsForRowWriteOverrides;
+        getRowWriteSql: GetRowWriteSql;
       }
-    ).getColumnsForRowWriteOverrides(onUpdate.updateBy.data);
+    ).getRowWriteSql(onUpdate.updateBy.data);
   }
 
-  // What one incident is written with, decided on the row as read for it.
+  function rowColumns(onUpdate: OnUpdate<Incident>): Array<string> {
+    return Object.keys(rowWriteSql(onUpdate));
+  }
+
+  // What one incident is stored with in place of the update's own values.
   function rowOverrides(
     onUpdate: OnUpdate<Incident>,
     row: Incident,
   ): Record<string, unknown> {
-    return (
-      IncidentService as unknown as {
-        getRowWriteOverrides: GetRowWriteOverrides<Incident>;
-      }
-    ).getRowWriteOverrides({
-      row: row,
-      data: onUpdate.updateBy.data,
-    }) as Record<string, unknown>;
+    return storedInPlaceOfWritten(
+      rowWriteSql(onUpdate),
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      row,
+    );
   }
 
   function rowOf(id: string, isPrivate?: boolean): Incident {
@@ -190,8 +216,8 @@ describe("IncidentService keeps a private incident hidden on update", () => {
       isVisibleOnStatusPage: true,
     });
 
-    // Each incident is read with its privacy right before its own write...
-    expect(rowColumns(onUpdate)).toEqual(["isPrivate"]);
+    // The database works the switch out in each incident's own write...
+    expect(rowColumns(onUpdate)).toEqual(["isVisibleOnStatusPage"]);
     // ...and a private one is written hidden; Private itself is left alone.
     expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID, true))).toEqual({
       isVisibleOnStatusPage: false,
@@ -217,7 +243,7 @@ describe("IncidentService keeps a private incident hidden on update", () => {
     },
   );
 
-  test("the incident as read for its own write decides, not a read made before it", async () => {
+  test("the incident as its own write finds it decides, not a read made before it", async () => {
     // Read as public by the update's hooks, private by the time it is written.
     stored = [storedIncident(PRIVATE_ID, false)];
 
@@ -557,28 +583,29 @@ describe("IncidentEpisodeService keeps a private episode hidden on update", () =
     return onUpdate.updateBy.data as unknown as Record<string, unknown>;
   }
 
-  // The columns each episode is read with right before its own write.
-  function rowColumns(onUpdate: OnUpdate<IncidentEpisode>): Array<string> {
+  // The columns the database works out in each episode's own write.
+  function rowWriteSql(onUpdate: OnUpdate<IncidentEpisode>): Dictionary<string> {
     return (
       IncidentEpisodeService as unknown as {
-        getColumnsForRowWriteOverrides: GetColumnsForRowWriteOverrides;
+        getRowWriteSql: GetRowWriteSql;
       }
-    ).getColumnsForRowWriteOverrides(onUpdate.updateBy.data);
+    ).getRowWriteSql(onUpdate.updateBy.data);
   }
 
-  // What one episode is written with, decided on the row as read for it.
+  function rowColumns(onUpdate: OnUpdate<IncidentEpisode>): Array<string> {
+    return Object.keys(rowWriteSql(onUpdate));
+  }
+
+  // What one episode is stored with in place of the update's own values.
   function rowOverrides(
     onUpdate: OnUpdate<IncidentEpisode>,
     row: IncidentEpisode,
   ): Record<string, unknown> {
-    return (
-      IncidentEpisodeService as unknown as {
-        getRowWriteOverrides: GetRowWriteOverrides<IncidentEpisode>;
-      }
-    ).getRowWriteOverrides({
-      row: row,
-      data: onUpdate.updateBy.data,
-    }) as Record<string, unknown>;
+    return storedInPlaceOfWritten(
+      rowWriteSql(onUpdate),
+      onUpdate.updateBy.data as unknown as Record<string, unknown>,
+      row,
+    );
   }
 
   function rowOf(id: string, isPrivate?: boolean): IncidentEpisode {
@@ -597,14 +624,14 @@ describe("IncidentEpisodeService keeps a private episode hidden on update", () =
       });
 
       expect(writtenBy(onUpdate)["isVisibleOnStatusPage"]).toBe(true);
-      expect(rowColumns(onUpdate)).toEqual(["isPrivate"]);
+      expect(rowColumns(onUpdate)).toEqual(["isVisibleOnStatusPage"]);
       expect(rowOverrides(onUpdate, rowOf(PRIVATE_ID, true))).toEqual({
         isVisibleOnStatusPage: false,
       });
     }
   });
 
-  test("nothing is read for it before the write: each episode is read with its own write", async () => {
+  test("nothing is read for it before the write: each episode is decided in its own write", async () => {
     const onUpdate: OnUpdate<IncidentEpisode> = await beforeUpdate(
       { isVisibleOnStatusPage: true },
       { _id: PRIVATE_ID },
