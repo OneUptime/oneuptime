@@ -331,10 +331,10 @@ describe("when a switch was turned", () => {
       }),
     ).toEqual({ create: [], read: [Permission.ProjectOwner], update: [] });
 
+    const metadata: TableColumnMetadata = { type: TableColumnType.Date };
+
     expect(
-      UserAttribution.getColumnMetadata("archivedAt", {
-        type: TableColumnType.Date,
-      }).computed,
+      UserAttribution.getColumnMetadata("archivedAt", metadata).computed,
     ).toBe(true);
   });
 
