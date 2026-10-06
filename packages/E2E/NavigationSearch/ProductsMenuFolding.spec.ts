@@ -115,6 +115,37 @@ const navLink: (scope: Locator, title: string) => Locator = (
   });
 };
 
+/*
+ * The menu opens with a short zoom and fade (NavBarMenuModal). A box read
+ * while it plays is scaled, and boxes read one after another are scaled by
+ * different amounts, so rows that line up seem not to. Measure only once
+ * the panel is drawn at full size and nothing in the menu is still moving.
+ */
+const menuAtRest: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await expect
+    .poll(async (): Promise<boolean> => {
+      return page
+        .getByRole("combobox", { name: "Search products" })
+        .evaluate((search: HTMLElement): boolean => {
+          const panel: Element | null = search.closest(".rounded-2xl");
+          const dialog: Element | null = search.closest('[role="dialog"]');
+          if (!panel || !dialog) {
+            return false;
+          }
+          const style: CSSStyleDeclaration = getComputedStyle(panel);
+          return (
+            style.opacity === "1" &&
+            (style.transform === "none" ||
+              style.transform === "matrix(1, 0, 0, 1, 0, 0)") &&
+            dialog.getAnimations({ subtree: true }).length === 0
+          );
+        });
+    })
+    .toBe(true);
+};
+
 const openMenuAt: (page: Page, path: string) => Promise<void> = async (
   page: Page,
   path: string,
@@ -124,6 +155,7 @@ const openMenuAt: (page: Page, path: string) => Promise<void> = async (
   await expect(
     page.getByRole("combobox", { name: "Search products" }),
   ).toBeFocused();
+  await menuAtRest(page);
 };
 
 test.describe("the desktop products menu", () => {
