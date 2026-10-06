@@ -1705,7 +1705,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                     { runner: status.runner?.name || "" },
                   )
           }
-          submitButtonText="Switch"
+          // Not "Switch": that key is a network switch elsewhere.
+          submitButtonText="Switch to the AI agent"
           isLoading={isActing}
           error={confirmationError || undefined}
           onClose={() => {

@@ -3589,7 +3589,7 @@ describe("Switch to the AI agent", () => {
     expect(confirm).toHaveTextContent("(Read-only)");
     expect(updateByIdSpy).not.toHaveBeenCalled();
 
-    fireEvent.click(within(confirm).getByText("Switch"));
+    fireEvent.click(within(confirm).getByText("Switch to the AI agent"));
 
     expect(await waitForOneUpdate()).toEqual({
       aiAccessRunnerId: null,
