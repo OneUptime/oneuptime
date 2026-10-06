@@ -217,6 +217,7 @@ import { Navigate, useParams } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -257,6 +258,13 @@ interface AccessTestResult {
 
 // The confirmations the page asks for before an action.
 type PendingConfirmation = "reset" | "switch" | "automatic_investigation";
+
+// What an unbind field's sentence calls a binding whose name is unknown.
+const UNNAMED_BOUND_RUNNER: string = translationKey("a Runner");
+
+const UNNAMED_BOUND_CREDENTIAL: string = translationKey(
+  "a Kubernetes credential",
+);
 
 const PILL_COLORS: Record<AiAgentStatusPill["tone"], Color> = {
   success: Green500,
@@ -322,15 +330,27 @@ function parseAccessTestResult(data: JSONObject): AccessTestResult {
   };
 }
 
-// What an editor without the admin set may change here, and what they may not.
+/*
+ * What an editor without the admin set may change here, and what they may
+ * not. AiAccessPermissionNote shows its texts as given.
+ */
 function AdminPermissionNote(): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <AiAccessPermissionNote
-      canText="You can turn investigation on or off, lower fixes and remove allowlist patterns."
-      cannotText={`Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs ${formatNameList(
-        getKubernetesAiAccessAdminPermissionTitles(),
-        "or",
-      )}.`}
+      canText={translator.translateTemplate(
+        "You can turn investigation on or off, lower fixes and remove allowlist patterns.",
+      )}
+      cannotText={translator.translateTemplate(
+        "Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs {{permissions}}.",
+        {
+          permissions: formatNameList(
+            getKubernetesAiAccessAdminPermissionTitles(),
+            translator.translateTemplate("or"),
+          ),
+        },
+      )}
       dataTestId="kubernetes-ai-access-admin-note"
     />
   );
@@ -429,8 +449,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           });
 
         if (!cluster) {
+          // ErrorMessage shows it in the reader's language.
           throw new Error(
-            "Could not read this cluster's AI settings. It may have been deleted, or you may no longer have access to it.",
+            translationKey(
+              "Could not read this cluster's AI settings. It may have been deleted, or you may no longer have access to it.",
+            ),
           );
         }
 
@@ -473,7 +496,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return result.data || [];
           } catch (err) {
             errors.push(
-              `The Runner list could not be loaded, so the Runner binding is left as it is: ${API.getFriendlyMessage(err)}`,
+              translator.translateTemplate(
+                "The Runner list could not be loaded, so the Runner binding is left as it is: {{error}}",
+                { error: API.getFriendlyMessage(err) },
+              ),
             );
             return null;
           }
@@ -503,7 +529,10 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return result.data || [];
           } catch (err) {
             errors.push(
-              `The credential list could not be loaded, so the credential binding is left as it is: ${API.getFriendlyMessage(err)}`,
+              translator.translateTemplate(
+                "The credential list could not be loaded, so the credential binding is left as it is: {{error}}",
+                { error: API.getFriendlyMessage(err) },
+              ),
             );
             return null;
           }
@@ -721,7 +750,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
               {
                 runner:
-                  saved.aiAccessRunnerName || translatableTerm("a Runner"),
+                  saved.aiAccessRunnerName || translatableTerm(UNNAMED_BOUND_RUNNER),
                 permissions: getKubernetesRunnerPermissionTitles().join(", "),
               },
             )
@@ -729,7 +758,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               "Bound now: {{runner}}. Unbinding stops OneUptime AI from running kubectl on this cluster until it has an AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
               {
                 runner:
-                  saved.aiAccessRunnerName || translatableTerm("a Runner"),
+                  saved.aiAccessRunnerName || translatableTerm(UNNAMED_BOUND_RUNNER),
                 permissions: getKubernetesRunnerPermissionTitles().join(", "),
               },
             ),
@@ -766,7 +795,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           {
             credential:
               saved.aiAccessCredentialName ||
-              translatableTerm("a Kubernetes credential"),
+              translatableTerm(UNNAMED_BOUND_CREDENTIAL),
             permissions: getKubernetesCredentialPermissionTitles().join(", "),
           },
         ),
@@ -1221,7 +1250,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   /*
    * One page action at a time (reset, switch, a gap's one-click fix, the
    * automatic-investigation opt-in). A confirmed action reports a failure
-   * inside its dialog; an unconfirmed one on the page.
+   * inside its dialog; an unconfirmed one on the page. The notice is a
+   * translation key: the success Alert shows it in the reader's language.
    */
   const runPageAction: (data: {
     run: () => Promise<void>;
@@ -1287,9 +1317,11 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const heading: ReactElement = (
     <div className="mb-5" data-testid="ai-agent-page-heading">
       <h2 className="text-lg font-semibold text-gray-900">
-        {AI_AGENT_PAGE_TITLE}
+        {translator.translateText(AI_AGENT_PAGE_TITLE)}
       </h2>
-      <p className="mt-1 text-sm text-gray-500">{AI_AGENT_PAGE_SUBTITLE}</p>
+      <p className="mt-1 text-sm text-gray-500">
+        {translator.translateText(AI_AGENT_PAGE_SUBTITLE)}
+      </p>
     </div>
   );
 
@@ -1371,6 +1403,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         OneUptimeDate.fromString(status.evaluatedAt),
       )
     : "";
+  // A failed refresh's message, in the reader's language when it has a key.
+  const refreshError: string = translator.translateText(error) || error;
 
   const renderAsk: () => ReactElement = (): ReactElement => {
     return (
@@ -1378,11 +1412,12 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         className="text-xs font-medium text-gray-500"
         data-testid="ai-agent-gap-ask"
       >
-        {ASK_PROJECT_ADMIN_TEXT}
+        {translator.translateText(ASK_PROJECT_ADMIN_TEXT)}
       </p>
     );
   };
 
+  // `title` is a translation key, shown in the reader's language.
   const renderSettingsLink: (
     pageMap: PageMap,
     title: string,
@@ -1392,7 +1427,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         to={RouteUtil.populateRouteParams(RouteMap[pageMap] as Route)}
         className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
       >
-        <span>{title}</span>
+        <span>{translator.translateText(title)}</span>
         <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
       </Link>
     );
@@ -1435,7 +1470,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 run: async (): Promise<void> => {
                   await updateCluster({ isAiInvestigationEnabled: true });
                 },
-                notice: "AI may now investigate this cluster with kubectl.",
+                notice: translationKey(
+                  "AI may now investigate this cluster with kubectl.",
+                ),
                 isConfirmed: false,
               }).catch(() => {
                 // handled inside runPageAction
@@ -1447,18 +1484,24 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         );
       case "open_ai_features":
         return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_FEATURES, "Open AI Features")
+          ? renderSettingsLink(
+              PageMap.SETTINGS_AI_FEATURES,
+              translationKey("Open AI Features"),
+            )
           : renderAsk();
       case "open_llm_providers":
         return canChangeProjectSettings
           ? renderSettingsLink(
               PageMap.SETTINGS_AI_LLM_PROVIDERS,
-              "Open LLM Providers",
+              translationKey("Open LLM Providers"),
             )
           : renderAsk();
       case "open_ai_credits":
         return canChangeProjectSettings
-          ? renderSettingsLink(PageMap.SETTINGS_AI_CREDITS, "Open AI Credits")
+          ? renderSettingsLink(
+              PageMap.SETTINGS_AI_CREDITS,
+              translationKey("Open AI Credits"),
+            )
           : renderAsk();
       case "view_runner":
         return status.runner && canPickKubernetesRunner() ? (
@@ -1593,8 +1636,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   "/kubernetes-cluster/ai-access/reset-agent",
                 );
               },
-              notice:
+              notice: translationKey(
                 "The AI agent was reset. It reconnects on its own within a few minutes.",
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction
@@ -1656,7 +1700,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   aiAccessCredentialId: null,
                 });
               },
-              notice: "AI now reaches this cluster through its AI agent.",
+              notice: translationKey(
+                "AI now reaches this cluster through its AI agent.",
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction
@@ -1687,7 +1733,8 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             runPageAction({
               run: async (): Promise<void> => {
                 if (!projectId) {
-                  throw new Error("No project is selected.");
+                  // The dialog's error Alert shows it in the reader's language.
+                  throw new Error(translationKey("No project is selected."));
                 }
                 await ModelAPI.updateById<Project>({
                   modelType: Project,
@@ -1697,7 +1744,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   ),
                 });
               },
-              notice: "Automatic investigation is on for this project.",
+              notice: translationKey(
+                "Automatic investigation is on for this project.",
+              ),
               isConfirmed: true,
             }).catch(() => {
               // handled inside runPageAction
@@ -1728,11 +1777,17 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         <Alert
           type={AlertType.WARNING}
           strongTitle="Could not refresh the AI agent status"
-          title={`${error}${
+          title={
             lastCheckedAt
-              ? ` Showing the last status from ${lastCheckedAt}; this page retries on its own.`
-              : " Showing the last known status; this page retries on its own."
-          }`}
+              ? translator.translateTemplate(
+                  "{{error}} Showing the last status from {{time}}; this page retries on its own.",
+                  { error: refreshError, time: lastCheckedAt },
+                )
+              : translator.translateTemplate(
+                  "{{error}} Showing the last known status; this page retries on its own.",
+                  { error: refreshError },
+                )
+          }
           dataTestId="ai-access-refresh-warning"
         />
       ) : (
@@ -1785,7 +1840,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 <CodeBlock language="bash" code={helmCommands.install} />
               </div>
               <p className="text-xs text-gray-500">
-                {AI_AGENT_OTHER_RELEASE_TEXT}
+                {translator.translateText(AI_AGENT_OTHER_RELEASE_TEXT)}
               </p>
             </div>
           ) : command === "logs" ? (
@@ -1847,7 +1902,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 icon={IconProp.CheckCircle}
                 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
               />
-              <p className="text-sm text-emerald-900">{AI_AGENT_READY_TEXT}</p>
+              <p className="text-sm text-emerald-900">
+                {translator.translateText(AI_AGENT_READY_TEXT)}
+              </p>
             </div>
           ) : (
             <></>
@@ -2077,7 +2134,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                     className="text-xs font-medium text-gray-500"
                     data-testid="ai-access-automatic-investigation-ask"
                   >
-                    {ASK_PROJECT_ADMIN_TEXT}
+                    {translator.translateText(ASK_PROJECT_ADMIN_TEXT)}
                   </p>
                 )}
               </div>
@@ -2108,7 +2165,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             ) : null}
             {remediationMode === KubernetesAiRemediationMode.Automatic ? (
               <AiAccessAllowlist
-                title="kubectl allowlist"
+                title={translator.translateTemplate("kubectl allowlist")}
                 patterns={allowlistInEffect}
                 dataTestId="kubectl-allowlist-in-effect"
                 /*
@@ -2142,7 +2199,9 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             ) : null}
             {shouldShowWriteAccessCommands(status) ? (
               <AiAccessActionPanel
-                title="Give the agent write access"
+                title={translator.translateTemplate(
+                  "Give the agent write access",
+                )}
                 dataTestId="ai-access-write-commands"
               >
                 <p className="text-xs leading-5 text-gray-600">
