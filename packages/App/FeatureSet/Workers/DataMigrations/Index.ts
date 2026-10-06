@@ -127,6 +127,7 @@ import AddIncomingCallMissedNotificationSettingsForUsers from "./AddIncomingCall
 import NormalizeListOrder from "./NormalizeListOrder";
 import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInTheirUnit";
 import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
+import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -601,6 +602,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * so it sits before the last slot.
    */
   new SetFileVisibilityFromPublishedRecords(),
+  /*
+   * Workspace summaries have a time zone, and their schedule is read on its
+   * clock: each one made before then gets its creator's (UTC when it has no
+   * creator with one), so a summary set for 09:00 keeps going out at 09:00
+   * after the clocks change. Writes only the time zone, no next send.
+   * Postgres-only, idempotent. No ordering requirement beyond the schema
+   * migration that adds the column, so it sits before the last slot.
+   */
+  new SetWorkspaceSummaryTimezones(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

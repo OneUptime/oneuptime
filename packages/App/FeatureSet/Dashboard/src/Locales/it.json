@@ -25801,5 +25801,7 @@
   "a Runner": "un Runner",
   "node operations off": "operazioni sui nodi disattivate",
   "node operations on": "operazioni sui nodi attivate",
-  "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Viene mostrato l'ultimo stato, risalente al {{time}}; questa pagina riprova automaticamente."
+  "{{error}} Showing the last status from {{time}}; this page retries on its own.": "{{error}} Viene mostrato l'ultimo stato, risalente al {{time}}; questa pagina riprova automaticamente.",
+  "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.": "I riepiloghi successivi seguono alla stessa ora del giorno. Lascialo vuoto per iniziare alle 09:00 nel fuso orario del riepilogo, all'inizio della prossima settimana, del prossimo giorno o mese.",
+  "Summaries go out at the same time of day in this timezone all year, also after the clocks change.": "I riepiloghi vengono inviati alla stessa ora del giorno in questo fuso orario tutto l'anno, anche dopo il cambio dell'ora."
 }
