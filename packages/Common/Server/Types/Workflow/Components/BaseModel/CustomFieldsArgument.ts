@@ -4,9 +4,11 @@ import Select from "../../../Database/Select";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import QueryDeepPartialEntity from "../../../../../Types/Database/PartialEntity";
-import { TableColumnMetadata } from "../../../../../Types/Database/TableColumn";
-import TableColumnType from "../../../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../../../Types/JSON";
+import {
+  CUSTOM_FIELDS_COLUMN,
+  hasCustomFieldsColumn,
+} from "../../../../../Types/Workflow/CustomFieldsColumn";
 
 /*
  * https://github.com/OneUptime/oneuptime/issues/4469 - Update One Incident
@@ -32,7 +34,6 @@ import { JSONObject } from "../../../../../Types/JSON";
  * Terraform provider does: leaving a field out of the bag is how they remove
  * it, so merging there would keep values they meant to drop.
  */
-export const CUSTOM_FIELDS_COLUMN: string = "customFields";
 
 /*
  * How many times a merged write is made again, on top of a fresh read, when
@@ -70,10 +71,7 @@ export const getCustomFieldsToMerge: GetCustomFieldsToMergeFunction = (
   data: JSONObject,
   model: BaseModel,
 ): JSONObject | null => {
-  const metadata: TableColumnMetadata | undefined =
-    model.getTableColumnMetadata(CUSTOM_FIELDS_COLUMN);
-
-  if (!metadata || metadata.type !== TableColumnType.JSON) {
+  if (!hasCustomFieldsColumn(model)) {
     return null;
   }
 
