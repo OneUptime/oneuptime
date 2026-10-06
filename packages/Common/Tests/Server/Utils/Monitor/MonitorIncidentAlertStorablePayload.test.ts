@@ -34,6 +34,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { mockProjectStates } from "../../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * The incident and alert a check opens, and the state change that resolves
@@ -167,6 +168,11 @@ describe("Incidents and alerts store payload copies Postgres can hold", () => {
   let alertStateTimelines: Array<AlertStateTimeline> = [];
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     createdIncidents = [];
     createdAlerts = [];
     incidentStateTimelines = [];
