@@ -189,6 +189,7 @@ measured 94.2-99.6% and 99.8-100%.
 | TR-10 | `service.peer.name` on at least 99% of the app's CLIENT spans, and `downstream` on its `GET /ping`                               |
 | TR-11 | at least 95% of the app's server spans are named by its 4 Express routes (`GET /api/items/:id`, ...), and all 4 appear           |
 | TR-12 | no spans from the `sleeper` or from an excluded namespace                                                                        |
+| TR-13 | the app's background `GET /tick` arrives as a parentless OBI CLIENT span; with `ebpf.dropUnlinkedClientCalls` on, none such does |
 | PR-1  | profiler pods Ready, 0 restarts                                                                                                  |
 | PR-2  | no pin or create failure in the profiler logs                                                                                    |
 | PR-3  | at least 3 profile exports reached `/otlp/v1/profiles`, stamped with `k8s.cluster.name`                                          |
@@ -199,6 +200,16 @@ measured 94.2-99.6% and 99.8-100%.
 
 On kind, PR-5 also needs the root-namespace profiler to log that it uses
 OBI's pin ("Using shared map for OBI span/trace ID communication").
+
+The app also calls downstream's `GET /tick` every 2 s from a timer, outside any
+request, the way a worker or a controller calls out on its own. With the chart's
+defaults, TR-13 requires those calls to reach the sink as CLIENT spans with no
+parent, and none of the calls `ebpf.dropUnlinkedClientCalls` keeps (database,
+messaging, GenAI, MCP): that shows the switch would have something to drop, and
+that the analyzer recognizes OBI's real spans. With
+`E2E_HELM_ARGS='--set ebpf.dropUnlinkedClientCalls=true'`, the render runs
+`filter/ebpf-unlinked-client` and TR-13 requires that no such span, from any
+workload, reaches the sink.
 
 PR-7 never fails. OBI v0.14.0 leaves `traces_ctx_v1` entries keyed by threads
 it does not instrument (a containerd shim, runc, another cluster's containerd),

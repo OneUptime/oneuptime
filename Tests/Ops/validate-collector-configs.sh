@@ -308,6 +308,36 @@ while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
 
+# The span filter ebpf.dropUnlinkedClientCalls adds to the traces pipeline is
+# opt-in, so the render above does not have it. Validate the collector
+# Deployment config with it on as well: its OTTL is then checked against this
+# collector too, not only the one the chart ships
+# (agent-trace-filter-behaviour.sh runs it there).
+echo "==> rendering kubernetes-agent chart with ebpf.dropUnlinkedClientCalls=true"
+helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  --set clusterName=validate-only \
+  --set oneuptime.url=https://oneuptime.example.com \
+  --set oneuptime.apiKey=validate-only \
+  --set ebpf.dropUnlinkedClientCalls=true \
+  >"${WORK_DIR}/kubernetes-agent-client-calls.rendered.yaml"
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [rendered, out] = process.argv.slice(1);
+const configMap = yaml.loadAll(fs.readFileSync(rendered, "utf8")).find((doc) => {
+  return doc && doc.kind === "ConfigMap" && doc.metadata.name === "validate-kubernetes-agent-deployment";
+});
+const config = configMap.data["otel-collector-config.yaml"];
+if (!yaml.load(config).service.pipelines.traces.processors.includes("filter/ebpf-unlinked-client")) {
+  throw new Error(`${rendered}: filter/ebpf-unlinked-client is not in the traces pipeline`);
+}
+fs.writeFileSync(out, config);
+' "${WORK_DIR}/kubernetes-agent-client-calls.rendered.yaml" \
+  "${WORK_DIR}/k8s-deployment-client-calls.yaml"
+validate "kubernetes-agent / collector Deployment, ebpf.dropUnlinkedClientCalls=true" \
+  "${WORK_DIR}/k8s-deployment-client-calls.yaml"
+
 # The VMware config lists the receiver's optional metrics in a comment and
 # tells users to enable any of them "the same way", and OneUptime's VMware
 # metric catalog asks for three of them (vcenter.host.memory.active /
