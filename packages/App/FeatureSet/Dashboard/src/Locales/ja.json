@@ -25819,5 +25819,12 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加するラベル、またはその継承元に合わせて名前が付きます。",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "独自の名前を入力するまで、追加する所有者、またはその継承元に合わせて名前が付きます。",
   "Not sent yet: incident hidden from status pages": "未送信: インシデントがステータスページで非表示",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "このインシデントのポストモーテムはインシデントが非表示の間に公開されたため、まだ購読者に送信されていません。これをオンにすると購読者に送信されます。"
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "このインシデントのポストモーテムはインシデントが非表示の間に公開されたため、まだ購読者に送信されていません。これをオンにすると購読者に送信されます。",
+  "ending a session": "ending a session",
+  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
+  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
+  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
+  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
+  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
+  "stopping, killing or updating a container": "stopping, killing or updating a container"
 }

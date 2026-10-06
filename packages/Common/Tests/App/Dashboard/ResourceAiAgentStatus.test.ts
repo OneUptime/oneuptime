@@ -412,6 +412,7 @@ describe("the descriptors", () => {
         descriptor.commandsCardTitle,
         descriptor.writeExamples,
         descriptor.riskierExamples,
+        descriptor.riskierChanges,
       ]) {
         expect(value.trim().length).toBeGreaterThan(0);
       }

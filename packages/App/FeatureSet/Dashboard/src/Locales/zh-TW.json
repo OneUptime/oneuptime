@@ -25819,5 +25819,12 @@
   "Named after the labels it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的標籤或繼承標籤的來源命名。",
   "Named after the owners it adds, or where it inherits them from, until you type a name of your own.": "在您輸入自己的名稱之前，會依其新增的擁有者或繼承擁有者的來源命名。",
   "Not sent yet: incident hidden from status pages": "尚未傳送：事件在狀態頁面上隱藏",
-  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "此事件的事後檢討是在事件隱藏期間發布的，因此尚未傳送給訂閱者。開啟此項後將傳送給他們。"
+  "This incident's postmortem was published while the incident was hidden, so subscribers have not been sent it. Turning this on sends it to them.": "此事件的事後檢討是在事件隱藏期間發布的，因此尚未傳送給訂閱者。開啟此項後將傳送給他們。",
+  "ending a session": "ending a session",
+  "marking an OSD out, setting noout or repairing a PG": "marking an OSD out, setting noout or repairing a PG",
+  "powering a VM off, resetting or suspending it": "powering a VM off, resetting or suspending it",
+  "scaling a service to zero or changing its image": "scaling a service to zero or changing its image",
+  "shutting down, stopping or resetting a guest": "shutting down, stopping or resetting a guest",
+  "stopping a unit or vacuuming the journal": "stopping a unit or vacuuming the journal",
+  "stopping, killing or updating a container": "stopping, killing or updating a container"
 }
