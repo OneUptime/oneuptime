@@ -41,8 +41,10 @@ import { isEscalationRuleAdvancedConfigured } from "./EscalationRuleForm";
  *     onCallDutyPolicyScheduleId or userId, the other one cleared - so what
  *     is saved did not change.
  *   - Ring for (in seconds): how long the phone rings before the call moves
- *     on to the next rule. It is the timeout of Twilio's <Dial>, 30 seconds
- *     unless changed (IncomingCallRingTime).
+ *     on to the next rule. It is the timeout of Twilio's <Dial>, 20 seconds
+ *     unless changed, to move on before most voicemail picks up
+ *     (IncomingCallRingTime). Editing a rule shows the time it was saved
+ *     with: rules made when the default was 30 keep their 30.
  *
  * The name and the description wait under a folded Advanced section, as an
  * on-call policy's escalation rules have them (EscalationRuleForm.ts). A
