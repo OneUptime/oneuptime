@@ -10,6 +10,7 @@ import {
 import UpdateManyBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateManyBaseModel";
 import UpdateOneBaseModel from "../../../../../Server/Types/Workflow/Components/BaseModel/UpdateOneBaseModel";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
+import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
@@ -135,7 +136,7 @@ class FakeTable {
   }
 }
 
-interface Fixture<TModel extends Incident | Monitor | Team | Label> {
+interface Fixture<TModel extends BaseModel> {
   service: DatabaseService<TModel>;
   table: FakeTable;
   options: RunOptions;
@@ -143,7 +144,7 @@ interface Fixture<TModel extends Incident | Monitor | Team | Label> {
   updateBy: jest.SpiedFunction<DatabaseService<TModel>["updateBy"]>;
 }
 
-function makeFixture<TModel extends Incident | Monitor | Team | Label>(
+function makeFixture<TModel extends BaseModel>(
   modelType: { new (): TModel },
   rows: Array<Omit<TableRow, "projectId">>,
 ): Fixture<TModel> {
