@@ -18,6 +18,8 @@ For et projekt:
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS'er og opkald til projektmedlemmer, herunder vagtalarmer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. For enhver senere konfiguration er indstillingen slået fra: slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu, for at flytte disse beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
 5. Gem. Kun én konfiguration kan være projektets standard. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
+**SMS** og **Telefonopkald** er slået fra i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer eller nogen med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
+
 For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Settings > Call and SMS**, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemsnotifikationer bruger denne globale konfiguration, når projektet ikke har en standard. Hold Auth Token fortroligt.
 
 ## 3. Konfigurer netværksadgang

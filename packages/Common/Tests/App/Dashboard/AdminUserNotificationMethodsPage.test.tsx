@@ -209,7 +209,13 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import UserViewNotificationMethods from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods";
+import UserViewNotificationMethods, {
+  CHANNELS_OFF_DESCRIPTION_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/NotificationMethods";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import UserViewOnCallLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Users/View/OnCall/Layout";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -2491,8 +2497,23 @@ describe("a project with channels switched off", () => {
     leakedRawValue: "+15557779911",
   });
 
+  /*
+   * Said to the page's usual reader, a project admin: they may add methods
+   * here, but only a project owner or someone with Manage Billing may turn
+   * a channel on.
+   */
   const WHY_MISSING: string =
-    "Channels that are off in this project are not offered. A project owner can turn them on in Project Settings → Notification Settings.";
+    "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.";
+
+  // Said to someone who may turn them on, with the page as a link.
+  const WHY_MISSING_WITH_LINK: string =
+    "Channels that are off in this project are not offered. Turn them on in Project Settings → Notification Settings.";
+
+  type ChannelsOffNoteFunction = () => HTMLElement;
+
+  const channelsOffNote: ChannelsOffNoteFunction = (): HTMLElement => {
+    return within(modal()).getByTestId(CHANNELS_OFF_DESCRIPTION_TEST_ID);
+  };
 
   const OFFERED_CASES: Array<[string, ChannelSwitches, Array<string>]> = [
     ["every channel off", ALL_OFF, ["Email"]],
@@ -2551,6 +2572,72 @@ describe("a project with channels switched off", () => {
     clickButton(document.body, "Add notification method");
 
     expect(within(modal()).queryByText(WHY_MISSING)).not.toBeInTheDocument();
+  });
+
+  test("a project admin, who may add methods here but not turn a channel on, is told exactly who can - with no link", async () => {
+    respondWithChannels({ ...ALL_ON, sms: false });
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    const note: HTMLElement = channelsOffNote();
+
+    expect(note.textContent).toBe(WHY_MISSING);
+    expect(within(note).queryByRole("link")).not.toBeInTheDocument();
+    expect(note.textContent?.toLowerCase()).not.toContain("admin");
+  });
+
+  test.each([
+    ["a project owner", [Permission.ProjectOwner]],
+    [
+      "a project admin who also has Manage Billing",
+      [Permission.ProjectAdmin, Permission.ManageProjectBilling],
+    ],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s is sent straight to the switches",
+    async (_who: string, permissions: Array<Permission>) => {
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions);
+      respondWithChannels({ ...ALL_ON, call: false });
+
+      await renderPage();
+
+      clickButton(document.body, "Add notification method");
+
+      const note: HTMLElement = channelsOffNote();
+
+      expect(note.textContent).toBe(WHY_MISSING_WITH_LINK);
+
+      const link: HTMLElement = within(note).getByRole("link", {
+        name: "Project Settings → Notification Settings",
+      });
+
+      expect(link.getAttribute("href")).toBe(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+        ).toString(),
+      );
+      expect(link.getAttribute("href")).toContain(
+        `/dashboard/${PROJECT_ID_STRING}/settings/notification-settings`,
+      );
+    },
+  );
+
+  test("says nothing about who can while every channel it could offer is on", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.ProjectOwner]);
+    respondWithChannels(ALL_ON);
+
+    await renderPage();
+
+    clickButton(document.body, "Add notification method");
+
+    expect(
+      within(modal()).queryByTestId(CHANNELS_OFF_DESCRIPTION_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("with only email on, it asks for an email address alone, and adds it", async () => {

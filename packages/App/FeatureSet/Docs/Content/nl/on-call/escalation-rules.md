@@ -35,6 +35,8 @@ Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wann
 
 Hoe iedere persoon die een niveau oproept wordt bereikt, bepalen diens eigen bereikbaarheidsregels: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt gebruikt. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**.
 
+SMS, telefoonoproepen, WhatsApp en Telegram staan uit in een nieuw project: op OneUptime Cloud wordt elk bericht betaald uit het saldo van het project, en een zelfgehoste installatie heeft eerst een Twilio-account of een ingestelde Telegram-bot nodig. Zolang een kanaal uit staat, kan niemand in het project er een methode op toevoegen. Alleen een projecteigenaar of iemand met de machtiging **Manage Billing** kan er een aanzetten, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — een projectbeheerder kan dat niet. Alle anderen krijgen overal waar een kanaal uit staat precies te horen wie het kan aanzetten: boven hun eigen lijst met methoden op dat kanaal, op hun installatiechecklist en in het bericht dat ze krijgen wanneer iets het kanaal nodig heeft.
+
 ## Regels bewerken, herordenen en verwijderen
 
 - **Edit rule** opent hetzelfde dialoogvenster van één pagina, ingevuld met de regel zoals die is: de ontvangers, de wachttijd, en de naam en beschrijving onder **Meer velden**. Voeg ontvangers toe of verwijder ze en sla op. Wordt de naam leeggemaakt, dan krijgt de regel weer de naam van zijn niveau.

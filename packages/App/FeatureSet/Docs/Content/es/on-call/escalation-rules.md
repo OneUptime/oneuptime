@@ -35,6 +35,8 @@ El resumen en la parte superior de la página **Reglas de escalado** muestra tod
 
 A cada persona a la que avisa un nivel se la contacta según sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidente, alertas y episodios de alerta, y una tarjeta por gravedad que indica qué método de notificación se usa y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**.
 
+SMS, llamadas telefónicas, WhatsApp y Telegram empiezan apagados en un proyecto nuevo: en OneUptime Cloud cada mensaje se paga con el saldo del proyecto, y una instalación autoalojada necesita antes una cuenta de Twilio o un bot de Telegram configurado. Mientras un canal esté apagado, nadie en el proyecto puede añadir un método en él. Solo un propietario del proyecto o alguien con el permiso **Manage Billing** puede encender uno, en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**; un administrador del proyecto no puede. A todos los demás se les dice exactamente quién puede, allí donde un canal esté apagado: encima de su propia lista de métodos en ese canal, en su lista de configuración y en el mensaje que reciben cuando algo lo necesita.
+
 ## Editar, reordenar y eliminar reglas
 
 - **Editar regla** abre el mismo diálogo de una página, relleno con la regla tal como está: sus destinatarios, su espera, y su nombre y descripción en **Más campos**. Añade o quita destinatarios y guarda. Si vacías el nombre, la regla vuelve a llamarse como su nivel.

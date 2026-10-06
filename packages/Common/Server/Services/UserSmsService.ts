@@ -20,6 +20,10 @@ import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserSMS";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -112,7 +116,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableSmsNotifications) {
       throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
       );
     }
 
@@ -195,7 +199,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableSmsNotifications) {
       throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
       );
     }
 

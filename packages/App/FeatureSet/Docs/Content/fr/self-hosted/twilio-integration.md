@@ -18,6 +18,8 @@ Pour un projet :
 4. **Définir par défaut pour le projet** est activé pour la première configuration du projet : les SMS et appels destinés aux membres du projet, notamment les notifications d'astreinte, passent par elle dès l'enregistrement. Désactivez-le si ce compte sert uniquement aux pages de statut ou aux appels entrants. Pour toute configuration suivante, l'option est désactivée : activez-la, ou choisissez **Définir par défaut pour le projet** dans le menu de la ligne de la configuration, pour y faire passer ces messages. Une requête API qui omet `isProjectDefault` est traitée de la même manière.
 5. Enregistrez. Une seule configuration peut être celle par défaut du projet. Les pages de statut utilisent la configuration explicitement affectée à chaque page.
 
+**SMS** et **Appels téléphoniques** sont désactivés dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
+
 Pour définir une configuration par défaut pour toute l'installation, un administrateur peut ouvrir **Tableau de bord d'administration > Paramètres > Appels et SMS**, modifier les identifiants et numéros Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale lorsque leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
 
 ## 3. Configurer l'accès réseau

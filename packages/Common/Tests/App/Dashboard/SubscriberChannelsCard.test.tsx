@@ -103,6 +103,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
+import { STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE } from "../../../Utils/Project/NotificationChannels";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -569,9 +570,7 @@ describe("flipping a switch", () => {
 
   test("a project without SMS turned on hears it from the server, under the SMS row", async () => {
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
-      throw new Error(
-        "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
-      );
+      throw new Error(STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE);
     });
 
     await renderCard();
@@ -585,7 +584,7 @@ describe("flipping a switch", () => {
       expect(
         within(rowFor("enableSmsSubscribers")).getByRole("alert"),
       ).toHaveTextContent(
-        "SMS notifications are not enabled for this project.",
+        "Visitors can't subscribe by SMS while SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings > Notification Settings.",
       );
     });
     expect(switchFor("enableSmsSubscribers")).toHaveAttribute(

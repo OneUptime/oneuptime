@@ -18,6 +18,8 @@ För ett projekt:
 4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektmedlemmar, inklusive jouraviseringar, går via den så snart du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. För varje senare konfiguration är inställningen avstängd: slå på den, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta dessa meddelanden dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
 5. Spara. Endast en konfiguration kan vara projektets standard. Statussidor använder den konfiguration som uttryckligen tilldelats varje statussida.
 
+**SMS** och **Telefonsamtal** är avstängda i varje projekt, och tills de slås på kan ingen i projektet lägga till ett telefonnummer för dem. En projektägare eller någon med **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
+
 För ett standardvärde för hela installationen kan en administratör i stället öppna **Admin Dashboard > Settings > Call and SMS**, redigera Twilio-autentiseringsuppgifterna och telefonnumren och spara. Medlemsaviseringar använder den här globala konfigurationen när projektet saknar en standard. Håll Auth Token hemlig.
 
 ## 3. Konfigurera nätverksåtkomst
