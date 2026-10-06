@@ -74,8 +74,8 @@ jest.mock("../../../../../Server/EnvironmentConfig", () => {
  * create that leaves them at their defaults - works on every plan.
  *
  * Pinned here:
- *   - the guard: no column, and no table, of any model names a lower plan
- *     for a create than for an update. Exceptions would be listed below,
+ *   - the guard: no column, and no table, of any model - database or
+ *     analytics - names a lower plan for a create than for an update. Exceptions would be listed below,
  *     each with its reason; the lists may only shrink, and are empty;
  *   - the 39 columns that asked for their plan only on an update until
  *     now, each with the plan a create now needs, at the column check: on
@@ -230,6 +230,32 @@ const GATED_TABLES: Array<GatedTable> = ((): Array<GatedTable> => {
     return left.label.localeCompare(right.label);
   });
 })();
+
+// The plan-gated columns of the analytics models: none today.
+interface GatedAnalyticsColumn {
+  label: string;
+  billing: ColumnBillingAccessControl;
+}
+
+const ANALYTICS_GATED_COLUMNS: Array<GatedAnalyticsColumn> =
+  ((): Array<GatedAnalyticsColumn> => {
+    const columns: Array<GatedAnalyticsColumn> = [];
+
+    for (const modelType of AllAnalyticsModelTypes) {
+      const model: AnalyticsBaseModel = new modelType();
+
+      for (const column of model.getTableColumns()) {
+        if (column.billingAccessControl) {
+          columns.push({
+            label: `${modelType.name}.${column.key}`,
+            billing: column.billingAccessControl,
+          });
+        }
+      }
+    }
+
+    return columns;
+  })();
 
 const isColumnException: (label: string) => boolean = (
   label: string,
@@ -762,6 +788,21 @@ describe("the guard: a create never needs less than an update", () => {
     },
   );
 
+  test("the analytics models' columns: a create needs at least the plan an update needs (none is plan-gated today)", () => {
+    expect(AllAnalyticsModelTypes.length).toBeGreaterThan(10);
+
+    for (const gated of ANALYTICS_GATED_COLUMNS) {
+      if (isColumnException(gated.label)) {
+        continue;
+      }
+
+      expect([
+        gated.label,
+        isPlanAtLeast(gated.billing.update, gated.billing.create),
+      ]).toEqual([gated.label, true]);
+    }
+  });
+
   test.each(
     GATED_TABLES.map((table: GatedTable): [string, GatedTable] => {
       return [table.label, table];
@@ -795,19 +836,23 @@ describe("the guard: a create never needs less than an update", () => {
         true,
       ]);
 
-      const gated: GatedColumn | undefined = GATED_COLUMNS.find(
-        (candidate: GatedColumn): boolean => {
+      const billing: ColumnBillingAccessControl | undefined =
+        GATED_COLUMNS.find((candidate: GatedColumn): boolean => {
           return candidate.label === entry.name;
-        },
-      );
+        })?.billing ||
+        ANALYTICS_GATED_COLUMNS.find(
+          (candidate: GatedAnalyticsColumn): boolean => {
+            return candidate.label === entry.name;
+          },
+        )?.billing;
 
       // Gone, or its create plan reaches its update plan now: remove it.
       expect([
         entry.name,
-        Boolean(gated) &&
+        Boolean(billing) &&
           !isPlanAtLeast(
-            (gated as GatedColumn).billing.update,
-            (gated as GatedColumn).billing.create,
+            (billing as ColumnBillingAccessControl).update,
+            (billing as ColumnBillingAccessControl).create,
           ),
       ]).toEqual([entry.name, true]);
     }

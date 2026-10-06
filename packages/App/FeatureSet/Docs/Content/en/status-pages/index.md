@@ -35,7 +35,7 @@ Status pages live under **Status Pages** in the dashboard's left navigation, in 
 
 That's the whole create form. The list you land back on shows **Name**, **Description**, **Labels** and **Owners**, and can be filtered by **Status Page ID**, **Name** and **Description**.
 
-A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - private, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Settings left at their defaults, as this form leaves them, work on every plan.
+A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - for example private, a list hidden, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.
 
 Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set.
 

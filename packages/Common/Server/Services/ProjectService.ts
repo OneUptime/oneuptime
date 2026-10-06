@@ -352,23 +352,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
-   * What a new project's create is checked with: the caller's props, on the
-   * plan the project is being created on. A new project has no subscription
-   * yet, so none that is unpaid. A copy: the request's own props, which
-   * name the project it was sent from, are left as they are.
-   */
-  public getNewProjectProps(
-    props: DatabaseCommonInteractionProps,
-    plan: PlanType,
-  ): DatabaseCommonInteractionProps {
-    return {
-      ...props,
-      currentPlan: plan,
-      isSubscriptionUnpaid: false,
-    };
-  }
-
-  /*
    * Runs on every create and update that carries dataResidency, before the
    * write. Who may write it is the column's access control (master admins
    * only); this is what they may write: trimmed text, a blank stored as null,
@@ -567,9 +550,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
        * this hook, by the create's column check (ColumnPermission) - as
        * every record's settings are checked against its project's plan.
        * Not against the plan of the project the request was sent from,
-       * nor against none when it was sent from no project.
+       * nor against none when it was sent from no project. A new project
+       * has no subscription yet, so none that is unpaid. A copy: the
+       * request's own props are left as they are.
        */
-      data.props = this.getNewProjectProps(data.props, data.data.planName);
+      data.props = {
+        ...data.props,
+        currentPlan: data.data.planName,
+        isSubscriptionUnpaid: false,
+      };
 
       if (data.data.paymentProviderPromoCode) {
         /*

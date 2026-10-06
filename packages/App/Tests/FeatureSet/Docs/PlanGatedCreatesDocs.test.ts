@@ -143,7 +143,7 @@ describe("the API reference", () => {
 
   test("names the settings a plan sells and says a create needs the plan as a change does", () => {
     expect(section).toContain(
-      "Some settings of a resource are sold on a plan in the same way: a status page that is private, or that has custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, or an IP allowlist; a dashboard that is shared publicly, or its IP allowlist; a form's IP allowlist; a project's audit logs.",
+      "Some settings of a resource are sold on a plan in the same way. For example: a status page that is private, that hides one of its lists, or that has custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, or an IP allowlist; a dashboard that is shared publicly, or its IP allowlist; a form's IP allowlist; a project's audit logs. Each one's guide, and the dashboard beside the setting, names the plan it needs.",
     );
     expect(section).toContain(
       "Such a setting needs its plan whenever it is written - when the resource is created with it as when it is changed later - so a create that switches one on below the plan is refused with `402` too.",
@@ -176,7 +176,7 @@ describe("the status pages guide", () => {
       "A page created through the API or Terraform is held to the same plans as the settings described below.",
     );
     expect(section).toContain(
-      "is refused with `402 Payment Required`, and the message names the plan. Settings left at their defaults, as this form leaves them, work on every plan.",
+      "is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.",
     );
   });
 

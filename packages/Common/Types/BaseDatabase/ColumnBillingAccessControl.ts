@@ -6,10 +6,11 @@ import { PlanType } from "../Billing/SubscriptionPlan";
  * record is created or changed.
  *
  * A setting a plan sells needs that plan whenever it is written: `create`
- * names the same plan as `update`, so a record cannot be created with a
- * feature switched on that the project could not switch on a moment later
- * (PlanGatedCreatePlan.test.ts holds every column to that). Writing the
- * column's default - the feature off - needs no plan, on a create or an
+ * never names a lower plan than `update` (every column names the same one),
+ * so a record cannot be created with a feature switched on that the project
+ * could not switch on a moment later. PlanGatedCreatePlan.test.ts holds
+ * every column of every model to that, and every table plan too. Writing
+ * the column's default - the feature off - needs no plan, on a create or an
  * update alike (Types/Billing/PlanGatedColumnDefault).
  */
 export default interface ColumnBillingAccessControl {

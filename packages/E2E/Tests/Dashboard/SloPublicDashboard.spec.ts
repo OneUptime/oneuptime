@@ -10,12 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Faker from "Common/Utils/Faker";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
 import { IS_BILLING_ENABLED } from "../../Config";
-import {
-  createItem,
-  deleteItem,
-  JSONish,
-  toId,
-} from "./Helpers/MonitorAlerting";
+import { createItem, JSONish, toId } from "./Helpers/MonitorAlerting";
 import { serialize } from "./Helpers/Serialize";
 import { publicPost, publicPostStatus } from "./Helpers/StatusPagePublic";
 
@@ -602,29 +597,16 @@ test.describe("SLO widgets on a public dashboard", () => {
     });
 
     /*
-     * The private dashboard has served its purpose: its anonymous reads are
-     * already captured above. Delete it before building the control, so the
-     * control is the project's only dashboard, as it would have to be on the
-     * Free plan (one dashboard per project; soft-deleted rows do not count).
-     */
-    await deleteItem({
-      page,
-      projectId,
-      path: "/api/dashboard",
-      id: dashboardId,
-    });
-
-    /*
      * A refusal only means something if the same request would have
      * SUCCEEDED against a public dashboard — otherwise a typo'd route or an
      * empty dashboard id 404s and these assertions pass while proving
      * nothing. So build the identical dashboard with isPublicDashboard set
      * and issue both requests against it.
      *
-     * A second dashboard (built after deleting the first), created public as
-     * the first test's is, rather than this one flipped to public: a create
-     * and an update of `isPublicDashboard` both need Growth, which this
-     * spec's project is on when billing is enabled.
+     * A second dashboard, public from the start like the first test's, so
+     * both tests publish a dashboard the same way. Sharing one publicly
+     * needs Growth, which this spec's project is on when billing is
+     * enabled.
      */
     const controlWidget: SloWidget = buildSloWidget({
       sloId,

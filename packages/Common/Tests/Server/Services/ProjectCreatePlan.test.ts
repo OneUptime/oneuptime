@@ -57,7 +57,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * project's plan, which the request carries (the tenant header). A project
  * being created has no plan yet but the one it is being created on, so
  * ProjectService.onBeforeCreate hands the create's column check props on
- * that plan (getNewProjectProps):
+ * that plan:
  *
  *   - not the plan of the project the request was sent from: a request sent
  *     from an Enterprise project does not let a new Free project start with
@@ -278,42 +278,6 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("ProjectService.getNewProjectProps", () => {
-  test("is the caller's props on the new project's plan, with no unpaid subscription", () => {
-    const props: DatabaseCommonInteractionProps = creator({
-      plan: PlanType.Enterprise,
-    });
-    props.isSubscriptionUnpaid = true;
-
-    const result: DatabaseCommonInteractionProps =
-      ProjectService.getNewProjectProps(props, PlanType.Free);
-
-    expect(result).toEqual({
-      ...props,
-      currentPlan: PlanType.Free,
-      isSubscriptionUnpaid: false,
-    });
-    expect(result.userId).toEqual(USER_ID);
-    expect(result.userGlobalAccessPermission).toBe(
-      props.userGlobalAccessPermission,
-    );
-  });
-
-  test("is a copy: the request's own props keep the plan of the project it was sent from", () => {
-    const props: DatabaseCommonInteractionProps = creator({
-      plan: PlanType.Scale,
-    });
-
-    const result: DatabaseCommonInteractionProps =
-      ProjectService.getNewProjectProps(props, PlanType.Growth);
-
-    expect(result).not.toBe(props);
-    expect(props.currentPlan).toBe(PlanType.Scale);
-    expect(props.tenantId).toEqual(SENDING_PROJECT_ID);
-    expect(result.currentPlan).toBe(PlanType.Growth);
-  });
-});
-
 describe("on OneUptime Cloud (billing on), ProjectService.onBeforeCreate", () => {
   test.each(PLAN_IDS)(
     "a project created on %s is checked against its own plan (%s)",
@@ -352,6 +316,48 @@ describe("on OneUptime Cloud (billing on), ProjectService.onBeforeCreate", () =>
       expect(props.currentPlan).toBe(sendingPlan);
     },
   );
+});
+
+describe("on OneUptime Cloud (billing on), the props the hook hands on", () => {
+  test("are the caller's own, on the new project's plan, with no unpaid subscription", async () => {
+    const props: DatabaseCommonInteractionProps = creator({
+      plan: PlanType.Enterprise,
+    });
+    props.isSubscriptionUnpaid = true;
+
+    const createBy: CreateBy<Project> = await runOnBeforeCreate(
+      newProject("price_free_month"),
+      props,
+    );
+
+    expect(createBy.props).toEqual({
+      ...props,
+      currentPlan: PlanType.Free,
+      isSubscriptionUnpaid: false,
+    });
+    expect(createBy.props.userId).toEqual(USER_ID);
+    expect(createBy.props.userGlobalAccessPermission).toBe(
+      props.userGlobalAccessPermission,
+    );
+  });
+
+  test("are a copy: the request's own props keep the plan of the project it was sent from, and its unpaid state", async () => {
+    const props: DatabaseCommonInteractionProps = creator({
+      plan: PlanType.Scale,
+    });
+    props.isSubscriptionUnpaid = true;
+
+    const createBy: CreateBy<Project> = await runOnBeforeCreate(
+      newProject("price_growth_year"),
+      props,
+    );
+
+    expect(createBy.props).not.toBe(props);
+    expect(createBy.props.currentPlan).toBe(PlanType.Growth);
+    expect(props.currentPlan).toBe(PlanType.Scale);
+    expect(props.isSubscriptionUnpaid).toBe(true);
+    expect(props.tenantId).toEqual(SENDING_PROJECT_ID);
+  });
 });
 
 describe("on OneUptime Cloud (billing on), the create's column check after the hook", () => {
