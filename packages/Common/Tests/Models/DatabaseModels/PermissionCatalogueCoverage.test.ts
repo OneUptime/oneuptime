@@ -406,18 +406,21 @@ describe("a metric data point is the metric family's", () => {
       const read: Array<Permission> = columns[column]?.read || [];
       const create: Array<Permission> = columns[column]?.create || [];
 
-      expect([column, read.includes(Permission.ReadTelemetryServiceMetrics)]).toEqual(
-        [column, true],
-      );
+      expect([
+        column,
+        read.includes(Permission.ReadTelemetryServiceMetrics),
+      ]).toEqual([column, true]);
       expect([
         column,
         create.includes(Permission.CreateTelemetryServiceMetrics),
       ]).toEqual([column, true]);
 
       for (const other of OTHER_FAMILIES) {
-        expect([column, other, [...read, ...create].includes(other)]).toEqual(
-          [column, other, false],
-        );
+        expect([column, other, [...read, ...create].includes(other)]).toEqual([
+          column,
+          other,
+          false,
+        ]);
       }
     }
   });
@@ -642,9 +645,9 @@ describe("read lists name their own record's permissions", () => {
   test("the sweep sees every model, database and analytics, and their columns", () => {
     expect(READ_LIST_MODELS.length).toBeGreaterThan(400);
 
-    expect(Object.keys(findReadListModel("WorkspaceNotificationLog").columns)).toContain(
-      "alertId",
-    );
+    expect(
+      Object.keys(findReadListModel("WorkspaceNotificationLog").columns),
+    ).toContain("alertId");
     expect(
       Object.keys(findReadListModel(AnalyticsTableName.Metric).columns),
     ).toContain("value");

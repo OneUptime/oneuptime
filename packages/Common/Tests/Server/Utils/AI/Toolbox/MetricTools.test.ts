@@ -108,16 +108,13 @@ describe("metric tools through the AI toolbox gate", () => {
         Permission.ReadTelemetryServiceLog,
       ],
     ],
-  ])(
-    "denies the metric tools to %j",
-    (permissions: Array<Permission>) => {
-      for (const [, tool] of METRIC_TOOLS) {
-        expect(AIToolbox.hasPermissionForTool(tool, context(permissions))).toBe(
-          false,
-        );
-      }
-    },
-  );
+  ])("denies the metric tools to %j", (permissions: Array<Permission>) => {
+    for (const [, tool] of METRIC_TOOLS) {
+      expect(AIToolbox.hasPermissionForTool(tool, context(permissions))).toBe(
+        false,
+      );
+    }
+  });
 
   test("a blocked metric permission denies them despite a broad grant", () => {
     for (const [, tool] of METRIC_TOOLS) {

@@ -247,12 +247,9 @@ describe("metric data points are written with the metric permissions", () => {
   test.each([
     [DatabaseRequestType.Update, Permission.EditTelemetryServiceMetrics],
     [DatabaseRequestType.Delete, Permission.DeleteTelemetryServiceMetrics],
-  ])(
-    "%s takes %s",
-    (type: DatabaseRequestType, permission: Permission) => {
-      expect(mayDo([permission], type)).toBe(true);
-    },
-  );
+  ])("%s takes %s", (type: DatabaseRequestType, permission: Permission) => {
+    expect(mayDo([permission], type)).toBe(true);
+  });
 
   test.each([
     [DatabaseRequestType.Update, Permission.EditTelemetryServiceTraces],

@@ -185,10 +185,7 @@ const CHANGED: Array<ChangedColumns> = [
     readLikeColumn: "message",
     ownPermission: Permission.ReadWorkspaceNotificationLog,
     formerPermissions: [Permission.ReadPushLog],
-    apiKeyReaders: [
-      ...RECORD_READERS,
-      Permission.ReadWorkspaceNotificationLog,
-    ],
+    apiKeyReaders: [...RECORD_READERS, Permission.ReadWorkspaceNotificationLog],
   },
   {
     modelType: NetworkDeviceAutoImportRule,
@@ -426,9 +423,9 @@ describe("columns read with their record's own read permission", () => {
           principal,
         }),
       ).toBe(true);
-      expect(whoMayRead(Project, "workflowRunsInLast30Days", principal)).toEqual(
-        whoMayRead(Project, "name", principal),
-      );
+      expect(
+        whoMayRead(Project, "workflowRunsInLast30Days", principal),
+      ).toEqual(whoMayRead(Project, "name", principal));
     }
   });
 });

@@ -62,9 +62,11 @@ describe("Users, Teams & Permissions: what reading a record reads", () => {
       for (const permission of NAMED_PERMISSIONS) {
         const title: string = PermissionHelper.getTitle(permission);
 
-        expect([language, title, paragraph.includes(`**${title}**`)]).toEqual(
-          [language, title, true],
-        );
+        expect([language, title, paragraph.includes(`**${title}**`)]).toEqual([
+          language,
+          title,
+          true,
+        ]);
       }
     },
   );

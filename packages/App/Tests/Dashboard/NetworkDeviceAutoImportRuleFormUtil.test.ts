@@ -74,9 +74,12 @@ describe("Network Device auto-import rule monitor form state", () => {
     Permission.ProjectAdmin,
     Permission.ProjectMember,
     Permission.Viewer,
-  ])("includes the Monitor Template column for %s", (permission: Permission) => {
-    expect(getReadableMonitorTemplateColumn([permission])).not.toBeNull();
-  });
+  ])(
+    "includes the Monitor Template column for %s",
+    (permission: Permission) => {
+      expect(getReadableMonitorTemplateColumn([permission])).not.toBeNull();
+    },
+  );
 
   it.each([
     Permission.ReadMonitorTemplate,
@@ -135,8 +138,8 @@ describe("Network Device auto-import rule monitor form state", () => {
     expect(
       getColumnBaseId(
         getReadableMonitorTemplateColumn([
-        Permission.ReadNetworkDeviceAutoImportRule,
-      ])!,
+          Permission.ReadNetworkDeviceAutoImportRule,
+        ])!,
       ),
     ).toBe("monitorTemplate.templateName");
   });
@@ -259,9 +262,7 @@ describe("Network Device auto-import rule monitor form state", () => {
         Permission.ReadNetworkDeviceOidTemplate,
       ]),
     ).toBe(true);
-    expect(canPickAutoImportOidTemplate([Permission.ProjectMember])).toBe(
-      true,
-    );
+    expect(canPickAutoImportOidTemplate([Permission.ProjectMember])).toBe(true);
     expect(
       canPickAutoImportOidTemplate([
         Permission.ReadNetworkDeviceAutoImportRule,
