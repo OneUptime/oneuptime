@@ -256,8 +256,14 @@ describe("the announcement forms in the docs", () => {
         `**${labelIn(language, "Monitors affected (Optional)")}**`,
       ];
 
+      /*
+       * "**Notify Subscribers**" is not retired: it is the current label of
+       * the postmortem form's switch, which this guide describes. The old
+       * template sentence that named it is caught by "Monitors affected
+       * (Optional)" above.
+       */
       if (ENGLISH_LABEL_LANGUAGES.includes(language)) {
-        retired.push("**Notify Subscribers**", "four-step wizard");
+        retired.push("four-step wizard");
       }
 
       for (const text of retired) {

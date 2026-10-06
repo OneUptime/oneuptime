@@ -22,6 +22,8 @@ Die Rotation eines Plans besteht aus Ebenen, auf seiner Seite **Ebenen**. Die Eb
 
 **Ebene hinzufügen** fügt eine Ebene hinzu, die wie die erste beginnt: ab sofort in Bereitschaft, jede Person eine Woche lang, rund um die Uhr. Klappen Sie eine Ebene auf, um ihr Personen hinzuzufügen und zu ändern, wann sie beginnt, wie oft sie übergibt, wann sie zum ersten Mal übergibt und zu welchen Stunden sie Bereitschaft hat.
 
+Jede Person behält überall dieselbe Farbe, damit Sie ihr auf einen Blick folgen können: auf jeder Ebene, im endgültigen Plan und seinen Überschreibungen und auf der **Zeitachse der Bereitschaftspläne**.
+
 ## Pläne mit der API oder Terraform anlegen
 
 Bereitschaftspläne sind die Ressource `/api/on-call-duty-policy-schedule`; ihre Ebenen und die Personen darin sind die Ressourcen `/api/on-call-duty-schedule-layer` und `/api/on-call-duty-schedule-layer-user`.

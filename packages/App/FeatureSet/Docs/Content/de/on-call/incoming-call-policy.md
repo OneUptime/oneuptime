@@ -84,13 +84,13 @@ Eskalationsregeln bestimmen, wer angerufen wird, wenn jemand die Nummer der Rich
 3. Klicken Sie auf **Eskalationsregel hinzufügen**
 4. Füllen Sie die Regel aus. Es ist ein einziger Schritt:
    - **Wer angerufen wird**: ein Bereitschaftsplan oder eine Person. Ein Bereitschaftsplan lässt das Telefon der Person klingeln, die beim Eingang des Anrufs darin Bereitschaft hat. Personen sind die Mitglieder Ihres Projekts.
-   - **Klingeldauer (in Sekunden)**: wie lange das Telefon klingelt, bevor der Anruf an die nächste Regel weitergeht. Sie beginnt bei 30 Sekunden, und Twilio akzeptiert 5 bis 600.
+   - **Klingeldauer (in Sekunden)**: wie lange das Telefon klingelt, bevor der Anruf an die nächste Regel weitergeht. Sie beginnt bei 20 Sekunden, und Twilio akzeptiert 5 bis 600.
    - **Name** und **Beschreibung** sind optional und liegen unter **Weitere Felder**. Eine Regel ohne Namen wird nach ihrem Platz in der Liste angezeigt: **Level 1**, **Level 2**.
 5. Speichern Sie die Regel und fügen Sie für jeden weiteren Bereitschaftsplan und jede weitere Person eine Regel hinzu
 
 Die Regeln werden von oben nach unten angerufen, und eine neue Regel wird am Ende angefügt. Um die Reihenfolge zu ändern, ziehen Sie eine Regel an ihrem Griff oben links; per Tastatur fokussieren Sie den Griff, drücken die Leertaste, verschieben die Regel mit den Pfeiltasten und drücken erneut die Leertaste.
 
-> **Achten Sie auf die Mailbox**: Halten Sie die **Klingeldauer** kürzer als die Zeit, nach der das Telefon der Person einen unbeantworteten Anruf an die Mailbox weitergibt. Nimmt die Mailbox zuerst ab, wird der Anrufer mit ihr verbunden, und der Anruf geht nicht an die nächste Regel weiter. Twilio fügt jedem Klingeln einige Sekunden hinzu.
+> **Achten Sie auf die Mailbox**: Halten Sie die **Klingeldauer** kürzer als die Zeit, nach der das Telefon der Person einen unbeantworteten Anruf an die Mailbox weitergibt. Nimmt die Mailbox zuerst ab, wird der Anrufer mit ihr verbunden, und der Anruf geht nicht an die nächste Regel weiter. Twilio fügt jedem Klingeln einige Sekunden hinzu. Deshalb beginnt eine neue Regel bei 20 Sekunden. Regeln, die hinzugefügt wurden, als der Standard noch 30 Sekunden war, behalten ihre 30: Landen ihre Anrufe auf der Mailbox, verkürzen Sie bei diesen Regeln die **Klingeldauer**.
 
 ## Schritt 7: Sprachnachrichten konfigurieren (optional)
 

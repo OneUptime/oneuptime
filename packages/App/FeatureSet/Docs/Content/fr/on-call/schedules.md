@@ -22,6 +22,8 @@ La rotation d'un planning est faite de couches, sur sa page **Couches**. Les cou
 
 **Ajouter une couche** ajoute une couche qui démarre comme la première : d'astreinte dès maintenant, chaque personne pendant une semaine, 24 h/24. Dépliez une couche pour y ajouter des personnes et pour modifier quand elle commence, à quelle fréquence elle passe le relais, quand elle le passe pour la première fois et les heures où elle est d'astreinte.
 
+Chaque personne garde la même couleur partout, pour que vous la suiviez d'un coup d'œil : sur chaque couche, dans le planning final et ses remplacements, et sur la **Chronologie des astreintes**.
+
 ## Créer des plannings avec l'API ou Terraform
 
 Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` ; leurs couches et les personnes qu'elles contiennent sont les ressources `/api/on-call-duty-schedule-layer` et `/api/on-call-duty-schedule-layer-user`.

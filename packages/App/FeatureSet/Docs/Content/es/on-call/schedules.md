@@ -22,6 +22,8 @@ La rotación de una programación está hecha de capas, en su página **Capas**.
 
 **Añadir capa** añade una capa que empieza como la primera: de guardia desde ahora, cada persona durante una semana, las 24 horas. Despliega una capa para añadirle personas y cambiar cuándo empieza, cada cuánto hace el relevo, cuándo hace el primero y las horas en que está de guardia.
 
+Cada persona conserva el mismo color en todas partes, para que puedas seguirla de un vistazo: en cada capa, en la programación final y sus sustituciones, y en la **Línea de tiempo de guardias**.
+
 ## Crear programaciones con la API o Terraform
 
 Las programaciones de guardia son el recurso `/api/on-call-duty-policy-schedule`; sus capas y las personas que contienen son los recursos `/api/on-call-duty-schedule-layer` y `/api/on-call-duty-schedule-layer-user`.

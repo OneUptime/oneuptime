@@ -206,7 +206,8 @@ type PickColorForNameFunction = (name: string) => Color;
 /**
  * A colour for a record a machine creates by name - a label promoted from a
  * telemetry attribute - that is the same for the same name in every process,
- * so two workers creating it at once agree.
+ * so two workers creating it at once agree. The on-call screens colour each
+ * person the same way, from their user id (Dashboard LayerUserColors).
  */
 export const pickColorForName: PickColorForNameFunction = (
   name: string,
