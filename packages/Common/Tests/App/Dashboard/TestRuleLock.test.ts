@@ -47,6 +47,7 @@ import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceN
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 
 const DASHBOARD_SRC: string = path.resolve(
   __dirname,
@@ -265,12 +266,13 @@ describe("Test Rule's lock, from the permissions the dashboard stores", () => {
   test("a snapshot handed in is read the same way as the stored one", () => {
     expect(
       getTestRuleLock({
-        permissions: [Permission.CurrentUser, Permission.ProjectMember],
-        projectPermissions: {
-          _type: "UserTenantAccessPermission",
-          projectId: PROJECT_ID,
-          permissions: [row(Permission.CreateWorkspaceNotificationRule, true)],
-        },
+        held: HeldPermissionsUtil.fromRows({
+          rows: [
+            row(Permission.ProjectMember, false),
+            row(Permission.CreateWorkspaceNotificationRule, true),
+          ],
+          globalPermissions: [Permission.CurrentUser],
+        }),
       }),
     ).toEqual({ isLocked: true, tooltip: TEST_RULE_LOCKED_TOOLTIP });
   });

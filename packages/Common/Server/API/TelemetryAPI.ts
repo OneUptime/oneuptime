@@ -196,7 +196,9 @@ const router: ExpressRouter = Express.getRouter();
  * telemetry-read permission on that tenant before any data is queried.
  * Each guard's permission list mirrors the table-level read access control
  * declared on the corresponding analytics model, keeping these routes
- * exactly as permissive as the model-backed CRUD APIs for the same signal.
+ * exactly as permissive as the model-backed CRUD APIs for the same signal -
+ * the Read All Operational Resources wildcard included, for the signals whose
+ * model is an operational resource (all of them but security events).
  *
  * Guards are declared before any route registration: route registration
  * executes at module load, and spreading a const declared further down the
@@ -204,17 +206,20 @@ const router: ExpressRouter = Express.getRouter();
  */
 type ReadAccessGuardFactory = (
   permissions: Array<Permission>,
+  wildcard?: Permission | undefined,
 ) => Array<RequestHandler>;
 
 // An authenticated principal holding any of these permissions on the tenant.
 const createReadAccessGuard: ReadAccessGuardFactory = (
   permissions: Array<Permission>,
+  wildcard?: Permission | undefined,
 ): Array<RequestHandler> => {
   return [
     UserMiddleware.getUserMiddleware,
     UserMiddleware.requireUserAuthentication,
     UserMiddleware.requirePermission({
       permissions: permissions,
+      wildcard: wildcard,
     }),
   ];
 };
@@ -223,19 +228,23 @@ type TelemetryReadAccessGuardFactory = (
   signalReadPermission: Permission,
 ) => Array<RequestHandler>;
 
+// The read list of the operational telemetry models (Log, Span, ...).
 const createTelemetryReadAccessGuard: TelemetryReadAccessGuardFactory = (
   signalReadPermission: Permission,
 ): Array<RequestHandler> => {
-  return createReadAccessGuard([
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.TelemetryAdmin,
-    Permission.TelemetryMember,
-    Permission.TelemetryViewer,
-    signalReadPermission,
-  ]);
+  return createReadAccessGuard(
+    [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      signalReadPermission,
+    ],
+    Permission.ReadAllOperationalResources,
+  );
 };
 
 // Mirrors the read access control declared on the Log analytics model.
@@ -254,6 +263,7 @@ const requireTraceReadAccess: Array<RequestHandler> =
  */
 const requireMetricReadAccess: Array<RequestHandler> = createReadAccessGuard(
   getMetricReadPermissions(),
+  Permission.ReadAllOperationalResources,
 );
 
 /*

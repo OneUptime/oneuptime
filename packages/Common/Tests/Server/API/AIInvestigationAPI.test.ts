@@ -27,7 +27,9 @@ import AlertService from "../../../Server/Services/AlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
-import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
+import KubernetesClusterAiAccessService, {
+  AI_BALANCE_INSUFFICIENT_NEXT_STEP,
+} from "../../../Server/Services/KubernetesClusterAiAccessService";
 import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -2305,7 +2307,6 @@ describe("toPanelClusterAccess gap next steps", () => {
       "project_auto_remediation_disabled",
       "project_ai_command_execution_disabled",
       "llm_provider_missing",
-      "ai_balance_insufficient",
     ]) {
       expect(getRestrictedGapNextStep(code)).toBe(
         RESTRICTED_PROJECT_GAP_NEXT_STEP,
@@ -2449,12 +2450,50 @@ describe("toPanelClusterAccess gap next steps", () => {
     expect(row.runner?.name).toBe("Kubernetes AI agent");
   });
 
-  it("gives the out-of-credits gap the project-settings step", () => {
+  /*
+   * Credits are not a project admin's to add, so the generic "Ask a project
+   * owner or admin" step would send the reader to the wrong person. The
+   * gap's own step names who can - a project owner or someone with Manage
+   * Billing - and nothing of the cluster, so every viewer may read it.
+   */
+  it("gives the out-of-credits gap its own step: who can add credits, and nothing of the cluster", () => {
     expect(getRestrictedGapNextStep("ai_balance_insufficient")).toBe(
-      RESTRICTED_PROJECT_GAP_NEXT_STEP,
+      AI_BALANCE_INSUFFICIENT_NEXT_STEP,
+    );
+    expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).toBe(
+      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
+    );
+    expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).not.toContain("Runner");
+    expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).not.toContain("credential");
+    expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP.toLowerCase()).not.toContain(
+      "admin",
     );
     expect(RESTRICTED_GAP_NEXT_STEP).toContain(
       "the cluster's AI agent page (AI → Agent)",
     );
+  });
+
+  it("a viewer who cannot read the cluster still reads who can add credits", () => {
+    const row: InvestigationPanelClusterAccess = toPanelClusterAccess(
+      statusWithGaps([
+        RUNNER_NAMING_GAP,
+        {
+          code: "ai_balance_insufficient",
+          title: "The project is out of AI credits",
+          description:
+            "This project's AI credit balance is used up and auto-recharge is off, so OneUptime AI cannot run.",
+          nextStep: AI_BALANCE_INSUFFICIENT_NEXT_STEP,
+          blocks: "both",
+        },
+      ]),
+      { canReadCluster: false, canReadCredentials: false },
+    );
+
+    expect(
+      row.gaps.map((gap: KubernetesAiAccessGap): string => {
+        return gap.nextStep;
+      }),
+    ).toEqual([RESTRICTED_GAP_NEXT_STEP, AI_BALANCE_INSUFFICIENT_NEXT_STEP]);
+    expect(row.gaps[1]?.description).toBe(RESTRICTED_GAP_DESCRIPTION);
   });
 });

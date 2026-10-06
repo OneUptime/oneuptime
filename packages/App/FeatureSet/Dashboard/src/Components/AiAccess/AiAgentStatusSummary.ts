@@ -115,6 +115,12 @@ export interface AiAgentStatusSummary {
  * The Connection row's sentence for an agent in each of its own states,
  * named the way the rest of the product names it ("Docker AI agent",
  * "Kubernetes AI agent").
+ *
+ * The name goes in as written on its own, not cased for the middle of a
+ * sentence: a resource agent's name keeps its capitals in English ("The
+ * Host AI agent is connected."). Each locale words these sentences for
+ * every name they hold, translated or not: French without an article, for
+ * "Agent IA Kubernetes" and "Docker AI agent" alike.
  */
 export function getAiAgentConnectionSentence(data: {
   state: AiAgentConnectionState;

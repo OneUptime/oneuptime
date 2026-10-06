@@ -1,11 +1,14 @@
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
   jest,
   test,
 } from "@jest/globals";
+import i18next from "i18next";
 import {
   AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG,
   AI_AGENT_DEFAULT_FIXES_ON_SETTINGS,
@@ -3075,5 +3078,321 @@ describe("a kubernetes-agent Runner, by the server's rule", () => {
         credentials,
       }),
     ).toMatch(/"prod-eu-kubectl" is an in-cluster Runner/);
+  });
+});
+
+/*
+ * Everything the cluster's "What AI may do" card, its Change modal and the
+ * write-access panel say is looked up in the Dashboard's locale files
+ * (src/Locales/README.md): a constant or a map's label is a key, and a
+ * function answers with whole keyed sentences. The mode maps were keyed by
+ * an enum the extractor cannot read, and the clauses, notes and refusals
+ * were plain strings and template literals that read English everywhere.
+ *
+ * A pseudo-locale wraps every en.json entry in ‹ ›, so what was looked up
+ * comes back wrapped, and so does a word or a list put into it. These run
+ * last: they set up the global i18next instance the functions read.
+ */
+describe("in the reader's language", () => {
+  const ENGLISH: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+
+  const LOOKED_UP: RegExp = /^‹[^]*›$/;
+
+  const BYPASS_SENTENCE: string =
+    "With Bypass approval OneUptime AI does not ask: it applies every fix the kubectl policy allows on this cluster on its own — {{examples}} included, in follow-up rounds too. Even so, {{protections}}.";
+
+  const toBypass: {
+    saved: KubernetesAiAccessSavedSettings;
+    changes: JSONObject;
+  } = {
+    saved: makeSaved({
+      aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+    }),
+    changes: { aiRemediationMode: KubernetesAiRemediationMode.BypassApproval },
+  };
+
+  beforeAll(async () => {
+    const pseudo: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(ENGLISH)) {
+      if (typeof value === "string") {
+        pseudo[key] = `‹${value}›`;
+      }
+    }
+
+    // Every wording but the Bypass approval confirmation's.
+    const withoutBypassSentence: Record<string, string> = { ...pseudo };
+    delete withoutBypassSentence[BYPASS_SENTENCE];
+
+    await i18next.init({
+      lng: "xx",
+      fallbackLng: "en",
+      resources: {
+        xx: { translation: pseudo },
+        yy: { translation: withoutBypassSentence },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test("the mode maps and the constants are keys in en.json", async () => {
+    await i18next.changeLanguage("xx");
+
+    for (const key of [
+      ...Object.values(REMEDIATION_MODE_SHORT_NAMES),
+      ...Object.values(REMEDIATION_MODE_SUMMARIES),
+      ...Object.values(REMEDIATION_MODE_OPTION_DESCRIPTIONS),
+      INVESTIGATION_ON_SENTENCE,
+      KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
+      getKubernetesAiAccessConfirmation(toBypass)!.title,
+    ]) {
+      expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
+    }
+  });
+
+  test("each every-mode protection, with the namespaces listed in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    const clauses: Array<string> = getEveryModeProtections();
+
+    expect(clauses).toHaveLength(4);
+    for (const clause of clauses) {
+      expect(clause).toMatch(LOOKED_UP);
+    }
+    expect(clauses[1]).toBe(
+      "‹a write in ‹kube-system, kube-public or kube-node-lease›, a node drain, a node taint and a patch of a node always need a human›",
+    );
+    expect(getEveryModeProtectionsSentence()).toBe(
+      `‹${clauses[0]}; ${clauses[1]}; ${clauses[2]}; and ${clauses[3]}›`,
+    );
+  });
+
+  test("every loosening the refusal names", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(
+      getKubernetesAiAccessLooseningChanges({
+        saved: makeSaved({ aiAccessCredentialId: CREDENTIAL_ID }),
+        changes: {
+          aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+          aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+          aiAccessRunnerId: OTHER_RUNNER_ID,
+          aiAccessCredentialId: null,
+        },
+        hasAiAgent: true,
+      }),
+    ).toEqual([
+      "‹switching fixes to ‹Bypass approval››",
+      `‹adding the kubectl allowlist pattern "${PATCH_PATTERN}"›`,
+      "‹binding a different Runner›",
+      "‹removing the Kubernetes credential›",
+    ]);
+    expect(
+      getKubernetesAiAccessLooseningChanges({
+        saved: makeSaved({ aiKubectlCommandAllowlist: [] }),
+        changes: {
+          aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+          aiAccessRunnerId: null,
+          aiAccessCredentialId: CREDENTIAL_ID,
+        },
+        hasAiAgent: true,
+      }),
+    ).toEqual([
+      `‹adding the kubectl allowlist patterns "${SET_IMAGE_PATTERN}", "${PATCH_PATTERN}"›`,
+      "‹switching this cluster to its Kubernetes AI agent›",
+      "‹binding a Kubernetes credential›",
+    ]);
+  });
+
+  test("the confirmations, the protections in them in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    const bypass: KubernetesAiAccessConfirmation | null =
+      getKubernetesAiAccessConfirmation(toBypass);
+
+    expect(bypass!.description).toMatch(LOOKED_UP);
+    expect(bypass!.description).toContain(getEveryModeProtectionsSentence());
+
+    for (const changes of [
+      {
+        aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+        aiKubectlCommandAllowlist: [BROAD_PATTERN],
+      },
+      { aiKubectlCommandAllowlist: [BROAD_PATTERN, `${BROAD_PATTERN} -o`] },
+    ]) {
+      const confirmation: KubernetesAiAccessConfirmation | null =
+        getKubernetesAiAccessConfirmation({
+          saved: makeSaved({
+            aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+          }),
+          changes,
+        });
+
+      expect(ENGLISH[confirmation!.title]).toBe(confirmation!.title);
+      expect(confirmation!.description).toMatch(LOOKED_UP);
+    }
+  });
+
+  /*
+   * A language that words the protections but not the confirmation reads
+   * the whole confirmation in English, protections included.
+   */
+  test("a confirmation the reader's language lacks is English, its protections too", async () => {
+    await i18next.changeLanguage("en");
+    const english: string =
+      getKubernetesAiAccessConfirmation(toBypass)!.description;
+
+    await i18next.changeLanguage("yy");
+    expect(getKubernetesAiAccessConfirmation(toBypass)!.description).toBe(
+      english,
+    );
+    expect(getEveryModeProtectionsSentence()).toMatch(LOOKED_UP);
+  });
+
+  test("the allowlist's errors", async () => {
+    await i18next.changeLanguage("xx");
+
+    const tooMany: string = Array.from(
+      { length: KUBECTL_ALLOWLIST_MAX_PATTERNS + 1 },
+      (_value: unknown, index: number): string => {
+        return `kubectl rollout restart deployment/web-${index} -n web`;
+      },
+    ).join("\n");
+
+    expect(validateKubectlAllowlistText(tooMany)).toBe(
+      `‹At most ${KUBECTL_ALLOWLIST_MAX_PATTERNS} patterns; this list has ${KUBECTL_ALLOWLIST_MAX_PATTERNS + 1}.›`,
+    );
+    // The policy's own words stay as it says them.
+    expect(validateKubectlAllowlistText("kubectl *")).toMatch(
+      /^‹Pattern 1: .+›$/,
+    );
+    expect(
+      getKubectlAllowlistRemovalOnlyError({
+        text: PATCH_PATTERN,
+        storedValue: [SET_IMAGE_PATTERN],
+      }),
+    ).toMatch(LOOKED_UP);
+  });
+
+  test("the credential field's help and the binding errors", async () => {
+    await i18next.changeLanguage("xx");
+
+    for (const runner of [
+      { id: null, name: null },
+      { id: RUNNER_ID, name: "bash-runner", isAgent: false },
+      { id: RUNNER_ID, name: null, isAgent: false },
+      { id: RUNNER_ID, name: "kubernetes-agent/prod-east", isAgent: true },
+    ]) {
+      expect(getKubernetesAiCredentialFieldDescription(runner)).toMatch(
+        LOOKED_UP,
+      );
+    }
+    expect(
+      getKubernetesAiCredentialFieldDescription({
+        id: RUNNER_ID,
+        name: null,
+        isAgent: false,
+      }),
+    ).toContain("‹the chosen Runner›");
+
+    for (const data of [
+      { runner: { id: null, name: null }, credentialName: "prod token" },
+      { runner: { id: null, name: null }, credentialName: null },
+      {
+        runner: { id: RUNNER_ID, name: "bash-runner", isAgent: false },
+        credentialName: "prod token",
+      },
+      {
+        runner: { id: RUNNER_ID, name: "bash-runner", isAgent: false },
+        credentialName: null,
+      },
+      {
+        runner: { id: RUNNER_ID, name: "kubernetes-agent/prod", isAgent: true },
+        credentialName: "prod token",
+      },
+    ]) {
+      expect(
+        getKubernetesAiCredentialAssignmentError({
+          runner: data.runner,
+          credentialId: CREDENTIAL_ID,
+          credentialName: data.credentialName,
+          credentialRunnerIds: [OTHER_RUNNER_ID],
+        }),
+      ).toMatch(LOOKED_UP);
+    }
+  });
+
+  test("a bound Runner or credential whose name is unknown is named in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(
+      optionLabel(
+        buildKubernetesAiRunnerOptions({
+          runners: [],
+          boundRunnerId: RUNNER_ID,
+          boundRunnerName: null,
+        }),
+        RUNNER_ID,
+      ),
+    ).toBe("‹‹The bound Runner› (currently bound)›");
+    expect(
+      optionLabel(
+        buildKubernetesAiCredentialOptions({
+          credentials: [],
+          boundCredentialId: CREDENTIAL_ID,
+          boundCredentialName: null,
+          runner: { id: RUNNER_ID, name: "bash-runner", isAgent: false },
+        }),
+        CREDENTIAL_ID,
+      ),
+    ).toBe("‹‹The bound credential› (currently bound)›");
+  });
+
+  test("the write-access notes and the disclosure, the namespaces listed in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(getAiAgentScopedCommandNote()).toMatch(LOOKED_UP);
+    expect(getAiAgentScopedCommandNote()).toContain(
+      AI_AGENT_EXAMPLE_WRITE_NAMESPACES,
+    );
+    expect(getAiAgentClusterWideCommandNote()).toMatch(LOOKED_UP);
+    expect(
+      getAiAgentClusterWideCommandNote().startsWith(
+        `‹${AI_AGENT_CLUSTER_WIDE_NAMESPACES_FLAG} clears`,
+      ),
+    ).toBe(true);
+
+    const disclosure: string = getAiAgentWriteDisclosure();
+
+    expect(disclosure).toMatch(LOOKED_UP);
+    expect(disclosure).toContain(
+      "‹kube-system, kube-public and kube-node-lease›",
+    );
+    expect(disclosure).toContain(
+      "‹kube-system, kube-public or kube-node-lease›",
+    );
+  });
+
+  test("the connection test's permission sentences", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(getAccessTestPermissionRequirement()).toMatch(
+      /^‹Testing the connection needs permission to edit this ‹cluster› \(one of: .+\)\.›$/,
+    );
+    expect(getAccessTestPermissionMessage()).toMatch(LOOKED_UP);
   });
 });

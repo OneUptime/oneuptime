@@ -1209,7 +1209,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       title: "The project is out of AI credits",
       description: "This project's AI credit balance is used up.",
       nextStep:
-        "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).",
+        "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits.",
       blocks: "both",
     });
     expect(status.gaps[0]?.nextStep).toBe(AI_BALANCE_INSUFFICIENT_NEXT_STEP);

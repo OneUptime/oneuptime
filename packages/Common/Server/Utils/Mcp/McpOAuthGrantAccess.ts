@@ -12,9 +12,9 @@ import McpOAuthScope, {
 } from "../../../Types/Mcp/McpOAuthScope";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
-  UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 
 /*
  * "May this grant be used right now, and as whom?"
@@ -198,7 +198,8 @@ export default class McpOAuthGrantAccess {
    * Membership is read from the same permission set every API request is
    * authorized with. The block is the governance lever: connecting a client
    * needs no grant of AuthorizeMcpClient - every member may - but a BLOCK row
-   * for it on any of the member's teams refuses them. Labels on that row are
+   * for it on any of the member's teams refuses them, read by the rule every
+   * permission check follows (HeldPermissionsUtil). Labels on that row are
    * ignored, because a grant has no labels for them to select.
    */
   public static async getProjectRefusal(data: {
@@ -215,13 +216,10 @@ export default class McpOAuthGrantAccess {
       return McpOAuthGrantRefusal.NotAProjectMember;
     }
 
-    const isBlocked: boolean = (tenantPermission.permissions || []).some(
-      (permission: UserPermission): boolean => {
-        return (
-          permission.permission === Permission.AuthorizeMcpClient &&
-          Boolean(permission.isBlockPermission)
-        );
-      },
+    const isBlocked: boolean = HeldPermissionsUtil.isBlockedFromAny(
+      HeldPermissionsUtil.fromRows({ rows: tenantPermission.permissions }),
+      [Permission.AuthorizeMcpClient],
+      { labelledBlocksRefuse: true },
     );
 
     if (isBlocked) {

@@ -16,6 +16,7 @@ import {
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AGENT_HELM_NAMESPACE } from "./DocumentationMarkdown";
 import { readAiSettingsSource } from "../../../Components/AiAccess/AiAccessModes";
+import { ADD_AI_CREDITS_STEP } from "../../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   AgentAiSettingsSource,
   isAgentAiSettingsSourceAgent,
@@ -898,10 +899,14 @@ export function getAiAgentAttentionStepText(
       return translateTemplate(
         "Add an AI provider for this project, or use OneUptime AI credits.",
       );
+    /*
+     * Not "or turn on auto-recharge": AI credits are recharged after a call
+     * they paid for, so a balance that is used up stays used up until
+     * someone adds credits. Who can is the step's action
+     * (ProjectBalance/ProjectBalanceAccess).
+     */
     case "ai_balance_insufficient":
-      return translateTemplate(
-        "Add AI credits to this project, or turn on auto-recharge.",
-      );
+      return translateTemplate(ADD_AI_CREDITS_STEP);
     case "last_access_check_failed":
       // Nothing to test before anything can reach the cluster.
       return status.runner

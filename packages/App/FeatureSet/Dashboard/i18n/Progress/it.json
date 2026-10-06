@@ -4,6 +4,9 @@
     "untranslated": 16944
   },
   "sameAsEnglish": [
-    "Runbook: {{name}}"
+    "Offline",
+    "Pattern {{number}}: {{problem}}",
+    "Runbook: {{name}}",
+    "cluster"
   ]
 }

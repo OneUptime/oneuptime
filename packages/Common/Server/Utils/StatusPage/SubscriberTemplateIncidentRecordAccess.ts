@@ -4,16 +4,11 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { isCustomFieldTemplateVariableName } from "../../../Types/CustomField/CustomFieldVariableKey";
-import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
+import Permission, { PermissionHelper } from "../../../Types/Permission";
+import CallerPermission from "../Permission/CallerPermission";
 
 /*
  * WHO MAY PLACE INCIDENT RECORDS IN A SUBSCRIBER TEMPLATE.
@@ -46,6 +41,11 @@ interface AccessRequirement {
   // What the caller must be able to read, for the refusal.
   description: string;
   permissions: Array<Permission>;
+  /*
+   * The *AllOperationalResources wildcard the read accepts as well, as the
+   * read checks accept it (HeldPermissionsUtil), or null.
+   */
+  wildcard: Permission | null;
 }
 
 export default class SubscriberTemplateIncidentRecordAccess {
@@ -67,31 +67,22 @@ export default class SubscriberTemplateIncidentRecordAccess {
       return;
     }
 
-    const unrestricted: Array<Permission> =
-      SubscriberTemplateIncidentRecordAccess.getUnrestrictedPermissions(
-        data.props,
-      );
-    const blocked: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        data.props,
-        PermissionType.Block,
-      ).map((row: UserPermission): Permission => {
-        return row.permission;
-      });
-
     for (const requirement of SubscriberTemplateIncidentRecordAccess.getRequirements(
       data.placeholders,
     )) {
-      const isGranted: boolean = PermissionHelper.doesPermissionsIntersect(
-        unrestricted,
-        requirement.permissions,
-      );
-      const isBlocked: boolean = PermissionHelper.doesPermissionsIntersect(
-        blocked,
-        requirement.permissions,
-      );
-
-      if (isGranted && !isBlocked) {
+      /*
+       * Held the way every permission check reads it (CallerPermission),
+       * for every incident of the project: only a grant that reaches the
+       * whole project counts - not one limited to labels or to owned
+       * incidents - and a block on any of these refuses, labelled or not.
+       */
+      if (
+        CallerPermission.holdsAnyOf(data.props, requirement.permissions, {
+          wildcard: requirement.wildcard,
+          projectWideOnly: true,
+          labelledBlocksRefuse: true,
+        })
+      ) {
         continue;
       }
 
@@ -103,7 +94,9 @@ export default class SubscriberTemplateIncidentRecordAccess {
 
       throw new NotAuthorizedException(
         `Placing ${placeholders} in a subscriber notification template needs permission to ${requirement.description} for every incident in the project: these values come from your team's incident records, which the status page does not show. You need one of these permissions, not limited to some labels or to incidents you own: ${PermissionHelper.getPermissionTitles(
-          requirement.permissions,
+          requirement.wildcard
+            ? [...requirement.permissions, requirement.wildcard]
+            : requirement.permissions,
         ).join(", ")}.`,
       );
     }
@@ -121,7 +114,7 @@ export default class SubscriberTemplateIncidentRecordAccess {
     const requirements: Array<AccessRequirement> = [
       {
         description: "read incidents",
-        permissions: this.getTableReadPermissions(Incident),
+        ...this.getTableReadRequirement(Incident),
       },
     ];
 
@@ -133,11 +126,11 @@ export default class SubscriberTemplateIncidentRecordAccess {
       requirements.push(
         {
           description: "read incident custom field values",
-          permissions: this.getColumnReadPermissions(Incident, "customFields"),
+          ...this.getColumnReadRequirement(Incident, "customFields"),
         },
         {
           description: "read incident custom fields",
-          permissions: this.getTableReadPermissions(IncidentCustomField),
+          ...this.getTableReadRequirement(IncidentCustomField),
         },
       );
     }
@@ -149,69 +142,49 @@ export default class SubscriberTemplateIncidentRecordAccess {
     ) {
       requirements.push({
         description: "read incident labels",
-        permissions: this.getColumnReadPermissions(Incident, "labels"),
+        ...this.getColumnReadRequirement(Incident, "labels"),
       });
     }
 
     return requirements;
   }
 
-  /*
-   * The caller's granted permissions that reach every record, read as the
-   * read checks read them (PermissionHelper.getNonAccessControlPermissions,
-   * OwnedScopePermission): a row scoped to All, or a Labels (or legacy
-   * unscoped) row with no labels. A row limited to labels does not, nor one
-   * limited to owned records - except for a project-wide role that cannot
-   * be scoped (Project Owner, Project Admin), whose stray Owned scope the
-   * read checks ignore too.
-   */
-  private static getUnrestrictedPermissions(
-    props: DatabaseCommonInteractionProps,
-  ): Array<Permission> {
-    return DatabaseCommonInteractionPropsUtil.getUserPermissions(
-      props,
-      PermissionType.Allow,
-    )
-      .filter((row: UserPermission): boolean => {
-        if (row.scope === PermissionScope.All) {
-          return true;
-        }
-
-        if (row.scope === PermissionScope.Owned) {
-          return !PermissionHelper.isScopeApplicable(row.permission);
-        }
-
-        return !row.labelIds || row.labelIds.length === 0;
-      })
-      .map((row: UserPermission): Permission => {
-        return row.permission;
-      });
-  }
-
-  // As the table check reads them, the operational resource wildcard included.
-  private static getTableReadPermissions(
+  // A table's read, as the table check reads it: its list and its wildcard.
+  private static getTableReadRequirement(
     modelType: DatabaseBaseModelType,
-  ): Array<Permission> {
+  ): Pick<AccessRequirement, "permissions" | "wildcard"> {
     const model: BaseModel = new modelType();
-    const permissions: Array<Permission> = [...model.readRecordPermissions];
 
-    if (
-      model.isOperationalResource &&
-      !permissions.includes(Permission.ReadAllOperationalResources)
-    ) {
-      permissions.push(Permission.ReadAllOperationalResources);
-    }
-
-    return permissions;
+    return {
+      permissions: [...model.readRecordPermissions],
+      wildcard: HeldPermissionsUtil.getModelWildcard({
+        isOperationalResource: model.isOperationalResource,
+        operation: "read",
+      }),
+    };
   }
 
-  // As the select check reads them: no wildcard reaches a column.
-  private static getColumnReadPermissions(
+  /*
+   * A column's read, as the select check reads it: the column's own list,
+   * and the table's wildcard when the column lets in everyone the table does.
+   */
+  private static getColumnReadRequirement(
     modelType: DatabaseBaseModelType,
     columnName: string,
-  ): Array<Permission> {
-    return [
-      ...(new modelType().getColumnAccessControlFor(columnName)?.read || []),
+  ): Pick<AccessRequirement, "permissions" | "wildcard"> {
+    const model: BaseModel = new modelType();
+    const permissions: Array<Permission> = [
+      ...(model.getColumnAccessControlFor(columnName)?.read || []),
     ];
+
+    return {
+      permissions: permissions,
+      wildcard: HeldPermissionsUtil.getColumnWildcard({
+        isOperationalResource: model.isOperationalResource,
+        operation: "read",
+        tablePermissions: model.readRecordPermissions,
+        columnPermissions: permissions,
+      }),
+    };
   }
 }

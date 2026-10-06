@@ -1033,8 +1033,16 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     expect(page).not.toContain("AI Credits > Enable AI");
   });
 
-  it("says the Cloud global provider needs AI credits or auto-recharge", () => {
+  /*
+   * Auto Recharge only tops up credits that have not run out, so it is not
+   * a way to start; and only an owner or Manage Billing may add them.
+   */
+  it("says the Cloud global provider needs AI credits, and who adds them", () => {
     expect(enabling).toContain("the project needs AI credits");
+    expect(enabling).toContain(
+      "a project owner or someone with **Manage Billing** adds them on **Project Settings > AI > AI Credits**",
+    );
+    expect(enabling).not.toContain("or auto-recharge");
   });
 
   /*

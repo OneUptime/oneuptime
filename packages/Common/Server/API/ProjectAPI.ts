@@ -29,7 +29,8 @@ import Reseller from "../../Models/DatabaseModels/Reseller";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../Types/Date";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission from "../../Types/Permission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import ObjectID from "../../Types/ObjectID";
@@ -114,18 +115,10 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
             );
           }
 
-          const permissions: Array<UserPermission> =
-            await this.getPermissionsForTenant(req);
-
-          const hasBillingPermission: boolean =
-            permissions.filter((permission: UserPermission) => {
-              return (
-                permission.permission.toString() ===
-                  Permission.ProjectOwner.toString() ||
-                permission.permission.toString() ===
-                  Permission.ManageProjectBilling.toString()
-              );
-            }).length > 0;
+          const hasBillingPermission: boolean = CallerPermission.holdsAnyOf(
+            req as OneUptimeRequest,
+            [Permission.ProjectOwner, Permission.ManageProjectBilling],
+          );
 
           if (
             !hasBillingPermission &&

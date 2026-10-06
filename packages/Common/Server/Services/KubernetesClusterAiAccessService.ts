@@ -58,6 +58,10 @@ import AlertService from "./AlertService";
 import IncidentService from "./IncidentService";
 import KubernetesAiAgentService from "./KubernetesAiAgentService";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
+import {
+  getProjectBalanceWhoCanAddSentence,
+  ProjectBalanceType,
+} from "../../Utils/Project/ProjectBalance";
 import KubernetesClusterService from "./KubernetesClusterService";
 import LlmProviderService from "./LlmProviderService";
 import MonitorService from "./MonitorService";
@@ -521,9 +525,16 @@ interface ResolvedTargetAccess {
   gaps: Array<KubernetesAiAccessGap>;
 }
 
-// What to do about an empty AI balance (ai_balance_insufficient).
+/*
+ * What to do about an empty AI balance (ai_balance_insufficient): who can
+ * add credits, and where. Read by anyone who sees the gap - the cluster's
+ * and resources' AI pages, the investigation panel, a refused fix - most of
+ * whom cannot add credits (Utils/Project/ProjectBalance). Not "turn on
+ * auto-recharge": AI credits are recharged after a call they paid for, so
+ * an empty balance stays empty until someone adds credits.
+ */
 export const AI_BALANCE_INSUFFICIENT_NEXT_STEP: string =
-  "Add AI credits under Project Settings → AI Credits (or enable auto-recharge).";
+  getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI);
 
 class KubernetesClusterAiAccessServiceClass {
   /*

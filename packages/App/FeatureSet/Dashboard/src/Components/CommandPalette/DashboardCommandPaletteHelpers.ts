@@ -12,6 +12,9 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "Common/Types/HeldPermissions";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -409,29 +412,61 @@ export interface PaletteCreateActionGates {
   canCreateAnnouncement: boolean;
 }
 
+// A model whose own permission list for an operation is asked about.
+interface PaletteGatedModel {
+  isOperationalResource?: boolean | undefined;
+  getCreatePermissions: () => Array<Permission>;
+  getDeletePermissions: () => Array<Permission>;
+}
+
+/*
+ * Whether the snapshot holds one of a model's own permissions for an
+ * operation, by the rule the server follows (HeldPermissionsUtil
+ * .holdsModelPermission): one of the permissions held, no team block on any
+ * of them, and the operational resource wildcard for a model that is one.
+ * The snapshot arrives whole (PermissionGate.getHeldPermissions) so this
+ * stays pure.
+ */
+function holdsModelPermission(data: {
+  model: PaletteGatedModel;
+  operation: "create" | "delete";
+  held: HeldPermissions;
+}): boolean {
+  return HeldPermissionsUtil.holdsModelPermission(data.held, {
+    isOperationalResource: data.model.isOperationalResource,
+    operation: data.operation,
+    modelPermissions:
+      (data.operation === "create"
+        ? data.model.getCreatePermissions()
+        : data.model.getDeletePermissions()) || [],
+  });
+}
+
 /*
  * Mirror of BaseModelTable's create-button gating: the user can run a create
  * action when their permission snapshot grants create on the model, or they
- * are a master admin. Permissions arrive as a plain array (what
- * PermissionUtil.getAllPermissions returns) so this stays pure.
+ * are a master admin.
  */
 export function computeCreateActionGates(data: {
-  permissions: Array<Permission> | null;
+  // What the user holds, blocks included (PermissionGate.getHeldPermissions).
+  held: HeldPermissions | null;
   isMasterAdmin: boolean;
 }): PaletteCreateActionGates {
-  const canCreate: (model: {
-    hasCreatePermissions: (permissions: Array<Permission>) => boolean;
-  }) => boolean = (model: {
-    hasCreatePermissions: (permissions: Array<Permission>) => boolean;
-  }): boolean => {
+  const canCreate: (model: PaletteGatedModel) => boolean = (
+    model: PaletteGatedModel,
+  ): boolean => {
     if (data.isMasterAdmin) {
       return true;
     }
-    if (!data.permissions) {
+    if (!data.held) {
       // A missing snapshot (e.g. right after SSO login) hides create actions.
       return false;
     }
-    return model.hasCreatePermissions(data.permissions);
+    return holdsModelPermission({
+      model: model,
+      operation: "create",
+      held: data.held,
+    });
   };
 
   return {
@@ -449,18 +484,23 @@ export function computeCreateActionGates(data: {
  * master admin. A missing permission snapshot hides it.
  */
 export function canDeleteProject(data: {
-  permissions: Array<Permission> | null;
+  // What the user holds, blocks included (PermissionGate.getHeldPermissions).
+  held: HeldPermissions | null;
   isMasterAdmin: boolean;
 }): boolean {
   if (data.isMasterAdmin) {
     return true;
   }
 
-  if (!data.permissions) {
+  if (!data.held) {
     return false;
   }
 
-  return new Project().hasDeletePermissions(data.permissions);
+  return holdsModelPermission({
+    model: new Project(),
+    operation: "delete",
+    held: data.held,
+  });
 }
 
 export interface PaletteActionAvailability extends PaletteCreateActionGates {

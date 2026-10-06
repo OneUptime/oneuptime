@@ -27,7 +27,7 @@ import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
 } from "../../Utils/AiRemediation/KubectlPolicy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { holdsAnyPermission } from "../Utils/Runbook/RunbookExecutePermission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -811,22 +811,22 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (
         !baseline.projectId ||
-        !holdsAnyPermission({
-          props: data.props,
-          projectId: baseline.projectId,
-          allowed: KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-        })
+        !CallerPermission.holdsAnyOf(
+          data.props,
+          KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+          { projectId: baseline.projectId },
+        )
       ) {
         throw new NotAuthorizedException(getAiAccessAdminRefusal());
       }
 
       if (
         loosening.bindsCredential &&
-        !holdsAnyPermission({
-          props: data.props,
-          projectId: baseline.projectId,
-          allowed: KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
-        })
+        !CallerPermission.holdsAnyOf(
+          data.props,
+          KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+          { projectId: baseline.projectId },
+        )
       ) {
         throw new NotAuthorizedException(getAiAccessCredentialRefusal());
       }

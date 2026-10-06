@@ -1692,13 +1692,23 @@ describe("a SCIM connection's bearer token", () => {
       return [caller.name, caller];
     }),
   )("selected by %s", (_name: string, caller: Caller) => {
-    const holdsProjectOwner: boolean = (caller.rows || []).some(
-      (row: UserPermission): boolean => {
+    /*
+     * Held by an allow row, and not taken away by a block with no labels:
+     * the column is read by the rule its table is.
+     */
+    const holdsProjectOwner: boolean =
+      (caller.rows || []).some((row: UserPermission): boolean => {
         return (
           row.permission === Permission.ProjectOwner && !row.isBlockPermission
         );
-      },
-    );
+      }) &&
+      !(caller.rows || []).some((row: UserPermission): boolean => {
+        return (
+          row.permission === Permission.ProjectOwner &&
+          Boolean(row.isBlockPermission) &&
+          (row.labelIds || []).length === 0
+        );
+      });
 
     expect(canSelectToken(caller)).toBe(holdsProjectOwner);
   });

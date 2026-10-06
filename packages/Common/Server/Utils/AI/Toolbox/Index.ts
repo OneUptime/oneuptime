@@ -1,11 +1,9 @@
 import { JSONObject } from "../../../../Types/JSON";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import Permission from "../../../../Types/Permission";
+import HeldPermissionsUtil, {
+  HeldPermissions,
+} from "../../../../Types/HeldPermissions";
+import CallerPermission from "../../Permission/CallerPermission";
 import { LLMToolDefinition } from "../../LLM/LLMService";
 import logger from "../../Logger";
 import {
@@ -266,27 +264,14 @@ export default class AIToolbox {
     }
 
     /*
-     * Fail closed on block permissions: if any of the tool's permissions is
-     * block-listed for this user, deny the tool outright. This is coarser
-     * than the label-scoped block filtering the model layer applies, but the
-     * raw-SQL aggregation tools have no model layer — this gate is their
-     * only authorization.
+     * Held the way every permission check reads it (CallerPermission), and
+     * failing closed on blocks: if any of the tool's permissions is
+     * block-listed for this user, labelled or not, deny the tool outright.
+     * This is coarser than the label-scoped block filtering the model layer
+     * applies, but the raw-SQL aggregation tools have no model layer — this
+     * gate is their only authorization.
      */
-    const blockedPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        ctx.props,
-        PermissionType.Block,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const userPermissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        ctx.props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
+    const held: HeldPermissions = CallerPermission.getHeld(ctx.props);
 
     const groups: Array<Array<Permission>> =
       args !== undefined && tool.getRequiredPermissionGroups
@@ -295,14 +280,9 @@ export default class AIToolbox {
     return (
       groups.length > 0 &&
       groups.every((group: Array<Permission>): boolean => {
-        return (
-          group.length > 0 &&
-          !PermissionHelper.doesPermissionsIntersect(
-            blockedPermissions,
-            group,
-          ) &&
-          PermissionHelper.doesPermissionsIntersect(userPermissions, group)
-        );
+        return HeldPermissionsUtil.holdsAnyOf(held, group, {
+          labelledBlocksRefuse: true,
+        });
       })
     );
   }

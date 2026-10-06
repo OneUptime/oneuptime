@@ -56,6 +56,8 @@ Teamen **Owners** och **Admin** är avsiktligt låsta: deras behörigheter går 
 
 Att slå på eller av SMS, telefonsamtal, WhatsApp eller Telegram för projektet räknas som fakturering, eftersom varje meddelande kostar pengar. Bara `ProjectOwner` och behörigheten `ManageProjectBilling` (**Manage Billing**) kan ändra de reglagen, under **Projektinställningar > Aviseringar > Aviseringsinställningar** — inte `ProjectAdmin`.
 
+Att fylla på projektets förbetalda saldon räknas också som fakturering. På OneUptime Cloud betalas SMS, telefonsamtal, WhatsApp och Telegram från saldot under **Projektinställningar > Aviseringar > Aviseringsinställningar**, och AI från AI-krediterna under **Projektinställningar > AI > AI-krediter**. Bara en projektägare eller någon med **Manage Billing** kan fylla på dem eller ändra deras **Automatisk påfyllning** — inte en projektadministratör. Ett meddelande om ett saldo som håller på att ta slut säger vem som kan fylla på det, och bara de personerna får en knapp **Fyll på saldo** som fungerar, eller en länk till sidan.
+
 Skapa hur många extra team du vill — "Frontend-jour", "Support", "Skrivskyddade granskare" — och ge varje team de behörigheter det behöver.
 
 Var du hittar det: **Inställningar → Team**. Öppna ett team för att nå **Members** och **Permissions**; **Block Permissions** finns under **More settings** längst ned på sidan Permissions.
@@ -95,7 +97,7 @@ Varje team har två listor:
 
 En behörighet kan inte bära begränsningsetiketter i båda listorna samtidigt; OneUptime avvisar den andra med en förklaring.
 
-Eftersom en användares åtkomst är unionen över alla dennes team upphäver en blockering i ett team **inte** en tillåtelse i ett annat. Blockeringar begränsar det team de satts på. Har någon mer åtkomst än du väntar dig, kontrollera alla team personen tillhör.
+En användares tillåtelser läggs ihop över alla dennes team, men en blockering gäller allt användaren gör: en blockering utan etiketter i ett team tar bort förmågan även där ett annat team tillåter den, och en blockering ger aldrig något. Har någon mindre åtkomst än du väntar dig, leta efter en blockering i vart och ett av personens team; har hen mer, leta efter en tillåtelse i varje team.
 
 ## Omfattning: hur långt en tillåten behörighet når
 
@@ -152,12 +154,16 @@ För en inloggad användare, i ordning:
 
 1. Hitta de team användaren tillhör i det här projektet — bara accepterade inbjudningar räknas.
 2. Samla alla behörighetsrader från dessa team — tillåtna och blockerade, var och en med etiketter och omfattning.
-3. Kontrollera blockeringslistan först. En matchande blockering utan etiketter avvisar begäran direkt.
-4. Kontrollera tillåtelselistan. Begäran behöver minst en behörighet som måltabellen accepterar för den här operationen.
+3. Kontrollera blockeringslistan först. En blockering utan etiketter på någon behörighet som måltabellen accepterar för den här operationen avvisar begäran direkt, oavsett vilket team den är satt på.
+4. Kontrollera tillåtelselistan. Begäran behöver minst en behörighet som måltabellen accepterar för den här operationen. För en driftresurs — en övervakare, en incident, en instrumentpanel och liknande — räknas även motsvarande **All Operational Resources**-behörighet (Create, Read, Edit eller Delete), om den inte själv är blockerad.
 5. Tillämpa omfattningen. Tilldelningar med omfattningen Ägda smalnar av frågan till ägda resurser; etikettbaserade smalnar av till matchande etiketter. Är någon annan tilldelning för samma operation bredare vinner den bredare.
 6. Tillämpa etikettblockeringar. En blockering med etiketter avvisar begäran om målresursen bär någon av dem.
 
 Varje fält i en post läses med postens egen läsbehörighet: en behörighet för en annan sorts post öppnar det aldrig. Vissa fält är avsiktligt snävare. Hemligheter läses bara av personer som får redigera eller administrera posten de hör till, till exempel en monitors nycklar för inkommande förfrågningar och inkommande e-post och dess serveragentnyckel, eller ett arbetsflödes webhook- och e-postnycklar. Att titta på inspelningen av en sessionsuppspelning kräver **Watch Session Replays**, inte bara **List Session Replays**. Telemetri läses signal för signal: **Read Telemetry Service Log** läser loggar, **Read Telemetry Service Traces** läser spår och **Read Telemetry Service Metrics** läser mätvärden, mätvärdesdiagram inräknade.
+
+Fält följer samma regel. En blockering utan etiketter på ett fälts behörighet tar bort fältet, och för en driftresurs öppnar motsvarande **All Operational Resources**-behörighet varje fält som alla som får läsa eller ändra posten får öppna — men inte ett fält som är avsiktligt snävare, som en hemlig nyckel.
+
+Samma regel avgör allt annat som frågar om du har en behörighet: åtgärder som inte är en enkel läsning eller skrivning — att lägga till SMS-, samtals- eller AI-kredit, betala en faktura eller testa en aviseringsregel — och knapparna som OneUptime visar. En knapp du inte får använda visas låst och säger varför; är en blockering i ett av dina team orsaken, namnger den den blockerade behörigheten.
 
 Varje inloggad användare har dessutom en liten uppsättning automatiska behörigheter som täcker sådant som att läsa sin egen profil och sina egna aviseringsregler. Det är inga administratörsbehörigheter och de ger inte åtkomst till någon annans data.
 

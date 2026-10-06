@@ -28,6 +28,7 @@ import {
 import PageMap from "../../FeatureSet/Dashboard/src/Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
 import Permission from "Common/Types/Permission";
+import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import {
   filterPaletteCommands,
   PaletteCommandMatch,
@@ -642,7 +643,7 @@ describe("canDeleteProject (the Danger Zone's own rule, mirrored)", () => {
   test("a project owner may", () => {
     expect(
       canDeleteProject({
-        permissions: [Permission.ProjectOwner],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
         isMasterAdmin: false,
       }),
     ).toBe(true);
@@ -651,7 +652,7 @@ describe("canDeleteProject (the Danger Zone's own rule, mirrored)", () => {
   test("the Delete Project permission is enough", () => {
     expect(
       canDeleteProject({
-        permissions: [Permission.DeleteProject],
+        held: HeldPermissionsUtil.fromPermissions([Permission.DeleteProject]),
         isMasterAdmin: false,
       }),
     ).toBe(true);
@@ -660,19 +661,18 @@ describe("canDeleteProject (the Danger Zone's own rule, mirrored)", () => {
   test("a member may not", () => {
     expect(
       canDeleteProject({
-        permissions: [Permission.ProjectMember, Permission.ProjectAdmin],
+        held: HeldPermissionsUtil.fromPermissions([
+          Permission.ProjectMember,
+          Permission.ProjectAdmin,
+        ]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
   });
 
   test("a missing permission snapshot hides it; a master admin always may", () => {
-    expect(canDeleteProject({ permissions: null, isMasterAdmin: false })).toBe(
-      false,
-    );
-    expect(canDeleteProject({ permissions: null, isMasterAdmin: true })).toBe(
-      true,
-    );
+    expect(canDeleteProject({ held: null, isMasterAdmin: false })).toBe(false);
+    expect(canDeleteProject({ held: null, isMasterAdmin: true })).toBe(true);
   });
 });
 
