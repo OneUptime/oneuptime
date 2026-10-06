@@ -508,6 +508,18 @@ class EachFaultFailsItsCheck(unittest.TestCase):
                          'attributes': [kv('db.system.name', 'postgresql'), kv('service.peer.name', 'postgres')]}))
         self.assertOnlyFails(c, ['TR-7'])
 
+    def test_parentless_database_client_span_with_the_client_switch_on(self):
+        # a database call is filter/ebpf-unlinked-db's (TR-7), never
+        # filter/ebpf-unlinked-client's, on either key
+        c = Capture(client_filter=True)
+        c.spans += [
+            (Capture.resource('shop', 'app'),
+             unlinked_client_call(name='SELECT postgres', attrs=[kv('db.system.name', 'postgresql')])),
+            (Capture.resource('shop', 'app'),
+             unlinked_client_call(name='SELECT postgres', attrs=[kv('db.system', 'postgresql')])),
+        ]
+        self.assertOnlyFails(c, ['TR-7'])
+
     def test_parentless_client_call_with_the_switch_on(self):
         # what ebpf.dropUnlinkedClientCalls exists to drop: an HTTP call made
         # outside any request
