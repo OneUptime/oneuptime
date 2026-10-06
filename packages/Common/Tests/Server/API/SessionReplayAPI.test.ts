@@ -1120,9 +1120,9 @@ describe("Session replay playback API", () => {
       });
 
       expect(result.thrownToNext).toBeUndefined();
-      expect(
-        (result.jsonBody as JSONObject | undefined)?.["sessions"],
-      ).toEqual([]);
+      expect((result.jsonBody as JSONObject | undefined)?.["sessions"]).toEqual(
+        [],
+      );
       /* Above all: no unfiltered project-wide query was issued. */
       expect(headerQuerySpy).not.toHaveBeenCalled();
     });
@@ -3101,13 +3101,11 @@ describe("Session replay playback API", () => {
           const application: RumApplication = new RumApplication();
           application.id = data.id;
           application.projectId = projectId;
-          application.labels = data.labelIds.map(
-            (labelId: ObjectID): Label => {
-              const label: Label = new Label();
-              label.id = labelId;
-              return label;
-            },
-          );
+          application.labels = data.labelIds.map((labelId: ObjectID): Label => {
+            const label: Label = new Label();
+            label.id = labelId;
+            return label;
+          });
           return application;
         },
       );

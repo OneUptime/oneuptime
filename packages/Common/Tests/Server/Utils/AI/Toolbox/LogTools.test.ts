@@ -54,7 +54,6 @@ function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
   };
 }
 
-
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-1111-1111-111111111111",
 );

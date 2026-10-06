@@ -2,6 +2,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/MetricType";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -21,7 +22,7 @@ import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../Utils/Telemetry/TelemetryReadScope";
 import { combineWithPrivacyClause } from "../Utils/PrivacyFilterUtil";
-import { Raw } from "typeorm";
+import { FindOperator, Raw } from "typeorm";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -78,13 +79,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
     updateBy.query = await this.addCatalogueScope(
       updateBy.query,
       updateBy.props,
       DatabaseRequestType.Update,
     );
 
-    return super.onBeforeUpdate(updateBy);
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -110,28 +113,18 @@ export class Service extends ProjectReferencesService<Model> {
     props: DatabaseCommonInteractionProps,
     operation: DatabaseRequestType,
   ): Promise<TQuery> {
-    if (props.isRoot || props.isMasterAdmin || !props.tenantId) {
+    if (props.isRoot || props.isMasterAdmin) {
       return query;
     }
 
-    const model: Model = new Model();
-    const permissions: Array<Permission> =
-      operation === DatabaseRequestType.Update
-        ? model.updateRecordPermissions
-        : operation === DatabaseRequestType.Delete
-          ? model.deleteRecordPermissions
-          : model.readRecordPermissions;
+    const isAcrossProjects: boolean =
+      !props.tenantId || Boolean(props.isMultiTenantRequest);
 
-    const scope: TelemetryReadScope =
-      await AnalyticsModelPermission.getReadScopeForPermissions({
-        props: props,
-        permissions: permissions,
-        recordName: model.pluralName || "Metric Types",
-        operation: operation,
-      });
-
-    const clause: FindWhereProperty<any> | null =
-      this.getCatalogueScopeClause(scope);
+    const clause: FindWhereProperty<any> | null = isAcrossProjects
+      ? await this.getCatalogueScopeClauseAcrossProjects(props, operation)
+      : this.getCatalogueScopeClause(
+          await this.getCatalogueScope(props, operation),
+        );
 
     if (!clause) {
       return query;
@@ -149,6 +142,123 @@ export class Service extends ProjectReferencesService<Model> {
     record["_id"] = combineWithPrivacyClause(idQuery["_id"], clause);
 
     return record as unknown as TQuery;
+  }
+
+  // The caller's scope in their project (props.tenantId) for an operation.
+  private async getCatalogueScope(
+    props: DatabaseCommonInteractionProps,
+    operation: DatabaseRequestType,
+  ): Promise<TelemetryReadScope> {
+    const model: Model = new Model();
+    const permissions: Array<Permission> =
+      operation === DatabaseRequestType.Update
+        ? model.updateRecordPermissions
+        : operation === DatabaseRequestType.Delete
+          ? model.deleteRecordPermissions
+          : model.readRecordPermissions;
+
+    return await AnalyticsModelPermission.getReadScopeForPermissions({
+      props: props,
+      permissions: permissions,
+      recordName: model.pluralName || "Metric Types",
+      operation: operation,
+    });
+  }
+
+  /*
+   * A read across the caller's projects (no project, or a multi-project
+   * request): each project's metric types follow the caller's scope in
+   * THAT project, as the table check weighs each project's grants on its
+   * own. A project whose grants refuse the read outright adds nothing (the
+   * table check leaves it out too). Null when every project reaches every
+   * service, or when the caller names no project at all (nothing to read).
+   */
+  private async getCatalogueScopeClauseAcrossProjects(
+    props: DatabaseCommonInteractionProps,
+    operation: DatabaseRequestType,
+  ): Promise<FindWhereProperty<any> | null> {
+    const projectIds: Array<ObjectID> =
+      props.userGlobalAccessPermission?.projectIds || [];
+
+    if (projectIds.length === 0) {
+      return null;
+    }
+
+    const wideProjectIds: Array<string> = [];
+    const limitedClauses: Array<{
+      projectId: string;
+      clause: FindWhereProperty<any>;
+    }> = [];
+
+    for (const projectId of projectIds) {
+      let scope: TelemetryReadScope;
+
+      try {
+        scope = await this.getCatalogueScope(
+          { ...props, tenantId: projectId, isMultiTenantRequest: false },
+          operation,
+        );
+      } catch (err) {
+        if (err instanceof NotAuthorizedException) {
+          continue;
+        }
+        throw err;
+      }
+
+      const clause: FindWhereProperty<any> | null =
+        this.getCatalogueScopeClause(scope);
+
+      if (clause) {
+        limitedClauses.push({ projectId: projectId.toString(), clause });
+      } else {
+        wideProjectIds.push(projectId.toString());
+      }
+    }
+
+    if (limitedClauses.length === 0) {
+      return null;
+    }
+
+    const table: string = (new Model().tableName || "MetricType").replace(
+      /"/g,
+      '""',
+    );
+    const inProjects: (alias: string, parameter: string) => string = (
+      alias: string,
+      parameter: string,
+    ): string => {
+      return `${alias} IN (SELECT "${table}"."_id" FROM "${table}" WHERE "${table}"."projectId" IN (:...${parameter}))`;
+    };
+
+    const parameters: Record<string, unknown> = {};
+    const parts: Array<(alias: string) => string> = [];
+
+    if (wideProjectIds.length > 0) {
+      const wideRid: string = "mtWide_" + Text.generateRandomText(10);
+      parameters[wideRid] = wideProjectIds;
+      parts.push((alias: string): string => {
+        return inProjects(alias, wideRid);
+      });
+    }
+
+    for (const limited of limitedClauses) {
+      const projectRid: string = "mtProject_" + Text.generateRandomText(10);
+      parameters[projectRid] = [limited.projectId];
+      const operator: FindOperator<unknown> =
+        limited.clause as FindOperator<unknown>;
+      Object.assign(parameters, operator.objectLiteralParameters || {});
+      parts.push((alias: string): string => {
+        return `(${inProjects(alias, projectRid)} AND ${operator.getSql!(alias)})`;
+      });
+    }
+
+    return Raw((alias: string): string => {
+      return `(${parts
+        .map((part: (alias: string) => string): string => {
+          return part(alias);
+        })
+        .join(" OR ")})`;
+    }, parameters);
   }
 
   /*

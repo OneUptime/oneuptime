@@ -22,7 +22,9 @@ import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import CaptureSpan from "./CaptureSpan";
 import QueryHelper from "../../Types/Database/QueryHelper";
-import TelemetryReadScopeUtil, { TelemetryReadScope } from "./TelemetryReadScope";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "./TelemetryReadScope";
 
 /*
  * Facet keys whose values are entity IDs backed by a Postgres source-of-truth

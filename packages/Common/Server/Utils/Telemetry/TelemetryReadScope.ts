@@ -2,6 +2,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import QueryOperator from "../../../Types/BaseDatabase/QueryOperator";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 
@@ -175,9 +176,15 @@ export default class TelemetryReadScopeUtil {
     filter: TelemetryServiceFilter,
     column: string = "primaryEntityId",
   ): void {
+    // The column is the code's own, never a caller's: a plain identifier.
+    if (!TelemetryReadScopeUtil.COLUMN_PATTERN.test(column)) {
+      throw new BadDataException(`Invalid resource column: ${column}`);
+    }
+
     if (filter.serviceIds && filter.serviceIds.length > 0) {
+      statement.append(` AND ${column} IN (`);
       statement.append(
-        SQL` AND ${column} IN (${{
+        SQL`${{
           type: TableColumnType.ObjectID,
           value: new Includes(
             filter.serviceIds.map((id: ObjectID): string => {
@@ -189,8 +196,9 @@ export default class TelemetryReadScopeUtil {
     }
 
     if (filter.excludedServiceIds && filter.excludedServiceIds.length > 0) {
+      statement.append(` AND ${column} NOT IN (`);
       statement.append(
-        SQL` AND ${column} NOT IN (${{
+        SQL`${{
           type: TableColumnType.ObjectID,
           value: new IncludesNone(
             filter.excludedServiceIds.map((id: ObjectID): string => {
@@ -201,6 +209,8 @@ export default class TelemetryReadScopeUtil {
       );
     }
   }
+
+  private static readonly COLUMN_PATTERN: RegExp = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
   /*
    * Narrows an analytics model query to the scope, on the column that names

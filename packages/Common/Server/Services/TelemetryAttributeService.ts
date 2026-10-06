@@ -250,9 +250,7 @@ export class TelemetryAttributeService {
 
     return crypto
       .createHash("sha256")
-      .update(
-        `in:${serviceIds.join(",")}|out:${excludedServiceIds.join(",")}`,
-      )
+      .update(`in:${serviceIds.join(",")}|out:${excludedServiceIds.join(",")}`)
       .digest("hex");
   }
 

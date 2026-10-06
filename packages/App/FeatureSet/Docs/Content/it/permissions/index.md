@@ -134,6 +134,16 @@ Una restrizione per etichette è soddisfatta se la risorsa porta **almeno una** 
 
 Dove trovarlo: **Impostazioni → Etichette**.
 
+## Telemetria
+
+Log, tracce, metriche, eccezioni, profili e riproduzioni di sessione appartengono alla risorsa che li ha inviati: un servizio, un host, un cluster Kubernetes, un monitor, un'applicazione RUM e simili. Un'autorizzazione di telemetria legge fin dove arriva il suo ambito:
+
+- **Tutte le risorse** legge la telemetria di ogni risorsa del progetto.
+- **Possedute** legge la telemetria delle risorse possedute da voi o da uno dei vostri team, e la telemetria che non nomina alcuna risorsa.
+- **Etichette** legge la telemetria delle risorse che portano una delle etichette dell'autorizzazione.
+
+Un blocco con etichette su un'autorizzazione di telemetria esclude la telemetria delle risorse che portano quelle etichette, qualunque altra cosa abbiate. Vale ovunque si legga la telemetria: gli explorer con i loro grafici, filtri ed elenchi di attributi, le esportazioni, le riproduzioni di sessione e ciò che l'assistente IA legge per voi. L'elenco dei nomi delle metriche mostra le metriche riportate da un servizio che potete leggere e quelle che nessun servizio riporta, come le metriche di host e cluster.
+
 ## Chiavi API
 
 Alle chiavi API le autorizzazioni vengono concesse direttamente sulla chiave: non appartengono a team e non sono influenzate dalle appartenenze.
@@ -155,7 +165,7 @@ Per un utente autenticato, nell'ordine:
 3. Controllare prima l'elenco dei blocchi. Un blocco senza etichette su una qualsiasi autorizzazione che la tabella di destinazione accetta per quell'operazione rifiuta subito la richiesta, qualunque sia il team su cui è impostato.
 4. Controllare l'elenco delle concessioni. La richiesta ha bisogno di almeno un'autorizzazione che la tabella di destinazione accetta per quell'operazione. Su una risorsa operativa — un monitor, un incidente, una dashboard e simili — conta anche l'autorizzazione **All Operational Resources** corrispondente (Create, Read, Edit o Delete), a meno che non sia bloccata a sua volta.
 5. Applicare l'ambito. Le concessioni con ambito Possedute restringono la query alle risorse possedute; quelle per etichette la restringono alle etichette corrispondenti. Se un'altra concessione per la stessa operazione è più ampia, vince quella più ampia.
-6. Applicare i blocchi per etichette. Un blocco con etichette rifiuta la richiesta se la risorsa di destinazione ne porta una.
+6. Applicare i blocchi per etichette. Un blocco con etichette rifiuta la richiesta se la risorsa di destinazione ne porta una. Quando un record non ha etichette proprie, come una nota di un incidente o un annuncio di una pagina di stato, un blocco con etichette sulla sua lettura lo esclude se un record a cui appartiene porta una di quelle etichette.
 
 Ogni campo di un record si legge con l'autorizzazione di lettura del record stesso: un'autorizzazione per un altro tipo di record non lo apre mai. Alcuni campi sono volutamente più ristretti. I segreti li leggono solo le persone che possono modificare o amministrare il record a cui appartengono, come le chiavi delle richieste in arrivo e delle email in arrivo di un monitor e la chiave del suo agente server, o le chiavi del webhook e delle email in arrivo di un workflow. Guardare la registrazione di una riproduzione di sessione richiede **Watch Session Replays**, non solo **List Session Replays**. La telemetria si legge segnale per segnale: **Read Telemetry Service Log** legge i log, **Read Telemetry Service Traces** legge le tracce e **Read Telemetry Service Metrics** legge le metriche, grafici delle metriche compresi.
 

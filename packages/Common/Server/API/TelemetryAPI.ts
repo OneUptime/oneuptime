@@ -463,22 +463,24 @@ router.post(
       const exceptionScope: TelemetryReadScope =
         await TelemetryReadAccess.getScope(ExceptionInstance, databaseProps);
 
-      const result: ResolveStackTraceResult =
-        TelemetryReadScopeUtil.isReadable(exceptionScope, serviceId)
-          ? await TelemetrySourceMapService.resolveFramesForService({
-              projectId: databaseProps.tenantId,
-              serviceId: serviceId,
-              serviceVersion: body["serviceVersion"] as string,
-              frames: frames,
-            })
-          : {
-              frames: frames.map((frame: MinifiedStackFrame) => {
-                return { ...frame, resolved: false };
-              }),
-              resolvedCount: 0,
-              sourceMapCount: 0,
-              sourceMapsSkippedForSize: 0,
-            };
+      const result: ResolveStackTraceResult = TelemetryReadScopeUtil.isReadable(
+        exceptionScope,
+        serviceId,
+      )
+        ? await TelemetrySourceMapService.resolveFramesForService({
+            projectId: databaseProps.tenantId,
+            serviceId: serviceId,
+            serviceVersion: body["serviceVersion"] as string,
+            frames: frames,
+          })
+        : {
+            frames: frames.map((frame: MinifiedStackFrame) => {
+              return { ...frame, resolved: false };
+            }),
+            resolvedCount: 0,
+            sourceMapCount: 0,
+            sourceMapsSkippedForSize: 0,
+          };
 
       return Response.sendJsonObjectResponse(
         req,
@@ -4221,31 +4223,32 @@ type CanReadIdentifiedUserLabelFunction = (data: {
   application: RumApplication;
 }) => Promise<boolean>;
 
-const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction = async (data: {
-  databaseProps: DatabaseCommonInteractionProps;
-  application: RumApplication;
-}): Promise<boolean> => {
-  let scope: TelemetryReadScope;
+const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction =
+  async (data: {
+    databaseProps: DatabaseCommonInteractionProps;
+    application: RumApplication;
+  }): Promise<boolean> => {
+    let scope: TelemetryReadScope;
 
-  try {
-    scope = await getSessionReplayScope(
-      data.databaseProps,
-      SESSION_REPLAY_IDENTITY_PERMISSIONS,
-    );
-  } catch {
-    /*
-     * A block refuses the identity grant. For an optional column the right
-     * answer is to omit the column, not to fail the whole listing the
-     * caller is otherwise entitled to.
-     */
-    return false;
-  }
+    try {
+      scope = await getSessionReplayScope(
+        data.databaseProps,
+        SESSION_REPLAY_IDENTITY_PERMISSIONS,
+      );
+    } catch {
+      /*
+       * A block refuses the identity grant. For an optional column the right
+       * answer is to omit the column, not to fail the whole listing the
+       * caller is otherwise entitled to.
+       */
+      return false;
+    }
 
-  return isApplicationInSessionReplayScope({
-    scope: scope,
-    application: data.application,
-  });
-};
+    return isApplicationInSessionReplayScope({
+      scope: scope,
+      application: data.application,
+    });
+  };
 
 type CanReadSessionReplayListMetadataFunction = (data: {
   databaseProps: DatabaseCommonInteractionProps;
@@ -5100,10 +5103,11 @@ router.post(
        * genuinely different: SESSION_REPLAY_IDENTITY_PERMISSIONS excludes
        * TelemetryAdmin and ReadRumSessionReplay, both of which can list.
        */
-      const includeIdentifiedUserLabel: boolean = await canReadIdentifiedUserLabel({
-        databaseProps: databaseProps,
-        application: application,
-      });
+      const includeIdentifiedUserLabel: boolean =
+        await canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: application,
+        });
 
       const rawFilters: JSONObject = (body["filters"] as JSONObject) || {};
 
@@ -5663,10 +5667,11 @@ router.post(
        * Decided against the application the access check loaded, exactly
        * as on /list, and enforced by not naming the columns.
        */
-      const includeIdentifiedUserLabel: boolean = await canReadIdentifiedUserLabel({
-        databaseProps: databaseProps,
-        application: application,
-      });
+      const includeIdentifiedUserLabel: boolean =
+        await canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: application,
+        });
 
       const cursor: SessionReplayUsersCursor | null | undefined =
         body["cursor"] !== undefined && body["cursor"] !== null

@@ -24,7 +24,6 @@ function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
   };
 }
 
-
 /*
  * baseline_anomaly judges a metric's recent average against its learned
  * hour-of-week baseline band (mean ± sigma·stddev — the same math the anomaly

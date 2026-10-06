@@ -444,7 +444,6 @@ describe("ReadPermission.checkReadBlockPermission", () => {
     ).rejects.toThrow(BadDataException);
     expect(query).toEqual({ projectId, labels, _id: monitorId });
   });
-
 });
 
 /*
@@ -459,7 +458,9 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
   const userId: ObjectID = ObjectID.generate();
   const blockedLabel: ObjectID = ObjectID.generate();
 
-  function propsWithBlock(permission: Permission): DatabaseCommonInteractionProps {
+  function propsWithBlock(
+    permission: Permission,
+  ): DatabaseCommonInteractionProps {
     const tenantPermission: UserTenantAccessPermission = {
       projectId,
       _type: "UserTenantAccessPermission",
@@ -552,9 +553,9 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
     const props: DatabaseCommonInteractionProps = propsWithBlock(
       Permission.ReadTelemetryServiceMetrics,
     );
-    (
-      props.userTenantAccessPermission![projectId.toString()]!.permissions[1]!
-    ).labelIds = [];
+    props.userTenantAccessPermission![
+      projectId.toString()
+    ]!.permissions[1]!.labelIds = [];
 
     await expect(
       ReadPermission.checkReadBlockPermission(MetricType, { projectId }, props),
@@ -604,8 +605,12 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
     );
 
     const sql: string = rawSql(result.query._id, "announcementId");
-    expect(sql).toContain('announcementId NOT IN (SELECT "AnnouncementStatusPage"."announcementId"');
-    expect(sql).toContain('"AnnouncementStatusPage"."statusPageId" IN (SELECT "StatusPageLabel"."statusPageId"');
+    expect(sql).toContain(
+      'announcementId NOT IN (SELECT "AnnouncementStatusPage"."announcementId"',
+    );
+    expect(sql).toContain(
+      '"AnnouncementStatusPage"."statusPageId" IN (SELECT "StatusPageLabel"."statusPageId"',
+    );
     expect(sql).toContain('"StatusPageLabel"."labelId" IN (');
   });
 

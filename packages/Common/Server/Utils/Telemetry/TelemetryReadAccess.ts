@@ -10,7 +10,6 @@ import Span from "../../../Models/AnalyticsModels/Span";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import TelemetryReadScopeUtil, {
@@ -31,17 +30,18 @@ import CaptureSpan from "./CaptureSpan";
  *
  *   - getServiceFilter: the serviceIds / excludedServiceIds to hand an
  *     aggregation request, given the services the caller asked for;
- *   - assertReadable: refuses one resource the caller may not read, the way
- *     a missing one is refused (a log's surrounding lines, a stack trace's
- *     source maps, one profile);
- *   - getScope: the scope itself, for a read that filters rows of its own
- *     (the facet sidebars' resource lists, session replay applications).
+ *   - getScope: the scope itself, for a read that checks one resource (a
+ *     log's surrounding lines, a stack trace's source maps, one profile)
+ *     or filters rows of its own (the facet sidebars' resource lists);
+ *   - getScopeForPermissions: the same for a route that accepts a list of
+ *     permissions of its own (session replays).
  *
  * The scope comes from the analytics permission layer
  * (ModelPermission.getReadScope), the same one the model reads apply, so a
  * route can never let a caller read more than the CRUD API for the same
- * rows would. Tests/Server/API/TelemetryReadRoutesGuard keeps every
- * /telemetry/* read route asking.
+ * rows would. Tests/Server/API/TelemetryRoutesReadScope.test.ts keeps every
+ * /telemetry/* route asking, and Tests/Server/Utils/AI/
+ * ToolboxTelemetryReadScope.test.ts every AI tool.
  */
 export default class TelemetryReadAccess {
   /*
@@ -126,27 +126,5 @@ export default class TelemetryReadAccess {
     );
 
     return TelemetryReadScopeUtil.toServiceFilter(scope, data.requested);
-  }
-
-  /*
-   * Refuses a resource whose telemetry of this model the caller may not
-   * read - with the answer a resource that does not exist gets, so the
-   * refusal says nothing about what is there.
-   */
-  @CaptureSpan()
-  public static async assertReadable(data: {
-    modelType: { new (): AnalyticsBaseModel };
-    props: DatabaseCommonInteractionProps;
-    resourceId: ObjectID | string;
-    notFoundMessage: string;
-  }): Promise<void> {
-    const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
-      data.modelType,
-      data.props,
-    );
-
-    if (!TelemetryReadScopeUtil.isReadable(scope, data.resourceId)) {
-      throw new NotFoundException(data.notFoundMessage);
-    }
   }
 }

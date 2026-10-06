@@ -134,6 +134,16 @@ Aan een labelbeperking is voldaan als de resource **minstens één** van de labe
 
 Waar u het vindt: **Instellingen → Labels**.
 
+## Telemetrie
+
+Logs, traces, metrics, uitzonderingen, profielen en sessieherhalingen horen bij de resource die ze verstuurde: een dienst, een host, een Kubernetes-cluster, een monitor, een RUM-applicatie en dergelijke. Een telemetriemachtiging leest zo ver als haar bereik reikt:
+
+- **Alle resources** leest de telemetrie van elke resource in het project.
+- **Eigen** leest de telemetrie van de resources die u of een van uw teams bezit, en telemetrie die geen resource noemt.
+- **Labels** leest de telemetrie van de resources die een van de labels van de machtiging dragen.
+
+Een blokkade met labels op een telemetriemachtiging laat de telemetrie weg van de resources die die labels dragen, wat u verder ook hebt. Dat geldt overal waar telemetrie wordt gelezen: de verkenners met hun grafieken, filters en attribuutlijsten, exports, sessieherhalingen en wat de AI-assistent voor u leest. De lijst met metricnamen toont de metrics die een dienst meldt die u mag lezen, en de metrics die geen enkele dienst meldt, zoals host- en clustermetrics.
+
 ## API-sleutels
 
 API-sleutels krijgen machtigingen rechtstreeks op de sleutel zelf — ze horen niet bij teams en worden niet beïnvloed door teamlidmaatschap.
@@ -155,7 +165,7 @@ Voor een ingelogde gebruiker, op volgorde:
 3. Controleer eerst de blokkadelijst. Een blokkade zonder labels op een machtiging die de doeltabel voor deze bewerking accepteert, wijst het verzoek meteen af, in welk team die ook staat.
 4. Controleer de toestaanlijst. Het verzoek heeft minstens één machtiging nodig die de doeltabel voor deze bewerking accepteert. Bij een operationele resource — een monitor, een incident, een dashboard en dergelijke — telt ook de bijpassende machtiging **All Operational Resources** (Create, Read, Edit of Delete), tenzij die zelf geblokkeerd is.
 5. Pas het bereik toe. Toekenningen met bereik Eigen beperken de query tot resources in eigendom; die met labels beperken tot passende labels. Is een andere toekenning voor dezelfde bewerking breder, dan wint de bredere.
-6. Pas labelblokkades toe. Een blokkade met labels wijst het verzoek af als de doelresource er één draagt.
+6. Pas labelblokkades toe. Een blokkade met labels wijst het verzoek af als de doelresource er één draagt. Heeft een record geen eigen labels, zoals een notitie bij een incident of een aankondiging op een statuspagina, dan laat een blokkade met labels op het lezen ervan het record weg als een record waar het bij hoort een van die labels draagt.
 
 Elk veld van een record wordt gelezen met de eigen leesmachtiging van dat record: een machtiging voor een ander soort record opent het nooit. Sommige velden zijn bewust beperkter. Geheimen worden alleen gelezen door wie het record mag bewerken of beheren waar ze bij horen, zoals de sleutels voor inkomende verzoeken en inkomende e-mail van een monitor en zijn serveragentsleutel, of de webhook- en e-mailsleutels van een workflow. De opname van een sessieherhaling bekijken vraagt **Watch Session Replays**, niet alleen **List Session Replays**. Telemetrie wordt per signaal gelezen: **Read Telemetry Service Log** leest logs, **Read Telemetry Service Traces** leest traces en **Read Telemetry Service Metrics** leest metrics, metriekgrafieken inbegrepen.
 

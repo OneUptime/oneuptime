@@ -34,6 +34,12 @@ import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import { normalizeExceptionText } from "../Utils/Telemetry/ExceptionSanitizer";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import TelemetryReadScopeUtil, {
+  TelemetryReadScope,
+} from "../Utils/Telemetry/TelemetryReadScope";
+import { SelectQueryBuilder } from "typeorm";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -859,9 +865,47 @@ export class Service extends ProjectReferencesService<Model> {
       totalOccurrences: string | null;
     }
 
-    const rows: Array<AggregateRow> = (await this.getQueryBuilder(
-      "TelemetryException",
-    )
+    /*
+     * The raw GROUP BY below reads every group of the project, so it is
+     * narrowed here to the resources whose exceptions the caller may read -
+     * the scope the exception occurrences follow (TelemetryReadAccess).
+     */
+    const scope: TelemetryReadScope = await TelemetryReadAccess.getScope(
+      ExceptionInstance,
+      props,
+    );
+
+    if (
+      scope.readableIds !== null &&
+      TelemetryReadScopeUtil.filterReadableIds(scope, scope.readableIds)
+        .length === 0
+    ) {
+      return [];
+    }
+
+    const queryBuilder: SelectQueryBuilder<Model> =
+      this.getQueryBuilder("TelemetryException");
+
+    if (scope.readableIds !== null) {
+      queryBuilder.andWhere(
+        `"TelemetryException"."primaryEntityId" IN (:...readableResourceIds)`,
+        {
+          readableResourceIds: TelemetryReadScopeUtil.filterReadableIds(
+            scope,
+            scope.readableIds,
+          ),
+        },
+      );
+    }
+
+    if (scope.blockedIds.length > 0) {
+      queryBuilder.andWhere(
+        `"TelemetryException"."primaryEntityId" NOT IN (:...blockedResourceIds)`,
+        { blockedResourceIds: [...scope.blockedIds] },
+      );
+    }
+
+    const rows: Array<AggregateRow> = (await queryBuilder
       .select(`"TelemetryException"."primaryEntityId"`, "primaryEntityId")
       .addSelect(
         `"TelemetryException"."primaryEntityType"`,
@@ -872,7 +916,7 @@ export class Service extends ProjectReferencesService<Model> {
         `COALESCE(SUM("TelemetryException"."occuranceCount"), 0)`,
         "totalOccurrences",
       )
-      .where(`"TelemetryException"."projectId" = :projectId`, {
+      .andWhere(`"TelemetryException"."projectId" = :projectId`, {
         projectId: projectId.toString(),
       })
       .andWhere(`"TelemetryException"."isResolved" = false`)

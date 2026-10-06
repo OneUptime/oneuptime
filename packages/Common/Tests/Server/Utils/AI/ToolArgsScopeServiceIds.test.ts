@@ -75,7 +75,9 @@ describe("ToolArgs.scopeServiceIds", () => {
     const forbidden: ObjectID = ObjectID.generate();
 
     expect(
-      idsOf(ToolArgs.scopeServiceIds(scope([accessible]), forbidden).serviceIds),
+      idsOf(
+        ToolArgs.scopeServiceIds(scope([accessible]), forbidden).serviceIds,
+      ),
     ).toEqual([NO_RESOURCE]);
   });
 
