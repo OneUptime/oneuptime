@@ -23,6 +23,7 @@ import Log from "../../../../../Models/AnalyticsModels/Log";
 import Span from "../../../../../Models/AnalyticsModels/Span";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import { AnalyticsBaseModelType } from "../../../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { TelemetryReadScope } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
 import AnalyticsModelPermission from "../../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../../../../../Server/Types/AnalyticsDatabase/Query";
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -559,8 +560,8 @@ describe("infrastructure scope composition", () => {
       { _id: LABELED_ID.toString() },
     ]);
 
-    const ids: Array<ObjectID> | null =
-      await AnalyticsModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+    const scope: TelemetryReadScope =
+      await AnalyticsModelPermission.getReadScope(
         Log,
         propsFor([
           grant(Permission.ProjectMember, PermissionScope.Owned),
@@ -569,7 +570,7 @@ describe("infrastructure scope composition", () => {
         DatabaseRequestType.Read,
       );
 
-    expect(new Set(ids?.map(String))).toEqual(
+    expect(new Set(scope.readableIds)).toEqual(
       new Set([
         OWNED_ID.toString(),
         TEAM_OWNED_ID.toString(),
@@ -590,13 +591,13 @@ describe("infrastructure scope composition", () => {
       Span,
       Metric,
     ] as Array<AnalyticsBaseModelType>) {
-      const ids: Array<ObjectID> | null =
-        await AnalyticsModelPermission.getAccessibleServiceIdsForAnalyticsModel(
+      const scope: TelemetryReadScope =
+        await AnalyticsModelPermission.getReadScope(
           modelType,
           props,
           DatabaseRequestType.Read,
         );
-      expect(ids?.map(String)).toContain(OWNED_ID.toString());
+      expect(scope.readableIds).toContain(OWNED_ID.toString());
     }
     expect(lookups("VMwareVCenter").user).toHaveBeenCalledTimes(1);
     expect(lookups("VMwareVCenter").team).toHaveBeenCalledTimes(1);

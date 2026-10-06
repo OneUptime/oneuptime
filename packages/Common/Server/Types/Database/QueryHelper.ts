@@ -473,6 +473,104 @@ export default class QueryHelper {
   }
 
   /**
+   * Applied to a record's foreign key to the record it belongs to (a note's
+   * incidentId): matches records whose parent is linked to *none* of the
+   * provided related entity ids through the parent's many-to-many join table
+   * (the incident's labels), and records that belong to no parent at all.
+   * An empty values array matches everything.
+   */
+  @CaptureSpan()
+  public static parentLinkedToNoneInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (values.length === 0) {
+      return Raw(() => {
+        return `TRUE = TRUE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const joinTable: string = data.joinTableName.replace(/"/g, '""');
+    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
+    const relationCol: string = data.relationColumnName.replace(/"/g, '""');
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} IS NULL OR ${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
+   * Applied to a record's primary id when it belongs to several parents
+   * through a many-to-many join table (an announcement on status pages):
+   * matches records linked to *no* parent that is itself linked to any of
+   * the provided related entity ids (the status pages' labels). An empty
+   * values array matches everything.
+   */
+  @CaptureSpan()
+  public static noParentLinkedToAnyInManyToMany(data: {
+    values: Array<string | ObjectID>;
+    // The record -> parent join table.
+    parentJoinTableName: string;
+    parentOwnerColumnName: string;
+    parentRelationColumnName: string;
+    // The parent -> related entity join table.
+    joinTableName: string;
+    ownerColumnName: string;
+    relationColumnName: string;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID) => {
+        return value.toString();
+      },
+    );
+
+    if (values.length === 0) {
+      return Raw(() => {
+        return `TRUE = TRUE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+
+    const quote: (identifier: string) => string = (
+      identifier: string,
+    ): string => {
+      return identifier.replace(/"/g, '""');
+    };
+
+    const parentJoinTable: string = quote(data.parentJoinTableName);
+    const parentOwnerCol: string = quote(data.parentOwnerColumnName);
+    const parentRelationCol: string = quote(data.parentRelationColumnName);
+    const joinTable: string = quote(data.joinTableName);
+    const ownerCol: string = quote(data.ownerColumnName);
+    const relationCol: string = quote(data.relationColumnName);
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} NOT IN (SELECT "${parentJoinTable}"."${parentOwnerCol}" FROM "${parentJoinTable}" WHERE "${parentJoinTable}"."${parentRelationCol}" IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid}))))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
    * Returns a filter that matches owner rows that are linked to *any* of the
    * provided related entity ids through a many-to-many join table. The
    * returned FindOperator is intended to be applied to the primary id column

@@ -70,6 +70,24 @@ import {
   keyForCephCluster,
   keyForStorageArray,
 } from "../../../../Utils/Telemetry/EntityKey";
+import { TelemetryReadScope } from "../../../../Server/Utils/Telemetry/TelemetryReadScope";
+
+/*
+ * The read scope a caller's grants give, as the analytics permission layer
+ * hands it to the tools (ModelPermission.getReadScope): null reads every
+ * service, a list only those.
+ */
+function readScopeOf(ids: Array<ObjectID> | null): TelemetryReadScope {
+  return {
+    readableIds: ids
+      ? ids.map((id: ObjectID): string => {
+          return id.toString();
+        })
+      : null,
+    blockedIds: [],
+  };
+}
+
 
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-1111-1111-111111111111",
@@ -318,8 +336,8 @@ beforeEach(() => {
     .spyOn(TraceAggregationService, "getAnalyticsTable")
     .mockResolvedValue([]);
   accessible = jest
-    .spyOn(ModelPermission, "getAccessibleServiceIdsForAnalyticsModel")
-    .mockResolvedValue(null);
+    .spyOn(ModelPermission, "getReadScope")
+    .mockResolvedValue(readScopeOf(null));
 });
 
 afterEach(() => {
@@ -766,7 +784,7 @@ describe("parent resource and signal permissions", () => {
   test.each(["logs", "traces"])(
     "%s raw aggregation intersects the caller's allowed primary IDs",
     async (signal: string) => {
-      accessible.mockResolvedValue([otherId]);
+      accessible.mockResolvedValue(readScopeOf([otherId]));
       const ctx: ToolContext = context();
       await QueryResourceTelemetryTool.execute(
         args(AIResourceType.KubernetesCluster, signal),
@@ -788,7 +806,7 @@ describe("parent resource and signal permissions", () => {
   test.each(["logs", "traces"])(
     "empty owned access to %s becomes a no-match sentinel",
     async (signal: string) => {
-      accessible.mockResolvedValue([]);
+      accessible.mockResolvedValue(readScopeOf([]));
       await QueryResourceTelemetryTool.execute(
         args(AIResourceType.Host, signal),
         context(),
@@ -1465,7 +1483,7 @@ describe("resource query integration with real analytics SQL builders", () => {
 
   test("real trace analytics preserves membership and owned scope together and returns operation errors", async () => {
     traces.mockRestore();
-    accessible.mockResolvedValue([otherId]);
+    accessible.mockResolvedValue(readScopeOf([otherId]));
     const execute: jest.SpyInstance = jest
       .spyOn(SpanService, "executeQuery")
       .mockResolvedValue({

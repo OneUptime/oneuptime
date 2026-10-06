@@ -2,6 +2,10 @@ import ReadPermission from "../../../../../Server/Types/Database/Permissions/Rea
 import QueryUtil from "../../../../../Server/Types/Database/QueryUtil";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import MetricType from "../../../../../Models/DatabaseModels/MetricType";
+import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
+import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
+import StatusPageAnnouncement from "../../../../../Models/DatabaseModels/StatusPageAnnouncement";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import IncludesAnyOfGroups from "../../../../../Types/BaseDatabase/IncludesAnyOfGroups";
@@ -441,19 +445,191 @@ describe("ReadPermission.checkReadBlockPermission", () => {
     expect(query).toEqual({ projectId, labels, _id: monitorId });
   });
 
-  it("reports an unavailable access-control column before composing label restrictions", async () => {
+});
+
+/*
+ * A block with labels takes away the records carrying those labels. On a
+ * model whose records carry no labels of their own it reaches a record only
+ * through the labelled record it belongs to (canAccessIfCanReadOn), and a
+ * record that belongs to no labelled record is not affected - the read never
+ * fails because of a block it could not apply.
+ */
+describe("ReadPermission.checkReadBlockPermission on models without labels", () => {
+  const projectId: ObjectID = ObjectID.generate();
+  const userId: ObjectID = ObjectID.generate();
+  const blockedLabel: ObjectID = ObjectID.generate();
+
+  function propsWithBlock(permission: Permission): DatabaseCommonInteractionProps {
+    const tenantPermission: UserTenantAccessPermission = {
+      projectId,
+      _type: "UserTenantAccessPermission",
+      permissions: [
+        {
+          _type: "UserPermission",
+          permission: Permission.ProjectMember,
+          labelIds: [],
+          isBlockPermission: false,
+        },
+        {
+          _type: "UserPermission",
+          permission,
+          labelIds: [blockedLabel],
+          isBlockPermission: true,
+        },
+      ],
+    };
+
+    return {
+      userId,
+      tenantId: projectId,
+      userTenantAccessPermission: {
+        [projectId.toString()]: tenantPermission,
+      },
+    };
+  }
+
+  beforeEach(() => {
     jest
-      .spyOn(Monitor.prototype, "getAccessControlColumn")
-      .mockReturnValue(null);
+      .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+      .mockImplementation((modelType: any, column: string) => {
+        if (modelType === Incident && column === "labels") {
+          return {
+            joinTableName: "IncidentLabel",
+            ownerColumnName: "incidentId",
+            relationColumnName: "labelId",
+          };
+        }
+
+        if (modelType === StatusPage && column === "labels") {
+          return {
+            joinTableName: "StatusPageLabel",
+            ownerColumnName: "statusPageId",
+            relationColumnName: "labelId",
+          };
+        }
+
+        if (modelType === StatusPageAnnouncement && column === "statusPages") {
+          return {
+            joinTableName: "AnnouncementStatusPage",
+            ownerColumnName: "announcementId",
+            relationColumnName: "statusPageId",
+          };
+        }
+
+        return null;
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function rawSql(operator: any, alias: string): string {
+    expect(operator).toBeInstanceOf(FindOperator);
+    return operator.getSql(alias);
+  }
+
+  function boundValues(operator: any): Array<string> {
+    return Object.values(
+      operator.objectLiteralParameters as Record<string, Array<string>>,
+    )[0] as Array<string>;
+  }
+
+  it("a labelled block on the metric catalogue no longer fails every read", async () => {
     const query: any = { projectId };
+
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      MetricType,
+      query,
+      propsWithBlock(Permission.ReadTelemetryServiceMetrics),
+    );
+
+    // The catalogue's own scope is MetricTypeService's (its services).
+    expect(result.query).toEqual({ projectId });
+  });
+
+  it("a block with no labels still refuses the whole table", async () => {
+    const props: DatabaseCommonInteractionProps = propsWithBlock(
+      Permission.ReadTelemetryServiceMetrics,
+    );
+    (
+      props.userTenantAccessPermission![projectId.toString()]!.permissions[1]!
+    ).labelIds = [];
+
+    await expect(
+      ReadPermission.checkReadBlockPermission(MetricType, { projectId }, props),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  it("leaves out the notes of incidents that carry a blocked label", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      IncidentInternalNote,
+      { projectId } as any,
+      propsWithBlock(Permission.IncidentViewer),
+    );
+
+    const sql: string = rawSql(result.query.incidentId, "noteIncidentId");
+    expect(sql).toContain("noteIncidentId IS NULL OR noteIncidentId NOT IN");
+    expect(sql).toContain('FROM "IncidentLabel"');
+    expect(sql).toContain('"IncidentLabel"."labelId" IN (');
+    expect(boundValues(result.query.incidentId)).toEqual([
+      blockedLabel.toString(),
+    ]);
+  });
+
+  it("keeps the caller's own incident filter next to the block", async () => {
+    const incidentId: ObjectID = ObjectID.generate();
+
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      IncidentInternalNote,
+      { projectId, incidentId } as any,
+      propsWithBlock(Permission.IncidentViewer),
+    );
+
+    const combined: any = result.query.incidentId;
+    expect(combined).toBeInstanceOf(FindOperator);
+    expect(combined.type).toBe("and");
+    // The caller's incident, as the query serializes it, ANDed with the block.
+    expect(Object.values(combined.value[0].objectLiteralParameters)).toEqual([
+      incidentId.toString(),
+    ]);
+    expect(rawSql(combined.value[1], "x")).toContain('FROM "IncidentLabel"');
+  });
+
+  it("leaves out announcements shown on a status page that carries a blocked label", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      StatusPageAnnouncement,
+      { projectId } as any,
+      propsWithBlock(Permission.ProjectMember),
+    );
+
+    const sql: string = rawSql(result.query._id, "announcementId");
+    expect(sql).toContain('announcementId NOT IN (SELECT "AnnouncementStatusPage"."announcementId"');
+    expect(sql).toContain('"AnnouncementStatusPage"."statusPageId" IN (SELECT "StatusPageLabel"."statusPageId"');
+    expect(sql).toContain('"StatusPageLabel"."labelId" IN (');
+  });
+
+  it("a block on a permission the model does not read with changes nothing", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      IncidentInternalNote,
+      { projectId } as any,
+      propsWithBlock(Permission.ReadProjectMonitor),
+    );
+
+    expect(result.query).toEqual({ projectId });
+  });
+
+  it("refuses when the labelled record's labels cannot be resolved", async () => {
+    jest
+      .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+      .mockReturnValue(null);
 
     await expect(
       ReadPermission.checkReadBlockPermission(
-        Monitor,
-        query,
-        makeProps([blockPermission(Permission.ProjectMember, [blockedLabelA])]),
+        IncidentInternalNote,
+        { projectId } as any,
+        propsWithBlock(Permission.IncidentViewer),
       ),
     ).rejects.toThrow("access-control relation metadata");
-    expect(query).toEqual({ projectId });
   });
 });

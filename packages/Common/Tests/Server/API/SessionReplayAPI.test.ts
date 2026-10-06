@@ -3,6 +3,8 @@ import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import ProjectService from "../../../Server/Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
+import RumApplicationOwnerUserService from "../../../Server/Services/RumApplicationOwnerUserService";
+import RumApplicationOwnerTeamService from "../../../Server/Services/RumApplicationOwnerTeamService";
 import RumSessionReplayViewService from "../../../Server/Services/RumSessionReplayViewService";
 import RumSessionService from "../../../Server/Services/RumSessionService";
 import RumSessionChunkService from "../../../Server/Services/RumSessionChunkService";
@@ -474,6 +476,7 @@ describe("Session replay playback API", () => {
   let exceptionQuerySpy: jest.SpyInstance;
   let findOneBySpy: jest.SpyInstance;
   let findBySpy: jest.SpyInstance;
+  let ownerUserFindBySpy: jest.SpyInstance;
   let recordViewSpy: jest.SpyInstance;
   let recordSecondsWatchedSpy: jest.SpyInstance;
   let viewFindOneBySpy: jest.SpyInstance;
@@ -523,6 +526,14 @@ describe("Session replay playback API", () => {
     findOneBySpy = jest.spyOn(RumApplicationService, "findOneBy");
     findBySpy = jest.spyOn(RumApplicationService, "findBy");
 
+    // Nobody owns anything unless a test says so.
+    ownerUserFindBySpy = jest
+      .spyOn(RumApplicationOwnerUserService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(RumApplicationOwnerTeamService, "findBy")
+      .mockResolvedValue([] as never);
+
     recordViewSpy = jest.spyOn(RumSessionReplayViewService, "recordView");
     recordSecondsWatchedSpy = jest
       .spyOn(RumSessionReplayViewService, "recordSecondsWatched")
@@ -556,7 +567,39 @@ describe("Session replay playback API", () => {
     });
 
     findOneBySpy.mockResolvedValue(application);
-    findBySpy.mockResolvedValue([application]);
+    /*
+     * The scope resolver asks which applications carry a caller's labels
+     * (`labels` in the query); the scans list every application. Both read
+     * through findBy, so the fake answers the label question honestly.
+     */
+    findBySpy.mockImplementation(async (findBy: unknown) => {
+      const labelFilter: unknown = (
+        findBy as { query?: { labels?: unknown } } | undefined
+      )?.query?.labels;
+
+      if (Array.isArray(labelFilter)) {
+        const wanted: Array<string> = labelFilter.map((id: unknown) => {
+          return String(id);
+        });
+
+        return data.labelIds.some((labelId: ObjectID): boolean => {
+          return wanted.includes(labelId.toString());
+        })
+          ? [application]
+          : [];
+      }
+
+      return [application];
+    });
+  }
+
+  /* The RUM applications the caller owns, as the owner tables list them. */
+  function mockOwnedApplications(applicationIds: Array<ObjectID>): void {
+    ownerUserFindBySpy.mockResolvedValue(
+      applicationIds.map((rumApplicationId: ObjectID) => {
+        return { rumApplicationId: rumApplicationId };
+      }) as never,
+    );
   }
 
   function mockSessionHeader(rumApplicationId: ObjectID): void {
@@ -991,21 +1034,34 @@ describe("Session replay playback API", () => {
    * separately via OwnedScopePermission. This bespoke path has no such
    * step, so an Owned grant must be refused, never treated as unscoped.
    */
-  describe("PermissionScope.Owned fails closed", () => {
-    test("an Owned-scoped payload grant cannot read a recording", async () => {
+  /*
+   * An Owned-scoped grant reads the recordings of the RUM applications the
+   * caller (or one of their teams) owns - the scope every telemetry read
+   * follows - and nothing else: never the whole project.
+   */
+  describe("PermissionScope.Owned reads only the applications the caller owns", () => {
+    function ownedPrincipal(permission: Permission): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      return buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [permission],
+        scope: PermissionScope.Owned,
+      });
+    }
+
+    test("an Owned-scoped payload grant cannot read a recording of an application it does not own", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
-      } = buildPrincipal({
-        projectId: projectId,
-        userId: userId,
-        permissions: [Permission.ReadRumSessionReplayPayload],
-        scope: PermissionScope.Owned,
-      });
+      } = ownedPrincipal(Permission.ReadRumSessionReplayPayload);
 
       mockProps(principal.databaseProps);
       mockSessionHeader(applicationAId);
       mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockOwnedApplications([applicationBId]);
       mockRecordedView();
 
       const result: CallResult = await callRoute({
@@ -1019,16 +1075,40 @@ describe("Session replay playback API", () => {
       expect(chunkQuerySpy).not.toHaveBeenCalled();
     });
 
-    test("an Owned-scoped list grant cannot read the whole project's exceptions", async () => {
+    test("an Owned-scoped payload grant reads a recording of an application it owns", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
-      } = buildPrincipal({
-        projectId: projectId,
-        userId: userId,
-        permissions: [Permission.ReadRumSessionReplay],
-        scope: PermissionScope.Owned,
+      } = ownedPrincipal(Permission.ReadRumSessionReplayPayload);
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockOwnedApplications([applicationAId]);
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
       });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.deniedWith).toBeUndefined();
+      expect(recordViewSpy).toHaveBeenCalled();
+      // Ownership is looked up for the caller, in this project.
+      const ownerQuery: JSONObject = (
+        ownerUserFindBySpy.mock.calls[0]![0] as { query: JSONObject }
+      ).query;
+      expect(String(ownerQuery["userId"])).toBe(userId.toString());
+      expect(String(ownerQuery["projectId"])).toBe(projectId.toString());
+    });
+
+    test("an Owned-scoped list grant that owns nothing reads no exception's sessions, never the whole project's", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownedPrincipal(Permission.ReadRumSessionReplay);
 
       mockProps(principal.databaseProps);
       mockApplication({ id: applicationAId, labelIds: [labelAId] });
@@ -1039,33 +1119,147 @@ describe("Session replay playback API", () => {
         body: { fingerprint: "fp-1" },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.thrownToNext).toBeUndefined();
+      expect(
+        (result.jsonBody as JSONObject | undefined)?.["sessions"],
+      ).toEqual([]);
       /* Above all: no unfiltered project-wide query was issued. */
       expect(headerQuerySpy).not.toHaveBeenCalled();
     });
 
-    test("an Owned-scoped grant cannot list an application's sessions", async () => {
+    test("an Owned-scoped grant lists the sessions of an application it owns, and no other", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownedPrincipal(Permission.ReadRumSessionReplay);
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockOwnedApplications([applicationAId]);
+
+      const owned: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(owned.thrownToNext).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      mockProps({ ...principal.databaseProps });
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+      mockOwnedApplications([applicationAId]);
+
+      const notOwned: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationBId.toString() },
+      });
+
+      expect(notOwned.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A block with labels takes away the applications carrying them, whatever
+   * else the caller holds - an owner's unscoped grant included.
+   */
+  describe("a block with labels takes applications away", () => {
+    function principalWithBlock(): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
       } = buildPrincipal({
         projectId: projectId,
         userId: userId,
-        permissions: [Permission.ReadRumSessionReplay],
-        scope: PermissionScope.Owned,
+        permissions: [Permission.ReadRumSessionReplayPayload],
       });
 
+      principal.databaseProps.userTenantAccessPermission![
+        projectId.toString()
+      ]!.permissions.push({
+        _type: "UserPermission",
+        permission: Permission.ReadRumSessionReplayPayload,
+        labelIds: [labelBId],
+        isBlockPermission: true,
+      });
+
+      return principal;
+    }
+
+    test("an unscoped payload grant with a labelled block cannot watch a recording of a blocked application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWithBlock();
+
       mockProps(principal.databaseProps);
-      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockSessionHeader(applicationBId);
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+      mockRecordedView();
 
       const result: CallResult = await callRoute({
-        uri: LIST_ROUTE,
+        uri: MANIFEST_ROUTE,
         request: principal.request,
-        body: { rumApplicationId: applicationAId.toString() },
+        body: { sessionId: "session-1" },
       });
 
       expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-      expect(headerQuerySpy).not.toHaveBeenCalled();
+      expect(recordViewSpy).not.toHaveBeenCalled();
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("the same grant still watches a recording of an application the block does not reach", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWithBlock();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(recordViewSpy).toHaveBeenCalled();
+    });
+
+    test("a block with no labels refuses the recording outright", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWithBlock();
+      principal.databaseProps.userTenantAccessPermission![
+        projectId.toString()
+      ]!.permissions[1]!.labelIds = [];
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      /* The route guard refuses it first - the scope never widens it back. */
+      expect(result.deniedWith ?? result.thrownToNext).toBeInstanceOf(
+        NotAuthorizedException,
+      );
+      expect(recordViewSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -2902,23 +3096,42 @@ describe("Session replay playback API", () => {
     function projectApplications(
       applications: Array<{ id: ObjectID; labelIds: Array<ObjectID> }>,
     ): void {
-      findBySpy.mockResolvedValue(
-        applications.map(
-          (data: { id: ObjectID; labelIds: Array<ObjectID> }) => {
-            const application: RumApplication = new RumApplication();
-            application.id = data.id;
-            application.projectId = projectId;
-            application.labels = data.labelIds.map(
-              (labelId: ObjectID): Label => {
-                const label: Label = new Label();
-                label.id = labelId;
-                return label;
-              },
-            );
-            return application;
-          },
-        ),
+      const rows: Array<RumApplication> = applications.map(
+        (data: { id: ObjectID; labelIds: Array<ObjectID> }) => {
+          const application: RumApplication = new RumApplication();
+          application.id = data.id;
+          application.projectId = projectId;
+          application.labels = data.labelIds.map(
+            (labelId: ObjectID): Label => {
+              const label: Label = new Label();
+              label.id = labelId;
+              return label;
+            },
+          );
+          return application;
+        },
       );
+
+      // Label questions are answered per application; scans list them all.
+      findBySpy.mockImplementation(async (findBy: unknown) => {
+        const labelFilter: unknown = (
+          findBy as { query?: { labels?: unknown } } | undefined
+        )?.query?.labels;
+
+        if (!Array.isArray(labelFilter)) {
+          return rows;
+        }
+
+        const wanted: Array<string> = labelFilter.map((id: unknown) => {
+          return String(id);
+        });
+
+        return rows.filter((application: RumApplication): boolean => {
+          return (application.labels || []).some((label: Label): boolean => {
+            return wanted.includes(label.id!.toString());
+          });
+        });
+      });
     }
 
     /* One grouped row, as ClickHouse returns it after QUALIFY. */
@@ -3264,7 +3477,7 @@ describe("Session replay playback API", () => {
       expect(headerQuerySpy).not.toHaveBeenCalled();
     });
 
-    test("an Owned-scoped list grant is refused rather than widened to the project", async () => {
+    test("an Owned-scoped list grant that owns nothing is answered empty, never widened to the project", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
@@ -3284,8 +3497,46 @@ describe("Session replay playback API", () => {
         body: { sessionIds: ["session-a"] },
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody).toEqual({
+        sessions: [],
+        isApplicationScopeTruncated: false,
+      });
       expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an Owned-scoped list grant resolves only the applications it owns", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        scope: PermissionScope.Owned,
+      });
+
+      mockProps(principal.databaseProps);
+      projectApplications([
+        { id: applicationAId, labelIds: [labelAId] },
+        { id: applicationBId, labelIds: [labelBId] },
+      ]);
+      mockOwnedApplications([applicationAId]);
+
+      await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a"] },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      expect(Object.values(statement.query_params)).toContainEqual([
+        applicationAId.toString(),
+      ]);
+      expect(JSON.stringify(statement.query_params)).not.toContain(
+        applicationBId.toString(),
+      );
     });
 
     test("an id recorded under more than one application is left out, not guessed", async () => {
@@ -4697,7 +4948,8 @@ describe("Session replay playback API", () => {
 
       /* ...whereas with only a foreign label the whole read is refused. */
       jest.clearAllMocks();
-      mockProps(principal.databaseProps);
+      // A new request carries new props (the scope is worked out per request).
+      mockProps({ ...principal.databaseProps });
       mockSessionHeader(applicationBId);
       mockApplication({ id: applicationBId, labelIds: [labelBId] });
 

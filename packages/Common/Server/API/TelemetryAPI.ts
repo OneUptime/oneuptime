@@ -4321,10 +4321,26 @@ const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunc
       return { applicationIds: null, isTruncated: false };
     }
 
-    if (scope.readableIds !== null && scope.readableIds.length === 0) {
-      /* Reaches no application at all - not "reaches everything". */
-      return { applicationIds: [], isTruncated: false };
+    if (scope.readableIds !== null) {
+      /*
+       * A label or Owned grant already names the applications it reaches
+       * (an empty list reaches none - not "reaches everything").
+       */
+      return {
+        applicationIds: TelemetryReadScopeUtil.filterReadableIds(
+          scope,
+          scope.readableIds,
+        ).map((id: string): ObjectID => {
+          return new ObjectID(id);
+        }),
+        isTruncated: false,
+      };
     }
+
+    /*
+     * A grant that reaches the whole project, less what a block with labels
+     * takes away: the project's applications but the blocked ones.
+     */
 
     const applications: Array<RumApplication> =
       await RumApplicationService.findBy({
@@ -4333,9 +4349,6 @@ const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunc
         },
         select: {
           _id: true,
-          labels: {
-            _id: true,
-          },
         },
         /*
          * A deterministic sort so the page that is scanned is at least

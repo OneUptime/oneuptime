@@ -768,7 +768,8 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
     target: AnalyticsModelPermission as unknown as Record<string, unknown>,
     readOnlyMethods: [
       "checkReadPermission",
-      "getAccessibleServiceIdsForAnalyticsModel",
+      "getReadScope",
+      "getReadScopeForPermissions",
       "checkIfUserIsLoggedIn",
     ],
     expectedWriteMethods: [

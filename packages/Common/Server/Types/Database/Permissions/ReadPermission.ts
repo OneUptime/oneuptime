@@ -18,6 +18,8 @@ import Permission, { UserPermission } from "../../../../Types/Permission";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import { FindOperator } from "typeorm";
+import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel>
   extends CheckPermissionBaseInterface<TBaseModel> {
@@ -125,12 +127,32 @@ export default class ReadPermission {
 
     const model: TBaseModel = new modelType();
     const accessControlColumn: string | null = model.getAccessControlColumn();
+
+    if (!accessControlColumn) {
+      /*
+       * This model's records carry no labels of their own. A block with
+       * labels takes away the records carrying those labels, so it reaches
+       * such a record only through the labelled record it belongs to - a
+       * note is left out with its incident, an announcement with its status
+       * pages - the way a label grant reaches it (canAccessIfCanReadOn). A
+       * record that belongs to no labelled record carries no label at all,
+       * so a block with labels takes nothing of it away; a block with no
+       * labels is what takes a whole table away (refused above).
+       */
+      return {
+        query: this.addParentLabelBlockToQuery(modelType, query, labelIds),
+      };
+    }
+
     const manyToManyMeta: ReturnType<
       typeof QueryUtil.getManyToManyRelationMetadata
-    > = accessControlColumn
-      ? QueryUtil.getManyToManyRelationMetadata(modelType, accessControlColumn)
-      : null;
+    > = QueryUtil.getManyToManyRelationMetadata(modelType, accessControlColumn);
 
+    /*
+     * A model that declares an access-control column but whose label
+     * relation cannot be resolved is misconfigured: refuse rather than let
+     * the blocked records through.
+     */
     if (!manyToManyMeta) {
       throw new BadDataException(
         "Cannot apply read label restrictions without access-control relation metadata.",
@@ -168,5 +190,123 @@ export default class ReadPermission {
     );
 
     return { query };
+  }
+
+  /*
+   * Leaves out the records of a label-less model whose parent (the record
+   * named by canAccessIfCanReadOn) carries one of `labelIds`. A model with
+   * no such parent, or whose parent carries no labels either, is left as it
+   * is.
+   */
+  private static addParentLabelBlockToQuery<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    labelIds: Array<ObjectID>,
+  ): Query<TBaseModel> {
+    const model: TBaseModel = new modelType();
+    const parentRelation: string | null = model.canAccessIfCanReadOn;
+
+    if (!parentRelation) {
+      return query;
+    }
+
+    const parentColumn: TableColumnMetadata | undefined =
+      model.getTableColumnMetadata(parentRelation);
+
+    if (!parentColumn || !parentColumn.modelType) {
+      return query;
+    }
+
+    const parentModelType: { new (): BaseModel } =
+      parentColumn.modelType as unknown as { new (): BaseModel };
+    const parentLabelsColumn: string | null =
+      new parentModelType().getAccessControlColumn();
+
+    if (!parentLabelsColumn) {
+      return query;
+    }
+
+    const parentLabelsMeta: ReturnType<
+      typeof QueryUtil.getManyToManyRelationMetadata
+    > = QueryUtil.getManyToManyRelationMetadata(
+      parentModelType,
+      parentLabelsColumn,
+    );
+
+    // The parent declares labels it cannot resolve: refuse, as for a model's own.
+    if (!parentLabelsMeta) {
+      throw new BadDataException(
+        "Cannot apply read label restrictions without access-control relation metadata.",
+      );
+    }
+
+    if (
+      parentColumn.type === TableColumnType.Entity &&
+      parentColumn.manyToOneRelationColumn
+    ) {
+      const foreignKey: string = parentColumn.manyToOneRelationColumn;
+      const keyQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+        [foreignKey]: (query as any)[foreignKey],
+      } as Query<TBaseModel>);
+
+      (query as any)[foreignKey] = combineWithPrivacyClause(
+        this.getSupportedFilter((keyQuery as any)[foreignKey]),
+        QueryHelper.parentLinkedToNoneInManyToMany({
+          values: labelIds,
+          ...parentLabelsMeta,
+        }),
+      );
+
+      return query;
+    }
+
+    if (parentColumn.type === TableColumnType.EntityArray) {
+      const parentLinkMeta: ReturnType<
+        typeof QueryUtil.getManyToManyRelationMetadata
+      > = QueryUtil.getManyToManyRelationMetadata(modelType, parentRelation);
+
+      if (!parentLinkMeta) {
+        throw new BadDataException(
+          "Cannot apply read label restrictions without access-control relation metadata.",
+        );
+      }
+
+      const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+        _id: query._id,
+      } as Query<TBaseModel>);
+
+      (query as any)._id = combineWithPrivacyClause(
+        this.getSupportedFilter(idQuery._id),
+        QueryHelper.noParentLinkedToAnyInManyToMany({
+          values: labelIds,
+          parentJoinTableName: parentLinkMeta.joinTableName,
+          parentOwnerColumnName: parentLinkMeta.ownerColumnName,
+          parentRelationColumnName: parentLinkMeta.relationColumnName,
+          ...parentLabelsMeta,
+        }),
+      );
+    }
+
+    return query;
+  }
+
+  /*
+   * A caller's filter on a column a block's condition is added to, once
+   * serialized: nothing, one value or a database operator. Any other shape
+   * cannot be kept next to the condition, so the read is refused rather
+   * than the caller's filter dropped.
+   */
+  private static getSupportedFilter(serialized: unknown): unknown {
+    if (
+      serialized !== undefined &&
+      typeof serialized !== "string" &&
+      !(serialized instanceof FindOperator)
+    ) {
+      throw new BadDataException(
+        "Cannot combine read label restrictions with an unsupported ID filter.",
+      );
+    }
+
+    return serialized;
   }
 }
