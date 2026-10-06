@@ -464,6 +464,7 @@ function incident(overrides?: {
   description?: string | null;
   withoutTitle?: boolean;
   isVisibleOnStatusPage?: boolean;
+  isPrivate?: boolean;
 }): Incident {
   const row: Incident = new Incident();
   row._id = (overrides?.id || INCIDENT_ID).toString();
@@ -475,6 +476,9 @@ function incident(overrides?: {
   }
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  if (overrides?.isPrivate !== undefined) {
+    row.isPrivate = overrides.isPrivate;
+  }
   row.incidentNumber = 7;
   row.incidentNumberWithPrefix = "INC-7";
 
@@ -1962,6 +1966,23 @@ describe("IncidentStateTimeline skips", () => {
     await runJob();
 
     nothingSent();
+    expect(statusWrites()[statusWrites().length - 1]).toEqual({
+      subscriberNotificationStatus:
+        StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessage:
+        "Incident is not visible on status page. Skipping notifications.",
+    });
+  });
+
+  // A private incident is hidden from every status page (StatusPageVisibility).
+  test("skips a private incident, even with Visible on Status Page on", async () => {
+    storeIncidents([incident({ isPrivate: true })]);
+    useCustomTemplatesOnEveryChannel();
+
+    await runJob();
+
+    nothingSent();
+    expect(compileCalls()).toHaveLength(0);
     expect(statusWrites()[statusWrites().length - 1]).toEqual({
       subscriberNotificationStatus:
         StatusPageSubscriberNotificationStatus.Skipped,

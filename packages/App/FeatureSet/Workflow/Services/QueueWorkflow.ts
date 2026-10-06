@@ -3,6 +3,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import ComponentID from "Common/Types/Workflow/ComponentID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import CronTab from "Common/Utils/CronTab";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
@@ -27,35 +28,25 @@ import {
   redactSecretsFromString,
 } from "../Utils/SecretRedaction";
 
+const WORKFLOW_ID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default class QueueWorkflow {
+  /*
+   * Removes a workflow's schedule from the Workflow queue. Keyed by the
+   * workflow id, which is the job NAME of every scheduled run, so it still
+   * works once the row (and the repeatableJobKey stored on it) is gone.
+   * Idempotent: a workflow with no schedule, or no row, is a no-op.
+   */
   public static async removeWorkflow(workflowId: ObjectID): Promise<void> {
-    // get workflow to see if its enabled.
-    const workflow: Workflow | null = await WorkflowService.findOneById({
-      id: workflowId,
-      select: {
-        projectId: true,
-        repeatableJobKey: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    await Queue.removeRepeatableByName(
+      QueueName.Workflow,
+      workflowId.toString(),
+    );
 
-    if (!workflow) {
-      throw new BadDataException("Workflow not found");
-    }
-
-    if (!workflow.projectId) {
-      throw new BadDataException(
-        "This workflow does not belong to a project and cannot be run",
-      );
-    }
-
-    await Queue.removeJob(QueueName.Workflow, workflow.repeatableJobKey!);
-
-    // update workflow.
+    // Clears the key if the row is still there; a missing row updates nothing.
     await WorkflowService.updateOneById({
-      id: workflow.id!,
+      id: workflowId,
       data: {
         repeatableJobKey: null!,
       },
@@ -64,6 +55,126 @@ export default class QueueWorkflow {
         ignoreHooks: true,
       },
     });
+  }
+
+  /*
+   * The persisted schedule if the workflow should have a repeatable on the
+   * queue - it exists, is on, is not archived, and its trigger is a Schedule
+   * with a schedule set - otherwise null.
+   */
+  private static async getWantedSchedule(
+    workflowId: ObjectID,
+  ): Promise<{ projectId: ObjectID | undefined; schedule: string } | null> {
+    const workflow: Workflow | null = await WorkflowService.findOneById({
+      id: workflowId,
+      select: {
+        isEnabled: true,
+        isArchived: true,
+        projectId: true,
+        triggerId: true,
+        triggerArguments: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const schedule: unknown = workflow?.triggerArguments?.["schedule"];
+
+    if (
+      !workflow ||
+      !workflow.isEnabled ||
+      workflow.isArchived ||
+      workflow.triggerId !== ComponentID.Schedule ||
+      !schedule
+    ) {
+      return null;
+    }
+
+    return { projectId: workflow.projectId, schedule: schedule as string };
+  }
+
+  /*
+   * Whether the persisted workflow still wants a schedule and, when a cron
+   * pattern is given, that it is still the workflow's current one (variables
+   * resolved), so a stale registration of an old cron is not replayed.
+   */
+  public static async isScheduleCurrent(
+    workflowId: ObjectID,
+    cronPattern?: string,
+  ): Promise<boolean> {
+    const wanted: { projectId: ObjectID | undefined; schedule: string } | null =
+      await QueueWorkflow.getWantedSchedule(workflowId);
+
+    if (!wanted) {
+      return false;
+    }
+
+    if (!cronPattern || !wanted.projectId) {
+      return true;
+    }
+
+    const resolution: { cron: string; error: string | null } =
+      await QueueWorkflow.resolveScheduleCron(
+        wanted.projectId,
+        workflowId,
+        wanted.schedule,
+      );
+
+    return !resolution.error && resolution.cron === cronPattern;
+  }
+
+  /*
+   * Makes the queue match the persisted workflow: if it should not be
+   * scheduled (deleted, off, archived, another trigger, no trigger) its
+   * repeatable is removed. Registering a wanted schedule stays with the
+   * Schedule trigger, which resolves variables and checks the plan.
+   */
+  public static async reconcileSchedule(workflowId: ObjectID): Promise<void> {
+    if (!(await QueueWorkflow.isScheduleCurrent(workflowId))) {
+      await QueueWorkflow.removeWorkflow(workflowId);
+    }
+  }
+
+  /*
+   * Startup fallback: drops repeatables left behind by deletes and trigger
+   * changes that predate reconcileSchedule (or whose notify failed). Only
+   * UUID-named repeatables - a workflow id is the job name of a schedule - are
+   * considered, and each is re-checked against the database right before it is
+   * removed, so a workflow created while this runs is not removed.
+   */
+  public static async reconcileAllSchedules(): Promise<number> {
+    const repeatables: Array<{ name: string }> = await Queue.getQueue(
+      QueueName.Workflow,
+    ).getRepeatableJobs();
+
+    const names: Set<string> = new Set<string>(
+      repeatables
+        .map((r: { name: string }) => {
+          return r.name;
+        })
+        .filter((name: string) => {
+          return WORKFLOW_ID_PATTERN.test(name);
+        }),
+    );
+
+    let removed: number = 0;
+
+    for (const name of names) {
+      try {
+        const id: ObjectID = new ObjectID(name);
+
+        if (!(await QueueWorkflow.isScheduleCurrent(id))) {
+          await QueueWorkflow.removeWorkflow(id);
+          removed++;
+        }
+      } catch (err) {
+        logger.error(`Failed to reconcile the schedule of workflow ${name}`);
+        logger.error(err);
+      }
+    }
+
+    return removed;
   }
 
   public static async addWorkflowToQueue(
@@ -283,7 +394,6 @@ export default class QueueWorkflow {
     // update workflow with repeatable key.
 
     if (job.repeatJobKey) {
-      // update workflow.
       await WorkflowService.updateOneById({
         id: workflow.id!,
         data: {
@@ -294,6 +404,16 @@ export default class QueueWorkflow {
           ignoreHooks: true,
         },
       });
+    }
+
+    /*
+     * The row was read before the job was added. If the workflow was deleted
+     * or changed in between, its cleanup may already have run, so check
+     * again - after the key is saved, so that removing the repeatable also
+     * clears the key rather than being undone by it.
+     */
+    if (resolvedScheduleAt) {
+      await QueueWorkflow.reconcileSchedule(workflowId);
     }
   }
 

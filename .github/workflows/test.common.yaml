@@ -73,6 +73,9 @@ jobs:
       # MarkPostmortemsWaitingForHiddenIncidents1799100000000 on real rows. A
       # schema of its own, rolled back after each test and dropped after.
       RUN_POSTGRES_POSTMORTEM_WAITING_MIGRATION_TESTS: "true"
+      # HidePrivateIncidentsFromStatusPages1799200000000 on real rows. A
+      # schema of its own, rolled back after each test and dropped after.
+      RUN_POSTGRES_PRIVATE_INCIDENT_VISIBILITY_MIGRATION_TESTS: "true"
       # BackfillFileOwners1797900000000 on real rows (#4394). It works in a
       # schema of its own, rolled back after each test and dropped after.
       RUN_POSTGRES_FILE_OWNER_BACKFILL_TESTS: "true"

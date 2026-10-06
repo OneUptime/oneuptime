@@ -135,6 +135,7 @@ import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorReso
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
+import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
@@ -4050,11 +4051,15 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showIncidentHistoryInDays || 14,
     );
 
+    /*
+     * Only incidents the page shows: IncidentStatusPageScope keeps every
+     * query it runs to incidents visible on status pages that are not
+     * private (StatusPageVisibility), in SQL.
+     */
     let incidentQuery: Query<Incident> = {
       monitors: monitorsOnStatusPage as any,
       projectId: statusPage.projectId!,
       createdAt: QueryHelper.inBetween(historyDays, today),
-      isVisibleOnStatusPage: true,
     };
 
     if (incidentId) {
@@ -4062,7 +4067,6 @@ export default class StatusPageAPI extends BaseAPI<
         monitors: monitorsOnStatusPage as any,
         projectId: statusPage.projectId!,
         _id: incidentId.toString(),
-        isVisibleOnStatusPage: true,
       };
     }
 
@@ -4153,7 +4157,6 @@ export default class StatusPageAPI extends BaseAPI<
             statusPage: statusPage,
             query: {
               monitors: monitorsOnStatusPage as any,
-              isVisibleOnStatusPage: true,
               currentIncidentStateId: QueryHelper.any(
                 unresolvbedIncidentStateIds,
               ),
@@ -4335,7 +4338,10 @@ export default class StatusPageAPI extends BaseAPI<
      * Note: We don't filter by incident.isVisibleOnStatusPage here because
      * episode visibility is independent of incident visibility.
      * An episode should show if episode.isVisibleOnStatusPage is true,
-     * regardless of whether its member incidents are visible.
+     * regardless of whether its member incidents are visible. A private
+     * incident is another matter: it never takes its episode to a status
+     * page (includeHiddenIncidents reads hidden incidents, never private
+     * ones), and a private episode is never shown (shownEpisodes).
      */
     const incidentQuery: Query<Incident> = {
       monitors: monitorsOnStatusPage as any,
@@ -4367,6 +4373,7 @@ export default class StatusPageAPI extends BaseAPI<
         props: {
           isRoot: true,
         },
+        includeHiddenIncidents: true,
       });
     }
 
@@ -4403,22 +4410,22 @@ export default class StatusPageAPI extends BaseAPI<
       }
     }
 
-    let episodeQuery: Query<IncidentEpisode> = {
-      _id: QueryHelper.any(
-        Array.from(episodeIdsFromMembers).map((id: string) => {
-          return new ObjectID(id);
-        }),
-      ),
-      projectId: statusPage.projectId!,
-      isVisibleOnStatusPage: true,
-    };
+    // Only episodes the page shows: visible on status pages and not private.
+    let episodeQuery: Query<IncidentEpisode> =
+      StatusPageVisibilityQuery.shownEpisodes({
+        _id: QueryHelper.any(
+          Array.from(episodeIdsFromMembers).map((id: string) => {
+            return new ObjectID(id);
+          }),
+        ),
+        projectId: statusPage.projectId!,
+      });
 
     if (episodeId) {
-      episodeQuery = {
+      episodeQuery = StatusPageVisibilityQuery.shownEpisodes({
         _id: episodeId.toString(),
         projectId: statusPage.projectId!,
-        isVisibleOnStatusPage: true,
-      };
+      });
 
       // When viewing a specific episode, also fetch its members directly
       const episodeMembersForSpecificEpisode: Array<IncidentEpisodeMember> =
@@ -4445,8 +4452,9 @@ export default class StatusPageAPI extends BaseAPI<
        * could be read from any of its status pages by id - including an
        * episode whose incidents are all limited to other status pages. Like
        * the list, it does not ask whether the incidents themselves are
-       * visible on status pages, and unlike the list, it has no history
-       * window: a link to an older episode keeps working.
+       * visible on status pages - but never counts a private one - and
+       * unlike the list, it has no history window: a link to an older
+       * episode keeps working.
        */
       const episodeMemberIncidentIds: Array<ObjectID> =
         episodeMembersForSpecificEpisode
@@ -4472,6 +4480,7 @@ export default class StatusPageAPI extends BaseAPI<
               props: {
                 isRoot: true,
               },
+              includeHiddenIncidents: true,
             })
           : null;
 
@@ -4519,7 +4528,11 @@ export default class StatusPageAPI extends BaseAPI<
         isAcknowledgedState: true,
         isResolvedState: true,
       },
-      incidentCount: true,
+      /*
+       * Not the episode's incidentCount: it counts every incident in the
+       * episode, private ones included, and a status page shows none of
+       * those (StatusPageVisibility).
+       */
     };
 
     if (statusPage.showEpisodeLabelsOnStatusPage) {
@@ -4565,16 +4578,15 @@ export default class StatusPageAPI extends BaseAPI<
 
       const activeEpisodes: Array<IncidentEpisode> =
         await IncidentEpisodeService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownEpisodes({
             _id: QueryHelper.any(
               Array.from(episodeIdsFromMembers).map((id: string) => {
                 return new ObjectID(id);
               }),
             ),
-            isVisibleOnStatusPage: true,
             currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
             projectId: statusPage.projectId!,
-          },
+          }),
           select: selectEpisodes,
           sort: {
             declaredAt: SortOrder.Descending,
@@ -4617,16 +4629,18 @@ export default class StatusPageAPI extends BaseAPI<
      * Fetch incidents with their monitors. Read by id, so the scope is
      * applied here, in memory: a member incident limited to other status
      * pages does not tell this page which of its monitors the episode
-     * affects. (An episode viewed by id brings all of its members.)
+     * affects. (An episode viewed by id brings all of its members.) A
+     * private member is left out of the read itself: its monitors are not
+     * the episode's to show.
      */
     let memberIncidents: Array<Incident> = [];
     if (memberIncidentIds.length > 0) {
       memberIncidents = this.keepMemberIncidentsInScope({
         incidents: await IncidentService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.notPrivateIncidents({
             _id: QueryHelper.any(memberIncidentIds),
             projectId: statusPage.projectId!,
-          },
+          }),
           select: {
             _id: true,
             monitors: {
@@ -5310,7 +5324,6 @@ export default class StatusPageAPI extends BaseAPI<
               currentIncidentStateId: QueryHelper.any(
                 unresolvedIncidentStateIds,
               ),
-              isVisibleOnStatusPage: true,
               projectId: statusPage.projectId!,
             },
             select: select,
@@ -5408,10 +5421,11 @@ export default class StatusPageAPI extends BaseAPI<
      * join, up to LIMIT_PER_PROJECT rows) just to discover episode
      * membership — on every overview view, even though most pages have
      * zero active episodes most of the time. One indexed COUNT of the
-     * project's unresolved, visible episodes lets us skip all of it in
-     * the common case. Behavior-preserving: the final activeEpisodes
-     * query applies exactly these three constraints, so count == 0
-     * implies the block's outputs stay empty.
+     * project's unresolved episodes status pages show (visible, not
+     * private) lets us skip all of it in the common case.
+     * Behavior-preserving: the final activeEpisodes query applies exactly
+     * these constraints, so count == 0 implies the block's outputs stay
+     * empty.
      */
     let unresolvedIncidentStateIds: Array<ObjectID> = [];
     let hasActiveEpisodes: boolean = false;
@@ -5434,11 +5448,10 @@ export default class StatusPageAPI extends BaseAPI<
 
       const activeEpisodeCount: PositiveNumber =
         await IncidentEpisodeService.countBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownEpisodes({
             projectId: statusPage.projectId!,
-            isVisibleOnStatusPage: true,
             currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
-          },
+          }),
           props: {
             isRoot: true,
           },
@@ -5460,7 +5473,6 @@ export default class StatusPageAPI extends BaseAPI<
           statusPage: statusPage,
           query: {
             monitors: monitorsOnStatusPage as any,
-            isVisibleOnStatusPage: true,
             projectId: statusPage.projectId!,
           },
           select: {
@@ -5534,7 +5546,7 @@ export default class StatusPageAPI extends BaseAPI<
             isAcknowledgedState: true,
             isResolvedState: true,
           },
-          incidentCount: true,
+          // Not incidentCount: it counts private incidents too (see getEpisodes).
         };
 
         if (statusPage.showEpisodeLabelsOnStatusPage) {
@@ -5548,16 +5560,15 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         activeEpisodes = await IncidentEpisodeService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownEpisodes({
             _id: QueryHelper.any(
               Array.from(episodeIdsFromMembers).map((id: string) => {
                 return new ObjectID(id);
               }),
             ),
             currentIncidentStateId: QueryHelper.any(unresolvedIncidentStateIds),
-            isVisibleOnStatusPage: true,
             projectId: statusPage.projectId!,
-          },
+          }),
           select: selectEpisodes,
           sort: {
             declaredAt: SortOrder.Descending,
@@ -5603,11 +5614,10 @@ export default class StatusPageAPI extends BaseAPI<
           if (memberIncidentIds.length > 0) {
             memberIncidents = this.keepMemberIncidentsInScope({
               incidents: await IncidentService.findBy({
-                query: {
+                query: StatusPageVisibilityQuery.shownIncidents({
                   _id: QueryHelper.any(memberIncidentIds),
-                  isVisibleOnStatusPage: true,
                   projectId: statusPage.projectId!,
-                },
+                }),
                 select: {
                   _id: true,
                   monitors: {
@@ -5989,7 +5999,6 @@ export default class StatusPageAPI extends BaseAPI<
           query: {
             monitors: monitorsOnStatusPage as any,
             declaredAt: QueryHelper.inBetween(startDate, endDate),
-            isVisibleOnStatusPage: true,
             projectId: statusPage.projectId!,
           },
           select: {
@@ -6409,7 +6418,6 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           _id: incidentId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           showPostmortemOnStatusPage: true,
           monitors: monitorsOnStatusPage as any,
         },
@@ -6525,7 +6533,6 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           _id: incidentId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           monitors: monitorsOnStatusPage as any,
         },
         select: {
@@ -6687,7 +6694,6 @@ export default class StatusPageAPI extends BaseAPI<
         query: {
           _id: QueryHelper.any(incidentIds),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           monitors: monitorsOnStatusPage as any,
         },
         select: {
@@ -6702,14 +6708,13 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
-    // Verify the episode exists and is visible
+    // Verify the episode exists and the page shows it: visible, not private.
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneBy({
-        query: {
+        query: StatusPageVisibilityQuery.shownEpisodes({
           _id: episodeId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
-        },
+        }),
         select: {
           _id: true,
         },
