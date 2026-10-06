@@ -2020,19 +2020,17 @@ export default class StatusPageAPI extends BaseAPI<
          * cached JSONObject is shared across requests and must never be
          * mutated after build.
          */
-        const response: JSONObject = await StatusPageOverviewCache.getOrBuild(
-          {
-            statusPageId: statusPageId,
-            readProjectId: async (): Promise<ObjectID | null> => {
-              return await StatusPageService.getProjectIdOfStatusPage(
-                statusPageId,
-              );
-            },
-            build: async (): Promise<JSONObject> => {
-              return await this.buildOverviewResponse(statusPageId);
-            },
+        const response: JSONObject = await StatusPageOverviewCache.getOrBuild({
+          statusPageId: statusPageId,
+          readProjectId: async (): Promise<ObjectID | null> => {
+            return await StatusPageService.getProjectIdOfStatusPage(
+              statusPageId,
+            );
           },
-        );
+          build: async (): Promise<JSONObject> => {
+            return await this.buildOverviewResponse(statusPageId);
+          },
+        });
 
         // These can serve private-page data on a GET; never let shared caches store them.
         Response.setNoCacheHeaders(res);

@@ -215,7 +215,10 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "ScheduledMaintenancePublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
-    shownUnder: { ...SCHEDULED_MAINTENANCE_PARENT, foreignKey: "scheduledMaintenanceId" },
+    shownUnder: {
+      ...SCHEDULED_MAINTENANCE_PARENT,
+      foreignKey: "scheduledMaintenanceId",
+    },
     shownOn: "statusPage",
   },
   {
@@ -415,22 +418,24 @@ const PARENT_ALIAS: string = "parentRecord";
  * none that hides it on. `rowTable` is how the row's table is named in the
  * query around it.
  */
-const getParentShownSql: (parent: PublishedParent, rowTable: string) => string =
-  (parent: PublishedParent, rowTable: string): string => {
-    const alias: string = quote(PARENT_ALIAS);
+const getParentShownSql: (
+  parent: PublishedParent,
+  rowTable: string,
+) => string = (parent: PublishedParent, rowTable: string): string => {
+  const alias: string = quote(PARENT_ALIAS);
 
-    return `EXISTS (SELECT 1 FROM ${quote(parent.tableName)} AS ${alias} WHERE ${[
-      `${alias}.${quote("_id")} = ${rowTable}.${quote(parent.foreignKey)}`,
-      `${alias}.${quote("projectId")} = ${rowTable}.${quote("projectId")}`,
-      `${alias}.${quote("deletedAt")} IS NULL`,
-      ...parent.shownWhen.map((column: string): string => {
-        return `${alias}.${quote(column)} = true`;
-      }),
-      ...(parent.hiddenWhen || []).map((column: string): string => {
-        return `${alias}.${quote(column)} IS NOT TRUE`;
-      }),
-    ].join(" AND ")})`;
-  };
+  return `EXISTS (SELECT 1 FROM ${quote(parent.tableName)} AS ${alias} WHERE ${[
+    `${alias}.${quote("_id")} = ${rowTable}.${quote(parent.foreignKey)}`,
+    `${alias}.${quote("projectId")} = ${rowTable}.${quote("projectId")}`,
+    `${alias}.${quote("deletedAt")} IS NULL`,
+    ...parent.shownWhen.map((column: string): string => {
+      return `${alias}.${quote(column)} = true`;
+    }),
+    ...(parent.hiddenWhen || []).map((column: string): string => {
+      return `${alias}.${quote(column)} IS NOT TRUE`;
+    }),
+  ].join(" AND ")})`;
+};
 
 /*
  * The rows of a source that show their markdown: not deleted, every switch
@@ -1679,7 +1684,10 @@ export default class PublishedImages {
   }
 
   // The image tokens a row holds in one kind of markdown, each once.
-  private static getTokensOf(source: PublishedMarkdown, row: Row): Array<string> {
+  private static getTokensOf(
+    source: PublishedMarkdown,
+    row: Row,
+  ): Array<string> {
     const tokens: Set<string> = new Set<string>();
 
     for (const column of source.markdownColumns) {

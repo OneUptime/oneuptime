@@ -584,7 +584,9 @@ describe("IncidentEpisodeService keeps a private episode hidden on update", () =
   }
 
   // The columns the database works out in each episode's own write.
-  function rowWriteSql(onUpdate: OnUpdate<IncidentEpisode>): Dictionary<string> {
+  function rowWriteSql(
+    onUpdate: OnUpdate<IncidentEpisode>,
+  ): Dictionary<string> {
     return (
       IncidentEpisodeService as unknown as {
         getRowWriteSql: GetRowWriteSql;

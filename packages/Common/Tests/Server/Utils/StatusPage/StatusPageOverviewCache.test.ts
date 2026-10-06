@@ -1,7 +1,11 @@
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
-import { PUBLISHED_MARKDOWN } from "../../../../Server/Utils/File/PublishedImages";
+import {
+  PUBLISHED_MARKDOWN,
+  PublishedMarkdown,
+} from "../../../../Server/Utils/File/PublishedImages";
 import StatusPageOverviewCache, {
   SHOWN_RECORD_SWITCHES,
+  SHOWN_RECORD_TABLES,
   STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
 } from "../../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import { JSONObject } from "../../../../Types/JSON";
@@ -424,11 +428,38 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     expect(forgetProjects).not.toHaveBeenCalled();
   });
 
-  test("a delete of an incident, an episode or an event forgets them; of anything else, not", async () => {
+  test.each([
+    "Incident",
+    "IncidentEpisode",
+    "ScheduledMaintenance",
+    "IncidentPublicNote",
+    "IncidentEpisodePublicNote",
+    "ScheduledMaintenancePublicNote",
+    "StatusPageAnnouncement",
+  ])(
+    "a delete of a %s forgets the overviews of the rows' projects, each once",
+    async (tableName: string) => {
+      await StatusPageOverviewCache.afterDelete({
+        tableName: tableName,
+        rows: ROWS,
+      });
+
+      expect(forgetProjects).toHaveBeenCalledTimes(1);
+      expect(forgetProjects.mock.calls[0]![0]).toEqual([
+        PROJECT_ID.toString(),
+        OTHER_PROJECT_ID.toString(),
+      ]);
+    },
+  );
+
+  test("a delete of anything else, or of no rows, keeps them", async () => {
     for (const tableName of [
-      "Incident",
-      "IncidentEpisode",
-      "ScheduledMaintenance",
+      "Monitor",
+      "StatusPageResource",
+      "toString",
+      "constructor",
+      undefined,
+      null,
     ]) {
       await StatusPageOverviewCache.afterDelete({
         tableName: tableName,
@@ -437,15 +468,11 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     }
 
     await StatusPageOverviewCache.afterDelete({
-      tableName: "Monitor",
-      rows: ROWS,
-    });
-    await StatusPageOverviewCache.afterDelete({
-      tableName: undefined,
-      rows: ROWS,
+      tableName: "Incident",
+      rows: [],
     });
 
-    expect(forgetProjects).toHaveBeenCalledTimes(3);
+    expect(forgetProjects).not.toHaveBeenCalled();
   });
 });
 
@@ -456,15 +483,13 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
  */
 describe("GUARD: SHOWN_RECORD_SWITCHES", () => {
   test("names every status page switch of the records it covers", () => {
-    for (const [tableName, switches] of Object.entries(
-      SHOWN_RECORD_SWITCHES,
-    )) {
+    for (const [tableName, switches] of Object.entries(SHOWN_RECORD_SWITCHES)) {
       const published: Set<string> = new Set<string>(
-        PUBLISHED_MARKDOWN.filter((source) => {
+        PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
           return (
             source.tableName === tableName && source.shownOn === "statusPage"
           );
-        }).flatMap((source) => {
+        }).flatMap((source: PublishedMarkdown): Array<string> => {
           return [...source.shownWhen, ...(source.hiddenWhen || [])];
         }),
       );
@@ -480,5 +505,61 @@ describe("GUARD: SHOWN_RECORD_SWITCHES", () => {
       "IncidentEpisode",
       "ScheduledMaintenance",
     ]);
+  });
+});
+
+/*
+ * GUARD: a delete forgets the overviews of every record of a project's own
+ * that a status page shows - each with a switch above, each shown under one
+ * (a public note) - and of its announcements. Each is a status page source
+ * of PublishedImages, so the delete reads the project of each row.
+ */
+describe("GUARD: SHOWN_RECORD_TABLES", () => {
+  test("names every record with a switch, and every record shown under one", () => {
+    const shownUnderARecordWithASwitch: Array<string> =
+      PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+        return (
+          source.shownOn === "statusPage" &&
+          Boolean(source.shownUnder) &&
+          Object.prototype.hasOwnProperty.call(
+            SHOWN_RECORD_SWITCHES,
+            source.shownUnder!.tableName,
+          )
+        );
+      }).map((source: PublishedMarkdown): string => {
+        return source.tableName;
+      });
+
+    expect(shownUnderARecordWithASwitch.sort()).toEqual([
+      "IncidentEpisodePublicNote",
+      "IncidentPublicNote",
+      "ScheduledMaintenancePublicNote",
+    ]);
+
+    for (const tableName of [
+      ...Object.keys(SHOWN_RECORD_SWITCHES),
+      ...shownUnderARecordWithASwitch,
+      "StatusPageAnnouncement",
+    ]) {
+      expect(SHOWN_RECORD_TABLES).toContain(tableName);
+    }
+  });
+
+  test("names only records a status page shows, each once", () => {
+    const statusPageSources: Set<string> = new Set<string>(
+      PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+        return source.shownOn === "statusPage";
+      }).map((source: PublishedMarkdown): string => {
+        return source.tableName;
+      }),
+    );
+
+    for (const tableName of SHOWN_RECORD_TABLES) {
+      expect(statusPageSources.has(tableName)).toBe(true);
+    }
+
+    expect(new Set<string>(SHOWN_RECORD_TABLES).size).toBe(
+      SHOWN_RECORD_TABLES.length,
+    );
   });
 });

@@ -110,6 +110,10 @@ function boundDates(condition: unknown): Array<Date> {
   ) as Array<Date>;
 }
 
+// A time condition's SQL (QueryHelper): "up to" one date, or between two.
+const UP_TO_SQL: RegExp = /^\(x <= :\w+\)$/;
+const BETWEEN_SQL: RegExp = /^\(x >= :\w+ and x <= :\w+\)$/;
+
 // Whether a row's date passes a time condition: "up to" one date, or between two.
 function passesTimeCondition(date: Date, condition: unknown): boolean {
   if (condition === undefined) {
@@ -119,11 +123,11 @@ function passesTimeCondition(date: Date, condition: unknown): boolean {
   const sql: string = (condition as FindOperator<unknown>).getSql!("x");
   const dates: Array<Date> = boundDates(condition);
 
-  if (/^\(x <= :\w+\)$/.test(sql)) {
+  if (UP_TO_SQL.test(sql)) {
     return date.getTime() <= dates[0]!.getTime();
   }
 
-  if (/^\(x >= :\w+ and x <= :\w+\)$/.test(sql)) {
+  if (BETWEEN_SQL.test(sql)) {
     return (
       date.getTime() >= dates[0]!.getTime() &&
       date.getTime() <= dates[1]!.getTime()
@@ -147,24 +151,34 @@ function mockServices(): Fixtures {
   page.showScheduledEventHistoryInDays = 14;
   page.showAnnouncementHistoryInDays = 14;
 
-  const event: (title: string, isVisibleOnStatusPage: boolean) => ScheduledMaintenance =
-    (title: string, isVisibleOnStatusPage: boolean): ScheduledMaintenance => {
-      const row: ScheduledMaintenance = new ScheduledMaintenance();
-      row._id = ObjectID.generate().toString();
-      row.title = title;
-      row.isVisibleOnStatusPage = isVisibleOnStatusPage;
-      row.startsAt = new Date();
-      return row;
-    };
+  const event: (
+    title: string,
+    isVisibleOnStatusPage: boolean,
+  ) => ScheduledMaintenance = (
+    title: string,
+    isVisibleOnStatusPage: boolean,
+  ): ScheduledMaintenance => {
+    const row: ScheduledMaintenance = new ScheduledMaintenance();
+    row._id = ObjectID.generate().toString();
+    row.title = title;
+    row.isVisibleOnStatusPage = isVisibleOnStatusPage;
+    row.startsAt = new Date();
+    return row;
+  };
 
-  const announcement: (title: string, showAt: Date) => StatusPageAnnouncement =
-    (title: string, showAt: Date): StatusPageAnnouncement => {
-      const row: StatusPageAnnouncement = new StatusPageAnnouncement();
-      row._id = ObjectID.generate().toString();
-      row.title = title;
-      row.showAnnouncementAt = showAt;
-      return row;
-    };
+  const announcement: (
+    title: string,
+    showAt: Date,
+  ) => StatusPageAnnouncement = (
+    title: string,
+    showAt: Date,
+  ): StatusPageAnnouncement => {
+    const row: StatusPageAnnouncement = new StatusPageAnnouncement();
+    row._id = ObjectID.generate().toString();
+    row.title = title;
+    row.showAnnouncementAt = showAt;
+    return row;
+  };
 
   const shownEvent: ScheduledMaintenance = event("Database upgrade", true);
   const hiddenEvent: ScheduledMaintenance = event("Internal rehearsal", false);
@@ -208,7 +222,10 @@ function mockServices(): Fixtures {
     return announcements.filter((row: StatusPageAnnouncement): boolean => {
       return (
         idMatches(row, query["_id"]) &&
-        passesTimeCondition(row.showAnnouncementAt!, query["showAnnouncementAt"])
+        passesTimeCondition(
+          row.showAnnouncementAt!,
+          query["showAnnouncementAt"],
+        )
       );
     });
   };
@@ -429,9 +446,9 @@ describe("a status page answers by id only what it shows", () => {
         },
       });
 
-      expect(
-        (next as unknown as jest.Mock).mock.calls[0]?.[0],
-      ).toBeInstanceOf(NotFoundException);
+      expect((next as unknown as jest.Mock).mock.calls[0]?.[0]).toBeInstanceOf(
+        NotFoundException,
+      );
       expect(Response.sendFileResponse).not.toHaveBeenCalled();
     });
 
@@ -498,9 +515,9 @@ describe("a status page answers by id only what it shows", () => {
       const condition: unknown =
         fixtures.announcementQueries[0]!["showAnnouncementAt"];
 
-      expect(
-        (condition as FindOperator<unknown>).getSql!("x"),
-      ).toMatch(/^\(x <= :\w+\)$/);
+      expect((condition as FindOperator<unknown>).getSql!("x")).toMatch(
+        /^\(x <= :\w+\)$/,
+      );
       expect(boundDates(condition)[0]!.getTime()).toBeGreaterThanOrEqual(
         before,
       );
@@ -541,9 +558,9 @@ describe("a status page answers by id only what it shows", () => {
         },
       });
 
-      expect(
-        (next as unknown as jest.Mock).mock.calls[0]?.[0],
-      ).toBeInstanceOf(NotFoundException);
+      expect((next as unknown as jest.Mock).mock.calls[0]?.[0]).toBeInstanceOf(
+        NotFoundException,
+      );
       expect(Response.sendFileResponse).not.toHaveBeenCalled();
     });
 

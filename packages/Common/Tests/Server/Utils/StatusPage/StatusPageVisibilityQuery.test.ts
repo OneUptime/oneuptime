@@ -234,8 +234,7 @@ describe("StatusPageVisibilityQuery.shownAnnouncements", () => {
     return {
       sql: findOperator.getSql!("x"),
       values: Object.values(
-        (findOperator.objectLiteralParameters as Record<string, unknown>) ||
-          {},
+        (findOperator.objectLiteralParameters as Record<string, unknown>) || {},
       ),
     };
   }
@@ -287,9 +286,7 @@ describe("StatusPageVisibilityQuery.shownAnnouncements", () => {
         { now: NOW },
       ) as Dictionary<unknown>;
 
-    expect(timeConditionOf(query["showAnnouncementAt"]).values).toEqual([
-      NOW,
-    ]);
+    expect(timeConditionOf(query["showAnnouncementAt"]).values).toEqual([NOW]);
   });
 
   test("keeps the rest of the query, and does not change the one it is given", () => {
@@ -334,7 +331,10 @@ describe("StatusPageVisibilityQuery.getRowWriteSql", () => {
 
   test.each([
     ["turns it off", { isVisibleOnStatusPage: false }],
-    ["writes Private with it", { isVisibleOnStatusPage: true, isPrivate: false }],
+    [
+      "writes Private with it",
+      { isVisibleOnStatusPage: true, isPrivate: false },
+    ],
     [
       "makes the record private (stored off with it)",
       { isVisibleOnStatusPage: false, isPrivate: true },

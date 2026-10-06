@@ -17,15 +17,18 @@ import { randomBytes } from "crypto";
  *
  * A record that stops being shown must not stay on the page until the entry
  * runs out: an incident, an episode or a scheduled maintenance event made
- * private, hidden from status pages, its postmortem taken off, or deleted
- * (SHOWN_RECORD_SWITCHES). Each such write starts a new generation of its
- * project's overviews: a random token in Redis, shared by every process, and
- * kept in this process too. Every entry is kept under the generation its
- * project had when its build started, so once the token changes no request,
- * on any process, is served an entry built before - it builds the page again.
- * A build that read the record before the write is kept under the old
- * generation, which nobody asks for any more. (OnCallCalendarFeedCache
- * invalidates its feeds the same way.)
+ * private, hidden from status pages or its postmortem taken off
+ * (SHOWN_RECORD_SWITCHES), or a record the page shows deleted - one of
+ * those, a public note or an announcement (SHOWN_RECORD_TABLES). Each such
+ * write starts a new generation of its project's overviews: a random token
+ * in Redis, shared by every process, and kept in this process too. Every
+ * entry is kept under the generation its project had when its build
+ * started, so once the token changes no request, on any process, is served
+ * an entry built before - it builds the page again. A build that read the
+ * record before the write is kept under the old generation, which nobody
+ * asks for any more. (OnCallCalendarFeedCache invalidates its feeds the same
+ * way.) Edits that leave a record shown - a title, a note's text - are seen
+ * when the entry runs out.
  *
  * When Redis cannot be reached, the generation is this process's own copy: a
  * change made here takes effect here at once, and elsewhere within TTL_MS.
@@ -44,10 +47,28 @@ export const STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE: string =
 export const SHOWN_RECORD_SWITCHES: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  Incident: ["isVisibleOnStatusPage", "isPrivate", "showPostmortemOnStatusPage"],
+  Incident: [
+    "isVisibleOnStatusPage",
+    "isPrivate",
+    "showPostmortemOnStatusPage",
+  ],
   IncidentEpisode: ["isVisibleOnStatusPage", "isPrivate"],
   ScheduledMaintenance: ["isVisibleOnStatusPage"],
 };
+
+/*
+ * The records a status page shows whose delete starts a new generation of
+ * their project's overviews: those above, their public notes, and
+ * announcements. (A page's own settings, groups and resources are the
+ * page's, and change with it.)
+ */
+export const SHOWN_RECORD_TABLES: ReadonlyArray<string> = [
+  ...Object.keys(SHOWN_RECORD_SWITCHES),
+  "IncidentPublicNote",
+  "IncidentEpisodePublicNote",
+  "ScheduledMaintenancePublicNote",
+  "StatusPageAnnouncement",
+];
 
 // What a generation reads as before any write started one.
 const DEFAULT_GENERATION: string = "0";
@@ -158,15 +179,16 @@ export default class StatusPageOverviewCache {
 
   /*
    * After records are deleted: a deleted record a status page may show
-   * starts a new generation of its project's overviews. Best-effort: never
-   * fails the delete.
+   * (SHOWN_RECORD_TABLES) starts a new generation of its project's
+   * overviews. Best-effort: never fails the delete.
    */
   public static async afterDelete(data: {
     tableName: string | null | undefined;
     rows: Array<unknown>;
   }): Promise<void> {
     if (
-      this.getSwitches(data.tableName).length === 0 ||
+      !data.tableName ||
+      !SHOWN_RECORD_TABLES.includes(data.tableName) ||
       data.rows.length === 0
     ) {
       return;

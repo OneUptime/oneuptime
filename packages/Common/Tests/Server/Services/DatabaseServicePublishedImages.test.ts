@@ -681,8 +681,7 @@ describe("update: a column the service writes in SQL", () => {
     protected override getRowWriteSql(
       data: PartialEntity<Incident>,
     ): Dictionary<string> {
-      return (data as Record<string, unknown>)["isVisibleOnStatusPage"] ===
-        true
+      return (data as Record<string, unknown>)["isVisibleOnStatusPage"] === true
         ? { isVisibleOnStatusPage: VISIBLE_UNLESS_PRIVATE_SQL }
         : {};
     }
@@ -692,7 +691,12 @@ describe("update: a column the service writes in SQL", () => {
     return (
       (service as unknown as { onTriggerWorkflow: Mock<() => unknown> })
         .onTriggerWorkflow as unknown as Mock<
-        (id: unknown, tenantId: unknown, trigger: unknown, data: unknown) => unknown
+        (
+          id: unknown,
+          tenantId: unknown,
+          trigger: unknown,
+          data: unknown,
+        ) => unknown
       >
     ).mock.calls.map((call: Array<unknown>): unknown => {
       return (call[3] as { updatedFields?: unknown }).updatedFields;
@@ -895,9 +899,7 @@ describe("the status page overview cache follows the writes", () => {
     });
 
     expect(forgetProjects).toHaveBeenCalledTimes(1);
-    expect(forgetProjects.mock.calls[0]![0]).toEqual([
-      PROJECT_ID.toString(),
-    ]);
+    expect(forgetProjects.mock.calls[0]![0]).toEqual([PROJECT_ID.toString()]);
   });
 
   test("a write of anything else keeps them", async () => {

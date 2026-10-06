@@ -2101,9 +2101,9 @@ describe("GUARD: every record a public note is shown under", () => {
     for (const source of sourcesShownUnder) {
       const parent: PublishedParent = source.shownUnder!;
 
-      expect(
-        modelOf(source.tableName).getTableColumns().columns,
-      ).toContain(parent.foreignKey);
+      expect(modelOf(source.tableName).getTableColumns().columns).toContain(
+        parent.foreignKey,
+      );
 
       for (const column of [
         ...parent.shownWhen,
@@ -2241,10 +2241,11 @@ describe("PublishedImages: a public note shows its images only while its record 
   });
 
   describe("isParentShown", () => {
-    const incident: PublishedParent =
-      PUBLISHED_MARKDOWN.find((source: PublishedMarkdown): boolean => {
+    const incident: PublishedParent = PUBLISHED_MARKDOWN.find(
+      (source: PublishedMarkdown): boolean => {
         return source.tableName === "IncidentPublicNote";
-      })!.shownUnder!;
+      },
+    )!.shownUnder!;
 
     test("an incident visible and not private shows its notes", () => {
       for (const isPrivate of [false, null, undefined]) {
@@ -2285,7 +2286,9 @@ describe("PublishedImages: a public note shows its images only while its record 
 
     test("asks once for every incident the notes name, and answers the shown ones with their project", async () => {
       const query: QueryMock = stubQuery(async () => {
-        return [{ _id: INCIDENT_ID.toUpperCase(), projectId: PROJECT_ID.toString() }];
+        return [
+          { _id: INCIDENT_ID.toUpperCase(), projectId: PROJECT_ID.toString() },
+        ];
       });
 
       const shownParents: ShownParents = await PublishedImages.readShownParents(
@@ -2420,9 +2423,9 @@ describe("PublishedImages: a public note shows its images only while its record 
       });
 
       expect(
-        (readShownParents.mock.calls[0]![1] as Array<Record<string, unknown>>)[0]![
-          "incidentId"
-        ],
+        (
+          readShownParents.mock.calls[0]![1] as Array<Record<string, unknown>>
+        )[0]!["incidentId"],
       ).toBe(OTHER_INCIDENT_ID);
       expect(visibilityAsked()).toEqual(["aaa111:public"]);
     });
@@ -2449,9 +2452,7 @@ describe("PublishedImages: a public note shows its images only while its record 
     };
 
     // The notes of the incident the database answers, with an image each.
-    function notesOfIncident(
-      notes: Array<Record<string, unknown>>,
-    ): QueryMock {
+    function notesOfIncident(notes: Array<Record<string, unknown>>): QueryMock {
       const query: QueryMock = jest.fn(
         async (sql: string): Promise<unknown> => {
           return sql === getRowsShownUnderSql(noteSource()) ? notes : [];
@@ -2524,9 +2525,7 @@ describe("PublishedImages: a public note shows its images only while its record 
     });
 
     test("a note of another project is never made public by it", async () => {
-      notesOfIncident([
-        note({ token: "aaa111", projectId: OTHER_PROJECT_ID }),
-      ]);
+      notesOfIncident([note({ token: "aaa111", projectId: OTHER_PROJECT_ID })]);
 
       await PublishedImages.afterUpdate({
         tableName: "Incident",

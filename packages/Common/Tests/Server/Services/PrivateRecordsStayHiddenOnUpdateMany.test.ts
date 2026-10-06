@@ -986,9 +986,7 @@ describe("a record made private right before its own write", () => {
     // ...but told to nobody as written, and never taken as shown.
     for (const recorded of [table.workflowTriggers, table.auditedUpdates]) {
       for (const entry of recorded) {
-        expect(entry.updatedFields).not.toHaveProperty(
-          "isVisibleOnStatusPage",
-        );
+        expect(entry.updatedFields).not.toHaveProperty("isVisibleOnStatusPage");
         expect(entry.updatedFields).toEqual(
           expect.objectContaining({ title: "Checkout errors in Europe" }),
         );

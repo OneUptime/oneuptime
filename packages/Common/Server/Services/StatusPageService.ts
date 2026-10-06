@@ -274,10 +274,10 @@ export class Service extends ProjectReferencesService<StatusPage> {
   }
 
   /*
-   * The project a status page belongs to, which never changes: one small
-   * read by its id, as root. The page's cached overview is kept by its
-   * project's generation (StatusPageOverviewCache), which keeps this once
-   * per page. Null when there is no such page.
+   * The project a status page belongs to, which never changes: its project
+   * column alone, read by its id as root. The page's cached overview is
+   * kept by its project's generation (StatusPageOverviewCache), which keeps
+   * this once per page. Null when there is no such page.
    */
   @CaptureSpan()
   public async getProjectIdOfStatusPage(
@@ -287,18 +287,13 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return null;
     }
 
-    const row: { projectId?: unknown } | undefined = await this.getRepository()
-      .createQueryBuilder("statusPage")
-      .select('"statusPage"."projectId"', "projectId")
-      .where('"statusPage"."_id" = :id', { id: statusPageId.toString() })
-      .andWhere('"statusPage"."deletedAt" IS NULL')
-      .getRawOne();
+    const statusPage: StatusPage | null = await this.findOneById({
+      id: statusPageId,
+      select: { projectId: true },
+      props: { isRoot: true },
+    });
 
-    const projectId: unknown = row?.projectId;
-
-    return typeof projectId === "string" && ObjectID.isValidUUID(projectId)
-      ? new ObjectID(projectId)
-      : null;
+    return statusPage?.projectId || null;
   }
 
   /*
