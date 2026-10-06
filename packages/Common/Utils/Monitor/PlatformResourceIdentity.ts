@@ -4,6 +4,7 @@ import {
   DockerSwarmAffectedResource,
   KubernetesAffectedResource,
   ProxmoxAffectedResource,
+  StorageArrayAffectedResource,
   VMwareAffectedResource,
 } from "../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 
@@ -28,6 +29,10 @@ export type CephResourceIdentity = Omit<
 >;
 export type DockerSwarmResourceIdentity = Omit<
   DockerSwarmAffectedResource,
+  "metricValue" | "lowestMetricValue"
+>;
+export type StorageArrayResourceIdentity = Omit<
+  StorageArrayAffectedResource,
   "metricValue" | "lowestMetricValue"
 >;
 
@@ -430,6 +435,83 @@ export default class PlatformResourceIdentity {
       ...series,
       poolName: series.poolName || context.poolName,
       hostname: series.hostname || context.hostname,
+    };
+  }
+
+  /**
+   * Pure Storage series name their object in DATAPOINT labels, stored
+   * unprefixed: `name` (volumes, pods, directories, controllers, network
+   * interfaces; every FlashBlade object), `host`, `component_name`,
+   * `local_pod` (replica links) and `summary` (open alerts). Which object
+   * kind a `name` is depends on the metric, so only the label is kept here
+   * — the evaluator titles it from the metric name.
+   */
+  public static storageArray(
+    attributes: JSONObject,
+  ): StorageArrayResourceIdentity {
+    return {
+      objectName: PlatformResourceIdentity.readAttribute(attributes, "name"),
+      hostName: PlatformResourceIdentity.readAttribute(attributes, "host"),
+      componentName: PlatformResourceIdentity.readAttribute(
+        attributes,
+        "component_name",
+      ),
+      componentType: PlatformResourceIdentity.readAttribute(
+        attributes,
+        "component_type",
+      ),
+      podName: PlatformResourceIdentity.readAttribute(attributes, "local_pod"),
+      alertSummary: PlatformResourceIdentity.readAttribute(
+        attributes,
+        "summary",
+      ),
+    };
+  }
+
+  public static storageArrayKey(
+    identity: StorageArrayResourceIdentity,
+  ): string {
+    return [
+      identity.objectName || "",
+      identity.hostName || "",
+      identity.componentName || "",
+      identity.componentType || "",
+      identity.podName || "",
+      identity.alertSummary || "",
+    ].join("|");
+  }
+
+  /**
+   * A hardware component has one type, so a series that names the
+   * component may borrow it from its own datapoint. Nothing else is
+   * borrowed: an alert summary is not unique (two components can raise the
+   * same alert), so a series grouped by it has no single component to name.
+   */
+  public static withStorageArrayContext(
+    series: StorageArrayResourceIdentity,
+    context: StorageArrayResourceIdentity,
+  ): StorageArrayResourceIdentity {
+    if (
+      !series.componentName ||
+      !PlatformResourceIdentity.agreesOn(
+        series as JSONObject,
+        context as JSONObject,
+        [
+          "objectName",
+          "hostName",
+          "componentName",
+          "componentType",
+          "podName",
+          "alertSummary",
+        ],
+      )
+    ) {
+      return series;
+    }
+
+    return {
+      ...series,
+      componentType: series.componentType || context.componentType,
     };
   }
 

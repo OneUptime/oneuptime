@@ -115,6 +115,7 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "Service",
   "Slo",
   "StatusPages",
+  "StorageArray",
   "Teams",
   "Users",
   "VMware",

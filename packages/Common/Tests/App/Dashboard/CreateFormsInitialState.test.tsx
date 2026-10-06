@@ -29,7 +29,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * Each offers an Initial State under More fields - "Leave empty for the
  * usual starting state. Pick a later state to record an alert that is
- * already acknowledged or resolved." - and the server now starts the record
+ * already acknowledged or resolved. No one is paged for it." - and the
+ * server now starts the record
  * in the state picked (AlertService, AlertEpisodeService,
  * IncidentEpisodeService). What the page has to do for that, pinned here:
  *
@@ -283,7 +284,7 @@ const FORMS: Array<CreateForm> = [
     reviewHeading: "Alert Details",
     submit: "Create Alert",
     stateHelp:
-      "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.",
+      "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.",
   },
   {
     name: "Create Alert Episode",
@@ -298,7 +299,7 @@ const FORMS: Array<CreateForm> = [
     reviewHeading: "Episode Details",
     submit: "Create Episode",
     stateHelp:
-      "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.",
+      "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.",
   },
   {
     name: "Create Incident Episode",
@@ -313,7 +314,7 @@ const FORMS: Array<CreateForm> = [
     reviewHeading: "Episode Details",
     submit: "Create Episode",
     stateHelp:
-      "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.",
+      "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.",
   },
 ];
 

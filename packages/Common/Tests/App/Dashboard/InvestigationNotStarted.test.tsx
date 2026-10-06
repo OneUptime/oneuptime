@@ -144,6 +144,13 @@ const REASONS: Array<ReasonExample> = [
     nextStep: "Review the previous investigation for this monitor.",
   },
   {
+    code: "created_resolved",
+    title: "This incident was created already resolved",
+    description:
+      "It was already resolved when it was created, so OneUptime AI did not investigate it automatically.",
+    nextStep: "To look into it anyway, ask OneUptime AI below.",
+  },
+  {
     code: "daily_budget_exhausted",
     title: "The daily AI token limit was reached",
     description: "The daily token budget for this event type was exhausted.",
@@ -1058,6 +1065,11 @@ describe("which settings page each reason points at", () => {
       expect(actionFor(code)).toBeNull();
     },
   );
+
+  test("created already resolved: no setting would have changed it, so no settings page is offered", () => {
+    expect(actionFor("created_resolved", "incident")).toBeNull();
+    expect(actionFor("created_resolved", "alert")).toBeNull();
+  });
 
   test("no reason sends anyone to AI Credits to turn AI on", () => {
     const codes: Array<InvestigationNotStartedCode> = REASONS.map(

@@ -60,6 +60,12 @@ import AlertEpisodePrivacyRuleEngineService from "./AlertEpisodePrivacyRuleEngin
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import ProjectService from "./ProjectService";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
 
 /*
  * The two names of an episode's state, ID column first. A write may name it
@@ -197,21 +203,42 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * The state picked, if any, and the severity: a state or a severity of
-     * another project is refused, with the same words as one that does not
-     * exist, before a number is used.
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * episode recorded already acknowledged pages nobody, and one recorded
+     * resolved opens no channel either. The read holds only the project's
+     * own states, so it also checks the state picked. With none picked the
+     * episode starts in the created state - open, as every episode a
+     * grouping rule opens - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedAlertStateId
+      ? await AlertStateService.getStartingState({
+          projectId: projectId,
+          alertStateId: pickedAlertStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
+
+    /*
+     * The state picked, unless the read above found it, and the severity: a
+     * state or a severity of another project is refused, with the same
+     * words as one that does not exist, before a number is used.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "alert episode",
       references: [
-        ...getWrittenRelationReferences({
-          payload: createBy.data,
-          idColumn: "currentAlertStateId",
-          relation: "currentAlertState",
-          modelName: "Alert State",
-          service: AlertStateService,
-        }),
+        ...(pickedStart
+          ? []
+          : getWrittenRelationReferences({
+              payload: createBy.data,
+              idColumn: "currentAlertStateId",
+              relation: "currentAlertState",
+              modelName: "Alert State",
+              service: AlertStateService,
+            })),
         ...getWrittenRelationReferences({
           payload: createBy.data,
           idColumn: "alertSeverityId",
@@ -237,21 +264,18 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * resolvedAt follows the state the episode starts in. One recorded as
-     * already resolved is resolved from the moment it exists: grouping,
-     * auto-resolve and the unresolved episode lists read resolvedAt, which
-     * the first timeline row would otherwise set only once onCreateSuccess
-     * reaches it, after the workspace channels - and sets again then, to the
-     * moment that row records. Any other episode has none yet, whatever the
-     * write sent: the first timeline row would clear it anyway.
+     * resolvedAt follows the state the episode starts in exactly as its
+     * first timeline row writes it (AlertEpisodeStateTimelineService): set
+     * for a state flagged resolved. One recorded as already resolved is
+     * resolved from the moment it exists:
+     * grouping, auto-resolve and the unresolved episode lists read
+     * resolvedAt, which the first timeline row would otherwise set only once
+     * onCreateSuccess reaches it, after the workspace channels - and sets
+     * again then, to the moment that row records. Any other episode has none
+     * yet, whatever the write sent: the first timeline row would clear it
+     * anyway.
      */
-    if (
-      pickedAlertStateId &&
-      (await AlertStateService.isResolvedAlertState({
-        projectId: projectId,
-        alertStateId: pickedAlertStateId,
-      }))
-    ) {
+    if (pickedStart?.flaggedResolved) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];
@@ -274,12 +298,16 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.lastAlertAddedAt = OneUptimeDate.getCurrentDate();
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: StartingStageCarryForward = {
+      startingStage: startingStage,
+    };
+
+    return { createBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
@@ -293,6 +321,16 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createdItem.currentAlertStateId) {
       throw new BadDataException("currentAlertStateId is required");
     }
+
+    /*
+     * How far along the episode starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, no channel is opened for it either. Its rules, its
+     * feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
 
     // Create initial state timeline entry
     Promise.resolve()
@@ -317,8 +355,16 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * No channel is opened for an episode created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            StartingStageUtil.isOngoing(startingStage)
+          ) {
             await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
           }
         } catch (error) {
@@ -420,7 +466,10 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         // Execute on-call duty policies
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(createdItem);
+          await this.executeEpisodeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in AlertEpisodeService.onCreateSuccess: ${error}`,
@@ -533,9 +582,16 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * Runs the episode's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeEpisodeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     if (!createdItem.id || !createdItem.projectId) {
       return;
@@ -560,6 +616,16 @@ export class Service extends ProjectReferencesService<Model> {
         !episodeWithPolicies?.onCallDutyPolicies?.length ||
         episodeWithPolicies.onCallDutyPolicies.length === 0
       ) {
+        return;
+      }
+
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { alertEpisodeId: createdItem.id },
+          projectId: createdItem.projectId,
+          stage: startingStage,
+          policies: episodeWithPolicies.onCallDutyPolicies,
+        });
         return;
       }
 

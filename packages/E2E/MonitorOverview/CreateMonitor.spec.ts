@@ -311,7 +311,7 @@ test.describe("Create Monitor's first step", () => {
     await page.getByTestId("card-select-search").click();
     await page.keyboard.type("k8s");
     await expect(page.getByTestId("card-select-search-summary")).toHaveText(
-      "Showing 1 of 32",
+      "Showing 1 of 33",
     );
     await page.keyboard.press("Enter");
 

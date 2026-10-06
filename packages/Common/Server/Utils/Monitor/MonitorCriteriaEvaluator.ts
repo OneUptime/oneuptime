@@ -100,6 +100,8 @@ import MetricMonitorResponse, {
   VMwareResourceBreakdown,
   CephAffectedResource,
   CephResourceBreakdown,
+  StorageArrayAffectedResource,
+  StorageArrayResourceBreakdown,
   DockerSwarmAffectedResource,
   DockerSwarmResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -116,12 +118,20 @@ import MonitorStepIoTMonitor from "../../../Types/Monitor/MonitorStepIoTMonitor"
 import MonitorStepProxmoxMonitor from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import MonitorStepVMwareMonitor from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorStepCephMonitor from "../../../Types/Monitor/MonitorStepCephMonitor";
+import MonitorStepStorageArrayMonitor, {
+  StorageArrayResourceFilters,
+} from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
+import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
+import StorageArrayResourceKind, {
+  StorageArrayResourceKindUtil,
+} from "../../../Types/StorageArray/StorageArrayResourceKind";
+import { StorageSystemUtil } from "../../../Types/StorageArray/StorageSystem";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
@@ -130,6 +140,7 @@ import PlatformResourceIdentity, {
   DockerSwarmResourceIdentity,
   KubernetesResourceIdentity,
   ProxmoxResourceIdentity,
+  StorageArrayResourceIdentity,
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
@@ -178,11 +189,18 @@ type PlatformName =
   | "proxmox"
   | "vmware"
   | "dockerSwarm"
-  | "ceph";
+  | "ceph"
+  | "storageArray";
 
 interface CriteriaMetricTargetComponent {
   alias: string;
   metricName: string | undefined;
+  /*
+   * The query's attribute filters. Only the storage array catalog reads
+   * them: Pure tells read from write latency by a `dimension` label on one
+   * metric name, so the name alone cannot say which the query measured.
+   */
+  metricAttributes?: Record<string, unknown> | undefined;
 }
 
 /**
@@ -199,6 +217,8 @@ interface CriteriaMetricTarget {
   comparisonUnit: string | undefined;
   /** The query's metric; undefined for a formula. */
   metricName: string | undefined;
+  /** The query's attribute filters — see CriteriaMetricTargetComponent. */
+  metricAttributes?: Record<string, unknown> | undefined;
   /** The legend the user gave the query or formula, when it is not just the alias. */
   displayName: string | undefined;
   formulaExpression: string | undefined;
@@ -600,7 +620,8 @@ ${contextBlock}
   }
 
   /**
-   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/VMware/Ceph)
+   * For metric-backed monitors (Metrics/Kubernetes/Docker/Proxmox/VMware/Ceph/
+   * Storage Array)
    * with per-series aggregated results, re-evaluate the matched criteria
    * once per series and return one entry per series that breached.
    * Returns an empty array when the monitor is not series-aware or
@@ -1226,6 +1247,7 @@ ${contextBlock}
       input.monitor.monitorType === MonitorType.Proxmox ||
       input.monitor.monitorType === MonitorType.VMware ||
       input.monitor.monitorType === MonitorType.Ceph ||
+      input.monitor.monitorType === MonitorType.StorageArray ||
       input.monitor.monitorType === MonitorType.IoTDevice
     ) {
       const metricMonitorResult: string | null =
@@ -1427,6 +1449,11 @@ ${contextBlock}
     // Handle Ceph monitors with resource context
     if (input.monitor.monitorType === MonitorType.Ceph) {
       return MonitorCriteriaEvaluator.buildCephRootCauseContext(input);
+    }
+
+    // Handle Storage Array monitors with array resource context
+    if (input.monitor.monitorType === MonitorType.StorageArray) {
+      return MonitorCriteriaEvaluator.buildStorageArrayRootCauseContext(input);
     }
 
     // Handle generic Metric monitors with metric identity + breaching series
@@ -2255,6 +2282,8 @@ ${contextBlock}
     platform: PlatformName;
     metricName: string;
     metricUnit?: string | undefined;
+    // The query's filters; only the storage array catalog reads them.
+    attributes?: Record<string, unknown> | undefined;
   }): string | undefined {
     /*
      * The vcenter receiver's utilization metrics are already 0–100
@@ -2266,6 +2295,7 @@ ${contextBlock}
       PlatformMetricUnitUtil.getCatalogUnit({
         platform: input.platform,
         metricName: input.metricName,
+        attributes: input.attributes,
       }) ||
       input.metricUnit ||
       undefined
@@ -2283,6 +2313,7 @@ ${contextBlock}
     metricName: string;
     value: number;
     metricUnit?: string | undefined;
+    attributes?: Record<string, unknown> | undefined;
   }): string {
     return MetricValueFormatter.format({
       value: input.value,
@@ -2290,6 +2321,7 @@ ${contextBlock}
         platform: input.platform,
         metricName: input.metricName,
         metricUnit: input.metricUnit,
+        attributes: input.attributes,
       }),
       metricName: input.metricName,
     });
@@ -2302,6 +2334,8 @@ ${contextBlock}
   private static getPlatformMetricFriendlyName(input: {
     platform: PlatformName;
     metricName: string;
+    // The query's filters; only the storage array catalog reads them.
+    attributes?: Record<string, unknown> | undefined;
   }): string | undefined {
     switch (input.platform) {
       case "kubernetes":
@@ -2314,6 +2348,9 @@ ${contextBlock}
         return getDockerSwarmMetricByMetricName(input.metricName)?.friendlyName;
       case "ceph":
         return getCephMetricByMetricName(input.metricName)?.friendlyName;
+      case "storageArray":
+        return getStorageArrayMetric(input.metricName, input.attributes)
+          ?.friendlyName;
       default:
         return undefined;
     }
@@ -2449,6 +2486,8 @@ ${contextBlock}
                 (componentQuery?.metricQueryData?.filterData?.metricName as
                   | string
                   | undefined) || undefined,
+              metricAttributes:
+                MonitorCriteriaEvaluator.getQueryAttributes(componentQuery),
             };
           },
         );
@@ -2484,6 +2523,8 @@ ${contextBlock}
         (matchedQuery.metricQueryData?.filterData?.metricName as
           | string
           | undefined) || undefined,
+      metricAttributes:
+        MonitorCriteriaEvaluator.getQueryAttributes(matchedQuery),
       displayName: MetricMonitorCriteria.getAliasDisplayName({
         aliasData: matchedQuery.metricAliasData,
         metricAlias: aliasOf(matchedQuery) || alias,
@@ -2491,6 +2532,22 @@ ${contextBlock}
       formulaExpression: undefined,
       components: [],
     };
+  }
+
+  /*
+   * A query's attribute filters as a plain record, or undefined. Step JSON
+   * is not schema-checked, so anything else is ignored rather than read.
+   */
+  private static getQueryAttributes(
+    query: MetricQueryConfigData | undefined,
+  ): Record<string, unknown> | undefined {
+    const attributes: unknown = query?.metricQueryData?.filterData?.attributes;
+
+    if (!attributes || typeof attributes !== "object") {
+      return undefined;
+    }
+
+    return attributes as Record<string, unknown>;
   }
 
   /**
@@ -2535,8 +2592,12 @@ ${contextBlock}
   }): Array<string> {
     const target: CriteriaMetricTarget | null = input.target;
 
-    const describeMetric: (metricName: string) => string = (
+    const describeMetric: (
       metricName: string,
+      attributes?: Record<string, unknown> | undefined,
+    ) => string = (
+      metricName: string,
+      attributes?: Record<string, unknown> | undefined,
     ): string => {
       const breakdownFriendlyName: string | undefined =
         input.breakdown?.metricName === metricName
@@ -2550,6 +2611,7 @@ ${contextBlock}
           MonitorCriteriaEvaluator.getPlatformMetricFriendlyName({
             platform: input.platform,
             metricName: metricName,
+            attributes: attributes,
           }),
       });
     };
@@ -2566,7 +2628,10 @@ ${contextBlock}
       for (const component of target.components) {
         if (component.metricName) {
           lines.push(
-            `  - \`${component.alias}\` = ${describeMetric(component.metricName)}`,
+            `  - \`${component.alias}\` = ${describeMetric(
+              component.metricName,
+              component.metricAttributes,
+            )}`,
           );
         }
       }
@@ -2575,7 +2640,9 @@ ${contextBlock}
     }
 
     if (target?.metricName) {
-      return [`- Metric: ${describeMetric(target.metricName)}`];
+      return [
+        `- Metric: ${describeMetric(target.metricName, target.metricAttributes)}`,
+      ];
     }
 
     if (input.breakdown) {
@@ -2792,6 +2859,8 @@ ${contextBlock}
     breakdown: {
       metricName: string;
       metricUnit?: string | undefined;
+      // The query's filters, as the worker ran them.
+      attributes?: Record<string, unknown> | undefined;
       affectedResources: Array<R>;
     };
     breach: AffectedResourceBreachPredicate;
@@ -2808,6 +2877,7 @@ ${contextBlock}
       platform: input.platform,
       metricName: input.breakdown.metricName,
       declaredUnit: input.breakdown.metricUnit,
+      attributes: input.breakdown.attributes,
     });
 
     const toComparisonUnit: (value: number) => number = (
@@ -2865,6 +2935,7 @@ ${contextBlock}
     breakdown: {
       metricName: string;
       metricUnit?: string | undefined;
+      attributes?: Record<string, unknown> | undefined;
       affectedResources: Array<R>;
     };
     breach: AffectedResourceBreachPredicate;
@@ -2904,6 +2975,7 @@ ${contextBlock}
           platform: input.platform,
           metricName: input.breakdown.metricName,
           metricUnit: input.breakdown.metricUnit,
+          attributes: input.breakdown.attributes,
           value: value,
         }),
       });
@@ -3117,6 +3189,7 @@ ${contextBlock}
       | {
           metricName: string;
           metricUnit?: string | undefined;
+          attributes?: Record<string, unknown> | undefined;
           affectedResources: Array<R>;
         }
       | undefined;
@@ -5029,6 +5102,329 @@ ${contextBlock}
                       value:
                         MonitorCriteriaEvaluator.renderAffectedRowValue(row),
                     });
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<string> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            `- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(`\n\n**Metric Summary**\n${resultDetails.join("\n")}`);
+      }
+    }
+
+    return sections.length > 0 ? sections.join("\n") : null;
+  }
+
+  /*
+   * The kind of object the `name` label of a storage array metric names,
+   * from the metric's family: purefa_volume_* series name volumes,
+   * purefb_file_systems_* file systems, and so on. Null for a family whose
+   * `name` is no inventory object (purefa_volume_group_* names a volume
+   * group) or that OneUptime does not know.
+   */
+  private static getStorageArrayObjectKind(
+    metricName: string,
+  ): StorageArrayResourceKind | null {
+    if (metricName.startsWith("purefa_volume_group_")) {
+      return null;
+    }
+
+    const families: Array<[string, StorageArrayResourceKind]> = [
+      ["purefa_volume_", StorageArrayResourceKind.Volume],
+      ["purefa_host_", StorageArrayResourceKind.Host],
+      ["purefa_pod_", StorageArrayResourceKind.Pod],
+      ["purefa_hw_controller_", StorageArrayResourceKind.Controller],
+      ["purefa_hw_", StorageArrayResourceKind.Hardware],
+      ["purefa_drive_", StorageArrayResourceKind.Drive],
+      ["purefa_network_interface_", StorageArrayResourceKind.NetworkInterface],
+      ["purefa_directory_", StorageArrayResourceKind.Directory],
+      ["purefb_file_systems_", StorageArrayResourceKind.FileSystem],
+      ["purefb_buckets_", StorageArrayResourceKind.Bucket],
+      ["purefb_hardware_", StorageArrayResourceKind.Hardware],
+    ];
+
+    for (const [prefix, kind] of families) {
+      if (metricName.startsWith(prefix)) {
+        return kind;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * One storage array object as an "Affected Resources" list item: an open
+   * alert, a hardware component or drive, a pod's replica link, a host, or
+   * the object the metric's `name` label names (a volume, file system,
+   * bucket, ...). A series with no object label at all is array-wide, so it
+   * is titled by the array.
+   */
+  private static getStorageArrayAffectedResourceEntry(input: {
+    resource: StorageArrayResourceIdentity;
+    arrayName: string;
+    metricName: string;
+    value: string;
+  }): AffectedResourceListEntry {
+    const resource: StorageArrayResourceIdentity = input.resource;
+    const objectKind: StorageArrayResourceKind | null =
+      MonitorCriteriaEvaluator.getStorageArrayObjectKind(input.metricName);
+
+    let kind: string = "Storage Array";
+    let name: string = AffectedResourceList.code(input.arrayName);
+
+    if (resource.alertSummary) {
+      kind = "Alert";
+      name = AffectedResourceList.code(resource.alertSummary);
+    } else if (resource.componentName) {
+      kind =
+        objectKind === StorageArrayResourceKind.Drive
+          ? StorageArrayResourceKindUtil.getSingularLabel(
+              StorageArrayResourceKind.Drive,
+            )
+          : StorageArrayResourceKindUtil.getSingularLabel(
+              StorageArrayResourceKind.Hardware,
+            );
+      name = AffectedResourceList.code(resource.componentName);
+    } else if (resource.podName) {
+      kind = StorageArrayResourceKindUtil.getSingularLabel(
+        StorageArrayResourceKind.Pod,
+      );
+      name = AffectedResourceList.code(resource.podName);
+    } else if (resource.hostName) {
+      kind = StorageArrayResourceKindUtil.getSingularLabel(
+        StorageArrayResourceKind.Host,
+      );
+      name = AffectedResourceList.code(resource.hostName);
+    } else if (resource.objectName) {
+      kind = objectKind
+        ? StorageArrayResourceKindUtil.getSingularLabel(objectKind)
+        : "Object";
+      name = AffectedResourceList.code(resource.objectName);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    if (resource.alertSummary && resource.componentName) {
+      details.push({
+        label: "Component",
+        value: AffectedResourceList.code(resource.componentName),
+      });
+    }
+
+    if (resource.componentType) {
+      details.push({
+        label: "Component Type",
+        value: AffectedResourceList.code(resource.componentType),
+      });
+    }
+
+    if (
+      resource.hostName &&
+      name !== AffectedResourceList.code(resource.hostName)
+    ) {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildStorageArrayRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): string | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // Storage array context
+    const storageArrayMonitor: MonitorStepStorageArrayMonitor | undefined =
+      input.monitorStep.data?.storageArrayMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: StorageArrayResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.storageArrayResourceBreakdowns,
+        target: target,
+      });
+
+    const arrayName: string =
+      breakdown?.arrayName || storageArrayMonitor?.arrayIdentifier || "Unknown";
+
+    const sections: Array<string> = [];
+
+    if (storageArrayMonitor || breakdown) {
+      const arrayDetails: Array<string> = [];
+      arrayDetails.push(`- Storage Array: ${arrayName}`);
+
+      if (storageArrayMonitor?.storageSystem) {
+        arrayDetails.push(
+          `- Platform: ${StorageSystemUtil.getDisplayName(
+            storageArrayMonitor.storageSystem,
+          )}`,
+        );
+      }
+
+      arrayDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "storageArray",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: storageArrayMonitor?.metricViewConfig
+            ?.queryConfigs?.[0]?.metricQueryData?.filterData?.metricName as
+            | string
+            | undefined,
+        }),
+      );
+
+      const filterLabels: Record<keyof StorageArrayResourceFilters, string> = {
+        volumeName: "Volume Filter",
+        hostName: "Host Filter",
+        podName: "Pod Filter",
+        componentName: "Component Filter",
+        fileSystemName: "File System Filter",
+        bucketName: "Bucket Filter",
+      };
+
+      for (const filterKey of Object.keys(filterLabels) as Array<
+        keyof StorageArrayResourceFilters
+      >) {
+        const filterValue: unknown =
+          storageArrayMonitor?.resourceFilters?.[filterKey];
+
+        if (typeof filterValue === "string" && filterValue.trim()) {
+          arrayDetails.push(
+            `- ${filterLabels[filterKey]}: ${filterValue.trim()}`,
+          );
+        }
+      }
+
+      sections.push(`**Storage Array Details**\n${arrayDetails.join("\n")}`);
+    }
+
+    // Affected resources: a ranked list of the array's objects
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * Keep the rows that satisfy the criteria that just matched, worst
+     * first, top 10 — NOT simply the non-zero rows. A FlashBlade component
+     * that stops reporting healthy fires on purefb_hardware_health `< 1`,
+     * so its zero rows are the whole point of the incident.
+     */
+    const rows: Array<
+      PlatformAffectedRow<StorageArrayResourceIdentity>
+    > | null = MonitorCriteriaEvaluator.getPlatformAffectedRows<
+      StorageArrayResourceIdentity,
+      StorageArrayAffectedResource
+    >({
+      platform: "storageArray",
+      perSeriesMatches: input.perSeriesMatches,
+      namesObject: (identity: StorageArrayResourceIdentity): boolean => {
+        return Boolean(
+          identity.objectName ||
+            identity.hostName ||
+            identity.componentName ||
+            identity.podName ||
+            identity.alertSummary,
+        );
+      },
+      metricResponse: metricResponse,
+      monitorStep: input.monitorStep,
+      target: target,
+      breakdown: breakdown,
+      breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+        criteriaInstance: input.criteriaInstance,
+      }),
+      toIdentity: PlatformResourceIdentity.storageArray,
+      withContext: PlatformResourceIdentity.withStorageArrayContext,
+    });
+
+    /*
+     * Skip the list when no row carries any object label (array-wide
+     * series like purefa_array_space_utilization) — it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<StorageArrayResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.objectName ||
+            row.identity.hostName ||
+            row.identity.componentName ||
+            row.identity.podName ||
+            row.identity.alertSummary,
+        );
+      },
+    );
+
+    /*
+     * Which metric the rows are about, for titling a `name` label: the
+     * criteria's own query, else the breakdown's.
+     */
+    const rowsMetricName: string =
+      MonitorCriteriaEvaluator.getAnalysisMetricName(target) ||
+      breakdown?.metricName ||
+      "";
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<StorageArrayResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getStorageArrayAffectedResourceEntry(
+                      {
+                        resource: row.identity,
+                        arrayName: arrayName,
+                        metricName: rowsMetricName,
+                        value:
+                          MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                      },
+                    );
               },
             ),
         }),

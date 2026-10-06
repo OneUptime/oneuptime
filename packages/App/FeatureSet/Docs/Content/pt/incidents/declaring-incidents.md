@@ -46,7 +46,7 @@ Os monitores vêm primeiro, à parte: as páginas de status enxergam um incident
 
 - **Monitores** — uma caixa de busca que anexa os monitores afetados pelo incidente (`monitors`). Uma página de status mostra o incidente, e avisa os seus assinantes, quando lista um desses monitores.
 - **Alterar status do monitor para** — opcional, e mostrado só quando há pelo menos um monitor escolhido. Aplica um status a cada monitor do incidente, de modo que declarar o incidente e marcar os monitores como degradados seja uma única ação. O status de um modelo aparece assim que você escolhe um monitor; sem monitor escolhido, nenhum status é salvo.
-- **Outros recursos afetados** — uma segunda caixa de busca para todo o resto que o incidente afeta: hosts, clusters do Kubernetes, hosts do Docker e do Podman, clusters do Proxmox, Ceph e Docker Swarm, vCenters, frotas de IoT, bancos de dados e serviços. São relações separadas do incidente (`hosts`, `kubernetesClusters`, `services` e mais).
+- **Outros recursos afetados** — uma segunda caixa de busca para todo o resto que o incidente afeta: hosts, clusters do Kubernetes, hosts do Docker e do Podman, clusters do Proxmox, Ceph e Docker Swarm, vCenters, arrays de armazenamento, frotas de IoT, bancos de dados e serviços. São relações separadas do incidente (`hosts`, `kubernetesClusters`, `services` e mais).
 
 O cartão **Recursos afetados** do incidente pergunta do mesmo jeito quando você o edita depois.
 
@@ -160,7 +160,7 @@ A chamada de criação faz bem mais do que gravar uma linha. Em ordem:
 5. **Regras de rótulos rodam**, adicionando os rótulos que correspondem ao incidente.
 6. **Regras de plantão rodam.** Toda regra habilitada em **Incidentes → Regras → Regras de Plantão** cujos critérios correspondam soma suas políticas ao incidente. Não há ordem de prioridade nem curto-circuito — todas as regras correspondentes disparam e as políticas são deduplicadas.
 7. **Regras de runbook rodam**, anexando e iniciando os runbooks correspondentes. Veja [Runbooks](/docs/runbooks/index).
-8. **Políticas de plantão são executadas.** Toda política no incidente — escolhida no assistente, herdada de um modelo, ou adicionada por uma regra — é executada em paralelo com o tipo de evento `IncidentCreated`. Uma política falhar não interrompe as demais.
+8. **Políticas de plantão são executadas.** Toda política no incidente — escolhida no assistente, herdada de um modelo, ou adicionada por uma regra — é executada em paralelo com o tipo de evento `IncidentCreated`. Uma política falhar não interrompe as demais. Um incidente declarado já confirmado ou resolvido não executa nenhuma delas: ninguém é acionado, e o feed dele informa isso, citando-as.
 9. **Assinantes entram na fila**, se **Notificar assinantes da página de status** tiver ficado ativado e o incidente estiver visível na página de status. A entrega fica a cargo de um job em segundo plano, não da sua requisição.
 10. **Workflows disparam.** O gatilho **On Create Incident** inicia qualquer workflow construído sobre ele. Veja [Visão geral dos workflows](/docs/workflows/index).
 

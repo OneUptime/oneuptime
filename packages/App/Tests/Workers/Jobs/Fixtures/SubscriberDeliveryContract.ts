@@ -3,6 +3,10 @@ import { Blue500, Red500 } from "Common/Types/BrandColors";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { SubscriberNotificationRetryScope } from "Common/Server/Utils/StatusPage/SubscriberNotificationDeliveryRecord";
 import SubscriberNotificationTiming from "Common/Server/Utils/StatusPage/SubscriberNotificationTiming";
@@ -526,7 +530,7 @@ export function describeSubscriberDelivery(
           options["failIfNotSent"] === true
             ? httpError(
                 400,
-                "SMS not sent: SMS notifications are not enabled for this project.",
+                `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
               )
             : undefined,
         );

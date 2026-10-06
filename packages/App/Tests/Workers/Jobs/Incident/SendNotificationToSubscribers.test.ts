@@ -21,6 +21,10 @@ import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/Stat
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import IncidentCreatedRenotify from "Common/Types/StatusPage/IncidentCreatedRenotify";
 import IncidentScopeAddedPagesNotification from "Common/Types/StatusPage/IncidentScopeAddedPagesNotification";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 
 /*
  * Incident created subscriber notifications. These tests drive a tick of the
@@ -2823,7 +2827,7 @@ describe("Incident:SendNotificationToSubscribers, when a send falls short", () =
         options["failIfNotSent"] === true
           ? httpError(
               400,
-              "SMS not sent: SMS notifications are not enabled for this project.",
+              `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
             )
           : undefined,
       );

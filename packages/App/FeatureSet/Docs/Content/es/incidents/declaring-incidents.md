@@ -46,7 +46,7 @@ Los monitores van primero, por separado: las páginas de estado ven un incidente
 
 - **Monitores** — un cuadro de búsqueda que adjunta los monitores afectados por el incidente (`monitors`). Una página de estado muestra el incidente, y avisa a sus suscriptores, cuando incluye uno de estos monitores.
 - **Cambiar el estado del monitor a** — opcional, y solo aparece cuando hay al menos un monitor elegido. Aplica un estado a cada monitor del incidente, de modo que declarar el incidente y marcar sus monitores como degradados sea una sola acción. El estado de una plantilla aparece en cuanto eliges un monitor; sin ningún monitor elegido, no se guarda ningún estado.
-- **Otros recursos afectados** — un segundo cuadro de búsqueda para todo lo demás que afecta el incidente: hosts, clústeres de Kubernetes, hosts de Docker y Podman, clústeres de Proxmox, Ceph y Docker Swarm, vCenters, flotas IoT, bases de datos y servicios. Son relaciones distintas del incidente (`hosts`, `kubernetesClusters`, `services` y más).
+- **Otros recursos afectados** — un segundo cuadro de búsqueda para todo lo demás que afecta el incidente: hosts, clústeres de Kubernetes, hosts de Docker y Podman, clústeres de Proxmox, Ceph y Docker Swarm, vCenters, arrays de almacenamiento, flotas IoT, bases de datos y servicios. Son relaciones distintas del incidente (`hosts`, `kubernetesClusters`, `services` y más).
 
 La tarjeta **Recursos afectados** del incidente pregunta de la misma forma cuando la editas más tarde.
 
@@ -160,7 +160,7 @@ La llamada de creación hace bastante más que escribir una fila. En orden:
 5. **Se ejecutan las reglas de etiquetas**, añadiendo las etiquetas que coincidan con el incidente.
 6. **Se ejecutan las reglas de guardia.** Toda regla activada en **Incidentes → Reglas → Reglas de guardia** cuyos criterios coincidan añade sus políticas al incidente. No hay orden de prioridad ni cortocircuito: se disparan todas las reglas coincidentes y las políticas se deduplican.
 7. **Se ejecutan las reglas de runbook**, adjuntando e iniciando los runbooks coincidentes. Consulta [Runbooks](/docs/runbooks/index).
-8. **Se ejecutan las políticas de guardia.** Toda política del incidente —elegida en el asistente, heredada de una plantilla o añadida por una regla— se ejecuta en paralelo con el tipo de evento `IncidentCreated`. Que una política falle no detiene a las demás.
+8. **Se ejecutan las políticas de guardia.** Toda política del incidente —elegida en el asistente, heredada de una plantilla o añadida por una regla— se ejecuta en paralelo con el tipo de evento `IncidentCreated`. Que una política falle no detiene a las demás. Un incidente declarado ya reconocido o resuelto no ejecuta ninguna: no se avisa a nadie, y su feed lo indica, nombrándolas.
 9. **Se ponen en cola los suscriptores**, si se dejó activado **Notificar a suscriptores de la página de estado** y el incidente es visible en la página de estado. La entrega la gestiona un trabajo en segundo plano, no tu petición.
 10. **Se disparan los flujos de trabajo.** El disparador **On Create Incident** arranca cualquier flujo de trabajo construido sobre él. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 

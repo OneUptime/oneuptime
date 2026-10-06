@@ -1,5 +1,6 @@
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import MonitorMaintenanceSuppression, {
   MaintainedResourceKeys,
@@ -20,6 +21,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     proxmoxClusters: { ids: new Set<string>(), names: new Set<string>() },
     vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
+    storageArrays: { ids: new Set<string>(), names: new Set<string>() },
     dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },
@@ -112,6 +114,44 @@ describe("SeriesResourceLabels", () => {
       );
       expect(refs.proxmoxClusterNames).toEqual(["pve-1"]);
       expect(refs.cephClusterNames).toEqual(["ceph-1"]);
+    });
+
+    it("maps storage array name keys (prefixed and unprefixed)", () => {
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          "resource.storage.array.name": "pure-prod-01",
+        },
+      );
+      expect(refs.storageArrayNames).toEqual(["pure-prod-01"]);
+
+      const refsUnprefixed: SeriesResourceRefs =
+        SeriesResourceLabels.extractResourceRefs({
+          "storage.array.name": "pure-prod-02",
+        });
+      expect(refsUnprefixed.storageArrayNames).toEqual(["pure-prod-02"]);
+    });
+
+    it("does not read a storage array object label as the array identity", () => {
+      /*
+       * The shipped storage array templates group by the object's own
+       * datapoint label (`name`, `host`, `component_name`, ...); those name
+       * a volume, host or component, never the array, and must not resolve
+       * to a StorageArray row — nor to a Host row.
+       */
+      const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
+        {
+          name: "vol-db-01",
+          host: "esx-01",
+          component_name: "CT0.FAN0",
+          local_pod: "pod-a",
+          summary: "Controller failed",
+        },
+      );
+      expect(
+        Object.values(refs).every((values: Array<string>): boolean => {
+          return values.length === 0;
+        }),
+      ).toBe(true);
     });
 
     it("maps vmware vcenter name keys (prefixed and unprefixed)", () => {
@@ -336,6 +376,54 @@ describe("MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedRe
     expect(Array.from(result)).toEqual(["fpVCenter"]);
   });
 
+  it("suppresses a storage array series whose array is under maintenance", () => {
+    /*
+     * A user-built monitor grouped by `storage.array.name` goes quiet while
+     * the array is attached to an ongoing maintenance window. The shipped
+     * templates group by the object labels instead and rely on the
+     * step-config path, exactly like Ceph's.
+     */
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.storageArrays.names.add("pure-prod-01");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpArray", {
+              "resource.storage.array.name": "pure-prod-01",
+            }),
+            series("fpArrayUnprefixed", {
+              "storage.array.name": "pure-prod-01",
+            }),
+            series("fpClear", {
+              "resource.storage.array.name": "pure-dr-01",
+            }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(Array.from(result).sort()).toEqual(["fpArray", "fpArrayUnprefixed"]);
+  });
+
+  it("does not let a storage array name match a Ceph cluster with the same name", () => {
+    const maintained: MaintainedResourceKeys = emptyMaintained();
+    maintained.storageArrays.names.add("prod-storage");
+
+    const result: Set<string> =
+      MonitorMaintenanceSuppression.getSuppressedFingerprintsForMaintainedResources(
+        {
+          matchesPerSeries: [
+            series("fpCeph", { "ceph.cluster.name": "prod-storage" }),
+          ],
+          maintained,
+        },
+      );
+
+    expect(result.size).toBe(0);
+  });
+
   it("suppresses only the series whose database is under maintenance", () => {
     const maintained: MaintainedResourceKeys = emptyMaintained();
     maintained.databaseServers.ids.add("d0000000-0000-4000-8000-000000000001");
@@ -536,6 +624,34 @@ describe("MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints — data
       });
 
     expect(result.size).toBe(0);
+  });
+
+  it("selects the storage arrays of ongoing events by id and name and suppresses their series", async () => {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event._id = "event-2";
+    const array: StorageArray = new StorageArray();
+    array._id = "a0000000-0000-4000-8000-000000000001";
+    array.name = "pure-prod-01";
+    event.storageArrays = [array];
+
+    const findBy: jest.SpyInstance = jest
+      .spyOn(ScheduledMaintenanceService, "findBy")
+      .mockResolvedValue([event]);
+
+    const result: Set<string> =
+      await MonitorMaintenanceSuppression.getSuppressedSeriesFingerprints({
+        projectId: PROJECT_ID,
+        matchesPerSeries: [
+          series("fpArray", { "storage.array.name": "pure-prod-01" }),
+          series("fpOther", { "storage.array.name": "pure-dr-01" }),
+        ],
+      });
+
+    expect(Array.from(result)).toEqual(["fpArray"]);
+
+    const args: { select: { storageArrays?: unknown } } = findBy.mock
+      .calls[0]![0] as { select: { storageArrays?: unknown } };
+    expect(args.select.storageArrays).toEqual({ _id: true, name: true });
   });
 
   it("skips the maintenance query entirely when there are no per-series matches", async () => {

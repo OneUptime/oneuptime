@@ -33,6 +33,7 @@ export type DashboardResourceType =
   | "proxmox-resource"
   | "vmware-resource"
   | "ceph-resource"
+  | "storage-array-resource"
   | "docker-swarm-resource"
   | "network-site"
   | "slo"

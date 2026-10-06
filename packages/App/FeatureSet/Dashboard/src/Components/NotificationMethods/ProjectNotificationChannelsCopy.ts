@@ -1,15 +1,32 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ProjectNotificationChannel,
+  ProjectNotificationChannelColumn,
+} from "Common/Utils/Project/NotificationChannels";
+
+export { ProjectNotificationChannel };
+export type { ProjectNotificationChannelColumn };
 
 /*
  * The four notification channels a project switches on and off: SMS, phone
  * calls, WhatsApp and Telegram. Each is one boolean column on the Project
- * (enableSmsNotifications, ...), every one of them off on a new project, and
- * only a project owner (or someone who manages billing) may change them.
+ * (enableSmsNotifications, ...), every one of them off on a new project.
+ *
+ * Only a project owner, or someone with Manage Billing, may change them -
+ * the columns' own update permissions - and not a project admin: a channel
+ * that costs money is billing (Common/Utils/Project/NotificationChannels,
+ * which also words what the server says). So wherever a channel is off:
+ * - someone who may turn it on gets the switch itself, or a link straight
+ *   to it (the Notification Channels card);
+ * - everyone else is told exactly who can, and where - never to "ask an
+ *   admin", who could not. Each such sentence is one whole key, so a
+ *   language can give "it" the gender of the channel it stands for.
  *
  * What a switch that is off does, so the copy says it right:
  * - Nobody in the project can add a method on that channel. UserSmsService,
  *   UserCallService, UserWhatsAppService and UserTelegramService refuse the
- *   new row ("SMS notifications are disabled for this project. ..."), and
+ *   new row ("SMS is off in this project. A project owner or someone
+ *   with Manage Billing can turn it on in ..."), and
  *   UserIncomingCallNumberService refuses incoming call numbers while SMS is
  *   off, because they are verified by text.
  * - Resending a verification code is refused too, for SMS, calls and
@@ -25,19 +42,6 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * sentence or a whole name, wrapped in translationKey() so
  * npm run i18n:extract finds it.
  */
-
-export enum ProjectNotificationChannel {
-  SMS = "SMS",
-  Call = "Call",
-  WhatsApp = "WhatsApp",
-  Telegram = "Telegram",
-}
-
-export type ProjectNotificationChannelColumn =
-  | "enableSmsNotifications"
-  | "enableCallNotifications"
-  | "enableWhatsAppNotifications"
-  | "enableTelegramNotifications";
 
 export interface ProjectNotificationChannelDefinition {
   channel: ProjectNotificationChannel;
@@ -66,11 +70,22 @@ export interface ProjectNotificationChannelDefinition {
 export const ProjectNotificationChannelsCopy: {
   cardTitle: string;
   cardDescription: string;
+  // On the card, for someone whose switches are locked.
+  whoCanChange: string;
+  /*
+   * The page with the switches, as the text of a link to it - for people
+   * who may turn them on.
+   */
+  settingsLinkText: string;
 } = {
   cardTitle: translationKey("Notification Channels"),
   cardDescription: translationKey(
     "Each of these has to be on before anyone in this project can add it as a notification method.",
   ),
+  whoCanChange: translationKey(
+    "A project owner or someone with Manage Billing can change these.",
+  ),
+  settingsLinkText: translationKey("Project Settings → Notification Settings"),
 };
 
 /*
@@ -232,7 +247,7 @@ export const getDisabledProjectChannels: (
  *
  * Its Add button is gone then: the server refuses the row. In its place, at
  * the top of the list, people who may change the switch get the switch
- * itself; everyone else gets one sentence saying who can.
+ * itself; everyone else is told what is off, and who can turn it on.
  */
 export enum ChannelGatedMethodList {
   SMS = "SMS",
@@ -249,7 +264,10 @@ export interface ChannelGatedMethodListDefinition {
   // Under the switch while it is off, and once it is on.
   switchOffDescription: string;
   switchOnDescription: string;
-  // For someone who may not change the switch: what is off, and who can.
+  /*
+   * For someone who may not change the switch: what is off, and exactly
+   * who can turn it on, and where.
+   */
   offSentence: string;
   /*
    * The empty list's heading while the channel is off. The list's usual
@@ -272,7 +290,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can add a phone number for SMS.",
       ),
       offSentence: translationKey(
-        "SMS is off in this project. A project owner can turn it on.",
+        "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
       ),
       noItemsWhileOff: NO_PHONE_NUMBERS_YET,
     },
@@ -286,7 +304,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can add a phone number for calls.",
       ),
       offSentence: translationKey(
-        "Calls are off in this project. A project owner can turn them on.",
+        "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
       ),
       noItemsWhileOff: NO_PHONE_NUMBERS_YET,
     },
@@ -300,7 +318,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can add a WhatsApp number.",
       ),
       offSentence: translationKey(
-        "WhatsApp is off in this project. A project owner can turn it on.",
+        "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
       ),
       noItemsWhileOff: translationKey("No WhatsApp numbers yet."),
     },
@@ -314,7 +332,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: everyone can link a Telegram account.",
       ),
       offSentence: translationKey(
-        "Telegram is off in this project. A project owner can turn it on.",
+        "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
       ),
       noItemsWhileOff: translationKey("No Telegram accounts linked yet."),
     },
@@ -328,7 +346,7 @@ export const CHANNEL_GATED_METHOD_LISTS: ReadonlyArray<ChannelGatedMethodListDef
         "On for this project: numbers for incoming calls can be added and verified by SMS.",
       ),
       offSentence: translationKey(
-        "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner can turn it on.",
+        "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
       ),
       noItemsWhileOff: NO_PHONE_NUMBERS_YET,
     },

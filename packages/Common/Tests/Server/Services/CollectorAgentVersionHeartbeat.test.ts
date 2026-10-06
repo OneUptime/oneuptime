@@ -23,6 +23,9 @@ import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClust
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import HostService from "../../../Server/Services/HostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
+import StorageArrayService, {
+  StorageArraySnapshotExtras,
+} from "../../../Server/Services/StorageArrayService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import ResourceHeartbeat from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
 import SingleFlight from "../../../Server/Utils/SingleFlight";
@@ -37,9 +40,9 @@ import {
 } from "@jest/globals";
 
 /*
- * The agent version a host's, Proxmox cluster's, Ceph cluster's or
- * vCenter's collector stamps reaches the resource's row through the same
- * gated heartbeat as everything else ingest learns about it
+ * The agent version a host's, Proxmox cluster's, Ceph cluster's, vCenter's
+ * or storage array's collector stamps reaches the resource's row through the
+ * same gated heartbeat as everything else ingest learns about it
  * (ResourceHeartbeat). Two callers write each row: the metrics snapshot
  * (counts, every batch) and the fenced maintenance pass, which carries the
  * version. These pin what that means for the version:
@@ -209,6 +212,95 @@ describe.each(CASES)("$name", ({ service, snapshot }: ServiceCase) => {
 
     expect(versionWrites()).toHaveLength(1);
     expect(versionWrites()[0]!.data["agentVersion"]).toBe(VERSION);
+  });
+});
+
+/*
+ * A storage array keys its heartbeat by the SHAPE of the extras - each of
+ * its scrape jobs' batches carries a different one (StorageArrayService.
+ * updateLastSeen) - so the maintenance pass's version, a shape of its own,
+ * has a window of its own: it never waits behind a snapshot's write.
+ */
+describe("StorageArrayService", () => {
+  // What the array endpoint's snapshot writes, without a version.
+  const SNAPSHOT: StorageArraySnapshotExtras = {
+    storageSystem: "purestorage.flasharray",
+    capacityBytes: 100_000_000_000,
+    usedBytes: 40_000_000_000,
+    healthStatus: 0,
+  };
+
+  beforeEach(() => {
+    writes = [];
+    cache = new Map<string, string>();
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+    mockCache();
+    jest
+      .spyOn(StorageArrayService, "updateColumnsByIdIfUnlockedWithoutHooks")
+      .mockImplementation(async (input: unknown) => {
+        const call: { id: ObjectID; data: unknown } = input as {
+          id: ObjectID;
+          data: unknown;
+        };
+        writes.push({
+          id: call.id,
+          data: { ...(call.data as Record<string, unknown>) },
+        });
+        return true;
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+  });
+
+  test("the version the collector reports lands on the row", async () => {
+    await StorageArrayService.updateLastSeen(ROW_ID, { agentVersion: VERSION });
+
+    expect(versionWrites()).toHaveLength(1);
+    expect(versionWrites()[0]!.data["agentVersion"]).toBe(VERSION);
+    expect(versionWrites()[0]!.id.toString()).toBe(ROW_ID.toString());
+  });
+
+  test("a snapshot write without a version never blanks it", async () => {
+    await StorageArrayService.updateLastSeen(ROW_ID, { agentVersion: VERSION });
+    letTheWindowPass();
+    await StorageArrayService.updateLastSeen(ROW_ID, SNAPSHOT);
+
+    expect(writes.length).toBeGreaterThanOrEqual(2);
+    expect("agentVersion" in writes[writes.length - 1]!.data).toBe(false);
+  });
+
+  test("an empty version is never written: an install from before the stamp reads Not reported", async () => {
+    for (const blank of ["", "   "]) {
+      await StorageArrayService.updateLastSeen(ROW_ID, { agentVersion: blank });
+      letTheWindowPass();
+    }
+
+    expect(versionWrites()).toHaveLength(0);
+  });
+
+  test("a version reported right after a snapshot write lands at once, in a window of its own", async () => {
+    await StorageArrayService.updateLastSeen(ROW_ID, SNAPSHOT);
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+    // The maintenance pass, moments later: another shape, another window.
+    await StorageArrayService.updateLastSeen(ROW_ID, { agentVersion: VERSION });
+
+    expect(versionWrites()).toHaveLength(1);
+    expect(versionWrites()[0]!.data["agentVersion"]).toBe(VERSION);
+    // Each write carried its own columns only.
+    expect("agentVersion" in writes[0]!.data).toBe(false);
+    expect(writes[0]!.data["capacityBytes"]).toBe(SNAPSHOT.capacityBytes);
+
+    // The same version again inside the window costs nothing more.
+    SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
+    await StorageArrayService.updateLastSeen(ROW_ID, { agentVersion: VERSION });
+    expect(versionWrites()).toHaveLength(1);
   });
 });
 

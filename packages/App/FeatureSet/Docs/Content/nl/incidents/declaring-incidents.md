@@ -46,7 +46,7 @@ De monitoren komen eerst, apart: statuspagina's zien een incident via zijn monit
 
 - **Monitoren** — een zoekveld dat de monitoren koppelt die het incident raakt (`monitors`). Een statuspagina toont het incident, en informeert haar abonnees, als ze een van deze monitoren vermeldt.
 - **Monitorstatus wijzigen naar** — optioneel, en pas zichtbaar zodra er minstens één monitor is gekozen. Zet elke monitor van het incident op een monitorstatus, zodat het incident melden en de monitoren als verstoord markeren één handeling is. De status van een sjabloon verschijnt zodra je een monitor kiest; zonder gekozen monitor wordt er geen status opgeslagen.
-- **Andere getroffen resources** — een tweede zoekveld voor al het andere dat het incident raakt: hosts, Kubernetes-clusters, Docker- en Podman-hosts, Proxmox-, Ceph- en Docker Swarm-clusters, vCenters, IoT-vloten, databases en services. Het zijn aparte relaties van het incident (`hosts`, `kubernetesClusters`, `services` en meer).
+- **Andere getroffen resources** — een tweede zoekveld voor al het andere dat het incident raakt: hosts, Kubernetes-clusters, Docker- en Podman-hosts, Proxmox-, Ceph- en Docker Swarm-clusters, vCenters, storage-arrays, IoT-vloten, databases en services. Het zijn aparte relaties van het incident (`hosts`, `kubernetesClusters`, `services` en meer).
 
 De kaart **Getroffen resources** van het incident vraagt het op dezelfde manier als je die later bewerkt.
 
@@ -160,7 +160,7 @@ De aanmaakaanroep doet meer dan een rij wegschrijven. In deze volgorde:
 5. **Labelregels draaien** en voegen labels toe die bij het incident passen.
 6. **Bereikbaarheidsregels draaien.** Elke ingeschakelde regel onder **Incidenten → Regels → Bereikbaarheidsregels** waarvan de criteria matchen voegt haar beleid toe aan het incident. Er is geen prioriteitsvolgorde en geen kortsluiting — alle matchende regels gaan af en het beleid wordt ontdubbeld.
 7. **Runbook-regels draaien** en koppelen en starten matchende runbooks. Zie [Runbooks](/docs/runbooks/index).
-8. **Bereikbaarheidsbeleid wordt uitgevoerd.** Elk beleid op het incident — gekozen in de wizard, geërfd van een sjabloon of toegevoegd door een regel — draait parallel met het gebeurtenistype `IncidentCreated`. Faalt één beleid, dan stopt dat de andere niet.
+8. **Bereikbaarheidsbeleid wordt uitgevoerd.** Elk beleid op het incident — gekozen in de wizard, geërfd van een sjabloon of toegevoegd door een regel — draait parallel met het gebeurtenistype `IncidentCreated`. Faalt één beleid, dan stopt dat de andere niet. Een incident dat al bevestigd of opgelost wordt gemeld, voert geen enkel beleid uit: niemand wordt opgeroepen, en de feed meldt dat, met de namen van het beleid erbij.
 9. **Abonnees worden in de wachtrij gezet**, als **Statuspagina-abonnees op de hoogte stellen** aan bleef staan en het incident zichtbaar is op de statuspagina. Bezorging gebeurt door een achtergrondtaak, niet direct binnen je verzoek.
 10. **Workflows gaan af.** De trigger **On Create Incident** start elke workflow die erop is gebouwd. Zie [Workflows – Overzicht](/docs/workflows/index).
 

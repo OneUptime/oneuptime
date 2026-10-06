@@ -14,6 +14,7 @@ import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService"
 import ProxmoxClusterService from "../../Services/ProxmoxClusterService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
+import StorageArrayService from "../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../Services/CloudResourceService";
 import RumApplicationService from "../../Services/RumApplicationService";
@@ -95,9 +96,9 @@ interface ResourceFacetListing {
  * root, first `limit` rows, optional name search), so the only per-type
  * facts are the service and the identifier column.
  *
- * Ceph and Docker Swarm also join on `name`, but carry a stable descriptive
- * id (`fsid` / `swarmId`) an operator may well paste into the search box,
- * so it is searched too.
+ * Ceph, Docker Swarm and storage arrays also join on `name`, but carry a
+ * stable descriptive id (`fsid` / `swarmId` / the array's `systemId`) an
+ * operator may well paste into the search box, so it is searched too.
  *
  * Built on first use rather than at module load: the services pull in much
  * of the server, and a module cycle that reached this file first would
@@ -149,6 +150,10 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
       { service: VMwareVCenterService, identifierField: null },
     ],
     ["cephClusterId", { service: CephClusterService, identifierField: "fsid" }],
+    [
+      "storageArrayId",
+      { service: StorageArrayService, identifierField: "systemId" },
+    ],
     [
       "serverlessFunctionId",
       {

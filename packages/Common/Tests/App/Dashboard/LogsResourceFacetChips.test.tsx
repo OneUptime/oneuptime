@@ -91,6 +91,7 @@ const MODEL_NAME_BY_FACET_KEY: Record<string, string> = {
   proxmoxClusterId: "ProxmoxCluster",
   vmwareVCenterId: "VMwareVCenter",
   cephClusterId: "CephCluster",
+  storageArrayId: "StorageArray",
   serverlessFunctionId: "ServerlessFunction",
   cloudResourceId: "CloudResource",
   rumApplicationId: "RumApplication",

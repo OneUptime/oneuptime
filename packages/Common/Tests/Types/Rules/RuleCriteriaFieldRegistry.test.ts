@@ -244,6 +244,15 @@ describe("RULE_CRITERIA_FIELDS_BY_MODEL", () => {
     expect(RULE_CRITERIA_FIELDS_BY_MODEL["IncidentSlaRule"]).not.toContain(
       "monitorNamePattern",
     );
+    // An infrastructure resource matches on its labels, then its name and description.
+    expect(RULE_CRITERIA_FIELDS_BY_MODEL["StorageArrayLabelRule"]).toEqual([
+      "storageArrayLabels",
+      "storageArrayNamePattern",
+      "storageArrayDescriptionPattern",
+    ]);
+    expect(RULE_CRITERIA_FIELDS_BY_MODEL["StorageArrayOwnerRule"]).toEqual(
+      RULE_CRITERIA_FIELDS_BY_MODEL["StorageArrayLabelRule"],
+    );
   });
 });
 

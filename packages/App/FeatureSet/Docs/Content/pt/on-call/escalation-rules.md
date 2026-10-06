@@ -29,9 +29,13 @@ Recolhido, o cabeçalho de **Mais campos** nomeia os dois e mostra os que a regr
 
 Quando um incidente ou alerta chega à política, **Level 1** aciona seus destinatários imediatamente. Se ninguém confirmar dentro da espera, **Level 2** é acionado, e assim por diante. Depois que a espera do último nível passa sem confirmação, a política recomeça em **Level 1** se a sua **Política de Repetição** (abaixo das regras) mandar repetir, quantas vezes ela permitir, e caso contrário para.
 
+Um incidente, alerta ou episódio criado já confirmado ou resolvido — registrado depois do fato — não executa nenhuma de suas políticas: ninguém é acionado, e o feed dele informa isso, citando-as.
+
 O resumo no topo da página **Regras de escalonamento** mostra toda a escada: quando cada nível é acionado, quem ele aciona e o que acontece depois do último. Um nível cujos destinatários não podem ser todos acionados avisa no seu cartão; clique no rótulo para ver quem e por quê.
 
 Cada pessoa acionada por um nível é contatada conforme as próprias regras de plantão: **Configurações do usuário** > **Regras de Plantão**, com uma aba para incidentes, episódios de incidente, alertas e episódios de alerta, e um cartão por gravidade que indica qual método de notificação é usado e depois de quanto tempo. Um administrador do projeto pode ver e alterar as regras de um membro em **Usuários** > o membro > **Regras de Plantão**.
+
+SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta Twilio ou de um bot do Telegram configurado. Enquanto um canal estiver desligado, ninguém no projeto pode adicionar um método nele. Somente um proprietário do projeto ou alguém com a permissão **Manage Billing** pode ligar um canal, no cartão **Canais de notificação** em **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros ficam sabendo exatamente quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nesse canal, na lista de configuração e na mensagem que recebem quando algo precisa dele.
 
 ## Editar, reordenar e excluir regras
 

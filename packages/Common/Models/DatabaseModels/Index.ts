@@ -54,6 +54,10 @@ import CephCluster from "./CephCluster";
 import CephClusterOwnerTeam from "./CephClusterOwnerTeam";
 import CephClusterOwnerUser from "./CephClusterOwnerUser";
 import CephResource from "./CephResource";
+import StorageArray from "./StorageArray";
+import StorageArrayOwnerTeam from "./StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "./StorageArrayOwnerUser";
+import StorageArrayResource from "./StorageArrayResource";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
@@ -455,6 +459,8 @@ import IoTFleetOwnerRule from "./IoTFleetOwnerRule";
 import IoTFleetLabelRule from "./IoTFleetLabelRule";
 import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
+import StorageArrayOwnerRule from "./StorageArrayOwnerRule";
+import StorageArrayLabelRule from "./StorageArrayLabelRule";
 import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
 import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
 import RunbookOwnerRule from "./RunbookOwnerRule";
@@ -485,6 +491,7 @@ import KubernetesClusterFeed from "./KubernetesClusterFeed";
 import DockerHostFeed from "./DockerHostFeed";
 import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
 import CephClusterFeed from "./CephClusterFeed";
+import StorageArrayFeed from "./StorageArrayFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
 import VMwareVCenterFeed from "./VMwareVCenterFeed";
@@ -678,6 +685,8 @@ const AllModelTypes: Array<{
   IoTFleetLabelRule,
   CephClusterOwnerRule,
   CephClusterLabelRule,
+  StorageArrayOwnerRule,
+  StorageArrayLabelRule,
   VMwareVCenterOwnerRule,
   VMwareVCenterLabelRule,
   RunbookOwnerRule,
@@ -908,6 +917,7 @@ const AllModelTypes: Array<{
   DockerHostFeed,
   DockerSwarmClusterFeed,
   CephClusterFeed,
+  StorageArrayFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
   VMwareVCenterFeed,
@@ -977,6 +987,10 @@ const AllModelTypes: Array<{
   CephClusterOwnerTeam,
   CephClusterOwnerUser,
   CephResource,
+  StorageArray,
+  StorageArrayOwnerTeam,
+  StorageArrayOwnerUser,
+  StorageArrayResource,
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,

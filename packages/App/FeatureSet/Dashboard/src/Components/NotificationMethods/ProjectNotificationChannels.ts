@@ -8,6 +8,9 @@ import {
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useSyncExternalStore } from "react";
 import {
@@ -110,6 +113,98 @@ export const isCodeResendOffered: (
   );
 };
 
+/*
+ * Whether the signed-in person may turn the project's channels on or off,
+ * as the server would decide: the Project's update permissions, then each
+ * column's own (a project owner, or someone with Manage Billing) -
+ * PermissionGate.checkColumnUpdate.
+ *
+ *   Yes     - they may, for every channel asked about.
+ *   No      - they may not, and the gate says which permission they lack.
+ *   Unknown - the permission snapshot has not arrived yet (it rides on a
+ *             response header, so it is empty for a moment after a fresh
+ *             sign-in or a project switch). Nobody is offered the switch or
+ *             a link to it then, and nobody is told they lack a permission.
+ *
+ * The one answer for every place that offers the switches or a link to
+ * them, and for every place that says who can.
+ */
+export enum ProjectNotificationChannelsAccess {
+  Yes = "Yes",
+  No = "No",
+  Unknown = "Unknown",
+}
+
+export const getProjectNotificationChannelsAccess: (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+) => ProjectNotificationChannelsAccess = (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+): ProjectNotificationChannelsAccess => {
+  const asked: Array<ProjectNotificationChannel> =
+    channels && channels.length > 0
+      ? channels
+      : Object.values(ProjectNotificationChannel);
+
+  const gates: Array<PermissionGateResult> = asked.map(
+    (channel: ProjectNotificationChannel): PermissionGateResult => {
+      return PermissionGate.checkColumnUpdate(
+        new Project(),
+        getProjectNotificationChannel(channel).column,
+      );
+    },
+  );
+
+  if (
+    gates.every((gate: PermissionGateResult): boolean => {
+      return gate.isAllowed;
+    })
+  ) {
+    return ProjectNotificationChannelsAccess.Yes;
+  }
+
+  // Refused with a reason: the gate knows who this is, and it is not them.
+  if (
+    gates.some((gate: PermissionGateResult): boolean => {
+      return !gate.isAllowed && Boolean(gate.disabledReason);
+    })
+  ) {
+    return ProjectNotificationChannelsAccess.No;
+  }
+
+  return ProjectNotificationChannelsAccess.Unknown;
+};
+
+/*
+ * Whether the switch, or a link straight to it, may be offered: only to
+ * someone the server would let flip it, and not while that is unknown.
+ */
+export const canChangeProjectNotificationChannels: (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+) => boolean = (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+): boolean => {
+  return (
+    getProjectNotificationChannelsAccess(channels) ===
+    ProjectNotificationChannelsAccess.Yes
+  );
+};
+
+/*
+ * Whether this person is known not to be allowed to flip them - so a line
+ * saying who can is for them. Never while the permissions are on their way:
+ * an owner is not told to ask someone else.
+ */
+export const isKnownNotToChangeProjectNotificationChannels: (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+) => boolean = (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+): boolean => {
+  return (
+    getProjectNotificationChannelsAccess(channels) ===
+    ProjectNotificationChannelsAccess.No
+  );
+};
+
 // What a read selects: the four switches and nothing else.
 export const getProjectNotificationChannelsSelect: () => Select<Project> =
   (): Select<Project> => {
@@ -128,7 +223,8 @@ export type ProjectNotificationChannelsFetcher = (
 
 /*
  * Every project member may read these columns (the Project's read
- * permissions); only owners and billing managers may change them.
+ * permissions); only a project owner or someone with Manage Billing may
+ * change them.
  */
 export const fetchProjectNotificationChannels: ProjectNotificationChannelsFetcher =
   async (projectId: ObjectID): Promise<EnabledProjectChannels> => {

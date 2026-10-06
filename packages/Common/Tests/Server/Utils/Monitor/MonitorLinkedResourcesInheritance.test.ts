@@ -278,6 +278,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
       proxmoxClusterIds: ["px-1"],
       vmwareVCenterIds: ["v-1"],
       cephClusterIds: ["ceph-1"],
+      storageArrayIds: ["array-1"],
       dockerSwarmClusterIds: ["sw-1"],
       iotFleetIds: ["iot-1"],
       databaseServerIds: ["db-1"],
@@ -294,6 +295,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
     expect(idsOn(incident.proxmoxClusters)).toEqual(["px-1"]);
     expect(idsOn(incident.vmwareVCenters)).toEqual(["v-1"]);
     expect(idsOn(incident.cephClusters)).toEqual(["ceph-1"]);
+    expect(idsOn(incident.storageArrays)).toEqual(["array-1"]);
     expect(idsOn(incident.dockerSwarmClusters)).toEqual(["sw-1"]);
     expect(idsOn(incident.iotFleets)).toEqual(["iot-1"]);
     expect(idsOn(incident.databaseServers)).toEqual(["db-1"]);
@@ -416,6 +418,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
           linked(LinkedAffectedResourceType.ProxmoxCluster, "px-1"),
           linked(LinkedAffectedResourceType.VMwareVCenter, "v-1"),
           linked(LinkedAffectedResourceType.CephCluster, "ceph-1"),
+          linked(LinkedAffectedResourceType.StorageArray, "array-1"),
           linked(LinkedAffectedResourceType.DockerSwarmCluster, "sw-1"),
           linked(LinkedAffectedResourceType.IoTFleet, "iot-1"),
           linked(LinkedAffectedResourceType.DatabaseServer, "db-1"),
@@ -435,6 +438,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
       proxmoxClusterIds: ["px-1"],
       vmwareVCenterIds: ["v-1"],
       cephClusterIds: ["ceph-1"],
+      storageArrayIds: ["array-1"],
       dockerSwarmClusterIds: ["sw-1"],
       iotFleetIds: ["iot-1"],
       databaseServerIds: ["db-1"],
@@ -589,7 +593,7 @@ describe("LinkedAffectedResources.readForMonitors", () => {
       },
     ]);
 
-    // One query per relation a monitor has: the eleven linkable kinds.
+    // One query per relation a monitor has: the twelve linkable kinds.
     const columns: Array<string> = calls.map((call: JSONObject): string => {
       return Object.keys(call["select"] as JSONObject).find((key: string) => {
         return key !== "_id" && key !== "projectId";
@@ -607,6 +611,7 @@ describe("LinkedAffectedResources.readForMonitors", () => {
         "podmanHosts",
         "proxmoxClusters",
         "services",
+        "storageArrays",
         "vmwareVCenters",
       ].sort(),
     );

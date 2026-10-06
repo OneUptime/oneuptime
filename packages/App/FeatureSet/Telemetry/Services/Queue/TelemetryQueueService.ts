@@ -882,6 +882,12 @@ export default class TelemetryQueueService {
     requestBody: string | JSONObject;
     requestMethod: string;
     receivedViaProbeId?: string | undefined;
+    /*
+     * When the endpoint received the request. Carried on the job so the
+     * worker records the heartbeat at its arrival time, not at the time the
+     * queue got around to it.
+     */
+    receivedAt?: Date | undefined;
   }): Promise<void> {
     try {
       const incomingRequestData: IncomingRequestIngestJobData = {
@@ -889,7 +895,7 @@ export default class TelemetryQueueService {
         requestHeaders: data.requestHeaders,
         requestBody: data.requestBody,
         requestMethod: data.requestMethod,
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
         receivedViaProbeId: data.receivedViaProbeId,
       };
 
@@ -921,11 +927,18 @@ export default class TelemetryQueueService {
            * into many concurrent monitorResource() calls all contending on the
            * same per-monitor Redis lock ("Acquire mutex ... timeout"). With
            * keepLastIfActive BullMQ keeps at most one active + one waiting job
-           * per monitor and preserves the latest payload, so same-monitor
-           * processing is serialized at enqueue time (no worker slots, no lock
-           * contention) while liveness stays fresh. Keyed by secretKey because
-           * the monitorId is only resolved later in the worker; the secret key
-           * is 1:1 with the monitor. Gated so ops can disable without a deploy.
+           * per monitor, so same-monitor processing is serialized at enqueue
+           * time (no worker slots, no lock contention). Keyed by secretKey
+           * because the monitorId is only resolved later in the worker; the
+           * secret key is 1:1 with the monitor. Gated so ops can disable
+           * without a deploy.
+           *
+           * Only a request that arrives while the monitor's job is ACTIVE
+           * replaces the pending payload. One that arrives while a job is
+           * still WAITING is dropped and the older waiting payload is the one
+           * processed - under a backlog that is most requests. Liveness does
+           * not depend on which payload survives: the endpoint records every
+           * arrival in IncomingRequestReceivedAtStore before enqueueing.
            */
           ...(INCOMING_REQUEST_INGEST_COALESCE_ENABLED
             ? {

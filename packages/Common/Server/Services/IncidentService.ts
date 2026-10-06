@@ -26,7 +26,9 @@ import AIRunStatus from "../../Types/AI/AIRunStatus";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentStateService from "./IncidentStateService";
-import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import IncidentStateTimelineService, {
+  INCIDENT_NEVER_HELD_ITS_MONITORS_KEY,
+} from "./IncidentStateTimelineService";
 import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -159,6 +161,12 @@ import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -227,21 +235,29 @@ type UpdateCarryForward = Dictionary<{
 }>;
 
 /*
- * What onBeforeCreate hands to onCreateSuccess. Null unless the incident is
- * being declared from alerts.
+ * What onBeforeCreate hands to onCreateSuccess: how far along the incident
+ * starts (StartingStage), which decides what its create sets off, and the
+ * alerts it is being declared from, if any. Null only for a success hook run
+ * without one, which then sets off what a new incident always did.
  */
-type IncidentCreateCarryForward = {
-  // Validated, deduplicated alert ids to link once the incident exists.
-  alertIdsToLink: Array<ObjectID>;
-  /*
-   * Acknowledge alerts once they are linked, as the declaring user
-   * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their escalation.
-   * When asked to: the project's Acknowledged alert state, and the alerts
-   * not acknowledged yet, which the caller was checked for. Null otherwise.
-   */
-  acknowledgedAlertStateId: ObjectID | null;
-  alertIdsToAcknowledge: Array<ObjectID>;
-} | null;
+type IncidentCreateCarryForward =
+  | (StartingStageCarryForward & {
+      /*
+       * Validated, deduplicated alert ids to link once the incident exists.
+       * Empty unless the incident is being declared from alerts.
+       */
+      alertIdsToLink: Array<ObjectID>;
+      /*
+       * Acknowledge alerts once they are linked, as the declaring user
+       * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their
+       * escalation. When asked to: the project's Acknowledged alert state,
+       * and the alerts not acknowledged yet, which the caller was checked
+       * for. Null otherwise.
+       */
+      acknowledgedAlertStateId: ObjectID | null;
+      alertIdsToAcknowledge: Array<ObjectID>;
+    })
+  | null;
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -2334,8 +2350,6 @@ export class Service extends ProjectReferencesService<Model> {
      * incident behind that is missing some of its alerts. The alerts are
      * linked in onCreateSuccess, once the incident exists.
      */
-    let carryForward: IncidentCreateCarryForward = null;
-
     const alertIdsToLink: unknown =
       createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
 
@@ -2362,15 +2376,6 @@ export class Service extends ProjectReferencesService<Model> {
         alertIds: validatedAlertIds,
         props: createBy.props,
       });
-
-    if (validatedAlertIds.length > 0) {
-      carryForward = {
-        alertIdsToLink: validatedAlertIds,
-        acknowledgedAlertStateId:
-          alertsToAcknowledge?.acknowledgedAlertStateId || null,
-        alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
-      };
-    }
 
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
@@ -2401,6 +2406,17 @@ export class Service extends ProjectReferencesService<Model> {
     // Determine the initial incident state
     let initialIncidentStateId: ObjectID | undefined = undefined;
 
+    /*
+     * Where the incident starts (StartingStage), read with the state it
+     * starts in: one read of the project's states both places a picked
+     * state, or a template's, and tells whether it is the project's own.
+     * Open for the created state, where it starts when neither names one.
+     */
+    let startingStage: StartingStage = StartingStage.Open;
+
+    // Whether that read found the state among the project's own.
+    let isStatePlacedByStartingRead: boolean = false;
+
     // Declared from a template whose status pages were all deleted.
     let isScopedToNothingByTemplate: boolean = false;
 
@@ -2429,26 +2445,21 @@ export class Service extends ProjectReferencesService<Model> {
     if (pickedIncidentStateId) {
       initialIncidentStateId = pickedIncidentStateId;
 
-      // Validate that the provided state exists and belongs to the project
-      const providedState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            _id: initialIncidentStateId.toString(),
-            projectId: projectId,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
+      // It has to be one of the project's states.
+      const pickedStart: StartingState | null =
+        await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
         });
 
-      if (!providedState) {
+      if (!pickedStart) {
         throw new BadDataException(
           "Invalid incident state provided. The state does not exist or does not belong to this project.",
         );
       }
+
+      startingStage = pickedStart.stage;
+      isStatePlacedByStartingRead = true;
     } else if (incidentTemplateId) {
       /*
        * Created from a template — pull every field we may want to
@@ -2490,26 +2501,21 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (incidentTemplate?.initialIncidentStateId) {
-        initialIncidentStateId = incidentTemplate.initialIncidentStateId;
-
-        // Validate that the template's state exists and belongs to the project
-        const templateState: IncidentState | null =
-          await IncidentStateService.findOneBy({
-            query: {
-              _id: initialIncidentStateId.toString(),
-              projectId: projectId,
-            },
-            select: {
-              _id: true,
-            },
-            props: {
-              isRoot: true,
-            },
+        /*
+         * The template's state, while it is one of the project's states.
+         * One deleted since, or never the project's, leaves the incident to
+         * start in the created state.
+         */
+        const templateStart: StartingState | null =
+          await IncidentStateService.getStartingState({
+            projectId: projectId,
+            incidentStateId: incidentTemplate.initialIncidentStateId,
           });
 
-        if (!templateState) {
-          // Fall back to default if template state is invalid
-          initialIncidentStateId = undefined;
+        if (templateStart) {
+          initialIncidentStateId = incidentTemplate.initialIncidentStateId;
+          startingStage = templateStart.stage;
+          isStatePlacedByStartingRead = true;
         }
       }
 
@@ -2694,29 +2700,15 @@ export class Service extends ProjectReferencesService<Model> {
       isScopedToNothingByTemplate: isScopedToNothingByTemplate,
     });
 
-    // If no custom state is provided or found, fall back to default created state
+    /*
+     * With no state picked, and none from a template, the incident starts in
+     * the project's created state - as every incident a monitor declares
+     * does - which is open (StartingStage) with no need to read the rest of
+     * the project's states.
+     */
     if (!initialIncidentStateId) {
-      const incidentState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            projectId: projectId,
-            isCreatedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!incidentState || !incidentState.id) {
-        throw new BadDataException(
-          "Created incident state not found for this project. Please add created incident state from settings.",
-        );
-      }
-
-      initialIncidentStateId = incidentState.id;
+      initialIncidentStateId =
+        await IncidentStateService.getCreatedIncidentStateId(projectId);
     }
 
     /*
@@ -2740,11 +2732,19 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       subject: "incident",
       references: [
-        {
-          modelName: "Incident State",
-          id: initialIncidentStateId,
-          service: IncidentStateService,
-        },
+        /*
+         * The state it starts in - unless the read of where it starts found
+         * it among the project's states: a state picked or a template's.
+         */
+        ...(isStatePlacedByStartingRead
+          ? []
+          : [
+              {
+                modelName: "Incident State",
+                id: initialIncidentStateId,
+                service: IncidentStateService,
+              },
+            ]),
         ...getWrittenRelationReferences({
           payload: createBy.data,
           idColumn: "incidentSeverityId",
@@ -2787,6 +2787,24 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       statusPagesFromCaller: statusPagesFromCaller,
     });
+
+    /*
+     * How far along it starts (StartingStage), as read with its state above,
+     * is handed to onCreateSuccess, which decides on it what the create sets
+     * off: an incident declared already acknowledged pages nobody, and one
+     * declared resolved also sets off nothing that answers a live problem.
+     *
+     * The alerts to acknowledge are asked for only with alerts to link (the
+     * validator refuses the request otherwise), so they are empty, and the
+     * state null, for an incident declared from no alerts.
+     */
+    const carryForward: IncidentCreateCarryForward = {
+      startingStage: startingStage,
+      alertIdsToLink: validatedAlertIds,
+      acknowledgedAlertStateId:
+        alertsToAcknowledge?.acknowledgedAlertStateId || null,
+      alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
+    };
 
     const incidentCounterResult: {
       counter: number;
@@ -2927,6 +2945,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * How far along the incident starts, as onBeforeCreate read it
+     * (StartingStage). Declared already acknowledged, no on-call policy
+     * runs. Declared resolved, it is over, and nothing below that answers a
+     * live problem runs either: no channel, monitor status, paused
+     * monitoring, runbook, grouping, SLA, AI investigation or remediation.
+     * Its rules, its owners, its feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+    const isOngoing: boolean = StartingStageUtil.isOngoing(startingStage);
+
+    /*
      * Whether an AI investigation run was enqueued for this incident — set
      * by the investigation step below and read by the auto-remediation step
      * after it: an enqueued investigation DEFERS remediation until the run
@@ -2963,8 +2994,13 @@ export class Service extends ProjectReferencesService<Model> {
     // Execute operations sequentially with error handling
     privacyRulesApplied
       .then(async () => {
+        /*
+         * No channel is opened for an incident declared resolved. Its
+         * created feed entry still goes to the channels the workspace rules
+         * name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
+          if (createdItem.projectId && createdItem.id && isOngoing) {
             return await this.handleIncidentWorkspaceOperationsAsync(
               createdItem,
             );
@@ -3060,7 +3096,10 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         try {
-          return await this.handleIncidentStateChangeAsync(createdItem);
+          return await this.handleIncidentStateChangeAsync(
+            createdItem,
+            startingStage,
+          );
         } catch (error) {
           logger.error(
             `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3136,8 +3175,19 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * An incident declared resolved leaves its monitors' status alone:
+         * only resolving puts them back, and it is resolved already, so
+         * nothing ever would. In turn its first state - resolved - gives
+         * them nothing back (handleIncidentStateChangeAsync), so a status a
+         * monitor holds for another reason stays.
+         */
         try {
-          if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+          if (
+            createdItem.changeMonitorStatusToId &&
+            createdItem.projectId &&
+            isOngoing
+          ) {
             return await this.handleMonitorStatusChangeAsync(
               createdItem,
               onCreate,
@@ -3157,6 +3207,14 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Nor does it pause their monitoring: nothing would ever resume it,
+         * since only resolving the incident does.
+         */
+        if (!isOngoing) {
+          return Promise.resolve();
+        }
+
         try {
           return await this.disableActiveMonitoringIfManualIncident(
             createdItem.id!,
@@ -3230,6 +3288,11 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        // No runbook is started for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await RunbookRuleEngineService.applyRulesToIncident(createdItem);
         } catch (error) {
@@ -3248,7 +3311,10 @@ export class Service extends ProjectReferencesService<Model> {
             createdItem.onCallDutyPolicies?.length &&
             createdItem.onCallDutyPolicies?.length > 0
           ) {
-            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeOnCallDutyPoliciesAsync(
+              createdItem,
+              startingStage,
+            );
           }
           return Promise.resolve();
         } catch (error) {
@@ -3264,9 +3330,21 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        // Process incident for grouping into episodes
+        /*
+         * Process incident for grouping into episodes - unless it was
+         * declared resolved: it is over. One declared already acknowledged
+         * may join an episode that is open, but never opens or reopens one
+         * (GroupingOptions): a new episode runs its own on-call policies, and
+         * would page for the incident after all.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
-          await IncidentGroupingEngineService.processIncident(createdItem);
+          await IncidentGroupingEngineService.processIncident(createdItem, {
+            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+          });
         } catch (error) {
           logger.error(
             `Incident grouping failed in IncidentService.onCreateSuccess: ${error}`,
@@ -3279,7 +3357,17 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        // Create SLA record for incident if a matching rule exists
+        /*
+         * Create SLA record for incident if a matching rule exists. An
+         * incident declared resolved has nothing left to respond to or
+         * resolve in time: it starts none. One declared acknowledged was
+         * responded to when it was declared, so its response deadline cannot
+         * be missed for it.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           if (
             createdItem.projectId &&
@@ -3290,6 +3378,9 @@ export class Service extends ProjectReferencesService<Model> {
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
               declaredAt: createdItem.declaredAt,
+              ...(startingStage === StartingStage.Acknowledged
+                ? { respondedAt: createdItem.declaredAt }
+                : {}),
             });
           }
         } catch (error) {
@@ -3332,10 +3423,17 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
+            /*
+             * An incident declared resolved was over before it was declared:
+             * nothing to investigate. The runner records why on its AI card -
+             * after what stops OneUptime AI for the whole project, such as AI
+             * being off, which the card then names instead.
+             */
             aiInvestigationEnqueued =
               await AIIncidentInvestigationRunner.investigateNewIncident({
                 incidentId: createdItem.id,
                 projectId: createdItem.projectId,
+                createdResolved: !isOngoing,
               });
           }
         } catch (error) {
@@ -3361,6 +3459,11 @@ export class Service extends ProjectReferencesService<Model> {
          * Remediation card says it waits for the analysis
          * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
+        // Nothing is left to remediate for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await AutoRemediationRuleEngineService.onIncidentCreated({
             incident: createdItem,
@@ -3821,6 +3924,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
   @CaptureSpan()
   private async handleIncidentStateChangeAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (!createdItem.currentIncidentStateId) {
@@ -3847,6 +3951,12 @@ ${incident.remediationNotes || "No remediation notes provided."}
         rootCause: createdItem.rootCause,
         stateChangeLog: createdItem.createdStateLog,
         timelineStartsAt: createdItem.declaredAt,
+        /*
+         * Declared already resolved, the incident sets no status on its
+         * monitors and pauses none of their monitoring (onCreateSuccess), so
+         * its first state - resolved - has nothing of theirs to give back.
+         */
+        neverHeldItsMonitors: !StartingStageUtil.isOngoing(startingStage),
         props: {
           isRoot: true,
         },
@@ -3860,15 +3970,33 @@ ${incident.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  /*
+   * Runs the incident's on-call policies - the ones its create named,
+   * inherited from a template, or added by its on-call rules - when it
+   * starts open. Declared already acknowledged or resolved, somebody is on
+   * it or it is over: none of them runs, and its feed says so instead,
+   * naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
+        if (!StartingStageUtil.pagesOnCall(startingStage)) {
+          await OnCallNotRunOnCreate.createFeedItem({
+            record: { incidentId: createdItem.id! },
+            projectId: createdItem.projectId!,
+            stage: startingStage,
+            policies: createdItem.onCallDutyPolicies,
+          });
+          return;
+        }
+
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -5561,6 +5689,13 @@ ${incidentSeverity.name}
     stateChangeLog: JSONObject | undefined;
     props: DatabaseCommonInteractionProps | undefined;
     timelineStartsAt?: Date | string | undefined;
+    /*
+     * The first state of an incident declared already resolved, which never
+     * held its monitors: the resolve gives them nothing back
+     * (INCIDENT_NEVER_HELD_ITS_MONITORS_KEY). Heard only from OneUptime's
+     * own (root) write.
+     */
+    neverHeldItsMonitors?: boolean | undefined;
   }): Promise<void> {
     const {
       projectId,
@@ -5573,6 +5708,7 @@ ${incidentSeverity.name}
       stateChangeLog,
       props,
       timelineStartsAt,
+      neverHeldItsMonitors,
     } = data;
 
     const declaredTimelineStart: Date | undefined = timelineStartsAt
@@ -5635,6 +5771,13 @@ ${incidentSeverity.name}
     await IncidentStateTimelineService.create({
       data: statusTimeline,
       props: props || {},
+      ...(neverHeldItsMonitors
+        ? {
+            miscDataProps: {
+              [INCIDENT_NEVER_HELD_ITS_MONITORS_KEY]: true,
+            },
+          }
+        : {}),
     });
   }
 

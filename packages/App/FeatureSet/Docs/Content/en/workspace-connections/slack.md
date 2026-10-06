@@ -15,7 +15,7 @@
 3. **Configure Incident Notifications**
 
    - After connecting your Slack account, go to **Incidents** > **Workspace** > **Slack**. The **Workspace** section lists only the chat workspaces your project has connected, so **Slack** appears there once it is connected.
-   - Add rules to send incident notifications to Slack. For example, you can create a rule that creates a new Slack channel and invites incident owners when an incident is created.
+   - Add rules to send incident notifications to Slack. For example, you can create a rule that creates a new Slack channel and invites incident owners when an incident is created. An incident, alert or episode created already resolved gets no channel of its own; its created message still goes to the channels your rules name. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
 4. **Configure Alerts and Scheduled Maintenance Notifications**
    - Similar rules can be applied to Alerts, Scheduled Maintenance, Monitors and On-Call from **Workspace** > **Slack** in their own menus.

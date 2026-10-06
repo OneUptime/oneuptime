@@ -27,6 +27,13 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     declaredAt: Date;
     incident?: Incident;
+    /*
+     * When the incident was already responded to as its SLA starts: an
+     * incident declared already acknowledged (StartingStage) was responded
+     * to the moment it was declared, so its response deadline is not
+     * missed for it.
+     */
+    respondedAt?: Date | undefined;
   }): Promise<Model | null> {
     logger.debug(
       `Creating SLA record for incident ${data.incidentId} in project ${data.projectId}`,
@@ -91,6 +98,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (resolutionDeadline) {
       sla.resolutionDeadline = resolutionDeadline;
+    }
+
+    if (data.respondedAt) {
+      sla.respondedAt = data.respondedAt;
     }
 
     try {

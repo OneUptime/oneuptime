@@ -36,7 +36,7 @@ const ALWAYS_GROUP_TITLES: Array<string> = [
 ];
 
 /*
- * The nine infrastructure/telemetry monitor types that (a) get the single
+ * The ten infrastructure/telemetry monitor types that (a) get the single
  * "Metric" per-type group AND (b) additionally get the "Series Labels" group.
  * Both lists in the source are identical, so one constant covers both.
  */
@@ -50,6 +50,7 @@ const INFRA_TYPES: Array<MonitorType> = [
   MonitorType.Proxmox,
   MonitorType.VMware,
   MonitorType.Ceph,
+  MonitorType.StorageArray,
 ];
 
 /*
@@ -583,6 +584,21 @@ describe("TemplateVariablesCatalog.getVariables - infrastructure series labels",
     );
 
     expect(seriesGroup?.variables.length).toBe(2);
+  });
+
+  it("offers a storage array monitor's object labels as series variables", () => {
+    const seriesGroup: TemplateVariableGroup | undefined = findGroup(
+      TemplateVariablesCatalog.getVariables({
+        monitorType: MonitorType.StorageArray,
+        seriesAttributeKeys: ["name", "component_name"],
+      }),
+      SERIES_GROUP_TITLE,
+    );
+
+    expect(keysOf(seriesGroup as TemplateVariableGroup)).toEqual([
+      "name",
+      "component_name",
+    ]);
   });
 
   it("wraps each attribute key in backticks inside its description", () => {

@@ -39,6 +39,16 @@ enum EntityType {
   ProxmoxGuest = "proxmox.guest",
   CephCluster = "ceph.cluster",
   /*
+   * Storage arrays (Pure Storage FlashArray / FlashBlade today) are
+   * OneUptime-defined too. The identity attribute `storage.array.name` is
+   * not emitted by the array: the OneUptime Storage Array Agent's collector
+   * config stamps it (a `resource` processor), and it doubles as the typed
+   * StorageArray row's project-unique `name`. Volumes, hosts and the other
+   * objects inside an array are inventory rows (StorageArrayResource), not
+   * entities.
+   */
+  StorageArray = "storage.array",
+  /*
    * VMware vSphere types are OneUptime-defined (no upstream semconv exists)
    * and follow the same dotted naming convention. The root identity
    * attribute `vmware.vcenter.name` is NOT emitted by vSphere: it is stamped

@@ -196,6 +196,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "statusPageDescriptionPattern",
     "statusPageLabels",
   ],
+  StorageArrayLabelRule: [
+    "storageArrayNamePattern",
+    "storageArrayDescriptionPattern",
+    "storageArrayLabels",
+  ],
   WorkflowLabelRule: [
     "workflowNamePattern",
     "workflowDescriptionPattern",

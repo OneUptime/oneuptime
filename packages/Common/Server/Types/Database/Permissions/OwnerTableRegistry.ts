@@ -34,6 +34,8 @@ import ProxmoxClusterOwnerTeamService from "../../../Services/ProxmoxClusterOwne
 import ProxmoxClusterOwnerUserService from "../../../Services/ProxmoxClusterOwnerUserService";
 import CephClusterOwnerTeamService from "../../../Services/CephClusterOwnerTeamService";
 import CephClusterOwnerUserService from "../../../Services/CephClusterOwnerUserService";
+import StorageArrayOwnerTeamService from "../../../Services/StorageArrayOwnerTeamService";
+import StorageArrayOwnerUserService from "../../../Services/StorageArrayOwnerUserService";
 import DockerSwarmClusterOwnerTeamService from "../../../Services/DockerSwarmClusterOwnerTeamService";
 import DockerSwarmClusterOwnerUserService from "../../../Services/DockerSwarmClusterOwnerUserService";
 import VMwareVCenterOwnerTeamService from "../../../Services/VMwareVCenterOwnerTeamService";
@@ -67,6 +69,7 @@ import CloudResourceService from "../../../Services/CloudResourceService";
 import RumApplicationService from "../../../Services/RumApplicationService";
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import CephClusterService from "../../../Services/CephClusterService";
+import StorageArrayService from "../../../Services/StorageArrayService";
 import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
 import DatabaseServerService from "../../../Services/DatabaseServerService";
@@ -289,6 +292,16 @@ const ownerTableRegistry: Map<string, OwnerTablePair> = new Map<
       fkColumn: "cephClusterId",
       canOwnTelemetry: true,
       modelService: CephClusterService,
+    },
+  ],
+  [
+    "StorageArray",
+    {
+      ownerUserService: StorageArrayOwnerUserService,
+      ownerTeamService: StorageArrayOwnerTeamService,
+      fkColumn: "storageArrayId",
+      canOwnTelemetry: true,
+      modelService: StorageArrayService,
     },
   ],
   [

@@ -23,6 +23,12 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import {
+  StorageArrayAlertTemplate,
+  getAllStorageArrayAlertTemplates,
+} from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import Permission from "Common/Types/Permission";
 import TechStack from "Common/Types/Service/TechStack";
@@ -84,6 +90,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.Proxmox]: "name",
   [MonitorRecommendationResourceType.VMware]: "name",
   [MonitorRecommendationResourceType.Ceph]: "name",
+  [MonitorRecommendationResourceType.StorageArray]: "name",
   [MonitorRecommendationResourceType.IoTDevice]: "name",
   [MonitorRecommendationResourceType.RumApplication]: "_id",
   [MonitorRecommendationResourceType.Service]: "_id",
@@ -1015,6 +1022,142 @@ describe("RecommendationResourceRegistry", () => {
       expect(notConnected).toContain("Database Agent");
       expect(noLibrary).toContain("Cassandra");
       expect(noLibrary).toContain("oneuptime.database.server.id");
+    });
+  });
+
+  /*
+   * A storage array's recommendations depend on its platform: FlashArray
+   * and FlashBlade export different metric families, and a template over the
+   * other platform's series would sit on the array never firing. The
+   * platform is the row's own `storageSystem`, written by ingest.
+   */
+  describe("storage array context", () => {
+    function readStorageArrayContext(
+      storageSystem: unknown,
+    ): MonitorRecommendationContext {
+      const model: StorageArray = new StorageArray();
+      (model as unknown as Record<string, unknown>)["storageSystem"] =
+        storageSystem;
+
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.StorageArray,
+        model: model,
+      });
+    }
+
+    function templateIdsFor(
+      context: MonitorRecommendationContext,
+    ): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.StorageArray,
+        context,
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId;
+      });
+    }
+
+    test("selects the platform along with the name it is scoped by", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.StorageArray,
+        ),
+      ).toEqual({ name: true, storageSystem: true });
+    });
+
+    test("reads the platform the array reported", () => {
+      expect(readStorageArrayContext("purestorage.flasharray")).toEqual({
+        storageSystem: StorageSystem.PureStorageFlashArray,
+      });
+      expect(
+        readStorageArrayContext("  purestorage.flashblade ").storageSystem,
+      ).toBe(StorageSystem.PureStorageFlashBlade);
+    });
+
+    test("reports a missing or non-string platform as null, never as a guess", () => {
+      for (const storageSystem of [undefined, null, "", "   ", 7, ["x"]]) {
+        expect(readStorageArrayContext(storageSystem).storageSystem).toBe(null);
+      }
+    });
+
+    test("the context narrows the catalog to the platform's templates", () => {
+      const all: Array<StorageArrayAlertTemplate> =
+        getAllStorageArrayAlertTemplates();
+
+      for (const system of [
+        StorageSystem.PureStorageFlashArray,
+        StorageSystem.PureStorageFlashBlade,
+      ]) {
+        const offered: Array<string> = templateIdsFor(
+          readStorageArrayContext(system),
+        );
+        const expected: Array<string> = all
+          .filter((template: StorageArrayAlertTemplate) => {
+            return template.storageSystems.includes(system);
+          })
+          .map((template: StorageArrayAlertTemplate) => {
+            return template.id;
+          });
+
+        expect(offered.length).toBeGreaterThan(0);
+        expect([...offered].sort()).toEqual([...expected].sort());
+      }
+
+      /*
+       * Not reported yet, or a platform with no templates: nothing, as for
+       * a database with no engine - every template reads one platform's
+       * own series.
+       */
+      expect(templateIdsFor(readStorageArrayContext(null))).toEqual([]);
+      expect(templateIdsFor(readStorageArrayContext("netapp.ontap"))).toEqual(
+        [],
+      );
+    });
+
+    test("explains the platform it narrowed to, an unknown one, and none at all", () => {
+      const flashArray: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.StorageArray,
+          context: { storageSystem: StorageSystem.PureStorageFlashArray },
+        });
+      const flashBlade: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.StorageArray,
+          context: { storageSystem: StorageSystem.PureStorageFlashBlade },
+        });
+      const unknownPlatform: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.StorageArray,
+          context: { storageSystem: "netapp.ontap" },
+        });
+      const notReported: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.StorageArray,
+          context: { storageSystem: null },
+        });
+
+      for (const note of [
+        flashArray,
+        flashBlade,
+        unknownPlatform,
+        notReported,
+      ]) {
+        expect(note).toBeTruthy();
+      }
+      expect(
+        new Set<string | undefined>([
+          flashArray,
+          flashBlade,
+          unknownPlatform,
+          notReported,
+        ]).size,
+      ).toBe(4);
+
+      expect(flashArray).toContain("Pure Storage FlashArray");
+      expect(flashBlade).toContain("Pure Storage FlashBlade");
+      expect(unknownPlatform).toContain("netapp.ontap");
+      // Both empty states say nothing is offered, and why.
+      expect(notReported).toContain("none are offered");
+      expect(unknownPlatform).toContain("no recommended monitors");
     });
   });
 

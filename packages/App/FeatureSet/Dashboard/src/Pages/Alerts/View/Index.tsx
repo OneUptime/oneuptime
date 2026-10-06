@@ -49,6 +49,7 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -1368,6 +1369,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         values.vmwareVCenters as Array<VMwareVCenter>
                       }
                       cephClusters={values.cephClusters as Array<CephCluster>}
+                      storageArrays={
+                        values.storageArrays as Array<StorageArray>
+                      }
                       dockerSwarmClusters={
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
                       }
@@ -1384,6 +1388,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "ProxmoxCluster",
                         "VMwareVCenter",
                         "CephCluster",
+                        "StorageArray",
                         "DockerSwarmCluster",
                         "IoTFleet",
                         "DatabaseServer",
@@ -1412,6 +1417,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters: payload.proxmoxClusters,
                         vmwareVCenters: payload.vmwareVCenters,
                         cephClusters: payload.cephClusters,
+                        storageArrays: payload.storageArrays,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
                         databaseServers: payload.databaseServers,
@@ -1472,6 +1478,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { cephClusters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { storageArrays: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1562,6 +1577,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    storageArrays: {
+                      name: true,
+                      _id: true,
+                    },
                     dockerSwarmClusters: {
                       name: true,
                       _id: true,
@@ -1603,6 +1622,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters={item.proxmoxClusters || []}
                         vmwareVCenters={item.vmwareVCenters || []}
                         cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
                         databaseServers={item.databaseServers || []}

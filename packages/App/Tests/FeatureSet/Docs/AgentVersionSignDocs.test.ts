@@ -19,6 +19,12 @@ import {
   getVMwareAgentDownloadCommand,
   getVMwareAgentUpgradeCommand,
 } from "../../../FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import {
+  STORAGE_ARRAY_AGENT_INSTALL_DIR,
+  STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
+  getStorageArrayAgentDownloadCommand,
+  getStorageArrayAgentUpgradeCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -226,10 +232,11 @@ describe("the English guides' commands are the ones the upgrade dialog shows", (
 });
 
 /*
- * Hosts, Proxmox, Ceph and VMware: their agents now report the collector
- * release their files pin, so their guides say where the sign shows and how
- * to upgrade - with the commands the dialog shows (the setup guides'
- * exports) - and every config the host guide hands out stamps the pin.
+ * Hosts, Proxmox, Ceph, VMware and storage arrays: their agents now report
+ * the collector release their files pin, so their guides say where the sign
+ * shows and how to upgrade - with the commands the dialog shows (the setup
+ * guides' exports) - and every config the host guide hands out stamps the
+ * pin.
  */
 describe("the host collector guide stamps the pin and says how to upgrade, in every language", () => {
   // The section after "Step 4": the new "Upgrading the collector".
@@ -315,7 +322,7 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
   );
 });
 
-describe("the Proxmox, Ceph and VMware guides say the sign follows the pinned collector, with the dialog's commands", () => {
+describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follows the pinned collector, with the dialog's commands", () => {
   // The upgrade section: from its heading to the next.
   function upgradeSection(guide: string, heading: string): string {
     const start: number = guide.indexOf(heading);
@@ -336,6 +343,8 @@ describe("the Proxmox, Ceph and VMware guides say the sign follows the pinned co
     ["fa", "telemetry/ceph.md"],
     ["en", "telemetry/vmware.md"],
     ["fa", "telemetry/vmware.md"],
+    ["en", "telemetry/storage-arrays.md"],
+    ["fa", "telemetry/storage-arrays.md"],
   ])(
     "%s %s: names the Agent Version on the Overview, and pulling alone is gone",
     (language: string, page: string) => {
@@ -387,6 +396,28 @@ describe("the Proxmox, Ceph and VMware guides say the sign follows the pinned co
           getCephAgentDownloadCommand("install-script") +
           "\n" +
           getCephAgentRecreateCommand("docker-compose") +
+          "\n```",
+      );
+    },
+  );
+
+  test.each(["en", "fa"])(
+    "%s Storage Arrays: the install script again (INSTALL_DIR for another folder), or every file and the recreate",
+    (language: string) => {
+      const section: string = upgradeSection(
+        readGuide(language, "telemetry/storage-arrays.md") as string,
+        HEADINGS[language] as string,
+      );
+      expect(section).toContain(
+        "```bash\n" + getStorageArrayAgentUpgradeCommand() + "\n```",
+      );
+      expect(section).toContain("`INSTALL_DIR=<folder> bash install.sh`");
+      expect(section).toContain(`\`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\``);
+      expect(section).toContain(
+        "```bash\n" +
+          getStorageArrayAgentDownloadCommand() +
+          "\n" +
+          STORAGE_ARRAY_AGENT_RECREATE_COMMAND +
           "\n```",
       );
     },

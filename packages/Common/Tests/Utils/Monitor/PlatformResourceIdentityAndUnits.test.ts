@@ -10,6 +10,10 @@ import { getAllKubernetesMetrics } from "../../../Types/Monitor/KubernetesMetric
 import { getAllPodmanMetrics } from "../../../Types/Monitor/PodmanMetricCatalog";
 import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
 import { getAllVMwareMetrics } from "../../../Types/Monitor/VMwareMetricCatalog";
+import {
+  StorageArrayMetricDefinition,
+  getAllStorageArrayMetrics,
+} from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import PlatformMetricUnitUtil, {
   MetricCatalogPlatform,
@@ -19,6 +23,7 @@ import PlatformResourceIdentity, {
   DockerSwarmResourceIdentity,
   KubernetesResourceIdentity,
   ProxmoxResourceIdentity,
+  StorageArrayResourceIdentity,
   VMwareResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -938,6 +943,132 @@ describe("PlatformResourceIdentity.ceph", () => {
   });
 });
 
+describe("PlatformResourceIdentity.storageArray", () => {
+  test("maps the object labels Pure Storage puts on its series", () => {
+    const expected: ExpectedIdentity<StorageArrayResourceIdentity> = {
+      objectName: undefined,
+      hostName: undefined,
+      componentName: "CT0.FAN0",
+      componentType: "cooling",
+      podName: undefined,
+      alertSummary: undefined,
+    };
+
+    expect(
+      PlatformResourceIdentity.storageArray({
+        "resource.storage.array.name": "pure-prod-01",
+        component_name: "CT0.FAN0",
+        component_type: "cooling",
+        component_status: "degraded",
+      }),
+    ).toEqual(expected);
+
+    expectSameIdentity(
+      PlatformResourceIdentity.storageArray({
+        name: "vol-db-01",
+        naa_id: "624A9370",
+        dimension: "usec_per_read_op",
+      }),
+      { objectName: "vol-db-01" },
+    );
+    expectSameIdentity(
+      PlatformResourceIdentity.storageArray({ host: "esx-01" }),
+      { hostName: "esx-01" },
+    );
+    expectSameIdentity(
+      PlatformResourceIdentity.storageArray({
+        local_pod: "pod-a",
+        remote_pod: "pod-a",
+        remote: "pure-dr-01",
+      }),
+      { podName: "pod-a" },
+    );
+    expectSameIdentity(
+      PlatformResourceIdentity.storageArray({
+        summary: "Controller failed",
+        component_name: "CT0",
+        severity: "critical",
+      }),
+      { alertSummary: "Controller failed", componentName: "CT0" },
+    );
+  });
+
+  test("an array-wide series names no object", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.storageArray({
+        "resource.storage.array.name": "pure-prod-01",
+        dimension: "usec_per_read_op",
+      }),
+      {},
+    );
+  });
+
+  test("the key tells objects apart and keeps the same object together", () => {
+    const volume: string = PlatformResourceIdentity.storageArrayKey(
+      PlatformResourceIdentity.storageArray({
+        name: "vol-db-01",
+        dimension: "usec_per_read_op",
+      }),
+    );
+
+    expect(volume).toBe(
+      PlatformResourceIdentity.storageArrayKey(
+        PlatformResourceIdentity.storageArray({
+          name: "vol-db-01",
+          dimension: "usec_per_write_op",
+        }),
+      ),
+    );
+    // A host and a volume of the same name are two objects.
+    expect(volume).not.toBe(
+      PlatformResourceIdentity.storageArrayKey(
+        PlatformResourceIdentity.storageArray({ host: "vol-db-01" }),
+      ),
+    );
+    expect(
+      PlatformResourceIdentity.storageArrayKey({ componentName: "CT0.FAN0" }),
+    ).toBe("||CT0.FAN0|||");
+  });
+
+  test("a component series borrows its component type", () => {
+    expectSameIdentity(
+      PlatformResourceIdentity.withStorageArrayContext(
+        { componentName: "CT0.FAN0" },
+        PlatformResourceIdentity.storageArray({
+          component_name: "CT0.FAN0",
+          component_type: "cooling",
+        }),
+      ),
+      { componentName: "CT0.FAN0", componentType: "cooling" },
+    );
+  });
+
+  test("an alert series borrows nothing: one summary can come from many components", () => {
+    const series: StorageArrayResourceIdentity = {
+      alertSummary: "Drive degraded",
+    };
+
+    expect(
+      PlatformResourceIdentity.withStorageArrayContext(series, {
+        alertSummary: "Drive degraded",
+        componentName: "CH0.BAY3",
+        componentType: "drive_bay",
+      }),
+    ).toBe(series);
+  });
+
+  test("a datapoint that disagrees on any shared field is ignored", () => {
+    const series: StorageArrayResourceIdentity = { componentName: "CT0.FAN0" };
+
+    expect(
+      PlatformResourceIdentity.withStorageArrayContext(series, {
+        componentName: "CT1.FAN0",
+        componentType: "cooling",
+      }),
+    ).toBe(series);
+  });
+});
+
 describe("PlatformResourceIdentity.dockerSwarm", () => {
   const taskAttributes: JSONObject = {
     "resource.container.name": "web.1.x7k2m9p4q1",
@@ -1039,6 +1170,7 @@ describe("PlatformMetricUnitUtil.getPlatformForMonitorType", () => {
     [MonitorType.Podman, "podman"],
     [MonitorType.Host, "host"],
     [MonitorType.IoTDevice, "iot"],
+    [MonitorType.StorageArray, "storageArray"],
   ];
 
   for (const [monitorType, platform] of mapped) {
@@ -1138,6 +1270,142 @@ describe("PlatformMetricUnitUtil.getCatalogUnit", () => {
         metricName: "k8s.node.memory.usage",
       }),
     ).toBeUndefined();
+  });
+});
+
+describe("PlatformMetricUnitUtil — the storage array catalog reads the query's filters", () => {
+  test("one metric name, two quantities: the filter decides the unit", () => {
+    expect(
+      PlatformMetricUnitUtil.getCatalogUnit({
+        platform: "storageArray",
+        metricName: "purefb_file_systems_space_bytes",
+        attributes: { space: "total_physical" },
+      }),
+    ).toBe("bytes");
+    expect(
+      PlatformMetricUnitUtil.getCatalogUnit({
+        platform: "storageArray",
+        metricName: "purefb_file_systems_space_bytes",
+        attributes: {
+          space: "available_ratio",
+          "resource.storage.array.name": "pure-fb-01",
+        },
+      }),
+    ).toBe("ratio");
+    // With no filters, the first entry for the name answers.
+    expect(
+      PlatformMetricUnitUtil.getCatalogUnit({
+        platform: "storageArray",
+        metricName: "purefb_file_systems_space_bytes",
+      }),
+    ).toBe("bytes");
+  });
+
+  test("buildUnitsByMetricName hands each metric's filters to the catalog", () => {
+    expect(
+      PlatformMetricUnitUtil.buildUnitsByMetricName({
+        platform: "storageArray",
+        metricNames: [
+          "purefb_file_systems_space_bytes",
+          "purefa_array_performance_latency_usec",
+        ],
+        declaredUnitsByMetricName: new Map<string, string>(),
+        attributesByMetricName: new Map<string, Dictionary<unknown>>([
+          ["purefb_file_systems_space_bytes", { space: "available_ratio" }],
+        ]),
+      }),
+    ).toEqual({
+      purefb_file_systems_space_bytes: "1",
+      purefa_array_performance_latency_usec: "µs",
+    });
+  });
+
+  test("every other catalog ignores the filters", () => {
+    expect(
+      PlatformMetricUnitUtil.getCatalogUnit({
+        platform: "kubernetes",
+        metricName: "k8s.node.memory.usage",
+        attributes: { space: "available_ratio" },
+      }),
+    ).toBe("bytes");
+  });
+
+  test("every storage array catalog entry formats a large value without NaN or undefined", () => {
+    const failures: Array<string> = [];
+
+    for (const entry of getAllStorageArrayMetrics()) {
+      const unit: string | undefined = PlatformMetricUnitUtil.getMetricUnit({
+        platform: "storageArray",
+        metricName: entry.metricName,
+        attributes: entry.attributes,
+      });
+      const rendered: string = MetricValueFormatter.format({
+        value: 123456789,
+        unit: unit,
+        metricName: entry.metricName,
+      });
+
+      if (
+        !rendered ||
+        rendered.includes("NaN") ||
+        rendered.includes("undefined")
+      ) {
+        failures.push(`${entry.id} (${String(unit)}) → "${rendered}"`);
+      }
+    }
+
+    expect(failures).toEqual([]);
+  });
+
+  test("each entry's own unit is the one its filters resolve to", () => {
+    for (const entry of getAllStorageArrayMetrics()) {
+      expect(
+        PlatformMetricUnitUtil.getCatalogUnit({
+          platform: "storageArray",
+          metricName: entry.metricName,
+          attributes: entry.attributes,
+        }),
+      ).toBe(entry.unit?.trim() || undefined);
+    }
+  });
+
+  test("a data reduction ratio is a ratio, never a percentage", () => {
+    const reductionEntries: Array<StorageArrayMetricDefinition> =
+      getAllStorageArrayMetrics().filter(
+        (entry: StorageArrayMetricDefinition) => {
+          return entry.metricName.endsWith("data_reduction_ratio");
+        },
+      );
+
+    expect(reductionEntries.length).toBeGreaterThan(0);
+
+    for (const entry of reductionEntries) {
+      expect(
+        MetricValueFormatter.format({
+          value: 4.237,
+          unit: PlatformMetricUnitUtil.getMetricUnit({
+            platform: "storageArray",
+            metricName: entry.metricName,
+            attributes: entry.attributes,
+          }),
+          metricName: entry.metricName,
+        }),
+      ).toBe("4.24");
+    }
+  });
+
+  test("latencies render on the time ladder from microseconds", () => {
+    expect(
+      MetricValueFormatter.format({
+        value: 7200,
+        unit: PlatformMetricUnitUtil.getMetricUnit({
+          platform: "storageArray",
+          metricName: "purefa_volume_performance_latency_usec",
+          attributes: { dimension: "usec_per_read_op" },
+        }),
+        metricName: "purefa_volume_performance_latency_usec",
+      }),
+    ).toBe("7.2 ms");
   });
 });
 

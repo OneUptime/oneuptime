@@ -145,6 +145,7 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
         databaseServerIds: [],
+        storageArrayIds: [],
       });
 
     // Linked by hand (Monitor > Overview > Linked Resources): nothing here.

@@ -16,6 +16,13 @@ export type InvestigationNotStartedCode =
   | "project_daily_limit_reached"
   | "severity_below_threshold"
   | "monitor_cooldown"
+  /*
+   * The incident or alert was created already resolved (its Initial State,
+   * a template's, the API...): it was over before it was recorded, so there
+   * was nothing to investigate (Common/Utils/StartingStage). Only ever
+   * recorded at creation.
+   */
+  | "created_resolved"
   | "daily_budget_exhausted"
   | "budget_check_failed"
   | "enqueue_failed"

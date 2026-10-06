@@ -6,6 +6,7 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import Model from "../../Models/DatabaseModels/AlertEpisodeMember";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../Models/DatabaseModels/AlertEpisode";
@@ -244,11 +245,31 @@ export class Service extends ProjectReferencesService<Model> {
     if (membersDeleted && membersDeleted.length > 0) {
       for (const member of membersDeleted) {
         if (member.alertId) {
-          // Clear the episode reference from the alert
+          /*
+           * Point the alert at the latest episode it is still a member of (it
+           * can be in more than one, so leaving one must not unlink it from
+           * another), or at none. None must be null: an update skips a column
+           * given as undefined.
+           */
+          const remainingMember: Model | null = await this.findOneBy({
+            query: {
+              alertId: member.alertId,
+            },
+            select: {
+              alertEpisodeId: true,
+            },
+            sort: {
+              createdAt: SortOrder.Descending,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
           await AlertService.updateOneById({
             id: member.alertId,
             data: {
-              alertEpisodeId: undefined as any,
+              alertEpisodeId: remainingMember?.alertEpisodeId || null,
             },
             props: {
               isRoot: true,

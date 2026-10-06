@@ -54,6 +54,8 @@ Les équipes **Owners** et **Admin** sont volontairement verrouillées : leurs a
 
 `ProjectOwner` est le niveau d'accès le plus élevé : facturation, suppression du projet, et tout ce que peut faire un administrateur. `ProjectAdmin` couvre tout sauf la facturation et la suppression du projet.
 
+Activer ou désactiver les SMS, les appels téléphoniques, WhatsApp ou Telegram pour le projet relève de la facturation, car chaque message coûte de l'argent. Seuls `ProjectOwner` et l'autorisation `ManageProjectBilling` (**Manage Billing**) peuvent modifier ces interrupteurs, dans **Paramètres du projet > Notifications > Paramètres de notification** — pas `ProjectAdmin`.
+
 Créez autant d'équipes supplémentaires que vous voulez — « Astreinte Frontend », « Support », « Auditeurs en lecture seule » — et donnez à chacune les autorisations dont elle a besoin.
 
 Où le trouver : **Paramètres → Équipes**. Ouvrez une équipe pour accéder à **Members** et **Permissions** ; **Block Permissions** se trouve sous **More settings**, en bas de la page Permissions.

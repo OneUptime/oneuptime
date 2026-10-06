@@ -90,19 +90,41 @@ export default class AIAlertInvestigationRunner {
    * remediation is released by RemediationHandoff when the run settles) and
    * applies the rules immediately when none was, so remediation never
    * silently depends on the AI lane.
+   *
+   * Why an investigation does not start is recorded on the alert's AI card
+   * in one order: what stops OneUptime AI for the whole project first (AI
+   * off, no provider, no credits...), then what is true of this alert -
+   * created already resolved, then the cost gates.
    */
   @CaptureSpan()
   public static async investigateNewAlert(data: {
     alertId: ObjectID;
     projectId: ObjectID;
+    /*
+     * Created already resolved (Common/Utils/StartingStage): over before it
+     * was recorded, so there is nothing to investigate.
+     */
+    createdResolved?: boolean | undefined;
   }): Promise<boolean> {
     const { alertId, projectId } = data;
+    const subject: { alertId: ObjectID; projectId: ObjectID } = {
+      alertId,
+      projectId,
+    };
 
     try {
       const disabled: InvestigationNotStartedCode | null =
         await AIInvestigationEngine.getDisabledReason(projectId, "Alert");
       if (disabled) {
-        await InvestigationEligibility.recordSkipped(data, disabled);
+        await InvestigationEligibility.recordSkipped(subject, disabled);
+        return false;
+      }
+
+      if (data.createdResolved) {
+        await InvestigationEligibility.recordSkipped(
+          subject,
+          "created_resolved",
+        );
         return false;
       }
 
@@ -113,7 +135,7 @@ export default class AIAlertInvestigationRunner {
 
       if (!gate.investigate) {
         await InvestigationEligibility.recordSkipped(
-          data,
+          subject,
           gate.notStartedCode || "eligibility_check_failed",
           undefined,
           gate.notStartedDetails,
@@ -133,7 +155,7 @@ export default class AIAlertInvestigationRunner {
             code: InvestigationNotStartedCode,
             budget?: AutonomousBudgetStatus,
           ): Promise<void> => {
-            await InvestigationEligibility.recordSkipped(data, code, budget);
+            await InvestigationEligibility.recordSkipped(subject, code, budget);
           },
         },
       );
@@ -141,7 +163,7 @@ export default class AIAlertInvestigationRunner {
       return enqueuedRunId !== null;
     } catch (error) {
       await InvestigationEligibility.recordSkipped(
-        data,
+        subject,
         "eligibility_check_failed",
       );
       logger.error(

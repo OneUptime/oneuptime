@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -47,6 +48,7 @@ const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
   [CreateFromRecordKind.ProxmoxCluster]: ProxmoxCluster,
   [CreateFromRecordKind.VMwareVCenter]: VMwareVCenter,
   [CreateFromRecordKind.CephCluster]: CephCluster,
+  [CreateFromRecordKind.StorageArray]: StorageArray,
   [CreateFromRecordKind.DockerSwarmCluster]: DockerSwarmCluster,
   [CreateFromRecordKind.IoTFleet]: IoTFleet,
   [CreateFromRecordKind.DatabaseServer]: DatabaseServer,

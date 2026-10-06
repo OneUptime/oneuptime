@@ -456,6 +456,34 @@ describe("MetricValueFormatter", () => {
       ).toBe(false);
     });
 
+    /*
+     * The storage array catalog spells a data reduction ratio "ratio" as
+     * well, but there 4.2 means 4.2:1 of logical over physical space. Its
+     * alert must read 4.2 against a threshold of 3, never 420.00%.
+     */
+    test("a storage array's data reduction ratio is the ratio, not a percentage", () => {
+      expect(
+        MetricValueFormatter.format({
+          value: 4.2,
+          unit: "ratio",
+          metricName: "purefa_array_space_data_reduction_ratio",
+        }),
+      ).toBe("4.2");
+      expect(
+        MetricValueFormatter.format({
+          value: 4.2,
+          unit: "1",
+          metricName: "purefb_array_space_data_reduction_ratio",
+        }),
+      ).toBe("4.2");
+      expect(
+        MetricValueFormatter.hasDisplayableUnit(
+          "1",
+          "purefa_volume_space_data_reduction_ratio",
+        ),
+      ).toBe(false);
+    });
+
     test("a fraction unit with no metric name stays a bare number", () => {
       expect(MetricValueFormatter.format({ value: 0.25, unit: "1" })).toBe(
         "0.25",

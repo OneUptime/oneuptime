@@ -182,6 +182,8 @@ För att användare ska kunna ta emot inkommande samtal måste de ha ett verifie
 
 Bara användare med verifierade telefonnummer kan ringas via eskaleringsregler.
 
+Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara på för projektet. En projektägare eller någon med **Manage Billing** slår på det i kortet **Aviseringskanaler** under **Projektinställningar > Aviseringar > Aviseringsinställningar**.
+
 ## Felsökning
 
 ### Samtal tas inte emot

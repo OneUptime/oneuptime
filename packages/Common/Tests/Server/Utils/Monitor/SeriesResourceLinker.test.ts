@@ -31,6 +31,7 @@ import KubernetesClusterService from "../../../../Server/Services/KubernetesClus
 import PodmanHostService from "../../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
 import SeriesResourceLinker, {
   SeriesLinkableModel,
@@ -125,6 +126,11 @@ const RESOURCE_SERVICES: Array<ResourceServiceUnderTest> = [
     service: DatabaseServerService,
     nameColumn: "name",
   },
+  {
+    relation: "storageArrays",
+    service: StorageArrayService,
+    nameColumn: "name",
+  },
 ];
 
 /*
@@ -206,6 +212,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
     databaseServerIds: [],
+    storageArrayIds: [],
   };
 }
 
@@ -357,6 +364,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
     ["vmwareVCenters", "vmware.vcenter.name", "name"],
     ["vmwareVCenters", "resource.vmware.vcenter.name", "name"],
     ["cephClusters", "ceph.cluster.name", "name"],
+    ["storageArrays", "storage.array.name", "name"],
+    ["storageArrays", "resource.storage.array.name", "name"],
     ["dockerSwarmClusters", "docker.swarm.cluster.name", "name"],
     ["iotFleets", "iot.fleet.name", "name"],
   ])(
@@ -547,6 +556,7 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
         "docker.swarm.cluster.name": "swarm-1",
         "iot.fleet.name": "fleet-1",
         "oneuptime.database.server.id": "d0000000-0000-4000-8000-000000000001",
+        "storage.array.name": "pure-prod-01",
       },
       projectId: PROJECT_ID,
     });
@@ -563,8 +573,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
       }
     }
 
-    // 11 types, and hosts get an extra query for the id stamp.
-    expect(assertedQueries).toBe(12);
+    // 12 types, and hosts get an extra query for the id stamp.
+    expect(assertedQueries).toBe(13);
   });
 
   test("does not link a resource that belongs to another project", async () => {
@@ -690,6 +700,42 @@ describe("SeriesResourceLinker.resolveResourcesFromSeriesLabels", () => {
     expect(resolved.cephClusterIds).toEqual([]);
     expect(resolved.dockerSwarmClusterIds).toEqual([]);
     expect(resolved.databaseServerIds).toEqual([]);
+    expect(resolved.storageArrayIds).toEqual([]);
+  });
+
+  test("returns the storage array a series names, and nothing for its object labels", async () => {
+    rowsByRelation.set("storageArrays", [{ _id: "array-1" }]);
+
+    const resolved: SeriesResolvedResourceIds =
+      await SeriesResourceLinker.resolveResourcesFromSeriesLabels({
+        seriesLabels: {
+          "resource.storage.array.name": "pure-prod-01",
+          // Datapoint labels of the array's own objects name no resource.
+          name: "vol-db-01",
+          host: "esx-01",
+        },
+        projectId: PROJECT_ID,
+      });
+
+    expect(resolved).toEqual({
+      ...emptyResourceContext(),
+      storageArrayIds: ["array-1"],
+    });
+
+    // Matched by the array's name column, project-scoped, exactly.
+    const query: JSONObject = relationQueries("storageArrays")[0]!;
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(includesValues(query["name"])).toEqual(["pure-prod-01"]);
+    expect(callCount("hosts")).toBe(0);
+  });
+
+  test("never looks storage arrays up for a series that does not name one", async () => {
+    await SeriesResourceLinker.resolveResourcesFromSeriesLabels({
+      seriesLabels: { "ceph.cluster.name": "ceph-a" },
+      projectId: PROJECT_ID,
+    });
+
+    expect(callCount("storageArrays")).toBe(0);
   });
 
   test("returns the database a series names by its id stamp", async () => {
@@ -926,12 +972,14 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
         cephClusterIds: ["ceph-1"],
         dockerSwarmClusterIds: ["swarm-1"],
         iotFleetIds: ["fleet-1"],
+        storageArrayIds: ["array-1"],
       },
     });
 
     expect(idsOn(alert, "proxmoxClusters")).toEqual(["pve-1"]);
     expect(idsOn(alert, "vmwareVCenters")).toEqual(["vcsa-1"]);
     expect(idsOn(alert, "cephClusters")).toEqual(["ceph-1"]);
+    expect(idsOn(alert, "storageArrays")).toEqual(["array-1"]);
     expect(idsOn(alert, "dockerSwarmClusters")).toEqual(["swarm-1"]);
     expect(idsOn(alert, "iotFleets")).toEqual(["fleet-1"]);
   });
@@ -1030,9 +1078,35 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
     expect(alert.proxmoxClusters).toBeUndefined();
     expect(alert.vmwareVCenters).toBeUndefined();
     expect(alert.cephClusters).toBeUndefined();
+    expect(alert.storageArrays).toBeUndefined();
     expect(alert.dockerSwarmClusters).toBeUndefined();
     expect(alert.iotFleets).toBeUndefined();
     expect(alert.databaseServers).toBeUndefined();
+  });
+
+  test("merges a storage array from the label path with the step-config one, deduped", async () => {
+    rowsByRelation.set("storageArrays", [{ _id: "array-from-label" }]);
+
+    const incident: Incident = new Incident();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: incident,
+      seriesLabels: { "storage.array.name": "pure-prod-01" },
+      projectId: PROJECT_ID,
+    });
+
+    SeriesResourceLinker.attachResolvedResources({
+      model: incident,
+      resolved: {
+        ...emptyResourceContext(),
+        storageArrayIds: ["array-from-label", "array-from-step-config"],
+      },
+    });
+
+    expect(idsOn(incident, "storageArrays")).toEqual([
+      "array-from-label",
+      "array-from-step-config",
+    ]);
   });
 
   test("attaches to an incident the same way", () => {

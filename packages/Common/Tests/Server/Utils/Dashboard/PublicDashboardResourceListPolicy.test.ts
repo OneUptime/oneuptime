@@ -16,6 +16,8 @@ import { DashboardVariableType } from "../../../../Types/Dashboard/DashboardVari
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { UNHEALTHY_HARDWARE_STATUSES } from "../../../../Server/Services/StorageArrayResourceService";
+import { STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES } from "../../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 
 const RANGE_START: Date = new Date("2026-08-09T10:00:00.000Z");
 const RANGE_END: Date = new Date("2026-08-09T11:00:00.000Z");
@@ -504,6 +506,56 @@ const MAPPING_CASES: Array<MappingCase> = [
     expectedLimit: 25,
   },
   {
+    name: "storage array volume",
+    componentType: DashboardComponentType.StorageArrayVolumeList,
+    resourceType: "storage-array-resource",
+    argumentsObject: { storageArrayIds: ["array"] },
+    expectedQuery: {
+      kind: "Volume",
+      storageArrayId: new Includes(["array"]),
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
+    name: "storage array hardware",
+    componentType: DashboardComponentType.StorageArrayHardwareList,
+    resourceType: "storage-array-resource",
+    argumentsObject: { storageArrayIds: ["array"], maxRows: 100 },
+    expectedQuery: {
+      kind: new Includes(["Hardware", "Drive", "Controller"]),
+      storageArrayId: new Includes(["array"]),
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 100,
+  },
+  {
+    name: "storage array hardware, unhealthy drives only",
+    componentType: DashboardComponentType.StorageArrayHardwareList,
+    resourceType: "storage-array-resource",
+    argumentsObject: {
+      storageArrayIds: ["array"],
+      kindFilter: "Drive",
+      statusFilter: "unhealthy",
+    },
+    expectedQuery: {
+      kind: "Drive",
+      storageArrayId: new Includes(["array"]),
+      status: new Includes([
+        "critical",
+        "failed",
+        "missing",
+        "unhealthy",
+        "degraded",
+        "unknown",
+        "unrecognized",
+        "not ready",
+      ]),
+    },
+    expectedSort: { name: SortOrder.Ascending },
+    expectedLimit: 25,
+  },
+  {
     name: "docker swarm node",
     componentType: DashboardComponentType.DockerSwarmNodeList,
     resourceType: "docker-swarm-resource",
@@ -939,6 +991,251 @@ describe("PublicDashboardResourceListPolicy", () => {
           expect(select[column]).toBeUndefined();
         }
         expect(select["vmwareVCenter"]).toEqual({ name: true });
+      }
+    });
+  });
+
+  describe("Storage Array widgets", () => {
+    const storageArrayWidgets: Array<DashboardComponentType> = [
+      DashboardComponentType.StorageArrayVolumeList,
+      DashboardComponentType.StorageArrayHardwareList,
+    ];
+
+    it("resolves both widgets to the storage-array-resource registry key", () => {
+      for (const componentType of storageArrayWidgets) {
+        expect(build({ componentType }).resourceType).toBe(
+          "storage-array-resource",
+        );
+      }
+    });
+
+    it("owns the kind and never copies a caller-supplied one", () => {
+      const volume: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.StorageArrayVolumeList,
+        argumentsObject: { kind: "Bucket" },
+        requestedQuery: { kind: "Host", projectId: "other" },
+      });
+      const hardware: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.StorageArrayHardwareList,
+        argumentsObject: { kind: "Volume" },
+        requestedQuery: { kind: "Bucket", projectId: "other" },
+      });
+
+      expect(volume.query).toEqual({ kind: "Volume" });
+      expect(hardware.query).toEqual({
+        kind: new Includes(["Hardware", "Drive", "Controller"]),
+      });
+    });
+
+    it("narrows the hardware kinds only to one of the three the widget lists", () => {
+      for (const kind of ["Hardware", "Drive", "Controller"]) {
+        expect(
+          build({
+            componentType: DashboardComponentType.StorageArrayHardwareList,
+            argumentsObject: { kindFilter: kind },
+          }).query,
+        ).toEqual({ kind: kind });
+      }
+
+      // "" is the dropdown's All option.
+      expect(
+        build({
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          argumentsObject: { kindFilter: "" },
+        }).query,
+      ).toEqual({ kind: new Includes(["Hardware", "Drive", "Controller"]) });
+
+      /*
+       * A kind outside the three would widen a hardware widget into the
+       * array's volumes, hosts or buckets on an unauthenticated route, so
+       * it fails closed instead.
+       */
+      for (const invalidArguments of [
+        { kindFilter: "Volume" },
+        { kindFilter: "Bucket" },
+        { kindFilter: "drive" },
+        { kindFilter: ["Drive"] },
+        { kindFilter: true },
+      ] as Array<JSONObject>) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.StorageArrayHardwareList,
+            argumentsObject: invalidArguments,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("whitelists the hardware status filter to the unhealthy statuses", () => {
+      expect(
+        build({
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          argumentsObject: { statusFilter: "unhealthy" },
+        }).query,
+      ).toEqual({
+        kind: new Includes(["Hardware", "Drive", "Controller"]),
+        status: new Includes([...STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES]),
+      });
+
+      expect(
+        build({
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          argumentsObject: { statusFilter: "" },
+        }).query,
+      ).toEqual({ kind: new Includes(["Hardware", "Drive", "Controller"]) });
+
+      for (const invalidArguments of [
+        { statusFilter: "critical" },
+        { statusFilter: "healthy" },
+        { statusFilter: ["unhealthy"] },
+        { statusFilter: 1 },
+      ] as Array<JSONObject>) {
+        expect(() => {
+          return build({
+            componentType: DashboardComponentType.StorageArrayHardwareList,
+            argumentsObject: invalidArguments,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("treats unhealthy as exactly the statuses ingest counts as unhealthy hardware", () => {
+      expect([...STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES].sort()).toEqual(
+        [...UNHEALTHY_HARDWARE_STATUSES].sort(),
+      );
+    });
+
+    it("ignores hardware filters on the volume widget", () => {
+      expect(
+        build({
+          componentType: DashboardComponentType.StorageArrayVolumeList,
+          argumentsObject: { kindFilter: "Drive", statusFilter: "unhealthy" },
+        }).query,
+      ).toEqual({ kind: "Volume" });
+    });
+
+    it("scopes both widgets to the stored storage array ids only", () => {
+      for (const componentType of storageArrayWidgets) {
+        const result: PublicDashboardResourceListPolicyResult = build({
+          componentType,
+          argumentsObject: { storageArrayIds: ["a", "b"] },
+          requestedQuery: { storageArrayId: "forged" },
+        });
+        expect(result.query["storageArrayId"]).toEqual(
+          new Includes(["a", "b"]),
+        );
+
+        const unscoped: PublicDashboardResourceListPolicyResult = build({
+          componentType,
+          argumentsObject: { storageArrayIds: [] },
+        });
+        expect(unscoped.query["storageArrayId"]).toBeUndefined();
+      }
+    });
+
+    it("interpolates each widget's own object label onto externalId, and nothing else", () => {
+      const storedVariables: Array<JSONObject> = [
+        {
+          id: "volume",
+          name: "Volume",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "name",
+        },
+        {
+          id: "component",
+          name: "Component",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "component_name",
+          isMultiSelect: true,
+        },
+        {
+          id: "array",
+          name: "Storage Array",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "resource.storage.array.name",
+        },
+      ];
+      const requestedVariables: Array<JSONObject> = [
+        { id: "volume", selectedValue: "vg1/db-data" },
+        {
+          id: "component",
+          selectedValue: null,
+          selectedValues: ["CH0.BAY1", "CH0.BAY2"],
+        },
+        { id: "array", selectedValue: "fa-prod-01" },
+      ];
+
+      expect(
+        build({
+          componentType: DashboardComponentType.StorageArrayVolumeList,
+          storedVariables,
+          requestedVariables,
+        }).query,
+      ).toEqual({ kind: "Volume", externalId: "vg1/db-data" });
+
+      expect(
+        build({
+          componentType: DashboardComponentType.StorageArrayHardwareList,
+          storedVariables,
+          requestedVariables,
+        }).query,
+      ).toEqual({
+        kind: new Includes(["Hardware", "Drive", "Controller"]),
+        externalId: new Includes(["CH0.BAY1", "CH0.BAY2"]),
+      });
+    });
+
+    it("projects each widget's own columns, never its sibling's", () => {
+      const volume: JSONObject = build({
+        componentType: DashboardComponentType.StorageArrayVolumeList,
+      }).select;
+      const hardware: JSONObject = build({
+        componentType: DashboardComponentType.StorageArrayHardwareList,
+      }).select;
+
+      for (const column of [
+        "readLatencyUsec",
+        "writeLatencyUsec",
+        "readIops",
+        "writeIops",
+        "usedBytes",
+        "groupName",
+      ]) {
+        expect(volume[column]).toBe(true);
+        expect(hardware[column]).toBeUndefined();
+      }
+      for (const column of [
+        "status",
+        "statusDetail",
+        "componentType",
+        "model",
+        "temperatureCelsius",
+      ]) {
+        expect(hardware[column]).toBe(true);
+        expect(volume[column]).toBeUndefined();
+      }
+    });
+
+    it("projects only public-safe inventory columns", () => {
+      const privateColumns: Array<string> = [
+        "projectId",
+        "project",
+        "createdByUserId",
+        "createdByUser",
+        "deletedByUserId",
+        "deletedByUser",
+        "details",
+        "lastSeenAt",
+      ];
+
+      for (const componentType of storageArrayWidgets) {
+        const select: JSONObject = build({ componentType }).select;
+
+        for (const column of privateColumns) {
+          expect(select[column]).toBeUndefined();
+        }
+        expect(select["storageArray"]).toEqual({ name: true });
+        expect(select["storageArrayId"]).toBe(true);
       }
     });
   });

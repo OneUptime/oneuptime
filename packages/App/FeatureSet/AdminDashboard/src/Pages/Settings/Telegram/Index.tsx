@@ -21,6 +21,7 @@ import URL from "Common/Types/API/URL";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import { useTranslation } from "react-i18next";
+import { buildTelegramSetupMarkdown } from "./TelegramSetupGuide";
 
 // Telegram bot tokens look like "8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321".
 const TELEGRAM_BOT_TOKEN_PATTERN: RegExp = /^\d{6,}:[A-Za-z0-9_-]{30,}$/;
@@ -54,51 +55,13 @@ const validateBotUsername: (
   return null;
 };
 
-const buildTelegramSetupMarkdown: () => string = (): string => {
-  const appApiBaseUrl: string = APP_API_URL.toString().replace(/\/$/, "");
-  const webhookUrl: string = `${appApiBaseUrl}/notification/telegram/webhook`;
-
-  return [
-    "### What you'll need",
-    "- A Telegram account and access to [@BotFather](https://t.me/BotFather).",
-    "- Admin access to OneUptime with permission to edit global notification settings.",
-    "",
-    "### 1. Create a bot and grab its token",
-    "1. Open Telegram and chat with [@BotFather](https://t.me/BotFather).",
-    "2. Send `/newbot` and follow the prompts. BotFather will return two things:",
-    "   - A **bot token** that looks like `8012345678:ABCdefGHIjklMNOpqrsTUVwxyz-0987654321` — this goes into the **Bot Token** field above.",
-    "   - A **bot username** ending in `bot` (for example, `OneUptimeAlertsBot`) — this goes into the **Bot Username** field above (without the leading `@`).",
-    "3. Pick a strong random string to use as your **Webhook Secret Token** and paste it into the third field. OneUptime sends this back to itself via `X-Telegram-Bot-Api-Secret-Token` so spoofed webhook calls get rejected.",
-    "4. Save the form.",
-    "",
-    "### 2. Register the webhook with Telegram",
-    "Run this command in a terminal (replace `<BOT_TOKEN>` and `<SECRET>` with the values you just saved). **Do not paste this command back into the form above — it belongs in your shell.**",
-    "",
-    "```bash",
-    `curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \\`,
-    '  -H "Content-Type: application/json" \\',
-    "  -d '{",
-    `    "url": "${webhookUrl}",`,
-    '    "secret_token": "<SECRET>",',
-    '    "allowed_updates": ["message"]',
-    "  }'",
-    "```",
-    "",
-    "Confirm the webhook is live with `curl https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo` — the `url` field should match the value above.",
-    "",
-    "### 3. Test end-to-end",
-    "1. Use the **Send Test Telegram Message** card below to confirm your bot can reach a chat. You can get your own chat ID by sending any message to [@userinfobot](https://t.me/userinfobot).",
-    "2. Ask users to open **User Settings → Notification Methods → Telegram** in the OneUptime dashboard. They'll scan a QR (or tap a deep link) to send `/start <code>` to your bot — that's how we capture their chat ID and mark the account verified.",
-    "3. Once verified, users can toggle Telegram in **Notification Settings** and include Telegram in any on-call notification rule.",
-    "",
-    "### Webhook endpoint",
-    `- \`${webhookUrl}\``,
-    "",
-    "This endpoint only reacts to `/start <code>` messages from users. Every other update is ignored.",
-  ].join("\n");
-};
-
-const telegramSetupMarkdown: string = buildTelegramSetupMarkdown();
+/*
+ * The guide below the form (TelegramSetupGuide), with the webhook address
+ * this installation answers on.
+ */
+const telegramSetupMarkdown: string = buildTelegramSetupMarkdown(
+  `${APP_API_URL.toString().replace(/\/$/, "")}/notification/telegram/webhook`,
+);
 
 const SettingsTelegram: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();

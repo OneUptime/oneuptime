@@ -32,6 +32,7 @@ import { Green500 } from "../../Types/BrandColors";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { RuleCriteriaMatcher } from "../../Utils/Rules/RuleCriteriaMatcher";
+import { GroupingOptions } from "../../Utils/StartingStage";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -42,7 +43,10 @@ export interface GroupingResult {
 
 class AlertGroupingEngineServiceClass {
   @CaptureSpan()
-  public async processAlert(alert: Alert): Promise<GroupingResult> {
+  public async processAlert(
+    alert: Alert,
+    options: GroupingOptions = {},
+  ): Promise<GroupingResult> {
     logger.debug(`Processing alert ${alert.id} for grouping`, {
       projectId: alert.projectId?.toString(),
     } as LogAttributes);
@@ -165,6 +169,7 @@ class AlertGroupingEngineServiceClass {
           const result: GroupingResult = await this.groupAlertWithRule(
             alert,
             rule,
+            options,
           );
           return result;
         }
@@ -412,6 +417,7 @@ class AlertGroupingEngineServiceClass {
   private async groupAlertWithRule(
     alert: Alert,
     rule: AlertGroupingRule,
+    options: GroupingOptions = {},
   ): Promise<GroupingResult> {
     // Build the grouping key based on groupBy fields
     const groupingKey: string = await this.buildGroupingKey(alert, rule);
@@ -480,6 +486,15 @@ class AlertGroupingEngineServiceClass {
           episodeId: existingEpisode.id,
           isNewEpisode: false,
         };
+      }
+
+      /*
+       * No open episode to join, and the alert may not open or reopen one
+       * (GroupingOptions): a new episode would page its own on-call policies
+       * for an alert that pages nobody. It stays on its own.
+       */
+      if (options.mayOpenEpisode === false) {
+        return { grouped: false };
       }
 
       // Check if we can reopen a recently resolved episode (only if enabled)

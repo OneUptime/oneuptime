@@ -435,22 +435,22 @@ describe("the state a record starts in", () => {
     {
       shape: INCIDENT_CREATE,
       key: "currentIncidentState",
-      help: "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.",
+      help: "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
     },
     {
       shape: ALERT_CREATE,
       key: "currentAlertState",
-      help: "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.",
+      help: "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.",
     },
     {
       shape: INCIDENT_EPISODE_CREATE,
       key: "currentIncidentState",
-      help: "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.",
+      help: "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.",
     },
     {
       shape: ALERT_EPISODE_CREATE,
       key: "currentAlertState",
-      help: "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.",
+      help: "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.",
     },
   ];
 

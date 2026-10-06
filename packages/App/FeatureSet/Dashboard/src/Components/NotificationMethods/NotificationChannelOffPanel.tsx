@@ -4,14 +4,14 @@ import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelSwitchRow from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
 import { BILLING_ENABLED } from "Common/UI/Config";
-import PermissionGate, {
-  PermissionGateResult,
-} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import { ProjectChannelState } from "./ProjectNotificationChannels";
+import {
+  canChangeProjectNotificationChannels,
+  ProjectChannelState,
+} from "./ProjectNotificationChannels";
 import {
   ChannelGatedMethodList,
   ChannelGatedMethodListDefinition,
@@ -33,11 +33,12 @@ import {
  * change, where the switch sat behind an Edit button and a two-step dialog.
  *
  * Now the switch is here:
- * - Someone who may change it (a project owner, or anyone who manages
- *   billing - the column's own update permissions) gets the channel's own
+ * - Someone who may change it (a project owner, or someone with Manage
+ *   Billing - the column's own update permissions) gets the channel's own
  *   switch, which saves the moment it is flipped (ModelSwitchRow): the Add
  *   button appears with it, through ModelSwitchEvents.
- * - Everyone else gets one sentence: what is off, and who can turn it on.
+ * - Everyone else is told what is off, and exactly who can turn it on, and
+ *   where. Not "a project admin": a project admin may not.
  *
  * Nothing is drawn while the channel is on, while the answer is on its way,
  * or when it could not be read (the list then offers Add, as it always did,
@@ -64,22 +65,6 @@ export const getProjectChannelSwitchTestId: (column: string) => string = (
   return `project-channel-switch-${column}`;
 };
 
-/*
- * Whether the signed-in person may change one of the project's channel
- * switches: the Project's update permissions, then the column's own (owners
- * and billing managers), as the server checks them.
- */
-export const canChangeProjectChannel: (
-  definition: ProjectNotificationChannelDefinition,
-) => boolean = (definition: ProjectNotificationChannelDefinition): boolean => {
-  const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
-    new Project(),
-    definition.column,
-  );
-
-  return gate.isAllowed;
-};
-
 const NotificationChannelOffPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -98,7 +83,9 @@ const NotificationChannelOffPanel: FunctionComponent<ComponentProps> = (
    * Read on every render rather than remembered: the permission snapshot
    * arrives on a response header, and may land after the first paint.
    */
-  const mayChange: boolean = canChangeProjectChannel(channel);
+  const mayChange: boolean = canChangeProjectNotificationChannels([
+    channel.channel,
+  ]);
 
   if (!projectId) {
     return <></>;

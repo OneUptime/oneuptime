@@ -54,6 +54,8 @@ Project
 
 نقش `ProjectOwner` بالاترین سطح دسترسی است: صورت‌حساب، حذف پروژه، و هر چیزی که یک مدیر می‌تواند بکند. نقش `ProjectAdmin` همه‌چیز جز صورت‌حساب و حذف پروژه را پوشش می‌دهد.
 
+روشن یا خاموش کردن پیامک، تماس تلفنی، WhatsApp یا Telegram برای پروژه جزو صورت‌حساب به شمار می‌آید، چون هر پیام هزینه دارد. فقط `ProjectOwner` و مجوز `ManageProjectBilling` (**Manage Billing**) می‌توانند این کلیدها را در **Project Settings > Notifications > Notification Settings** تغییر دهند — نه `ProjectAdmin`.
+
 هر تعداد تیم اضافی که می‌خواهید بسازید — «Frontend On-Call»، «Support»، «Read-Only Auditors» — و به هرکدام دسترسی‌هایی را که لازم دارد بدهید.
 
 کجا پیدایش کنید: **Settings → Teams**. تیمی را باز کنید تا به **Members** و **Permissions** برسید؛ **Block Permissions** زیر **More settings** در پایین صفحه Permissions است.

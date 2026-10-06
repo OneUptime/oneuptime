@@ -6,6 +6,10 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import { JSONObject } from "Common/Types/JSON";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -165,7 +169,7 @@ describe("POST /sms/send passes failIfNotSent on", () => {
 
   test("an SMS the service does not send answers with the error, not success", async () => {
     const refusal: BadDataException = new BadDataException(
-      "SMS not sent: SMS notifications are not enabled for this project.",
+      `SMS not sent: ${getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS)}`,
     );
     (SmsService.sendSms as unknown as jest.Mock).mockRejectedValue(
       refusal as never,
