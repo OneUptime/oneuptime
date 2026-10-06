@@ -37,6 +37,8 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import ResolvedStateUtil from "../../Utils/ResolvedState";
+import { StateListType } from "../../Utils/StateOrder";
 import Project from "../../Models/DatabaseModels/Project";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Yellow500 } from "../../Types/BrandColors";
@@ -2145,9 +2147,11 @@ export class Service extends ProjectReferencesService<Model> {
       incidentStates.find((state: IncidentState) => {
         return state.isAcknowledgedState;
       });
-    const resolvedIncidentState: IncidentState | undefined =
-      incidentStates.find((state: IncidentState) => {
-        return state.isResolvedState;
+    // The project's resolved state: the first from the top flagged resolved.
+    const resolvedIncidentState: IncidentState | null =
+      ResolvedStateUtil.getResolvedState({
+        list: StateListType.IncidentState,
+        states: incidentStates,
       });
 
     const targets: LinkedAlertStateTargets = getLinkedAlertStateTargets({
@@ -2195,9 +2199,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (targets.resolve) {
-      resolvedAlertState = alertStates.find((state: AlertState) => {
-        return state.isResolvedState;
-      });
+      resolvedAlertState =
+        ResolvedStateUtil.getResolvedState({
+          list: StateListType.AlertState,
+          states: alertStates,
+        }) || undefined;
 
       if (!resolvedAlertState) {
         logger.error(

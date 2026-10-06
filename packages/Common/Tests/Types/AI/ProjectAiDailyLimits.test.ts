@@ -3,13 +3,19 @@ import ProjectAiDailyLimits, {
   MAX_PROJECT_AI_DAILY_TOKEN_LIMIT,
   MIN_PROJECT_AI_DAILY_SPEND_LIMIT_IN_USD,
   MIN_PROJECT_AI_DAILY_TOKEN_LIMIT,
+  PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
+  PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS,
+  PROJECT_AI_DAILY_LIMITS_LOCATION,
   PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
   PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
   ProjectAiDailyLimit,
   ProjectAiDailyLimitValues,
+  WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS,
 } from "../../../Types/AI/ProjectAiDailyLimits";
 import Project from "../../../Models/DatabaseModels/Project";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import Permission from "../../../Types/Permission";
+import { getWhoCanTurnOnClause } from "../../../Utils/Project/NotificationChannels";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -382,5 +388,124 @@ describe("ProjectAiDailyLimits.formatUsd", () => {
     [-100, "$0"],
   ])("%s cents is %s", (cents: number, text: string) => {
     expect(ProjectAiDailyLimits.formatUsd(cents)).toBe(text);
+  });
+});
+
+/*
+ * When a limit last stopped AI, the sentences everything that says so is
+ * made of, and who may change the limits - shared by the server's refusal,
+ * the owners' email and the investigation catch-up.
+ */
+describe("ProjectAiDailyLimits.isToday", () => {
+  const NOW: Date = new Date("2026-10-07T15:30:00.000Z");
+
+  test.each([
+    ["midnight UTC, the day's first moment", "2026-10-07T00:00:00.000Z", true],
+    ["a moment ago", "2026-10-07T15:29:59.000Z", true],
+    ["the last moment of yesterday", "2026-10-06T23:59:59.999Z", false],
+    ["the next midnight UTC", "2026-10-08T00:00:00.000Z", false],
+  ])("%s: %s is today: %s", (_label: string, at: string, today: boolean) => {
+    expect(ProjectAiDailyLimits.isToday(new Date(at), NOW)).toBe(today);
+    expect(ProjectAiDailyLimits.isToday(at, NOW)).toBe(today);
+  });
+
+  test("never, unknown or not a date is not today", () => {
+    expect(ProjectAiDailyLimits.isToday(null, NOW)).toBe(false);
+    expect(ProjectAiDailyLimits.isToday(undefined, NOW)).toBe(false);
+    expect(ProjectAiDailyLimits.isToday("not a date", NOW)).toBe(false);
+  });
+});
+
+describe("ProjectAiDailyLimits.getReachedSentence", () => {
+  test("the token limit: what was used of it today", () => {
+    expect(
+      ProjectAiDailyLimits.getReachedSentence({
+        reachedLimit: ProjectAiDailyLimit.Tokens,
+        tokenLimit: 200000,
+        spendLimitInUSD: null,
+        usage: { usedTokensToday: 201234, spentTodayInUSDCents: 0 },
+      }),
+    ).toBe(
+      "This project has reached its daily AI token limit: 201,234 of 200,000 tokens used today.",
+    );
+  });
+
+  test("the spend limit, in dollars", () => {
+    expect(
+      ProjectAiDailyLimits.getReachedSentence({
+        reachedLimit: ProjectAiDailyLimit.Spend,
+        tokenLimit: 5000,
+        spendLimitInUSD: 25,
+        usage: { usedTokensToday: 9_000_000, spentTodayInUSDCents: 2503 },
+      }),
+    ).toBe(
+      "This project has reached its daily AI spend limit: $25.03 of $25 spent today.",
+    );
+  });
+});
+
+describe("who may change the limits, and where", () => {
+  test("the update permissions of both limit columns, as the model declares them", () => {
+    const project: Project = new Project();
+
+    for (const column of [
+      PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN,
+      PROJECT_AI_DAILY_SPEND_LIMIT_COLUMN,
+    ]) {
+      expect(project.getColumnAccessControlFor(column)?.update).toEqual(
+        PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS,
+      );
+    }
+
+    expect(PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS).toEqual([
+      Permission.ProjectOwner,
+      Permission.ManageProjectBilling,
+    ]);
+  });
+
+  test("named in the words every who-can sentence uses for those permissions", () => {
+    expect(WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS).toBe(
+      "a project owner or someone with Manage Billing",
+    );
+    // The same people, in the same words, as the notification channels' switches.
+    expect(
+      getWhoCanTurnOnClause("it").startsWith(
+        WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS,
+      ),
+    ).toBe(true);
+  });
+
+  test("the sentence said to whoever met the limit names them rather than telling the reader to", () => {
+    expect(ProjectAiDailyLimits.getWhoCanChangeSentence()).toBe(
+      "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
+    );
+    expect(PROJECT_AI_DAILY_LIMITS_LOCATION).toBe(
+      "Project Settings → AI Features → More settings",
+    );
+  });
+});
+
+describe("the columns that say when each limit last stopped AI", () => {
+  test("one per limit, internal, nullable dates", () => {
+    expect(PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS).toEqual({
+      [ProjectAiDailyLimit.Tokens]: "aiDailyTokenLimitReachedAt",
+      [ProjectAiDailyLimit.Spend]: "aiDailySpendLimitReachedAt",
+    });
+
+    const project: Project = new Project();
+
+    for (const column of Object.values(
+      PROJECT_AI_DAILY_LIMIT_REACHED_AT_COLUMNS,
+    )) {
+      expect(project.getTableColumnMetadata(column)?.type).toBe(
+        TableColumnType.Date,
+      );
+      expect(project.getTableColumnMetadata(column)?.required).toBe(false);
+      expect(project.getColumnAccessControlFor(column)).toEqual({
+        create: [],
+        read: [],
+        update: [],
+      });
+    }
   });
 });

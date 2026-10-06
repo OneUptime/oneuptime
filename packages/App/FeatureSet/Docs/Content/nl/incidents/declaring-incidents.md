@@ -164,7 +164,7 @@ De aanmaakaanroep doet meer dan een rij wegschrijven. In deze volgorde:
 9. **Abonnees worden in de wachtrij gezet**, als **Statuspagina-abonnees op de hoogte stellen** aan bleef staan en het incident zichtbaar is op de statuspagina. Bezorging gebeurt door een achtergrondtaak, niet direct binnen je verzoek.
 10. **Workflows gaan af.** De trigger **On Create Incident** start elke workflow die erop is gebouwd. Zie [Workflows – Overzicht](/docs/workflows/index).
 
-Vanaf dat moment is het incident live: het telt mee voor de badge **Actieve incidenten** in het zijmenu Incidenten (elke status zonder de vlag `isResolvedState` telt als actief), het verschijnt op de statuspagina's die een van zijn monitoren tonen, en zijn **Statustijdlijn** begint mee te schrijven.
+Vanaf dat moment is het incident live: het telt mee voor de badge **Actieve incidenten** in het zijmenu Incidenten (elke status boven je opgeloste status telt als actief), het verschijnt op de statuspagina's die een van zijn monitoren tonen, en zijn **Statustijdlijn** begint mee te schrijven.
 
 ## Waar verder lezen
 

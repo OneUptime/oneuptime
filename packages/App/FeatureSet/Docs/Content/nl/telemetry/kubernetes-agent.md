@@ -226,7 +226,7 @@ Elke andere knop op deze pagina verwijdert een **categorie** telemetrie — een 
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -309,7 +309,7 @@ Zie wat elke namespace, workload en pod daadwerkelijk kost — inclusief ongebru
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -359,10 +359,19 @@ Als de agent ouder is dan je OneUptime, verschijnt er een waarschuwingsteken naa
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` behoudt je bestaande configuratie (preset, clusternaam, filters); geef nieuwe `--set`-overschrijvingen daar bovenop door.
+`--reset-then-reuse-values` (Helm 3.14+) behoudt de waarden die je hebt ingesteld (preset, clusternaam, filters) en neemt alle andere waarden over uit de nieuwe chart; geef nieuwe `--set`-overschrijvingen daar bovenop door. Op Helm 3.13 of ouder upgrade je in plaats daarvan met de waarden die je hebt ingesteld:
+
+```bash
+helm repo update
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
+```
+
+Gebruik geen `--reuse-values`: dat behoudt ook de standaardwaarden van de chart waarvan je upgradet, zodat de standaardwaarden van een nieuwere chart (waaronder de eBPF-image) nooit worden toegepast. Draait een release op de standaardwaarden van een oudere chart, dan eindigen de notities die Helm na de installatie of upgrade toont met een waarschuwing en de opdracht die het oplost.
 
 > **eBPF-span-metrieken hebben nieuwe namen.** `ebpf.features.spanMetrics` stuurt nu `traces.span.metrics.calls` en `traces.span.metrics.duration` (seconden) in plaats van `traces_spanmetrics_calls_total` en `traces_spanmetrics_latency`: dezelfde reeksen onder de namen die OBI behoudt (de oude heeft OBI als verouderd gemarkeerd). Een dashboard, chart of metriek-gebaseerde monitor op een oude naam krijgt na de upgrade geen nieuwe gegevens meer, zonder foutmelding — zet hem over naar de nieuwe naam en pas ook `filters.metrics`-items aan die een oude naam noemen.
 
@@ -435,7 +444,7 @@ Het staat uit omdat het injecteren van de header betekent dat verkeer wordt hers
 
 Standaard is de agent afgestemd op **dekking** — hij levert metrieken, pod-logs en eBPF-traces van het hele cluster, zodat elk dashboard en elke monitor vanaf dag één werkt. Op grote of drukke clusters kan dat meer telemetrie zijn dan je nodig hebt, wat zich uit in een hoger ingest-volume (en, op OneUptime Cloud, hogere kosten). Niets hiervan is verplicht, maar als een cluster meer verzendt dan je wilt, zijn dit de knoppen om aan te draaien — grofweg in volgorde van impact.
 
-De truc is om **te stoppen met het verzamelen van wat je toch niet bekijkt**, in plaats van alles te verzamelen en te betalen om het op te slaan. Elke hendel hieronder is een Helm-waarde, dus je kunt hem toepassen met `--set` op `helm upgrade --reuse-values` en op dezelfde manier terugdraaien.
+De truc is om **te stoppen met het verzamelen van wat je toch niet bekijkt**, in plaats van alles te verzamelen en te betalen om het op te slaan. Elke hendel hieronder is een Helm-waarde, dus je kunt hem toepassen met `--set` op `helm upgrade --reset-then-reuse-values` en op dezelfde manier terugdraaien.
 
 ### Waar het volume vandaan komt
 
@@ -463,7 +472,7 @@ Container-logs zijn vrijwel altijd het grootste deel van de ingest, omdat het é
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
@@ -473,7 +482,7 @@ Container-logs zijn vrijwel altijd het grootste deel van de ingest, omdat het é
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.logs.minSeverity=WARN
   ```
 
@@ -483,7 +492,7 @@ Container-logs zijn vrijwel altijd het grootste deel van de ingest, omdat het é
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set logs.enabled=false
   ```
 
@@ -497,7 +506,7 @@ eBPF geeft je traces, RED-metrieken, de service-map en netwerkflowmetrieken zond
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.enabled=false
   ```
 
@@ -505,7 +514,7 @@ eBPF geeft je traces, RED-metrieken, de service-map en netwerkflowmetrieken zond
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.features.networkMetrics=false \
     --set ebpf.features.tcpStats=false \
     --set ebpf.features.spanMetrics=false
@@ -517,7 +526,7 @@ eBPF geeft je traces, RED-metrieken, de service-map en netwerkflowmetrieken zond
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
@@ -529,7 +538,7 @@ Het metrische volume is recht evenredig met hoe vaak de agent scrapet. Een inter
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set collectionInterval=60s \
   --set hostMetrics.collectionInterval=60s \
   --set cadvisor.scrapeInterval=60s
@@ -557,7 +566,7 @@ Cardinaliteit (het aantal afzonderlijke tijdreeksen) is net zo belangrijk als fr
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.metrics.matchType=regexp \
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
@@ -568,7 +577,7 @@ Cardinaliteit (het aantal afzonderlijke tijdreeksen) is net zo belangrijk als fr
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
@@ -592,7 +601,7 @@ Elke hendel hierboven koopt volume met iets dat je opgeeft: een namespace die je
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -686,7 +695,7 @@ Je cluster blokkeert `hostPath` — gangbaar op **GKE Autopilot** en **EKS Farga
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
@@ -708,7 +717,7 @@ De meest voorkomende reden — vooral na een herinstallatie — is een **verkeer
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-     --namespace oneuptime-agent --reuse-values \
+     --namespace oneuptime-agent --reset-then-reuse-values \
      --set oneuptime.apiKey=<LIVE_KEY>
    ```
 

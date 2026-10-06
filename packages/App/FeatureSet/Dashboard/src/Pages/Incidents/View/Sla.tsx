@@ -27,6 +27,9 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentSlaRule from "Common/Models/DatabaseModels/IncidentSlaRule";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import ResolvedStateUtil from "Common/Utils/ResolvedState";
+import { StateListType } from "Common/Utils/StateOrder";
+import IncidentStateUtil from "../../../Utils/IncidentState";
 import Modal from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
@@ -795,10 +798,10 @@ const IncidentViewSla: FunctionComponent<
           select: {
             _id: true,
             startsAt: true,
+            incidentStateId: true,
             incidentState: {
               _id: true,
               isCreatedState: true,
-              isResolvedState: true,
             },
           },
           sort: {
@@ -808,27 +811,43 @@ const IncidentViewSla: FunctionComponent<
 
         // Find when the incident was first responded to (moved out of created state)
         let respondedAt: Date | undefined;
-        let resolvedAt: Date | undefined;
 
         for (const timeline of timelineResponse.data) {
           const state: {
             isCreatedState?: boolean;
-            isResolvedState?: boolean;
           } = timeline.incidentState as {
             isCreatedState?: boolean;
-            isResolvedState?: boolean;
           };
 
           // First non-created state is when the incident was responded to
           if (!respondedAt && !state?.isCreatedState && timeline.startsAt) {
             respondedAt = timeline.startsAt;
           }
-
-          // Find when the incident was resolved
-          if (state?.isResolvedState && timeline.startsAt) {
-            resolvedAt = timeline.startsAt;
-          }
         }
+
+        /*
+         * When the incident was last resolved: its latest move into a state
+         * that counts as resolved - the project's resolved state, or one
+         * placed after it (Common/Utils/ResolvedState).
+         */
+        const resolutionRows: Array<{ startsAt?: Date | undefined }> =
+          ResolvedStateUtil.getResolutionRows({
+            list: StateListType.IncidentState,
+            states: await IncidentStateUtil.getIncidentStates(
+              new ObjectID(projectIdString),
+            ),
+            timeline: timelineResponse.data.map(
+              (timeline: IncidentStateTimeline) => {
+                return {
+                  stateId: timeline.incidentStateId,
+                  startsAt: timeline.startsAt,
+                };
+              },
+            ),
+          });
+
+        const resolvedAt: Date | undefined =
+          resolutionRows[resolutionRows.length - 1]?.startsAt || undefined;
 
         // Calculate deadlines based on rule configuration
         const slaStartTime: Date =

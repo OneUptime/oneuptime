@@ -164,7 +164,7 @@ L'appel de création fait bien plus qu'écrire une ligne. Dans l'ordre :
 9. **Les abonnés sont mis en file**, si **Notifier les abonnés de la page de statut** est resté activé et que l'incident est visible sur la page de statut. La livraison est prise en charge par une tâche de fond, pas en ligne avec votre requête.
 10. **Les workflows se déclenchent.** Le déclencheur **On Create Incident** lance tout workflow bâti dessus. Voyez [Présentation des workflows](/docs/workflows/index).
 
-À partir de là, l'incident est vivant : il compte dans le badge **Incidents actifs** du menu latéral Incidents (tout état non marqué `isResolvedState` compte comme actif), il apparaît sur les pages de statut qui portent l'un de ses moniteurs, et sa **Chronologie d'état** commence à enregistrer.
+À partir de là, l'incident est vivant : il compte dans le badge **Incidents actifs** du menu latéral Incidents (tout état au-dessus de votre état résolu compte comme actif), il apparaît sur les pages de statut qui portent l'un de ses moniteurs, et sa **Chronologie d'état** commence à enregistrer.
 
 ## Où lire ensuite
 

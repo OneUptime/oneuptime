@@ -39,28 +39,32 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     }
   }
 
+  /*
+   * The project's resolved state, which resolving an alert moves it into:
+   * the first from the top flagged resolved.
+   */
   @CaptureSpan()
   public async getResolvedStateIdForProject(
     projectId: ObjectID,
   ): Promise<ObjectID> {
-    const resolvedState: AlertState | null = await AlertStateService.findOneBy({
-      query: {
-        projectId: projectId,
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
+    let resolvedState: AlertState | null = null;
 
-    if (!resolvedState) {
+    try {
+      resolvedState = await AlertStateService.getResolvedAlertState({
+        projectId: projectId,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch {
+      resolvedState = null;
+    }
+
+    if (!resolvedState || !resolvedState.id) {
       throw new BadDataException("No resolved state found for the project");
     }
 
-    return resolvedState.id!;
+    return resolvedState.id;
   }
 
   @CaptureSpan()
@@ -410,7 +414,6 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       },
       select: {
         _id: true,
-        isResolvedState: true,
         isAcknowledgedState: true,
         isCreatedState: true,
         color: true,
@@ -418,12 +421,19 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
       },
     });
 
+    // Resolved by the one rule (Common/Utils/ResolvedState).
+    const isResolvedState: boolean =
+      await AlertStateService.isResolvedAlertState({
+        projectId: createdItem.projectId!,
+        alertStateId: createdItem.alertStateId,
+      });
+
     const stateName: string = alertState?.name || "";
     let stateEmoji: string = "➡️";
 
     // if resolved state then change emoji to ✅.
 
-    if (alertState?.isResolvedState) {
+    if (isResolvedState) {
       stateEmoji = "✅";
     } else if (alertState?.isAcknowledgedState) {
       // eyes emoji for acknowledged state.

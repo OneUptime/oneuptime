@@ -29,6 +29,8 @@ const minutesAfterStart: (minutes: number) => Date = (
 const CREATED: string = "state-created";
 const ACKNOWLEDGED: string = "state-acknowledged";
 const RESOLVED: string = "state-resolved";
+// A state of the project's own placed after Resolved: it counts as resolved.
+const CLOSED: string = "state-closed";
 
 const entry: (stateId: string, minutes: number) => EventStateTimelineDate = (
   stateId: string,
@@ -102,7 +104,7 @@ describe("getEventResponseTimes", () => {
       ],
       startedAt: START,
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times).toEqual({
@@ -125,7 +127,7 @@ describe("getEventResponseTimes", () => {
       ],
       startedAt: START,
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(5));
@@ -141,7 +143,7 @@ describe("getEventResponseTimes", () => {
       timelines: [entry(CREATED, 0), entry(RESOLVED, 15)],
       startedAt: START,
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(15));
@@ -159,7 +161,7 @@ describe("getEventResponseTimes", () => {
       ],
       startedAt: START,
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(10));
@@ -171,11 +173,38 @@ describe("getEventResponseTimes", () => {
       timelines: [entry(ACKNOWLEDGED, 10), entry(RESOLVED, 10)],
       startedAt: START,
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toEqual(minutesAfterStart(10));
     expect(times.isAcknowledgedByResolution).toBe(false);
+  });
+
+  test("an event moved straight into a state after Resolved was resolved then", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [entry(CREATED, 0), entry(ACKNOWLEDGED, 5), entry(CLOSED, 25)],
+      startedAt: START,
+      acknowledgedStateId: ACKNOWLEDGED,
+      resolvedStateIds: [RESOLVED, CLOSED],
+    });
+
+    expect(times.resolvedAt).toEqual(minutesAfterStart(25));
+  });
+
+  test("moving on from Resolved to a state after it keeps the first resolve", () => {
+    const times: EventResponseTimes = getEventResponseTimes({
+      timelines: [
+        entry(CREATED, 0),
+        entry(ACKNOWLEDGED, 5),
+        entry(RESOLVED, 20),
+        entry(CLOSED, 40),
+      ],
+      startedAt: START,
+      acknowledgedStateId: ACKNOWLEDGED,
+      resolvedStateIds: [RESOLVED, CLOSED],
+    });
+
+    expect(times.resolvedAt).toEqual(minutesAfterStart(20));
   });
 
   test("leaves both unset while the event is still open", () => {
@@ -183,7 +212,7 @@ describe("getEventResponseTimes", () => {
       timelines: [entry(CREATED, 0)],
       startedAt: START,
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.acknowledgedAt).toBeUndefined();
@@ -195,7 +224,7 @@ describe("getEventResponseTimes", () => {
     const times: EventResponseTimes = getEventResponseTimes({
       timelines: [entry(ACKNOWLEDGED, 5), entry(CREATED, 2)],
       acknowledgedStateId: ACKNOWLEDGED,
-      resolvedStateId: RESOLVED,
+      resolvedStateIds: [RESOLVED],
     });
 
     expect(times.startedAt).toEqual(minutesAfterStart(2));

@@ -19,11 +19,11 @@ import {
   PROXMOX_TOKEN_ID,
   PROXMOX_TOKEN_USER,
   PROXMOX_AGENT_COLLECTOR_IMAGE,
-  ProxmoxAgentInstallMethod,
+  PROXMOX_AGENT_RECREATE_COMMAND,
   ProxmoxConnectMethod,
   ProxmoxPushTarget,
   getProxmoxAgentDownloadCommand,
-  getProxmoxAgentRecreateCommand,
+  getProxmoxAgentUpgradeCommand,
   getProxmoxInstallScriptCommand,
   getProxmoxPushTarget,
   getProxmoxSetupGuide,
@@ -554,49 +554,67 @@ describe.each(AGENT_METHODS)(
 
     /*
      * The collector image is pinned in docker-compose.yml and the config
-     * stamps the pin as the agent's version, so the upgrade is both files
-     * again and a recreate (Compose recreates a container for a new image,
+     * stamps the pin as the agent's version, so pulling alone never moves
+     * the agent forward. An install-script install runs the script again:
+     * it reuses the .env (nothing is asked again), downloads both files and
+     * recreates the agent. A Docker Compose install downloads both files
+     * itself and recreates (Compose recreates a container for a new image,
      * never for a new config file). The dialog beside an outdated version
-     * shows the same two blocks (AgentUpgradeGuides.test.ts).
+     * shows the same blocks (AgentUpgradeGuides.test.ts).
      */
-    test("the upgrade downloads both pinned files again, then pulls and recreates the agent", () => {
-      const agentMethod: ProxmoxAgentInstallMethod =
-        method as ProxmoxAgentInstallMethod;
+    test("the upgrade is the install script again, or both pinned files and a recreate", () => {
       const upgrade: string = topicTitled(
         guide.advanced,
         "Upgrade or uninstall the agent",
       ).markdown;
-      const download: string = getProxmoxAgentDownloadCommand(agentMethod);
-      const recreate: string = getProxmoxAgentRecreateCommand(agentMethod);
 
-      expect(upgrade).toContain(codeBlock("bash", download));
-      expect(upgrade).toContain(codeBlock("bash", recreate));
-      expect(upgrade.indexOf(download)).toBeLessThan(upgrade.indexOf(recreate));
-      expect(download).toContain(
-        `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
-      );
-      expect(download).toContain(
-        `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
-      );
-      expect(recreate.endsWith("docker compose up -d --force-recreate")).toBe(
-        true,
-      );
       expect(upgrade).toContain(
         "pulling alone does not move the agent forward",
       );
-      // The .env is kept: nothing here rewrites it.
-      expect(upgrade).toContain("your `.env` stays");
       // And where the sign that opens these commands sits.
       expect(upgrade).toContain("**Agent Version**");
       // Pulling alone, the old upgrade, is no longer offered.
-      expect(upgrade).not.toContain(
-        codeBlock(
-          "bash",
-          method === "install-script"
-            ? `cd ${PROXMOX_AGENT_INSTALL_DIR}\ndocker compose pull\ndocker compose up -d`
-            : "docker compose pull\ndocker compose up -d",
-        ),
+      expect(upgrade).not.toMatch(
+        /docker compose pull\ndocker compose up -d\n/,
       );
+
+      if (method === "install-script") {
+        expect(upgrade).toContain(
+          codeBlock("bash", getProxmoxAgentUpgradeCommand()),
+        );
+        expect(upgrade).toContain("Run the install script again.");
+        expect(upgrade).toContain(
+          "It reuses every value in your existing `.env` (nothing is asked again)",
+        );
+        expect(upgrade).toContain(
+          "a file you edited is kept next to the new one as `<file>.bak.<timestamp>`",
+        );
+        // Nothing to download or recreate by hand.
+        expect(upgrade).not.toContain("curl -fsSLO");
+        expect(upgrade).not.toContain("--force-recreate");
+        return;
+      }
+
+      const download: string = getProxmoxAgentDownloadCommand();
+      expect(upgrade).toContain(codeBlock("bash", download));
+      expect(upgrade).toContain(
+        codeBlock("bash", PROXMOX_AGENT_RECREATE_COMMAND),
+      );
+      expect(upgrade.indexOf(download)).toBeLessThan(
+        upgrade.indexOf(PROXMOX_AGENT_RECREATE_COMMAND),
+      );
+      expect(download).toBe(
+        [
+          `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/docker-compose.yml`,
+          `curl -fsSLO ${PROXMOX_AGENT_RAW_URL}/otel-collector-config.yaml`,
+        ].join("\n"),
+      );
+      expect(PROXMOX_AGENT_RECREATE_COMMAND).toBe(
+        "docker compose pull\ndocker compose up -d --force-recreate",
+      );
+      // The .env is kept: nothing here rewrites it.
+      expect(upgrade).toContain("your `.env` stays");
+      expect(upgrade).not.toContain("install.sh");
     });
 
     test("commands in the agent's folder run where this method installs it", () => {
@@ -775,8 +793,29 @@ describe("the install script", () => {
       expect(install).toContain(prompt);
     }
     expect(install).toContain(
-      `It installs to \`${PROXMOX_AGENT_INSTALL_DIR}\` and starts everything with Docker Compose.`,
+      `It installs to \`${PROXMOX_AGENT_INSTALL_DIR}\`, writes a \`0600\` \`.env\` file and starts everything with Docker Compose.`,
     );
+  });
+
+  /*
+   * install.sh reuses the .env it finds, so running it again keeps the
+   * answers and is the upgrade: the install step says so where the reader
+   * first meets the script.
+   */
+  test("says that running the script again keeps the answers and is the upgrade", () => {
+    expect(installStep(guideFor("install-script"))).toContain(
+      "Running the script again reuses everything in that `.env` instead of asking again, so it is also how you upgrade.",
+    );
+  });
+
+  test("the upgrade runs the script with nothing in its environment, which would override the .env", () => {
+    expect(getProxmoxAgentUpgradeCommand()).toBe(
+      [
+        `curl -sSL ${PROXMOX_AGENT_RAW_URL}/install.sh -o install.sh`,
+        "bash install.sh",
+      ].join("\n"),
+    );
+    expect(getProxmoxAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
   });
 
   test("uses your own exporter by answering the script's question", () => {
@@ -791,14 +830,9 @@ describe("the install script", () => {
   test("shows none of the Docker Compose instructions", () => {
     const guide: SetupGuideContent = guideFor("install-script");
     const markdown: string = getSetupGuideMarkdown(guide);
-    expect(stepsText(guide)).not.toContain("curl -fsSLO");
-    // The files are downloaded by hand only to upgrade, in the script's folder.
+    // The script downloads the files, also to upgrade.
     for (const block of getSetupGuideCodeBlocks(guide)) {
-      if (block.includes("curl -fsSLO")) {
-        expect(block.trim()).toBe(
-          getProxmoxAgentDownloadCommand("install-script"),
-        );
-      }
+      expect(block).not.toContain("curl -fsSLO");
     }
     expect(markdown).not.toContain("mkdir oneuptime-proxmox-agent");
     expect(markdown).not.toContain("COMPOSE_PROFILES=pve-exporter\n");
@@ -1309,15 +1343,22 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     }
   });
 
-  test("the install script writes every required variable to .env", () => {
+  test("the install script writes every variable of the table to .env, quoted for Compose", () => {
     const script: string = readAgentFile("install.sh");
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("install-script"));
-    for (const [name, row] of rows) {
-      if (row.required === "Yes") {
-        expect(script).toMatch(new RegExp(`^${name}=\\$${name}$`, "m"));
-      }
+    expect(rows.size).toBeGreaterThan(5);
+    for (const name of rows.keys()) {
+      expect(script).toContain(`\n${name}=$(compose_env_quote "$${name}")\n`);
     }
+  });
+
+  test("the install script reuses an existing .env instead of asking again", () => {
+    const script: string = readAgentFile("install.sh");
+    expect(script).toContain("reusing it.");
+    expect(script).toContain(
+      'printf -v "$name" \'%s\' "$(dotenv_get "$name" "$ENV_FILE")"',
+    );
   });
 
   test("the install script honours a preset URL and key, which prefilling relies on", () => {

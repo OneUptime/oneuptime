@@ -67,7 +67,7 @@ On an agent installed before the Kubernetes AI agent existed, refresh your chart
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 
@@ -95,7 +95,7 @@ Fixes are off until you turn them on with `aiAgent.fixes`, which also grants the
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
@@ -108,14 +108,14 @@ Or cluster-wide:
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true \
   --set aiAgent.investigation=true \
   --set aiAgent.fixes=ask-for-approval \
   --set-json 'aiAgent.remediation.namespaces=[]'
 ```
 
-Replace `{web,api}` with the namespaces AI may fix. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector included — with `namespaces "api" not found`. Create it first, or take it off the list; take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the list stored on the release, so to go back to cluster-wide pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), as the second command does — not `={}`, which Helm reads as one empty name and the chart refuses. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes (a drain, a taint or a patch of a node still waits for a human).
+Replace `{web,api}` with the namespaces AI may fix. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole install or upgrade — the collector included — with `namespaces "api" not found`. Create it first, or take it off the list; take a namespace off the list before you delete it. Leaving the flag out of an upgrade keeps the list stored on the release, so to go back to cluster-wide pass `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), as the second command does — not `={}`, which Helm reads as one empty name and the chart refuses. `--set aiAgent.remediation.namespaces=null` does not reset a stored list under `--reuse-values`: Helm keeps the stored list. `aiAgent.remediation.nodeOperations=false` keeps fixes off nodes; set it to `true` to let AI cordon, uncordon, drain and taint nodes (a drain, a taint or a patch of a node still waits for a human).
 
 Use `automatic` or `bypass-approval` in place of `ask-for-approval` for more autonomy, and `--set aiAgent.fixes=off` to turn fixes off again, which also removes the write access. The only project switch fixes need is **Enable AI** (Project Settings > AI > AI Features), which is on unless someone turned it off. It turns all of AI off for the project, whatever an agent's configuration says.
 
@@ -280,7 +280,13 @@ Above every limit in the table, a project can cap what OneUptime AI uses in a da
 
 Unset (the default) means **no limit**. A limit is a whole number of at least 1; to turn AI off, use **Enable AI**. A day is a UTC day, like the incident and alert limits: usage is counted from midnight UTC, and the count starts again at the next midnight UTC. Folded, the section says what applies and what AI used today, for example "At most 200,000 tokens a day. Used today: 45,210 tokens." Only a project owner or someone with **Manage Billing** can change the limits: the same people who can turn AI off.
 
-Once a limit is reached, new AI work stops until midnight UTC. A call that is already running finishes, and every call after it is refused with one sentence that says which limit was reached, how much was used, and where to change it. Ask AI, a **Generate with AI** button, a workflow, a runbook step, and Slack and Microsoft Teams answer with that sentence, and every refused call is listed in the AI Logs (Project Settings > AI > AI Logs) with the status **Budget Exceeded**. Automatic investigations, postmortem drafts, and insight triage are not started at all. An incident or alert created meanwhile says so in its AI investigation card, with a link to the limits. The incident and alert daily token limits still apply under the project's own: AI stops at whichever is reached first.
+Once a limit is reached, new AI work stops until midnight UTC. A call that is already running finishes, and every call after it is refused with one sentence that says which limit was reached, how much was used, and who can change it and where: "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings." Ask AI, a **Generate with AI** button, a workflow, a runbook step, and Slack and Microsoft Teams answer with that sentence, and every refused call is listed in the AI Logs (Project Settings > AI > AI Logs) with the status **Budget Exceeded**. Automatic investigations, postmortem drafts, and insight triage are not started at all. An incident or alert created meanwhile says so in its AI investigation card, with a link to the limits for the people who can change them. The incident and alert daily token limits still apply under the project's own: AI stops at whichever is reached first.
+
+#### When a limit is reached
+
+**The project's owners are emailed.** The first time a limit stops OneUptime AI in a UTC day, every project owner gets one email: which limit, what the project used of it today, when it resets, and a link to **Project Settings → AI Features**, where they can raise or remove it. It comes once a day for each limit: the token limit and the spend limit each send their own, and nothing more is sent that day however many calls are refused. It is the same email the owners get about billing, and it shows in the project's email logs like those.
+
+**Skipped incidents and alerts are investigated after the reset.** An incident or alert that was not investigated because a limit was reached is investigated once the limit no longer stops AI: after midnight UTC, or as soon as an owner raises or removes the limit. Only while it is still open and less than a day old, and once. The settings of the moment apply, as for a new incident or alert: while Enable AI or automatic investigation is off, there is no LLM provider or AI credit, or the incident or alert daily token limit is reached, it keeps waiting; the severity floor and the cooldown can still skip it, and its card then says why. A record that was resolved meanwhile, or that someone asked OneUptime AI to investigate in the meantime, is not investigated again. A few are taken up every five minutes, the most recent first, and only while the project's investigation queue has nothing else waiting, so new incidents and alerts go first; if the limit is reached again, the rest wait for the next reset.
 
 ## Trust and safety
 

@@ -784,6 +784,48 @@ describe("Active and Resolved are decided by state id, never by state name", () 
     expect(screen.queryByText("Acknowledge")).toBeNull();
   });
 
+  test("a alert in a state placed after the resolved one is filed under Resolved too", async () => {
+    /*
+     * "Archived" sits after the project's resolved state and does not carry
+     * the resolved flag. By the one resolved rule (utils/resolvedState) the
+     * alert is over: filed under Resolved, with nothing to acknowledge.
+     */
+    mockStates.current = statesWith([
+      ...projectStates(),
+      makeAlertState({
+        _id: "alert-state-archived",
+        name: "Archived",
+        isCreatedState: false,
+        order: 4,
+      }),
+    ]);
+    mockAlerts.current = alertsWith({
+      items: [
+        wrapAlert(
+          makeAlert({
+            _id: "alert-archived",
+            title: "Archived outage",
+            alertNumber: 21,
+            alertNumberWithPrefix: "#21",
+            currentAlertState: makeNamedEntityWithColor({
+              _id: "alert-state-archived",
+              name: "Archived",
+            }),
+          }),
+        ),
+      ],
+    });
+
+    await renderAlertsScreen();
+
+    await waitFor(() => {
+      expect(screen.getByRole("header", { name: "Resolved" })).toBeTruthy();
+    });
+
+    expect(screen.queryByRole("header", { name: "Active" })).toBeNull();
+    expect(screen.queryByText("Acknowledge")).toBeNull();
+  });
+
   test("a heading is only drawn for a section that has alerts in it", async () => {
     mockAlerts.current = alertsWith({ items: [activeAlert()] });
 

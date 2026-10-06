@@ -18,6 +18,7 @@ import AlertStateRole from "../../../Types/Alerts/AlertStateRole";
 import { JSONObject } from "../../../Types/JSON";
 import MeasurementStatus from "../../../Types/Measurement/MeasurementStatus";
 import ObjectID from "../../../Types/ObjectID";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import {
   afterEach,
@@ -156,6 +157,13 @@ function defaultTimeline(): Array<AlertStateTimeline> {
   ];
 }
 
+// The project's alert states, as the state service reads them.
+function projectStates(): Array<AlertState> {
+  return defaultTimeline().map((entry: AlertStateTimeline): AlertState => {
+    return entry.alertState!;
+  });
+}
+
 function buildMeasurement(input: {
   id: ObjectID;
   key: string;
@@ -245,6 +253,8 @@ describe("AlertMeasurementValueService.recomputeForAlert", () => {
   beforeEach(() => {
     createdRows = [];
     replaceCalls = [];
+
+    mockProjectStates({ alertStates: projectStates() });
 
     jest
       .spyOn(AlertService, "findOneById")

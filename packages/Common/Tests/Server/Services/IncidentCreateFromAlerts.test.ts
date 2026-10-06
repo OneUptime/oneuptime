@@ -49,6 +49,7 @@ import UserType from "../../../Types/UserType";
 import { StartingStage } from "../../../Utils/StartingStage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 /*
  * Declaring an incident from alerts, and carrying incident state changes over
@@ -171,6 +172,11 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
   let validate: jest.SpyInstance;
 
   beforeEach(() => {
+    /*
+     * The project's incident and alert states: open records are read by
+     * the states that are not resolved (Common/Utils/ResolvedState).
+     */
+    mockProjectStates();
     const createdState: IncidentState = new IncidentState();
     createdState._id = CREATED_STATE_ID;
 
@@ -1134,6 +1140,9 @@ describe("IncidentStateTimelineService.onCreateSuccess hands the new state to th
   let stateFeed: jest.SpyInstance;
 
   beforeEach(() => {
+    // Whether the new state resolves the incident is the project's to say.
+    mockProjectStates();
+
     const state: IncidentState = new IncidentState();
     state._id = ACKNOWLEDGED_STATE_ID;
     state.name = "Acknowledged";

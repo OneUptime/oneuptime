@@ -32,6 +32,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -107,6 +108,11 @@ function isQueued(row: NotifyingRow): boolean {
 }
 
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   stubProjectDirectory({});
   getJestSpyOn(
     ProjectScopedReferenceValidator,

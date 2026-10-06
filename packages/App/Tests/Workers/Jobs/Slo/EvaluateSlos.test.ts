@@ -238,6 +238,32 @@ jest.mock("Common/Server/Services/IncidentSeverityService", () => {
 });
 
 /*
+ * An open burn rate record is in one of the project's states above its
+ * resolved state (Common/Utils/ResolvedState): these are those states.
+ */
+jest.mock("Common/Server/Services/IncidentStateService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUnresolvedIncidentStateIds: jest.fn(async () => {
+        return ["incident-state-open"];
+      }),
+    },
+  };
+});
+
+jest.mock("Common/Server/Services/AlertStateService", () => {
+  return {
+    __esModule: true,
+    default: {
+      getUnresolvedAlertStateIds: jest.fn(async () => {
+        return ["alert-state-open"];
+      }),
+    },
+  };
+});
+
+/*
  * Burn rate record owners are de-duplicated before they are added: against
  * owner rows already on the record (OwnerRuleAssignment reads these four) and
  * against the members of the owner teams being added.
@@ -4253,21 +4279,28 @@ describe("Slo:EvaluateSlos worker", () => {
         query: {
           projectId: ObjectID;
           seriesFingerprint: string;
-          currentAlertState: { isResolvedState: boolean };
+          currentAlertStateId: {
+            objectLiteralParameters?: Record<string, unknown>;
+          };
         };
       } = alertService.findOneBy.mock.calls[0]![0] as {
         query: {
           projectId: ObjectID;
           seriesFingerprint: string;
-          currentAlertState: { isResolvedState: boolean };
+          currentAlertStateId: {
+            objectLiteralParameters?: Record<string, unknown>;
+          };
         };
       };
 
       expect(lookup.query.seriesFingerprint).toBe(EXPECTED_FINGERPRINT);
       expect(lookup.query.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(lookup.query.currentAlertState).toEqual({
-        isResolvedState: false,
-      });
+      // Open: in one of the project's states above its resolved state.
+      expect(
+        Object.values(
+          lookup.query.currentAlertStateId.objectLiteralParameters || {},
+        ),
+      ).toEqual([["alert-state-open"]]);
 
       expect(
         burnRateFeedItems(

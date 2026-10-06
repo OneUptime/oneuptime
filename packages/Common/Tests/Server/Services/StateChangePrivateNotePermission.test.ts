@@ -57,6 +57,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { mockProjectStates } from "../TestingUtils/Services/ProjectStatesHelper";
 
 // Every refusal below is deliberate; @CaptureSpan logs each one's stack.
 jest.mock("../../../Server/Utils/Logger");
@@ -468,6 +469,11 @@ let lock: ReturnType<typeof getJestSpyOn>;
 let release: ReturnType<typeof getJestSpyOn>;
 
 beforeEach(() => {
+  /*
+   * The project's incident and alert states: open records are read by
+   * the states that are not resolved (Common/Utils/ResolvedState).
+   */
+  mockProjectStates();
   stubProjectDirectory({});
   lock = getJestSpyOn(Semaphore, "lock").mockResolvedValue({
     key: "state-change",

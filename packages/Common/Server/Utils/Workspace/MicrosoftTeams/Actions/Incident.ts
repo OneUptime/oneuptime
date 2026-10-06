@@ -259,7 +259,6 @@ export default class MicrosoftTeamsIncidentActions {
           currentIncidentState: {
             _id: true,
             name: true,
-            isResolvedState: true,
           },
         },
         props: {
@@ -275,8 +274,13 @@ export default class MicrosoftTeamsIncidentActions {
         return;
       }
 
-      // Check if already resolved
-      if (incident.currentIncidentState?.isResolvedState) {
+      /*
+       * Check if already resolved
+       * Resolved by the one rule (Common/Utils/ResolvedState).
+       */
+      if (
+        await IncidentService.isIncidentResolved({ incidentId: incident.id! })
+      ) {
         logger.debug("Incident is already resolved", {
           projectId: data.teamsRequest.projectId.toString(),
           incidentId: incidentId,

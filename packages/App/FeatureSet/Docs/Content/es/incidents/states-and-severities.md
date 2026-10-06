@@ -2,7 +2,7 @@
 
 Todo incidente lleva dos clasificaciones: un **estado**, que dice en qué punto de tu respuesta está, y una **severidad**, que dice cuánto duele. En el panel se parecen —ambas se muestran como píldoras de color en la lista de incidentes, ambas son listas con alcance de proyecto que puedes renombrar y recolorear—, pero hacen trabajos muy distintos.
 
-Los estados gobiernan comportamiento. Tres indicadores booleanos de las filas de estado deciden qué incidentes cuentan como activos, qué botones aparecen en la cabecera del incidente, cuándo se detiene el reloj del SLA y cuándo desaparece el incidente de tu página de estado. Las severidades no gobiernan nada por sí mismas: son etiquetas que describen el impacto y sobre las que otras reglas pueden hacer coincidencias.
+Los estados gobiernan comportamiento. Tres indicadores booleanos de las filas de estado, junto con el orden de los estados, deciden qué incidentes cuentan como activos, qué botones aparecen en la cabecera del incidente, cuándo se detiene el reloj del SLA y cuándo desaparece el incidente de tu página de estado. Las severidades no gobiernan nada por sí mismas: son etiquetas que describen el impacto y sobre las que otras reglas pueden hacer coincidencias.
 
 Ambas listas se crean al crearse tu proyecto, y ambas se editan en **Incidentes → Ajustes**. Esa sección del menú lateral de Incidentes está contraída de forma predeterminada, así que despliega **Ajustes** antes de ponerte a buscarla.
 
@@ -36,7 +36,7 @@ Fíjate en el nombre: el primer estado es **Identificado**, aunque varias descri
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | El estado que recibe un incidente cuando nadie eligió ninguno. Si ningún estado del proyecto lleva este indicador, crear un incidente falla con un error que te pide añadir un estado de creación desde los ajustes. |
 | `isAcknowledgedState` | Gobierna el botón **Acknowledge** y el mosaico de estadísticas «<nombre del estado> en» de la **Vista General** del incidente. Al pasar a este estado, el SLA del incidente se marca como respondido. |
-| `isResolvedState`     | Gobierna el botón **Resolver** y el mosaico de resueltos, define la lista de **Incidentes Activos** y es lo que retira el incidente de la sección activa de una página de estado. Marca el SLA como resuelto. |
+| `isResolvedState`     | Marca el estado resuelto del proyecto: al que **Resolver** lleva el incidente y el que muestra el mosaico de resueltos. Un incidente en él, o en cualquier estado posterior, está resuelto: sale de **Incidentes Activos** y de la sección activa de una página de estado, y su SLA se marca como resuelto. |
 
 Se espera que solo un estado por proyecto lleve cada indicador: las búsquedas recuperan una sola fila. Los tres estados con indicador se pueden renombrar, recolorear y reordenar, pero la página de ajustes se niega a eliminarlos y muestra un error nombrando los estados de creación, reconocimiento y resolución.
 
@@ -44,7 +44,7 @@ Como la interfaz lee los nombres de estado de forma dinámica, renombrar un esta
 
 ## Añadir tus propios estados
 
-Ve a **Incidentes → Ajustes → Estado del Incidente**. La página es una lista ordenada por `order` ascendente, y los estados nuevos se añaden al final. Arrastra una fila para cambiar su posición.
+Ve a **Incidentes → Ajustes → Estado del Incidente**. La página es una lista ordenada por `order` ascendente, y un estado nuevo se añade justo encima del estado resuelto. Arrastra una fila para cambiar su posición.
 
 **Campos de un estado:**
 
@@ -54,7 +54,7 @@ Ve a **Incidentes → Ajustes → Estado del Incidente**. La página es una list
 
 Los tres indicadores no se pueden establecer desde este formulario: pertenecen a las filas iniciales. Por tanto, todo estado que añadas es un estado sin indicador, lo cual tiene dos consecuencias que conviene tener en cuenta:
 
-- **Cuenta como activo.** **Incidentes Activos** se define como «el estado actual no es el estado resuelto», así que cualquier cosa que añadas que no sea el estado resuelto mantiene el incidente en la lista de activos y en el recuento de la barra lateral.
+- **Por encima del estado resuelto, mantiene el incidente activo.** **Incidentes Activos** reúne los incidentes cuyo estado actual está por encima del estado resuelto, así que un estado que añadas ahí mantiene el incidente en la lista de activos y en el recuento de la barra lateral. Un estado que arrastres por debajo del estado resuelto cuenta como resuelto en todas partes —las listas de activos, las páginas de estado, los recordatorios y el SLA—, y mover un incidente a él desde **Resuelto** no es una segunda resolución.
 - **Su botón de transición es genérico.** En lugar de **Acknowledge** o **Resolver**, el modal de confirmación se titula **Mark Incident as `<state name>`**, con un botón de envío **Mark as `<state name>`**.
 
 Una forma habitual es insertar un paso de triaje o mitigación entre los estados de reconocimiento y resolución; por ejemplo, arrastrar un estado «Mitigado» nuevo para que quede después de **Reconocido** y antes de **Resuelto**.
@@ -104,6 +104,15 @@ Hay cuatro maneras de que un incidente cambie de estado:
 
 Todas ellas escriben una fila en la línea de tiempo. Un cambio de estado hace además unas cuantas cosas que no tienes que pedir: publica una entrada en el feed del incidente, asigna un Incident Commander si el incidente aún no tiene ninguno y actualiza el reloj del SLA. Reabrir un incidente resuelto inicia un registro de SLA nuevo desde el momento de la reapertura.
 
+## Qué hace resolver un incidente
+
+Un incidente se resuelve cuando pasa de un estado por encima de tu estado resuelto al estado resuelto o a cualquier estado posterior, sea cual sea de las cuatro vías anteriores la que lo mueva. Cada resolución:
+
+- **Devuelve los monitores que retiene el incidente.** Un incidente declarado abierto retiene sus monitores: los puso en su estado de **Change Monitor Status to**, si indica uno, y, si se declaró a mano, pausó su monitorización. Una edición mientras está abierto —añadir monitores o cambiar ese estado— también hace que los retenga. Resolverlo reanuda su monitorización y los devuelve a operativo, salvo que otro incidente abierto siga sobre ellos, y desde entonces el incidente no retiene nada. Así, un incidente declarado ya resuelto no devuelve nada, y tampoco una segunda resolución tras una reapertura: el estado que sus monitores hayan recibido entretanto —de sus sondas, de un mantenimiento o puesto a mano— se queda.
+- **Marca el SLA como resuelto** y, si los borradores de post mortem de OneUptime AI están activados, redacta un borrador de post mortem.
+
+Pasar de **Resuelto** a un estado posterior —**Cerrado**, por ejemplo— no es una segunda resolución: nada de esto vuelve a ejecutarse y no empieza un SLA nuevo. Un incidente declarado antes de que OneUptime empezara a registrar esto devuelve sus monitores en su próxima resolución, como siempre.
+
 ## La línea de tiempo de estado
 
 La página **Línea de Tiempo de Estado** del menú lateral del incidente es el rastro de auditoría de todos los estados por los que ha pasado. La tarjeta de esa página se titula **Línea de Tiempo de Estado** y se ordena de más reciente a más antiguo.
@@ -125,11 +134,11 @@ Las filas de la línea de tiempo se pueden crear y eliminar, pero no editar. Eli
 
 ## La lista de Incidentes Activos
 
-**Incidentes → Incidentes Activos** es la lista que vigilas durante un turno. Su definición es exactamente una condición: el estado actual del incidente es un estado en el que `isResolvedState` es falso. No se considera nada más: ni la severidad, ni la antigüedad, ni si alguien lo ha reconocido.
+**Incidentes → Incidentes Activos** es la lista que vigilas durante un turno. Su definición es exactamente una condición: el estado actual del incidente está por encima de tu estado resuelto, el primer estado del orden con el indicador `isResolvedState`. No se considera nada más: ni la severidad, ni la antigüedad, ni si alguien lo ha reconocido.
 
 El elemento del menú lateral lleva una insignia roja con el recuento que usa esa misma consulta, así que la insignia y la lista siempre coinciden. Cuando no hay nada que ver, la página lo dice.
 
-La consecuencia práctica: cualquier estado propio que añadas mantiene los incidentes en esta lista. Eso suele ser lo que quieres —«Mitigado» no es «terminado»—, pero significa que la insignia solo se vacía cuando los incidentes llegan de verdad al estado resuelto.
+La consecuencia práctica: un estado propio que añadas por encima del estado resuelto mantiene los incidentes en esta lista —«Mitigado» no es «terminado»—, y uno que coloques después los saca de ella, como hace el estado resuelto. Las alertas y los episodios siguen la misma regla con sus propios estados, y la leen los recuentos del menú lateral, los recordatorios, las páginas de estado y la aplicación móvil.
 
 ## Avisar a los suscriptores de la página de estado de un cambio de estado
 
@@ -156,7 +165,7 @@ Tres cosas distintas deciden si un incidente aparece siquiera en la página púb
 
 - **Mostrar incidentes** (`showIncidentsOnStatusPage`) en la propia página de estado.
 - **Visible en la página de estado** (`isVisibleOnStatusPage`) en el incidente: un interruptor de la página **Ajustes** del incidente. Su valor predeterminado es verdadero y no está en el asistente de declaración; un criterio de monitor puede establecerlo con **Mostrar incidente en la página de estado**.
-- **El estado actual no es el estado resuelto.** Esto es lo que retira un incidente de la sección activa: la consulta de la página de estado recupera los incidentes cuyo estado actual sea cualquier estado no resuelto. No archivas ni cierras nada: lo resuelves, y pasa al historial.
+- **El estado actual está por encima del estado resuelto.** Esto es lo que retira un incidente de la sección activa: la consulta de la página de estado recupera los incidentes cuyo estado actual está por encima de tu estado resuelto, así que el estado resuelto y cualquier estado posterior retiran el incidente. No archivas ni cierras nada: lo resuelves, y pasa al historial.
 
 **Los incidentes privados no aparecen nunca.** Activar **Incidente privado** oculta el incidente en todas las páginas de estado, independientemente de los interruptores anteriores, y lo restringe a sus propietarios más los administradores y propietarios del proyecto.
 

@@ -67,21 +67,38 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 
 /*
  * A run decides from the incident as it read it, which was before it
- * claimed the notification. An update that published the postmortem after
- * that read - while this run held the notification, so the update found it
- * on its way and queued nothing - would be skipped here as not shown, and
- * never announced. So once such a skip is settled, the incident is looked
- * at again: if the status page shows its postmortem now, the notification
- * goes back in the queue for the next run, unless someone else moved it on
- * since the skip. (The update looks again too, for a skip settled before
- * it was written; see IncidentPostmortemPublication.getNotificationAction.)
+ * claimed the notification. An update made after that read - while this run
+ * held the notification, so the update found it on its way - would see its
+ * effect undone by a skip settled from that read:
+ *
+ * - a postmortem published since would be skipped as not shown, and never
+ *   announced;
+ * - an incident shown since would be skipped as hidden, left waiting for an
+ *   incident that is shown already.
+ *
+ * So once such a skip is settled, the incident is looked at again: if the
+ * status page shows the postmortem now - and, after a skip for a hidden
+ * incident, the incident too (IncidentPostmortemPublication.isIncidentShown)
+ * - the notification goes back in the queue for the next run, only while it
+ * still stands at the skip this run wrote. A postmortem published since on an
+ * incident that is still hidden goes back too: the next run skips it as
+ * waiting for the incident, and showing the incident sends it. (Each update
+ * looks again too, for a skip settled before it was written; see
+ * IncidentPostmortemPublication.getNotificationAction.)
  */
-const requeueIfPublishedSinceRead: (
-  incidentId: ObjectID,
-) => Promise<void> = async (incidentId: ObjectID): Promise<void> => {
+const requeueIfChangedSinceRead: (data: {
+  incidentId: ObjectID;
+  // The skip this run wrote: its reason, in the job's words.
+  skipMessage: string;
+}) => Promise<void> = async (data: {
+  incidentId: ObjectID;
+  skipMessage: string;
+}): Promise<void> => {
   const current: Incident | null = await IncidentService.findOneById({
-    id: incidentId,
+    id: data.incidentId,
     select: {
+      isVisibleOnStatusPage: true,
+      isPrivate: true,
       showPostmortemOnStatusPage: true,
       postmortemNote: true,
     },
@@ -90,25 +107,36 @@ const requeueIfPublishedSinceRead: (
     },
   });
 
-  if (!IncidentPostmortemPublication.isPublished(current)) {
+  const isHiddenIncidentSkip: boolean =
+    data.skipMessage === IncidentPostmortemPublication.hiddenIncidentMessage;
+
+  if (
+    !IncidentPostmortemPublication.isPublished(current) ||
+    (isHiddenIncidentSkip &&
+      !IncidentPostmortemPublication.isIncidentShown(current))
+  ) {
     return;
   }
 
   logger.debug(
-    `Incident ${incidentId.toString()}'s postmortem was published while this run held its notification; queueing it again.`,
+    `Incident ${data.incidentId.toString()}'s postmortem ${isHiddenIncidentSkip ? "was shown on status pages" : "was published"} while this run held its notification; queueing it again.`,
   );
 
   await IncidentService.compareAndSetColumnsByIdWithoutHooks({
-    id: incidentId,
+    id: data.incidentId,
     data: {
       subscriberNotificationStatusOnPostmortemPublished:
         StatusPageSubscriberNotificationStatus.Pending,
       subscriberNotificationStatusMessageOnPostmortemPublished:
-        IncidentPostmortemPublication.queuedMessage,
+        isHiddenIncidentSkip
+          ? IncidentPostmortemPublication.shownQueuedMessage
+          : IncidentPostmortemPublication.queuedMessage,
     },
     expectedData: {
       subscriberNotificationStatusOnPostmortemPublished:
         StatusPageSubscriberNotificationStatus.Skipped,
+      subscriberNotificationStatusMessageOnPostmortemPublished:
+        data.skipMessage,
     },
   });
 };
@@ -154,7 +182,9 @@ RunCron(
           title: true,
           description: true,
           projectId: true,
+          // Whether the status page shows the incident (isIncidentShown).
           isVisibleOnStatusPage: true,
+          isPrivate: true,
           monitors: {
             _id: true,
           },
@@ -275,7 +305,10 @@ RunCron(
               },
             });
 
-            await requeueIfPublishedSinceRead(incident.id!);
+            await requeueIfChangedSinceRead({
+              incidentId: incident.id!,
+              skipMessage: skipMessage,
+            });
             continue;
           }
 
@@ -350,9 +383,17 @@ RunCron(
             },
           );
 
-          if (!incident.isVisibleOnStatusPage) {
+          /*
+           * The status page does not show a hidden incident, nor its
+           * postmortem - and a private incident is hidden from every status
+           * page, whatever its switch says (isIncidentShown). The skip says
+           * so, and that it is sent once the incident is made visible: the
+           * update that shows it queues it again
+           * (IncidentPostmortemPublication.isShownByUpdate).
+           */
+          if (!IncidentPostmortemPublication.isIncidentShown(incident)) {
             logger.debug(
-              `Incident ${incident.id} is not visible on status page; skipping subscriber notifications.`,
+              `Incident ${incident.id} is not visible on status page; skipping subscriber notifications until it is made visible.`,
               {
                 projectId: incident.projectId?.toString(),
                 incidentId: incident.id?.toString(),
@@ -365,7 +406,7 @@ RunCron(
                 subscriberNotificationStatusOnPostmortemPublished:
                   StatusPageSubscriberNotificationStatus.Skipped,
                 subscriberNotificationStatusMessageOnPostmortemPublished:
-                  "Incident is not visible on status page. Skipping notifications to subscribers.",
+                  IncidentPostmortemPublication.hiddenIncidentMessage,
               },
               props: {
                 isRoot: true,
@@ -373,6 +414,10 @@ RunCron(
               },
             });
 
+            await requeueIfChangedSinceRead({
+              incidentId: incident.id!,
+              skipMessage: IncidentPostmortemPublication.hiddenIncidentMessage,
+            });
             continue; // Do not send notification to subscribers if incident is not visible on status page.
           }
 

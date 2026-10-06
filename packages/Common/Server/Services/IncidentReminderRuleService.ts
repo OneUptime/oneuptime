@@ -5,11 +5,10 @@ import Model from "../../Models/DatabaseModels/IncidentReminderRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
-import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentService from "./IncidentService";
 import IncidentStateService from "./IncidentStateService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -99,27 +98,12 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     try {
-      const unresolvedStates: Array<IncidentState> =
-        await IncidentStateService.findBy({
-          query: {
-            projectId: projectId,
-            isResolvedState: false,
-          },
-          select: {
-            _id: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const unresolvedStateIds: Array<ObjectID> = unresolvedStates
-        .map((state: IncidentState) => {
-          return state.id!;
-        })
-        .filter(Boolean);
+      /*
+       * The states a subject is still open in, by the one rule
+       * (Common/Utils/ResolvedState): above the project's resolved state.
+       */
+      const unresolvedStateIds: Array<ObjectID> =
+        await IncidentStateService.getUnresolvedIncidentStateIds(projectId);
 
       if (unresolvedStateIds.length === 0) {
         return;

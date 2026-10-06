@@ -226,7 +226,7 @@ podLogs 與 ebpfDiscovery 規則會在來源端篩選：被排除的日誌檔案
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -310,7 +310,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -360,10 +360,19 @@ clusterName: prod
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-`--reuse-values` 會保留您既有的設定（preset、叢集名稱、篩選條件）；在其之上傳入任何新的 `--set` 覆寫值。
+`--reset-then-reuse-values`（Helm 3.14+）會保留您設定的值（preset、叢集名稱、篩選條件），其他所有值則取自新的 chart；在其之上傳入任何新的 `--set` 覆寫值。在 Helm 3.13 或更早版本上，請改用您設定的值來升級：
+
+```bash
+helm repo update
+helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.yaml && \
+  helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent -f values.yaml
+```
+
+請勿使用 `--reuse-values`：它也會保留您升級前所用 chart 的預設值，因此較新 chart 的預設值（包括其 eBPF 映像）永遠不會套用。當某個 release 以較舊 chart 的預設值執行時，Helm 在安裝或升級後列印的說明最後會顯示警告，以及修正它的指令。
 
 > **eBPF span 指標已更名。** `ebpf.features.spanMetrics` 現在傳送 `traces.span.metrics.calls` 與 `traces.span.metrics.duration`（秒），不再傳送 `traces_spanmetrics_calls_total` 與 `traces_spanmetrics_latency`：資料序列相同，只是改用 OBI 保留的名稱（舊名稱已被 OBI 棄用）。以舊名稱建立的儀表板、圖表或指標監測器在升級後將收不到新資料，也不會出現錯誤——請改用新名稱，並一併更新 `filters.metrics` 中引用舊名稱的項目。
 
@@ -436,7 +445,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 agent 在開箱即用時是為了**涵蓋範圍**而調校的——它會傳送整個叢集的指標、Pod 日誌與 eBPF 追蹤，讓每個儀表板與監控從第一天起就能運作。在大型或繁忙的叢集上，這可能會是超出您所需的遙測資料量，並表現為更高的擷取量（在 OneUptime Cloud 上則是更高的成本）。這裡沒有任何項目是必要的，但如果某個叢集傳送的資料超過您想要的量，以下就是可供調整的開關——大致依影響程度排序。
 
-訣竅在於**停止收集您不會查看的資料**，而不是收集全部再付費儲存。下方的每個槓桿都是一個 Helm value，因此您可以在 `helm upgrade --reuse-values` 上用 `--set` 套用它，並以相同方式將其回復。
+訣竅在於**停止收集您不會查看的資料**，而不是收集全部再付費儲存。下方的每個槓桿都是一個 Helm value，因此您可以在 `helm upgrade --reset-then-reuse-values` 上用 `--set` 套用它，並以相同方式將其回復。
 
 ### 資料量的來源
 
@@ -456,7 +465,7 @@ agent 在開箱即用時是為了**涵蓋範圍**而調校的——它會傳送�
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"include","namespaces":["default","production"],"scopes":["podLogs"]}]'
   ```
 
@@ -466,7 +475,7 @@ agent 在開箱即用時是為了**涵蓋範圍**而調校的——它會傳送�
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.logs.minSeverity=WARN
   ```
 
@@ -476,7 +485,7 @@ agent 在開箱即用時是為了**涵蓋範圍**而調校的——它會傳送�
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set logs.enabled=false
   ```
 
@@ -490,7 +499,7 @@ eBPF 讓您無需修改程式碼即可取得追蹤、RED 指標、service map �
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.enabled=false
   ```
 
@@ -498,7 +507,7 @@ eBPF 讓您無需修改程式碼即可取得追蹤、RED 指標、service map �
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.features.networkMetrics=false \
     --set ebpf.features.tcpStats=false \
     --set ebpf.features.spanMetrics=false
@@ -510,7 +519,7 @@ eBPF 讓您無需修改程式碼即可取得追蹤、RED 指標、service map �
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set ebpf.autoTargetExe='*/python,*/java'
   ```
 
@@ -522,7 +531,7 @@ eBPF 讓您無需修改程式碼即可取得追蹤、RED 指標、service map �
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set collectionInterval=60s \
   --set hostMetrics.collectionInterval=60s \
   --set cadvisor.scrapeInterval=60s
@@ -550,7 +559,7 @@ Cardinality（不同時間序列的數量）與頻率同樣重要，因為每個
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set filters.metrics.matchType=regexp \
     --set-json 'filters.metrics.exclude=["^container_network_"]'
   ```
@@ -561,7 +570,7 @@ Cardinality（不同時間序列的數量）與頻率同樣重要，因為每個
 
   ```bash
   helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-    --namespace oneuptime-agent --reuse-values \
+    --namespace oneuptime-agent --reset-then-reuse-values \
     --set-json 'namespaceFilters.rules=[{"action":"exclude","namespaces":["noisy-*"],"scopes":["metrics"]}]'
   ```
 
@@ -585,7 +594,7 @@ Cardinality（不同時間序列的數量）與頻率同樣重要，因為每個
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set sampling.traces.percentage=10
 ```
 
@@ -679,7 +688,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
@@ -701,7 +710,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-     --namespace oneuptime-agent --reuse-values \
+     --namespace oneuptime-agent --reset-then-reuse-values \
      --set oneuptime.apiKey=<LIVE_KEY>
    ```
 

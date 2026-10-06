@@ -78,7 +78,7 @@ jest.mock("Common/Server/Services/IncidentService", () => {
 });
 
 jest.mock("Common/Server/Services/IncidentStateService", () => {
-  return { __esModule: true, default: { findOneBy: jest.fn() } };
+  return { __esModule: true, default: { getAllIncidentStates: jest.fn() } };
 });
 
 jest.mock("Common/Server/Services/AlertService", () => {
@@ -86,7 +86,7 @@ jest.mock("Common/Server/Services/AlertService", () => {
 });
 
 jest.mock("Common/Server/Services/AlertStateService", () => {
-  return { __esModule: true, default: { findOneBy: jest.fn() } };
+  return { __esModule: true, default: { getAllAlertStates: jest.fn() } };
 });
 
 import ServiceOperationalStatusAPI, {
@@ -106,13 +106,31 @@ const serviceService: { findBy: jest.Mock } = ServiceService as unknown as {
 const incidentService: { findBy: jest.Mock } = IncidentService as unknown as {
   findBy: jest.Mock;
 };
-const incidentStateService: { findOneBy: jest.Mock } =
-  IncidentStateService as unknown as { findOneBy: jest.Mock };
+const incidentStateService: { getAllIncidentStates: jest.Mock } =
+  IncidentStateService as unknown as { getAllIncidentStates: jest.Mock };
 const alertService: { findBy: jest.Mock } = AlertService as unknown as {
   findBy: jest.Mock;
 };
-const alertStateService: { findOneBy: jest.Mock } =
-  AlertStateService as unknown as { findOneBy: jest.Mock };
+const alertStateService: { getAllAlertStates: jest.Mock } =
+  AlertStateService as unknown as { getAllAlertStates: jest.Mock };
+
+/*
+ * A project's states: open ones, the resolved state at 5 and, after it, one
+ * of its own without the flag - which counts as resolved
+ * (Common/Utils/ResolvedState) and so is no active signal.
+ */
+function projectStates(): Array<JSONObject> {
+  return [
+    { _id: ObjectID.generate().toString(), order: 1, isCreatedState: true },
+    { _id: ObjectID.generate().toString(), order: 2 },
+    {
+      _id: ObjectID.generate().toString(),
+      order: 5,
+      isResolvedState: true,
+    },
+    { _id: ObjectID.generate().toString(), order: 6 },
+  ];
+}
 const responseUtil: { sendJsonObjectResponse: jest.Mock } =
   Response as unknown as { sendJsonObjectResponse: jest.Mock };
 
@@ -191,14 +209,12 @@ describe("POST /telemetry/service-operational-status", () => {
     serviceService.findBy.mockResolvedValue([] as never);
     incidentService.findBy.mockResolvedValue([] as never);
     alertService.findBy.mockResolvedValue([] as never);
-    incidentStateService.findOneBy.mockResolvedValue({
-      _id: ObjectID.generate(),
-      order: 5,
-    } as never);
-    alertStateService.findOneBy.mockResolvedValue({
-      _id: ObjectID.generate(),
-      order: 5,
-    } as never);
+    incidentStateService.getAllIncidentStates.mockResolvedValue(
+      projectStates() as never,
+    );
+    alertStateService.getAllAlertStates.mockResolvedValue(
+      projectStates() as never,
+    );
   });
 
   test("admits as many service names as a project can hold services", () => {
@@ -307,7 +323,10 @@ describe("POST /telemetry/service-operational-status", () => {
 
   test("reports zero incidents when the project has no resolved incident state", async () => {
     serviceService.findBy.mockResolvedValue([makeService("checkout")] as never);
-    incidentStateService.findOneBy.mockResolvedValue(null as never);
+    // No state flagged resolved: no resolved state to measure against.
+    incidentStateService.getAllIncidentStates.mockResolvedValue([
+      { _id: ObjectID.generate().toString(), order: 1 },
+    ] as never);
 
     await callStatus({ serviceNames: ["checkout"] });
 
