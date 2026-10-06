@@ -142,7 +142,7 @@ Loggar, spår, mätvärden, undantag, profiler och sessionsuppspelningar hör ti
 - **Ägda** läser telemetrin från de resurser som du eller något av dina team äger, och telemetri som inte nämner någon resurs.
 - **Etiketter** läser telemetrin från de resurser som bär någon av behörighetens etiketter.
 
-En blockering med etiketter på en telemetribehörighet utelämnar telemetrin från de resurser som bär de etiketterna, oavsett vad du annars har. Det gäller överallt där telemetri läses: utforskarna med sina diagram, filter och attributlistor, exporter, sessionsuppspelningar och det som AI-assistenten läser åt dig. Listan över mätvärdesnamn visar de mätvärden som en tjänst du får läsa rapporterar, och de mätvärden som ingen tjänst rapporterar, till exempel värd- och klustermätvärden.
+En blockering med etiketter på en telemetribehörighet utelämnar telemetrin från de resurser som bär de etiketterna, oavsett vad du annars har. Det gäller överallt där telemetri läses: utforskarna med sina diagram, filter och attributlistor, exporter, sessionsuppspelningar och det som AI-assistenten läser åt dig. Listan över mätvärdesnamn visar de mätvärden som en tjänst du får läsa rapporterar, och de mätvärden som ingen tjänst rapporterar, till exempel värd- och klustermätvärden. Får du också läsa telemetri från andra slags resurser, till exempel värdar eller kluster, visar den alla mätvärdesnamn.
 
 ## API-nycklar
 

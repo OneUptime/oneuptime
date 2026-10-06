@@ -770,6 +770,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
       "checkReadPermission",
       "getReadScope",
       "getReadScopeForPermissions",
+      "getTelemetryResourceTypes",
       "checkIfUserIsLoggedIn",
     ],
     expectedWriteMethods: [

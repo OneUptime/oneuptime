@@ -41,7 +41,13 @@ export interface TelemetryReadScope {
   readableIds: ReadonlyArray<string> | null;
   /*
    * The resources a block with labels takes away. Applied on top of
-   * readableIds, whatever it says.
+   * readableIds, whatever it says: ModelPermission never puts a blocked id
+   * in readableIds, and every reader of a scope goes through getReadableIds
+   * / isReadable, which leave blocked ids out again, so a scope built
+   * anywhere else cannot reach one either.
+   *
+   * Ids are compared without regard to case (Postgres matches UUIDs that
+   * way), and every list the helpers below return is lower case.
    */
   blockedIds: ReadonlyArray<string>;
 }
@@ -75,14 +81,51 @@ export default class TelemetryReadScopeUtil {
     return scope.readableIds === null && scope.blockedIds.length === 0;
   }
 
+  // A resource id as every comparison here reads it: lower case.
+  public static normalizeId(resourceId: ObjectID | string): string {
+    return resourceId.toString().trim().toLowerCase();
+  }
+
+  /*
+   * The resources the caller may read, less every blocked one, lower case
+   * and each once: null for every resource of the project (blocked ones
+   * aside), an empty list for none. The one way a reader turns a scope into
+   * an id list.
+   */
+  public static getReadableIds(
+    scope: TelemetryReadScope,
+  ): Array<string> | null {
+    if (scope.readableIds === null) {
+      return null;
+    }
+
+    const blocked: Set<string> = TelemetryReadScopeUtil.getBlockedIdSet(scope);
+    const readable: Set<string> = new Set<string>();
+
+    for (const id of scope.readableIds) {
+      const normalized: string = TelemetryReadScopeUtil.normalizeId(id);
+
+      if (!blocked.has(normalized)) {
+        readable.add(normalized);
+      }
+    }
+
+    return Array.from(readable);
+  }
+
+  // The blocked resources, lower case and each once.
+  public static getBlockedIds(scope: TelemetryReadScope): Array<string> {
+    return Array.from(TelemetryReadScopeUtil.getBlockedIdSet(scope));
+  }
+
   // Whether the caller may read telemetry of this one resource.
   public static isReadable(
     scope: TelemetryReadScope,
     resourceId: ObjectID | string,
   ): boolean {
-    const id: string = resourceId.toString();
+    const id: string = TelemetryReadScopeUtil.normalizeId(resourceId);
 
-    if (scope.blockedIds.includes(id)) {
+    if (TelemetryReadScopeUtil.getBlockedIdSet(scope).has(id)) {
       return false;
     }
 
@@ -90,17 +133,47 @@ export default class TelemetryReadScopeUtil {
       return true;
     }
 
-    return scope.readableIds.includes(id);
+    return scope.readableIds.some((readableId: string): boolean => {
+      return TelemetryReadScopeUtil.normalizeId(readableId) === id;
+    });
   }
 
-  // The ids of `ids` the caller may read, in their order.
+  // The ids of `ids` the caller may read, lower case, each once, in their order.
   public static filterReadableIds(
     scope: TelemetryReadScope,
-    ids: ReadonlyArray<string>,
+    ids: ReadonlyArray<ObjectID | string>,
   ): Array<string> {
-    return ids.filter((id: string): boolean => {
-      return TelemetryReadScopeUtil.isReadable(scope, id);
-    });
+    const blocked: Set<string> = TelemetryReadScopeUtil.getBlockedIdSet(scope);
+    const readable: Set<string> | null =
+      scope.readableIds === null
+        ? null
+        : new Set<string>(
+            scope.readableIds.map((id: string): string => {
+              return TelemetryReadScopeUtil.normalizeId(id);
+            }),
+          );
+    const kept: Set<string> = new Set<string>();
+
+    for (const id of ids) {
+      const normalized: string = TelemetryReadScopeUtil.normalizeId(id);
+
+      if (
+        !blocked.has(normalized) &&
+        (readable === null || readable.has(normalized))
+      ) {
+        kept.add(normalized);
+      }
+    }
+
+    return Array.from(kept);
+  }
+
+  private static getBlockedIdSet(scope: TelemetryReadScope): Set<string> {
+    return new Set<string>(
+      scope.blockedIds.map((id: string): string => {
+        return TelemetryReadScopeUtil.normalizeId(id);
+      }),
+    );
   }
 
   /*
@@ -120,36 +193,22 @@ export default class TelemetryReadScopeUtil {
     scope: TelemetryReadScope,
     requested?: ReadonlyArray<ObjectID | string> | null | undefined,
   ): TelemetryServiceFilter {
-    const requestedIds: Array<string> | null =
-      requested && requested.length > 0
-        ? Array.from(
-            new Set(
-              requested.map((id: ObjectID | string): string => {
-                return id.toString();
-              }),
-            ),
-          )
-        : null;
+    const blockedIds: Array<string> =
+      TelemetryReadScopeUtil.getBlockedIds(scope);
 
     const excludedServiceIds: Array<ObjectID> | undefined =
-      scope.blockedIds.length > 0
-        ? scope.blockedIds.map((id: string): ObjectID => {
+      blockedIds.length > 0
+        ? blockedIds.map((id: string): ObjectID => {
             return new ObjectID(id);
           })
         : undefined;
 
     let serviceIds: Array<string> | undefined;
 
-    if (requestedIds) {
-      serviceIds = TelemetryReadScopeUtil.filterReadableIds(
-        scope,
-        requestedIds,
-      );
-    } else if (scope.readableIds !== null) {
-      serviceIds = TelemetryReadScopeUtil.filterReadableIds(
-        scope,
-        scope.readableIds,
-      );
+    if (requested && requested.length > 0) {
+      serviceIds = TelemetryReadScopeUtil.filterReadableIds(scope, requested);
+    } else {
+      serviceIds = TelemetryReadScopeUtil.getReadableIds(scope) || undefined;
     }
 
     if (serviceIds && serviceIds.length === 0) {
@@ -217,12 +276,13 @@ export default class TelemetryReadScopeUtil {
    * the row's resource (the model's @OwnedThrough column). Never widens what
    * the caller asked for:
    *
-   *   - a caller who asked for some resources (one id, or an Includes) keeps
-   *     those they may read, or matches nothing;
-   *   - any other filter the caller put on the column stays, and the scope
+   *   - a caller who asked for some resources (one id, a list of ids, or an
+   *     Includes) keeps those they may read, or matches nothing;
+   *   - any other operator the caller put on the column stays, and the scope
    *     is added next to it (the analytics query ANDs a list of operators
    *     on one column);
-   *   - a caller who asked for nothing gets the scope alone.
+   *   - a caller who asked for nothing gets the scope alone;
+   *   - a filter of any other shape is refused rather than dropped.
    */
   public static applyToQuery<TQuery>(
     query: TQuery,
@@ -254,20 +314,17 @@ export default class TelemetryReadScopeUtil {
       return query;
     }
 
-    let scopeOperator: Includes | IncludesNone;
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
 
-    if (scope.readableIds !== null) {
-      const readableIds: Array<string> =
-        TelemetryReadScopeUtil.filterReadableIds(scope, scope.readableIds);
-
-      scopeOperator = new Includes(
-        readableIds.length > 0
-          ? readableIds
-          : [TelemetryReadScopeUtil.NO_RESOURCE_ID],
-      );
-    } else {
-      scopeOperator = new IncludesNone([...scope.blockedIds]);
-    }
+    const scopeOperator: Includes | IncludesNone =
+      readableIds !== null
+        ? new Includes(
+            readableIds.length > 0
+              ? readableIds
+              : [TelemetryReadScopeUtil.NO_RESOURCE_ID],
+          )
+        : new IncludesNone(TelemetryReadScopeUtil.getBlockedIds(scope));
 
     if (existing === undefined || existing === null) {
       record[column] = scopeOperator;
@@ -282,16 +339,22 @@ export default class TelemetryReadScopeUtil {
     ) {
       record[column] = [...existing, scopeOperator];
     } else {
-      // A shape the column cannot hold next to another: the scope alone.
-      record[column] = scopeOperator;
+      /*
+       * A filter the column can neither narrow nor hold next to the scope.
+       * Refused: dropping it would answer a different question than the one
+       * asked.
+       */
+      throw new BadDataException(
+        `Unsupported filter on ${column}: use one id, a list of ids, or a query operator.`,
+      );
     }
 
     return query;
   }
 
   /*
-   * The resources a caller's own filter names outright - one id, or an
-   * Includes of ids - or null for any other filter (or none).
+   * The resources a caller's own filter names outright - one id, a list of
+   * ids, or an Includes of ids - or null for any other filter (or none).
    */
   private static getRequestedIds(existing: unknown): Array<string> | null {
     if (typeof existing === "string" || existing instanceof ObjectID) {
@@ -301,6 +364,18 @@ export default class TelemetryReadScopeUtil {
     if (existing instanceof Includes) {
       return existing.values.map((value: string | ObjectID | number) => {
         return value.toString();
+      });
+    }
+
+    if (
+      Array.isArray(existing) &&
+      existing.length > 0 &&
+      existing.every((element: unknown): boolean => {
+        return typeof element === "string" || element instanceof ObjectID;
+      })
+    ) {
+      return existing.map((element: string | ObjectID): string => {
+        return element.toString();
       });
     }
 

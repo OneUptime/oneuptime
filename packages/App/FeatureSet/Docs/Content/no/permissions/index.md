@@ -142,7 +142,7 @@ Logger, sporinger, metrikker, unntak, profiler og øktavspillinger hører til re
 - **Eide** leser telemetrien til ressursene du eller et av teamene dine eier, og telemetri som ikke nevner noen ressurs.
 - **Etiketter** leser telemetrien til ressursene som bærer en av tillatelsens etiketter.
 
-En blokkering med etiketter på en telemetritillatelse utelater telemetrien til ressursene som bærer de etikettene, uansett hva annet du har. Det gjelder overalt der telemetri leses: utforskerne med sine diagrammer, filtre og attributtlister, eksporter, øktavspillinger og det AI-assistenten leser for deg. Listen over metrikknavn viser metrikkene som en tjeneste du kan lese rapporterer, og metrikkene ingen tjeneste rapporterer, for eksempel verts- og klyngemetrikker.
+En blokkering med etiketter på en telemetritillatelse utelater telemetrien til ressursene som bærer de etikettene, uansett hva annet du har. Det gjelder overalt der telemetri leses: utforskerne med sine diagrammer, filtre og attributtlister, eksporter, øktavspillinger og det AI-assistenten leser for deg. Listen over metrikknavn viser metrikkene som en tjeneste du kan lese rapporterer, og metrikkene ingen tjeneste rapporterer, for eksempel verts- og klyngemetrikker. Kan du også lese telemetrien til andre typer ressurser, for eksempel verter eller klynger, viser den alle metrikknavn.
 
 ## API-nøkler
 

@@ -35,6 +35,7 @@ import HeldPermissionsUtil, {
   HeldPermissions,
 } from "../../../Types/HeldPermissions";
 import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
+import type { OwnerTablePair } from "../Database/Permissions/OwnerTableRegistry";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../../Utils/Telemetry/TelemetryReadScope";
@@ -965,68 +966,48 @@ export default class ModelPermission {
   }
 
   /*
+   * The owner table registry. Read when first needed rather than imported:
+   * the registry imports the owner services, which extend DatabaseService,
+   * which reaches this module - the same reason OwnedScopePermission and
+   * DatabaseService read it this way. Only its type is imported above.
+   */
+  private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    return require("../Database/Permissions/OwnerTableRegistry").default;
+  }
+
+  /*
+   * The resource types telemetry can belong to (the registry entries
+   * flagged canOwnTelemetry), by model name: Service, Host, KubernetesCluster,
+   * RumApplication, ...
+   */
+  public static getTelemetryResourceTypes(): Array<string> {
+    return Array.from(this.getOwnerTableRegistry().entries())
+      .filter(([, entry]: [string, OwnerTablePair]): boolean => {
+        return Boolean(entry.canOwnTelemetry);
+      })
+      .map(([name]: [string, OwnerTablePair]): string => {
+        return name;
+      });
+  }
+
+  /*
    * The telemetry-owning entries of the owner table registry the read
    * covers: every one flagged canOwnTelemetry, or only those named.
    */
   private static getTelemetryOwnerEntries(
     resourceTypes: ReadonlyArray<string> | undefined,
-  ): Array<{
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ownerUserService: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ownerTeamService: any;
-    fkColumn: string;
-    canOwnTelemetry?: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    modelService?: any;
-  }> {
-    const ownerTableRegistry: Map<
-      string,
-      {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ownerUserService: any;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ownerTeamService: any;
-        fkColumn: string;
-        canOwnTelemetry?: boolean;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        modelService?: any;
-      }
-    > =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../Database/Permissions/OwnerTableRegistry").default;
-
-    return Array.from(ownerTableRegistry.entries())
-      .filter(
-        ([name, entry]: [
-          string,
-          {
-            canOwnTelemetry?: boolean;
-          },
-        ]): boolean => {
-          return (
-            Boolean(entry.canOwnTelemetry) &&
-            (!resourceTypes || resourceTypes.includes(name))
-          );
-        },
-      )
-      .map(
-        ([, entry]: [
-          string,
-          {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ownerUserService: any;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ownerTeamService: any;
-            fkColumn: string;
-            canOwnTelemetry?: boolean;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            modelService?: any;
-          },
-        ]) => {
-          return entry;
-        },
-      );
+  ): Array<OwnerTablePair> {
+    return Array.from(this.getOwnerTableRegistry().entries())
+      .filter(([name, entry]: [string, OwnerTablePair]): boolean => {
+        return (
+          Boolean(entry.canOwnTelemetry) &&
+          (!resourceTypes || resourceTypes.includes(name))
+        );
+      })
+      .map(([, entry]: [string, OwnerTablePair]): OwnerTablePair => {
+        return entry;
+      });
   }
 
   // The distinct label ids on `rows`, in a stable order.

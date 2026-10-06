@@ -65,15 +65,32 @@ const userProps: DatabaseCommonInteractionProps = {
 };
 
 let scopeSpy: Spy;
-let currentScope: TelemetryReadScope;
+// The caller's scope over services, and over every other kind of resource.
+let serviceScope: TelemetryReadScope;
+let otherScope: TelemetryReadScope;
+
+interface ScopeRequest {
+  props: DatabaseCommonInteractionProps;
+  resourceTypes?: ReadonlyArray<string>;
+  permissions: Array<Permission>;
+  operation: DatabaseRequestType;
+}
+
+function isServiceRequest(request: ScopeRequest): boolean {
+  return (
+    request.resourceTypes?.length === 1 &&
+    request.resourceTypes[0] === "Service"
+  );
+}
 
 beforeEach(() => {
   spyOn(QueryUtil, "getManyToManyRelationMetadata").mockReturnValue(JUNCTION);
 
-  currentScope = { readableIds: [serviceA, serviceB], blockedIds: [] };
+  serviceScope = { readableIds: [serviceA, serviceB], blockedIds: [] };
+  otherScope = { readableIds: [], blockedIds: [] };
   scopeSpy = spyOn(AnalyticsModelPermission, "getReadScopeForPermissions");
-  scopeSpy.mockImplementation(async () => {
-    return currentScope;
+  scopeSpy.mockImplementation(async (request: ScopeRequest) => {
+    return isServiceRequest(request) ? serviceScope : otherScope;
   });
 });
 
@@ -173,8 +190,9 @@ describe("the catalogue scope on a query", () => {
     expect(scopeSpy.mock.calls.length).toBe(0);
   });
 
-  test("a caller reaching every service gets the query as it was", async () => {
-    currentScope = { readableIds: null, blockedIds: [] };
+  test("a caller reaching every resource gets the query as it was", async () => {
+    serviceScope = { readableIds: null, blockedIds: [] };
+    otherScope = { readableIds: null, blockedIds: [] };
 
     expect(
       await MetricTypeService.addCatalogueScope(
@@ -183,6 +201,61 @@ describe("the catalogue scope on a query", () => {
         DatabaseRequestType.Read,
       ),
     ).toEqual({ projectId });
+  });
+
+  test("a caller who may read the metrics of another kind of resource sees every metric type", async () => {
+    // A label that reaches one host as well as service A.
+    serviceScope = { readableIds: [serviceA], blockedIds: [] };
+    otherScope = {
+      readableIds: [ObjectID.generate().toString()],
+      blockedIds: [],
+    };
+
+    expect(
+      await MetricTypeService.addCatalogueScope(
+        { projectId },
+        userProps,
+        DatabaseRequestType.Read,
+      ),
+    ).toEqual({ projectId });
+  });
+
+  test("a project-wide caller with a block with labels sees every metric type", async () => {
+    serviceScope = { readableIds: null, blockedIds: [serviceC] };
+    otherScope = { readableIds: null, blockedIds: [] };
+
+    expect(
+      await MetricTypeService.addCatalogueScope(
+        { projectId },
+        userProps,
+        DatabaseRequestType.Read,
+      ),
+    ).toEqual({ projectId });
+  });
+
+  test("services and the other kinds of resource are looked up apart", async () => {
+    await MetricTypeService.addCatalogueScope(
+      { projectId },
+      userProps,
+      DatabaseRequestType.Read,
+    );
+
+    const resourceTypes: Array<ReadonlyArray<string>> = scopeSpy.mock.calls.map(
+      (call: Array<unknown>): ReadonlyArray<string> => {
+        return (call[0] as ScopeRequest).resourceTypes || [];
+      },
+    );
+
+    expect(resourceTypes).toHaveLength(2);
+    expect(resourceTypes).toContainEqual(["Service"]);
+    const others: ReadonlyArray<string> = resourceTypes.find(
+      (types: ReadonlyArray<string>): boolean => {
+        return !types.includes("Service");
+      },
+    )!;
+    expect(others).toEqual(
+      expect.arrayContaining(["Host", "KubernetesCluster", "RumApplication"]),
+    );
   });
 
   test("a limited caller's query is narrowed on the metric type's id", async () => {
@@ -230,13 +303,7 @@ describe("the catalogue scope on a query", () => {
         operation,
       );
 
-      const request: {
-        permissions: Array<Permission>;
-        operation: DatabaseRequestType;
-      } = scopeSpy.mock.calls[0]![0] as {
-        permissions: Array<Permission>;
-        operation: DatabaseRequestType;
-      };
+      const request: ScopeRequest = scopeSpy.mock.calls[0]![0] as ScopeRequest;
       expect(request.permissions).toEqual(new MetricType()[list]);
       expect(request.operation).toBe(operation);
     },
@@ -263,20 +330,27 @@ describe("a read across the caller's projects", () => {
     };
   }
 
-  // Each project's scope, as the caller's grants in that project make it.
+  /*
+   * Each project's scope over services, as the caller's grants in that
+   * project make it. A project-wide scope reaches every other kind of
+   * resource too; a limited one, none of them.
+   */
   function scopeInProject(
     scopes: Record<string, TelemetryReadScope | "refused">,
   ): void {
-    scopeSpy.mockImplementation(
-      async (request: { props: DatabaseCommonInteractionProps }) => {
-        const scope: TelemetryReadScope | "refused" | undefined =
-          scopes[request.props.tenantId!.toString()];
-        if (scope === "refused") {
-          throw new NotAuthorizedException("blocked in this project");
-        }
+    scopeSpy.mockImplementation(async (request: ScopeRequest) => {
+      const scope: TelemetryReadScope | "refused" | undefined =
+        scopes[request.props.tenantId!.toString()];
+      if (scope === "refused" || !scope) {
+        throw new NotAuthorizedException("blocked in this project");
+      }
+      if (isServiceRequest(request)) {
         return scope;
-      },
-    );
+      }
+      return scope.readableIds === null
+        ? { readableIds: null, blockedIds: [] }
+        : { readableIds: [], blockedIds: [] };
+    });
   }
 
   test("each project's metric types follow the caller's scope in that project", async () => {
@@ -307,16 +381,14 @@ describe("a read across the caller's projects", () => {
     expect(parameters).not.toContain(projectR.toString());
 
     // Each project's scope was worked out with that project's grants.
-    const tenants: Array<string> = scopeSpy.mock.calls.map(
-      (call: Array<unknown>): string => {
-        const request: { props: DatabaseCommonInteractionProps } = call[0] as {
-          props: DatabaseCommonInteractionProps;
-        };
+    const tenants: Set<string> = new Set(
+      scopeSpy.mock.calls.map((call: Array<unknown>): string => {
+        const request: ScopeRequest = call[0] as ScopeRequest;
         expect(request.props.isMultiTenantRequest).toBe(false);
         return request.props.tenantId!.toString();
-      },
+      }),
     );
-    expect(tenants.sort()).toEqual(
+    expect(Array.from(tenants).sort()).toEqual(
       [projectP, projectQ, projectR].map(String).sort(),
     );
   });
@@ -324,7 +396,7 @@ describe("a read across the caller's projects", () => {
   test("a multi-project request naming one project still weighs every project on its own", async () => {
     scopeInProject({
       [projectP.toString()]: { readableIds: null, blockedIds: [] },
-      [projectQ.toString()]: { readableIds: null, blockedIds: [serviceC] },
+      [projectQ.toString()]: { readableIds: [serviceB], blockedIds: [] },
       [projectR.toString()]: { readableIds: null, blockedIds: [] },
     });
 
@@ -335,9 +407,9 @@ describe("a read across the caller's projects", () => {
         DatabaseRequestType.Read,
       );
 
-    // Project P reaching every service does not open project Q's blocked services.
-    expect(sqlOf(query["_id"])).toContain("NOT IN (:...");
-    expect(parametersOf(query["_id"])).toContain(serviceC);
+    // Project P reaching every resource does not open project Q's other services.
+    expect(parametersOf(query["_id"])).toContain(projectQ.toString());
+    expect(parametersOf(query["_id"])).toContain(serviceB);
   });
 
   test("every project reaching every service adds no condition", async () => {

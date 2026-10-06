@@ -327,20 +327,19 @@ export default class ResourceFacetResolver {
      * every resource of the project.
      */
     if (spec.scope && !TelemetryReadScopeUtil.isProjectWide(spec.scope)) {
-      if (spec.scope.readableIds !== null) {
-        const readableIds: Array<string> =
-          TelemetryReadScopeUtil.filterReadableIds(
-            spec.scope,
-            spec.scope.readableIds,
-          );
+      const readableIds: Array<string> | null =
+        TelemetryReadScopeUtil.getReadableIds(spec.scope);
 
+      if (readableIds !== null) {
         if (readableIds.length === 0) {
           return [];
         }
 
         query["_id"] = QueryHelper.any(readableIds);
       } else {
-        query["_id"] = QueryHelper.notIn([...spec.scope.blockedIds]);
+        query["_id"] = QueryHelper.notIn(
+          TelemetryReadScopeUtil.getBlockedIds(spec.scope),
+        );
       }
     }
 

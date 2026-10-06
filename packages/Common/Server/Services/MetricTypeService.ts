@@ -32,18 +32,24 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * THE METRIC CATALOGUE FOLLOWS THE SERVICES THAT REPORT IT.
    *
-   * A metric type lists the services that report it (`services`). A caller
-   * whose metric grant reaches only some resources - a label or Owned
-   * grant, or a block with labels (TelemetryReadScope) - sees the metric
-   * types at least one service they may read reports, so a team limited to
-   * its own services is not shown the metric names of every other service.
+   * A metric type lists the services that report it (`services`), and only
+   * those: it does not record which hosts, clusters, devices or monitors
+   * report it. So the catalogue narrows what it can tell apart:
    *
-   * A metric type no service reports - host, cluster, device and monitor
-   * metrics, whose producers are not services - stays listed: the catalogue
-   * does not record which of those resources reports it, its name, unit and
-   * description are definitions rather than data, and the values,
-   * attributes and resources of every metric are read through the Metric
-   * model and the /telemetry/metrics routes, which follow the same scope.
+   *   - A caller whose metric grant reaches services alone - a label or
+   *     Owned grant that reaches no other kind of resource
+   *     (TelemetryReadScope) - sees the metric types a service they may
+   *     read reports, and the ones no service reports. A team limited to
+   *     its own services is not shown the metric names of every other one.
+   *   - A caller who may read the metrics of any other kind of resource, or
+   *     of the whole project, sees every metric type: any of those
+   *     resources may report any of them, and hiding one would hide a
+   *     metric they may chart.
+   *
+   * Either way the values, attributes and resources of every metric are
+   * read through the Metric model and the /telemetry/metrics routes, which
+   * follow the caller's scope; a metric type's name, unit and description
+   * are definitions rather than data.
    *
    * Applied to reads, counts, updates and deletes alike, each with the
    * grants for its own operation: a catalogue entry the caller cannot see
@@ -122,9 +128,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const clause: FindWhereProperty<any> | null = isAcrossProjects
       ? await this.getCatalogueScopeClauseAcrossProjects(props, operation)
-      : this.getCatalogueScopeClause(
-          await this.getCatalogueScope(props, operation),
-        );
+      : await this.getCatalogueScopeClauseInProject(props, operation);
 
     if (!clause) {
       return query;
@@ -144,10 +148,50 @@ export class Service extends ProjectReferencesService<Model> {
     return record as unknown as TQuery;
   }
 
-  // The caller's scope in their project (props.tenantId) for an operation.
+  /*
+   * The catalogue condition in the caller's project (props.tenantId) for an
+   * operation, or null when the caller sees every metric type (see above).
+   */
+  private async getCatalogueScopeClauseInProject(
+    props: DatabaseCommonInteractionProps,
+    operation: DatabaseRequestType,
+  ): Promise<FindWhereProperty<any> | null> {
+    const otherResourceTypes: Array<string> =
+      AnalyticsModelPermission.getTelemetryResourceTypes().filter(
+        (resourceType: string): boolean => {
+          return resourceType !== "Service";
+        },
+      );
+
+    const [serviceScope, otherScope]: [TelemetryReadScope, TelemetryReadScope] =
+      await Promise.all([
+        this.getCatalogueScope(props, operation, ["Service"]),
+        this.getCatalogueScope(props, operation, otherResourceTypes),
+      ]);
+
+    /*
+     * The metrics of some other kind of resource (or of every resource)
+     * are readable: the catalogue cannot tell which metric types those
+     * report, so it shows them all.
+     */
+    const otherReadableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(otherScope);
+
+    if (otherReadableIds === null || otherReadableIds.length > 0) {
+      return null;
+    }
+
+    return this.getCatalogueScopeClause(serviceScope);
+  }
+
+  /*
+   * The caller's scope in their project (props.tenantId) for an operation,
+   * over the resource types named.
+   */
   private async getCatalogueScope(
     props: DatabaseCommonInteractionProps,
     operation: DatabaseRequestType,
+    resourceTypes: ReadonlyArray<string>,
   ): Promise<TelemetryReadScope> {
     const model: Model = new Model();
     const permissions: Array<Permission> =
@@ -160,6 +204,7 @@ export class Service extends ProjectReferencesService<Model> {
     return await AnalyticsModelPermission.getReadScopeForPermissions({
       props: props,
       permissions: permissions,
+      resourceTypes: resourceTypes,
       recordName: model.pluralName || "Metric Types",
       operation: operation,
     });
@@ -184,34 +229,53 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
+    type ProjectClause =
+      | { projectId: string; isRefused: true }
+      | {
+          projectId: string;
+          isRefused: false;
+          clause: FindWhereProperty<any> | null;
+        };
+
+    // Every project's condition at once: the lookups of one do not wait on another's.
+    const projectClauses: Array<ProjectClause> = await Promise.all(
+      projectIds.map(async (projectId: ObjectID): Promise<ProjectClause> => {
+        try {
+          return {
+            projectId: projectId.toString(),
+            isRefused: false,
+            clause: await this.getCatalogueScopeClauseInProject(
+              { ...props, tenantId: projectId, isMultiTenantRequest: false },
+              operation,
+            ),
+          };
+        } catch (err) {
+          if (err instanceof NotAuthorizedException) {
+            return { projectId: projectId.toString(), isRefused: true };
+          }
+          throw err;
+        }
+      }),
+    );
+
     const wideProjectIds: Array<string> = [];
     const limitedClauses: Array<{
       projectId: string;
       clause: FindWhereProperty<any>;
     }> = [];
 
-    for (const projectId of projectIds) {
-      let scope: TelemetryReadScope;
-
-      try {
-        scope = await this.getCatalogueScope(
-          { ...props, tenantId: projectId, isMultiTenantRequest: false },
-          operation,
-        );
-      } catch (err) {
-        if (err instanceof NotAuthorizedException) {
-          continue;
-        }
-        throw err;
+    for (const projectClause of projectClauses) {
+      if (projectClause.isRefused) {
+        continue;
       }
 
-      const clause: FindWhereProperty<any> | null =
-        this.getCatalogueScopeClause(scope);
-
-      if (clause) {
-        limitedClauses.push({ projectId: projectId.toString(), clause });
+      if (projectClause.clause) {
+        limitedClauses.push({
+          projectId: projectClause.projectId,
+          clause: projectClause.clause,
+        });
       } else {
-        wideProjectIds.push(projectId.toString());
+        wideProjectIds.push(projectClause.projectId);
       }
     }
 
@@ -298,10 +362,10 @@ export class Service extends ProjectReferencesService<Model> {
       return `NOT EXISTS (SELECT 1 FROM "${joinTable}" WHERE "${joinTable}"."${metricTypeColumn}" = ${alias})`;
     };
 
-    if (scope.readableIds !== null) {
-      const readableIds: Array<string> =
-        TelemetryReadScopeUtil.filterReadableIds(scope, scope.readableIds);
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
 
+    if (readableIds !== null) {
       if (readableIds.length === 0) {
         return Raw((alias: string): string => {
           return `(${unreported(alias)})`;
@@ -324,7 +388,7 @@ export class Service extends ProjectReferencesService<Model> {
       (alias: string): string => {
         return `(${unreported(alias)} OR EXISTS (SELECT 1 FROM "${joinTable}" WHERE "${joinTable}"."${metricTypeColumn}" = ${alias} AND "${joinTable}"."${serviceColumn}" NOT IN (:...${blockedRid})))`;
       },
-      { [blockedRid]: [...scope.blockedIds] },
+      { [blockedRid]: TelemetryReadScopeUtil.getBlockedIds(scope) },
     );
   }
 

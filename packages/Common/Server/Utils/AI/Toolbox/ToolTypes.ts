@@ -160,10 +160,12 @@ export class ToolArgs {
    * (TelemetryReadScope.toServiceFilter):
    *
    *   - project-wide access: only the requested service, or no filter;
-   *   - label / Owned access: the requested service if the user may read it,
-   *     else every service they may read - NEVER undefined or an empty list
-   *     (forced to a no-match sentinel), because the aggregation services
-   *     read a missing or empty serviceIds as "the whole project";
+   *   - label / Owned access with no service requested: every service the
+   *     user may read;
+   *   - a requested service the user may not read: a list that matches
+   *     nothing (the no-match sentinel) - NEVER undefined or an empty list,
+   *     which the aggregation services read as "the whole project", and
+   *     never the user's other services either;
    *   - a block with labels: those services are left out either way.
    */
   public static scopeServiceIds(

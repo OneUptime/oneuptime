@@ -142,7 +142,7 @@ Log, tracce, metriche, eccezioni, profili e riproduzioni di sessione appartengon
 - **Possedute** legge la telemetria delle risorse possedute da voi o da uno dei vostri team, e la telemetria che non nomina alcuna risorsa.
 - **Etichette** legge la telemetria delle risorse che portano una delle etichette dell'autorizzazione.
 
-Un blocco con etichette su un'autorizzazione di telemetria esclude la telemetria delle risorse che portano quelle etichette, qualunque altra cosa abbiate. Vale ovunque si legga la telemetria: gli explorer con i loro grafici, filtri ed elenchi di attributi, le esportazioni, le riproduzioni di sessione e ciò che l'assistente IA legge per voi. L'elenco dei nomi delle metriche mostra le metriche riportate da un servizio che potete leggere e quelle che nessun servizio riporta, come le metriche di host e cluster.
+Un blocco con etichette su un'autorizzazione di telemetria esclude la telemetria delle risorse che portano quelle etichette, qualunque altra cosa abbiate. Vale ovunque si legga la telemetria: gli explorer con i loro grafici, filtri ed elenchi di attributi, le esportazioni, le riproduzioni di sessione e ciò che l'assistente IA legge per voi. L'elenco dei nomi delle metriche mostra le metriche riportate da un servizio che potete leggere e quelle che nessun servizio riporta, come le metriche di host e cluster. Se potete leggere anche la telemetria di altri tipi di risorse, come host o cluster, mostra tutti i nomi delle metriche.
 
 ## Chiavi API
 

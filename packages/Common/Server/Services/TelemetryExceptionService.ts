@@ -875,33 +875,29 @@ export class Service extends ProjectReferencesService<Model> {
       props,
     );
 
-    if (
-      scope.readableIds !== null &&
-      TelemetryReadScopeUtil.filterReadableIds(scope, scope.readableIds)
-        .length === 0
-    ) {
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
+    const blockedIds: Array<string> =
+      TelemetryReadScopeUtil.getBlockedIds(scope);
+
+    if (readableIds !== null && readableIds.length === 0) {
       return [];
     }
 
     const queryBuilder: SelectQueryBuilder<Model> =
       this.getQueryBuilder("TelemetryException");
 
-    if (scope.readableIds !== null) {
+    if (readableIds !== null) {
       queryBuilder.andWhere(
         `"TelemetryException"."primaryEntityId" IN (:...readableResourceIds)`,
-        {
-          readableResourceIds: TelemetryReadScopeUtil.filterReadableIds(
-            scope,
-            scope.readableIds,
-          ),
-        },
+        { readableResourceIds: readableIds },
       );
     }
 
-    if (scope.blockedIds.length > 0) {
+    if (blockedIds.length > 0) {
       queryBuilder.andWhere(
         `"TelemetryException"."primaryEntityId" NOT IN (:...blockedResourceIds)`,
-        { blockedResourceIds: [...scope.blockedIds] },
+        { blockedResourceIds: blockedIds },
       );
     }
 

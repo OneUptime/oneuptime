@@ -156,7 +156,7 @@ Logs, traces, metrics, exceptions, profiles and session replays belong to the re
 - **Owned** reads the telemetry of the resources you or one of your teams own, and telemetry that names no resource.
 - **Labels** reads the telemetry of the resources carrying one of the permission's labels.
 
-A block with labels on a telemetry permission leaves out the telemetry of the resources carrying those labels, whatever else you hold. This holds wherever telemetry is read: the explorers and their charts, filters and attribute lists, exports, session replays, and what the AI assistant reads for you. The list of metric names shows the metrics a service you may read reports, and the metrics no service reports, such as host and cluster metrics.
+A block with labels on a telemetry permission leaves out the telemetry of the resources carrying those labels, whatever else you hold. This holds wherever telemetry is read: the explorers and their charts, filters and attribute lists, exports, session replays, and what the AI assistant reads for you. The list of metric names shows the metrics a service you may read reports, and the metrics no service reports, such as host and cluster metrics. If you may also read the telemetry of other kinds of resources, such as hosts or clusters, it shows every metric name.
 
 ## API keys
 

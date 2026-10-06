@@ -3957,13 +3957,6 @@ const getSessionReplayScope: SessionReplayScopeFunction = async (
 };
 
 /*
- * Ceiling on the RUM applications scanned when resolving a label-scoped
- * caller's reachable set. RUM is keyed by application (service.name), not
- * by end-user device, so a project has tens of these, not millions.
- */
-const MAX_RUM_APPLICATIONS_SCANNED: number = 1000;
-
-/*
  * Plan gate for the replay reads.
  *
  * Both replay models declare tableBillingAccessControl.read =
@@ -4285,33 +4278,35 @@ const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction
   };
 
 /*
- * The set of applications a label-scoped caller may reach, for the
- * project-wide exception lookup which has no single application to
- * resolve. null means unrestricted; an empty array means the caller can
- * reach none, which must return no rows rather than everything.
+ * The applications a caller may reach, for the project-wide reads that have
+ * no single application to authorize against (resolving session ids, the
+ * sessions an exception was seen in).
  */
 interface AccessibleRumApplications {
-  /* null means unrestricted; see getSessionsForException. */
-  applicationIds: Array<ObjectID> | null;
   /*
-   * True when the project holds more RUM applications than one scan can
-   * cover, so the accessible set may be short. Surfaced rather than
-   * swallowed: a quietly incomplete answer to "which sessions saw this
-   * exception" is the same failure mode as timeout_overflow_mode =
-   * 'break', which this whole read path refuses elsewhere.
+   * null: every application of the project (less excludedApplicationIds).
+   * An empty list: none at all, which must return no rows rather than
+   * everything.
    */
-  isTruncated: boolean;
+  applicationIds: Array<ObjectID> | null;
+  // The applications a block with labels takes away, whatever else holds.
+  excludedApplicationIds: Array<ObjectID>;
 }
 
 type ResolveAccessibleRumApplicationIdsFunction = (data: {
-  projectId: ObjectID;
   databaseProps: DatabaseCommonInteractionProps;
   permissions: Array<Permission>;
 }) => Promise<AccessibleRumApplications>;
 
+/*
+ * The caller's session replay scope as application ids: a label or Owned
+ * grant names the applications it reaches, a grant that reaches the whole
+ * project reads every application, and a block with labels takes the
+ * applications carrying them away - passed on as an exclusion, so nothing
+ * has to list the project's applications to apply it.
+ */
 const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunction =
   async (data: {
-    projectId: ObjectID;
     databaseProps: DatabaseCommonInteractionProps;
     permissions: Array<Permission>;
   }): Promise<AccessibleRumApplications> => {
@@ -4320,76 +4315,22 @@ const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunc
       data.permissions,
     );
 
-    if (TelemetryReadScopeUtil.isProjectWide(scope)) {
-      return { applicationIds: null, isTruncated: false };
-    }
+    const readableIds: Array<string> | null =
+      TelemetryReadScopeUtil.getReadableIds(scope);
 
-    if (scope.readableIds !== null) {
-      /*
-       * A label or Owned grant already names the applications it reaches
-       * (an empty list reaches none - not "reaches everything").
-       */
-      return {
-        applicationIds: TelemetryReadScopeUtil.filterReadableIds(
-          scope,
-          scope.readableIds,
-        ).map((id: string): ObjectID => {
+    return {
+      applicationIds:
+        readableIds === null
+          ? null
+          : readableIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+      excludedApplicationIds: TelemetryReadScopeUtil.getBlockedIds(scope).map(
+        (id: string): ObjectID => {
           return new ObjectID(id);
-        }),
-        isTruncated: false,
-      };
-    }
-
-    /*
-     * A grant that reaches the whole project, less what a block with labels
-     * takes away: the project's applications but the blocked ones.
-     */
-
-    const applications: Array<RumApplication> =
-      await RumApplicationService.findBy({
-        query: {
-          projectId: data.projectId,
         },
-        select: {
-          _id: true,
-        },
-        /*
-         * A deterministic sort so the page that is scanned is at least
-         * stable between calls, and one row past the ceiling so hitting
-         * it is detectable rather than indistinguishable from a project
-         * that happens to have exactly that many applications.
-         */
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        skip: 0,
-        limit: MAX_RUM_APPLICATIONS_SCANNED + 1,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const isTruncated: boolean =
-      applications.length > MAX_RUM_APPLICATIONS_SCANNED;
-
-    const accessibleIds: Array<ObjectID> = [];
-
-    for (const application of applications.slice(
-      0,
-      MAX_RUM_APPLICATIONS_SCANNED,
-    )) {
-      if (
-        isApplicationInSessionReplayScope({
-          scope: scope,
-          application: application,
-        }) &&
-        application.id
-      ) {
-        accessibleIds.push(application.id);
-      }
-    }
-
-    return { applicationIds: accessibleIds, isTruncated: isTruncated };
+      ),
+    };
   };
 
 interface AuthorizedSession {
@@ -5517,7 +5458,6 @@ router.post(
 
       const accessibleApplications: AccessibleRumApplications =
         await resolveAccessibleRumApplicationIds({
-          projectId: projectId,
           databaseProps: databaseProps,
           permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         });
@@ -5527,11 +5467,17 @@ router.post(
           projectId: projectId,
           sessionIds: sessionIds,
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
+          excludedRumApplicationIds:
+            accessibleApplications.excludedApplicationIds,
         });
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: sessions as unknown as JSONArray,
-        isApplicationScopeTruncated: accessibleApplications.isTruncated,
+        /*
+         * The scope names the applications it reaches without listing the
+         * project's applications, so the answer is never cut short.
+         */
+        isApplicationScopeTruncated: false,
       });
     } catch (err: unknown) {
       next(err);
@@ -6586,7 +6532,6 @@ router.post(
        */
       const accessibleApplications: AccessibleRumApplications =
         await resolveAccessibleRumApplicationIds({
-          projectId: projectId,
           databaseProps: databaseProps,
           permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         });
@@ -6642,6 +6587,8 @@ router.post(
           ...(primaryEntityId !== undefined && { primaryEntityId }),
           ...(primaryEntityType !== undefined && { primaryEntityType }),
           accessibleRumApplicationIds: accessibleApplications.applicationIds,
+          excludedRumApplicationIds:
+            accessibleApplications.excludedApplicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),
           ...(typeof pinnedSessionId === "string" &&
@@ -6655,11 +6602,8 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: sessions as unknown as JSONObject,
-        /*
-         * Told, not hidden: the accessible-application scan has a ceiling,
-         * and a caller who hits it is looking at a possibly short answer.
-         */
-        isApplicationScopeTruncated: accessibleApplications.isTruncated,
+        // Never cut short: see /session-replay/resolve.
+        isApplicationScopeTruncated: false,
       });
     } catch (err: unknown) {
       next(err);

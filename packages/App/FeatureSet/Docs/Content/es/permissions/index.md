@@ -142,7 +142,7 @@ Los logs, las trazas, las métricas, las excepciones, los perfiles y las reprodu
 - **Propios** lee la telemetría de los recursos que posee usted o uno de sus equipos, y la telemetría que no nombra ningún recurso.
 - **Etiquetas** lee la telemetría de los recursos que llevan una de las etiquetas del permiso.
 
-Un bloqueo con etiquetas en un permiso de telemetría deja fuera la telemetría de los recursos que llevan esas etiquetas, tenga lo que tenga además. Esto se cumple dondequiera que se lea telemetría: los exploradores y sus gráficos, filtros y listas de atributos, las exportaciones, las reproducciones de sesión y lo que el asistente de IA lee por usted. La lista de nombres de métricas muestra las métricas que informa un servicio que usted puede leer y las que no informa ningún servicio, como las métricas de hosts y clústeres.
+Un bloqueo con etiquetas en un permiso de telemetría deja fuera la telemetría de los recursos que llevan esas etiquetas, tenga lo que tenga además. Esto se cumple dondequiera que se lea telemetría: los exploradores y sus gráficos, filtros y listas de atributos, las exportaciones, las reproducciones de sesión y lo que el asistente de IA lee por usted. La lista de nombres de métricas muestra las métricas que informa un servicio que usted puede leer y las que no informa ningún servicio, como las métricas de hosts y clústeres. Si también puede leer la telemetría de otros tipos de recursos, como hosts o clústeres, muestra todos los nombres de métricas.
 
 ## Claves de API
 

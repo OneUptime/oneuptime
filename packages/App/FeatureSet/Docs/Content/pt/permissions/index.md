@@ -142,7 +142,7 @@ Logs, traces, métricas, exceções, perfis e reproduções de sessão pertencem
 - **Próprios** lê a telemetria dos recursos que você ou uma das suas equipes possui, e a telemetria que não indica nenhum recurso.
 - **Rótulos** lê a telemetria dos recursos que carregam um dos rótulos da permissão.
 
-Um bloqueio com rótulos em uma permissão de telemetria deixa de fora a telemetria dos recursos que carregam esses rótulos, seja o que for que você tenha além disso. Isso vale onde quer que a telemetria seja lida: os exploradores e seus gráficos, filtros e listas de atributos, as exportações, as reproduções de sessão e o que o assistente de IA lê por você. A lista de nomes de métricas mostra as métricas que um serviço que você pode ler reporta, e as métricas que nenhum serviço reporta, como as de hosts e clusters.
+Um bloqueio com rótulos em uma permissão de telemetria deixa de fora a telemetria dos recursos que carregam esses rótulos, seja o que for que você tenha além disso. Isso vale onde quer que a telemetria seja lida: os exploradores e seus gráficos, filtros e listas de atributos, as exportações, as reproduções de sessão e o que o assistente de IA lê por você. A lista de nomes de métricas mostra as métricas que um serviço que você pode ler reporta, e as métricas que nenhum serviço reporta, como as de hosts e clusters. Se você também pode ler a telemetria de outros tipos de recursos, como hosts ou clusters, ela mostra todos os nomes de métricas.
 
 ## Chaves de API
 

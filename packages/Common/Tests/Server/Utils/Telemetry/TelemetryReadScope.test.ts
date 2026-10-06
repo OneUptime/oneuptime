@@ -6,6 +6,7 @@ import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement"
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
@@ -372,14 +373,83 @@ describe("TelemetryReadScope.applyToQuery", () => {
     expect(blocked[column][1]).toBeInstanceOf(IncludesNone);
   });
 
-  test("a filter shape the column cannot combine falls back to the scope alone", () => {
+  test("a plain list of ids is the caller asking for those resources", () => {
     const query: any = TelemetryReadScopeUtil.applyToQuery(
-      { [column]: { unexpected: true } },
+      { [column]: [serviceA, new ObjectID(serviceC)] },
       column,
-      scope([serviceA]),
+      scope([serviceA, serviceB]),
     );
 
     expect(query[column]).toBeInstanceOf(Includes);
     expect(query[column].values).toEqual([serviceA]);
+  });
+
+  test("a filter shape the column cannot narrow or combine is refused, not dropped", () => {
+    for (const filter of [{ unexpected: true }, 42, [serviceA, 42]]) {
+      expect(() => {
+        TelemetryReadScopeUtil.applyToQuery(
+          { [column]: filter },
+          column,
+          scope([serviceA]),
+        );
+      }).toThrow(BadDataException);
+    }
+  });
+});
+
+describe("TelemetryReadScope compares resource ids without case", () => {
+  const upper: (id: string) => string = (id: string): string => {
+    return id.toUpperCase();
+  };
+
+  test("a blocked resource stays blocked whatever case its id is asked in", () => {
+    const blocked: TelemetryReadScope = scope(null, [serviceB]);
+
+    expect(TelemetryReadScopeUtil.isReadable(blocked, upper(serviceB))).toBe(
+      false,
+    );
+    expect(
+      TelemetryReadScopeUtil.isReadable(blocked, new ObjectID(upper(serviceB))),
+    ).toBe(false);
+    expect(
+      TelemetryReadScopeUtil.isReadable(scope([upper(serviceA)]), serviceA),
+    ).toBe(true);
+  });
+
+  test("a requested id in another case is kept or refused like its lower-case form", () => {
+    expect(
+      ids(
+        TelemetryReadScopeUtil.toServiceFilter(scope(null, [serviceB]), [
+          upper(serviceA),
+          upper(serviceB),
+        ]).serviceIds,
+      ),
+    ).toEqual([serviceA]);
+
+    const query: any = TelemetryReadScopeUtil.applyToQuery(
+      { primaryEntityId: upper(serviceB) },
+      "primaryEntityId",
+      scope(null, [serviceB]),
+    );
+    expect(query.primaryEntityId.values).toEqual([NO_RESOURCE]);
+  });
+
+  test("the readable list leaves blocked ids out and names each resource once", () => {
+    expect(
+      TelemetryReadScopeUtil.getReadableIds(
+        scope(
+          [serviceA, upper(serviceA), serviceB, upper(serviceC)],
+          [serviceC],
+        ),
+      ),
+    ).toEqual([serviceA, serviceB]);
+    expect(TelemetryReadScopeUtil.getReadableIds(scope(null, [serviceC]))).toBe(
+      null,
+    );
+    expect(
+      TelemetryReadScopeUtil.getBlockedIds(
+        scope(null, [upper(serviceC), serviceC]),
+      ),
+    ).toEqual([serviceC]);
   });
 });

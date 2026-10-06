@@ -81,6 +81,9 @@ describe("Users, Teams & Permissions: whose telemetry a permission reads", () =>
     expect(text).toContain(
       "The list of metric names shows the metrics a service you may read reports, and the metrics no service reports",
     );
+    expect(text).toContain(
+      "If you may also read the telemetry of other kinds of resources, such as hosts or clusters, it shows every metric name.",
+    );
   });
 
   test("step 6 says what a block with labels does to a record with no labels of its own", () => {

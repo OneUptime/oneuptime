@@ -3310,6 +3310,80 @@ describe("Session replay playback API", () => {
       },
     );
 
+    test("a block with labels leaves its applications out AFTER the ambiguity count, without listing the project's applications", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay]);
+
+      principal.databaseProps.userTenantAccessPermission![
+        projectId.toString()
+      ]!.permissions.push({
+        _type: "UserPermission",
+        permission: Permission.ReadRumSessionReplay,
+        labelIds: [labelBId],
+        isBlockPermission: true,
+      });
+
+      projectApplications([
+        { id: applicationAId, labelIds: [labelAId] },
+        { id: applicationBId, labelIds: [labelBId] },
+      ]);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-a",
+            rumApplicationId: applicationAId,
+          }),
+          /* A row the exclusion should have removed never reaches the answer. */
+          resolvedRow({
+            sessionId: "session-b",
+            rumApplicationId: applicationBId,
+          }),
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a", "session-b"] },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+
+      // Only the blocked label is looked up; the applications are never listed.
+      expect(findBySpy).toHaveBeenCalledTimes(1);
+      expect(
+        (findBySpy.mock.calls[0]![0] as { query: { labels?: unknown } }).query
+          .labels,
+      ).toBeDefined();
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      expect(qualifySection(statement.query)).toContain(
+        "rumApplicationId NOT IN (",
+      );
+      expect(whereSection(statement.query)).not.toContain("rumApplicationId");
+      expect(Object.values(statement.query_params)).toContainEqual([
+        applicationBId.toString(),
+      ]);
+
+      expect(result.jsonBody).toEqual({
+        sessions: [
+          {
+            sessionId: "session-a",
+            rumApplicationId: applicationAId.toString(),
+            startTime: new Date(1700000000000),
+            startTimeUnixMs: 1700000000000,
+          },
+        ],
+        isApplicationScopeTruncated: false,
+      });
+    });
+
     test("a label-scoped caller is filtered to its applications AFTER the ambiguity count", async () => {
       const principal: {
         request: JSONObject;
