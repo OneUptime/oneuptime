@@ -379,7 +379,15 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
         } was created, so its automatic investigation did not start.`,
       );
       expect(reason.nextStep).toContain("Project Settings → AI Credits");
-      expect(reason.nextStep).toContain("auto-recharge");
+      /*
+       * Not "turn on auto-recharge": AI credits are recharged after a call
+       * they paid for, so a used-up balance stays used up until someone
+       * adds credits. And no command: the card names who can, or links.
+       */
+      expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
+      expect(reason.nextStep).toBe(
+        `Review AI credits under Project Settings → AI Credits. Adding credits later does not retry this ${subject.alertId ? "alert" : "incident"}.`,
+      );
     },
   );
 
@@ -397,10 +405,10 @@ describe("the AI balance gate (insufficient_ai_balance)", () => {
       expect(reason.code).toBe("insufficient_ai_balance");
       expect(reason.source).toBe("current_configuration");
       expect(reason.title).toBe("The project is currently out of AI credits");
-      expect(reason.nextStep).toContain(
-        "Add AI credits under Project Settings → AI Credits",
+      expect(reason.nextStep).toBe(
+        `New ${subject.alertId ? "alert" : "incident"}s can be investigated once AI credits are added under Project Settings → AI Credits. Existing records are not automatically retried.`,
       );
-      expect(reason.nextStep).toContain("auto-recharge");
+      expect(reason.nextStep).not.toMatch(/auto-?recharge/i);
       // The subject gate and the daily budget are never reached.
       expect(
         AIAlertInvestigationRunner.shouldInvestigateAlert,
