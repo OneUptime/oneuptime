@@ -15,7 +15,11 @@ SCIM integration provides the following benefits:
 
 ### Below the Scale plan
 
-On OneUptime Cloud, a SCIM connection a project still has keeps provisioning people after a Scale trial ends or the plan goes down. So below **Scale**, **Project Settings** > **SCIM**, and a status page's **SCIM** page, list the connections under the plan's upsell (**SCIM connections still set up**). Delete a connection to stop it. Adding a connection, changing one or replacing its bearer token needs **Scale**. The list does not show bearer tokens, and only project owners can read a token, on every plan.
+On OneUptime Cloud, SCIM works only while the project is on **Scale** or above. Below it - after a Scale trial ends or the plan goes down - every SCIM request for the project's connections, and for its status pages', is refused with `402` and an error in the SCIM format, which your identity provider shows: `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections stopped working. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work again.`
+
+That stops deprovisioning as well as provisioning: until the project is back on **Scale**, remove anyone who leaves from the project by hand. Nothing is deleted. Upgrade to **Scale** and the connections work again as they are, with the same bearer token and nothing to set up again in your identity provider; a plan change takes effect within a minute. Identity providers keep calling on their own schedule: Okta lists the refusals among its provisioning errors, and Entra ID shows them in its provisioning logs and may quarantine a job that keeps failing - restart provisioning there after you upgrade.
+
+Below **Scale**, **Project Settings** > **SCIM**, and a status page's **SCIM** page, list the connections under the plan's upsell (**SCIM connections still set up**) and say they stopped. Delete a connection to remove it. Adding a connection, changing one or replacing its bearer token needs **Scale**. The list does not show bearer tokens, and only project owners can read a token, on every plan.
 
 ## SCIM for Projects
 

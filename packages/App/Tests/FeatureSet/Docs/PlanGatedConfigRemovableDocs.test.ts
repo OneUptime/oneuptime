@@ -5,13 +5,14 @@ import path from "path";
 /*
  * Configuration a lower plan cannot use can still be seen, switched off and
  * removed. A project that drops below a feature's plan keeps what it set up -
- * SSO providers that still sign people in, SCIM connections that still
- * provision them, Slack and Microsoft Teams rules that still post, API keys
- * that still authenticate, schedules that still page people - and every plan
- * can read it, switch it off and delete it (Common/Types/Billing/
- * PlanGatedTable); creating, changing and switching back on still need the
- * plan, and so does reading anything else a plan sells. The English guides
- * say where that is done and what is left gated.
+ * SSO providers that still sign people in, Slack and Microsoft Teams rules
+ * that still post, schedules that still page people, and API keys and SCIM
+ * connections, which stop working until the project is back on the plan
+ * (Common/Types/Billing/PlanCutoffCredentials) - and every plan can read it,
+ * switch it off and delete it (Common/Types/Billing/PlanGatedTable);
+ * creating, changing and switching back on still need the plan, and so does
+ * reading anything else a plan sells. The English guides say where that is
+ * done and what is left gated.
  * Markdown is not compiled, so nothing else notices a guide that falls
  * behind.
  */
@@ -65,13 +66,13 @@ describe("the API reference", () => {
     );
   });
 
-  it("says what a project may still do with what it has: delete, switch off with isEnabled alone, and read what keeps working", () => {
+  it("says what a project may still do with what it has: delete, switch off with isEnabled alone, and read what it has to find", () => {
     expect(section).toContain("- you can delete those records;");
     expect(section).toContain(
       '- you can switch one off, on a resource with an `isEnabled` field, by sending `"isEnabled": false` and nothing else;',
     );
     expect(section).toContain(
-      "- you can list and read the ones that keep working after the plan goes down: single sign-on providers, SCIM connections, API keys and their permissions, on-call schedules, and Slack and Microsoft Teams notification rules and summaries.",
+      "- you can list and read the ones a project has to find after the plan goes down - to switch them off, or to see what stopped: single sign-on providers, SCIM connections, API keys and their permissions, on-call schedules, and Slack and Microsoft Teams notification rules and summaries.",
     );
   });
 
@@ -87,9 +88,20 @@ describe("the API reference", () => {
     );
   });
 
-  it("says a leaked API key can always be revoked", () => {
-    expect(section).toContain(
-      "Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has, so any of them can be deleted (revoked) on every plan.",
+  it("says a leaked API key can always be revoked, in the section on API keys below their plan", () => {
+    const keysSection: string = sectionOf(
+      readPage("en/api-reference/api-reference.md"),
+      "### API keys and SCIM below their plan",
+    );
+
+    expect(keysSection).toContain(
+      "Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan.",
+    );
+  });
+
+  it("no longer says API keys keep working after a plan goes down", () => {
+    expect(readPage("en/api-reference/api-reference.md")).not.toContain(
+      "API keys keep working after a plan goes down.",
     );
   });
 });
@@ -133,9 +145,9 @@ describe("the SCIM guide", () => {
     "### Below the Scale plan",
   );
 
-  it("lists the connections under the upsell, and deleting is how one stops", () => {
+  it("lists the connections under the upsell, says they stopped, and deleting removes one", () => {
     expect(section).toContain(
-      "list the connections under the plan's upsell (**SCIM connections still set up**). Delete a connection to stop it.",
+      "list the connections under the plan's upsell (**SCIM connections still set up**) and say they stopped. Delete a connection to remove it.",
     );
     expect(section).toContain(
       "Adding a connection, changing one or replacing its bearer token needs **Scale**.",
@@ -193,11 +205,11 @@ describe("the on-call schedules guide", () => {
 });
 
 describe("the Terraform troubleshooting guide", () => {
-  it("says plan, import and destroy work below the plan, and what still answers 402", () => {
+  it("says plan, import and destroy work below the plan, while the provider's key is on Growth, and what still answers 402", () => {
     const page: string = readPage("en/terraform/troubleshooting.md");
 
     expect(page).toContain(
-      "below the plan, the ones the project already has can still be read (so `terraform plan` and `import` work), deleted (so removing them from the configuration, or `terraform destroy`, applies), and switched off where they have an `is_enabled` attribute. Creating them, changing them or switching them on again still answers 402.",
+      "below the plan (while the project is still on Growth, which the provider's own API key needs), the ones the project already has can still be read (so `terraform plan` and `import` work), deleted (so removing them from the configuration, or `terraform destroy`, applies), and switched off where they have an `is_enabled` attribute. Creating them, changing them or switching them on again still answers 402.",
     );
     expect(page).toContain(
       "Other resources your plan sells, such as templates, custom fields and monitor groups, still need the plan to be read, so a plan that refreshes them answers 402; they can still be deleted, for example with `terraform destroy -refresh=false`.",
