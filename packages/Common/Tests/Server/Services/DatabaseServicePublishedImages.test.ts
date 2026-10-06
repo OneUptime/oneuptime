@@ -938,9 +938,16 @@ describe("update: a column the service writes in SQL", () => {
 
     // ...a statement of its own writes it as its expression, and hands it back.
     expect(repository.update).toHaveBeenCalledTimes(1);
-    expect(
-      Object.keys(repository.update.mock.calls[0]![1] as Dictionary<unknown>),
-    ).toEqual(["isVisibleOnStatusPage"]);
+
+    const values: Dictionary<unknown> = repository.update.mock
+      .calls[0]![1] as Dictionary<unknown>;
+
+    expect(Object.keys(values).sort()).toEqual([
+      "isVisibleOnStatusPage",
+      "version",
+    ]);
+    // The version as save() left it: one update moves it on once.
+    expect((values["version"] as () => string)()).toBe('"version"');
     expect(
       (repository.update.mock.calls[0]![2] as { returning: Array<string> })
         .returning,
@@ -1022,7 +1029,7 @@ describe("the status page overview cache follows the writes", () => {
     expect(forgetProjects).not.toHaveBeenCalled();
   });
 
-  test("a purge of an incident's place in an episode reads the rows' project, and forgets it", async () => {
+  test("a purge of an incident's place in an episode reads the rows with their project, and forgets it", async () => {
     const forgetProjects: SpyInstance<
       typeof StatusPageOverviewCache.forgetProjects
     > = jest
@@ -1045,11 +1052,9 @@ describe("the status page overview cache follows the writes", () => {
       props: rootProps(),
     });
 
-    // Nothing an episode member shows is read, but its project is.
-    expect(selectsAsked(repository)[0]).not.toContain("projectId");
-    expect(selectsAsked(repository).slice(-1)[0]).toEqual(
-      expect.arrayContaining(["_id", "projectId"]),
-    );
+    // Read once, with its project: nothing an episode member shows is read.
+    expect(selectsAsked(repository)).toHaveLength(1);
+    expect(selectsAsked(repository)[0]).toContain("projectId");
     expect(forgetProjects).toHaveBeenCalledTimes(1);
     expect(forgetProjects.mock.calls[0]![0]).toEqual([PROJECT_ID.toString()]);
     expect(setImagesVisibility).not.toHaveBeenCalled();

@@ -11,6 +11,7 @@ import StatusPageOverviewCache, {
   SHOWN_RECORD_TABLES,
   STATUS_PAGE_CONFIGURATION_TABLES,
   STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
+  UNSHOWN_CONFIGURATION_COLUMNS,
 } from "../../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -393,8 +394,11 @@ describe("StatusPageOverviewCache generations", () => {
 describe("StatusPageOverviewCache when Redis cannot be reached", () => {
   beforeEach(redisUnreachable);
 
-  test("an overview built meanwhile is not served once Redis can be reached, and Redis is asked again", async () => {
+  test("an overview built meanwhile is not served once Redis is reached again, within SHARED_GENERATION_READ_TTL_MS", async () => {
     const { build } = counter();
+    const startedAt: number = Date.now();
+
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
 
     const meanwhile: JSONObject = await overview({ build });
 
@@ -402,9 +406,15 @@ describe("StatusPageOverviewCache when Redis cannot be reached", () => {
     jest.restoreAllMocks();
     redisReachable();
     redis.set(GENERATION_KEY, "while-unreachable");
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(
+        startedAt + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1,
+      );
 
     const reached: JSONObject = await overview({ build });
 
+    expect(GlobalCache.getString).toHaveBeenCalledTimes(1);
     expect(reached).not.toBe(meanwhile);
     expect(build).toHaveBeenCalledTimes(2);
   });
@@ -417,6 +427,29 @@ describe("StatusPageOverviewCache when Redis cannot be reached", () => {
     await overview({ build });
 
     expect(build).toHaveBeenCalledTimes(2);
+  });
+
+  test("Redis is asked once per project for SHARED_GENERATION_READ_TTL_MS, not by every request", async () => {
+    const { build } = counter();
+    const startedAt: number = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(startedAt);
+
+    await overview({ build, statusPageId: PAGE_ID });
+    await overview({ build, statusPageId: PAGE_ID });
+    await overview({ build, statusPageId: OTHER_PAGE_ID });
+
+    expect(GlobalCache.getString).toHaveBeenCalledTimes(1);
+    expect(build).toHaveBeenCalledTimes(2);
+
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(
+        startedAt + StatusPageOverviewCache.SHARED_GENERATION_READ_TTL_MS + 1,
+      );
+
+    await overview({ build, statusPageId: PAGE_ID });
+
+    expect(GlobalCache.getString).toHaveBeenCalledTimes(2);
   });
 
   test("forgetting never throws", async () => {
@@ -437,6 +470,33 @@ describe("StatusPageOverviewCache when Redis cannot be reached", () => {
 
 describe("StatusPageOverviewCache.forgetProjects", () => {
   beforeEach(redisReachable);
+
+  test("writes every project's generation to Redis together, not one after another", async () => {
+    const pending: Array<() => void> = [];
+
+    (
+      GlobalCache.setString as unknown as Mock<typeof GlobalCache.setString>
+    ).mockImplementation(async (): Promise<void> => {
+      await new Promise<void>((resolve: () => void) => {
+        pending.push(resolve);
+      });
+    });
+
+    const forgetting: Promise<void> = StatusPageOverviewCache.forgetProjects([
+      PROJECT_ID,
+      OTHER_PROJECT_ID,
+    ]);
+
+    // Both asked before either answered.
+    await Promise.resolve();
+    expect(pending).toHaveLength(2);
+
+    for (const resolve of pending) {
+      resolve();
+    }
+
+    await forgetting;
+  });
 
   test("starts a new, unpredictable generation per project, in Redis, for a day", async () => {
     await StatusPageOverviewCache.forgetProjects([
@@ -514,6 +574,7 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     ["StatusPage", "showIncidentLabelsOnStatusPage", false],
     ["StatusPageGroup", "name", "Region"],
     ["StatusPageResource", "displayName", "API"],
+    ["StatusPageMonitorRule", "name", "Production monitors"],
   ] as Array<[string, string, unknown]>)(
     "a write of %s.%s as %p, which may take something off a page, forgets the rows' projects, each once",
     async (tableName: string, column: string, value: unknown) => {
@@ -617,6 +678,10 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     "StatusPage",
     "StatusPageGroup",
     "StatusPageResource",
+    "StatusPageMonitorRule",
+    "Monitor",
+    "MonitorGroup",
+    "MonitorGroupResource",
   ])(
     "a delete of a %s forgets the overviews of the rows' projects, each once",
     async (tableName: string) => {
@@ -633,9 +698,40 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     },
   );
 
+  test("a write of only a page's bookkeeping, which no visitor sees, keeps them; with anything else, forgets them", async () => {
+    for (const written of [
+      { isOwnerNotifiedOfResourceCreation: true },
+      { sendNextReportBy: new Date() },
+      {
+        isOwnerNotifiedOfResourceCreation: true,
+        sendNextReportBy: new Date(),
+        name: undefined,
+      },
+    ]) {
+      await StatusPageOverviewCache.afterUpdate({
+        tableName: "StatusPage",
+        rows: ROWS,
+        written: written,
+      });
+    }
+
+    expect(forgetProjects).not.toHaveBeenCalled();
+
+    await StatusPageOverviewCache.afterUpdate({
+      tableName: "StatusPage",
+      rows: ROWS,
+      written: {
+        sendNextReportBy: new Date(),
+        showIncidentsOnStatusPage: false,
+      },
+    });
+
+    expect(forgetProjects).toHaveBeenCalledTimes(1);
+  });
+
   test("a delete of anything else, or of no rows, keeps them", async () => {
     for (const tableName of [
-      "Monitor",
+      "Probe",
       "IncidentInternalNote",
       "toString",
       "constructor",
@@ -769,8 +865,41 @@ describe("GUARD: SHOWN_RECORD_TABLES", () => {
       ...Object.keys(HIDING_WRITES),
       ...STATUS_PAGE_CONFIGURATION_TABLES,
       "IncidentEpisodeMember",
+      // Their delete carries on to the page's resources in the database.
+      "Monitor",
+      "MonitorGroup",
+      "MonitorGroupResource",
     ]) {
       expect(SHOWN_RECORD_TABLES).toContain(tableName);
+    }
+  });
+
+  test("names a page's configuration, with bookkeeping columns of its own models only", () => {
+    expect([...STATUS_PAGE_CONFIGURATION_TABLES].sort()).toEqual([
+      "StatusPage",
+      "StatusPageGroup",
+      "StatusPageMonitorRule",
+      "StatusPageResource",
+    ]);
+
+    for (const [tableName, columns] of Object.entries(
+      UNSHOWN_CONFIGURATION_COLUMNS,
+    )) {
+      expect(STATUS_PAGE_CONFIGURATION_TABLES).toContain(tableName);
+
+      const model: BaseModel = modelOf(tableName);
+
+      for (const column of columns) {
+        expect({
+          tableName,
+          column,
+          isColumn: model.hasColumn(column),
+        }).toEqual({
+          tableName,
+          column,
+          isColumn: true,
+        });
+      }
     }
   });
 

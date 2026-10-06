@@ -24,9 +24,13 @@ import { randomBytes } from "crypto";
  *     pages, or moved off pages or monitors (HIDING_WRITES);
  *   - an announcement moved off pages or monitors, or its dates changed;
  *   - any of those deleted, a public note, an incident's place in an
- *     episode (SHOWN_RECORD_TABLES);
- *   - any write or delete of a page's own settings, groups or resources
- *     (STATUS_PAGE_CONFIGURATION_TABLES).
+ *     episode, a monitor, a monitor group or a monitor's place in one - a
+ *     delete the database carries on to the page's resources itself
+ *     (SHOWN_RECORD_TABLES);
+ *   - a write or delete of a page's own settings, groups, resources or
+ *     monitor rules (STATUS_PAGE_CONFIGURATION_TABLES), but for the
+ *     bookkeeping OneUptime writes as it works, which no visitor sees
+ *     (UNSHOWN_CONFIGURATION_COLUMNS).
  *
  * A write that can only show more - a switch turned on, Private turned off -
  * starts none, and neither does an edit that leaves a record shown (a title,
@@ -97,20 +101,36 @@ export const HIDING_WRITES: Readonly<
 };
 
 /*
- * A status page's own configuration: the page, its groups and its
- * resources. Any write or delete of it may take something off the page.
+ * A status page's own configuration: the page, its groups, its resources
+ * and the rules that add monitors to it. Any write or delete of it may take
+ * something off the page - but for UNSHOWN_CONFIGURATION_COLUMNS.
  */
 export const STATUS_PAGE_CONFIGURATION_TABLES: ReadonlyArray<string> = [
   "StatusPage",
   "StatusPageGroup",
   "StatusPageResource",
+  "StatusPageMonitorRule",
 ];
+
+/*
+ * The columns of a page's configuration that nothing a visitor is shown
+ * depends on: bookkeeping OneUptime writes as it works (that the owners
+ * heard of the page, when its next report goes out). A write of only these
+ * takes nothing off.
+ */
+export const UNSHOWN_CONFIGURATION_COLUMNS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  StatusPage: ["isOwnerNotifiedOfResourceCreation", "sendNextReportBy"],
+};
 
 /*
  * The records whose delete takes something off a status page: those above,
  * the public notes shown with them, an incident's place in an episode (an
- * episode reaches a page through its incidents), and a page's own
- * configuration.
+ * episode reaches a page through its incidents), a page's own
+ * configuration, and the monitors a page shows - a monitor, a monitor group,
+ * a monitor's place in a group - whose delete the database carries on to
+ * the page's resources and the incidents' monitors by itself.
  */
 export const SHOWN_RECORD_TABLES: ReadonlyArray<string> = [
   ...Object.keys(HIDING_WRITES),
@@ -119,6 +139,9 @@ export const SHOWN_RECORD_TABLES: ReadonlyArray<string> = [
   "ScheduledMaintenancePublicNote",
   "IncidentEpisodeMember",
   ...STATUS_PAGE_CONFIGURATION_TABLES,
+  "Monitor",
+  "MonitorGroup",
+  "MonitorGroupResource",
 ];
 
 // What a generation reads as before any write started one.
@@ -259,11 +282,12 @@ export default class StatusPageOverviewCache {
   }
 
   /*
-   * Whether a write to a table can take something off a status page: any
-   * write of a page's own configuration, and a write of a column of
-   * HIDING_WRITES as it may hide - a switch that shows a record written as
-   * anything but on, one that hides it written as anything but off, or any
-   * value of a column of "any". A write that can only show more cannot.
+   * Whether a write to a table can take something off a status page: a
+   * write of a page's own configuration, unless it writes only bookkeeping
+   * no visitor sees (UNSHOWN_CONFIGURATION_COLUMNS), and a write of a column
+   * of HIDING_WRITES as it may hide - a switch that shows a record written
+   * as anything but on, one that hides it written as anything but off, or
+   * any value of a column of "any". A write that can only show more cannot.
    */
   public static mayTakeSomethingOff(
     tableName: string | null | undefined,
@@ -273,15 +297,27 @@ export default class StatusPageOverviewCache {
       return false;
     }
 
+    const row: Row = (written || {}) as Row;
+
     if (STATUS_PAGE_CONFIGURATION_TABLES.includes(tableName)) {
-      return true;
+      const unshown: ReadonlyArray<string> =
+        Object.prototype.hasOwnProperty.call(
+          UNSHOWN_CONFIGURATION_COLUMNS,
+          tableName,
+        )
+          ? UNSHOWN_CONFIGURATION_COLUMNS[tableName]!
+          : [];
+
+      return Object.entries(row).some(
+        ([column, value]: [string, unknown]): boolean => {
+          return value !== undefined && !unshown.includes(column);
+        },
+      );
     }
 
     if (!Object.prototype.hasOwnProperty.call(HIDING_WRITES, tableName)) {
       return false;
     }
-
-    const row: Row = (written || {}) as Row;
 
     return Object.entries(HIDING_WRITES[tableName]!).some(
       ([column, hidingWrite]: [string, HidingWrite]): boolean => {
@@ -317,39 +353,49 @@ export default class StatusPageOverviewCache {
   public static async forgetProjects(
     projectIds: Array<ObjectID | string>,
   ): Promise<void> {
-    for (const projectId of new Set<string>(
-      projectIds.map((id: ObjectID | string): string => {
-        return id.toString().toLowerCase();
-      }),
-    )) {
+    const projects: Array<string> = Array.from(
+      new Set<string>(
+        projectIds.map((id: ObjectID | string): string => {
+          return id.toString().toLowerCase();
+        }),
+      ),
+    );
+
+    // Here at once, before anything is asked of Redis.
+    for (const projectId of projects) {
       // Values nobody can predict never meet ones kept before.
       this.generations.set(
         projectId,
         this.newGeneration(),
         GENERATION_TTL_SECONDS * 1000,
       );
-
-      const shared: string = this.newGeneration();
-
-      try {
-        await GlobalCache.setString(
-          STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
-          this.generationKey(projectId),
-          shared,
-          { expiresInSeconds: GENERATION_TTL_SECONDS },
-        );
-
-        this.sharedGenerations.set(
-          projectId,
-          shared,
-          this.SHARED_GENERATION_READ_TTL_MS,
-        );
-      } catch (err) {
-        logger.error(
-          `Status page overviews of project ${projectId} are refreshed in this process only: ${String(err)}`,
-        );
-      }
     }
+
+    // Every project's shared generation together, not one after another.
+    await Promise.all(
+      projects.map(async (projectId: string): Promise<void> => {
+        const shared: string = this.newGeneration();
+
+        try {
+          await GlobalCache.setString(
+            STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE,
+            this.generationKey(projectId),
+            shared,
+            { expiresInSeconds: GENERATION_TTL_SECONDS },
+          );
+
+          this.sharedGenerations.set(
+            projectId,
+            shared,
+            this.SHARED_GENERATION_READ_TTL_MS,
+          );
+        } catch (err) {
+          logger.error(
+            `Status page overviews of project ${projectId} are refreshed in this process only: ${String(err)}`,
+          );
+        }
+      }),
+    );
   }
 
   // Drops everything this process keeps. For tests.
@@ -428,7 +474,9 @@ export default class StatusPageOverviewCache {
   /*
    * The shared generation, as read from Redis at most
    * SHARED_GENERATION_READ_TTL_MS ago; requests that ask together share one
-   * read. UNREACHABLE_GENERATION while Redis cannot be reached, never kept.
+   * read. UNREACHABLE_GENERATION while Redis cannot be reached - kept as
+   * long, so a Redis that fails or stalls is asked once in that time, not by
+   * every request.
    */
   private static async getSharedGeneration(projectId: string): Promise<string> {
     const remembered: string | undefined =
@@ -470,6 +518,12 @@ export default class StatusPageOverviewCache {
 
       return shared;
     } catch {
+      this.sharedGenerations.set(
+        projectId,
+        UNREACHABLE_GENERATION,
+        this.SHARED_GENERATION_READ_TTL_MS,
+      );
+
       return UNREACHABLE_GENERATION;
     }
   }
