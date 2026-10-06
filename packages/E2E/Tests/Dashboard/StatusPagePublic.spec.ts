@@ -56,6 +56,9 @@ import {
  */
 const PREFERRED_PLAN_NAME: string = "Growth";
 
+// Letting subscribers choose resources is sold on Scale (see the Subscribe test).
+const SUBSCRIBE_PLAN_NAME: string = "Scale";
+
 test.describe.configure({ mode: "serial", retries: 1 });
 
 test.describe("public status page", () => {
@@ -345,9 +348,17 @@ test.describe("public status page", () => {
 
     const unique: string = Faker.generateName().toString().replace(/\s/g, "-");
 
+    /*
+     * The page below lets subscribers choose resources - the Subscribe form
+     * asks for the page's resources only then - and that is sold on Scale,
+     * when the page is created with it as when it is switched on later
+     * (StatusPage.allowSubscribersToChooseResources). So the billing-enabled
+     * run creates this project on Scale.
+     */
     const projectId: string = await registerAndCreateProject({
       page,
       projectNamePrefix: "Status Page Subscribe E2E",
+      preferredPlanName: IS_BILLING_ENABLED ? SUBSCRIBE_PLAN_NAME : undefined,
     });
 
     const defaults: ProjectDefaults = await getProjectDefaults({
@@ -511,9 +522,15 @@ test.describe("public status page", () => {
 
     const unique: string = Faker.generateName().toString().replace(/\s/g, "-");
 
+    /*
+     * A private status page is sold on Growth, when the page is created
+     * private as when it is made private later (StatusPage.isPublicStatusPage),
+     * so the billing-enabled run creates this project on Growth too.
+     */
     const projectId: string = await registerAndCreateProject({
       page,
       projectNamePrefix: "Private Status Page E2E",
+      preferredPlanName: IS_BILLING_ENABLED ? PREFERRED_PLAN_NAME : undefined,
     });
 
     const statusPage: JSONish = await createItem({
