@@ -23,8 +23,10 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  *   - an episode's description, and a scheduled maintenance event's, while
  *     the episode or the event is shown on status pages (an episode, like an
  *     incident, never while it is private);
- *   - public notes (of incidents, episodes and scheduled maintenance) and
- *     announcements, always;
+ *   - a public note of an incident, an episode or a scheduled maintenance
+ *     event while that record is shown on status pages - a note is shown on
+ *     its record's page, never without it (shownUnder);
+ *   - announcements, always;
  *   - a status page's overview description, and the descriptions of its
  *     groups and resources, always;
  *   - a form's description and thank-you message, on its public page,
@@ -39,11 +41,16 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  * it - the dashboard, the API, Terraform, a workflow, OneUptime itself: a
  * record created or edited to show an image makes it public (afterCreate,
  * afterUpdate), and a record that stops showing it - its switch turned off,
- * the image edited out, the record deleted, or the record it belongs to
- * deleted with it (CASCADES), or its project deleted - makes it private again
- * (afterUpdate, afterDelete), unless another record of the project still
- * shows it: an image is copied along with the markdown it sits in, so a
- * template's image can be in many incidents at once.
+ * the record it is shown under hidden, the image edited out, the record
+ * deleted, or the record it belongs to deleted with it (CASCADES), or its
+ * project deleted - makes it private again (afterUpdate, afterDelete),
+ * unless another record of the project still shows it: an image is copied
+ * along with the markdown it sits in, so a template's image can be in many
+ * incidents at once. An update decides each row by what its own write
+ * stored (DatabaseService hands back the row as written), and an image it
+ * no longer shows is made private only once the database says nothing of
+ * the project shows it (findStillShown) - so a write read before another
+ * landed never leaves an image public that nothing shows.
  *
  * Only an image of the record's own project is ever made public or private
  * by it: a record of one project never opens another project's image, nor
@@ -57,7 +64,10 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  * files are made private (PROJECT_FILES_PRIVATE_SQL). Files made public
  * before this rule existed were set to it once
  * (SetFileVisibilityFromPublishedRecords, a data migration that runs
- * PUBLISH_SHOWN_IMAGES_SQL and HIDE_UNSHOWN_FILES_SQL).
+ * PUBLISH_SHOWN_IMAGES_SQL and HIDE_UNSHOWN_FILES_SQL), and so were images
+ * made public by a private record (HideImagesOfPrivateIncidents,
+ * HIDE_PRIVATE_RECORD_IMAGES_SQL) or by a public note of a record no status
+ * page shows (HideImagesOfHiddenRecordNotes, HIDE_HIDDEN_RECORD_IMAGES_SQL).
  */
 
 // The address of an inline image in markdown, and the token it carries.
@@ -116,9 +126,48 @@ export interface PublishedMarkdown {
    * page reads it.
    */
   hiddenWhen?: Array<string> | undefined;
+  /*
+   * The record this one is shown under, for a record a status page shows
+   * only on that record's page: a public note, under its incident, episode
+   * or scheduled maintenance event. Its markdown is shown only while that
+   * record is shown too, whatever this record's own switches say.
+   */
+  shownUnder?: PublishedParent | undefined;
   // Where everyone sees it.
   shownOn: "statusPage" | "formPage" | "notifications";
 }
+
+// The record a published record is shown under, and when it is shown.
+export interface PublishedParent {
+  // Its table.
+  tableName: string;
+  // The column of the record shown under it that names it.
+  foreignKey: string;
+  // Its switches that must all be on for it to be shown.
+  shownWhen: Array<string>;
+  // Its switches any one of which, on, hides it (null is off).
+  hiddenWhen?: Array<string> | undefined;
+}
+
+// An incident is shown while visible and not private (StatusPageVisibility).
+const INCIDENT_PARENT: Omit<PublishedParent, "foreignKey"> = {
+  tableName: "Incident",
+  shownWhen: ["isVisibleOnStatusPage"],
+  hiddenWhen: ["isPrivate"],
+};
+
+// So is an episode.
+const EPISODE_PARENT: Omit<PublishedParent, "foreignKey"> = {
+  tableName: "IncidentEpisode",
+  shownWhen: ["isVisibleOnStatusPage"],
+  hiddenWhen: ["isPrivate"],
+};
+
+// A scheduled maintenance event, while visible: it has no Private switch.
+const SCHEDULED_MAINTENANCE_PARENT: Omit<PublishedParent, "foreignKey"> = {
+  tableName: "ScheduledMaintenance",
+  shownWhen: ["isVisibleOnStatusPage"],
+};
 
 export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
   {
@@ -139,6 +188,7 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "IncidentPublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
+    shownUnder: { ...INCIDENT_PARENT, foreignKey: "incidentId" },
     shownOn: "statusPage",
   },
   {
@@ -152,6 +202,7 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "IncidentEpisodePublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
+    shownUnder: { ...EPISODE_PARENT, foreignKey: "incidentEpisodeId" },
     shownOn: "statusPage",
   },
   {
@@ -164,6 +215,10 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "ScheduledMaintenancePublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
+    shownUnder: {
+      ...SCHEDULED_MAINTENANCE_PARENT,
+      foreignKey: "scheduledMaintenanceId",
+    },
     shownOn: "statusPage",
   },
   {
@@ -354,9 +409,38 @@ const getTextSql: (source: PublishedMarkdown) => string = (
     .join(", ")})`;
 };
 
+// The alias a record's parent is read under, inside its source's query.
+const PARENT_ALIAS: string = "parentRecord";
+
+/*
+ * Whether the record a row is shown under is shown (shownUnder): the row's
+ * parent, of the row's own project, not deleted, every switch of it on and
+ * none that hides it on. `rowTable` is how the row's table is named in the
+ * query around it.
+ */
+const getParentShownSql: (
+  parent: PublishedParent,
+  rowTable: string,
+) => string = (parent: PublishedParent, rowTable: string): string => {
+  const alias: string = quote(PARENT_ALIAS);
+
+  return `EXISTS (SELECT 1 FROM ${quote(parent.tableName)} AS ${alias} WHERE ${[
+    `${alias}.${quote("_id")} = ${rowTable}.${quote(parent.foreignKey)}`,
+    `${alias}.${quote("projectId")} = ${rowTable}.${quote("projectId")}`,
+    `${alias}.${quote("deletedAt")} IS NULL`,
+    ...parent.shownWhen.map((column: string): string => {
+      return `${alias}.${quote(column)} = true`;
+    }),
+    ...(parent.hiddenWhen || []).map((column: string): string => {
+      return `${alias}.${quote(column)} IS NOT TRUE`;
+    }),
+  ].join(" AND ")})`;
+};
+
 /*
  * The rows of a source that show their markdown: not deleted, every switch
- * on, and no switch that hides it on (NULL is off, as for isPrivate).
+ * on, and no switch that hides it on (NULL is off, as for isPrivate) - and,
+ * for a record shown under another, that record shown too.
  */
 const getShownWhereSql: (source: PublishedMarkdown) => string = (
   source: PublishedMarkdown,
@@ -369,6 +453,9 @@ const getShownWhereSql: (source: PublishedMarkdown) => string = (
     ...(source.hiddenWhen || []).map((column: string): string => {
       return `${quote(column)} IS NOT TRUE`;
     }),
+    ...(source.shownUnder
+      ? [getParentShownSql(source.shownUnder, quote(source.tableName))]
+      : []),
   ].join(" AND ");
 };
 
@@ -462,61 +549,78 @@ export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (S
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
-// The rows of a source a switch hides (hiddenWhen), not deleted.
-const getHiddenWhereSql: (source: PublishedMarkdown) => string = (
+/*
+ * The rows of a source that hold markdown they do not show, not deleted: a
+ * record a switch hides (hiddenWhen: a private incident or episode) - and,
+ * with `underHidden`, a record shown under one that is not shown
+ * (shownUnder: a public note of a hidden or private incident, episode or
+ * scheduled maintenance event). Null for a source neither can hide.
+ */
+const getHiddenWhereSql: (
   source: PublishedMarkdown,
+  underHidden: boolean,
+) => string | null = (
+  source: PublishedMarkdown,
+  underHidden: boolean,
+): string | null => {
+  const isHidden: Array<string> = [];
+
+  if ((source.hiddenWhen || []).length > 0) {
+    isHidden.push(
+      (source.hiddenWhen || [])
+        .map((column: string): string => {
+          return `${quote(column)} IS TRUE`;
+        })
+        .join(" OR "),
+    );
+  }
+
+  if (underHidden && source.shownUnder) {
+    isHidden.push(
+      `NOT ${getParentShownSql(source.shownUnder, quote(source.tableName))}`,
+    );
+  }
+
+  if (isHidden.length === 0) {
+    return null;
+  }
+
+  return `${quote("deletedAt")} IS NULL AND (${isHidden.join(" OR ")})`;
+};
+
+/*
+ * Every image a hidden row (getHiddenWhereSql) holds in the markdown it
+ * would otherwise show, with the row's project: by its token, or (byId) by
+ * its file's id address (/file/image/<id>, markdown written by hand).
+ */
+const getHiddenImagesSql: (
+  sources: ReadonlyArray<PublishedMarkdown>,
+  underHidden: boolean,
+  byId: boolean,
+) => string = (
+  sources: ReadonlyArray<PublishedMarkdown>,
+  underHidden: boolean,
+  byId: boolean,
 ): string => {
-  const isHidden: string = (source.hiddenWhen || [])
-    .map((column: string): string => {
-      return `${quote(column)} IS TRUE`;
-    })
-    .join(" OR ");
+  const selects: Array<string> = [];
 
-  return `${quote("deletedAt")} IS NULL AND (${isHidden})`;
-};
+  for (const source of sources) {
+    const where: string | null = getHiddenWhereSql(source, underHidden);
 
-// The sources a switch can hide (hiddenWhen: a private incident or episode).
-const getHideableSources: (
-  sources: ReadonlyArray<PublishedMarkdown>,
-) => Array<PublishedMarkdown> = (
-  sources: ReadonlyArray<PublishedMarkdown>,
-): Array<PublishedMarkdown> => {
-  return sources.filter((source: PublishedMarkdown): boolean => {
-    return (source.hiddenWhen || []).length > 0;
-  });
-};
+    if (!where) {
+      continue;
+    }
 
-/*
- * Every image token a record a switch hides (hiddenWhen: a private incident
- * or episode) holds in the markdown it would otherwise show, with the
- * record's project.
- */
-const getHiddenTokensSql: (
-  sources: ReadonlyArray<PublishedMarkdown>,
-) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
-  return getHideableSources(sources)
-    .map((source: PublishedMarkdown): string => {
-      const text: string = getTextSql(source);
+    const text: string = getTextSql(source);
 
-      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${getHiddenWhereSql(source)} AND ${text} LIKE '%/file/image/access-token/%'`;
-    })
-    .join(" UNION ALL ");
-};
+    selects.push(
+      byId
+        ? `SELECT ${quote("projectId")} AS ${quote("projectId")}, lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${where} AND ${text} LIKE '%/file/image/%'`
+        : `SELECT ${quote("projectId")} AS ${quote("projectId")}, (regexp_matches(${text}, '${INLINE_IMAGE_TOKEN_PATTERN}', 'g'))[1] AS ${quote("token")} FROM ${quote(source.tableName)} WHERE ${where} AND ${text} LIKE '%/file/image/access-token/%'`,
+    );
+  }
 
-/*
- * Every file id such a record holds by its id address (/file/image/<id>,
- * markdown written by hand), with the record's project.
- */
-const getHiddenFileIdsSql: (
-  sources: ReadonlyArray<PublishedMarkdown>,
-) => string = (sources: ReadonlyArray<PublishedMarkdown>): string => {
-  return getHideableSources(sources)
-    .map((source: PublishedMarkdown): string => {
-      const text: string = getTextSql(source);
-
-      return `SELECT ${quote("projectId")} AS ${quote("projectId")}, lower((regexp_matches(${text}, '${IMAGE_BY_ID_PATTERN}', 'g'))[1]) AS ${quote("fileId")} FROM ${quote(source.tableName)} WHERE ${getHiddenWhereSql(source)} AND ${text} LIKE '%/file/image/%'`;
-    })
-    .join(" UNION ALL ");
+  return selects.join(" UNION ALL ");
 };
 
 // A file of the record's own project, or of no project, as the record holds it.
@@ -527,25 +631,58 @@ const getSameProjectOrNoneSql: (alias: string) => string = (
 };
 
 /*
+ * Every public image a hidden row holds (getHiddenWhereSql), of the row's
+ * own project or of no project (a file from before File.projectId was
+ * stamped), by its token or by its id, becomes private - unless a published
+ * record of any project still shows it, by its token or by its id, or it is
+ * an icon, exactly as HIDE_UNSHOWN_FILES_SQL keeps them. Nothing else moves,
+ * and nothing is made public.
+ */
+const getHideHiddenImagesSql: (underHidden: boolean) => string = (
+  underHidden: boolean,
+): string => {
+  const sources: Array<PublishedMarkdown> = [
+    ...PUBLISHED_MARKDOWN,
+    ...KEPT_MARKDOWN,
+  ];
+
+  return `WITH ${quote("hiddenToken")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${getHiddenImagesSql(
+    sources,
+    underHidden,
+    false,
+  )}) AS ${quote("hidden")}), ${quote("hiddenId")} AS (SELECT ${quote("projectId")}, ${quote("fileId")} FROM (${getHiddenImagesSql(
+    sources,
+    underHidden,
+    true,
+  )}) AS ${quote("hiddenIds")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
+    sources,
+  )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
+    sources,
+  )}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND (EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${getSameProjectOrNoneSql("hiddenToken")}) OR EXISTS (SELECT 1 FROM ${quote("hiddenId")} WHERE ${quote("hiddenId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text AND ${getSameProjectOrNoneSql("hiddenId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+};
+
+/*
  * Once, for images made public before a private record stopped showing
  * them: an incident or an episode stored private with Visible on Status Page
  * still on showed its description, postmortem and custom fields as published
  * then, so their images were made public, or kept public when addressed by
- * the file's id. Each such image of the record's own project, or of no
- * project (a file from before File.projectId was stamped), held by its token
- * or by its id, becomes private - unless a published record of any project
- * still shows it, by its token or by its id, or it is an icon, exactly as
- * HIDE_UNSHOWN_FILES_SQL keeps them. Nothing else moves.
+ * the file's id. Each such image becomes private, as getHideHiddenImagesSql
+ * says. (HideImagesOfPrivateIncidents runs it.)
  */
-export const HIDE_PRIVATE_RECORD_IMAGES_SQL: string = `WITH ${quote("hiddenToken")} AS (SELECT ${quote("projectId")}, ${quote("token")} FROM (${getHiddenTokensSql(
-  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("hidden")}), ${quote("hiddenId")} AS (SELECT ${quote("projectId")}, ${quote("fileId")} FROM (${getHiddenFileIdsSql(
-  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("hiddenIds")}), ${quote("shownToken")} AS (SELECT ${quote("token")} FROM (${getShownTokensSql(
-  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
-  [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND (EXISTS (SELECT 1 FROM ${quote("hiddenToken")} WHERE ${quote("hiddenToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")} AND ${getSameProjectOrNoneSql("hiddenToken")}) OR EXISTS (SELECT 1 FROM ${quote("hiddenId")} WHERE ${quote("hiddenId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text AND ${getSameProjectOrNoneSql("hiddenId")})) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+export const HIDE_PRIVATE_RECORD_IMAGES_SQL: string =
+  getHideHiddenImagesSql(false);
+
+/*
+ * Once, for images made public before public notes followed the record they
+ * are shown under: a public note made its images public whatever its
+ * incident, episode or scheduled maintenance event showed, and kept a
+ * private record's own images public when it held them too. Each image a
+ * private incident or episode holds, or a public note of a record that is
+ * not shown (hidden, or private), becomes private, as getHideHiddenImagesSql
+ * says. (HideImagesOfHiddenRecordNotes runs it.)
+ */
+export const HIDE_HIDDEN_RECORD_IMAGES_SQL: string =
+  getHideHiddenImagesSql(true);
 
 // The published rows of a table a delete of its parent takes with it.
 export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
@@ -566,6 +703,56 @@ export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
   )} = ANY($1::uuid[]) AND ${quote("deletedAt")} IS NULL`;
 };
 
+/*
+ * Which of some records published records are shown under are shown now,
+ * with each one's project: $1 is their ids.
+ */
+export const getShownParentsSql: (parent: PublishedParent) => string = (
+  parent: PublishedParent,
+): string => {
+  return `SELECT ${quote("_id")}, ${quote("projectId")} FROM ${quote(parent.tableName)} WHERE ${quote("_id")} = ANY($1::uuid[]) AND ${[
+    `${quote("deletedAt")} IS NULL`,
+    ...parent.shownWhen.map((column: string): string => {
+      return `${quote(column)} = true`;
+    }),
+    ...(parent.hiddenWhen || []).map((column: string): string => {
+      return `${quote(column)} IS NOT TRUE`;
+    }),
+  ].join(" AND ")}`;
+};
+
+/*
+ * The rows of a source shown under other records (shownUnder) that carry an
+ * image, of those records: $1 is their ids.
+ */
+export const getRowsShownUnderSql: (source: PublishedMarkdown) => string = (
+  source: PublishedMarkdown,
+): string => {
+  const foreignKey: string = source.shownUnder?.foreignKey || "";
+
+  return `SELECT ${["_id", "projectId", foreignKey, ...source.markdownColumns]
+    .map((column: string): string => {
+      return quote(column);
+    })
+    .join(", ")} FROM ${quote(source.tableName)} WHERE ${quote(
+    foreignKey,
+  )} = ANY($1::uuid[]) AND ${quote("deletedAt")} IS NULL AND ${getTextSql(
+    source,
+  )} LIKE '%/file/image/access-token/%'`;
+};
+
+/*
+ * The records some rows are shown under that are shown now, by id, each
+ * with its project (readShownParents).
+ */
+export type ShownParents = Map<string, string>;
+
+// A row as it was before an update, and as the update left it.
+interface UpdatedRow {
+  before: Row;
+  after: Row;
+}
+
 export default class PublishedImages {
   // The kinds of published markdown a table has.
   public static getSources(
@@ -577,8 +764,22 @@ export default class PublishedImages {
   }
 
   /*
+   * The kinds of published markdown shown under a table's records: the
+   * public notes of an incident, an episode or a scheduled maintenance
+   * event. They show their images only while the record does.
+   */
+  public static getSourcesShownUnder(
+    tableName: string | null | undefined,
+  ): Array<PublishedMarkdown> {
+    return PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+      return Boolean(tableName) && source.shownUnder?.tableName === tableName;
+    });
+  }
+
+  /*
    * The columns that decide what a table's records show to everyone: their
-   * markdown and their switches. Empty for a table that shows nothing.
+   * markdown, their switches, and the column naming the record they are
+   * shown under. Empty for a table that shows nothing.
    */
   public static getColumns(
     tableName: string | null | undefined,
@@ -590,6 +791,7 @@ export default class PublishedImages {
         ...source.markdownColumns,
         ...source.shownWhen,
         ...(source.hiddenWhen || []),
+        ...(source.shownUnder ? [source.shownUnder.foreignKey] : []),
       ]) {
         columns.add(column);
       }
@@ -612,23 +814,78 @@ export default class PublishedImages {
 
   /*
    * Whether a record shows a kind of markdown: every switch of it is on, and
-   * none that hides it is (one that is neither false nor unset hides it).
+   * none that hides it is (one that is neither false nor unset hides it) -
+   * and, for a record shown under another (shownUnder), that record is
+   * shown, of the same project: `shownParents`, the shown ones as
+   * readShownParents reads them. With none read, it is not shown.
    */
-  public static isShown(source: PublishedMarkdown, row: Row): boolean {
-    return (
-      source.shownWhen.every((column: string): boolean => {
-        return row[column] === true;
-      }) &&
-      (source.hiddenWhen || []).every((column: string): boolean => {
-        const value: unknown = row[column];
+  public static isShown(
+    source: PublishedMarkdown,
+    row: Row,
+    shownParents?: ShownParents | undefined,
+  ): boolean {
+    if (
+      !this.areSwitchesShowing(
+        { shownWhen: source.shownWhen, hiddenWhen: source.hiddenWhen },
+        row,
+      )
+    ) {
+      return false;
+    }
 
-        return value === undefined || value === null || value === false;
-      })
+    if (!source.shownUnder) {
+      return true;
+    }
+
+    const parentProjectId: string | undefined = shownParents?.get(
+      normalizeFileId(row[source.shownUnder.foreignKey]),
     );
+
+    return (
+      Boolean(parentProjectId) &&
+      parentProjectId === normalizeFileId(row["projectId"])
+    );
+  }
+
+  /*
+   * Whether a record a published record is shown under is shown, by its
+   * own switches as a row holds them.
+   */
+  public static isParentShown(parent: PublishedParent, row: Row): boolean {
+    return this.areSwitchesShowing(parent, row);
   }
 
   // The image tokens a record shows to everyone.
   public static getShownTokens(
+    tableName: string | null | undefined,
+    row: Row | null | undefined,
+    shownParents?: ShownParents | undefined,
+  ): Set<string> {
+    const tokens: Set<string> = new Set<string>();
+
+    if (!row) {
+      return tokens;
+    }
+
+    for (const source of this.getSources(tableName)) {
+      if (!this.isShown(source, row, shownParents)) {
+        continue;
+      }
+
+      for (const token of this.getTokensOf(source, row)) {
+        tokens.add(token);
+      }
+    }
+
+    return tokens;
+  }
+
+  /*
+   * The image tokens a record holds in what it shows to everyone when it
+   * is shown, whether it is shown or not: what it may have shown, to ask
+   * whether anything still shows it once the record no longer does.
+   */
+  public static getHeldTokens(
     tableName: string | null | undefined,
     row: Row | null | undefined,
   ): Set<string> {
@@ -639,18 +896,8 @@ export default class PublishedImages {
     }
 
     for (const source of this.getSources(tableName)) {
-      if (!this.isShown(source, row)) {
-        continue;
-      }
-
-      for (const column of source.markdownColumns) {
-        const value: unknown = row[column];
-
-        for (const token of extractImageAccessTokens(
-          typeof value === "string" ? value : null,
-        )) {
-          tokens.add(token);
-        }
+      for (const token of this.getTokensOf(source, row)) {
+        tokens.add(token);
       }
     }
 
@@ -658,9 +905,70 @@ export default class PublishedImages {
   }
 
   /*
+   * Of the records rows of a table are shown under (shownUnder), those
+   * shown now, as the database holds them, each with its project. Empty for
+   * a table shown under nothing, or rows that name no such record. A failed
+   * read counts none as shown: an image is never made public on a guess.
+   */
+  public static async readShownParents(
+    tableName: string | null | undefined,
+    rows: Array<Row>,
+  ): Promise<ShownParents> {
+    const shown: ShownParents = new Map();
+
+    for (const source of this.getSources(tableName)) {
+      const parent: PublishedParent | undefined = source.shownUnder;
+
+      if (!parent) {
+        continue;
+      }
+
+      const parentIds: Array<string> = Array.from(
+        new Set<string>(
+          rows
+            .map((row: Row): string => {
+              return normalizeFileId(row[parent.foreignKey]);
+            })
+            .filter((id: string): boolean => {
+              return ObjectID.isValidUUID(id);
+            }),
+        ),
+      );
+
+      if (parentIds.length === 0) {
+        continue;
+      }
+
+      try {
+        const found: unknown = await this.getFileWriter()
+          .getRepository()
+          .manager.query(getShownParentsSql(parent), [parentIds]);
+
+        for (const record of Array.isArray(found)
+          ? (found as Array<Row>)
+          : []) {
+          shown.set(
+            normalizeFileId(record["_id"]),
+            normalizeFileId(record["projectId"]),
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `Could not tell whether the ${parent.tableName} records ${String(
+            tableName,
+          )} rows are shown under are shown, so none is taken as shown: ${String(err)}`,
+        );
+      }
+    }
+
+    return shown;
+  }
+
+  /*
    * After a record is created: the images it shows become public. When a
    * switch it shows them by was left to the column's default, the stored
-   * record is read for it (readStored).
+   * record is read for it (readStored); a record shown under another shows
+   * them only while that record is shown, as it is now (readShownParents).
    */
   public static async afterCreate(data: {
     tableName: string | null | undefined;
@@ -679,14 +987,7 @@ export default class PublishedImages {
       // The kinds of markdown the new record carries an image in.
       const withImages: Array<PublishedMarkdown> = sources.filter(
         (source: PublishedMarkdown): boolean => {
-          return source.markdownColumns.some((column: string): boolean => {
-            const value: unknown = row[column];
-
-            return (
-              typeof value === "string" &&
-              extractImageAccessTokens(value).length > 0
-            );
-          });
+          return this.getTokensOf(source, row).length > 0;
         },
       );
 
@@ -723,7 +1024,11 @@ export default class PublishedImages {
 
       await this.setImagesVisibility({
         projectId: row["projectId"],
-        publish: this.getShownTokens(data.tableName, row),
+        publish: this.getShownTokens(
+          data.tableName,
+          row,
+          await this.readShownParents(data.tableName, [row]),
+        ),
         unpublish: [],
       });
     } catch (err) {
@@ -735,15 +1040,27 @@ export default class PublishedImages {
 
   /*
    * After records are updated, from each record as it was (read with every
-   * column getColumns names) and what the update wrote: the images each
-   * shows now become public, and those it no longer shows private, unless
-   * another record of its project still shows them. The images of all the
-   * rows are looked up together, a project at a time.
+   * column getColumns names) and as its write stored it (rowsAfter): the
+   * images each shows now become public, and every other image it held
+   * before or holds now is made private unless a record of its project still
+   * shows it (findStillShown) - so an image is decided by what the database
+   * holds, never by a read made before another write landed. A record
+   * shown under another shows its images only while that record is shown,
+   * as it is now; and when a write turns the switches of records others are
+   * shown under, those others' images follow (their public notes). The
+   * images of all the rows are looked up together, a project at a time.
    */
   public static async afterUpdate(data: {
     tableName: string | null | undefined;
     rowsBefore: Array<unknown>;
     written: unknown;
+    /*
+     * Each row as its own write stored it, in the order of rowsBefore: what
+     * the database handed back of it (DatabaseService), which decides over
+     * what the update asked to write. A row with none is taken as it was
+     * with what the update wrote.
+     */
+    rowsAfter?: Array<unknown> | undefined;
   }): Promise<void> {
     try {
       const columns: Array<string> = this.getColumns(data.tableName);
@@ -760,38 +1077,157 @@ export default class PublishedImages {
         return;
       }
 
+      const rows: Array<UpdatedRow> = data.rowsBefore.map(
+        (rowBefore: unknown, index: number): UpdatedRow => {
+          const before: Row = (rowBefore || {}) as Row;
+          const after: Row = { ...before };
+
+          for (const column of columns) {
+            if (written[column] !== undefined) {
+              after[column] = written[column];
+            }
+          }
+
+          const stored: unknown = data.rowsAfter?.[index];
+
+          if (stored && typeof stored === "object") {
+            for (const [column, value] of Object.entries(stored as Row)) {
+              if (value !== undefined) {
+                after[column] = value;
+              }
+            }
+          }
+
+          return { before, after };
+        },
+      );
+
+      // The records the rows are shown under, as they are now.
+      const shownParents: ShownParents = await this.readShownParents(
+        data.tableName,
+        rows.map((row: UpdatedRow): Row => {
+          return row.after;
+        }),
+      );
+
       const changes: ImageChanges = new Map();
 
-      for (const rowBefore of data.rowsBefore) {
-        const before: Row = (rowBefore || {}) as Row;
-        const after: Row = { ...before };
-
-        for (const column of columns) {
-          if (written[column] !== undefined) {
-            after[column] = written[column];
-          }
-        }
-
+      for (const row of rows) {
         const shownAfter: Set<string> = this.getShownTokens(
           data.tableName,
-          after,
+          row.after,
+          shownParents,
         );
 
-        this.addChanges(changes, before["projectId"], {
+        const held: Set<string> = new Set<string>([
+          ...this.getHeldTokens(data.tableName, row.before),
+          ...this.getHeldTokens(data.tableName, row.after),
+        ]);
+
+        this.addChanges(changes, row.before["projectId"], {
           publish: shownAfter,
-          unpublish: Array.from(
-            this.getShownTokens(data.tableName, before),
-          ).filter((token: string): boolean => {
+          unpublish: Array.from(held).filter((token: string): boolean => {
             return !shownAfter.has(token);
           }),
         });
       }
+
+      await this.addChangesShownUnder({
+        changes: changes,
+        tableName: data.tableName,
+        rows: rows,
+        written: written,
+      });
 
       await this.applyChanges(changes);
     } catch (err) {
       logger.error(
         `Failed to sync the images of an updated ${String(data.tableName)}: ${String(err)}`,
       );
+    }
+  }
+
+  /*
+   * The records shown under the updated rows (getSourcesShownUnder: their
+   * public notes) show their images only while the row is shown: when the
+   * update writes a switch that decides it, each such record's images are
+   * made public if its row is shown as the write left it, and private
+   * otherwise unless something else still shows them. Best-effort: a read
+   * that fails leaves those images as they are.
+   */
+  private static async addChangesShownUnder(data: {
+    changes: ImageChanges;
+    tableName: string | null | undefined;
+    rows: Array<UpdatedRow>;
+    written: Row;
+  }): Promise<void> {
+    for (const source of this.getSourcesShownUnder(data.tableName)) {
+      const parent: PublishedParent = source.shownUnder!;
+
+      const writesASwitch: boolean = [
+        ...parent.shownWhen,
+        ...(parent.hiddenWhen || []),
+      ].some((column: string): boolean => {
+        return data.written[column] !== undefined;
+      });
+
+      if (!writesASwitch) {
+        continue;
+      }
+
+      // Each updated row, by id: its project while it is shown, else null.
+      const shownProjectById: Map<string, string | null> = new Map();
+
+      for (const row of data.rows) {
+        const id: string = normalizeFileId(row.before["_id"]);
+
+        if (!ObjectID.isValidUUID(id)) {
+          continue;
+        }
+
+        shownProjectById.set(
+          id,
+          this.isParentShown(parent, row.after)
+            ? normalizeFileId(row.before["projectId"])
+            : null,
+        );
+      }
+
+      if (shownProjectById.size === 0) {
+        continue;
+      }
+
+      let shownUnder: unknown = [];
+
+      try {
+        shownUnder = await this.getFileWriter()
+          .getRepository()
+          .manager.query(getRowsShownUnderSql(source), [
+            Array.from(shownProjectById.keys()),
+          ]);
+      } catch (err) {
+        logger.error(
+          `Failed to read the ${source.tableName} rows shown under updated ${parent.tableName} rows: ${String(err)}`,
+        );
+        continue;
+      }
+
+      for (const record of Array.isArray(shownUnder)
+        ? (shownUnder as Array<Row>)
+        : []) {
+        const shownProjectId: string | null | undefined = shownProjectById.get(
+          normalizeFileId(record[parent.foreignKey]),
+        );
+        const tokens: Array<string> = this.getTokensOf(source, record);
+        const isShown: boolean =
+          Boolean(shownProjectId) &&
+          shownProjectId === normalizeFileId(record["projectId"]);
+
+        this.addChanges(data.changes, record["projectId"], {
+          publish: isShown ? tokens : [],
+          unpublish: isShown ? [] : tokens,
+        });
+      }
     }
   }
 
@@ -887,7 +1323,7 @@ export default class PublishedImages {
 
   /*
    * After records are deleted, from each as it was, and the published rows
-   * the delete took with it: the images they showed become private, unless
+   * the delete took with it: the images they held become private, unless
    * another record of their project still shows them. A deleted project's
    * files all become private.
    */
@@ -918,10 +1354,15 @@ export default class PublishedImages {
         ...(data.cascaded || []),
       ];
 
+      /*
+       * Every image a deleted row held, shown or not - a public note's
+       * record may have shown it - becomes private unless a record of its
+       * project still shows it.
+       */
       for (const entry of deleted) {
         this.addChanges(changes, entry.row["projectId"], {
           publish: [],
-          unpublish: this.getShownTokens(entry.tableName, entry.row),
+          unpublish: this.getHeldTokens(entry.tableName, entry.row),
         });
       }
 
@@ -1216,6 +1657,50 @@ export default class PublishedImages {
     await this.getFileWriter()
       .getRepository()
       .manager.query(PROJECT_FILES_PRIVATE_SQL, [projectIds]);
+  }
+
+  /*
+   * Whether a record's switches show it: every one that must be on is on
+   * (true, as the database stores it), and none that hides it is - one that
+   * is neither false nor unset hides it.
+   */
+  private static areSwitchesShowing(
+    switches: {
+      shownWhen: Array<string>;
+      hiddenWhen?: Array<string> | undefined;
+    },
+    row: Row,
+  ): boolean {
+    return (
+      switches.shownWhen.every((column: string): boolean => {
+        return row[column] === true;
+      }) &&
+      (switches.hiddenWhen || []).every((column: string): boolean => {
+        const value: unknown = row[column];
+
+        return value === undefined || value === null || value === false;
+      })
+    );
+  }
+
+  // The image tokens a row holds in one kind of markdown, each once.
+  private static getTokensOf(
+    source: PublishedMarkdown,
+    row: Row,
+  ): Array<string> {
+    const tokens: Set<string> = new Set<string>();
+
+    for (const column of source.markdownColumns) {
+      const value: unknown = row[column];
+
+      for (const token of extractImageAccessTokens(
+        typeof value === "string" ? value : null,
+      )) {
+        tokens.add(token);
+      }
+    }
+
+    return Array.from(tokens);
   }
 
   /*

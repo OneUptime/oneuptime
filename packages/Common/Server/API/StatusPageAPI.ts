@@ -2,7 +2,6 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
 } from "../Middleware/PublicDashboardRateLimit";
-import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
 import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
@@ -136,6 +135,7 @@ import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
@@ -259,26 +259,15 @@ export default class StatusPageAPI extends BaseAPI<
   StatusPageServiceType
 > {
   /*
-   * Post-auth overview responses keyed by resolved statusPageId. The payload
-   * is user-independent (authorization is a binary gate checked per-request,
-   * before any cache read), so one short-TTL snapshot per page per process
-   * serves every viewer. See buildOverviewResponse.
+   * Post-auth overview responses, kept per resolved statusPageId for a few
+   * seconds (StatusPageOverviewCache). The payload is user-independent
+   * (authorization is a binary gate checked per-request, before any cache
+   * read), so one short-lived snapshot per page per process serves every
+   * viewer; a record a page stops showing - made private, hidden, deleted -
+   * leaves every process's snapshot at once. See buildOverviewResponse.
    */
-  private static overviewResponseCache: InMemoryTTLCache<JSONObject> =
-    new InMemoryTTLCache<JSONObject>(500);
-
-  /*
-   * In-flight overview builds keyed by the same cache key, so concurrent
-   * cold-cache requests share one build instead of stampeding the database.
-   */
-  private static overviewResponseInFlight: Map<string, Promise<JSONObject>> =
-    new Map();
-
-  private static readonly OVERVIEW_CACHE_TTL_MS: number = 15_000;
-
   public static clearOverviewResponseCache(): void {
-    this.overviewResponseCache.clear();
-    this.overviewResponseInFlight.clear();
+    StatusPageOverviewCache.clear();
   }
 
   public constructor() {
@@ -1945,42 +1934,24 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        // Resolved id, so domain-served and id-served views share one entry.
-        const cacheKey: string = statusPageId.toString();
-
         /*
-         * The cached JSONObject is shared across requests and must never be
+         * Kept by the resolved id, so domain-served and id-served views share
+         * one entry, and by its project's generation, so a record the page
+         * stops showing is not served from it (StatusPageOverviewCache). The
+         * cached JSONObject is shared across requests and must never be
          * mutated after build.
          */
-        let response: JSONObject | undefined =
-          StatusPageAPI.overviewResponseCache.get(cacheKey);
-
-        if (!response) {
-          let inFlight: Promise<JSONObject> | undefined =
-            StatusPageAPI.overviewResponseInFlight.get(cacheKey);
-
-          if (!inFlight) {
-            inFlight = this.buildOverviewResponse(statusPageId);
-            StatusPageAPI.overviewResponseInFlight.set(cacheKey, inFlight);
-
-            inFlight
-              .then((builtResponse: JSONObject) => {
-                StatusPageAPI.overviewResponseCache.set(
-                  cacheKey,
-                  builtResponse,
-                  StatusPageAPI.OVERVIEW_CACHE_TTL_MS,
-                );
-              })
-              .catch(() => {
-                // Failed builds are never cached; the next request rebuilds.
-              })
-              .finally(() => {
-                StatusPageAPI.overviewResponseInFlight.delete(cacheKey);
-              });
-          }
-
-          response = await inFlight;
-        }
+        const response: JSONObject = await StatusPageOverviewCache.getOrBuild({
+          statusPageId: statusPageId,
+          readProjectId: async (): Promise<ObjectID | null> => {
+            return await StatusPageService.getProjectIdOfStatusPage(
+              statusPageId,
+            );
+          },
+          build: async (): Promise<JSONObject> => {
+            return await this.buildOverviewResponse(statusPageId);
+          },
+        });
 
         // These can serve private-page data on a GET; never let shared caches store them.
         Response.setNoCacheHeaders(res);
@@ -2464,19 +2435,25 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showScheduledEventHistoryInDays || 14,
     );
 
-    let query: Query<ScheduledMaintenance> = {
-      startsAt: QueryHelper.inBetween(historyDays, today),
-      statusPages: [statusPageId] as any,
-      projectId: statusPage.projectId!,
-      isVisibleOnStatusPage: true,
-    };
+    /*
+     * Only events the page shows (StatusPageVisibilityQuery): one asked for
+     * by its id too. By id there is no history window, so a link to an
+     * older event keeps working - but an event hidden from status pages is
+     * not one this page shows, however it is asked for.
+     */
+    let query: Query<ScheduledMaintenance> =
+      StatusPageVisibilityQuery.shownScheduledMaintenance({
+        startsAt: QueryHelper.inBetween(historyDays, today),
+        statusPages: [statusPageId] as any,
+        projectId: statusPage.projectId!,
+      });
 
     if (scheduledMaintenanceId) {
-      query = {
+      query = StatusPageVisibilityQuery.shownScheduledMaintenance({
         _id: scheduledMaintenanceId.toString(),
         statusPages: [statusPageId] as any,
         projectId: statusPage.projectId!,
-      };
+      });
     }
 
     let scheduledEventsSelect: Select<ScheduledMaintenance> = {
@@ -2530,14 +2507,13 @@ export default class StatusPageAPI extends BaseAPI<
     if (!scheduledMaintenanceId) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
             currentScheduledMaintenanceState: {
               isScheduledState: true,
             } as any,
             statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
-            isVisibleOnStatusPage: true,
-          },
+          }),
           select: scheduledEventsSelect,
           sort: {
             createdAt: SortOrder.Ascending,
@@ -2763,18 +2739,30 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage.showAnnouncementHistoryInDays || 14,
     );
 
-    let query: Query<StatusPageAnnouncement> = {
-      statusPages: [statusPageId] as any,
-      showAnnouncementAt: QueryHelper.inBetween(historyDays, today),
-      projectId: statusPage.projectId!,
-    };
+    /*
+     * Only announcements the page shows (StatusPageVisibilityQuery): one
+     * asked for by its id too. By id there is no history window, so a link
+     * to an older announcement keeps working - but one scheduled for later
+     * is not shown yet, however it is asked for.
+     */
+    let query: Query<StatusPageAnnouncement> =
+      StatusPageVisibilityQuery.shownAnnouncements(
+        {
+          statusPages: [statusPageId] as any,
+          projectId: statusPage.projectId!,
+        },
+        { since: historyDays, now: today },
+      );
 
     if (announcementId) {
-      query = {
-        statusPages: [statusPageId] as any,
-        _id: announcementId.toString(),
-        projectId: statusPage.projectId!,
-      };
+      query = StatusPageVisibilityQuery.shownAnnouncements(
+        {
+          statusPages: [statusPageId] as any,
+          _id: announcementId.toString(),
+          projectId: statusPage.projectId!,
+        },
+        { now: today },
+      );
     }
 
     const announcements: Array<StatusPageAnnouncement> =
@@ -5774,12 +5762,14 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (statusPage.showAnnouncementsOnStatusPage) {
       activeAnnouncements = await StatusPageAnnouncementService.findBy({
-        query: {
-          statusPages: statusPageId as any,
-          showAnnouncementAt: QueryHelper.lessThan(today),
-          endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
-          projectId: statusPage.projectId!,
-        },
+        query: StatusPageVisibilityQuery.shownAnnouncements(
+          {
+            statusPages: statusPageId as any,
+            endAnnouncementAt: QueryHelper.greaterThanOrNull(today),
+            projectId: statusPage.projectId!,
+          },
+          { now: today },
+        ),
         select: {
           createdAt: true,
           title: true,
@@ -5831,14 +5821,13 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-        query: {
+        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
           currentScheduledMaintenanceState: {
             isOngoingState: true,
           } as any,
           statusPages: statusPageId as any,
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
-        },
+        }),
         select: scheduledEventsSelect,
         sort: {
           startsAt: SortOrder.Ascending,
@@ -5856,14 +5845,13 @@ export default class StatusPageAPI extends BaseAPI<
     if (statusPage.showScheduledMaintenanceEventsOnStatusPage) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
-          query: {
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
             currentScheduledMaintenanceState: {
               isScheduledState: true,
             } as any,
             statusPages: statusPageId as any,
             projectId: statusPage.projectId!,
-            isVisibleOnStatusPage: true,
-          },
+          }),
           select: scheduledEventsSelect,
           sort: {
             startsAt: SortOrder.Ascending,
@@ -6185,13 +6173,17 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
+    // Only an announcement the page shows already.
     const announcement: StatusPageAnnouncement | null =
       await StatusPageAnnouncementService.findOneBy({
-        query: {
-          _id: announcementId.toString(),
-          projectId: statusPage.projectId!,
-          statusPages: [statusPageId] as any,
-        },
+        query: StatusPageVisibilityQuery.shownAnnouncements(
+          {
+            _id: announcementId.toString(),
+            projectId: statusPage.projectId!,
+            statusPages: [statusPageId] as any,
+          },
+          { now: OneUptimeDate.getCurrentDate() },
+        ),
         select: {
           attachments: {
             _id: true,
@@ -6287,14 +6279,14 @@ export default class StatusPageAPI extends BaseAPI<
       throw new NotFoundException("Attachment not found");
     }
 
+    // Only an event the page shows.
     const scheduledMaintenance: ScheduledMaintenance | null =
       await ScheduledMaintenanceService.findOneBy({
-        query: {
+        query: StatusPageVisibilityQuery.shownScheduledMaintenance({
           _id: scheduledMaintenanceId.toString(),
           projectId: statusPage.projectId!,
-          isVisibleOnStatusPage: true,
           statusPages: statusPageId as any,
-        },
+        }),
         select: {
           _id: true,
         },

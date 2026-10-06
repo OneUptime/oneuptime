@@ -18,9 +18,11 @@
  * that stays private keeps it off - turning the switch on for a private
  * record leaves it hidden. That is what the incident's Settings form has
  * always done (it sends both switches with every save), and it holds for the
- * API, Terraform, workflows and OneUptime's own writes alike. A record is
- * shown again only when someone turns Private off and Visible on Status Page
- * on.
+ * API, Terraform, workflows and OneUptime's own writes alike. Whether a
+ * record that stays private is private is decided by the database in the
+ * write itself (StatusPageVisibilityQuery.getRowWriteSql), so no write that
+ * lands at the same moment can leave both switches on. A record is shown
+ * again only when someone turns Private off and Visible on Status Page on.
  *
  * Server queries apply the same rule in SQL (StatusPageVisibilityQuery), so
  * a list is cut to its limit after a private record is left out, never
@@ -184,7 +186,8 @@ export default class StatusPageVisibility {
   /*
    * Whether a write turns Visible on Status Page on and leaves Private as
    * stored: whether it may show the record depends on whether the record is
-   * private now, which only a read of it can tell (isPrivateAfterWrite).
+   * private when the write reaches it, which the database tells in the write
+   * itself (StatusPageVisibilityQuery.getRowWriteSql).
    */
   public static needsStoredPrivacy(
     data: Record<string, unknown> | undefined | null,
@@ -205,9 +208,9 @@ export default class StatusPageVisibility {
    * database stores (toStoredBoolean), and Visible on Status Page off when
    * the write makes the record private. Called before anything reads the
    * write, so what it reads is what is stored. A write that turns Visible on
-   * Status Page on for a record that is private already is written with it
-   * off on that record, as the record is read for its own write
-   * (getColumnsReadForRecordWrite, getRecordOverrides).
+   * Status Page on for a record that is private already stores it off on
+   * that record: the database decides it in the write itself, on the record
+   * as it is then (needsStoredPrivacy, StatusPageVisibilityQuery.getRowWriteSql).
    */
   public static normalizeWrite(
     data: Record<string, unknown> | undefined | null,
@@ -225,42 +228,5 @@ export default class StatusPageVisibility {
     if (this.isPrivateAfterWrite({ written: data })) {
       data[VISIBLE_ON_STATUS_PAGE_COLUMN] = false;
     }
-  }
-
-  /*
-   * The columns of each record a write reads, right before writing that
-   * record, to write it by this rule (getRecordOverrides): Private, when the
-   * write turns Visible on Status Page on and leaves Private as stored
-   * (needsStoredPrivacy); none otherwise.
-   */
-  public static getColumnsReadForRecordWrite(
-    written: Record<string, unknown> | undefined | null,
-  ): Array<StatusPageVisibilityColumn> {
-    return this.needsStoredPrivacy(written) ? [PRIVATE_COLUMN] : [];
-  }
-
-  /*
-   * What one record of a write is written with in place of the write's own
-   * values, by this rule: a write that turns Visible on Status Page on and
-   * leaves Private as stored writes it off on a record that is private.
-   * `record` is the record as read right before its own write, with the
-   * columns getColumnsReadForRecordWrite names - the latest the write can
-   * know of it; one whose Private was not read is not private (isPrivate)
-   * and is written as the write has it. Each record is decided by itself
-   * alone, so one write to several records shows those that are not
-   * private and leaves each private one hidden.
-   */
-  public static getRecordOverrides(data: {
-    written: Record<string, unknown> | undefined | null;
-    record: StatusPageVisibilitySwitches | undefined | null;
-  }): Record<string, unknown> {
-    if (
-      !this.needsStoredPrivacy(data.written) ||
-      !this.isPrivate(data.record)
-    ) {
-      return {};
-    }
-
-    return { [VISIBLE_ON_STATUS_PAGE_COLUMN]: false };
   }
 }
