@@ -1296,13 +1296,11 @@ describe("build: what needs attention", () => {
       IncidentAlertAiInsightsBuilder.build(
         input({
           subjectsInWindow: 9,
-          notInvestigatedReasons: new Map<string, InvestigationNotStartedCode>(
-            [
-              ["s1", "created_resolved"],
-              ["s2", "created_resolved"],
-              ["s3", "created_resolved"],
-            ],
-          ),
+          notInvestigatedReasons: new Map<string, InvestigationNotStartedCode>([
+            ["s1", "created_resolved"],
+            ["s2", "created_resolved"],
+            ["s3", "created_resolved"],
+          ]),
         }),
       );
 

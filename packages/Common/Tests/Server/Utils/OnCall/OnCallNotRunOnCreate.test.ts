@@ -72,7 +72,9 @@ describe("OnCallNotRunOnCreate.getMarkdown - the line", () => {
     const markdown: string = OnCallNotRunOnCreate.getMarkdown({
       noun: "incident",
       stage: StartingStage.Resolved,
-      policyNames: ["![x](https://tracker.example/p) **bold** [team]\n# heading"],
+      policyNames: [
+        "![x](https://tracker.example/p) **bold** [team]\n# heading",
+      ],
     });
 
     expect(markdown).toBe(
@@ -143,13 +145,11 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
   });
 
   test("names the policies in the order the record lists them, read once, as OneUptime, their names only", async () => {
-    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown(
-      {
-        noun: "incident",
-        stage: StartingStage.Acknowledged,
-        policyIds: [new ObjectID(PRIMARY), new ObjectID(DATABASE)],
-      },
-    );
+    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
+      noun: "incident",
+      stage: StartingStage.Acknowledged,
+      policyIds: [new ObjectID(PRIMARY), new ObjectID(DATABASE)],
+    });
 
     expect(markdown).toBe(
       "📞 **No one was paged.** This incident was created already acknowledged, so its on-call policies **Primary** and **Database** were not run.",
@@ -161,13 +161,11 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
   });
 
   test("a policy listed twice, in any letter case, is named once", async () => {
-    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown(
-      {
-        noun: "alert",
-        stage: StartingStage.Resolved,
-        policyIds: [PRIMARY, PRIMARY.toUpperCase(), new ObjectID(PRIMARY)],
-      },
-    );
+    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
+      noun: "alert",
+      stage: StartingStage.Resolved,
+      policyIds: [PRIMARY, PRIMARY.toUpperCase(), new ObjectID(PRIMARY)],
+    });
 
     expect(markdown).toBe(
       "📞 **No one was paged.** This alert was created already resolved, so its on-call policy **Primary** was not run.",
@@ -175,13 +173,11 @@ describe("OnCallNotRunOnCreate.getFeedMarkdown - the line for the policies a rec
   });
 
   test("a policy deleted since is left out of the line", async () => {
-    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown(
-      {
-        noun: "episode",
-        stage: StartingStage.Resolved,
-        policyIds: [DELETED, PAYMENTS],
-      },
-    );
+    const markdown: string | null = await OnCallNotRunOnCreate.getFeedMarkdown({
+      noun: "episode",
+      stage: StartingStage.Resolved,
+      policyIds: [DELETED, PAYMENTS],
+    });
 
     expect(markdown).toBe(
       "📞 **No one was paged.** This episode was created already resolved, so its on-call policy **Payments** was not run.",

@@ -354,7 +354,8 @@ function stateRow(kind: Kind, id: string): StateModel {
   state.isCreatedState = id === CREATED_STATE;
   state.isAcknowledgedState = id === ACKNOWLEDGED_STATE;
   state.isResolvedState = id === RESOLVED_STATE;
-  state.order = [CREATED_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE].indexOf(id) + 1;
+  state.order =
+    [CREATED_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE].indexOf(id) + 1;
   return state;
 }
 

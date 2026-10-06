@@ -355,50 +355,74 @@ const INCIDENT: Kind = {
       incident.incidentNumber = 42;
       return incident;
     });
-    stub(IncidentPrivacyRuleEngineService, "applyRulesToIncident", (args) => {
-      probes.privacyRules.push(args[0]);
-    });
+    stub(
+      IncidentPrivacyRuleEngineService,
+      "applyRulesToIncident",
+      (args: Array<unknown>) => {
+        probes.privacyRules.push(args[0]);
+      },
+    );
     stub(
       IncidentWorkspaceMessages,
       "createChannelsAndInviteUsersToChannels",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.warRoom.push(args[0]);
       },
       () => {
         return null;
       },
     );
-    stub(IncidentService, "createIncidentFeedAsync", (args) => {
+    stub(IncidentService, "createIncidentFeedAsync", (args: Array<unknown>) => {
       probes.createdFeed.push(args[0]);
     });
-    stub(IncidentService, "changeIncidentState", (args) => {
+    stub(IncidentService, "changeIncidentState", (args: Array<unknown>) => {
       probes.firstRows.push(
         idOf((args[0] as { incidentStateId: unknown }).incidentStateId),
       );
     });
-    stub(MonitorService, "changeMonitorStatus", (args) => {
+    stub(MonitorService, "changeMonitorStatus", (args: Array<unknown>) => {
       probes.monitorStatus.push(args);
     });
-    stub(IncidentService, "disableActiveMonitoringIfManualIncident", (args) => {
-      probes.monitoringPaused.push(args[0]);
-    });
-    stub(IncidentOwnerRuleEngineService, "applyRulesToIncident", (args) => {
-      probes.ownerRules.push(args[0]);
-    });
-    stub(IncidentLabelRuleEngineService, "applyRulesToIncident", (args) => {
-      probes.labelRules.push(args[0]);
-    });
-    stub(IncidentOnCallRuleEngineService, "applyRulesToIncident", (args) => {
-      probes.onCallRules.push(args[0]);
-    });
-    stub(RunbookRuleEngineService, "applyRulesToIncident", (args) => {
-      probes.runbooks.push(args[0]);
-    });
+    stub(
+      IncidentService,
+      "disableActiveMonitoringIfManualIncident",
+      (args: Array<unknown>) => {
+        probes.monitoringPaused.push(args[0]);
+      },
+    );
+    stub(
+      IncidentOwnerRuleEngineService,
+      "applyRulesToIncident",
+      (args: Array<unknown>) => {
+        probes.ownerRules.push(args[0]);
+      },
+    );
+    stub(
+      IncidentLabelRuleEngineService,
+      "applyRulesToIncident",
+      (args: Array<unknown>) => {
+        probes.labelRules.push(args[0]);
+      },
+    );
+    stub(
+      IncidentOnCallRuleEngineService,
+      "applyRulesToIncident",
+      (args: Array<unknown>) => {
+        probes.onCallRules.push(args[0]);
+      },
+    );
+    stub(
+      RunbookRuleEngineService,
+      "applyRulesToIncident",
+      (args: Array<unknown>) => {
+        probes.runbooks.push(args[0]);
+      },
+    );
     stubOnCallExecution(probes);
     stub(
       IncidentGroupingEngineService,
       "processIncident",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.grouped.push(args[0]);
       },
       () => {
@@ -408,35 +432,43 @@ const INCIDENT: Kind = {
     stub(
       IncidentSlaService,
       "createSlaForIncident",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.sla.push(args[0] as Record<string, unknown>);
       },
       () => {
         return null;
       },
     );
-    stub(IncidentService, "refreshReminderSchedule", (args) => {
+    stub(IncidentService, "refreshReminderSchedule", (args: Array<unknown>) => {
       probes.reminders.push(args[0]);
     });
     stub(
       AIIncidentInvestigationRunner,
       "investigateNewIncident",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.investigated.push(args[0]);
       },
       () => {
         return false;
       },
     );
-    stub(InvestigationEligibility, "recordSkipped", (args) => {
+    stub(InvestigationEligibility, "recordSkipped", (args: Array<unknown>) => {
       probes.investigationSkipped.push(String(args[1]));
     });
-    stub(AutoRemediationRuleEngineService, "onIncidentCreated", (args) => {
-      probes.remediated.push(args[0] as Record<string, unknown>);
-    });
-    stub(IncidentFeedService, "createIncidentFeedItem", (args) => {
-      probes.feed.push(args[0] as Record<string, unknown>);
-    });
+    stub(
+      AutoRemediationRuleEngineService,
+      "onIncidentCreated",
+      (args: Array<unknown>) => {
+        probes.remediated.push(args[0] as Record<string, unknown>);
+      },
+    );
+    stub(
+      IncidentFeedService,
+      "createIncidentFeedItem",
+      (args: Array<unknown>) => {
+        probes.feed.push(args[0] as Record<string, unknown>);
+      },
+    );
   },
 };
 
@@ -469,70 +501,94 @@ const ALERT: Kind = {
     stub(ProjectService, "incrementAndGetAlertCounter", undefined, () => {
       return { counter: 42, prefix: undefined };
     });
-    stub(AlertPrivacyRuleEngineService, "applyRulesToAlert", (args) => {
-      probes.privacyRules.push(args[0]);
-    });
+    stub(
+      AlertPrivacyRuleEngineService,
+      "applyRulesToAlert",
+      (args: Array<unknown>) => {
+        probes.privacyRules.push(args[0]);
+      },
+    );
     stub(
       AlertWorkspaceMessages,
       "createChannelsAndInviteUsersToChannels",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.warRoom.push(args[0]);
       },
       () => {
         return null;
       },
     );
-    stub(AlertService, "createAlertFeedAsync", (args) => {
+    stub(AlertService, "createAlertFeedAsync", (args: Array<unknown>) => {
       probes.createdFeed.push(args[0]);
     });
-    stub(AlertService, "changeAlertState", (args) => {
+    stub(AlertService, "changeAlertState", (args: Array<unknown>) => {
       probes.firstRows.push(
         idOf((args[0] as { alertStateId: unknown }).alertStateId),
       );
     });
-    stub(AlertOwnerRuleEngineService, "applyRulesToAlert", (args) => {
-      probes.ownerRules.push(args[0]);
-    });
-    stub(AlertLabelRuleEngineService, "applyRulesToAlert", (args) => {
-      probes.labelRules.push(args[0]);
-    });
-    stub(AlertOnCallRuleEngineService, "applyRulesToAlert", (args) => {
-      probes.onCallRules.push(args[0]);
-    });
-    stub(RunbookRuleEngineService, "applyRulesToAlert", (args) => {
-      probes.runbooks.push(args[0]);
-    });
+    stub(
+      AlertOwnerRuleEngineService,
+      "applyRulesToAlert",
+      (args: Array<unknown>) => {
+        probes.ownerRules.push(args[0]);
+      },
+    );
+    stub(
+      AlertLabelRuleEngineService,
+      "applyRulesToAlert",
+      (args: Array<unknown>) => {
+        probes.labelRules.push(args[0]);
+      },
+    );
+    stub(
+      AlertOnCallRuleEngineService,
+      "applyRulesToAlert",
+      (args: Array<unknown>) => {
+        probes.onCallRules.push(args[0]);
+      },
+    );
+    stub(
+      RunbookRuleEngineService,
+      "applyRulesToAlert",
+      (args: Array<unknown>) => {
+        probes.runbooks.push(args[0]);
+      },
+    );
     stubOnCallExecution(probes);
     stub(
       AlertGroupingEngineService,
       "processAlert",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.grouped.push(args[0]);
       },
       () => {
         return { grouped: false };
       },
     );
-    stub(AlertService, "refreshReminderSchedule", (args) => {
+    stub(AlertService, "refreshReminderSchedule", (args: Array<unknown>) => {
       probes.reminders.push(args[0]);
     });
     stub(
       AIAlertInvestigationRunner,
       "investigateNewAlert",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.investigated.push(args[0]);
       },
       () => {
         return false;
       },
     );
-    stub(InvestigationEligibility, "recordSkipped", (args) => {
+    stub(InvestigationEligibility, "recordSkipped", (args: Array<unknown>) => {
       probes.investigationSkipped.push(String(args[1]));
     });
-    stub(AutoRemediationRuleEngineService, "onAlertCreated", (args) => {
-      probes.remediated.push(args[0] as Record<string, unknown>);
-    });
-    stub(AlertFeedService, "createAlertFeedItem", (args) => {
+    stub(
+      AutoRemediationRuleEngineService,
+      "onAlertCreated",
+      (args: Array<unknown>) => {
+        probes.remediated.push(args[0] as Record<string, unknown>);
+      },
+    );
+    stub(AlertFeedService, "createAlertFeedItem", (args: Array<unknown>) => {
       probes.feed.push(args[0] as Record<string, unknown>);
     });
   },
@@ -545,14 +601,12 @@ function storedEpisode(
 ): AlertEpisode | IncidentEpisode {
   const episode: AlertEpisode | IncidentEpisode = new model();
   episode._id = RECORD_ID.toString();
-  episode.onCallDutyPolicies = policyIds.map(
-    (id: string): OnCallDutyPolicy => {
-      const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-      policy._id = id;
-      policy.name = POLICY_NAMES[id]!;
-      return policy;
-    },
-  );
+  episode.onCallDutyPolicies = policyIds.map((id: string): OnCallDutyPolicy => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy._id = id;
+    policy.name = POLICY_NAMES[id]!;
+    return policy;
+  });
   return episode;
 }
 
@@ -589,52 +643,72 @@ const ALERT_EPISODE: Kind = {
         return { counter: 42, prefix: undefined };
       },
     );
-    stub(AlertEpisodePrivacyRuleEngineService, "applyRulesToEpisode", (args) => {
-      probes.privacyRules.push(args[0]);
-    });
+    stub(
+      AlertEpisodePrivacyRuleEngineService,
+      "applyRulesToEpisode",
+      (args: Array<unknown>) => {
+        probes.privacyRules.push(args[0]);
+      },
+    );
     stub(
       AlertEpisodeWorkspaceMessages,
       "createChannelsAndInviteUsersToChannels",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.warRoom.push(args[0]);
       },
       () => {
         return null;
       },
     );
-    stub(AlertEpisodeService, "changeEpisodeState", (args) => {
+    stub(AlertEpisodeService, "changeEpisodeState", (args: Array<unknown>) => {
       probes.firstRows.push(
         idOf((args[0] as { alertStateId: unknown }).alertStateId),
       );
     });
-    stub(AlertEpisodeService, "createEpisodeCreatedFeed", (args) => {
-      probes.createdFeed.push(args[0]);
-    });
-    stub(AlertEpisodeOwnerRuleEngineService, "applyRulesToEpisode", (args) => {
-      probes.ownerRules.push(args[0]);
-    });
-    stub(AlertEpisodeLabelRuleEngineService, "applyRulesToEpisode", (args) => {
-      probes.labelRules.push(args[0]);
-    });
+    stub(
+      AlertEpisodeService,
+      "createEpisodeCreatedFeed",
+      (args: Array<unknown>) => {
+        probes.createdFeed.push(args[0]);
+      },
+    );
+    stub(
+      AlertEpisodeOwnerRuleEngineService,
+      "applyRulesToEpisode",
+      (args: Array<unknown>) => {
+        probes.ownerRules.push(args[0]);
+      },
+    );
+    stub(
+      AlertEpisodeLabelRuleEngineService,
+      "applyRulesToEpisode",
+      (args: Array<unknown>) => {
+        probes.labelRules.push(args[0]);
+      },
+    );
     stub(
       AlertEpisodeOnCallRuleEngineService,
       "applyRulesToEpisode",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.onCallRules.push(args[0]);
       },
     );
     stub(AlertEpisodeService, "findOneById", undefined, () => {
       return storedEpisode(AlertEpisode, policyIds);
     });
-    stub(AlertEpisodeService, "updateOneById", (args) => {
+    stub(AlertEpisodeService, "updateOneById", (args: Array<unknown>) => {
       probes.episodeUpdates.push(
         (args[0] as { data: Record<string, unknown> }).data,
       );
     });
     stubOnCallExecution(probes);
-    stub(AlertEpisodeFeedService, "createAlertEpisodeFeedItem", (args) => {
-      probes.feed.push(args[0] as Record<string, unknown>);
-    });
+    stub(
+      AlertEpisodeFeedService,
+      "createAlertEpisodeFeedItem",
+      (args: Array<unknown>) => {
+        probes.feed.push(args[0] as Record<string, unknown>);
+      },
+    );
   },
 };
 
@@ -674,53 +748,61 @@ const INCIDENT_EPISODE: Kind = {
     stub(
       IncidentEpisodePrivacyRuleEngineService,
       "applyRulesToEpisode",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.privacyRules.push(args[0]);
       },
     );
     stub(
       IncidentEpisodeWorkspaceMessages,
       "createChannelsAndInviteUsersToChannels",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.warRoom.push(args[0]);
       },
       () => {
         return null;
       },
     );
-    stub(IncidentEpisodeService, "changeEpisodeState", (args) => {
-      probes.firstRows.push(
-        idOf((args[0] as { incidentStateId: unknown }).incidentStateId),
-      );
-    });
-    stub(IncidentEpisodeService, "createEpisodeCreatedFeed", (args) => {
-      probes.createdFeed.push(args[0]);
-    });
+    stub(
+      IncidentEpisodeService,
+      "changeEpisodeState",
+      (args: Array<unknown>) => {
+        probes.firstRows.push(
+          idOf((args[0] as { incidentStateId: unknown }).incidentStateId),
+        );
+      },
+    );
+    stub(
+      IncidentEpisodeService,
+      "createEpisodeCreatedFeed",
+      (args: Array<unknown>) => {
+        probes.createdFeed.push(args[0]);
+      },
+    );
     stub(
       IncidentEpisodeOwnerRuleEngineService,
       "applyRulesToEpisode",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.ownerRules.push(args[0]);
       },
     );
     stub(
       IncidentEpisodeLabelRuleEngineService,
       "applyRulesToEpisode",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.labelRules.push(args[0]);
       },
     );
     stub(
       IncidentEpisodeOnCallRuleEngineService,
       "applyRulesToEpisode",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.onCallRules.push(args[0]);
       },
     );
     stub(IncidentEpisodeService, "findOneById", undefined, () => {
       return storedEpisode(IncidentEpisode, policyIds);
     });
-    stub(IncidentEpisodeService, "updateOneById", (args) => {
+    stub(IncidentEpisodeService, "updateOneById", (args: Array<unknown>) => {
       probes.episodeUpdates.push(
         (args[0] as { data: Record<string, unknown> }).data,
       );
@@ -729,7 +811,7 @@ const INCIDENT_EPISODE: Kind = {
     stub(
       IncidentEpisodeFeedService,
       "createIncidentEpisodeFeedItem",
-      (args) => {
+      (args: Array<unknown>) => {
         probes.feed.push(args[0] as Record<string, unknown>);
       },
     );
@@ -876,14 +958,13 @@ async function create(
     AnyFunction
   >;
 
-  const onCreate: { createBy: unknown; carryForward: unknown } =
-    (await hooks["onBeforeCreate"]!.call(kind.service, {
-      data: record,
-      props: { tenantId: PROJECT_ID },
-      ...(options.miscDataProps
-        ? { miscDataProps: options.miscDataProps }
-        : {}),
-    })) as { createBy: unknown; carryForward: unknown };
+  const onCreate: { createBy: unknown; carryForward: unknown } = (await hooks[
+    "onBeforeCreate"
+  ]!.call(kind.service, {
+    data: record,
+    props: { tenantId: PROJECT_ID },
+    ...(options.miscDataProps ? { miscDataProps: options.miscDataProps } : {}),
+  })) as { createBy: unknown; carryForward: unknown };
 
   // What the database hands back: the row as written, with its id.
   record._id = RECORD_ID.toString();
@@ -960,9 +1041,9 @@ describe.each(KINDS)(
         );
 
         expect(probes.firstRows).toEqual([state || CREATED]);
-        expect(idOf((record as unknown as Record<string, unknown>)[kind.idColumn])).toBe(
-          state || CREATED,
-        );
+        expect(
+          idOf((record as unknown as Record<string, unknown>)[kind.idColumn]),
+        ).toBe(state || CREATED);
         expect(chainErrors()).toEqual([]);
       },
     );
@@ -1211,7 +1292,11 @@ async function createWithOnCallRule(
 
 describe("the on-call policies a live record pages are told what paged them", () => {
   test.each([
-    [INCIDENT, UserNotificationEventType.IncidentCreated, "triggeredByIncidentId"],
+    [
+      INCIDENT,
+      UserNotificationEventType.IncidentCreated,
+      "triggeredByIncidentId",
+    ],
     [ALERT, UserNotificationEventType.AlertCreated, "triggeredByAlertId"],
     [
       ALERT_EPISODE,
@@ -1236,9 +1321,7 @@ describe("the on-call policies a live record pages are told what paged them", ()
       expect(probes.paged[0]!.options["userNotificationEventType"]).toBe(
         eventType,
       );
-      expect(idOf(probes.paged[0]!.options[triggerKey])).toBe(
-        idOf(RECORD_ID),
-      );
+      expect(idOf(probes.paged[0]!.options[triggerKey])).toBe(idOf(RECORD_ID));
     },
   );
 });

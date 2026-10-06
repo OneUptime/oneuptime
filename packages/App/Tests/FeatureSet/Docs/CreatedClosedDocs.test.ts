@@ -196,12 +196,15 @@ describe("the other pages a reader checks", () => {
       "ai/ai-sre",
       "An incident or alert **created already resolved** is neither investigated nor remediated",
     ],
-  ])("%s says it, and links to the section", (page: string, sentence: string) => {
-    const markdown: string = read("en", page);
+  ])(
+    "%s says it, and links to the section",
+    (page: string, sentence: string) => {
+      const markdown: string = read("en", page);
 
-    expect(markdown).toContain(sentence);
-    expect(markdown).toContain(EN_LINK);
-  });
+      expect(markdown).toContain(sentence);
+      expect(markdown).toContain(EN_LINK);
+    },
+  );
 
   test("the 14 upgrade notes tell existing customers what changed", () => {
     const text: string = section(

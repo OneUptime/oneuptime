@@ -68,8 +68,7 @@ const SERVICES: Array<ServiceSteps> = [
         "which on-call policies it lists",
       "this.refreshReminderSchedule":
         "reminders, which never come for a resolved incident",
-      "this.linkAlertsDeclaredWithIncident":
-        "the alerts it was declared from",
+      "this.linkAlertsDeclaredWithIncident": "the alerts it was declared from",
     },
     decidedByOngoing: [
       "this.handleIncidentWorkspaceOperationsAsync",
@@ -131,10 +130,8 @@ const SERVICES: Array<ServiceSteps> = [
         "who may see the episode",
       "this.changeEpisodeState": "its first state",
       "this.createEpisodeCreatedFeed": "the created feed entry",
-      "IncidentEpisodeOwnerRuleEngineService.applyRulesToEpisode":
-        "its owners",
-      "IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode":
-        "its labels",
+      "IncidentEpisodeOwnerRuleEngineService.applyRulesToEpisode": "its owners",
+      "IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode":
         "which on-call policies it lists",
     },
@@ -275,171 +272,175 @@ function isDecidedBy(
   return false;
 }
 
-describe.each(SERVICES)("$file: what a create sets off", (service: ServiceSteps) => {
-  const source: ts.SourceFile = parse(service.file);
-  const onCreateSuccess: ts.MethodDeclaration | undefined = methodOf(
-    source,
-    "onCreateSuccess",
-  );
-  const onBeforeCreate: ts.MethodDeclaration | undefined = methodOf(
-    source,
-    "onBeforeCreate",
-  );
-
-  test("onBeforeCreate reads where the record starts from the state service, and hands it on", () => {
-    expect(onBeforeCreate).toBeDefined();
-    const text: string = onBeforeCreate!.getText(source);
-
-    expect(text).toMatch(/StateService\.getStartingStage\(/);
-    expect(text).toMatch(/startingStage: startingStage/);
-    // No comparison of its own: the rule lives in StartingStage.
-    expect(text).not.toMatch(/\.order\b/);
-    expect(text).not.toMatch(/isResolvedState|isAcknowledgedState/);
-  });
-
-  test("onCreateSuccess reads the stage onBeforeCreate handed over", () => {
-    expect(onCreateSuccess).toBeDefined();
-    expect(onCreateSuccess!.getText(source)).toMatch(
-      /StartingStageUtil\.fromCarryForward\(\s*onCreate\.carryForward,?\s*\)/,
+describe.each(SERVICES)(
+  "$file: what a create sets off",
+  (service: ServiceSteps) => {
+    const source: ts.SourceFile = parse(service.file);
+    const onCreateSuccess: ts.MethodDeclaration | undefined = methodOf(
+      source,
+      "onCreateSuccess",
     );
-  });
+    const onBeforeCreate: ts.MethodDeclaration | undefined = methodOf(
+      source,
+      "onBeforeCreate",
+    );
 
-  test("every awaited step is decided for a record created already acknowledged or resolved", () => {
-    const known: Set<string> = new Set<string>([
-      ...Object.keys(service.always),
-      ...service.decidedByOngoing,
-      `this.${service.onCallFanOut}`,
-    ]);
+    test("onBeforeCreate reads where the record starts from the state service, and hands it on", () => {
+      expect(onBeforeCreate).toBeDefined();
+      const text: string = onBeforeCreate!.getText(source);
 
-    const undecided: Array<string> = awaitedCalls(source, onCreateSuccess!)
-      .map((step: { callee: string }): string => {
-        return step.callee;
-      })
-      .filter((callee: string): boolean => {
-        return !known.has(callee);
-      });
+      expect(text).toMatch(/StateService\.getStartingStage\(/);
+      expect(text).toMatch(/startingStage: startingStage/);
+      // No comparison of its own: the rule lives in StartingStage.
+      expect(text).not.toMatch(/\.order\b/);
+      expect(text).not.toMatch(/isResolvedState|isAcknowledgedState/);
+    });
 
-    expect(undecided).toEqual([]);
-  });
+    test("onCreateSuccess reads the stage onBeforeCreate handed over", () => {
+      expect(onCreateSuccess).toBeDefined();
+      expect(onCreateSuccess!.getText(source)).toMatch(
+        /StartingStageUtil\.fromCarryForward\(\s*onCreate\.carryForward,?\s*\)/,
+      );
+    });
 
-  test("the steps that answer a live problem run only for a record that does not start resolved", () => {
-    const steps: Array<{ callee: string; call: ts.CallExpression }> =
-      awaitedCalls(source, onCreateSuccess!).filter(
-        (step: { callee: string }): boolean => {
-          return service.decidedByOngoing.includes(step.callee);
-        },
+    test("every awaited step is decided for a record created already acknowledged or resolved", () => {
+      const known: Set<string> = new Set<string>([
+        ...Object.keys(service.always),
+        ...service.decidedByOngoing,
+        `this.${service.onCallFanOut}`,
+      ]);
+
+      const undecided: Array<string> = awaitedCalls(source, onCreateSuccess!)
+        .map((step: { callee: string }): string => {
+          return step.callee;
+        })
+        .filter((callee: string): boolean => {
+          return !known.has(callee);
+        });
+
+      expect(undecided).toEqual([]);
+    });
+
+    test("the steps that answer a live problem run only for a record that does not start resolved", () => {
+      const steps: Array<{ callee: string; call: ts.CallExpression }> =
+        awaitedCalls(source, onCreateSuccess!).filter(
+          (step: { callee: string }): boolean => {
+            return service.decidedByOngoing.includes(step.callee);
+          },
+        );
+
+      // Each listed step is still there to decide on.
+      expect(
+        Array.from(
+          new Set(
+            steps.map((step: { callee: string }): string => {
+              return step.callee;
+            }),
+          ),
+        ).sort(),
+      ).toEqual([...service.decidedByOngoing].sort());
+
+      const ungated: Array<string> = steps
+        .filter((step: { call: ts.CallExpression }): boolean => {
+          return !isDecidedBy(
+            source,
+            step.call,
+            onCreateSuccess!,
+            ONGOING_CONDITION,
+          );
+        })
+        .map((step: { callee: string }): string => {
+          return step.callee;
+        });
+
+      expect(ungated).toEqual([]);
+    });
+
+    test("the steps that run for every record are not held back by the stage", () => {
+      const held: Array<string> = awaitedCalls(source, onCreateSuccess!)
+        .filter((step: { callee: string }): boolean => {
+          return Object.prototype.hasOwnProperty.call(
+            service.always,
+            step.callee,
+          );
+        })
+        .filter((step: { call: ts.CallExpression }): boolean => {
+          return isDecidedBy(
+            source,
+            step.call,
+            onCreateSuccess!,
+            ONGOING_CONDITION,
+          );
+        })
+        .map((step: { callee: string }): string => {
+          return step.callee;
+        });
+
+      expect(held).toEqual([]);
+    });
+
+    test("the on-call fan-out takes the stage and pages only a record that starts open", () => {
+      const fanOut: ts.MethodDeclaration | undefined = methodOf(
+        source,
+        service.onCallFanOut,
       );
 
-    // Each listed step is still there to decide on.
-    expect(
-      Array.from(
-        new Set(
-          steps.map((step: { callee: string }): string => {
-            return step.callee;
-          }),
-        ),
-      ).sort(),
-    ).toEqual([...service.decidedByOngoing].sort());
+      expect(fanOut).toBeDefined();
+      expect(
+        fanOut!.parameters.map((parameter: ts.ParameterDeclaration): string => {
+          return parameter.name.getText(source);
+        }),
+      ).toContain("startingStage");
 
-    const ungated: Array<string> = steps
-      .filter((step: { call: ts.CallExpression }): boolean => {
-        return !isDecidedBy(
-          source,
-          step.call,
-          onCreateSuccess!,
-          ONGOING_CONDITION,
-        );
-      })
-      .map((step: { callee: string }): string => {
-        return step.callee;
+      const executions: Array<ts.CallExpression> = [];
+
+      eachNode(source, (node: ts.Node) => {
+        if (
+          ts.isCallExpression(node) &&
+          node.expression.getText(source) ===
+            "OnCallDutyPolicyService.executePolicy"
+        ) {
+          executions.push(node);
+        }
       });
 
-    expect(ungated).toEqual([]);
-  });
+      expect(executions.length).toBeGreaterThan(0);
 
-  test("the steps that run for every record are not held back by the stage", () => {
-    const held: Array<string> = awaitedCalls(source, onCreateSuccess!)
-      .filter((step: { callee: string }): boolean => {
-        return Object.prototype.hasOwnProperty.call(
-          service.always,
-          step.callee,
-        );
-      })
-      .filter((step: { call: ts.CallExpression }): boolean => {
-        return isDecidedBy(
-          source,
-          step.call,
-          onCreateSuccess!,
-          ONGOING_CONDITION,
-        );
-      })
-      .map((step: { callee: string }): string => {
-        return step.callee;
-      });
+      for (const execution of executions) {
+        // Only inside the fan-out...
+        expect(
+          fanOut!.getStart(source) <= execution.getStart(source) &&
+            execution.getEnd() <= fanOut!.getEnd(),
+        ).toBe(true);
 
-    expect(held).toEqual([]);
-  });
-
-  test("the on-call fan-out takes the stage and pages only a record that starts open", () => {
-    const fanOut: ts.MethodDeclaration | undefined = methodOf(
-      source,
-      service.onCallFanOut,
-    );
-
-    expect(fanOut).toBeDefined();
-    expect(
-      fanOut!.parameters.map((parameter: ts.ParameterDeclaration): string => {
-        return parameter.name.getText(source);
-      }),
-    ).toContain("startingStage");
-
-    const executions: Array<ts.CallExpression> = [];
-
-    eachNode(source, (node: ts.Node) => {
-      if (
-        ts.isCallExpression(node) &&
-        node.expression.getText(source) === "OnCallDutyPolicyService.executePolicy"
-      ) {
-        executions.push(node);
+        // ...and only once pagesOnCall said so.
+        expect(
+          isDecidedBy(source, execution, fanOut!, PAGES_ON_CALL_CONDITION),
+        ).toBe(true);
       }
     });
 
-    expect(executions.length).toBeGreaterThan(0);
+    test("onCreateSuccess hands the stage to the on-call fan-out", () => {
+      const fanOutCalls: Array<ts.CallExpression> = awaitedCalls(
+        source,
+        onCreateSuccess!,
+      )
+        .filter((step: { callee: string }): boolean => {
+          return step.callee === `this.${service.onCallFanOut}`;
+        })
+        .map((step: { call: ts.CallExpression }): ts.CallExpression => {
+          return step.call;
+        });
 
-    for (const execution of executions) {
-      // Only inside the fan-out...
+      expect(fanOutCalls).toHaveLength(1);
       expect(
-        fanOut!.getStart(source) <= execution.getStart(source) &&
-          execution.getEnd() <= fanOut!.getEnd(),
-      ).toBe(true);
-
-      // ...and only once pagesOnCall said so.
-      expect(
-        isDecidedBy(source, execution, fanOut!, PAGES_ON_CALL_CONDITION),
-      ).toBe(true);
-    }
-  });
-
-  test("onCreateSuccess hands the stage to the on-call fan-out", () => {
-    const fanOutCalls: Array<ts.CallExpression> = awaitedCalls(
-      source,
-      onCreateSuccess!,
-    )
-      .filter((step: { callee: string }): boolean => {
-        return step.callee === `this.${service.onCallFanOut}`;
-      })
-      .map((step: { call: ts.CallExpression }): ts.CallExpression => {
-        return step.call;
-      });
-
-    expect(fanOutCalls).toHaveLength(1);
-    expect(
-      fanOutCalls[0]!.arguments.map((argument: ts.Expression): string => {
-        return argument.getText(source);
-      }),
-    ).toContain("startingStage");
-  });
-});
+        fanOutCalls[0]!.arguments.map((argument: ts.Expression): string => {
+          return argument.getText(source);
+        }),
+      ).toContain("startingStage");
+    });
+  },
+);
 
 describe("the guard's own detector", () => {
   const sample: ts.SourceFile = ts.createSourceFile(

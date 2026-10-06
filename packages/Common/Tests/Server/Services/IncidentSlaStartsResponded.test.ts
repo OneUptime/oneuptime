@@ -131,9 +131,7 @@ describe("an SLA that started responded to is judged on its resolution alone", (
     sla: IncidentSla,
     resolvedAt: Date,
   ): Promise<IncidentSlaStatus | undefined> {
-    jest
-      .spyOn(IncidentSlaService, "findBy")
-      .mockResolvedValue([sla] as never);
+    jest.spyOn(IncidentSlaService, "findBy").mockResolvedValue([sla] as never);
 
     const written: Array<IncidentSlaStatus | undefined> = [];
 

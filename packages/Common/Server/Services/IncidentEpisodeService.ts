@@ -27,12 +27,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
-import {
-  Red500,
-  Yellow500,
-  Purple500,
-  Gray500,
-} from "../../Types/BrandColors";
+import { Red500, Yellow500, Purple500, Gray500 } from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import IncidentSeverityService from "./IncidentSeverityService";

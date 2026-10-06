@@ -108,9 +108,7 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
   );
 
   test("alert states follow the same rule", () => {
-    expect(stageOf(INVESTIGATING, ROWS, ALERT_STATES)).toBe(
-      StartingStage.Open,
-    );
+    expect(stageOf(INVESTIGATING, ROWS, ALERT_STATES)).toBe(StartingStage.Open);
     expect(stageOf(MITIGATED, ROWS, ALERT_STATES)).toBe(
       StartingStage.Acknowledged,
     );
@@ -180,34 +178,30 @@ describe("StartingStageUtil.getStage - where a record starts, by its state's pla
   });
 
   test("the services' models read the same as their JSON", () => {
-    const models: Array<IncidentState> = ROWS.map(
-      (row: Row): IncidentState => {
-        const state: IncidentState = new IncidentState();
-        state._id = row._id;
-        state.name = row.name;
-        if (row.order !== null) {
-          state.order = row.order;
-        }
-        state.isCreatedState = Boolean(row.isCreatedState);
-        state.isAcknowledgedState = Boolean(row.isAcknowledgedState);
-        state.isResolvedState = Boolean(row.isResolvedState);
-        return state;
-      },
-    );
+    const models: Array<IncidentState> = ROWS.map((row: Row): IncidentState => {
+      const state: IncidentState = new IncidentState();
+      state._id = row._id;
+      state.name = row.name;
+      if (row.order !== null) {
+        state.order = row.order;
+      }
+      state.isCreatedState = Boolean(row.isCreatedState);
+      state.isAcknowledgedState = Boolean(row.isAcknowledgedState);
+      state.isResolvedState = Boolean(row.isResolvedState);
+      return state;
+    });
 
-    const alertModels: Array<AlertState> = ROWS.map(
-      (row: Row): AlertState => {
-        const state: AlertState = new AlertState();
-        state._id = row._id;
-        if (row.order !== null) {
-          state.order = row.order;
-        }
-        state.isCreatedState = Boolean(row.isCreatedState);
-        state.isAcknowledgedState = Boolean(row.isAcknowledgedState);
-        state.isResolvedState = Boolean(row.isResolvedState);
-        return state;
-      },
-    );
+    const alertModels: Array<AlertState> = ROWS.map((row: Row): AlertState => {
+      const state: AlertState = new AlertState();
+      state._id = row._id;
+      if (row.order !== null) {
+        state.order = row.order;
+      }
+      state.isCreatedState = Boolean(row.isCreatedState);
+      state.isAcknowledgedState = Boolean(row.isAcknowledgedState);
+      state.isResolvedState = Boolean(row.isResolvedState);
+      return state;
+    });
 
     for (const row of ROWS) {
       expect(stageOf(row._id, models)).toBe(stageOf(row._id));
@@ -288,9 +282,9 @@ describe("StartingStageUtil.fromCarryForward - what the create hook handed over"
   test.each(Object.values(StartingStage))(
     "%s is read back as it was handed over",
     (stage: StartingStage) => {
-      expect(
-        StartingStageUtil.fromCarryForward({ startingStage: stage }),
-      ).toBe(stage);
+      expect(StartingStageUtil.fromCarryForward({ startingStage: stage })).toBe(
+        stage,
+      );
       expect(
         StartingStageUtil.fromCarryForward({
           startingStage: stage,

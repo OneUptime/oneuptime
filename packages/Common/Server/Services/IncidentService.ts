@@ -3436,8 +3436,7 @@ export class Service extends ProjectReferencesService<Model> {
   // The validated alert ids an incident is being declared from, if any.
   private getAlertIdsDeclaredWith(onCreate: OnCreate<Model>): Array<ObjectID> {
     const carryForward: IncidentCreateCarryForward | null =
-      (onCreate.carryForward as IncidentCreateCarryForward | undefined) ||
-      null;
+      (onCreate.carryForward as IncidentCreateCarryForward | undefined) || null;
 
     return carryForward?.alertIdsToLink || [];
   }
@@ -3451,8 +3450,7 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
   ): Array<ObjectID> {
     const carryForward: IncidentCreateCarryForward | null =
-      (onCreate.carryForward as IncidentCreateCarryForward | undefined) ||
-      null;
+      (onCreate.carryForward as IncidentCreateCarryForward | undefined) || null;
 
     if (!carryForward?.acknowledgedAlertStateId) {
       return [];
