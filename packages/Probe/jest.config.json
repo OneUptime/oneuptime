@@ -2,8 +2,8 @@
 
  "preset": "ts-jest",
 "testPathIgnorePatterns": [
-        "node_modules",
-        "dist",
+        "/node_modules/",
+        "/dist/",
         "<rootDir>/build/"
     ],
     "modulePathIgnorePatterns": ["<rootDir>/build/"],
