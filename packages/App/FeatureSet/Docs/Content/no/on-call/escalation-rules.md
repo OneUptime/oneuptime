@@ -29,9 +29,13 @@ Sammenslått nevner overskriften på **Flere felt** de to og viser dem regelen h
 
 Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottakerne sine med en gang. Hvis ingen bekrefter innen ventetiden, varsles **Level 2**, og så videre nedover listen. Når ventetiden for det siste nivået har gått uten bekreftelse, starter retningslinjen på nytt fra **Level 1** hvis **Gjentakelsesretningslinje** (under reglene) sier at den skal gjentas, så mange ganger den tillater, og ellers stopper den.
 
+En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn.
+
 Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert nivå varsles, hvem det varsler og hva som skjer etter det siste. Et nivå der ikke alle mottakerne kan varsles, sier fra om det på kortet sitt; klikk på merket for å se hvem og hvorfor.
 
 Hvordan hver person et nivå varsler blir nådd, bestemmer personens egne vaktregler: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder og et kort per alvorlighetsgrad som viser hvilken varselmetode som brukes og etter hvor lang tid. En prosjektadministrator kan se og endre et medlems regler under **Brukere** > medlemmet > **Vaktregler**.
+
+SMS, telefonanrop, WhatsApp og Telegram er av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvhostet installasjon trenger først en Twilio-konto eller en Telegram-bot som er satt opp. Så lenge en kanal er av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** under **Prosjektinnstillinger > Varsler > Varselinnstillinger** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er av: over sin egen liste over metoder på den, på sjekklisten for oppsett og i meldingen de får når noe trenger den.
 
 ## Rediger, omorganiser og slett regler
 

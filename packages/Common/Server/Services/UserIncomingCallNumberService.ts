@@ -15,6 +15,7 @@ import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserIncomingCallNumber";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -47,9 +48,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!project.enableSmsNotifications) {
-      throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE);
     }
 
     /*
@@ -163,9 +162,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!project.enableSmsNotifications) {
-      throw new BadDataException(
-        "SMS notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
-      );
+      throw new BadDataException(INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE);
     }
 
     /*

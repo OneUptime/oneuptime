@@ -21,6 +21,10 @@ import ChannelVerification from "../Utils/ChannelVerification";
 import Project from "../../Models/DatabaseModels/Project";
 import Model from "../../Models/DatabaseModels/UserCall";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -113,7 +117,9 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableCallNotifications) {
       throw new BadDataException(
-        "Call notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Call,
+        ),
       );
     }
 
@@ -195,7 +201,9 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableCallNotifications) {
       throw new BadDataException(
-        "Call notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Call,
+        ),
       );
     }
 

@@ -11,6 +11,17 @@ import ProjectNotificationChannelsCopy, {
   ProjectNotificationChannel,
   ProjectNotificationChannelDefinition,
 } from "../../FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
+import {
+  getProjectNotificationChannelOffMessage,
+  getWhoCanTurnOnSentence,
+  INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE,
+  PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL,
+  PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
+} from "Common/Utils/Project/NotificationChannels";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -27,7 +38,11 @@ import path from "path";
  *     Project Settings -> Notification Settings, where each saves the moment
  *     it is flipped. No Edit button and no two-step dialog;
  *   - the admin's "Add a notification method" form offers only the channels
- *     that are on.
+ *     that are on;
+ *   - wherever a channel is off, the reader who may not turn it on is told
+ *     exactly who can - a project owner or someone with Manage Billing, the
+ *     columns' own update permissions - and never "a project admin", who
+ *     may not.
  *
  * This reads the sources so a list written later, or a second home for a
  * switch, cannot quietly bring the refusal back. The behaviour is tested in
@@ -199,6 +214,15 @@ describe("the four channels", () => {
     ).toEqual(Object.values(ProjectNotificationChannel));
   });
 
+  test("the server's wording and the dashboard name the same column for each channel", () => {
+    for (const definition of PROJECT_NOTIFICATION_CHANNELS) {
+      expect([
+        definition.channel,
+        PROJECT_NOTIFICATION_CHANNEL_COLUMN_BY_CHANNEL[definition.channel],
+      ]).toEqual([definition.channel, definition.column]);
+    }
+  });
+
   test("every gated list is defined once, on a channel that exists", () => {
     expect(
       CHANNEL_GATED_METHOD_LISTS.map(
@@ -227,10 +251,102 @@ describe("the four channels", () => {
         /^Off for this project: /,
       );
       expect(definition.switchOnDescription).toMatch(/^On for this project: /);
-      expect(definition.offSentence).toContain("A project owner can turn");
+      expect(definition.offSentence).toContain(
+        "A project owner or someone with Manage Billing can turn",
+      );
+      expect(definition.offSentence).toContain(
+        "in Project Settings → Notification Settings.",
+      );
       expect(definition.offSentence).toContain("off in this project");
+      expect(definition.offSentence.toLowerCase()).not.toContain("admin");
       // The empty list's heading while off does not ask for one.
       expect(definition.noItemsWhileOff).not.toContain("add");
+    }
+  });
+
+  test("the people the copy names are the people the columns' update permissions let in", () => {
+    const project: Project = new Project();
+    const titles: Array<string> = [];
+
+    for (const column of PROJECT_NOTIFICATION_CHANNEL_COLUMNS) {
+      const update: Array<Permission> =
+        project.getColumnAccessControlFor(column)?.update || [];
+
+      expect([column, [...update].sort()]).toEqual([
+        column,
+        [...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS].sort(),
+      ]);
+    }
+
+    for (const permission of PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS) {
+      titles.push(
+        PermissionHelper.getAllPermissionProps().find(
+          (props: PermissionProps): boolean => {
+            return props.permission === permission;
+          },
+        )?.title || "",
+      );
+    }
+
+    // "a project owner or someone with Manage Billing"
+    expect(titles).toEqual(["Project Owner", "Manage Billing"]);
+
+    for (const sentence of [
+      getWhoCanTurnOnSentence("it"),
+      getWhoCanTurnOnSentence("them"),
+      ProjectNotificationChannelsCopy.whoCanChange,
+      ...CHANNEL_GATED_METHOD_LISTS.map(
+        (definition: ChannelGatedMethodListDefinition): string => {
+          return definition.offSentence;
+        },
+      ),
+    ]) {
+      expect(sentence).toContain("project owner");
+      expect(sentence).toContain("Manage Billing");
+      expect(sentence.toLowerCase()).not.toContain("admin");
+    }
+  });
+
+  test("the dashboard and the server say who can in the same words", () => {
+    // The dashboard writes "→" where the server writes ">".
+    const asDashboard: (text: string) => string = (text: string): string => {
+      return text.replace(/ > /g, " → ");
+    };
+
+    const lists: Array<[ChannelGatedMethodList, string]> = [
+      [
+        ChannelGatedMethodList.SMS,
+        getProjectNotificationChannelOffMessage(ProjectNotificationChannel.SMS),
+      ],
+      [
+        ChannelGatedMethodList.Call,
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Call,
+        ),
+      ],
+      [
+        ChannelGatedMethodList.WhatsApp,
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.WhatsApp,
+        ),
+      ],
+      [
+        ChannelGatedMethodList.Telegram,
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Telegram,
+        ),
+      ],
+      [
+        ChannelGatedMethodList.IncomingCallNumber,
+        INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE,
+      ],
+    ];
+
+    for (const [list, serverMessage] of lists) {
+      expect([list, getChannelGatedMethodList(list).offSentence]).toEqual([
+        list,
+        asDashboard(serverMessage),
+      ]);
     }
   });
 });
@@ -378,6 +494,54 @@ describe("one place for each switch", () => {
   });
 });
 
+describe("nothing tells a reader to ask a project admin, or to turn a channel on themselves", () => {
+  /*
+   * Only a project owner or someone with Manage Billing may switch SMS,
+   * calls, WhatsApp or Telegram on. Sources are read without their comments,
+   * which may still quote what the copy used to say.
+   */
+  const REPO_PACKAGES: string = path.join(__dirname, "..", "..", "..");
+
+  const SCANNED: Array<string> = [
+    DASHBOARD_SRC,
+    EE_DASHBOARD_SRC,
+    path.join(REPO_PACKAGES, "Common", "Server"),
+    path.join(REPO_PACKAGES, "App", "FeatureSet", "Notification"),
+    path.join(REPO_PACKAGES, "..", "ee", "Server"),
+  ];
+
+  const FORBIDDEN: Array<[string, RegExp]> = [
+    [
+      "asks for a project admin to turn a channel on",
+      /ask a project admin to enable (it|them|this channel)\b/i,
+    ],
+    ["says a step needs a project admin", /needs? a project admin/i],
+    ["labels a step 'Needs an admin'", /Needs an admin/],
+    [
+      "tells the reader to enable a channel in Project Settings",
+      /Please enable (them|SMS|Call|call|WhatsApp|Telegram)[^"`]*Project Settings/,
+    ],
+    [
+      "tells the reader to turn channels on in Notification Settings",
+      /\bTurn (it|them) on in Project Settings > Notification Settings/,
+    ],
+  ];
+
+  test.each(FORBIDDEN)("no source %s", (_what: string, pattern: RegExp) => {
+    const found: Array<string> = [];
+
+    for (const directory of SCANNED) {
+      for (const file of listSources(directory)) {
+        if (pattern.test(readSource(file))) {
+          found.push(path.relative(REPO_PACKAGES, file));
+        }
+      }
+    }
+
+    expect(found).toEqual([]);
+  });
+});
+
 describe("the admin's Add form offers only the channels that are on", () => {
   const source: string = readSource(
     path.join(
@@ -433,7 +597,10 @@ describe("translations", () => {
         ];
       },
     ),
-    "Channels that are off in this project are not offered. A project owner can turn them on in Project Settings → Notification Settings.",
+    ProjectNotificationChannelsCopy.whoCanChange,
+    ProjectNotificationChannelsCopy.settingsLinkText,
+    "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+    "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.",
     "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
     "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
     "You can add an email address or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",

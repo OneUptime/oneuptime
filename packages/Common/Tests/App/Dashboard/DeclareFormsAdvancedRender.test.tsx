@@ -389,7 +389,7 @@ describe("Declare Incident", () => {
 
     expect(
       screen.getByText(
-        "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.",
+        "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
       ),
     ).toBeVisible();
 

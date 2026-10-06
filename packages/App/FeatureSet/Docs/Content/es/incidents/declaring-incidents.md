@@ -160,7 +160,7 @@ La llamada de creación hace bastante más que escribir una fila. En orden:
 5. **Se ejecutan las reglas de etiquetas**, añadiendo las etiquetas que coincidan con el incidente.
 6. **Se ejecutan las reglas de guardia.** Toda regla activada en **Incidentes → Reglas → Reglas de guardia** cuyos criterios coincidan añade sus políticas al incidente. No hay orden de prioridad ni cortocircuito: se disparan todas las reglas coincidentes y las políticas se deduplican.
 7. **Se ejecutan las reglas de runbook**, adjuntando e iniciando los runbooks coincidentes. Consulta [Runbooks](/docs/runbooks/index).
-8. **Se ejecutan las políticas de guardia.** Toda política del incidente —elegida en el asistente, heredada de una plantilla o añadida por una regla— se ejecuta en paralelo con el tipo de evento `IncidentCreated`. Que una política falle no detiene a las demás.
+8. **Se ejecutan las políticas de guardia.** Toda política del incidente —elegida en el asistente, heredada de una plantilla o añadida por una regla— se ejecuta en paralelo con el tipo de evento `IncidentCreated`. Que una política falle no detiene a las demás. Un incidente declarado ya reconocido o resuelto no ejecuta ninguna: no se avisa a nadie, y su feed lo indica, nombrándolas.
 9. **Se ponen en cola los suscriptores**, si se dejó activado **Notificar a suscriptores de la página de estado** y el incidente es visible en la página de estado. La entrega la gestiona un trabajo en segundo plano, no tu petición.
 10. **Se disparan los flujos de trabajo.** El disparador **On Create Incident** arranca cualquier flujo de trabajo construido sobre él. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 

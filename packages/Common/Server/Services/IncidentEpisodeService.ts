@@ -60,6 +60,12 @@ import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEng
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "./IncidentEpisodePrivacyRuleEngineService";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+  StartingState,
+} from "../../Utils/StartingStage";
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -226,21 +232,42 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
     /*
-     * The state picked, if any, and the severity: a state or a severity of
-     * another project is refused, with the same words as one that does not
-     * exist, before a number is used.
+     * Where it starts (StartingStage), read once, here, and handed to
+     * onCreateSuccess, which decides on it what the create sets off: an
+     * episode recorded already acknowledged pages nobody, and one recorded
+     * resolved opens no channel either. The read holds only the project's
+     * own states, so it also checks the state picked. With none picked the
+     * episode starts in the created state - open, as every episode a
+     * grouping rule opens - and there is nothing to read.
+     */
+    const pickedStart: StartingState | null = pickedIncidentStateId
+      ? await IncidentStateService.getStartingState({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
+        })
+      : null;
+
+    const startingStage: StartingStage =
+      pickedStart?.stage || StartingStage.Open;
+
+    /*
+     * The state picked, unless the read above found it, and the severity: a
+     * state or a severity of another project is refused, with the same
+     * words as one that does not exist, before a number is used.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "incident episode",
       references: [
-        ...getWrittenRelationReferences({
-          payload: createBy.data,
-          idColumn: "currentIncidentStateId",
-          relation: "currentIncidentState",
-          modelName: "Incident State",
-          service: IncidentStateService,
-        }),
+        ...(pickedStart
+          ? []
+          : getWrittenRelationReferences({
+              payload: createBy.data,
+              idColumn: "currentIncidentStateId",
+              relation: "currentIncidentState",
+              modelName: "Incident State",
+              service: IncidentStateService,
+            })),
         ...getWrittenRelationReferences({
           payload: createBy.data,
           idColumn: "incidentSeverityId",
@@ -266,21 +293,18 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
-     * resolvedAt follows the state the episode starts in. One recorded as
-     * already resolved is resolved from the moment it exists: grouping,
-     * auto-resolve and the unresolved episode lists read resolvedAt, which
-     * the first timeline row would otherwise set only once onCreateSuccess
-     * reaches it, after the workspace channels - and sets again then, to the
-     * moment that row records. Any other episode has none yet, whatever the
-     * write sent: the first timeline row would clear it anyway.
+     * resolvedAt follows the state the episode starts in exactly as its
+     * first timeline row writes it (IncidentEpisodeStateTimelineService):
+     * set for a state flagged resolved. One recorded as already resolved is
+     * resolved from the moment it exists:
+     * grouping, auto-resolve and the unresolved episode lists read
+     * resolvedAt, which the first timeline row would otherwise set only once
+     * onCreateSuccess reaches it, after the workspace channels - and sets
+     * again then, to the moment that row records. Any other episode has none
+     * yet, whatever the write sent: the first timeline row would clear it
+     * anyway.
      */
-    if (
-      pickedIncidentStateId &&
-      (await IncidentStateService.isResolvedIncidentState({
-        projectId: projectId,
-        incidentStateId: pickedIncidentStateId,
-      }))
-    ) {
+    if (pickedStart?.flaggedResolved) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];
@@ -337,12 +361,16 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: StartingStageCarryForward = {
+      startingStage: startingStage,
+    };
+
+    return { createBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
@@ -356,6 +384,16 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createdItem.currentIncidentStateId) {
       throw new BadDataException("currentIncidentStateId is required");
     }
+
+    /*
+     * How far along the episode starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, no channel is opened for it either. Its rules, its
+     * feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
 
     // Create initial state timeline entry
     Promise.resolve()
@@ -380,8 +418,16 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * No channel is opened for an episode created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            StartingStageUtil.isOngoing(startingStage)
+          ) {
             await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
           }
         } catch (error) {
@@ -485,7 +531,10 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         // Execute on-call duty policies
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(createdItem);
+          await this.executeEpisodeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
@@ -608,9 +657,16 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * Runs the episode's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeEpisodeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     if (!createdItem.id || !createdItem.projectId) {
       return;
@@ -635,6 +691,16 @@ export class Service extends ProjectReferencesService<Model> {
         !episodeWithPolicies?.onCallDutyPolicies?.length ||
         episodeWithPolicies.onCallDutyPolicies.length === 0
       ) {
+        return;
+      }
+
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        await OnCallNotRunOnCreate.createFeedItem({
+          record: { incidentEpisodeId: createdItem.id },
+          projectId: createdItem.projectId,
+          stage: startingStage,
+          policies: episodeWithPolicies.onCallDutyPolicies,
+        });
         return;
       }
 

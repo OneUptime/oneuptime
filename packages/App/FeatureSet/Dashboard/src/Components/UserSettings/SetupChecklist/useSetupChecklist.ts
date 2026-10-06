@@ -10,6 +10,7 @@ import {
 } from "./ChecklistModel";
 import CalendarFeedAPI from "../../OnCallPolicy/CalendarFeed/CalendarFeedAPI";
 import ProjectNotificationChannelsStore, {
+  canChangeProjectNotificationChannels,
   getProjectNotificationChannelsSelect,
 } from "../../NotificationMethods/ProjectNotificationChannels";
 import {
@@ -733,6 +734,13 @@ const useSetupChecklist: (
           microsoftTeams: microsoftTeams,
           customFields: customFields,
           calendarFeed: calendarFeed,
+          /*
+           * Read once every request above has answered, so the permission
+           * snapshot they carry has arrived: a project owner or someone with
+           * Manage Billing is sent to the switches, everyone else told who
+           * can turn them on.
+           */
+          canTurnOnProjectChannels: canChangeProjectNotificationChannels(),
         }),
       );
 

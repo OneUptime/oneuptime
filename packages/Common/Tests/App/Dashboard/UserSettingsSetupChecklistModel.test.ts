@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
 import {
   CalendarFeedProbe,
+  ChannelStepCopy,
   CustomFieldProbe,
   DeliverableSettingsProbe,
   IncomingCallProbe,
@@ -17,6 +18,10 @@ import {
   buildSetupChecklist,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/ChecklistModel";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import {
+  getWhoCanTurnOnClause,
+  PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
+} from "../../../Utils/Project/NotificationChannels";
 import {
   ReadinessCoverageCellWire,
   ReadinessMethodWire,
@@ -354,10 +359,11 @@ describe("setup checklist - reaching you at all", () => {
   /*
    * The trap this whole step exists for. All four paid channels default to OFF
    * on a project, so somebody who verifies only SMS sees a green tick on their
-   * methods page and is reported NotReachable - and the fix is an admin's, not
-   * theirs.
+   * methods page and is reported NotReachable - and only a project owner or
+   * someone with Manage Billing may switch the channel on. Not the reader,
+   * as a rule, and never a project admin.
    */
-  test("marks a verified-but-switched-off channel as blocked, with no link", () => {
+  test("marks a verified-but-switched-off channel as blocked, with no link, naming exactly who can turn it on", () => {
     const checklist: SetupChecklist = buildSetupChecklist(
       makeInput({
         readiness: makeReadiness({
@@ -371,10 +377,122 @@ describe("setup checklist - reaching you at all", () => {
 
     expect(step!.status).toBe(SetupStepStatus.Blocked);
     expect(step!.pageMap).toBeUndefined();
-    expect(step!.actionTitle).toBe(
-      "Ask a project admin to enable this channel",
+    expect(step!.detail).toBe(ChannelStepCopy.whoCanTurnOnDetail);
+    expect(step!.detail).toContain(
+      "A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings",
     );
-    expect(step!.detail).toContain("Ask a project admin to enable it");
+    expect(step!.actionTitle).toBe(ChannelStepCopy.whoCanTurnOnAction);
+    expect(step!.detail.toLowerCase()).not.toContain("admin");
+    expect(step!.actionTitle.toLowerCase()).not.toContain("admin");
+  });
+
+  test("names who can for anyone not known to be allowed: a reader who may not, and a reader nothing was said about", () => {
+    for (const canTurnOnProjectChannels of [false, undefined]) {
+      const checklist: SetupChecklist = buildSetupChecklist(
+        makeInput({
+          readiness: makeReadiness({
+            status: "NotReachable",
+            methods: [makeMethod("Call", true)],
+          }),
+          canTurnOnProjectChannels: canTurnOnProjectChannels,
+        }),
+      );
+
+      const step: SetupStep | undefined = findStep(
+        checklist,
+        "channels-enabled",
+      );
+
+      expect([canTurnOnProjectChannels, step!.status, step!.pageMap]).toEqual([
+        canTurnOnProjectChannels,
+        SetupStepStatus.Blocked,
+        undefined,
+      ]);
+      expect(checklist.blockedCount).toBe(1);
+    }
+  });
+
+  /*
+   * A project owner (or someone with Manage Billing) whose only verified
+   * method is on a channel that is off can fix it in one press: the step is
+   * theirs, and it opens the page with the switches.
+   */
+  test("for a reader who may turn the channel on, it is their own step, opening the switches", () => {
+    const checklist: SetupChecklist = buildSetupChecklist(
+      makeInput({
+        readiness: makeReadiness({
+          status: "NotReachable",
+          methods: [makeMethod("SMS", true)],
+        }),
+        canTurnOnProjectChannels: true,
+      }),
+    );
+
+    const step: SetupStep | undefined = findStep(checklist, "channels-enabled");
+
+    expect(step!.status).toBe(SetupStepStatus.Incomplete);
+    expect(step!.pageMap).toBe(PageMap.SETTINGS_NOTIFICATION_SETTINGS);
+    expect(step!.pageQuery).toBeUndefined();
+    expect(step!.detail).toBe(ChannelStepCopy.canTurnOnDetail);
+    expect(step!.detail).toContain(
+      "Turn it on in Project Settings → Notification Settings",
+    );
+    expect(step!.actionTitle).toBe(ChannelStepCopy.canTurnOnAction);
+    expect(step!.actionTitle).toBe(
+      "Go to Project Settings → Notification Settings",
+    );
+  });
+
+  test("for a reader who may turn it on, the step counts towards progress and nothing is blocked", () => {
+    const checklist: SetupChecklist = buildSetupChecklist(
+      makeInput({
+        readiness: makeReadiness({
+          status: "NotReachable",
+          methods: [makeMethod("SMS", true)],
+        }),
+        canTurnOnProjectChannels: true,
+      }),
+    );
+
+    expect(checklist.blockedCount).toBe(0);
+    expect(checklist.completedCount).toBe(checklist.totalCount - 1);
+    expect(checklist.headlineStatus).toBe(SetupHeadlineStatus.NotReachable);
+  });
+
+  test("a usable channel is complete whoever reads it", () => {
+    for (const canTurnOnProjectChannels of [true, false, undefined]) {
+      const step: SetupStep | undefined = findStep(
+        buildSetupChecklist(makeInput({ canTurnOnProjectChannels })),
+        "channels-enabled",
+      );
+
+      expect([
+        canTurnOnProjectChannels,
+        step!.status,
+        step!.pageMap,
+        step!.detail,
+      ]).toEqual([
+        canTurnOnProjectChannels,
+        SetupStepStatus.Complete,
+        PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
+        "",
+      ]);
+    }
+  });
+
+  test("names the people the server lets in, in the server's own words", () => {
+    // The dashboard writes "→" where the server writes ">".
+    const serverClause: string = getWhoCanTurnOnClause("it").replace(
+      PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE,
+      PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE.replace(" > ", " → "),
+    );
+
+    expect(ChannelStepCopy.whoCanTurnOnDetail.toLowerCase()).toContain(
+      serverClause.toLowerCase(),
+    );
+    expect(serverClause).toBe(
+      "a project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings",
+    );
   });
 
   /*
@@ -399,6 +517,73 @@ describe("setup checklist - reaching you at all", () => {
     const healthy: SetupChecklist = buildSetupChecklist(makeInput());
 
     expect(healthy.blockedCount).toBe(0);
+  });
+
+  /*
+   * The note under the progress bar (SetupChecklist) and the tile's label
+   * for a Blocked row say who is needed: a project owner or someone with
+   * Manage Billing. That is only true while the channel step is the only one
+   * that can be Blocked, so a new kind of Blocked step has to revisit them.
+   */
+  test("the channel step is the only step that is ever blocked", () => {
+    const inputs: Array<SetupChecklistInput> = [
+      makeInput(),
+      makeInput({
+        readiness: makeReadiness({ status: "NotReachable", methods: [] }),
+      }),
+      makeInput({
+        readiness: makeReadiness({
+          status: "NotReachable",
+          methods: [makeMethod("SMS", true), makeMethod("Call", true)],
+        }),
+      }),
+      makeInput({
+        readiness: makeReadiness({
+          status: "NotReachable",
+          methods: [makeMethod("WhatsApp", false)],
+        }),
+      }),
+      makeInput({
+        readiness: makeReadiness({ status: "PartiallyReady" }),
+        isFallbackEnabled: false,
+      }),
+      makeInput({
+        incomingCall: {
+          isKnown: true,
+          hasPolicyInProject: true,
+          hasVerifiedNumber: false,
+        },
+        slack: {
+          isKnown: true,
+          isConnectedForProject: true,
+          isConnectedForUser: false,
+        },
+        microsoftTeams: {
+          isKnown: true,
+          isConnectedForProject: true,
+          isConnectedForUser: false,
+        },
+        customFields: { isKnown: true, fieldCount: 2, filledFieldCount: 0 },
+        calendarFeed: { isKnown: true, hasEnabledLink: false },
+        deliverableSettings: {
+          isKnown: true,
+          undeliverableChannels: ["SMS"],
+        },
+        onCallShiftAlerts: { isKnown: true, hasAnyChannelEnabled: false },
+      }),
+    ];
+
+    const blockedKeys: Set<string> = new Set<string>();
+
+    for (const input of inputs) {
+      for (const step of allSteps(buildSetupChecklist(input))) {
+        if (step.status === SetupStepStatus.Blocked) {
+          blockedKeys.add(step.key);
+        }
+      }
+    }
+
+    expect([...blockedKeys]).toEqual(["channels-enabled"]);
   });
 
   test("a blocked channel step is not counted towards progress", () => {

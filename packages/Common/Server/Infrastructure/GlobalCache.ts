@@ -479,6 +479,70 @@ export default abstract class GlobalCache {
     return count < 0 ? null : count;
   }
 
+  /*
+   * Atomic monotonic advance: store value only when it is greater than the
+   * number the key already holds, refresh the expiry either way, and return
+   * the number the key holds afterwards.
+   *
+   * GET, compare, then SET from the client is a check-then-act race: two
+   * writers read the same old value, both write, and the smaller one can land
+   * last and move the value backwards. One evaluation makes the comparison and
+   * the write a single step.
+   *
+   * onlyIfExists makes the call update-only: a missing key stays missing and
+   * the call answers null. That lets a caller that cannot vouch for its key
+   * (an unauthenticated request path) advance keys a trusted caller created,
+   * without being able to create keys of its own.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async setNumberIfGreater(
+    namespace: string,
+    key: string,
+    value: number,
+    options: CacheSetOptions & { onlyIfExists?: boolean | undefined },
+  ): Promise<number | null> {
+    if (!Number.isFinite(value)) {
+      throw new BadDataException("The value to store is not a number");
+    }
+
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local stored = redis.call('GET', KEYS[1]) " +
+        "if not stored and ARGV[3] == '1' then return false end " +
+        "local current = stored and tonumber(stored) " +
+        "if not current or tonumber(ARGV[1]) > current then " +
+        "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) " +
+        "return ARGV[1] end " +
+        "redis.call('EXPIRE', KEYS[1], ARGV[2]) " +
+        "return stored",
+      1,
+      `${namespace}-${key}`,
+      String(value),
+      String(options.expiresInSeconds),
+      options.onlyIfExists ? "1" : "0",
+    );
+
+    if (result === null || result === undefined) {
+      return null;
+    }
+
+    const stored: number = Number(result);
+
+    if (!Number.isFinite(stored)) {
+      throw new BadDataException("The cached value is not a number");
+    }
+
+    return stored;
+  }
+
   @CaptureSpan()
   public static async deleteKey(namespace: string, key: string): Promise<void> {
     const client: ClientType | null = Redis.getClient();

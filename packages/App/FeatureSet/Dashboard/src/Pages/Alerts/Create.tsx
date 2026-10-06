@@ -201,7 +201,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   title: "Initial State",
                   stepId: "alert-details",
                   description:
-                    "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.",
+                    "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: AlertState,

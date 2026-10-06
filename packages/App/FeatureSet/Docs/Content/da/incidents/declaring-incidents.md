@@ -160,7 +160,7 @@ Oprettelseskaldet gør mere end at skrive en række. I rækkefølge:
 5. **Etiketregler kører** og tilføjer de etiketter, der matcher hændelsen.
 6. **Vagtregler kører.** Hver aktiveret regel under **Hændelser → Regler → Vagtregler**, hvis kriterier matcher, føjer sine politikker til hændelsen. Der er ingen prioritetsrækkefølge og ingen kortslutning — alle matchende regler udløses, og politikkerne renses for dubletter.
 7. **Runbook-regler kører** og knytter samt starter matchende runbooks. Se [Runbooks](/docs/runbooks/index).
-8. **Vagtpolitikker udføres.** Hver politik på hændelsen — valgt i guiden, arvet fra en skabelon eller tilføjet af en regel — udføres parallelt med begivenhedstypen `IncidentCreated`. At én politik fejler, stopper ikke de andre.
+8. **Vagtpolitikker udføres.** Hver politik på hændelsen — valgt i guiden, arvet fra en skabelon eller tilføjet af en regel — udføres parallelt med begivenhedstypen `IncidentCreated`. At én politik fejler, stopper ikke de andre. En hændelse, der erklæres allerede bekræftet eller løst, udfører ingen af dem: ingen tilkaldes, og dens feed siger det og nævner dem ved navn.
 9. **Abonnenter sættes i kø**, hvis **Underret statussideabonnenter** blev ladt slået til, og hændelsen er synlig på statussiden. Leveringen håndteres af et baggrundsjob, ikke inline med din anmodning.
 10. **Workflows udløses.** Triggeren **On Create Incident** starter alle workflows bygget på den. Se [Workflows – Oversigt](/docs/workflows/index).
 

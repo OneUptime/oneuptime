@@ -26,6 +26,7 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { getWhoCanTurnOnSentence } from "Common/Utils/Project/NotificationChannels";
 import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
@@ -225,15 +226,21 @@ const countSelected: (value: unknown) => number = (value: unknown): number => {
  * words that are true of that channel. Switched off, Call, SMS and Telegram
  * reach nobody. WhatsApp still pages numbers verified before it was switched
  * off, but no member can add a number - the only way to meet a WhatsApp rule.
+ *
+ * Each note ends by saying who can switch the channel on, and where: only a
+ * project owner or someone with Manage Billing may (the switches' own update
+ * permissions), and whoever writes a team's rules is often neither. The same
+ * sentence as the server's compliance warnings (TeamComplianceEvaluator), from
+ * Common/Utils/Project/NotificationChannels.
  */
 export const getProjectSwitchNote: (
   channel: ComplianceNotificationChannel,
 ) => string = (channel: ComplianceNotificationChannel): string => {
   if (channel === ComplianceNotificationChannel.WhatsApp) {
-    return "Members cannot add a WhatsApp number until WhatsApp is switched on for the project in Project Settings > Notification Settings.";
+    return `Members cannot add a WhatsApp number until WhatsApp is switched on for the project. ${getWhoCanTurnOnSentence("it")}`;
   }
 
-  return `${ComplianceRule.getChannelDefinition(channel)?.label || channel} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached this way.`;
+  return `${ComplianceRule.getChannelDefinition(channel)?.label || channel} notifications also have to be switched on for the project, or nobody will be reached this way. ${getWhoCanTurnOnSentence("them")}`;
 };
 
 /*
@@ -271,7 +278,7 @@ export const getProjectSwitchNotes: (
         notSent.map((channel: ComplianceNotificationChannel): string => {
           return ComplianceRule.getChannelDefinition(channel)?.label || channel;
         }),
-      )} notifications also have to be switched on for the project (Project Settings > Notification Settings), or nobody will be reached those ways.`,
+      )} notifications also have to be switched on for the project, or nobody will be reached those ways. ${getWhoCanTurnOnSentence("them")}`,
     );
   }
 

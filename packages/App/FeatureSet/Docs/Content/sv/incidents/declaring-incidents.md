@@ -160,7 +160,7 @@ Skapandeanropet gör mer än att skriva en rad. I tur och ordning:
 5. **Etikettregler körs** och lägger till etiketter som matchar incidenten.
 6. **Jourregler körs.** Varje aktiverad regel under **Incidenter → Regler → Jourregler** vars kriterier matchar lägger sina policyer på incidenten. Det finns ingen prioritetsordning och ingen kortslutning — alla matchande regler utlöses och policyerna avdubbletteras.
 7. **Runbook-regler körs** och kopplar på och startar matchande runbooks. Se [Runbooks](/docs/runbooks/index).
-8. **Jourpolicyer körs.** Varje policy på incidenten — vald i guiden, ärvd från en mall eller tillagd av en regel — körs parallellt med händelsetypen `IncidentCreated`. Att en policy misslyckas stoppar inte de andra.
+8. **Jourpolicyer körs.** Varje policy på incidenten — vald i guiden, ärvd från en mall eller tillagd av en regel — körs parallellt med händelsetypen `IncidentCreated`. Att en policy misslyckas stoppar inte de andra. En incident som deklareras redan bekräftad eller löst kör ingen av dem: ingen larmas, och dess feed säger det och nämner dem vid namn.
 9. **Prenumeranter köas**, om **Meddela statussideprenumeranter** lämnades påslaget och incidenten är synlig på statussidan. Leveransen sköts av ett bakgrundsjobb, inte inuti din förfrågan.
 10. **Arbetsflöden utlöses.** Utlösaren **On Create Incident** startar varje arbetsflöde som byggts på den. Se [Översikt över arbetsflöden](/docs/workflows/index).
 

@@ -17,6 +17,7 @@ import {
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { getWhoCanTurnOnSentence } from "Common/Utils/Project/NotificationChannels";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
@@ -111,6 +112,11 @@ export const SEVERITIES_DELETED_WARNING: string =
  *    (getChannelSwitchedOffWarning).
  *
  * Push, Email, Slack, Microsoft Teams and webhooks have no such switch.
+ *
+ * Only a project owner or someone with Manage Billing may turn one on, and
+ * the people reading these warnings - whoever sees the team's compliance -
+ * are often neither, so every warning says who can, and where
+ * (Utils/Project/NotificationChannels), rather than telling the reader to.
  */
 export type ProjectChannelSwitch =
   | "enableCallNotifications"
@@ -127,8 +133,7 @@ export const PROJECT_CHANNEL_SWITCHES: Readonly<
   [ComplianceNotificationChannel.Telegram]: "enableTelegramNotifications",
 };
 
-export const WHATSAPP_SWITCHED_OFF_WARNING: string =
-  "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. Turn it on in Project Settings > Notification Settings.";
+export const WHATSAPP_SWITCHED_OFF_WARNING: string = `WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. ${getWhoCanTurnOnSentence("it")}`;
 
 // A severity, as a rule's selection or the project's severity list has it.
 export interface ComplianceSeverityInput {
@@ -683,7 +688,7 @@ export default class TeamComplianceEvaluator {
 
     const label: string = TeamComplianceEvaluator.channelLabel(channel);
 
-    return `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. Turn them on in Project Settings > Notification Settings.`;
+    return `${label} notifications are switched off for this project, so members will not be notified by ${label} even when they meet this rule. ${getWhoCanTurnOnSentence("them")}`;
   }
 
   /*
@@ -717,7 +722,7 @@ export default class TeamComplianceEvaluator {
           notSent.map((channel: ComplianceNotificationChannel): string => {
             return TeamComplianceEvaluator.channelLabel(channel);
           }),
-        )} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. Turn them on in Project Settings > Notification Settings.`,
+        )} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. ${getWhoCanTurnOnSentence("them")}`,
       );
     }
 

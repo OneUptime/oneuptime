@@ -54,6 +54,8 @@ De teams **Owners** en **Admin** zijn bewust vergrendeld: hun machtigingen zijn 
 
 `ProjectOwner` is het hoogste toegangsniveau: facturatie, het project verwijderen en alles wat een beheerder kan. `ProjectAdmin` dekt alles behalve facturatie en het verwijderen van het project.
 
+SMS, telefoonoproepen, WhatsApp of Telegram voor het project aan- of uitzetten valt onder facturatie, omdat elk bericht geld kost. Alleen `ProjectOwner` en de machtiging `ManageProjectBilling` (**Manage Billing**) kunnen die schakelaars wijzigen, onder **Projectinstellingen > Meldingen > Meldingsinstellingen** — niet `ProjectAdmin`.
+
 Maak zoveel extra teams als u wilt — "Frontend-piket", "Support", "Alleen-lezen auditors" — en geef elk de machtigingen die het nodig heeft.
 
 Waar u het vindt: **Instellingen → Teams**. Open een team om bij **Members** en **Permissions** te komen; **Block Permissions** staan onder **More settings** onderaan de pagina Permissions.

@@ -18,6 +18,8 @@ Para un proyecto:
 4. **Establecer como predeterminado del proyecto** está activado en la primera configuración del proyecto, así que los SMS y las llamadas a los miembros del proyecto, incluidas las notificaciones de guardia, pasan por ella en cuanto guarde. Desactívelo si esta cuenta es solo para páginas de estado o llamadas entrantes. En cualquier configuración posterior el interruptor empieza desactivado: actívelo, o elija **Establecer como predeterminado del proyecto** en el menú de la fila de la configuración, para que esos mensajes pasen por ella. Una solicitud a la API que omite `isProjectDefault` se trata igual.
 5. Guarde. Solo una configuración puede ser la predeterminada del proyecto. Las páginas de estado utilizan la configuración asignada explícitamente a cada página.
 
+**SMS** y **Llamadas telefónicas** empiezan apagados en cada proyecto y, hasta que se enciendan, nadie en el proyecto puede añadir un número de teléfono para ellos. Un propietario del proyecto o alguien con **Manage Billing** los enciende en la tarjeta **Canales de notificación** de la misma página.
+
 Para establecer una configuración predeterminada para toda la instalación, un administrador puede abrir **Panel de administración > Configuración > Llamadas y SMS**, editar las credenciales y números de Twilio y guardar. Las notificaciones a los miembros usan esta configuración global cuando su proyecto no tiene una predeterminada. Mantenga el Auth Token confidencial.
 
 ## 3. Configure el acceso a la red

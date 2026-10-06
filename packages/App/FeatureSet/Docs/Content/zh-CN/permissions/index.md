@@ -54,6 +54,8 @@ OneUptime 中的一切都存在于**项目**之内。谁能在项目里做什么
 
 `ProjectOwner` 是最高访问级别：账单、删除项目，以及管理员能做的一切。`ProjectAdmin` 涵盖除账单和删除项目之外的全部内容。
 
+为项目开启或关闭短信、语音电话、WhatsApp 或 Telegram 属于账单事务，因为每条消息都要花钱。只有 `ProjectOwner` 和 `ManageProjectBilling` 权限（**Manage Billing**）可以在 **项目设置 > 通知 > 通知设置** 中更改这些开关，`ProjectAdmin` 不行。
+
 你可以创建任意多个额外团队——"前端待命"、"支持"、"只读审计"——并给每个团队它需要的权限。
 
 位置：**设置 → 团队**。打开团队即可进入 **Members** 和 **Permissions**；**Block Permissions** 位于 Permissions 页面底部的 **More settings** 中。

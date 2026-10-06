@@ -54,6 +54,8 @@ Los equipos **Owners** y **Admin** están bloqueados a propósito: sus permisos 
 
 `ProjectOwner` es el nivel de acceso más alto: facturación, eliminar el proyecto y todo lo que puede hacer un administrador. `ProjectAdmin` cubre todo excepto la facturación y la eliminación del proyecto.
 
+Encender o apagar SMS, llamadas telefónicas, WhatsApp o Telegram para el proyecto cuenta como facturación, porque cada mensaje cuesta dinero. Solo `ProjectOwner` y el permiso `ManageProjectBilling` (**Manage Billing**) pueden cambiar esos interruptores, en **Ajustes del proyecto > Notificaciones > Ajustes de Notificación**; `ProjectAdmin` no puede.
+
 Cree tantos equipos adicionales como quiera —«Guardia de Frontend», «Soporte», «Auditores de solo lectura»— y dé a cada uno los permisos que necesite.
 
 Dónde encontrarlo: **Configuración → Equipos**. Abra un equipo para llegar a **Members** y **Permissions**; **Block Permissions** está en **More settings**, al final de la página Permissions.

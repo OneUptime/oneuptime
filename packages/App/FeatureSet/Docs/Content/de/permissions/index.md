@@ -54,6 +54,8 @@ Die Teams **Owners** und **Admin** sind bewusst gesperrt: Ihre Berechtigungen la
 
 `ProjectOwner` ist die höchste Zugriffsstufe: Abrechnung, Löschen des Projekts und alles, was ein Admin kann. `ProjectAdmin` umfasst alles außer Abrechnung und Löschen des Projekts.
 
+SMS, Telefonanrufe, WhatsApp oder Telegram für das Projekt ein- oder auszuschalten gilt als Abrechnung, weil jede Nachricht Geld kostet. Nur `ProjectOwner` und die Berechtigung `ManageProjectBilling` (**Manage Billing**) können diese Schalter unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** ändern — nicht `ProjectAdmin`.
+
 Legen Sie beliebig viele weitere Teams an — „Frontend-Bereitschaft", „Support", „Nur-Lese-Prüfer" — und geben Sie jedem genau die Berechtigungen, die es braucht.
 
 Wo Sie es finden: **Einstellungen → Teams**. Öffnen Sie ein Team, um zu **Members** und **Permissions** zu gelangen; **Block Permissions** liegen unter **More settings** unten auf der Seite Permissions.

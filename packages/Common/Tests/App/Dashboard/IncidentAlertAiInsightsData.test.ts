@@ -68,6 +68,7 @@ const ALL_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
+  "created_resolved",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -549,6 +550,15 @@ describe("why incidents were not investigated", () => {
         [...ALL_REASON_CODES].sort(),
       );
     }
+  });
+
+  test("an incident or alert created already resolved says so", () => {
+    expect(describeNotInvestigatedReason("incident", "created_resolved")).toBe(
+      "They were created already resolved.",
+    );
+    expect(describeNotInvestigatedReason("alert", "created_resolved")).toBe(
+      "They were created already resolved.",
+    );
   });
 
   test("a project that reached its own daily AI limit says so", () => {
