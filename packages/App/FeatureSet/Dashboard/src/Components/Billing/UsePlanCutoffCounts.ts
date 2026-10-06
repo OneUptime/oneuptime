@@ -16,9 +16,11 @@ import { useEffect, useState } from "react";
  *
  * Read once, while `enabled` - OneUptime Cloud, with the project's plan
  * known. Each count is read on its own, and one the reader may not read
- * (SCIM connections are for project owners) counts as none rather than
- * hiding the other. Null until read, or when not enabled: the page then
- * says nothing about them.
+ * (API keys and SCIM connections have read permissions of their own, which
+ * someone who may change the plan need not hold) is not known - null -
+ * rather than none, and does not hide the other: the plan picker then says
+ * that they stop without saying how many. Null until read, or when not
+ * enabled: the page then says nothing about them.
  */
 const usePlanCutoffCounts: (data: {
   enabled: boolean;
@@ -37,18 +39,20 @@ const usePlanCutoffCounts: (data: {
 
     let isCurrent: boolean = true;
 
-    const countOrNone: (count: Promise<number>) => Promise<number> = async (
+    const countOrUnknown: (
       count: Promise<number>,
-    ): Promise<number> => {
+    ) => Promise<number | null> = async (
+      count: Promise<number>,
+    ): Promise<number | null> => {
       try {
         return await count;
       } catch {
-        return 0;
+        return null;
       }
     };
 
     void Promise.all([
-      countOrNone(
+      countOrUnknown(
         ModelAPI.count<ApiKey>({
           modelType: ApiKey,
           query: {
@@ -57,26 +61,34 @@ const usePlanCutoffCounts: (data: {
           },
         }),
       ),
-      countOrNone(
+      countOrUnknown(
         ModelAPI.count<ProjectSCIM>({
           modelType: ProjectSCIM,
           query: { projectId: projectId },
         }),
       ),
-      countOrNone(
+      countOrUnknown(
         ModelAPI.count<StatusPageSCIM>({
           modelType: StatusPageSCIM,
           query: { projectId: projectId },
         }),
       ),
-    ]).then(([apiKeys, projectScim, statusPageScim]: Array<number>): void => {
-      if (isCurrent) {
+    ]).then(
+      ([apiKeys, projectScim, statusPageScim]: Array<number | null>): void => {
+        if (!isCurrent) {
+          return;
+        }
+
         setCounts({
-          apiKeys: apiKeys || 0,
-          scimConnections: (projectScim || 0) + (statusPageScim || 0),
+          apiKeys: apiKeys === null ? null : apiKeys || 0,
+          // Not known unless both are: the total is the two together.
+          scimConnections:
+            projectScim === null || statusPageScim === null
+              ? null
+              : (projectScim || 0) + (statusPageScim || 0),
         });
-      }
-    });
+      },
+    );
 
     return () => {
       isCurrent = false;

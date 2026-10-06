@@ -25896,5 +25896,7 @@
   "Your {{count}} SCIM connections stop working on this plan.": "{{count}} اتصال SCIM شما در این طرح از کار می‌افتند.",
   "Your {{count}} SCIM connections stop working on this plan._one": "اتصال SCIM شما در این طرح از کار می‌افتد.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "{{count}} اتصال SCIM شما در این طرح از کار افتاده‌اند، بنابراین ارائه‌دهنده هویت شما دیگر افراد را اضافه یا حذف نمی‌کند. در طرح {{planName}} دوباره کار می‌کنند.",
-  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "اتصال SCIM شما در این طرح از کار افتاده است، بنابراین ارائه‌دهنده هویت شما دیگر افراد را اضافه یا حذف نمی‌کند. در طرح {{planName}} دوباره کار می‌کند."
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "اتصال SCIM شما در این طرح از کار افتاده است، بنابراین ارائه‌دهنده هویت شما دیگر افراد را اضافه یا حذف نمی‌کند. در طرح {{planName}} دوباره کار می‌کند.",
+  "API keys stop working on this plan.": "در این طرح، کلیدهای API دیگر کار نمی‌کنند.",
+  "SCIM connections stop working on this plan.": "در این طرح، اتصال‌های SCIM دیگر کار نمی‌کنند."
 }

@@ -25896,5 +25896,7 @@
   "Your {{count}} SCIM connections stop working on this plan.": "このプランでは {{count}} 件の SCIM 接続が動作しなくなります。",
   "Your {{count}} SCIM connections stop working on this plan._one": "このプランでは SCIM 接続が動作しなくなります。",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "このプランでは {{count}} 件の SCIM 接続が動作を停止したため、ID プロバイダーはユーザーの追加や削除を行わなくなりました。{{planName}} プランで再び動作します。",
-  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "このプランでは SCIM 接続が動作を停止したため、ID プロバイダーはユーザーの追加や削除を行わなくなりました。{{planName}} プランで再び動作します。"
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "このプランでは SCIM 接続が動作を停止したため、ID プロバイダーはユーザーの追加や削除を行わなくなりました。{{planName}} プランで再び動作します。",
+  "API keys stop working on this plan.": "このプランでは API キーが機能しなくなります。",
+  "SCIM connections stop working on this plan.": "このプランでは SCIM 接続が機能しなくなります。"
 }

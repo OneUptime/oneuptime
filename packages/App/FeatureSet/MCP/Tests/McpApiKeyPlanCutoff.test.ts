@@ -113,7 +113,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const INCIDENT_ID: string = "80000000-0000-4000-8000-000000000004";
 
 const SUGGESTION_402: string =
-  "The project's plan does not include this; the error names the plan it needs. Do not retry: ask a project owner to upgrade the project in Project Settings > Billing.";
+  "The project's billing does not allow this, and the error says why: a plan the project is not on, an unpaid subscription, or a balance to add. Do not retry: ask a project owner to resolve it in Project Settings > Billing.";
 
 const savedPlanEnvironment: Record<string, string | undefined> = {};
 

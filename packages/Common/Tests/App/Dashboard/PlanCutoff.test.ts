@@ -136,10 +136,45 @@ describe("what a move stops", () => {
     ).toEqual(NO_PLAN_CUTOFF_COUNTS);
   });
 
-  test("hasPlanCutoff is whether anything stops", () => {
+  test("hasPlanCutoff is whether anything is known to stop", () => {
     expect(hasPlanCutoff(NO_PLAN_CUTOFF_COUNTS)).toBe(false);
     expect(hasPlanCutoff({ apiKeys: 1, scimConnections: 0 })).toBe(true);
     expect(hasPlanCutoff({ apiKeys: 0, scimConnections: 1 })).toBe(true);
+    expect(hasPlanCutoff({ apiKeys: null, scimConnections: null })).toBe(false);
+  });
+
+  /*
+   * Someone who may change the plan need not be able to read the project's
+   * API keys or SCIM connections: a count they may not read is not known,
+   * and a move that stops that kind says so without a number.
+   */
+  test("a count that is not known stays not known where the move stops it, and none where it does not", () => {
+    const notKnown: PlanCutoffCounts = { apiKeys: null, scimConnections: null };
+
+    expect(
+      getStoppedByMove({
+        counts: notKnown,
+        fromPlan: PlanType.Scale,
+        toPlan: PlanType.Free,
+      }),
+    ).toEqual({ apiKeys: null, scimConnections: null });
+    expect(
+      getStoppedByMove({
+        counts: notKnown,
+        fromPlan: PlanType.Scale,
+        toPlan: PlanType.Growth,
+      }),
+    ).toEqual({ apiKeys: 0, scimConnections: null });
+    expect(
+      getStoppedByMove({
+        counts: notKnown,
+        fromPlan: PlanType.Free,
+        toPlan: PlanType.Scale,
+      }),
+    ).toEqual(NO_PLAN_CUTOFF_COUNTS);
+    expect(
+      getStoppedOnPlan({ counts: notKnown, plan: PlanType.Growth }),
+    ).toEqual({ apiKeys: 0, scimConnections: null });
   });
 });
 
@@ -165,6 +200,27 @@ describe("the sentences in the plan picker", () => {
     ).toEqual([
       "Your API key stops working on this plan.",
       "Your SCIM connection stops working on this plan.",
+    ]);
+  });
+
+  test("say that they stop, without a number, when how many is not known", () => {
+    expect(
+      getStopSentences({
+        translator: english,
+        stopped: { apiKeys: null, scimConnections: null },
+      }),
+    ).toEqual([
+      "API keys stop working on this plan.",
+      "SCIM connections stop working on this plan.",
+    ]);
+    expect(
+      getStopSentences({
+        translator: english,
+        stopped: { apiKeys: 2, scimConnections: null },
+      }),
+    ).toEqual([
+      "Your 2 API keys stop working on this plan.",
+      "SCIM connections stop working on this plan.",
     ]);
   });
 
@@ -203,6 +259,17 @@ describe("the sentences about the plan the project is on", () => {
     ).toEqual([
       "Your API key stopped working on this plan. It works again on the Growth plan.",
       "Your SCIM connection stopped working on this plan, so your identity provider no longer adds or removes people. It works again on the Scale plan.",
+    ]);
+  });
+
+  test("say nothing about a kind whose count is not known", () => {
+    expect(
+      getStoppedSentences({
+        translator: english,
+        stopped: { apiKeys: null, scimConnections: 2 },
+      }),
+    ).toEqual([
+      "Your 2 SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the Scale plan.",
     ]);
   });
 

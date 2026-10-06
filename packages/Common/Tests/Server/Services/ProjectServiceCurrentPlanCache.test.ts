@@ -203,6 +203,45 @@ describe("a project's plan, cached on each server", () => {
     expect(findOneById).toHaveBeenCalledTimes(2);
   });
 
+  /*
+   * A read under way when the plan changes may hold the old plan. It is
+   * answered, but not cached: cached, it would put the old plan back for
+   * another minute, after forgetCurrentPlan had dropped it.
+   */
+  test("a read that was under way when the plan changed is not cached", async () => {
+    let finishRead: () => void = (): void => {};
+
+    findOneById.mockImplementationOnce(async (): Promise<Project> => {
+      // What the database held when the read started: the old plan.
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+      Object.assign(project, stored);
+
+      await new Promise<void>((resolve: () => void) => {
+        finishRead = resolve;
+      });
+
+      return project;
+    });
+
+    const readUnderWay: Promise<PlanType | null> = readPlan();
+
+    // The plan changes on this server while that read is under way.
+    stored["paymentProviderPlanId"] = "price_free_month";
+    ProjectService.forgetCurrentPlan(PROJECT_ID);
+
+    finishRead();
+    expect(await readUnderWay).toBe(PlanType.Growth);
+
+    // The next request reads the plan again, and gets the new one.
+    expect(await readPlan()).toBe(PlanType.Free);
+    expect(findOneById).toHaveBeenCalledTimes(2);
+
+    // And that read, which no change raced, is cached as before.
+    expect(await readPlan()).toBe(PlanType.Free);
+    expect(findOneById).toHaveBeenCalledTimes(2);
+  });
+
   test("forgets only the project it is asked to", async () => {
     const otherProjectId: ObjectID = new ObjectID(
       "7e000000-0000-4000-8000-000000000002",

@@ -1,11 +1,14 @@
 import {
   getApiKeysStoppedMessage,
+  getCredentialsStoppedByMove,
   getPlanCutoffMessage,
   getScimStoppedMessage,
   isPlanCutoffCredentialTable,
   PLAN_CUTOFF_CREDENTIAL_TABLES,
+  PLAN_CUTOFF_CREDENTIALS,
   PlanCutoffCredential,
 } from "../../../Types/Billing/PlanCutoffCredentials";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
@@ -27,6 +30,15 @@ describe("the credentials that stop below their plan", () => {
       "ApiKey",
       "ProjectSCIM",
       "StatusPageSCIM",
+    ]);
+  });
+
+  test("are every kind there is, and their tables are those kinds", () => {
+    expect([...PLAN_CUTOFF_CREDENTIALS]).toEqual(
+      Object.values(PlanCutoffCredential),
+    );
+    expect([...PLAN_CUTOFF_CREDENTIAL_TABLES]).toEqual([
+      ...PLAN_CUTOFF_CREDENTIALS,
     ]);
   });
 
@@ -106,6 +118,116 @@ describe("what an identity provider is told", () => {
     expect(message).toContain("The connections are kept");
     expect(message).toContain("upgrade the project to Scale");
     expect(message).toContain("Project Settings > Billing");
+  });
+});
+
+/*
+ * What a move from one plan to another stops: one rule for the server's
+ * owner email and the Dashboard's plan picker, each with its own plan
+ * comparison. Here, a comparison by plan order: API keys from Growth, SCIM
+ * from Scale.
+ */
+describe("what a move between plans stops", () => {
+  const ORDER: Array<PlanType> = [
+    PlanType.Free,
+    PlanType.Growth,
+    PlanType.Scale,
+    PlanType.Enterprise,
+  ];
+
+  const isOnPlan: (
+    credential: PlanCutoffCredential,
+    plan: PlanType,
+  ) => boolean = (
+    credential: PlanCutoffCredential,
+    plan: PlanType,
+  ): boolean => {
+    const required: PlanType =
+      credential === PlanCutoffCredential.ApiKey
+        ? PlanType.Growth
+        : PlanType.Scale;
+
+    return ORDER.indexOf(plan) >= ORDER.indexOf(required);
+  };
+
+  test.each([
+    [
+      PlanType.Scale,
+      PlanType.Free,
+      [
+        PlanCutoffCredential.ApiKey,
+        PlanCutoffCredential.ProjectSCIM,
+        PlanCutoffCredential.StatusPageSCIM,
+      ],
+    ],
+    [
+      PlanType.Scale,
+      PlanType.Growth,
+      [PlanCutoffCredential.ProjectSCIM, PlanCutoffCredential.StatusPageSCIM],
+    ],
+    [PlanType.Growth, PlanType.Free, [PlanCutoffCredential.ApiKey]],
+    [
+      PlanType.Enterprise,
+      PlanType.Growth,
+      [PlanCutoffCredential.ProjectSCIM, PlanCutoffCredential.StatusPageSCIM],
+    ],
+  ])(
+    "%s to %s stops what worked on the first and not on the second",
+    (
+      fromPlan: PlanType,
+      toPlan: PlanType,
+      expected: Array<PlanCutoffCredential>,
+    ) => {
+      expect(
+        getCredentialsStoppedByMove({ fromPlan, toPlan, isOnPlan }),
+      ).toEqual(expected);
+    },
+  );
+
+  test.each([
+    [PlanType.Free, PlanType.Scale],
+    [PlanType.Growth, PlanType.Scale],
+    [PlanType.Free, PlanType.Growth],
+    [PlanType.Scale, PlanType.Enterprise],
+  ])(
+    "%s to %s, an upgrade, stops nothing",
+    (fromPlan: PlanType, toPlan: PlanType) => {
+      expect(
+        getCredentialsStoppedByMove({ fromPlan, toPlan, isOnPlan }),
+      ).toEqual([]);
+    },
+  );
+
+  test("a move within one plan (monthly to yearly) stops nothing", () => {
+    expect(
+      getCredentialsStoppedByMove({
+        fromPlan: PlanType.Scale,
+        toPlan: PlanType.Scale,
+        isOnPlan,
+      }),
+    ).toEqual([]);
+  });
+
+  test("a move from a plan that is not known stops nothing: nothing is known to work on it", () => {
+    expect(
+      getCredentialsStoppedByMove({
+        fromPlan: null,
+        toPlan: PlanType.Free,
+        isOnPlan,
+      }),
+    ).toEqual([]);
+  });
+
+  test("a move between two plans that both lack them stops nothing", () => {
+    expect(
+      getCredentialsStoppedByMove({
+        fromPlan: PlanType.Growth,
+        toPlan: PlanType.Free,
+        isOnPlan: (): boolean => {
+          return false;
+        },
+      }),
+    ).toEqual([]);
   });
 });
 

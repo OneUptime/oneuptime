@@ -9,7 +9,10 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import Project from "../../../Models/DatabaseModels/Project";
 import URL from "../../../Types/API/URL";
-import { PlanCutoffCredential } from "../../../Types/Billing/PlanCutoffCredentials";
+import {
+  getCredentialsStoppedByMove,
+  PlanCutoffCredential,
+} from "../../../Types/Billing/PlanCutoffCredentials";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -64,26 +67,15 @@ export default class PlanDowngradeOwnerNotice {
     fromPlan: PlanType | null;
     toPlan: PlanType;
   }): Array<PlanCutoffCredential> {
-    // A move within one plan (monthly to yearly, say) changes nothing here.
-    if (!data.fromPlan || data.fromPlan === data.toPlan) {
-      return [];
-    }
-
-    return [
-      PlanCutoffCredential.ApiKey,
-      PlanCutoffCredential.ProjectSCIM,
-      PlanCutoffCredential.StatusPageSCIM,
-    ].filter((credential: PlanCutoffCredential): boolean => {
-      return (
-        PlanCutoffCredentialAccess.isOnPlan({
+    return getCredentialsStoppedByMove({
+      fromPlan: data.fromPlan,
+      toPlan: data.toPlan,
+      isOnPlan: (credential: PlanCutoffCredential, plan: PlanType): boolean => {
+        return PlanCutoffCredentialAccess.isOnPlan({
           credential,
-          currentPlan: data.fromPlan,
-        }) &&
-        !PlanCutoffCredentialAccess.isOnPlan({
-          credential,
-          currentPlan: data.toPlan,
-        })
-      );
+          currentPlan: plan,
+        });
+      },
     });
   }
 
@@ -97,40 +89,46 @@ export default class PlanDowngradeOwnerNotice {
     projectId: ObjectID;
     credentials: Array<PlanCutoffCredential>;
   }): Promise<StoppedByPlanChange> {
-    const stopped: StoppedByPlanChange = { apiKeys: 0, scimConnections: 0 };
+    // None of a kind the move did not stop.
+    const none: Promise<number> = Promise.resolve(0);
 
-    if (data.credentials.includes(PlanCutoffCredential.ApiKey)) {
-      const apiKeys: PositiveNumber = await ApiKeyService.countBy({
-        query: {
-          projectId: data.projectId,
-          expiresAt: QueryHelper.greaterThan(OneUptimeDate.getCurrentDate()),
-        },
-        props: { isRoot: true },
-      });
+    const [apiKeys, projectScim, statusPageScim]: Array<number> =
+      await Promise.all([
+        data.credentials.includes(PlanCutoffCredential.ApiKey)
+          ? ApiKeyService.countBy({
+              query: {
+                projectId: data.projectId,
+                expiresAt: QueryHelper.greaterThan(
+                  OneUptimeDate.getCurrentDate(),
+                ),
+              },
+              props: { isRoot: true },
+            }).then((count: PositiveNumber): number => {
+              return count.toNumber();
+            })
+          : none,
+        data.credentials.includes(PlanCutoffCredential.ProjectSCIM)
+          ? ProjectSCIMService.countBy({
+              query: { projectId: data.projectId },
+              props: { isRoot: true },
+            }).then((count: PositiveNumber): number => {
+              return count.toNumber();
+            })
+          : none,
+        data.credentials.includes(PlanCutoffCredential.StatusPageSCIM)
+          ? StatusPageSCIMService.countBy({
+              query: { projectId: data.projectId },
+              props: { isRoot: true },
+            }).then((count: PositiveNumber): number => {
+              return count.toNumber();
+            })
+          : none,
+      ]);
 
-      stopped.apiKeys = apiKeys.toNumber();
-    }
-
-    if (data.credentials.includes(PlanCutoffCredential.ProjectSCIM)) {
-      const projectScim: PositiveNumber = await ProjectSCIMService.countBy({
-        query: { projectId: data.projectId },
-        props: { isRoot: true },
-      });
-
-      stopped.scimConnections += projectScim.toNumber();
-    }
-
-    if (data.credentials.includes(PlanCutoffCredential.StatusPageSCIM)) {
-      const statusPageScim: PositiveNumber =
-        await StatusPageSCIMService.countBy({
-          query: { projectId: data.projectId },
-          props: { isRoot: true },
-        });
-
-      stopped.scimConnections += statusPageScim.toNumber();
-    }
-
-    return stopped;
+    return {
+      apiKeys: apiKeys || 0,
+      scimConnections: (projectScim || 0) + (statusPageScim || 0),
+    };
   }
 
   /*

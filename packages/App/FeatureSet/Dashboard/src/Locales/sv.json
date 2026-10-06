@@ -25896,5 +25896,7 @@
   "Your {{count}} SCIM connections stop working on this plan.": "Dina {{count}} SCIM-anslutningar slutar fungera med det här abonnemanget.",
   "Your {{count}} SCIM connections stop working on this plan._one": "Din SCIM-anslutning slutar fungera med det här abonnemanget.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Dina {{count}} SCIM-anslutningar har slutat fungera med det här abonnemanget, så din identitetsleverantör lägger inte längre till eller tar bort personer. De fungerar igen med {{planName}}-abonnemanget.",
-  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Din SCIM-anslutning har slutat fungera med det här abonnemanget, så din identitetsleverantör lägger inte längre till eller tar bort personer. Den fungerar igen med {{planName}}-abonnemanget."
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Din SCIM-anslutning har slutat fungera med det här abonnemanget, så din identitetsleverantör lägger inte längre till eller tar bort personer. Den fungerar igen med {{planName}}-abonnemanget.",
+  "API keys stop working on this plan.": "API-nycklar slutar fungera med den här planen.",
+  "SCIM connections stop working on this plan.": "SCIM-anslutningar slutar fungera med den här planen."
 }

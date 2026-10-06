@@ -25896,5 +25896,7 @@
   "Your {{count}} SCIM connections stop working on this plan.": "在此套餐中，您的 {{count}} 个 SCIM 连接将停止工作。",
   "Your {{count}} SCIM connections stop working on this plan._one": "在此套餐中，您的 SCIM 连接将停止工作。",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "在此套餐中，您的 {{count}} 个 SCIM 连接已停止工作，因此您的身份提供商不再添加或移除人员。在 {{planName}} 套餐中它们会恢复工作。",
-  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "在此套餐中，您的 SCIM 连接已停止工作，因此您的身份提供商不再添加或移除人员。在 {{planName}} 套餐中它会恢复工作。"
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "在此套餐中，您的 SCIM 连接已停止工作，因此您的身份提供商不再添加或移除人员。在 {{planName}} 套餐中它会恢复工作。",
+  "API keys stop working on this plan.": "在此套餐下，API 密钥将停止工作。",
+  "SCIM connections stop working on this plan.": "在此套餐下，SCIM 连接将停止工作。"
 }

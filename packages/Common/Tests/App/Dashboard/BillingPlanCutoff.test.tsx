@@ -86,7 +86,7 @@ jest.mock("../../../UI/Utils/Analytics", () => {
 
 jest.mock("../../../UI/Config", () => {
   const config: Record<string, unknown> = {
-    ...jest.requireActual<Record<string, unknown>>("../../../UI/Config"),
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
   };
   Object.defineProperty(config, "BILLING_ENABLED", {
     get: () => {
@@ -326,14 +326,39 @@ describe("a project on Scale with 3 API keys and 2 SCIM connections", () => {
   });
 });
 
+/*
+ * Someone who may change the plan (a billing manager) need not be able to
+ * read the project's API keys or SCIM connections. A count they may not
+ * read is not known: the picker still says that the kind stops, without a
+ * number, and the other kind's count still shows.
+ */
+describe("someone who may not read the project's API keys, on Scale", () => {
+  it("is told on Free that API keys stop, without a number, and how many SCIM connections stop", async () => {
+    counts.set(ApiKey, Error("not allowed") as never);
+
+    await renderBillingOn("price_scale_month");
+
+    expect(descriptionOf("Free")).toContain(
+      "API keys stop working on this plan.",
+    );
+    expect(descriptionOf("Free")).not.toContain("Your 3 API keys");
+    expect(descriptionOf("Free")).toContain(
+      "Your 2 SCIM connections stop working on this plan.",
+    );
+
+    // Growth keeps the keys: nothing is said about them there.
+    expect(descriptionOf("Growth")).not.toContain("API key");
+  });
+});
+
 describe("a project on Growth", () => {
-  it("names only the SCIM connections Free would stop with the keys", async () => {
-    counts.set(ProjectSCIM, Error("owners only") as never);
+  it("names only the API keys Free would stop: its SCIM connections stopped on Growth already", async () => {
+    // Whether or not the SCIM count can be read, Free stops none of them.
+    counts.set(ProjectSCIM, Error("not allowed") as never);
     counts.set(StatusPageSCIM, 0);
 
     await renderBillingOn("price_growth_year");
 
-    // The SCIM count could not be read: it counts as none, the keys still show.
     expect(descriptionOf("Free")).toContain(
       "Your 3 API keys stop working on this plan.",
     );

@@ -29,7 +29,7 @@ import {
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
-import type PlanDowngradeOwnerNoticeType from "../Utils/Billing/PlanDowngradeOwnerNotice";
+import PlanDowngradeOwnerNotice from "../Utils/Billing/PlanDowngradeOwnerNotice";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -324,6 +324,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
    */
   private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * Counts this server's plan changes (forgetCurrentPlan). A plan read that
+   * was under way when the plan changed may hold the old plan, so it is
+   * returned but not cached: otherwise it would put the old plan back for
+   * another minute, after forgetCurrentPlan had dropped it.
+   */
+  private currentPlanChanges: number = 0;
 
   /*
    * How long a project's plan is cached on a server: the longest a plan
@@ -1279,14 +1287,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
     /*
      * A move below the plan the project's API keys or SCIM connections need
      * stops them; its owners are told once, now, what stopped. Never throws.
-     * Lazy require: the notice reads and emails through ProjectService, so a
-     * top-level import here would be circular.
      */
-    const planDowngradeOwnerNotice: typeof PlanDowngradeOwnerNoticeType =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      require("../Utils/Billing/PlanDowngradeOwnerNotice").default;
-
-    await planDowngradeOwnerNotice.notifyIfStopped({
+    await PlanDowngradeOwnerNotice.notifyIfStopped({
       projectId: project.id!,
       fromPlanId: project.paymentProviderPlanId,
       toPlanId: params.paymentProviderPlanId,
@@ -3186,6 +3188,8 @@ These are no longer recorded against the project and have to be cancelled by han
       return cached;
     }
 
+    const planChangesBeforeRead: number = this.currentPlanChanges;
+
     const project: Model | null = await this.findOneById({
       id: projectId,
       select: {
@@ -3224,20 +3228,25 @@ These are no longer recorded against the project and have to be cancelled by han
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
-    this.currentPlanCache.set(
-      cacheKey,
-      result,
-      ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
-    );
+    if (planChangesBeforeRead === this.currentPlanChanges) {
+      this.currentPlanCache.set(
+        cacheKey,
+        result,
+        ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
+      );
+    }
+
     return result;
   }
 
   /*
    * Drop this server's cached plan of the project, so the next request
-   * reads the plan just written. Other servers keep theirs until it
-   * expires (CURRENT_PLAN_CACHE_TTL_MS).
+   * reads the plan just written - and keep a read already under way from
+   * caching the plan it read before the change (currentPlanChanges). Other
+   * servers keep theirs until it expires (CURRENT_PLAN_CACHE_TTL_MS).
    */
   public forgetCurrentPlan(projectId: ObjectID): void {
+    this.currentPlanChanges++;
     this.currentPlanCache.delete(projectId.toString());
   }
 

@@ -1,3 +1,5 @@
+import { PlanType } from "./SubscriptionPlan";
+
 /*
  * Credentials that stop working below their plan.
  *
@@ -34,11 +36,12 @@ export enum PlanCutoffCredential {
   StatusPageSCIM = "StatusPageSCIM",
 }
 
-export const PLAN_CUTOFF_CREDENTIAL_TABLES: ReadonlyArray<string> = [
-  PlanCutoffCredential.ApiKey,
-  PlanCutoffCredential.ProjectSCIM,
-  PlanCutoffCredential.StatusPageSCIM,
-];
+// Every kind, in the enum's order. Each kind's value is its table's name.
+export const PLAN_CUTOFF_CREDENTIALS: ReadonlyArray<PlanCutoffCredential> =
+  Object.values(PlanCutoffCredential);
+
+export const PLAN_CUTOFF_CREDENTIAL_TABLES: ReadonlyArray<string> =
+  PLAN_CUTOFF_CREDENTIALS;
 
 // Whether the records of this table stop working below the table's plan.
 export const isPlanCutoffCredentialTable: (
@@ -46,6 +49,39 @@ export const isPlanCutoffCredentialTable: (
 ) => boolean = (tableName: string | undefined | null): boolean => {
   return (
     Boolean(tableName) && PLAN_CUTOFF_CREDENTIAL_TABLES.includes(tableName!)
+  );
+};
+
+/*
+ * The kinds a move from `fromPlan` to `toPlan` stops: the ones that work on
+ * the plan the project is on and not on the one it moves to. `isOnPlan` is
+ * the caller's plan comparison - the server's and the Dashboard's read the
+ * same plans. Nothing when the plan the project is on is not known (nothing
+ * is known to work on it), or for a move within one plan (monthly to
+ * yearly, say).
+ */
+export const getCredentialsStoppedByMove: (data: {
+  fromPlan: PlanType | null;
+  toPlan: PlanType;
+  isOnPlan: (credential: PlanCutoffCredential, plan: PlanType) => boolean;
+}) => Array<PlanCutoffCredential> = (data: {
+  fromPlan: PlanType | null;
+  toPlan: PlanType;
+  isOnPlan: (credential: PlanCutoffCredential, plan: PlanType) => boolean;
+}): Array<PlanCutoffCredential> => {
+  const fromPlan: PlanType | null = data.fromPlan;
+
+  if (!fromPlan || fromPlan === data.toPlan) {
+    return [];
+  }
+
+  return PLAN_CUTOFF_CREDENTIALS.filter(
+    (credential: PlanCutoffCredential): boolean => {
+      return (
+        data.isOnPlan(credential, fromPlan) &&
+        !data.isOnPlan(credential, data.toPlan)
+      );
+    },
   );
 };
 

@@ -25896,5 +25896,7 @@
   "Your {{count}} SCIM connections stop working on this plan.": "Подключений SCIM, которые перестанут работать на этом тарифе: {{count}}.",
   "Your {{count}} SCIM connections stop working on this plan._one": "Ваше подключение SCIM перестанет работать на этом тарифе.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "Подключений SCIM, которые перестали работать на этом тарифе: {{count}}. Ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} они снова заработают.",
-  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Ваше подключение SCIM перестало работать на этом тарифе, поэтому ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} оно снова заработает."
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "Ваше подключение SCIM перестало работать на этом тарифе, поэтому ваш поставщик удостоверений больше не добавляет и не удаляет людей. На тарифе {{planName}} оно снова заработает.",
+  "API keys stop working on this plan.": "На этом тарифе API-ключи перестают работать.",
+  "SCIM connections stop working on this plan.": "На этом тарифе SCIM-подключения перестают работать."
 }

@@ -25896,5 +25896,7 @@
   "Your {{count}} SCIM connections stop working on this plan.": "이 요금제에서는 SCIM 연결 {{count}}개가 작동하지 않게 됩니다.",
   "Your {{count}} SCIM connections stop working on this plan._one": "이 요금제에서는 SCIM 연결이 작동하지 않게 됩니다.",
   "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan.": "이 요금제에서 SCIM 연결 {{count}}개의 작동이 중지되어 ID 공급자가 더 이상 사용자를 추가하거나 제거하지 않습니다. {{planName}} 요금제에서 다시 작동합니다.",
-  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "이 요금제에서 SCIM 연결의 작동이 중지되어 ID 공급자가 더 이상 사용자를 추가하거나 제거하지 않습니다. {{planName}} 요금제에서 다시 작동합니다."
+  "Your {{count}} SCIM connections stopped working on this plan, so your identity provider no longer adds or removes people. They work again on the {{planName}} plan._one": "이 요금제에서 SCIM 연결의 작동이 중지되어 ID 공급자가 더 이상 사용자를 추가하거나 제거하지 않습니다. {{planName}} 요금제에서 다시 작동합니다.",
+  "API keys stop working on this plan.": "이 플랜에서는 API 키가 더 이상 작동하지 않습니다.",
+  "SCIM connections stop working on this plan.": "이 플랜에서는 SCIM 연결이 더 이상 작동하지 않습니다."
 }
