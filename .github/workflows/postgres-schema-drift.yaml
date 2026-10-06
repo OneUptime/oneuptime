@@ -128,6 +128,20 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeReferenceWritePostgres.test.ts --forceExit
 
+      # An episode's members show their incident or alert, and their episode,
+      # through joins that run neither one's privacy rules: a member row is
+      # listed, counted, read and removed only by someone who may see both.
+      - name: Test episode member privacy on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EPISODE_MEMBER_PRIVACY_TESTS: "true"
+          EPISODE_MEMBER_PRIVACY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EPISODE_MEMBER_PRIVACY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EPISODE_MEMBER_PRIVACY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/EpisodeMemberPrivacyPostgres.test.ts --forceExit
+
       # Clones the migrated Databases tables (DatabaseServer, its endpoints,
       # labels, owners, incident / alert / maintenance links and the
       # Kubernetes / Docker / Podman parents) into an isolated schema and runs

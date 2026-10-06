@@ -1,4 +1,5 @@
 import PlanLeftoverCopy, {
+  getPlanLeftoverDescription,
   getPlanLeftoverTableTestId,
 } from "./PlanLeftoverCopy";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -34,7 +35,9 @@ import React, {
  * on-call schedules - with the moves the server allows on every plan
  * (Common/Types/Billing/PlanGatedTable): Delete, and Turn off for records
  * that have a switch (isEnabled). Nothing to add, edit or switch on: those
- * need the plan, which the description says.
+ * need the plan, which the description says - and, for API keys and SCIM
+ * connections, that they stopped working until the project is back on it
+ * (getPlanLeftoverDescription).
  *
  * - Counts the records once, when it opens. None - as for nearly every
  *   project - or a count that fails draws nothing: the page above it (the
@@ -181,9 +184,10 @@ const PlanLeftoverTable: <TBaseModel extends BaseModel>(
         cardProps={{
           title: props.title,
           description: translator.translateTemplate(
-            switchColumn
-              ? PlanLeftoverCopy.descriptionWithSwitch
-              : PlanLeftoverCopy.descriptionWithoutSwitch,
+            getPlanLeftoverDescription({
+              tableName: model.tableName,
+              hasSwitch: Boolean(switchColumn),
+            }),
             { planName: props.requiredPlan },
           ),
         }}

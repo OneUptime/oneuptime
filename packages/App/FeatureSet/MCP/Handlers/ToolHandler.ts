@@ -211,6 +211,15 @@ function getSuggestionForStatusCode(
       return isOAuth
         ? "The sign-in was not accepted for this request. The user may have left the project or been blocked; ask them to connect this MCP client again."
         : "The API key was rejected. Verify the key is correct and not expired (sent via the x-api-key header).";
+    /*
+     * The project's billing does not allow what was asked, and the error says
+     * why: a plan the project is not on - for an API key, possibly the key
+     * itself, as below the plan that sells API keys every request made with
+     * one is refused (Common/Types/Billing/PlanCutoffCredentials) - an unpaid
+     * subscription, or a balance to add. Retrying cannot help.
+     */
+    case 402:
+      return "The project's billing does not allow this, and the error says why: a plan the project is not on, an unpaid subscription, or a balance to add. Do not retry: ask a project owner to resolve it in Project Settings > Billing.";
     case 403:
       return isOAuth
         ? "The signed-in user lacks permission for this operation in this project. Ask a project admin to grant their team the relevant permission."
