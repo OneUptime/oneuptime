@@ -486,32 +486,17 @@ export default class QueryHelper {
     ownerColumnName: string;
     relationColumnName: string;
   }): FindWhereProperty<any> {
-    const values: Array<string> = data.values.map(
-      (value: string | ObjectID) => {
-        return value.toString();
-      },
-    );
-
-    if (values.length === 0) {
-      return Raw(() => {
-        return `TRUE = TRUE`;
-      }, {});
-    }
-
-    const valuesRid: string = Text.generateRandomText(10);
-
-    const joinTable: string = data.joinTableName.replace(/"/g, '""');
-    const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
-    const relationCol: string = data.relationColumnName.replace(/"/g, '""');
-
-    return Raw(
-      (alias: string) => {
-        return `(${alias} IS NULL OR ${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
-      },
-      {
-        [valuesRid]: values,
-      },
-    );
+    // One parent model: the same condition over a single join table.
+    return QueryHelper.linkedToNoneInAnyManyToMany({
+      values: data.values,
+      joinTables: [
+        {
+          joinTableName: data.joinTableName,
+          ownerColumnName: data.ownerColumnName,
+          relationColumnName: data.relationColumnName,
+        },
+      ],
+    });
   }
 
   /**

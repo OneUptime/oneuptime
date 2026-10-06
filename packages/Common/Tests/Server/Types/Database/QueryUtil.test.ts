@@ -281,4 +281,26 @@ describe("QueryUtil.serializeQuery — a relation filtered by an id", () => {
       [teamA, teamB, teamId].sort(),
     );
   });
+
+  it("keeps an empty-key condition next to the relation's id", () => {
+    const teamId: string = ObjectID.generate().toString();
+
+    const result: Record<string, any> = QueryUtil.serializeQuery(TeamMember, {
+      teamId: null,
+      team: teamId,
+    } as any) as unknown as Record<string, any>;
+
+    expect(result["team"]).toBeUndefined();
+    expect(result["teamId"].type).toBe("and");
+    expect(parametersOf(result["teamId"])).toEqual([teamId]);
+  });
+
+  it("refuses a key filter it cannot keep next to the relation's id", () => {
+    expect(() => {
+      QueryUtil.serializeQuery(TeamMember, {
+        teamId: { unexpected: true },
+        team: ObjectID.generate().toString(),
+      } as any);
+    }).toThrow("Cannot combine the filter on team with the filter on teamId.");
+  });
 });

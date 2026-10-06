@@ -16,6 +16,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import FindBy from "../Types/Database/FindBy";
 import { OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryUtil from "../Types/Database/QueryUtil";
+import ReadPermission from "../Types/Database/Permissions/ReadPermission";
 import UpdateBy from "../Types/Database/UpdateBy";
 import TelemetryReadScopeUtil, {
   TelemetryReadScope,
@@ -147,16 +148,23 @@ export class Service extends ProjectReferencesService<Model> {
       return query;
     }
 
-    const record: Record<string, unknown> = (query || {}) as Record<
-      string,
-      unknown
-    >;
+    // A copy: the caller's own query object is left as it was.
+    const record: Record<string, unknown> = {
+      ...((query || {}) as Record<string, unknown>),
+    };
 
     const idQuery: Record<string, unknown> = QueryUtil.serializeQuery(Model, {
       _id: record["_id"],
     } as never) as Record<string, unknown>;
 
-    record["_id"] = combineWithPrivacyClause(idQuery["_id"], clause);
+    // A caller's id filter the clause cannot be kept next to is refused.
+    record["_id"] = combineWithPrivacyClause(
+      ReadPermission.getSupportedFilter(
+        idQuery["_id"],
+        "Cannot combine the metric catalogue's scope with an unsupported filter on _id.",
+      ),
+      clause,
+    );
 
     return record as unknown as TQuery;
   }

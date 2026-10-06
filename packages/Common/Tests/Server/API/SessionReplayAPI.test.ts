@@ -1261,6 +1261,33 @@ describe("Session replay playback API", () => {
       expect(notOwned.thrownToNext).toBeInstanceOf(NotAuthorizedException);
       expect(headerQuerySpy).not.toHaveBeenCalled();
     });
+
+    /*
+     * The identity column is optional: a refusal leaves it out. A lookup
+     * that fails is an error rather than a refusal, so the listing reports
+     * it instead of quietly coming back without the column.
+     */
+    test("a failed owners lookup is an error, not a listing without the identity column", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = ownedPrincipal(Permission.ReadRumSessionReplayPayload);
+
+      grantUnscopedListPermission(principal.databaseProps, projectId);
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      ownerUserFindBySpy.mockRejectedValue(new Error("owner lookup failed"));
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(String(result.thrownToNext)).toContain("owner lookup failed");
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
   });
 
   /*

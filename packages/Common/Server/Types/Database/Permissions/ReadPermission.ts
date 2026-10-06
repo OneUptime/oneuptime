@@ -252,16 +252,7 @@ export default class ReadPermission {
     const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
       _id: query._id,
     } as Query<TBaseModel>);
-    const existingIdFilter: unknown = idQuery._id;
-    if (
-      existingIdFilter !== undefined &&
-      typeof existingIdFilter !== "string" &&
-      !(existingIdFilter instanceof FindOperator)
-    ) {
-      throw new BadDataException(
-        "Cannot combine read label restrictions with an unsupported ID filter.",
-      );
-    }
+    const existingIdFilter: unknown = this.getSupportedFilter(idQuery._id);
 
     /*
      * Keep the caller's label selection intact. Blocking labels is a separate

@@ -182,10 +182,10 @@ export class Service extends ProjectReferencesService<Model> {
       return query;
     }
 
-    const record: Record<string, unknown> = (query || {}) as Record<
-      string,
-      unknown
-    >;
+    // A copy: the caller's own query object is left as it was.
+    const record: Record<string, unknown> = {
+      ...((query || {}) as Record<string, unknown>),
+    };
 
     if (PerProjectReadScope.isAcrossProjects(props)) {
       const clause: FindWhereProperty<any> | null =

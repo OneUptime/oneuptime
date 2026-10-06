@@ -4313,6 +4313,22 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
  * only the permission name would hand them named end users for every
  * application in the project.
  */
+/*
+ * Whether a failed scope decision is the scope refusing (a block with no
+ * labels, a permission row the rule cannot read) rather than the lookup
+ * behind it failing: only a refusal becomes "not allowed" for an optional
+ * column or listing.
+ */
+type IsSessionReplayScopeRefusalFunction = (err: unknown) => boolean;
+
+const isSessionReplayScopeRefusal: IsSessionReplayScopeRefusalFunction = (
+  err: unknown,
+): boolean => {
+  return (
+    err instanceof NotAuthorizedException || err instanceof BadDataException
+  );
+};
+
 type CanReadIdentifiedUserLabelFunction = (data: {
   databaseProps: DatabaseCommonInteractionProps;
   application: RumApplication;
@@ -4329,13 +4345,17 @@ const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction =
         permissions: SESSION_REPLAY_IDENTITY_PERMISSIONS,
         application: data.application,
       });
-    } catch {
+    } catch (err: unknown) {
       /*
        * A block refuses the identity grant. For an optional column the right
        * answer is to omit the column, not to fail the whole listing the
-       * caller is otherwise entitled to.
+       * caller is otherwise entitled to. Anything else - the owners'
+       * lookup failing - is an error, not an answer.
        */
-      return false;
+      if (isSessionReplayScopeRefusal(err)) {
+        return false;
+      }
+      throw err;
     }
   };
 
@@ -4362,8 +4382,11 @@ const canReadSessionReplayListMetadata: CanReadSessionReplayListMetadataFunction
         permissions: SESSION_REPLAY_LIST_PERMISSIONS,
         application: data.application,
       });
-    } catch {
-      return false;
+    } catch (err: unknown) {
+      if (isSessionReplayScopeRefusal(err)) {
+        return false;
+      }
+      throw err;
     }
   };
 

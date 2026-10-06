@@ -3,6 +3,7 @@ import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Text from "../../../Types/Text";
+import ArrayUtil from "../../../Utils/Array";
 import { FindOperator, Raw } from "typeorm";
 
 /*
@@ -38,6 +39,14 @@ const projectPropsCache: WeakMap<
 >();
 
 export default class PerProjectReadScope {
+  /*
+   * How many of the caller's projects are worked out at the same time. Each
+   * project's scope reads a few kinds of resource at once itself
+   * (SCOPE_LOOKUP_CONCURRENCY), so the two together bound the lookups one
+   * request runs on the shared database pool.
+   */
+  public static readonly PROJECT_CONCURRENCY: number = 2;
+
   // The caller's props in one of their projects (see projectPropsCache).
   public static getProjectProps(
     props: DatabaseCommonInteractionProps,
@@ -106,25 +115,31 @@ export default class PerProjectReadScope {
           clause: FindWhereProperty<any> | null;
         };
 
-    // Every project's condition at once: the lookups of one do not wait on another's.
-    const projectClauses: Array<ProjectClause> = await Promise.all(
-      projectIds.map(async (projectId: ObjectID): Promise<ProjectClause> => {
-        try {
-          return {
-            projectId: projectId.toString(),
-            isRefused: false,
-            clause: await data.getClauseInProject(
-              PerProjectReadScope.getProjectProps(data.props, projectId),
-            ),
-          };
-        } catch (err) {
-          if (err instanceof NotAuthorizedException) {
-            return { projectId: projectId.toString(), isRefused: true };
+    /*
+     * A few projects at a time: the lookups of one do not wait on another's,
+     * but each project's scope reads several kinds of resource itself.
+     */
+    const projectClauses: Array<ProjectClause> =
+      await ArrayUtil.mapWithConcurrency(
+        projectIds,
+        PerProjectReadScope.PROJECT_CONCURRENCY,
+        async (projectId: ObjectID): Promise<ProjectClause> => {
+          try {
+            return {
+              projectId: projectId.toString(),
+              isRefused: false,
+              clause: await data.getClauseInProject(
+                PerProjectReadScope.getProjectProps(data.props, projectId),
+              ),
+            };
+          } catch (err) {
+            if (err instanceof NotAuthorizedException) {
+              return { projectId: projectId.toString(), isRefused: true };
+            }
+            throw err;
           }
-          throw err;
-        }
-      }),
-    );
+        },
+      );
 
     const wideProjectIds: Array<string> = [];
     const limitedClauses: Array<{

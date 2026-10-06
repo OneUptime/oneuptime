@@ -41,6 +41,7 @@ import TelemetryReadScopeUtil, {
   TelemetryReadScope,
 } from "../../Utils/Telemetry/TelemetryReadScope";
 import PromiseCache from "../../Utils/PromiseCache";
+import ArrayUtil from "../../../Utils/Array";
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
@@ -86,6 +87,15 @@ function getScopeCacheBucket(
   }
   return bucket;
 }
+
+/*
+ * How many kinds of resource one lookup of a caller's scope reads at the
+ * same time. The kinds do not wait on one another, but a scope reaches
+ * every telemetry-owning kind (and a read across projects, every project),
+ * so they are read a few at a time rather than all at once on the shared
+ * database pool.
+ */
+export const SCOPE_LOOKUP_CONCURRENCY: number = 3;
 
 /*
  * A read of telemetry under a list of permissions (see
@@ -1241,21 +1251,21 @@ export default class ModelPermission {
   ): Promise<Set<string>> {
     const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
 
-    // Every kind of resource is looked up at the same time.
-    const idsByType: Array<Array<string>> = await Promise.all(
-      this.getTelemetryOwnerTypes(resourceTypes).map(
-        ([resourceType, entry]: [string, OwnerTablePair]): Promise<
-          Array<string>
-        > => {
-          return PromiseCache.lookUpOnce(
-            cache.ownedIds,
-            resourceType,
-            (): Promise<Array<string>> => {
-              return this.findOwnedIdsOfType(entry, props);
-            },
-          );
-        },
-      ),
+    // The kinds of resource are looked up a few at a time.
+    const idsByType: Array<Array<string>> = await ArrayUtil.mapWithConcurrency(
+      this.getTelemetryOwnerTypes(resourceTypes),
+      SCOPE_LOOKUP_CONCURRENCY,
+      ([resourceType, entry]: [string, OwnerTablePair]): Promise<
+        Array<string>
+      > => {
+        return PromiseCache.lookUpOnce(
+          cache.ownedIds,
+          resourceType,
+          (): Promise<Array<string>> => {
+            return this.findOwnedIdsOfType(entry, props);
+          },
+        );
+      },
     );
 
     return new Set<string>(idsByType.flat());
@@ -1372,32 +1382,31 @@ export default class ModelPermission {
       ? { projectId: props.tenantId }
       : {};
 
-    // Every kind of resource is looked up at the same time.
-    const idsByType: Array<Array<string>> = await Promise.all(
-      this.getTelemetryOwnerTypes(resourceTypes)
-        .filter(([, entry]: [string, OwnerTablePair]): boolean => {
+    // The kinds of resource are looked up a few at a time.
+    const idsByType: Array<Array<string>> = await ArrayUtil.mapWithConcurrency(
+      this.getTelemetryOwnerTypes(resourceTypes).filter(
+        ([, entry]: [string, OwnerTablePair]): boolean => {
           return Boolean(entry.modelService);
-        })
-        .map(
-          ([resourceType, entry]: [string, OwnerTablePair]): Promise<
-            Array<string>
-          > => {
-            const modelService: OwnerTablePair["modelService"] =
-              entry.modelService;
+        },
+      ),
+      SCOPE_LOOKUP_CONCURRENCY,
+      ([resourceType, entry]: [string, OwnerTablePair]): Promise<
+        Array<string>
+      > => {
+        const modelService: OwnerTablePair["modelService"] = entry.modelService;
 
-            return PromiseCache.lookUpOnce(
-              cache.labeledIds,
-              `${resourceType}|${labelsKey}`,
-              (): Promise<Array<string>> => {
-                return this.findAllIds({
-                  service: modelService,
-                  query: { labels: labelIds, ...tenantFilter },
-                  column: "_id",
-                });
-              },
-            );
+        return PromiseCache.lookUpOnce(
+          cache.labeledIds,
+          `${resourceType}|${labelsKey}`,
+          (): Promise<Array<string>> => {
+            return this.findAllIds({
+              service: modelService,
+              query: { labels: labelIds, ...tenantFilter },
+              column: "_id",
+            });
           },
-        ),
+        );
+      },
     );
 
     for (const ids of idsByType) {
