@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "세션, 잠금, 장시간 실행 쿼리, 복제, 크기, 설정",
   "shutting down, stopping or resetting a guest": "게스트 종료, 중지 또는 재설정",
   "stopping a unit or vacuuming the journal": "유닛 중지 또는 저널 정리",
-  "stopping, killing or updating a container": "컨테이너 중지, 강제 종료 또는 업데이트"
+  "stopping, killing or updating a container": "컨테이너 중지, 강제 종료 또는 업데이트",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "클러스터의 아무 노드나 지정합니다. 에이전트는 https://PVE_HOST:8006/api2/json을 호출합니다."
 }

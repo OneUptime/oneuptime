@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "セッション、ロック、長時間実行中のクエリ、レプリケーション、サイズ、設定",
   "shutting down, stopping or resetting a guest": "ゲストのシャットダウン、停止、リセット",
   "stopping a unit or vacuuming the journal": "ユニットの停止やジャーナルの削減",
-  "stopping, killing or updating a container": "コンテナの停止、強制終了、更新"
+  "stopping, killing or updating a container": "コンテナの停止、強制終了、更新",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "クラスター内の任意のノード。エージェントは https://PVE_HOST:8006/api2/json を呼び出します。"
 }

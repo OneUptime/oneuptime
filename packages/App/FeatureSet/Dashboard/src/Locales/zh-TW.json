@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "工作階段、鎖定、長時間執行的查詢、複寫、大小、設定",
   "shutting down, stopping or resetting a guest": "將客體關機、停止或重設",
   "stopping a unit or vacuuming the journal": "停止單元或清理 journal 日誌",
-  "stopping, killing or updating a container": "停止、強制終止或更新容器"
+  "stopping, killing or updating a container": "停止、強制終止或更新容器",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "叢集中的任一節點；代理程式會呼叫 https://PVE_HOST:8006/api2/json。"
 }

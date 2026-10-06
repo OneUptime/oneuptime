@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "sesiones, bloqueos, consultas de larga duración, replicación, tamaños, ajustes",
   "shutting down, stopping or resetting a guest": "apagar, detener o restablecer un invitado",
   "stopping a unit or vacuuming the journal": "detener una unidad o purgar el journal",
-  "stopping, killing or updating a container": "detener, matar o actualizar un contenedor"
+  "stopping, killing or updating a container": "detener, matar o actualizar un contenedor",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "Cualquier nodo del clúster; el agente llama a https://PVE_HOST:8006/api2/json."
 }

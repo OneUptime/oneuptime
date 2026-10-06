@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "økter, låser, langvarige spørringer, replikering, størrelser, innstillinger",
   "shutting down, stopping or resetting a guest": "å slå av, stoppe eller tilbakestille en gjest",
   "stopping a unit or vacuuming the journal": "å stoppe en unit eller rydde opp i journalen",
-  "stopping, killing or updating a container": "å stoppe, tvangsavslutte eller oppdatere en container"
+  "stopping, killing or updating a container": "å stoppe, tvangsavslutte eller oppdatere en container",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "En hvilken som helst node i klyngen; agenten kaller https://PVE_HOST:8006/api2/json."
 }

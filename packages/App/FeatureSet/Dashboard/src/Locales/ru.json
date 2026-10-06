@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "сеансы, блокировки, долгие запросы, репликация, размеры, настройки",
   "shutting down, stopping or resetting a guest": "выключение, остановка или сброс гостевой системы",
   "stopping a unit or vacuuming the journal": "остановка модуля или очистка журнала (vacuum)",
-  "stopping, killing or updating a container": "остановка, принудительное завершение или обновление контейнера"
+  "stopping, killing or updating a container": "остановка, принудительное завершение или обновление контейнера",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "Любой узел кластера; агент обращается к https://PVE_HOST:8006/api2/json."
 }

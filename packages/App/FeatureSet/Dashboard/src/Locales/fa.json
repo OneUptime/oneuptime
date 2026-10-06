@@ -25887,5 +25887,6 @@
   "sessions, locks, long-running queries, replication, sizes, settings": "نشست‌ها، قفل‌ها، کوئری‌های طولانی‌مدت، تکثیر، اندازه‌ها، تنظیمات",
   "shutting down, stopping or resetting a guest": "خاموش کردن، توقف یا بازنشانی یک مهمان",
   "stopping a unit or vacuuming the journal": "توقف یک واحد یا پاک‌سازی journal",
-  "stopping, killing or updating a container": "توقف، کشتن یا به‌روزرسانی یک کانتینر"
+  "stopping, killing or updating a container": "توقف، کشتن یا به‌روزرسانی یک کانتینر",
+  "Any node of the cluster; the agent calls https://PVE_HOST:8006/api2/json.": "هر گره‌ای از خوشه؛ عامل https://PVE_HOST:8006/api2/json را فراخوانی می‌کند."
 }
