@@ -17,6 +17,10 @@ import Project from "../../Models/DatabaseModels/Project";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/UserTelegram";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
 import {
   QueryDeepPartialEntity,
@@ -180,7 +184,9 @@ export class Service extends DatabaseService<Model> {
 
     if (!project.enableTelegramNotifications) {
       throw new BadDataException(
-        "Telegram notifications are disabled for this project. Please enable them in Project Settings > Notification Settings.",
+        getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Telegram,
+        ),
       );
     }
 

@@ -25327,5 +25327,22 @@
   "This rule runs when any one of these conditions is met:": "이 규칙은 다음 조건 중 하나라도 충족하면 실행됩니다:",
   "This rule runs when this condition is met:": "이 규칙은 다음 조건을 충족하면 실행됩니다:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "이 규칙에는 이 양식의 이전 버전에서 설정된 기본 담당자가 아직 남아 있습니다. 이 섹션을 열어 소유자로 추가하거나 제거하세요.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "이 사후 분석이 게시되면 구독자에게 알립니다. 이후에 수정해도 다시 알리지 않습니다."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "이 사후 분석이 게시되면 구독자에게 알립니다. 이후에 수정해도 다시 알리지 않습니다.",
+  "A project owner or someone with Manage Billing can change these.": "프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 변경할 수 있습니다.",
+  "Ask a project owner or someone with Manage Billing to turn it on": "프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자에게 켜 달라고 요청하세요",
+  "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "이 프로젝트에서 꺼져 있는 채널은 표시되지 않습니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.": "이 프로젝트에서 꺼져 있는 채널은 표시되지 않습니다. {{settingsLink}}에서 켜세요.",
+  "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "인증한 모든 방법이 이 프로젝트에서 꺼져 있는 채널을 사용합니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있으며, 대신 이메일 주소나 푸시 기기를 추가할 수도 있습니다.",
+  "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.": "인증한 모든 방법이 이 프로젝트에서 꺼져 있는 채널을 사용합니다. 프로젝트 설정 → 알림 설정에서 켜거나, 대신 이메일 주소나 푸시 기기를 추가하세요.",
+  "Go to Project Settings → Notification Settings": "프로젝트 설정 → 알림 설정으로 이동",
+  "Needs someone else": "다른 사람이 필요함",
+  "Not needed": "필요 없음",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "수신 전화용 번호는 SMS로 인증되는데, 이 프로젝트에서는 SMS가 꺼져 있습니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "이 프로젝트에서는 음성 전화가 꺼져 있습니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Project Settings → Notification Settings": "프로젝트 설정 → 알림 설정",
+  "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 SMS가 꺼져 있습니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 Telegram이 꺼져 있습니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "이 프로젝트에서는 WhatsApp이 꺼져 있습니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 프로젝트 설정 → 알림 설정에서 켤 수 있습니다.",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.": "단계 {{count}}개는 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다.",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here._one": "단계 {{count}}개는 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 처리해야 하므로 여기서 세지 않습니다."
 }

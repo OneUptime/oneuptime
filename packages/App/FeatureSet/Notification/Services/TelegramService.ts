@@ -15,6 +15,11 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import TelegramLogService from "Common/Server/Services/TelegramLogService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "Common/Utils/Project/NotificationChannels";
 import { redactLogString } from "Common/Server/Utils/LogRedaction";
 import Project from "Common/Models/DatabaseModels/Project";
 import TelegramLog from "Common/Models/DatabaseModels/TelegramLog";
@@ -158,8 +163,9 @@ export default class TelegramService {
 
         if (!project.enableTelegramNotifications) {
           telegramLog.status = TelegramStatus.Error;
-          telegramLog.statusMessage =
-            "Telegram notifications are not enabled for this project. Please enable Telegram notifications in Project Settings.";
+          telegramLog.statusMessage = getProjectNotificationChannelOffMessage(
+            ProjectNotificationChannel.Telegram,
+          );
 
           // The project owner disabled this channel; refusal is expected.
           logger.error(telegramLog.statusMessage, EXTERNAL_FAULT);
@@ -189,7 +195,12 @@ export default class TelegramService {
             await ProjectService.sendEmailToProjectOwners(
               project.id!,
               `Telegram notifications not enabled for ${project.name || ""}`,
-              "A Telegram notification was not sent because Telegram notifications are disabled for this project. Please enable Telegram notifications in Project Settings if this channel should be used.",
+              `A Telegram notification was not sent. ${await ProjectNotificationChannelOwnerNotice.getHtml(
+                {
+                  channel: ProjectNotificationChannel.Telegram,
+                  projectId: project.id!,
+                },
+              )}`,
             );
           }
 

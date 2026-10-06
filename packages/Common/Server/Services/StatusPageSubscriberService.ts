@@ -63,6 +63,10 @@ import StatusPageSubscriberUnsubscribeNotice, {
   StatusPageSubscriberUnsubscribeNoticeEmail,
   StatusPageSubscriberUnsubscribeSource,
 } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
+import {
+  getProjectNotificationChannelOffMessage,
+  ProjectNotificationChannel,
+} from "../../Utils/Project/NotificationChannels";
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
@@ -134,6 +138,14 @@ interface UnsubscribedAtCarryForward {
  * it unsubscribes.
  */
 const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
+
+/*
+ * What a visitor signing up by SMS hears while the project has SMS off: the
+ * same sentence StatusPageAPI gives while the page's own SMS switch is off.
+ * A visitor has no project settings, so nothing about who can turn it on.
+ */
+export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
+  "SMS subscribers not enabled for this status page.";
 
 /*
  * What onBeforeCreate hands onCreateSuccess: the status page the subscriber
@@ -386,8 +398,16 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: data.data.projectId?.toString(),
           statusPageId: data.data.statusPageId?.toString(),
         } as LogAttributes);
+        /*
+         * The team (the dashboard, an API key, a workflow) is told who can
+         * turn SMS on; a visitor on the status page is not.
+         */
         throw new BadDataException(
-          "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
+          statusPageSignUps.has(data.data)
+            ? SMS_SIGN_UP_UNAVAILABLE_MESSAGE
+            : getProjectNotificationChannelOffMessage(
+                ProjectNotificationChannel.SMS,
+              ),
         );
       }
 

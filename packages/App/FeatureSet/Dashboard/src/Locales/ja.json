@@ -25327,5 +25327,22 @@
   "This rule runs when any one of these conditions is met:": "このルールは、次の条件のいずれか 1 つを満たすと実行されます:",
   "This rule runs when this condition is met:": "このルールは、次の条件を満たすと実行されます:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "このルールには、このフォームの以前のバージョンで設定されたデフォルトの担当者がまだ残っています。このセクションを開いて、所有者として追加するか削除してください。",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "このポストモーテムが公開されたときに購読者に通知します。後から編集しても、再度通知されることはありません。"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "このポストモーテムが公開されたときに購読者に通知します。後から編集しても、再度通知されることはありません。",
+  "A project owner or someone with Manage Billing can change these.": "これらを変更できるのは、プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーです。",
+  "Ask a project owner or someone with Manage Billing to turn it on": "プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーにオンにするよう依頼する",
+  "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "このプロジェクトでオフになっているチャネルは表示されません。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.": "このプロジェクトでオフになっているチャネルは表示されません。{{settingsLink}} でオンにしてください。",
+  "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "確認済みの方法はすべて、このプロジェクトでオフになっているチャネルを使っています。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。代わりにメールアドレスやプッシュ通知用のデバイスを追加することもできます。",
+  "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.": "確認済みの方法はすべて、このプロジェクトでオフになっているチャネルを使っています。「プロジェクト設定 → 通知設定」でオンにするか、代わりにメールアドレスやプッシュ通知用のデバイスを追加してください。",
+  "Go to Project Settings → Notification Settings": "「プロジェクト設定 → 通知設定」へ",
+  "Needs someone else": "他のユーザーが必要",
+  "Not needed": "不要",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "着信用の番号は SMS で確認されますが、このプロジェクトでは SMS がオフです。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "このプロジェクトでは音声通話がオフです。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Project Settings → Notification Settings": "「プロジェクト設定 → 通知設定」",
+  "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "このプロジェクトでは SMS がオフです。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "このプロジェクトでは Telegram がオフです。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "このプロジェクトでは WhatsApp がオフです。プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが「プロジェクト設定 → 通知設定」でオンにできます。",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here._one": "あと {{count}} 個のステップはプロジェクトのオーナーまたは「請求の管理」権限を持つユーザーによる操作が必要なため、ここでは数えていません。"
 }

@@ -25327,5 +25327,22 @@
   "This rule runs when any one of these conditions is met:": "满足以下任一条件时，此规则会运行：",
   "This rule runs when this condition is met:": "满足此条件时，此规则会运行：",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此规则仍有一个由此表单的旧版本设置的默认受理人。打开此部分，将其添加为所有者或将其移除。",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "当此事后分析发布时通知订阅者。之后的编辑不会再次通知他们。"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "当此事后分析发布时通知订阅者。之后的编辑不会再次通知他们。",
+  "A project owner or someone with Manage Billing can change these.": "项目所有者或拥有“Manage Billing”权限的用户可以更改这些设置。",
+  "Ask a project owner or someone with Manage Billing to turn it on": "请项目所有者或拥有“Manage Billing”权限的用户开启",
+  "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此项目中已关闭的渠道不会提供。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.": "此项目中已关闭的渠道不会提供。请在 {{settingsLink}} 中开启。",
+  "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "您验证过的所有方式都使用此项目已关闭的渠道。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启，您也可以改为添加电子邮件地址或推送设备。",
+  "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.": "您验证过的所有方式都使用此项目已关闭的渠道。请在“项目设置”→“通知设置”中开启，或改为添加电子邮件地址或推送设备。",
+  "Go to Project Settings → Notification Settings": "前往“项目设置”→“通知设置”",
+  "Needs someone else": "需要其他人处理",
+  "Not needed": "不需要",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "来电号码通过短信验证，但此项目已关闭短信。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此项目已关闭语音电话。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Project Settings → Notification Settings": "“项目设置”→“通知设置”",
+  "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭短信。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭 Telegram。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此项目已关闭 WhatsApp。项目所有者或拥有“Manage Billing”权限的用户可以在“项目设置”→“通知设置”中开启。",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.": "还有 {{count}} 个步骤需要项目所有者或拥有“Manage Billing”权限的用户处理，因此未计入此处。",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here._one": "还有 {{count}} 个步骤需要项目所有者或拥有“Manage Billing”权限的用户处理，因此未计入此处。"
 }

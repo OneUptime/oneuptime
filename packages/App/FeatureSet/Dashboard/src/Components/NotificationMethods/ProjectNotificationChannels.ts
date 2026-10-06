@@ -8,6 +8,7 @@ import {
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useSyncExternalStore } from "react";
 import {
@@ -110,6 +111,32 @@ export const isCodeResendOffered: (
   );
 };
 
+/*
+ * Whether the signed-in person may turn these channels on or off - every
+ * channel, when none is named. The Project's update permissions, then each
+ * column's own (a project owner, or someone with Manage Billing), as the
+ * server checks them (PermissionGate.checkColumnUpdate). Not while the
+ * permission snapshot is still on its way: the switch, or a link to it, is
+ * offered only to someone the server would let flip it.
+ */
+export const canChangeProjectNotificationChannels: (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+) => boolean = (
+  channels?: Array<ProjectNotificationChannel> | undefined,
+): boolean => {
+  const asked: Array<ProjectNotificationChannel> =
+    channels && channels.length > 0
+      ? channels
+      : Object.values(ProjectNotificationChannel);
+
+  return asked.every((channel: ProjectNotificationChannel): boolean => {
+    return PermissionGate.checkColumnUpdate(
+      new Project(),
+      getProjectNotificationChannel(channel).column,
+    ).isAllowed;
+  });
+};
+
 // What a read selects: the four switches and nothing else.
 export const getProjectNotificationChannelsSelect: () => Select<Project> =
   (): Select<Project> => {
@@ -128,7 +155,8 @@ export type ProjectNotificationChannelsFetcher = (
 
 /*
  * Every project member may read these columns (the Project's read
- * permissions); only owners and billing managers may change them.
+ * permissions); only a project owner or someone with Manage Billing may
+ * change them.
  */
 export const fetchProjectNotificationChannels: ProjectNotificationChannelsFetcher =
   async (projectId: ObjectID): Promise<EnabledProjectChannels> => {

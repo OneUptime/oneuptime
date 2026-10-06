@@ -78,6 +78,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import IP from "../../Types/IP/IP";
+import { STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE } from "../../Utils/Project/NotificationChannels";
 import { resolveClientIp } from "../Utils/ClientIp";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
@@ -1284,7 +1285,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
         if (!isSMSEnabled) {
           throw new BadDataException(
-            "SMS notifications are not enabled for this project. Please enable SMS notifications in the Project Settings > Notifications Settings.",
+            STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE,
           );
         }
       }

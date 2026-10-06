@@ -25327,5 +25327,22 @@
   "This rule runs when any one of these conditions is met:": "This rule runs when any one of these conditions is met:",
   "This rule runs when this condition is met:": "This rule runs when this condition is met:",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notify subscribers when this postmortem is published. Later edits do not notify them again."
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "Notify subscribers when this postmortem is published. Later edits do not notify them again.",
+  "A project owner or someone with Manage Billing can change these.": "A project owner or someone with Manage Billing can change these.",
+  "Ask a project owner or someone with Manage Billing to turn it on": "Ask a project owner or someone with Manage Billing to turn it on",
+  "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+  "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.": "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.",
+  "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.",
+  "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.": "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.",
+  "Go to Project Settings → Notification Settings": "Go to Project Settings → Notification Settings",
+  "Needs someone else": "Needs someone else",
+  "Not needed": "Not needed",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
+  "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+  "Project Settings → Notification Settings": "Project Settings → Notification Settings",
+  "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
+  "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
+  "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.": "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here._one": "{{count}} more step needs a project owner or someone with Manage Billing, so it is not counted here."
 }

@@ -27,6 +27,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import Sort from "../Types/Database/Sort";
 import logger from "../Utils/Logger";
+import { getWhoCanTurnOnClause } from "../../Utils/Project/NotificationChannels";
 import Includes from "../../Types/BaseDatabase/Includes";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -2643,13 +2644,17 @@ export default class OnCallReadinessService {
       /*
        * Three ways to be unreachable, and they need three different sentences because
        * they need three different people to fix them: the user adds a method, the user
-       * verifies a method, or an admin turns a channel back on. A single "cannot be
-       * paged" line sends all three to the wrong place.
+       * verifies a method, or a project owner (or someone with Manage Billing - the
+       * only people the channel switches let in) turns a channel back on. A single
+       * "cannot be paged" line sends all three to the wrong place, so the third names
+       * exactly who can, and where.
        */
       if (data.verifiedMethods.length > 0) {
+        const isOneChannel: boolean = data.disabledChannels.length === 1;
+
         reasons.push("No usable notification method - cannot be paged");
         reasons.push(
-          `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${data.disabledChannels.length === 1 ? "that channel" : "those channels"} switched off - that is a project setting, not something this user can fix`,
+          `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${isOneChannel ? "that channel" : "those channels"} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")}`,
         );
 
         return reasons;

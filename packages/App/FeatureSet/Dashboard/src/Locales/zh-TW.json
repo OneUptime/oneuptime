@@ -25327,5 +25327,22 @@
   "This rule runs when any one of these conditions is met:": "滿足以下任一條件時，此規則會執行：",
   "This rule runs when this condition is met:": "滿足此條件時，此規則會執行：",
   "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "此規則仍有一個由此表單的舊版本設定的預設受指派者。開啟此區段，將其新增為擁有者或將其移除。",
-  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "當此事後檢討發布時通知訂閱者。之後的編輯不會再次通知他們。"
+  "Notify subscribers when this postmortem is published. Later edits do not notify them again.": "當此事後檢討發布時通知訂閱者。之後的編輯不會再次通知他們。",
+  "A project owner or someone with Manage Billing can change these.": "專案擁有者或擁有「Manage Billing」權限的使用者可以變更這些設定。",
+  "Ask a project owner or someone with Manage Billing to turn it on": "請專案擁有者或擁有「Manage Billing」權限的使用者開啟",
+  "Channels that are off in this project are not offered. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此專案中已關閉的管道不會提供。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.": "此專案中已關閉的管道不會提供。請在 {{settingsLink}} 中開啟。",
+  "Every method you have verified is on a channel this project has switched off. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings, or you can add an email or push device instead.": "您驗證過的所有方式都使用此專案已關閉的管道。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟，您也可以改為新增電子郵件地址或推播裝置。",
+  "Every method you have verified is on a channel this project has switched off. Turn it on in Project Settings → Notification Settings, or add an email or push device instead.": "您驗證過的所有方式都使用此專案已關閉的管道。請在「專案設定」→「通知設定」中開啟，或改為新增電子郵件地址或推播裝置。",
+  "Go to Project Settings → Notification Settings": "前往「專案設定」→「通知設定」",
+  "Needs someone else": "需要其他人處理",
+  "Not needed": "不需要",
+  "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "來電號碼透過簡訊驗證，但此專案已關閉簡訊。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Phone calls are off in this project. A project owner or someone with Manage Billing can turn them on in Project Settings → Notification Settings.": "此專案已關閉語音電話。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Project Settings → Notification Settings": "「專案設定」→「通知設定」",
+  "SMS is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此專案已關閉簡訊。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "Telegram is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此專案已關閉 Telegram。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "WhatsApp is off in this project. A project owner or someone with Manage Billing can turn it on in Project Settings → Notification Settings.": "此專案已關閉 WhatsApp。專案擁有者或擁有「Manage Billing」權限的使用者可以在「專案設定」→「通知設定」中開啟。",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here.": "還有 {{count}} 個步驟需要專案擁有者或擁有「Manage Billing」權限的使用者處理，因此未計入此處。",
+  "{{count}} more steps need a project owner or someone with Manage Billing, so they are not counted here._one": "還有 {{count}} 個步驟需要專案擁有者或擁有「Manage Billing」權限的使用者處理，因此未計入此處。"
 }
