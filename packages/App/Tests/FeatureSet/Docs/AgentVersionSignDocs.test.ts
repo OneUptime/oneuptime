@@ -1,5 +1,8 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { getKubernetesAgentChartUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  getKubernetesAgentChartUpgradeCommand,
+  getKubernetesAgentChartUpgradeFallbackCommand,
+} from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getDockerAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../../FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
 import { getDockerSwarmAgentInstallScriptCommand } from "../../../FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
@@ -183,7 +186,38 @@ describe("the English guides' commands are the ones the upgrade dialog shows", (
       "```bash\n" + getKubernetesAgentChartUpgradeCommand() + "\n```",
     );
   });
+});
 
+/*
+ * The dialog's second tab is the same upgrade on Helm before 3.14, which has
+ * no --reset-then-reuse-values. Every language's guide shows it under the
+ * chart upgrade, and says not to use --reuse-values, which keeps the old
+ * chart's defaults too (so a newer eBPF image never applies).
+ */
+describe("the Kubernetes guide's upgrade for older Helm, in every language", () => {
+  test.each(LANGUAGES)(
+    "%s: shows the dialog's older-Helm upgrade right after the chart upgrade",
+    (language: string) => {
+      const guide: string = readGuide(
+        language,
+        "telemetry/kubernetes-agent.md",
+      ) as string;
+      const upgrade: number = guide.indexOf(
+        "```bash\n" + getKubernetesAgentChartUpgradeCommand() + "\n```",
+      );
+      const fallback: number = guide.indexOf(
+        "```bash\n" + getKubernetesAgentChartUpgradeFallbackCommand() + "\n```",
+      );
+      expect(upgrade).toBeGreaterThan(-1);
+      expect(fallback).toBeGreaterThan(upgrade);
+      // Nothing but the paragraph leading into it sits between the two.
+      expect(guide.slice(upgrade, fallback).split("```").length).toBe(3);
+      expect(guide.slice(fallback)).toContain("`--reuse-values`");
+    },
+  );
+});
+
+describe("the English guides' other commands are the ones the upgrade dialog shows", () => {
   test("Docker and Podman: the image pull and removal, and Compose", () => {
     const docker: string = readGuide(
       "en",

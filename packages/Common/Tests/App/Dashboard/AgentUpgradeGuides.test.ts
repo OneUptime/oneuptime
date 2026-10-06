@@ -28,6 +28,7 @@ import {
   KUBERNETES_PLATFORMS,
   KubernetesPlatform,
   getKubernetesAgentChartUpgradeCommand,
+  getKubernetesAgentChartUpgradeFallbackCommand,
   getKubernetesSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import {
@@ -338,10 +339,63 @@ describe("the kinds whose upgrade needs the setup guide", () => {
   });
 });
 
+/*
+ * The words of a shell command line, continuations joined: what the shell
+ * hands each command in it. `&&` and `>` stay words of their own, so a
+ * command's flags are told apart from the next command's.
+ */
+function shellWords(command: string): Array<string> {
+  return command
+    .replace(/\\\n/g, " ")
+    .split(/\s+/)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+}
+
+// Every `helm upgrade` in a command, as the words up to the next command.
+function helmUpgrades(command: string): Array<Array<string>> {
+  const upgrades: Array<Array<string>> = [];
+  for (const line of command.replace(/\\\n/g, " ").split("\n")) {
+    const words: Array<string> = shellWords(line);
+    words.forEach((word: string, index: number) => {
+      if (word === "helm" && words[index + 1] === "upgrade") {
+        const end: number = words.findIndex(
+          (candidate: string, at: number): boolean => {
+            return at > index && (candidate === "&&" || candidate === ";");
+          },
+        );
+        upgrades.push(words.slice(index, end < 0 ? words.length : end));
+      }
+    });
+  }
+  return upgrades;
+}
+
+/*
+ * `helm upgrade --reuse-values` renders the new chart with the previous
+ * release's values, the old chart's defaults included (Helm replaces the new
+ * chart's values.yaml with them), so a default the new chart changed — the
+ * eBPF image a cluster was found still running — never applies. Helm 3.14+
+ * has --reset-then-reuse-values, which keeps only the values the release was
+ * given; an older Helm gets the same from `helm get values` (without --all)
+ * passed back with -f.
+ */
 describe("Kubernetes agent: upgrade the Helm release", () => {
-  test("one step, the chart upgrade that keeps the release's values", () => {
-    const guide: AgentUpgradeGuide = guideFor(AgentKind.KubernetesAgent);
-    expect(guide.methods).toHaveLength(1);
+  const guide: AgentUpgradeGuide = guideFor(AgentKind.KubernetesAgent);
+
+  test("a tab for Helm 3.14 or later first, and one for older Helm", () => {
+    expect(labelsOf(guide)).toEqual([
+      "Helm 3.14 or later",
+      "Helm 3.13 or earlier",
+    ]);
+    for (const method of guide.methods) {
+      expect(method.steps).toHaveLength(1);
+      expect(method.steps[0]!.title).toBe("Upgrade the Helm release");
+    }
+  });
+
+  test("Helm 3.14 or later: the chart upgrade that keeps the release's values and takes the new chart's defaults", () => {
     expect(codesOf(guide.methods[0]!)).toEqual([
       getKubernetesAgentChartUpgradeCommand(),
     ]);
@@ -350,29 +404,128 @@ describe("Kubernetes agent: upgrade the Helm release", () => {
         "helm repo update",
         `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\`,
         `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\`,
-        "  --reuse-values",
+        "  --reset-then-reuse-values",
       ].join("\n"),
     );
+    expect(guide.methods[0]!.steps[0]!.description).toContain(
+      "--reset-then-reuse-values keeps the values you set",
+    );
+  });
+
+  test("older Helm: the release's own values saved, then passed back with -f", () => {
+    expect(codesOf(guide.methods[1]!)).toEqual([
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    ]);
+    expect(getKubernetesAgentChartUpgradeFallbackCommand()).toBe(
+      [
+        "helm repo update",
+        `helm get values ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} -o yaml > values.yaml && \\`,
+        `  helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\`,
+        `  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} -f values.yaml`,
+      ].join("\n"),
+    );
+
+    const words: Array<string> = shellWords(
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    );
+    const getValues: number = words.indexOf("get");
+    /*
+     * The values the release was given, as YAML (the default table output
+     * has a header -f cannot read), never --all, which would pin every
+     * default of the old chart again.
+     */
+    expect(words.slice(getValues - 1, getValues + 6)).toEqual([
+      "helm",
+      "get",
+      "values",
+      KUBERNETES_AGENT_HELM_RELEASE,
+      "--namespace",
+      KUBERNETES_AGENT_HELM_NAMESPACE,
+      "-o",
+    ]);
+    expect(words).not.toContain("--all");
+    expect(words).not.toContain("-a");
+    // The upgrade runs only when the values were saved: an empty file would drop every setting.
+    expect(words[words.indexOf("values.yaml") + 1]).toBe("&&");
+    const upgrades: Array<Array<string>> = helmUpgrades(
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    );
+    expect(upgrades).toHaveLength(1);
+    expect(upgrades[0]!.slice(-2)).toEqual(["-f", "values.yaml"]);
+  });
+
+  test("no tab recommends --reuse-values, and each says why not", () => {
+    for (const method of guide.methods) {
+      for (const code of codesOf(method)) {
+        const upgrades: Array<Array<string>> = helmUpgrades(code);
+        expect(upgrades).toHaveLength(1);
+        expect(upgrades[0]).not.toContain("--reuse-values");
+        expect(upgrades[0]!.slice(0, 4)).toEqual([
+          "helm",
+          "upgrade",
+          KUBERNETES_AGENT_HELM_RELEASE,
+          "oneuptime/kubernetes-agent",
+        ]);
+        // Either Helm's flag or the saved values: something keeps the release's settings.
+        expect(
+          upgrades[0]!.includes("--reset-then-reuse-values") ||
+            upgrades[0]!.includes("-f"),
+        ).toBe(true);
+      }
+      expect(method.note).toBe(
+        "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.",
+      );
+    }
+  });
+
+  // Harness guard: the parser does see a --reuse-values upgrade where there is one.
+  test("the command parser finds --reuse-values in a command that has it", () => {
+    expect(
+      helmUpgrades(
+        "helm repo update\nhelm upgrade r oneuptime/kubernetes-agent \\\n  --reuse-values",
+      )[0],
+    ).toContain("--reuse-values");
+    expect(
+      helmUpgrades("helm upgrade r c --reset-then-reuse-values")[0],
+    ).not.toContain("--reuse-values");
   });
 
   test.each(
     KUBERNETES_PLATFORMS.map((option: SetupGuideOption<KubernetesPlatform>) => {
       return [option.key];
     }),
-  )("is the command the %s guide's upgrade topic shows", (platform: string) => {
-    const setupGuide: SetupGuideContent = getKubernetesSetupGuide({
-      oneuptimeUrl: URL,
-      apiKey: KEY,
-      platform: platform as KubernetesPlatform,
-    });
-    expectCommandsFromGuide(
-      guideFor(AgentKind.KubernetesAgent).methods[0]!,
-      setupGuide,
-    );
-    expect(upgradeTopicOf(setupGuide).markdown).toContain(
-      getKubernetesAgentChartUpgradeCommand(),
-    );
-  });
+  )(
+    "both are the commands the %s guide's upgrade topic shows",
+    (platform: string) => {
+      const setupGuide: SetupGuideContent = getKubernetesSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        platform: platform as KubernetesPlatform,
+      });
+      for (const method of guide.methods) {
+        expectCommandsFromGuide(method, setupGuide);
+      }
+      const topic: SetupGuideTopic = upgradeTopicOf(setupGuide);
+      expect(topicCodeBlocks(topic)).toEqual(
+        expect.arrayContaining([
+          getKubernetesAgentChartUpgradeCommand(),
+          getKubernetesAgentChartUpgradeFallbackCommand(),
+        ]),
+      );
+      expect(topic.markdown).toContain("Don't use `--reuse-values`");
+      // No command in the guide, upgrade topic or not, is a --reuse-values upgrade.
+      for (const block of getSetupGuideCodeBlocks(setupGuide)) {
+        for (const upgrade of helmUpgrades(block)) {
+          expect({ block, upgrade }).toEqual({
+            block,
+            upgrade: upgrade.filter((word: string): boolean => {
+              return word !== "--reuse-values";
+            }),
+          });
+        }
+      }
+    },
+  );
 });
 
 describe("Docker agent: a tab per install method", () => {

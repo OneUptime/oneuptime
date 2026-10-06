@@ -25038,7 +25038,6 @@
   "Apply the current manifest": "現在のマニフェストを適用する",
   "Copy the Deployment from the setup guide and apply it again with kubectl apply -f. It carries the current collector version and config.": "セットアップガイドから Deployment をコピーし、kubectl apply -f でもう一度適用します。現在のコレクターのバージョンと設定が含まれています。",
   "Download the latest files": "最新のファイルをダウンロードする",
-  "Helm": "Helm",
   "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.": "{{directory}} 以外にインストールしましたか？INSTALL_DIR にそのフォルダーを指定してスクリプトを実行します: INSTALL_DIR=<folder> bash install.sh。",
   "Pull the new image and remove the running Runner": "新しいイメージを pull して、実行中の Runner を削除する",
   "Pull the new image and remove the running agent": "新しいイメージを pull して、実行中のエージェントを削除する",
@@ -25051,7 +25050,6 @@
   "Run this in the agent's folder. Your .env stays as it is.": "エージェントのフォルダーで実行します。.env はそのままです。",
   "Run this on the host the Runner runs on.": "Runner が動いているホストで実行します。",
   "Run this on the host.": "ホストで実行します。",
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps your settings: the cluster name, the preset and any flags you added.": "kubectl をクラスターに向けた状態で実行します。--reuse-values により、クラスター名、プリセット、追加したフラグなどの設定が保たれます。",
   "Runner {{version}} is outdated. A newer Runner is available: {{latest}}. Show how to upgrade.": "Runner {{version}} は古くなっています。新しい Runner があります: {{latest}}。アップグレード方法を表示します。",
   "Start the Runner again": "Runner をもう一度起動する",
   "Start the agent again": "エージェントをもう一度起動する",
@@ -25598,7 +25596,6 @@
   "Restart the agent": "エージェントを再起動する",
   "Run it on the host with the same settings. It pulls the agent's newest image and starts the agent again.": "同じ設定でホスト上で実行してください。エージェントの最新イメージを pull して、エージェントを起動し直します。",
   "Run this where the agent's docker-compose.yml is.": "エージェントの docker-compose.yml がある場所で実行してください。",
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps every other setting of the release.": "kubectl がクラスターを指している状態で実行してください。--reuse-values により、リリースのその他の設定はすべて維持されます。",
   "Set by the Kubernetes AI agent's configuration: aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart. Change them there; this page follows.": "Kubernetes AI エージェントの設定で指定されています: Kubernetes エージェントのチャートの aiAgent.investigation と aiAgent.fixes。変更はそちらで行ってください。このページはそれに従います。",
   "Set by the Kubernetes AI agent's defaults: the Kubernetes agent chart sets neither aiAgent.investigation nor aiAgent.fixes. Set them on the chart to choose; this page follows.": "Kubernetes AI エージェントの既定値で決まっています: Kubernetes エージェントのチャートは aiAgent.investigation も aiAgent.fixes も設定していません。選ぶにはチャートで設定してください。このページはそれに従います。",
   "Set by the {{agent}}'s configuration: ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where it runs. Change them there; this page follows.": "{{agent}} の設定で指定されています: 動作している場所の ONEUPTIME_AI_INVESTIGATION と ONEUPTIME_AI_FIXES。変更はそちらで行ってください。このページはそれに従います。",
@@ -25740,5 +25737,11 @@
   "Turn off": "オフにする",
   "Turn this off?": "オフにしますか？",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "ご利用のプランにはもう含まれていませんが、引き続き動作しています。削除することができます。変更したり新しく追加したりするには {{planName}} プランが必要です。",
-  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "ご利用のプランにはもう含まれていません。オンになっているものは引き続き動作しています。オフにするか削除することができます。再びオンにしたり新しく追加したりするには {{planName}} プランが必要です。"
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "ご利用のプランにはもう含まれていません。オンになっているものは引き続き動作しています。オフにするか削除することができます。再びオンにしたり新しく追加したりするには {{planName}} プランが必要です。",
+  "Helm 3.13 or earlier": "Helm 3.13 以前",
+  "Helm 3.14 or later": "Helm 3.14 以降",
+  "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.": "--reuse-values は使わないでください。古いチャートのデフォルト値も保持されるため、新しいチャートのデフォルト値 (新しい eBPF イメージなど) が適用されません。",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values (Helm 3.14 or later) keeps every other value you set on the release.": "kubectl がクラスターを指している状態で実行してください。--reset-then-reuse-values (Helm 3.14 以降) により、リリースに設定したその他の値はすべて維持されます。",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values keeps the values you set (the cluster name, the preset and any flags you added) and takes every other value from the new chart.": "kubectl をクラスターに向けた状態で実行します。--reset-then-reuse-values は設定した値 (クラスター名、プリセット、追加したフラグ) を保持し、それ以外の値はすべて新しいチャートから取ります。",
+  "Run this with kubectl pointed at the cluster. It saves the values you set to values.yaml and upgrades with them, so every other value comes from the new chart.": "kubectl をクラスターに向けた状態で実行します。設定した値を values.yaml に保存し、その値でアップグレードするため、それ以外の値はすべて新しいチャートから取られます。"
 }

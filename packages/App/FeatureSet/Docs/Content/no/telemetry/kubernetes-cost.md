@@ -9,7 +9,7 @@ OneUptime kan vise deg hva hver Kubernetes-arbeidslast faktisk koster — forbru
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -38,7 +38,7 @@ Pek chartet på din eksisterende motor i stedet — da buntes ingenting:
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true \
   --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
 ```

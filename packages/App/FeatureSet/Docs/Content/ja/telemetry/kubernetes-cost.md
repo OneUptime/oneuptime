@@ -9,7 +9,7 @@ OneUptime は、すべての Kubernetes ワークロードに実際にいくら�
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true
 ```
 
@@ -38,7 +38,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set cost.enabled=true \
   --set cost.engine.url=http://kubecost-cost-analyzer.kubecost.svc.cluster.local:9090
 ```

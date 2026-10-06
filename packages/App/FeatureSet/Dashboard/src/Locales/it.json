@@ -25038,7 +25038,6 @@
   "Apply the current manifest": "Applica il manifest attuale",
   "Copy the Deployment from the setup guide and apply it again with kubectl apply -f. It carries the current collector version and config.": "Copia il Deployment dalla guida alla configurazione e applicalo di nuovo con kubectl apply -f. Contiene la versione e la configurazione attuali del collector.",
   "Download the latest files": "Scarica i file più recenti",
-  "Helm": "Helm",
   "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.": "Installato fuori da {{directory}}? Esegui lo script con INSTALL_DIR impostato su quella cartella: INSTALL_DIR=<folder> bash install.sh.",
   "Pull the new image and remove the running Runner": "Scarica la nuova immagine e rimuovi il Runner in esecuzione",
   "Pull the new image and remove the running agent": "Scarica la nuova immagine e rimuovi l'agente in esecuzione",
@@ -25051,7 +25050,6 @@
   "Run this in the agent's folder. Your .env stays as it is.": "Eseguilo nella cartella dell'agente. Il tuo .env resta com'è.",
   "Run this on the host the Runner runs on.": "Eseguilo sull'host su cui gira il Runner.",
   "Run this on the host.": "Eseguilo sull'host.",
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps your settings: the cluster name, the preset and any flags you added.": "Eseguilo con kubectl puntato sul cluster. --reuse-values mantiene le tue impostazioni: il nome del cluster, il preset e i flag che hai aggiunto.",
   "Runner {{version}} is outdated. A newer Runner is available: {{latest}}. Show how to upgrade.": "Il Runner {{version}} non è aggiornato. È disponibile un Runner più recente: {{latest}}. Mostra come aggiornarlo.",
   "Start the Runner again": "Avvia di nuovo il Runner",
   "Start the agent again": "Avvia di nuovo l'agente",
@@ -25598,7 +25596,6 @@
   "Restart the agent": "Riavvia l'agente",
   "Run it on the host with the same settings. It pulls the agent's newest image and starts the agent again.": "Eseguilo sull'host con le stesse impostazioni. Scarica l'immagine più recente dell'agente e riavvia l'agente.",
   "Run this where the agent's docker-compose.yml is.": "Eseguilo dove si trova il docker-compose.yml dell'agente.",
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps every other setting of the release.": "Eseguilo con kubectl puntato sul cluster. --reuse-values mantiene tutte le altre impostazioni della release.",
   "Set by the Kubernetes AI agent's configuration: aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart. Change them there; this page follows.": "Impostato dalla configurazione dell'agente IA Kubernetes: aiAgent.investigation e aiAgent.fixes nel chart dell'agente Kubernetes. Modificali lì; questa pagina si adegua.",
   "Set by the Kubernetes AI agent's defaults: the Kubernetes agent chart sets neither aiAgent.investigation nor aiAgent.fixes. Set them on the chart to choose; this page follows.": "Impostato dai valori predefiniti dell'agente IA Kubernetes: il chart dell'agente Kubernetes non imposta né aiAgent.investigation né aiAgent.fixes. Impostali nel chart per scegliere; questa pagina si adegua.",
   "Set by the {{agent}}'s configuration: ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where it runs. Change them there; this page follows.": "Impostato dalla configurazione di {{agent}}: ONEUPTIME_AI_INVESTIGATION e ONEUPTIME_AI_FIXES dove viene eseguito. Modificali lì; questa pagina si adegua.",
@@ -25740,5 +25737,11 @@
   "Turn off": "Disattiva",
   "Turn this off?": "Disattivarlo?",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "Il tuo piano non li include più, ma funzionano ancora. Puoi eliminarli. Per modificarli o aggiungerne di nuovi serve il piano {{planName}}.",
-  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Il tuo piano non li include più. Quelli attivi funzionano ancora: puoi disattivarli o eliminarli. Per riattivarli o aggiungerne di nuovi serve il piano {{planName}}."
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "Il tuo piano non li include più. Quelli attivi funzionano ancora: puoi disattivarli o eliminarli. Per riattivarli o aggiungerne di nuovi serve il piano {{planName}}.",
+  "Helm 3.13 or earlier": "Helm 3.13 o precedente",
+  "Helm 3.14 or later": "Helm 3.14 o successivo",
+  "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.": "Non --reuse-values: mantiene anche i valori predefiniti del vecchio chart, quindi quelli del nuovo chart (tra cui un'immagine eBPF più recente) non vengono mai applicati.",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values (Helm 3.14 or later) keeps every other value you set on the release.": "Eseguilo con kubectl puntato sul cluster. --reset-then-reuse-values (Helm 3.14 o successivo) mantiene tutti gli altri valori che hai impostato sulla release.",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values keeps the values you set (the cluster name, the preset and any flags you added) and takes every other value from the new chart.": "Eseguilo con kubectl puntato sul cluster. --reset-then-reuse-values mantiene i valori che hai impostato (il nome del cluster, il preset e i flag che hai aggiunto) e prende tutti gli altri valori dal nuovo chart.",
+  "Run this with kubectl pointed at the cluster. It saves the values you set to values.yaml and upgrades with them, so every other value comes from the new chart.": "Eseguilo con kubectl puntato sul cluster. Salva in values.yaml i valori che hai impostato e aggiorna con essi, quindi tutti gli altri valori arrivano dal nuovo chart."
 }

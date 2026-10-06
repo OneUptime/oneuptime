@@ -25038,7 +25038,6 @@
   "Apply the current manifest": "套用目前的資訊清單",
   "Copy the Deployment from the setup guide and apply it again with kubectl apply -f. It carries the current collector version and config.": "從設定指南複製 Deployment，並用 kubectl apply -f 重新套用。其中包含目前的收集器版本與設定。",
   "Download the latest files": "下載最新檔案",
-  "Helm": "Helm",
   "Installed it outside {{directory}}? Run the script with INSTALL_DIR set to that folder: INSTALL_DIR=<folder> bash install.sh.": "安裝在 {{directory}} 以外的位置嗎？將 INSTALL_DIR 設為該資料夾再執行指令碼：INSTALL_DIR=<folder> bash install.sh。",
   "Pull the new image and remove the running Runner": "拉取新映像檔並移除執行中的 Runner",
   "Pull the new image and remove the running agent": "拉取新映像檔並移除執行中的代理程式",
@@ -25051,7 +25050,6 @@
   "Run this in the agent's folder. Your .env stays as it is.": "在代理程式的資料夾中執行。你的 .env 會保持不變。",
   "Run this on the host the Runner runs on.": "在 Runner 所在的主機上執行。",
   "Run this on the host.": "在主機上執行。",
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps your settings: the cluster name, the preset and any flags you added.": "在 kubectl 指向該叢集時執行。--reuse-values 會保留你的設定：叢集名稱、預設集以及你新增的所有旗標。",
   "Runner {{version}} is outdated. A newer Runner is available: {{latest}}. Show how to upgrade.": "Runner {{version}} 已過時。有較新的 Runner 可用：{{latest}}。顯示如何升級。",
   "Start the Runner again": "重新啟動 Runner",
   "Start the agent again": "重新啟動代理程式",
@@ -25598,7 +25596,6 @@
   "Restart the agent": "重新啟動代理程式",
   "Run it on the host with the same settings. It pulls the agent's newest image and starts the agent again.": "使用相同的設定在主機上執行它。它會拉取代理程式的最新映像檔並重新啟動代理程式。",
   "Run this where the agent's docker-compose.yml is.": "在代理程式的 docker-compose.yml 所在位置執行此命令。",
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps every other setting of the release.": "在 kubectl 指向該叢集時執行此命令。--reuse-values 會保留該發行版本的所有其他設定。",
   "Set by the Kubernetes AI agent's configuration: aiAgent.investigation and aiAgent.fixes on the Kubernetes agent chart. Change them there; this page follows.": "由 Kubernetes AI 代理程式的設定決定：Kubernetes 代理程式 chart 中的 aiAgent.investigation 和 aiAgent.fixes。請在那裡變更；此頁面會隨之更新。",
   "Set by the Kubernetes AI agent's defaults: the Kubernetes agent chart sets neither aiAgent.investigation nor aiAgent.fixes. Set them on the chart to choose; this page follows.": "由 Kubernetes AI 代理程式的預設值決定：Kubernetes 代理程式 chart 既未設定 aiAgent.investigation，也未設定 aiAgent.fixes。在 chart 中設定它們即可選擇；此頁面會隨之更新。",
   "Set by the {{agent}}'s configuration: ONEUPTIME_AI_INVESTIGATION and ONEUPTIME_AI_FIXES where it runs. Change them there; this page follows.": "由 {{agent}} 的設定決定：其執行位置的 ONEUPTIME_AI_INVESTIGATION 和 ONEUPTIME_AI_FIXES。請在那裡變更；此頁面會隨之更新。",
@@ -25740,5 +25737,11 @@
   "Turn off": "關閉",
   "Turn this off?": "要關閉嗎？",
   "Your plan does not include these any more, but they still work. You can delete them. Changing them or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些，但它們仍在運作。您可以刪除它們。變更它們或新增項目需要 {{planName}} 方案。",
-  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些。已開啟的仍在運作：您可以將其關閉或刪除。再次開啟或新增項目需要 {{planName}} 方案。"
+  "Your plan does not include these any more. The ones that are on still work: you can turn them off or delete them. Turning them on again or adding new ones needs the {{planName}} plan.": "您的方案已不再包含這些。已開啟的仍在運作：您可以將其關閉或刪除。再次開啟或新增項目需要 {{planName}} 方案。",
+  "Helm 3.13 or earlier": "Helm 3.13 或更早版本",
+  "Helm 3.14 or later": "Helm 3.14 或更新版本",
+  "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.": "請勿使用 --reuse-values：它也會保留舊 chart 的預設值，因此新 chart 的預設值（包括較新的 eBPF 映像）永遠不會套用。",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values (Helm 3.14 or later) keeps every other value you set on the release.": "在 kubectl 指向該叢集時執行此命令。--reset-then-reuse-values（Helm 3.14 或更新版本）會保留你在該發行版本上設定的所有其他值。",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values keeps the values you set (the cluster name, the preset and any flags you added) and takes every other value from the new chart.": "在 kubectl 指向該叢集時執行。--reset-then-reuse-values 會保留你設定的值（叢集名稱、預設集以及你新增的所有旗標），其他所有值則取自新的 chart。",
+  "Run this with kubectl pointed at the cluster. It saves the values you set to values.yaml and upgrades with them, so every other value comes from the new chart.": "在 kubectl 指向該叢集時執行。它會將你設定的值儲存到 values.yaml 並以這些值升級，因此其他所有值都來自新的 chart。"
 }

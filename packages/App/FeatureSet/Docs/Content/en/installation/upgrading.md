@@ -396,7 +396,7 @@ Agent retired in OneUptime 12
 ```bash
 helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set aiAgent.enabled=true
 ```
 

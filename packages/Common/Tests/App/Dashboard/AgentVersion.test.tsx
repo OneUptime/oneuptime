@@ -56,7 +56,10 @@ function setServerVersion(version: string): void {
 
 import AgentVersion from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
-import { getKubernetesAgentChartUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  getKubernetesAgentChartUpgradeCommand,
+  getKubernetesAgentChartUpgradeFallbackCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getDockerAgentUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/Utils/DocumentationMarkdown";
 import { getPodmanAgentUpgradeCommand } from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
 import {
@@ -291,14 +294,39 @@ describe("the upgrade dialog", () => {
       ),
     ).toBeInTheDocument();
     expect(within(dialog).getByText("Upgrade the Helm release")).toBeVisible();
+    /*
+     * A tab per Helm: --reset-then-reuse-values needs 3.14, and an older
+     * Helm upgrades with the release's own values instead. Neither is a
+     * --reuse-values upgrade, which keeps the old chart's defaults.
+     */
+    expect(
+      within(dialog)
+        .getAllByRole("tab")
+        .map((tab: HTMLElement): string => {
+          return tab.textContent || "";
+        }),
+    ).toEqual(["Helm 3.14 or later", "Helm 3.13 or earlier"]);
     expect(codeBlocksIn(dialog)).toEqual([
       getKubernetesAgentChartUpgradeCommand(),
     ]);
-    // One way to install it, so no tabs.
-    expect(within(dialog).queryByRole("tab")).not.toBeInTheDocument();
     expect(
       within(dialog).getByRole("button", { name: "Copy to clipboard" }),
     ).toBeInTheDocument();
+    expect(
+      within(dialog).getByTestId("agent-upgrade-method-note"),
+    ).toHaveTextContent(
+      "Not --reuse-values: it also keeps the old chart's defaults, so the new chart's defaults (a newer eBPF image among them) never apply.",
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("tab", { name: "Helm 3.13 or earlier" }),
+    );
+    expect(codeBlocksIn(dialog)).toEqual([
+      getKubernetesAgentChartUpgradeFallbackCommand(),
+    ]);
+    expect(codeBlocksIn(dialog).join("\n")).not.toMatch(
+      /(^|\s)--reuse-values(\s|$)/,
+    );
     expect(
       within(dialog).getByText(
         "The new version shows here a few minutes after the upgrade.",

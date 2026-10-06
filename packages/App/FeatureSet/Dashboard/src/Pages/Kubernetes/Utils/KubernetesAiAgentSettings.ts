@@ -33,9 +33,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * The commands are the chart upgrades the page already shows
  * (getAiAgentHelmCommands), for the chosen settings: the same refreshed
- * chart index, --reuse-values, and — when fixes need write access the agent
- * does not have yet — the same scoped and cluster-wide variants with the
- * same notes and disclosure.
+ * chart index, --reset-then-reuse-values, and — when fixes need write
+ * access the agent does not have yet — the same scoped and cluster-wide
+ * variants with the same notes and disclosure.
  *
  * Import-clean on purpose (Common types and the page's own utils), so the
  * suites read it without a browser.
@@ -103,7 +103,7 @@ export const KUBERNETES_AI_SETTINGS_STEP_TITLE: string = translationKey(
 );
 
 export const KUBERNETES_AI_SETTINGS_STEP_DESCRIPTION: string = translationKey(
-  "Run this with kubectl pointed at the cluster. --reuse-values keeps every other setting of the release.",
+  "Run this with kubectl pointed at the cluster. --reset-then-reuse-values (Helm 3.14 or later) keeps every other value you set on the release.",
 );
 
 export const KUBERNETES_AI_SETTINGS_SCOPED_LABEL: string = translationKey(

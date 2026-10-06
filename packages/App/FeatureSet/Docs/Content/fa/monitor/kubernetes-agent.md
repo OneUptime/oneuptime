@@ -136,7 +136,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
-  --namespace oneuptime-agent --reuse-values \
+  --namespace oneuptime-agent --reset-then-reuse-values \
   --set logs.windowsPods.enabled=true
 ```
 
@@ -342,24 +342,19 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 helm repo update
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values
+  --reset-then-reuse-values
 ```
 
-پرچم `--reuse-values` پیکربندی موجودتان را نگه می‌دارد؛ هر بازنویسی تازه‌ای با `--set` را روی آن بدهید.
+پرچم `--reset-then-reuse-values` (‏Helm 3.14 و بالاتر) مقدارهایی را که خودتان تنظیم کرده‌اید (پیش‌تنظیم، نام خوشه، پالایه‌ها) نگه می‌دارد و همه مقدارهای دیگر را از نمودار تازه می‌گیرد؛ هر بازنویسی تازه‌ای را با `--set` روی آن بدهید. در ‏Helm 3.13 و پایین‌تر، به‌جای آن با مقدارهایی که تنظیم کرده‌اید ارتقا دهید:
 
-> **حواستان باشد: `--reuse-values` پیش‌فرض‌های تازه نمودار را ادغام نمی‌کند.** ‏Helm مقادیری را که پیش‌تر رندر کرده‌اید عیناً دوباره به کار می‌برد — پس هر فیلد سطح‌بالای تازه‌ای که در نسخه تازه‌تری از نمودار افزوده شده (مثلاً `profiling.*`، `ebpf.features.*`) روی انتشار موجود شما تنظیم‌نشده می‌ماند و قالب چنان رندر می‌شود که انگار از کارش انداخته‌اید.
->
-> **‏Helm 3.14 و بالاتر** — به `--reset-then-reuse-values` جابه‌جا شوید. این پرچم پیش‌فرض‌های نمودار را برای کلیدهایی که بازنویسی نکرده‌اید دوباره می‌خواند:
->
-> ```bash
-> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
->   --namespace oneuptime-kubernetes-agent \
->   --reset-then-reuse-values
-> ```
->
-> **‏Helm 3.13 و پایین‌تر** — `--reuse-values` را بیندازید و پرچم‌های اصلی `--set` خود (یا `-f values.yaml`) را صریح بدهید. پیش‌فرض‌های تازه نمودار برای هر چیزی که بازنویسی نکنید اعمال می‌شوند.
->
-> اگر پادهای قابلیتی تازه (مثلاً `kubernetes-agent-profiling-*`) پس از ارتقا پدیدار نشدند، تقریباً همیشه دلیلش همین است. فرمان `helm get values <release>` نشان می‌دهد Helm واقعاً چه چیزی در دست دارد — فیلدهایی که در خروجی نیستند یعنی پیش‌فرض‌ها برایشان ادغام نشده است.
+```bash
+helm repo update
+helm get values oneuptime-agent --namespace oneuptime-kubernetes-agent -o yaml > values.yaml && \
+  helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent -f values.yaml
+```
+
+از `--reuse-values` استفاده نکنید: این پرچم پیش‌فرض‌های نموداری را هم که از آن ارتقا می‌دهید نگه می‌دارد، پس پیش‌فرض‌های نمودار تازه‌تر (از جمله تصویر eBPF آن) هرگز اعمال نمی‌شوند. وقتی یک انتشار با پیش‌فرض‌های نموداری قدیمی‌تر اجرا شود، یادداشت‌هایی که Helm پس از نصب یا ارتقا چاپ می‌کند با یک هشدار و فرمانی که آن را درست می‌کند پایان می‌یابند.
 
 > **سنجه‌های اسپن eBPF نام‌های تازه دارند.** `ebpf.features.spanMetrics` اکنون به‌جای `traces_spanmetrics_calls_total` و `traces_spanmetrics_latency`، سنجه‌های `traces.span.metrics.calls` و `traces.span.metrics.duration` (ثانیه) را می‌فرستد: همان سری‌ها، با نام‌هایی که OBI نگه می‌دارد (OBI نام‌های قدیمی را منسوخ کرده است). داشبورد، نمودار یا مانیتور سنجه‌ای که روی نام قدیمی ساخته شده، پس از ارتقا بی‌هیچ خطایی دیگر داده تازه‌ای نمی‌گیرد — آن را به نام تازه منتقل کنید و ورودی‌های `filters.metrics` را هم که نام قدیمی دارند به‌روز کنید.
 
@@ -379,7 +374,7 @@ kubectl delete namespace oneuptime-kubernetes-agent
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-kubernetes-agent \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
 
