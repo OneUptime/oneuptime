@@ -11,10 +11,11 @@ import React, {
 import RequireSsoForLoginCard from "./RequireSsoForLoginCard";
 
 /*
- * Settings -> SSO below the Scale plan, on OneUptime Cloud: the page is the
- * plan's upsell. A project a Scale trial - or a move down from Scale - left
- * requiring SSO still requires it: the server holds everyone to it whatever
- * the plan, and the project's SAML providers keep signing people in.
+ * Settings -> SSO and -> OIDC below the Scale plan, on OneUptime Cloud: each
+ * page is the plan's upsell. A project a Scale trial - or a move down from
+ * Scale - left requiring SSO still requires it: the server holds everyone
+ * to it whatever the plan, and the project's SAML and OIDC providers keep
+ * signing people in.
  *
  * A paid feature can always be switched off, on any plan: the server lets
  * requireSsoForLogin go back to its default (off) on every plan. So while

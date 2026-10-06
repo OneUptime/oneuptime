@@ -905,19 +905,44 @@ export function getAutomaticInvestigationTurnOnChanges(
   };
 }
 
-// What the confirm dialog says before turning them on.
+/*
+ * What the confirm dialog says before turning them on: one whole sentence
+ * for each set of opt-ins it turns on, so a locale words each one its own
+ * way and puts the project's name where its grammar wants it.
+ */
+export const AUTOMATIC_INVESTIGATION_CONFIRMATIONS: {
+  incidentsAndAlerts: string;
+  incidents: string;
+  alerts: string;
+} = {
+  incidentsAndAlerts: translationKey(
+    "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+  ),
+  incidents: translationKey(
+    "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+  ),
+  alerts: translationKey(
+    "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+  ),
+};
+
+// The project in the confirmation when the page does not know its name.
+const UNNAMED_PROJECT: string = translationKey("this project");
+
 export function getAutomaticInvestigationConfirmation(data: {
   settings: KubernetesAiAutomaticInvestigationSettings;
-  projectName: string;
+  projectName?: string | undefined;
 }): string {
-  const what: string =
+  const template: string =
     !data.settings.incidents && !data.settings.alerts
-      ? "every new incident and alert"
+      ? AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidentsAndAlerts
       : !data.settings.incidents
-        ? "every new incident"
-        : "every new alert";
+        ? AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidents
+        : AUTOMATIC_INVESTIGATION_CONFIRMATIONS.alerts;
 
-  return `This applies to ${what} in ${data.projectName}, not just this cluster. Limits live under Incidents → AI → Settings.`;
+  return translateTemplate(template, {
+    project: data.projectName || translatableTerm(UNNAMED_PROJECT),
+  });
 }
 
 /*

@@ -303,6 +303,19 @@ export default class MonitorResourceUtil {
     };
 
     try {
+      /*
+       * The monitor above was loaded BEFORE this evaluation held the lock,
+       * and whichever evaluation held it until now may have just changed
+       * the monitor's status. Deciding against the pre-lock status skips the
+       * very transition that answers it: the heartbeat cron flips a monitor
+       * Offline, the heartbeat that was already waiting on the lock then
+       * matches "Online", the status timeline sees "already Online" and
+       * writes nothing - and the monitor stays Offline until the next
+       * evaluation. Re-read the one column every status decision below
+       * keys on, now that nothing else can change it.
+       */
+      await MonitorResourceUtil.refreshCurrentMonitorStatus(monitor);
+
       let probeName: string | undefined = undefined;
       const monitorName: string | undefined = monitor.name || undefined;
 
@@ -1462,6 +1475,33 @@ export default class MonitorResourceUtil {
       return response;
     } finally {
       await releaseMutex();
+    }
+  }
+
+  /*
+   * A primary-key read of a single column; kept separate from the monitor
+   * load above so that load can stay outside the lock (see the comment on
+   * the lock for why validation must come first).
+   */
+  public static async refreshCurrentMonitorStatus(
+    monitor: Monitor,
+  ): Promise<void> {
+    if (!monitor.id) {
+      return;
+    }
+
+    const latest: Monitor | null = await MonitorService.findOneById({
+      id: monitor.id,
+      select: {
+        currentMonitorStatusId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (latest?.currentMonitorStatusId) {
+      monitor.currentMonitorStatusId = latest.currentMonitorStatusId;
     }
   }
 

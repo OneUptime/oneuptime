@@ -2,7 +2,11 @@ import type { FindOperator } from "Common/Server/Types/Database/QueryHelper";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import { CheckOn } from "Common/Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  CriteriaFilter,
+  FilterType,
+} from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -112,10 +116,33 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
   };
 });
 
+/*
+ * The arrival store is Redis-backed; its own logic is covered by
+ * IncomingRequestReceivedAtStore.test.ts. Here track() answers whatever each
+ * test needs, and the pure clamp is the real one.
+ */
+jest.mock("Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore", () => {
+  const actual: {
+    default: { getReceivedAtAsOf: (receivedAt: Date, checkedAt: Date) => Date };
+  } = jest.requireActual(
+    "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore",
+  );
+
+  return {
+    __esModule: true,
+    default: {
+      track: jest.fn(),
+      getReceivedAtAsOf: actual.default.getReceivedAtAsOf,
+    },
+  };
+});
+
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import IncomingRequestCriteria from "Common/Server/Utils/Monitor/Criteria/IncomingRequestCriteria";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat";
@@ -136,6 +163,8 @@ const monitorResourceMock: jest.Mock =
 const mockedLogger: { error: jest.Mock } = logger as unknown as {
   error: jest.Mock;
 };
+const trackMock: jest.Mock =
+  IncomingRequestReceivedAtStore.track as unknown as jest.Mock;
 
 const NOW: Date = new Date("2026-07-27T10:00:00.000Z");
 const CREATED_AT: Date = new Date("2026-07-01T00:00:00.000Z");
@@ -182,10 +211,15 @@ function makeMonitor(data: {
   id: ObjectID;
   monitorSteps?: MonitorSteps | undefined;
   incomingMonitorRequest?: IncomingMonitorRequest | undefined;
+  incomingRequestSecretKey?: ObjectID | undefined;
 }): Monitor {
   const monitor: Monitor = new Monitor(data.id);
   monitor.projectId = PROJECT_ID;
   monitor.createdAt = CREATED_AT;
+
+  if (data.incomingRequestSecretKey) {
+    monitor.incomingRequestSecretKey = data.incomingRequestSecretKey;
+  }
 
   if (data.monitorSteps) {
     monitor.monitorSteps = data.monitorSteps;
@@ -252,6 +286,11 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
       ACTIVE_PROJECT_QUERY,
     );
     monitorResourceMock.mockResolvedValue(undefined);
+
+    // Nothing newer than what Postgres holds - the store's fallback answer.
+    trackMock.mockImplementation((input: { receivedAt: Date | string }) => {
+      return Promise.resolve(OneUptimeDate.fromString(input.receivedAt));
+    });
   });
 
   test("processes the never-checked and already-checked pages and stamps each through the hookless fast path only", async () => {
@@ -512,5 +551,319 @@ describe("IncomingRequestMonitor:CheckHeartbeat worker", () => {
     const payload: IncomingMonitorRequest = monitorResourceMock.mock
       .calls[0]![0] as IncomingMonitorRequest;
     expect(payload.monitorId.toString()).toBe(MONITOR_B_ID.toString());
+  });
+});
+
+/*
+ * The 2026-10-04/05 false Offline waves. Heartbeats are answered 2xx at the
+ * endpoint and persisted later by a Telemetry worker; the cron judged only
+ * the persisted time. When the Telemetry queue fell more than the window
+ * behind (or a deploy's migration stalled processing), every heartbeat
+ * monitor went Offline while its senders were still being answered 2xx.
+ * The cron now judges the latest ARRIVAL, which the endpoint records in
+ * IncomingRequestReceivedAtStore.
+ */
+describe("IncomingRequestMonitor:CheckHeartbeat judges arrivals, not processing", () => {
+  const SECRET_KEY: ObjectID = new ObjectID(
+    "2d229271-17c4-4b4f-9a3b-3c6ff1a1a2ee",
+  );
+
+  // What a Telemetry worker last persisted: 11 minutes before this tick.
+  const LAST_PERSISTED: Date = new Date("2026-07-27T09:49:00.000Z");
+
+  // What the endpoint last received: 20 seconds before this tick.
+  const LAST_ARRIVAL: Date = new Date("2026-07-27T09:59:40.000Z");
+
+  function heartbeatMonitor(
+    incomingMonitorRequest?: IncomingMonitorRequest,
+  ): Monitor {
+    return makeMonitor({
+      id: MONITOR_A_ID,
+      monitorSteps: stepsWithCheckOn(CheckOn.IncomingRequest),
+      incomingRequestSecretKey: SECRET_KEY,
+      incomingMonitorRequest: incomingMonitorRequest,
+    });
+  }
+
+  function persistedAt(receivedAt: Date): IncomingMonitorRequest {
+    return {
+      incomingRequestReceivedAt: receivedAt,
+    } as IncomingMonitorRequest;
+  }
+
+  function evaluatedPayload(): IncomingMonitorRequest {
+    expect(monitorResourceMock).toHaveBeenCalledTimes(1);
+    return monitorResourceMock.mock.calls[0]![0] as IncomingMonitorRequest;
+  }
+
+  const RECEIVED_IN_5_MINUTES: CriteriaFilter = {
+    checkOn: CheckOn.IncomingRequest,
+    filterType: FilterType.RecievedInMinutes,
+    value: 5,
+  };
+
+  const NOT_RECEIVED_IN_5_MINUTES: CriteriaFilter = {
+    checkOn: CheckOn.IncomingRequest,
+    filterType: FilterType.NotRecievedInMinutes,
+    value: 5,
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+      return new Date(NOW);
+    });
+
+    monitorService.findBy.mockResolvedValue([]);
+    monitorService.getEnabledMonitorQuery.mockReturnValue(
+      ENABLED_MONITOR_QUERY,
+    );
+    monitorService.updateColumnsByIdWithoutHooks.mockResolvedValue(undefined);
+    projectService.getActiveProjectStatusQuery.mockReturnValue(
+      ACTIVE_PROJECT_QUERY,
+    );
+    monitorResourceMock.mockResolvedValue(undefined);
+
+    trackMock.mockImplementation((input: { receivedAt: Date | string }) => {
+      return Promise.resolve(OneUptimeDate.fromString(input.receivedAt));
+    });
+  });
+
+  test("both sweep phases load the secret key that the arrivals are kept under", async () => {
+    await runWorkerTick();
+
+    expect(monitorService.findBy).toHaveBeenCalledTimes(2);
+
+    for (const call of monitorService.findBy.mock.calls) {
+      const args: FindByArgs = call[0] as FindByArgs;
+      expect(args.select["incomingRequestSecretKey"]).toBe(true);
+    }
+  });
+
+  test("a heartbeat that arrived but is still queued keeps the monitor online", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
+      .mockResolvedValueOnce([]);
+
+    trackMock.mockResolvedValue(new Date(LAST_ARRIVAL));
+
+    await runWorkerTick();
+
+    expect(trackMock).toHaveBeenCalledTimes(1);
+    const trackInput: { secretKey: ObjectID; receivedAt: Date } = trackMock.mock
+      .calls[0]![0] as { secretKey: ObjectID; receivedAt: Date };
+    expect(trackInput.secretKey.toString()).toBe(SECRET_KEY.toString());
+    // The persisted heartbeat is the floor the store is asked to beat.
+    expect(new Date(trackInput.receivedAt).getTime()).toBe(
+      LAST_PERSISTED.getTime(),
+    );
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.incomingRequestReceivedAt.getTime()).toBe(
+      LAST_ARRIVAL.getTime(),
+    );
+    expect(payload.checkedAt.getTime()).toBe(NOW.getTime());
+    expect(payload.onlyCheckForIncomingRequestReceivedAt).toBe(true);
+
+    // And the real evaluator agrees: received within 5 minutes, not missing.
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: payload,
+        criteriaFilter: RECEIVED_IN_5_MINUTES,
+      }),
+    ).resolves.toBeTruthy();
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: payload,
+        criteriaFilter: NOT_RECEIVED_IN_5_MINUTES,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  /*
+   * What the cron used to do: judge the persisted heartbeat, 11 minutes old,
+   * which "Not Recieved In Minutes 5" reads as a dead sender.
+   */
+  test("the persisted heartbeat alone would have read as missing", async () => {
+    const stalePayload: IncomingMonitorRequest = {
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_A_ID,
+      incomingRequestReceivedAt: LAST_PERSISTED,
+      checkedAt: NOW,
+      onlyCheckForIncomingRequestReceivedAt: true,
+    };
+
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: stalePayload,
+        criteriaFilter: NOT_RECEIVED_IN_5_MINUTES,
+      }),
+    ).resolves.toContain("not received in 5 minutes");
+  });
+
+  test("a sender that really stopped is still judged missing", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
+      .mockResolvedValueOnce([]);
+
+    // No arrival newer than the persisted heartbeat.
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.incomingRequestReceivedAt.getTime()).toBe(
+      LAST_PERSISTED.getTime(),
+    );
+
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: payload,
+        criteriaFilter: NOT_RECEIVED_IN_5_MINUTES,
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  /*
+   * On 2026-10-04 the bookkeeping write waited ~11 minutes behind a
+   * migration's lock; the page had been read before the wait and was judged
+   * against a clock read after it. The arrivals have to be read after that
+   * write, right before the evaluation.
+   */
+  test("reads the arrivals after the bookkeeping write and before the evaluation", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const stampOrder: number =
+      monitorService.updateColumnsByIdWithoutHooks.mock.invocationCallOrder[0]!;
+    const trackOrder: number = trackMock.mock.invocationCallOrder[0]!;
+    const evaluationOrder: number =
+      monitorResourceMock.mock.invocationCallOrder[0]!;
+
+    expect(stampOrder).toBeLessThan(trackOrder);
+    expect(trackOrder).toBeLessThan(evaluationOrder);
+  });
+
+  test("the check time is taken after the arrivals are read, so a fresh arrival is never judged against an older clock", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
+      .mockResolvedValueOnce([]);
+
+    const clock: { now: Date } = { now: new Date(NOW) };
+    (OneUptimeDate.getCurrentDate as unknown as jest.Mock).mockImplementation(
+      () => {
+        return new Date(clock.now);
+      },
+    );
+
+    // The store read takes a while; the arrival it returns is "now" for it.
+    trackMock.mockImplementation(() => {
+      clock.now = new Date(NOW.getTime() + 2000);
+      return Promise.resolve(new Date(clock.now));
+    });
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.checkedAt.getTime()).toBe(NOW.getTime() + 2000);
+    expect(payload.incomingRequestReceivedAt.getTime()).toBe(
+      NOW.getTime() + 2000,
+    );
+  });
+
+  test("an arrival stamped after the check (pod clock skew) is clamped to the check", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor(persistedAt(LAST_PERSISTED))])
+      .mockResolvedValueOnce([]);
+
+    trackMock.mockResolvedValue(new Date(NOW.getTime() + 7 * 60 * 1000));
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.incomingRequestReceivedAt.getTime()).toBe(NOW.getTime());
+
+    await expect(
+      IncomingRequestCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: payload,
+        criteriaFilter: NOT_RECEIVED_IN_5_MINUTES,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("a monitor that never received anything registers with its creation time", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor()])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const trackInput: { receivedAt: Date } = trackMock.mock.calls[0]![0] as {
+      receivedAt: Date;
+    };
+    expect(new Date(trackInput.receivedAt).getTime()).toBe(
+      CREATED_AT.getTime(),
+    );
+    expect(evaluatedPayload().incomingRequestReceivedAt.getTime()).toBe(
+      CREATED_AT.getTime(),
+    );
+  });
+
+  test("a monitor with no heartbeat criteria is never registered", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        makeMonitor({
+          id: MONITOR_A_ID,
+          monitorSteps: stepsWithCheckOn(CheckOn.RequestBody),
+          incomingRequestSecretKey: SECRET_KEY,
+        }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(trackMock).not.toHaveBeenCalled();
+    expect(monitorResourceMock).not.toHaveBeenCalled();
+  });
+
+  test("a monitor without steps never touches the store", async () => {
+    monitorService.findBy
+      .mockResolvedValueOnce([
+        makeMonitor({ id: MONITOR_A_ID, incomingRequestSecretKey: SECRET_KEY }),
+      ])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    expect(trackMock).not.toHaveBeenCalled();
+  });
+
+  test("the persisted request's payload is kept; only the arrival time is replaced", async () => {
+    const persisted: IncomingMonitorRequest = {
+      ...persistedAt(LAST_PERSISTED),
+      requestBody: { status: "ok" },
+      requestHeaders: { "user-agent": "curl/8.12.1" },
+    } as IncomingMonitorRequest;
+
+    monitorService.findBy
+      .mockResolvedValueOnce([heartbeatMonitor(persisted)])
+      .mockResolvedValueOnce([]);
+
+    trackMock.mockResolvedValue(new Date(LAST_ARRIVAL));
+
+    await runWorkerTick();
+
+    const payload: IncomingMonitorRequest = evaluatedPayload();
+    expect(payload.requestBody).toEqual({ status: "ok" });
+    expect(payload.requestHeaders).toEqual({ "user-agent": "curl/8.12.1" });
+    expect(payload.incomingRequestReceivedAt.getTime()).toBe(
+      LAST_ARRIVAL.getTime(),
+    );
   });
 });

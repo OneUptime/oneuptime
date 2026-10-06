@@ -44,17 +44,29 @@ export default class TablePermission {
     return modelPermissions;
   }
 
+  /*
+   * `updateData` is what an update writes, for the plan check: below a
+   * table's update plan, an update that only switches records off is still
+   * allowed, and only the data shows whether it does (BillingPermission).
+   * Without it, such an update is refused.
+   */
   @CaptureSpan()
   public static checkTableLevelPermissions(
     modelType: DatabaseBaseModelType,
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
+    updateData?: unknown,
   ): void {
     // 1 CHECK: PUBLIC check -- Check if this is a public request and if public is allowed.
     PublicPermission.checkIfUserIsLoggedIn(modelType, props, type);
 
-    // 2nd CHECK: Is user project in active state?
-    BillingPermissions.checkBillingPermissions(modelType, props, type);
+    // 2nd CHECK: Is user project in active state, and on the plan this needs?
+    BillingPermissions.checkBillingPermissions(
+      modelType,
+      props,
+      type,
+      type === DatabaseRequestType.Update ? updateData : undefined,
+    );
 
     /*
      * 3rd CHECK: Is this a create of enterprise configuration that the

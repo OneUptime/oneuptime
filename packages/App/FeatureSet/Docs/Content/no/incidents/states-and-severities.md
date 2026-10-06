@@ -146,6 +146,8 @@ Varsling bes om per tidslinjerad med **Varsle statussideabonnenter** (`shouldSta
 
 **Én ting til som endrer utfallet.** Skriver du et **Offentlig notat** i dialogen for tilstandsendring, merkes tidslinjeraden som allerede varslet i stedet for å køes. Det er selve notatet som når abonnentene, så de får én melding i stedet for to. Den meldingen nevner den nye tilstanden på hver kanal, slik tilstandsendringsmeldingen ville ha gjort: for eksempel `[Resolved Incident] <title>` i e-postens emne og `**Status:** Resolved` i Slack og Microsoft Teams. Notatet krever tillatelse til å opprette offentlige notater: uten den tilbyr dialogen ikke notatet, og en tilstandsendring sendt med et notat avvises, så tilstanden forblir uendret. Hendelsestypen bak den rene tilstandsendringsmeldingen er `Subscriber Incident State Changed`.
 
+Varsler, varselepisoder og hendelsesepisoder tilbyr i stedet et privat notat ved et tilstandsskifte (**Legg til et privat notat**), og det virker på samme måte: notatet krever sin egen tillatelse (**Create Alert Internal Note**, **Create Alert Episode Internal Note** eller **Create Incident Episode Internal Note** i en egendefinert rolle; de innebygde varsel-, hendelses- og prosjektrollene har dem), og et tilstandsskifte sendt med et privat notat av noen uten den, avvises helt, så tilstanden forblir uendret.
+
 For hvem som mottar disse og hvordan malene velges, se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers).
 
 ## Å holde en hendelse borte fra statussiden

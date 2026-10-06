@@ -26,6 +26,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Growth,
   update: PlanType.Growth,
   delete: PlanType.Growth,
+  // Authenticates after a downgrade: readable on every plan.
+  readableBelowPlan: true,
 })
 @EnableDocumentation()
 @TenantColumn("projectId")
