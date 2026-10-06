@@ -32,6 +32,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
   SubscriberNotificationEmailBodyTemplateVariables,
@@ -340,7 +341,9 @@ const notifySubscribersOfEpisodePublicNote: (data: {
             name: true,
             color: true,
           },
+          // Whether a status page shows it (StatusPageVisibility): visible, and not private.
           isVisibleOnStatusPage: true,
+          isPrivate: true,
           episodeNumber: true,
           episodeNumberWithPrefix: true,
         },
@@ -414,7 +417,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
       },
     );
 
-    if (!episode.isVisibleOnStatusPage) {
+    if (!StatusPageVisibility.isShown(episode)) {
       // Set status to Skipped for non-visible episodes
       logger.debug(
         `Episode ${episode.id} is not visible on status page; marking public note ${episodePublicNote.id} as Skipped.`,

@@ -1,6 +1,7 @@
 import { JSONObject } from "../JSON";
 import IncidentScopeAddedPagesNotification from "./IncidentScopeAddedPagesNotification";
 import StatusPageSubscriberNotificationStatus from "./StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "./StatusPageVisibility";
 
 /*
  * Status page subscribers hear about an incident once, when it is created -
@@ -134,7 +135,7 @@ export default class IncidentCreatedRenotify {
       incident.isVisibleOnStatusPage === true ||
       incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated !==
         true ||
-      incident.isPrivate === true
+      StatusPageVisibility.isPrivate(incident)
     ) {
       return false;
     }

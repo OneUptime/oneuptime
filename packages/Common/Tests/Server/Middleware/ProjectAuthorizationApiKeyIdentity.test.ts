@@ -4,6 +4,7 @@ import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import ApiKeyPermissionService from "../../../Server/Services/ApiKeyPermissionService";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import ProjectService from "../../../Server/Services/ProjectService";
 import UserService from "../../../Server/Services/UserService";
 import {
   ExpressRequest,
@@ -17,6 +18,7 @@ import Exception from "../../../Types/Exception/Exception";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 import { getJestSpyOn } from "../../../Tests/Spy";
@@ -81,6 +83,19 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware - API key identi
   );
   const spyUserFindOneBy: SpyInstance = getJestSpyOn(UserService, "findOneBy");
 
+  /*
+   * A resolved key is held to its project's plan (PlanCutoffCredentialAccess)
+   * when BILLING_ENABLED is set - as the Common Test CI job sets it and a bare
+   * local run does not. Unstubbed, that is a real ProjectService.findOneById,
+   * and "Database not connected" in CI. On a plan that includes API keys the
+   * key works, the same either way; ProjectAuthorizationApiKeyPlanCutoff
+   * covers the plans below it.
+   */
+  const spyGetCurrentPlan: SpyInstance = getJestSpyOn(
+    ProjectService,
+    "getCurrentPlan",
+  );
+
   // The most hostile world by default; each test opts in to what should succeed.
   beforeEach(() => {
     jest.clearAllMocks();
@@ -89,6 +104,10 @@ describe("ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware - API key identi
     spyFindApiKeyPermissions.mockResolvedValue([]);
     spyGlobalConfigFindOneBy.mockResolvedValue(null);
     spyUserFindOneBy.mockResolvedValue(null);
+    spyGetCurrentPlan.mockResolvedValue({
+      plan: PlanType.Scale,
+      isSubscriptionUnpaid: false,
+    });
   });
 
   afterAll(() => {

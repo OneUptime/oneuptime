@@ -178,7 +178,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Logical CPU cores (each hyperthread counts as one) and total RAM, the sum of every memory state the collector reports; below, processes in any state. All three are the latest values saved on the host, updated at most about once a minute.",
   ),
   processListCpu: translationKey(
-    "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.",
+    "CPU this process used at its newest reading in the last 15 minutes (user plus system time), as a share of the host's total capacity (all cores together). Time it spent waiting on disk is left out.",
   ),
   processListMemory: translationKey(
     "Physical memory (RSS) this process held at its newest reading in the last 15 minutes, with its share of the host's total RAM. The bar turns amber at 10% and red at 20% of RAM.",

@@ -4,6 +4,7 @@ import PageComponentProps from "../PageComponentProps";
 import ApiKeyPermissionTable, {
   ApiKeyPermissionType,
 } from "../../Components/ApiKey/ApiKeyPermissionTable";
+import ApiKeyStoppedNote from "../../Components/Billing/ApiKeyStoppedNote";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
@@ -37,6 +38,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
+      {/* Below the plan API keys need, this key stopped working. */}
+      <ApiKeyStoppedNote />
+
       {/* API Key View  */}
       <CardModelDetail<ApiKey>
         name="API Key Details"

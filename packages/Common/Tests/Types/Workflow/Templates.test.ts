@@ -34,17 +34,24 @@ import {
   WorkflowTemplateCategories,
   WorkflowTemplateCategory,
   WorkflowTemplateCategoryInfo,
+  WorkflowTemplateOAuth2Variable,
   WorkflowTemplateOutline,
   WorkflowTemplateVariable,
   buildGraphForTemplate,
+  fillWorkflowTemplateSetting,
   getRecommendedWorkflowTemplates,
   getTemplateGraphSpec,
   getWorkflowTemplate,
   getWorkflowTemplateCategoryInfo,
   getWorkflowTemplateOutline,
+  getWorkflowTemplateSettingFieldNames,
   getWorkflowTemplates,
   getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
+import {
+  OAuth2ClientAuthenticationMethod,
+  OAuth2GrantType,
+} from "../../../Types/Workflow/WorkflowVariableOAuth";
 import ComponentMetadata, {
   Argument,
   ComponentType,
@@ -79,6 +86,15 @@ import ComponentID from "../../../Types/Workflow/ComponentID";
 import CronTab from "../../../Utils/CronTab";
 
 const templates: Array<WorkflowTemplate> = getWorkflowTemplates();
+
+/*
+ * The categories whose templates come in an incident and an alert version,
+ * each filed under its kind.
+ */
+const SPLIT_CATEGORIES: Array<WorkflowTemplateCategory> = [
+  WorkflowTemplateCategory.Jira,
+  WorkflowTemplateCategory.Dynamics365,
+];
 
 /*
  * The same registry the builder loads: static components plus one set per
@@ -412,9 +428,13 @@ describe("workflow templates", () => {
           "variables",
           "workflowDescription",
           "workflowName",
-          // Only the Jira templates are split into parts.
-          ...(template.category === WorkflowTemplateCategory.Jira
+          // Only the Jira and Dynamics 365 templates are split into parts.
+          ...(SPLIT_CATEGORIES.includes(template.category)
             ? ["subcategory"]
+            : []),
+          // Only the Dynamics 365 templates sign in with an OAuth 2.0 variable.
+          ...(template.category === WorkflowTemplateCategory.Dynamics365
+            ? ["oauth2Variables"]
             : []),
         ].sort(),
       );
@@ -611,9 +631,9 @@ describe("the Jira templates' parts", () => {
     WorkflowTemplateCategory.Jira,
   );
 
-  test("every Jira template is filed under Incidents or Alerts, and no other template has a part", () => {
+  test("every Jira and Dynamics 365 template is filed under Incidents or Alerts, and no other template has a part", () => {
     for (const template of templates) {
-      if (template.category === WorkflowTemplateCategory.Jira) {
+      if (SPLIT_CATEGORIES.includes(template.category)) {
         expect(["Incidents", "Alerts"]).toContain(template.subcategory);
       } else {
         expect(template.subcategory).toBeUndefined();
@@ -781,13 +801,74 @@ describe("workflow template variables", () => {
 
   test("names are unique within a template, because they become one row each", () => {
     for (const template of templates) {
-      const names: Array<string> = template.variables.map(
-        (variable: WorkflowTemplateVariable) => {
+      const names: Array<string> = [
+        ...template.variables.map((variable: WorkflowTemplateVariable) => {
           return variable.name;
-        },
-      );
+        }),
+        ...(template.oauth2Variables || []).map(
+          (variable: WorkflowTemplateOAuth2Variable) => {
+            return variable.name;
+          },
+        ),
+      ];
 
       expect(new Set(names).size).toBe(names.length);
+    }
+  });
+
+  /*
+   * A format is checked with test(), once per value typed. A global or sticky
+   * pattern keeps lastIndex between calls, so the same good value would pass
+   * on one keystroke and fail on the next.
+   */
+  test("a format matches the whole value and keeps no state between checks", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        if (!variable.format) {
+          continue;
+        }
+
+        expect({
+          variable: variable.name,
+          anchored:
+            variable.format.pattern.source.startsWith("^") &&
+            variable.format.pattern.source.endsWith("$"),
+          flags: variable.format.pattern.flags.replace(/[imsu]/g, ""),
+        }).toEqual({ variable: variable.name, anchored: true, flags: "" });
+      }
+    }
+  });
+
+  test("a format's message says what to type instead, in a sentence", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        if (!variable.format) {
+          continue;
+        }
+
+        expect(variable.format.message).toMatch(/^[A-Z].*\.$/);
+        expect(variable.format.message.length).toBeLessThanOrEqual(200);
+      }
+    }
+  });
+
+  /*
+   * The placeholder is the example the field shows, so it has to be one the
+   * wizard would accept. A secret's placeholder is a shape, not a value, and
+   * is held to it all the same.
+   */
+  test("a field's placeholder is a value its format accepts", () => {
+    for (const template of templates) {
+      for (const variable of template.variables) {
+        if (!variable.format) {
+          continue;
+        }
+
+        expect({
+          variable: variable.name,
+          accepted: variable.format.pattern.test(variable.placeholder),
+        }).toEqual({ variable: variable.name, accepted: true });
+      }
     }
   });
 
@@ -854,6 +935,270 @@ describe("workflow template variables", () => {
         );
       }
     }
+  });
+});
+
+/*
+ * A template can ask the wizard to create an OAuth 2.0 variable, built from
+ * values typed into its fields. Every way that goes wrong is silent until a
+ * run: a setting naming a field the wizard never asks for is filled in with
+ * nothing and the identity provider refuses it, and a field kept only for a
+ * setting that the graph also refers to ships literal braces, because no row
+ * is written for it.
+ */
+describe("workflow template OAuth 2.0 variables", () => {
+  const withOAuth2: Array<WorkflowTemplate> = templates.filter(
+    (template: WorkflowTemplate) => {
+      return (template.oauth2Variables || []).length > 0;
+    },
+  );
+
+  type SettingsOfFunction = (
+    variable: WorkflowTemplateOAuth2Variable,
+  ) => Array<string>;
+
+  const settingsOf: SettingsOfFunction = (
+    variable: WorkflowTemplateOAuth2Variable,
+  ): Array<string> => {
+    return [
+      variable.tokenUrl,
+      variable.clientId,
+      variable.clientSecret,
+      variable.scope,
+    ];
+  };
+
+  type FieldOfFunction = (
+    template: WorkflowTemplate,
+    name: string,
+  ) => WorkflowTemplateVariable | undefined;
+
+  const fieldOf: FieldOfFunction = (
+    template: WorkflowTemplate,
+    name: string,
+  ): WorkflowTemplateVariable | undefined => {
+    return template.variables.find((variable: WorkflowTemplateVariable) => {
+      return variable.name === name;
+    });
+  };
+
+  test("some templates have them, so the checks below check something", () => {
+    expect(withOAuth2.length).toBeGreaterThan(0);
+  });
+
+  test("a template either has OAuth 2.0 variables or does not say so at all", () => {
+    for (const template of templates) {
+      if (template.oauth2Variables !== undefined) {
+        expect(template.oauth2Variables.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("every {name} in a setting is a required field of the same template", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        for (const setting of settingsOf(variable)) {
+          for (const name of getWorkflowTemplateSettingFieldNames(setting)) {
+            expect({
+              template: template.id,
+              setting: setting,
+              field: name,
+              required: fieldOf(template, name)?.required,
+            }).toEqual({
+              template: template.id,
+              setting: setting,
+              field: name,
+              required: true,
+            });
+          }
+        }
+      }
+    }
+  });
+
+  test("the client ID and secret come from what is typed, never from the template", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        expect(
+          getWorkflowTemplateSettingFieldNames(variable.clientId),
+        ).toHaveLength(1);
+        expect(
+          getWorkflowTemplateSettingFieldNames(variable.clientSecret),
+        ).toHaveLength(1);
+        expect(variable.clientId).toMatch(/^\{[A-Za-z0-9_-]+\}$/);
+        expect(variable.clientSecret).toMatch(/^\{[A-Za-z0-9_-]+\}$/);
+      }
+    }
+  });
+
+  test("the client secret is filled in from a secret field, kept only for the setting", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        const [name] = getWorkflowTemplateSettingFieldNames(
+          variable.clientSecret,
+        );
+        const field: WorkflowTemplateVariable | undefined = fieldOf(
+          template,
+          name as string,
+        );
+
+        expect({
+          template: template.id,
+          isSecret: field?.isSecret,
+          isOAuth2SettingOnly: field?.isOAuth2SettingOnly,
+        }).toEqual({
+          template: template.id,
+          isSecret: true,
+          isOAuth2SettingOnly: true,
+        });
+      }
+    }
+  });
+
+  test("every field kept only for a setting fills one in", () => {
+    for (const template of templates) {
+      const named: Set<string> = new Set(
+        (template.oauth2Variables || []).flatMap(
+          (variable: WorkflowTemplateOAuth2Variable): Array<string> => {
+            return settingsOf(variable).flatMap(
+              getWorkflowTemplateSettingFieldNames,
+            );
+          },
+        ),
+      );
+
+      for (const variable of template.variables) {
+        if (!variable.isOAuth2SettingOnly) {
+          continue;
+        }
+
+        expect({
+          template: template.id,
+          field: variable.name,
+          fillsASetting: named.has(variable.name),
+        }).toEqual({
+          template: template.id,
+          field: variable.name,
+          fillsASetting: true,
+        });
+      }
+    }
+  });
+
+  test("the graph never refers to a field kept only for a setting, which has no row", () => {
+    for (const template of templates) {
+      const settingOnly: Array<string> = template.variables
+        .filter((variable: WorkflowTemplateVariable) => {
+          return variable.isOAuth2SettingOnly;
+        })
+        .map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        });
+
+      for (const reference of referencesOf(template.id)) {
+        if (reference.parsed.rootType !== ReferenceRootType.LocalVariable) {
+          continue;
+        }
+
+        expect({
+          template: template.id,
+          reference: reference.raw,
+          settingOnly: settingOnly.includes(
+            reference.parsed.variableName as string,
+          ),
+        }).toEqual({
+          template: template.id,
+          reference: reference.raw,
+          settingOnly: false,
+        });
+      }
+    }
+  });
+
+  test("an OAuth 2.0 variable's name is never also a field's", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        expect(variable.name).toMatch(WORKFLOW_TEMPLATE_VARIABLE_NAME_REGEX);
+        expect(fieldOf(template, variable.name)).toBeUndefined();
+      }
+    }
+  });
+
+  test("settings are filled in by the wizard, so none holds a {{...}} reference", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        for (const setting of settingsOf(variable)) {
+          expect(setting).not.toContain("{{");
+          expect(setting).not.toContain("}}");
+        }
+      }
+    }
+  });
+
+  test("each says how it signs in with values the service accepts", () => {
+    for (const template of withOAuth2) {
+      for (const variable of template.oauth2Variables || []) {
+        expect(Object.values(OAuth2GrantType)).toContain(variable.grantType);
+        expect(Object.values(OAuth2ClientAuthenticationMethod)).toContain(
+          variable.clientAuthenticationMethod,
+        );
+        expect(variable.description.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  /*
+   * Filled in with each field's own example, a token URL has to be a real
+   * https URL: the service refuses anything else, and refuses it only after
+   * the workflow already exists.
+   */
+  test("the token URL is an https URL once its fields are filled in", () => {
+    for (const template of withOAuth2) {
+      const examples: Record<string, string> = {};
+
+      for (const variable of template.variables) {
+        examples[variable.name] = variable.placeholder;
+      }
+
+      for (const variable of template.oauth2Variables || []) {
+        const url: URL = new URL(
+          fillWorkflowTemplateSetting(variable.tokenUrl, examples),
+        );
+
+        expect(url.protocol).toBe("https:");
+      }
+    }
+  });
+
+  test("filling a setting in trims each value and leaves the rest of the text as it is", () => {
+    expect(
+      fillWorkflowTemplateSetting("https://login.example.com/{tenant}/token", {
+        tenant: "  contoso.onmicrosoft.com \n",
+      }),
+    ).toBe("https://login.example.com/contoso.onmicrosoft.com/token");
+
+    expect(
+      fillWorkflowTemplateSetting("{url}/.default", {
+        url: "https://acme.crm.dynamics.com",
+      }),
+    ).toBe("https://acme.crm.dynamics.com/.default");
+
+    // A field with no value fills in nothing, rather than leaving the braces.
+    expect(fillWorkflowTemplateSetting("{missing}/x", {})).toBe("/x");
+
+    // Text that only looks like a placeholder is left alone.
+    expect(fillWorkflowTemplateSetting("{not a name}", { a: "b" })).toBe(
+      "{not a name}",
+    );
+  });
+
+  test("the names a setting is filled in from, in the order it names them", () => {
+    expect(
+      getWorkflowTemplateSettingFieldNames(
+        "https://login.example.com/{tenant}/{tenant}/{path-part}",
+      ),
+    ).toEqual(["tenant", "tenant", "path-part"]);
+    expect(getWorkflowTemplateSettingFieldNames("no placeholders")).toEqual([]);
   });
 });
 
@@ -1362,6 +1707,11 @@ describe.each(
     }
   });
 
+  /*
+   * A value kept only as an OAuth 2.0 setting is used by filling that
+   * setting in, not by the graph — which is checked under "workflow template
+   * OAuth 2.0 variables".
+   */
   test("every variable it declares is actually used by the graph", () => {
     const used: Set<string> = new Set(
       referencesOf(templateId)
@@ -1373,25 +1723,50 @@ describe.each(
         }),
     );
 
-    for (const variable of template.variables) {
+    const written: Array<string> = [
+      ...template.variables
+        .filter((variable: WorkflowTemplateVariable) => {
+          return !variable.isOAuth2SettingOnly;
+        })
+        .map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        }),
+      ...(template.oauth2Variables || []).map(
+        (variable: WorkflowTemplateOAuth2Variable) => {
+          return variable.name;
+        },
+      ),
+    ];
+
+    for (const name of written) {
       expect({
-        variable: variable.name,
-        used: used.has(variable.name),
-      }).toEqual({ variable: variable.name, used: true });
+        variable: name,
+        used: used.has(name),
+      }).toEqual({ variable: name, used: true });
     }
   });
 
   /*
    * The inverse, and the more dangerous direction: a reference to a variable
    * the wizard never asks for means no row is ever written for it, and the
-   * literal braces ship.
+   * literal braces ship. A value kept only as an OAuth 2.0 setting gets no row
+   * either, so it does not count as declared here.
    */
   test("every variable the graph references is declared by the template", () => {
-    const declared: Array<string> = template.variables.map(
-      (variable: WorkflowTemplateVariable) => {
-        return variable.name;
-      },
-    );
+    const declared: Array<string> = [
+      ...template.variables
+        .filter((variable: WorkflowTemplateVariable) => {
+          return !variable.isOAuth2SettingOnly;
+        })
+        .map((variable: WorkflowTemplateVariable) => {
+          return variable.name;
+        }),
+      ...(template.oauth2Variables || []).map(
+        (variable: WorkflowTemplateOAuth2Variable) => {
+          return variable.name;
+        },
+      ),
+    ];
 
     for (const reference of referencesOf(templateId)) {
       if (reference.parsed.rootType !== ReferenceRootType.LocalVariable) {

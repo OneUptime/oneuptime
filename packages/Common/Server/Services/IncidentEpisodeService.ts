@@ -44,6 +44,8 @@ import IncidentEpisodeOwnerTeam from "../../Models/DatabaseModels/IncidentEpisod
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import User from "../../Models/DatabaseModels/User";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
+import PartialEntity from "../../Types/Database/PartialEntity";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import IncidentEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/IncidentEpisode";
@@ -141,6 +143,16 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
+     * Visible on Status Page and Private as they are stored, and a private
+     * episode hidden from status pages (StatusPageVisibility): making an
+     * episode private switches Visible on Status Page off with it, whoever
+     * writes it - a privacy rule, the API, Terraform, a workflow.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
+
+    /*
      * Sending the episode's created notification again while it is being
      * sent would let a second run send it alongside, or be overwritten when
      * the send settles (SubscriberNotificationResendAccess). No user role may
@@ -186,6 +198,36 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A private episode is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private as
+   * it is - the episode's Status Pages switch, the API, Terraform, a
+   * workflow - shows only the episodes that are not private.
+   *
+   * Each episode is decided by itself, on the row the update reads right
+   * before writing it (DatabaseService.getRowWriteOverrides): a private one
+   * is written with the switch off, in its own write, so what is stored, the
+   * workflow trigger and the audit log all say the same, and the others are
+   * shown. No earlier read, and no other episode, decides it.
+   */
+  protected override getColumnsForRowWriteOverrides(
+    data: PartialEntity<Model>,
+  ): Array<string> {
+    return StatusPageVisibility.getColumnsReadForRecordWrite(
+      data as unknown as Record<string, unknown>,
+    );
+  }
+
+  protected override getRowWriteOverrides(data: {
+    row: Model;
+    data: PartialEntity<Model>;
+  }): PartialEntity<Model> {
+    return StatusPageVisibility.getRecordOverrides({
+      written: data.data as unknown as Record<string, unknown>,
+      record: data.row,
+    }) as PartialEntity<Model>;
   }
 
   @CaptureSpan()
@@ -359,6 +401,20 @@ export class Service extends ProjectReferencesService<Model> {
         createBy.data.isVisibleOnStatusPage =
           groupingRule.showEpisodeOnStatusPage ?? true;
       }
+    }
+
+    /*
+     * A private episode is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, whatever the request or the grouping rule says for it,
+     * and nobody is told it was created - as an incident created private.
+     * Last, after everything above that sets the switch.
+     */
+    StatusPageVisibility.normalizeWrite(createData);
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated =
+        false;
     }
 
     const carryForward: StartingStageCarryForward = {

@@ -33,7 +33,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   read: PlanType.Scale,
   update: PlanType.Scale,
   delete: PlanType.Scale,
-  // Provisions private users after a downgrade: readable on every plan.
+  /*
+   * Kept after a downgrade, but stops provisioning private users until
+   * the project is back on the plan (Types/Billing/PlanCutoffCredentials):
+   * readable on every plan, to see what stopped and delete it.
+   */
   readableBelowPlan: true,
 })
 @CanAccessIfCanReadOn("statusPage")

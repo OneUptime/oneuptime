@@ -18,6 +18,7 @@ import FileOwnership, {
 } from "../Utils/File/FileOwnership";
 import { FileAccessFacts } from "../Utils/File/RelatedFileAccess";
 import {
+  HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   PUBLISH_SHOWN_IMAGES_SQL,
 } from "../Utils/File/PublishedImages";
@@ -291,22 +292,38 @@ export class Service extends DatabaseService<File> {
     madePublic: number;
     madePrivate: number;
   }> {
-    const countOf: (result: unknown) => number = (result: unknown): number => {
-      // An UPDATE answers [rows, affected count].
-      return Array.isArray(result) && typeof result[1] === "number"
-        ? result[1]
-        : 0;
-    };
-
-    const madePublic: number = countOf(
-      await this.getRepository().manager.query(PUBLISH_SHOWN_IMAGES_SQL),
+    const madePublic: number = await this.countUpdatedBy(
+      PUBLISH_SHOWN_IMAGES_SQL,
     );
 
-    const madePrivate: number = countOf(
-      await this.getRepository().manager.query(HIDE_UNSHOWN_FILES_SQL),
+    const madePrivate: number = await this.countUpdatedBy(
+      HIDE_UNSHOWN_FILES_SQL,
     );
 
     return { madePublic, madePrivate };
+  }
+
+  // Runs one UPDATE statement and returns how many rows it moved.
+  private async countUpdatedBy(sql: string): Promise<number> {
+    const result: unknown = await this.getRepository().manager.query(sql);
+
+    // An UPDATE answers [rows, affected count].
+    return Array.isArray(result) && typeof result[1] === "number"
+      ? result[1]
+      : 0;
+  }
+
+  /**
+   * Once, for images a private incident or episode made public while its
+   * Visible on Status Page switch was still on (a private record is never
+   * shown on a status page - StatusPageVisibility): each becomes private,
+   * unless a published record still shows it or it is an icon
+   * (HIDE_PRIVATE_RECORD_IMAGES_SQL). Safe to run more than once, and at
+   * once. Returns how many files were made private.
+   */
+  @CaptureSpan()
+  public async hideImagesOfPrivateRecords(): Promise<number> {
+    return await this.countUpdatedBy(HIDE_PRIVATE_RECORD_IMAGES_SQL);
   }
 
   /**

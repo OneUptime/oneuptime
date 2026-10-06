@@ -1256,6 +1256,35 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return Promise.resolve();
   }
 
+  /*
+   * The columns each row of an update is read with, right before its own
+   * write, for getRowWriteOverrides to decide that row by - besides the
+   * columns the update writes, which are always read. None by default.
+   * Skipped with ignoreHooks.
+   */
+  protected getColumnsForRowWriteOverrides(
+    _data: PartialEntity<TBaseModel>,
+  ): Array<string> {
+    return [];
+  }
+
+  /*
+   * Columns one row of an update is written with in place of the update's
+   * own values, for a service whose rule decides a column row by row. `row`
+   * is the row as read right before its own write, with the columns
+   * getColumnsForRowWriteOverrides names: the latest the update can know of
+   * it, and only that row - never a read made earlier, or one of other rows.
+   * They go into that row's own write, so its stored values, workflow
+   * trigger, realtime event and audit log entry all say what was written.
+   * None by default. Skipped with ignoreHooks.
+   */
+  protected getRowWriteOverrides(_data: {
+    row: TBaseModel;
+    data: PartialEntity<TBaseModel>;
+  }): PartialEntity<TBaseModel> {
+    return {} as PartialEntity<TBaseModel>;
+  }
+
   protected async onCreateSuccess(
     _onCreate: OnCreate<TBaseModel>,
     createdItem: TBaseModel,
@@ -4717,6 +4746,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      // What the service decides each row's own write by. See the hook.
+      const rowWriteColumns: Array<string> = updateBy.props.ignoreHooks
+        ? []
+        : this.getColumnsForRowWriteOverrides(data);
+
+      for (const column of rowWriteColumns) {
+        (selectColumns as Dictionary<unknown>)[column] = true;
+      }
+
       /*
        * A drag-ordered list needs each row's place and list as they were
        * BEFORE this write, to move it from there afterwards.
@@ -4822,7 +4860,43 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * primary key, INSERTs instead of updating, and dies on the first
          * NOT NULL column.
          */
-        const dataForItem: PartialEntity<TBaseModel> = { ...data };
+        /*
+         * The columns the service decides this row's write by
+         * (getColumnsForRowWriteOverrides), read again right before the
+         * write: the rows before it took their own writes, workflows and
+         * audit entries, so a change landing meanwhile - a privacy rule - is
+         * what decides this one. Onto the row as the update read it, so what
+         * is recorded of the row agrees with what decided its write.
+         */
+        if (rowWriteColumns.length > 0) {
+          const stored: Record<string, unknown> | null =
+            await this.readStoredColumns(item, rowWriteColumns);
+
+          for (const column of rowWriteColumns) {
+            if (stored && stored[column] !== undefined) {
+              (item as unknown as Record<string, unknown>)[column] =
+                stored[column];
+            }
+          }
+        }
+
+        /*
+         * What the service writes to this row in place of the update's own
+         * values (getRowWriteOverrides), decided on the row as just read:
+         * in the row's write, and in what it is recorded as written.
+         */
+        const rowOverrides: PartialEntity<TBaseModel> = updateBy.props
+          .ignoreHooks
+          ? ({} as PartialEntity<TBaseModel>)
+          : this.getRowWriteOverrides({
+              row: item,
+              data: data,
+            });
+
+        const dataForItem: PartialEntity<TBaseModel> = {
+          ...data,
+          ...rowOverrides,
+        };
 
         // Only a row whose switch really turns takes its stamps. See the helper.
         const keptSwitchColumns: Array<string> =
@@ -4833,7 +4907,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           );
 
         // What this row is written with, for the workflow and the audit log.
-        const writtenData: PartialEntity<TBaseModel> = { ...data };
+        const writtenData: PartialEntity<TBaseModel> = {
+          ...data,
+          ...rowOverrides,
+        };
 
         for (const column of keptSwitchColumns) {
           delete (writtenData as Record<string, unknown>)[column];
