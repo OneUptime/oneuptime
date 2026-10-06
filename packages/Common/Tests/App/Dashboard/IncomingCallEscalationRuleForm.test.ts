@@ -44,9 +44,13 @@ import {
  * - a name and a description, a "Notify" dropdown switching between a
  * schedule dropdown and a user dropdown, and "Escalate After (Seconds)".
  * These pin what replaced it: two questions (who to call, in one picker of
- * on-call schedules and people that takes one pick; how long to ring, 30
+ * on-call schedules and people that takes one pick; how long to ring, 20
  * seconds unless changed) and a folded Advanced section with the name and
  * the description, which a rule can do without.
+ *
+ * A new rule rings for 20 seconds so the call moves on before most
+ * voicemail picks up; rules used to start at 30, and an edit opens a rule on
+ * the ring time it was saved with.
  */
 
 type RuleField = Field<IncomingCallPolicyEscalationRule>;
@@ -184,15 +188,15 @@ describe("the add form", () => {
     );
   });
 
-  test("rings for 30 seconds unless told otherwise, inside what Twilio takes", () => {
+  test("rings for 20 seconds unless told otherwise, inside what Twilio takes", () => {
     const ring: RuleField = fieldByKey(fields, "escalateAfterSeconds");
 
     expect(ring.title).toBe("Ring for (in seconds)");
     expect(ring.fieldType).toBe(FormFieldSchemaType.Number);
     expect(ring.required).toBe(true);
     expect(ring.defaultValue).toBe(DEFAULT_INCOMING_CALL_RING_SECONDS);
-    expect(ring.defaultValue).toBe(30);
-    expect(ring.placeholder).toBe("30");
+    expect(ring.defaultValue).toBe(20);
+    expect(ring.placeholder).toBe("20");
     expect(ring.validation?.minValue).toBe(MIN_INCOMING_CALL_RING_SECONDS);
     expect(ring.validation?.maxValue).toBe(MAX_INCOMING_CALL_RING_SECONDS);
     expect(ring.collapsibleSection).toBeUndefined();

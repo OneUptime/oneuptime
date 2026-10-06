@@ -296,6 +296,17 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
   no state still starts in the created state, and a state of another project
   is refused. See
   [The state a new record starts in](/docs/api-reference/api-reference#the-state-a-new-record-starts-in).
+- **New incoming call escalation rules ring for 20 seconds, not 30.** Many
+  phones send an unanswered call to voicemail within 30 seconds, and a
+  voicemail that answers ends the call there instead of moving it on to the
+  next rule. The dashboard's **Ring for (in seconds)**, the API
+  (`escalateAfterSeconds`) and the Terraform provider
+  (`escalate_after_seconds`) now start a new rule at 20. Rules that already
+  exist keep the ring time they have: the upgrade changes only the column's
+  default. A Terraform configuration that leaves `escalate_after_seconds` out
+  will plan `30 -> 20` for the rules it manages once you upgrade the provider;
+  set `escalate_after_seconds = 30` to keep 30. See
+  [Incoming Call Policy](/docs/on-call/incoming-call-policy).
 - **Runners moved from Project Settings into Runbooks.** Runners are now under
   **Runbooks → Runners** (`…/runbooks/runners`) and Runner Credentials under
   **Runbooks → Runners → Credentials** (`…/runbooks/runner-credentials`), next
