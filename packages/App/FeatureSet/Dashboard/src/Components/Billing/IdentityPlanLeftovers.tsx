@@ -23,11 +23,12 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * What a project below the Scale plan still has of single sign-on and SCIM,
  * drawn under each page's upsell (PlanGatedPage's and EnterprisePluginPage's
- * belowPlan): its SAML and OIDC providers, which keep signing people in, and
- * its SCIM connections, which keep provisioning them, until they are turned
- * off or deleted (PlanLeftoverTable). Configuration a lower plan cannot use
- * can still be seen, switched off and removed (Common/Types/Billing/
- * PlanGatedTable).
+ * belowPlan): its SAML and OIDC providers, which keep signing people in
+ * until they are turned off or deleted, and its SCIM connections, which
+ * stopped provisioning them until the project is back on the plan
+ * (Common/Types/Billing/PlanCutoffCredentials) and can be deleted
+ * (PlanLeftoverTable). Configuration a lower plan cannot use can still be
+ * seen, switched off and removed (Common/Types/Billing/PlanGatedTable).
  *
  * Each is a component of its own, so a page hands its upsell an element and
  * nothing here - the project, the status page in the address - is read

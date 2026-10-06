@@ -3,6 +3,7 @@ import PublishedImages, {
   CascadedRow,
   extractImageAccessTokens,
   getCascadedRowsSql,
+  HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   KEPT_MARKDOWN,
   PROJECT_FILES_PRIVATE_SQL,
@@ -32,6 +33,7 @@ import type { Mock, SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import { FindOperator, getMetadataArgsStorage } from "typeorm";
+import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import type { JoinColumnMetadataArgs } from "typeorm/metadata-args/JoinColumnMetadataArgs";
 import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
@@ -170,11 +172,65 @@ describe("PUBLISHED_MARKDOWN: what records show to everyone, and when", () => {
         );
       }
 
-      for (const column of source.shownWhen) {
+      for (const column of [
+        ...source.shownWhen,
+        ...(source.hiddenWhen || []),
+      ]) {
         expect(columnType(model, column)).toBe(TableColumnType.Boolean);
       }
     },
   );
+
+  /*
+   * A private incident or episode is never shown on a status page
+   * (StatusPageVisibility): its markdown is hidden by Private, whatever its
+   * Visible on Status Page switch says.
+   */
+  /*
+   * A create that leaves a hiding switch out stores it off, so afterCreate
+   * reads nothing for it: each one must default to off.
+   */
+  test.each(
+    [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN].flatMap(
+      (source: PublishedMarkdown) => {
+        return (source.hiddenWhen || []).map((column: string) => {
+          return { tableName: source.tableName, column: column };
+        });
+      },
+    ),
+  )(
+    "$tableName.$column, a switch that hides markdown, defaults to off",
+    ({ tableName, column }: { tableName: string; column: string }) => {
+      const model: BaseModel = modelOf(tableName);
+
+      const declared: ColumnMetadataArgs | undefined = getMetadataArgsStorage()
+        .columns.filter((args: ColumnMetadataArgs): boolean => {
+          return (
+            args.target === model.constructor && args.propertyName === column
+          );
+        })
+        .pop();
+
+      expect(declared?.options.default).toBe(false);
+    },
+  );
+
+  test("an incident's and an episode's markdown is hidden while it is private", () => {
+    expect(
+      [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN]
+        .filter((source: PublishedMarkdown): boolean => {
+          return (source.hiddenWhen || []).length > 0;
+        })
+        .map((source: PublishedMarkdown): string => {
+          return `${source.tableName}.${source.markdownColumns.join("+")} unless ${(source.hiddenWhen || []).join(" or ")}`;
+        }),
+    ).toEqual([
+      "Incident.description unless isPrivate",
+      "Incident.postmortemNote unless isPrivate",
+      "IncidentEpisode.description unless isPrivate",
+      "Incident.customFields unless isPrivate",
+    ]);
+  });
 
   test("names every record a status page or a form's page shows what people write in", () => {
     expect(
@@ -477,10 +533,14 @@ describe("PublishedImages.getColumns / isWrittenBy", () => {
     expect(PublishedImages.getColumns("Incident").sort()).toEqual(
       [
         "description",
+        "isPrivate",
         "isVisibleOnStatusPage",
         "postmortemNote",
         "showPostmortemOnStatusPage",
       ].sort(),
+    );
+    expect(PublishedImages.getColumns("IncidentEpisode").sort()).toEqual(
+      ["description", "isPrivate", "isVisibleOnStatusPage"].sort(),
     );
     expect(PublishedImages.getColumns("IncidentPublicNote")).toEqual(["note"]);
     expect(PublishedImages.getColumns("Monitor")).toEqual([]);
@@ -495,6 +555,11 @@ describe("PublishedImages.getColumns / isWrittenBy", () => {
     expect(
       PublishedImages.isWrittenBy("Incident", ["showPostmortemOnStatusPage"]),
     ).toBe(true);
+    // Making an incident or an episode private stops it showing its images.
+    expect(PublishedImages.isWrittenBy("Incident", ["isPrivate"])).toBe(true);
+    expect(PublishedImages.isWrittenBy("IncidentEpisode", ["isPrivate"])).toBe(
+      true,
+    );
     expect(
       PublishedImages.isWrittenBy("Incident", ["title", "rootCause"]),
     ).toBe(false);
@@ -587,6 +652,63 @@ describe("PublishedImages.getShownTokens: what a record shows to everyone", () =
     ).toBe(0);
   });
 
+  /*
+   * A private incident or episode is never shown on a status page
+   * (StatusPageVisibility), so its markdown shows nothing to everyone,
+   * whatever its Visible on Status Page switch says.
+   */
+  test("nothing of a private incident or episode, even switched visible", () => {
+    const incident: Record<string, unknown> = {
+      description: image("aaa111"),
+      postmortemNote: image("bbb222"),
+      isVisibleOnStatusPage: true,
+      showPostmortemOnStatusPage: true,
+    };
+
+    expect(
+      Array.from(PublishedImages.getShownTokens("Incident", incident)),
+    ).toEqual(["aaa111", "bbb222"]);
+
+    for (const isPrivate of [true, "true", 1]) {
+      expect(
+        PublishedImages.getShownTokens("Incident", {
+          ...incident,
+          isPrivate,
+        }).size,
+      ).toBe(0);
+      expect(
+        PublishedImages.getShownTokens("IncidentEpisode", {
+          description: image("ccc333"),
+          isVisibleOnStatusPage: true,
+          isPrivate,
+        }).size,
+      ).toBe(0);
+    }
+
+    // Not private, or never set: shown by its switch alone.
+    for (const isPrivate of [false, null, undefined]) {
+      expect(
+        PublishedImages.getShownTokens("Incident", { ...incident, isPrivate })
+          .size,
+      ).toBe(2);
+      expect(
+        PublishedImages.getShownTokens("IncidentEpisode", {
+          description: image("ccc333"),
+          isVisibleOnStatusPage: true,
+          isPrivate,
+        }).size,
+      ).toBe(1);
+    }
+
+    // A public note keeps its own rule: always.
+    expect(
+      PublishedImages.getShownTokens("IncidentPublicNote", {
+        note: image("ddd444"),
+        isPrivate: true,
+      }).size,
+    ).toBe(1);
+  });
+
   test("nothing a status page does not show", () => {
     expect(
       PublishedImages.getShownTokens("IncidentInternalNote", {
@@ -617,12 +739,55 @@ describe("PublishedImages.afterCreate", () => {
         projectId: PROJECT_ID,
         description: image("aaa111"),
         isVisibleOnStatusPage: true,
+        isPrivate: false,
       },
       readStored: readStored,
     });
 
     expect(visibilityAsked()).toEqual(["aaa111:public"]);
     expect(readStored).not.toHaveBeenCalled();
+  });
+
+  test("a new private record leaves its images private, whatever its Visible on Status Page says", async () => {
+    for (const tableName of ["Incident", "IncidentEpisode"]) {
+      setImagesVisibility.mockClear();
+
+      await PublishedImages.afterCreate({
+        tableName: tableName,
+        row: {
+          projectId: PROJECT_ID,
+          description: image("aaa111"),
+          isVisibleOnStatusPage: true,
+          isPrivate: true,
+        },
+        readStored: async () => {
+          return null;
+        },
+      });
+
+      expect(visibilityAsked()).toEqual([]);
+    }
+  });
+
+  test("a Private left out is off, as its column's default stores it: nothing is read for it", async () => {
+    const readStored: Mock<
+      (columns: Array<string>) => Promise<Record<string, unknown> | null>
+    > = jest.fn(async (): Promise<Record<string, unknown> | null> => {
+      return null;
+    });
+
+    await PublishedImages.afterCreate({
+      tableName: "Incident",
+      row: {
+        projectId: PROJECT_ID,
+        description: image("aaa111"),
+        isVisibleOnStatusPage: true,
+      },
+      readStored: readStored,
+    });
+
+    expect(readStored).not.toHaveBeenCalled();
+    expect(visibilityAsked()).toEqual(["aaa111:public"]);
   });
 
   test("a new record not shown on status pages leaves its images private", async () => {
@@ -794,6 +959,65 @@ describe("PublishedImages.afterUpdate", () => {
     });
 
     expect(visibilityAsked()).toEqual(["aaa111:private"]);
+  });
+
+  test("making a shown incident private makes every image it showed private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [{ ...SHOWN_INCIDENT, isPrivate: false }],
+      written: { isPrivate: true, isVisibleOnStatusPage: false },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
+  test("making it private alone, without the switch, still makes them private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [{ ...SHOWN_INCIDENT, isPrivate: false }],
+      written: { isPrivate: true },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
+  });
+
+  test("switching a private incident visible makes nothing public", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [
+        { ...SHOWN_INCIDENT, isVisibleOnStatusPage: false, isPrivate: true },
+      ],
+      written: { isVisibleOnStatusPage: true },
+    });
+
+    expect(visibilityAsked()).toEqual([]);
+  });
+
+  test("making a private, visible incident not private shows its images again", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "Incident",
+      rowsBefore: [{ ...SHOWN_INCIDENT, isPrivate: true }],
+      written: { isPrivate: false },
+    });
+
+    expect(visibilityAsked()).toEqual(["aaa111:public", "bbb222:public"]);
+  });
+
+  test("making a shown episode private makes its description's images private", async () => {
+    await PublishedImages.afterUpdate({
+      tableName: "IncidentEpisode",
+      rowsBefore: [
+        {
+          projectId: PROJECT_ID,
+          description: image("ccc333"),
+          isVisibleOnStatusPage: true,
+          isPrivate: false,
+        },
+      ],
+      written: { isPrivate: true },
+    });
+
+    expect(visibilityAsked()).toEqual(["ccc333:private"]);
   });
 
   test("an update of nothing a record shows leaves its images alone", async () => {
@@ -1650,11 +1874,22 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
     }
 
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND concat_ws(' ', "postmortemNote"::text) LIKE ANY($2)`,
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "postmortemNote"::text) LIKE ANY($2)`,
     );
     // Custom fields count while the incident is shown, and so sent out.
     expect(STILL_SHOWN_SQL).toContain(
-      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND concat_ws(' ', "customFields"::text) LIKE ANY($2)`,
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "customFields"::text) LIKE ANY($2)`,
+    );
+    // A private incident or episode shows nothing, whatever its switch says.
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "description"::text) LIKE ANY($2)`,
+    );
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "IncidentEpisode" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "description"::text) LIKE ANY($2)`,
+    );
+    // A scheduled maintenance event has no Private switch.
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "ScheduledMaintenance" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND concat_ws(' ', "description"::text) LIKE ANY($2)`,
     );
     // A form, while it accepts submissions.
     expect(STILL_SHOWN_SQL).toContain(
@@ -1707,6 +1942,66 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
 
     // Kept for any project: an image another project's page shows stays.
     expect(HIDE_UNSHOWN_FILES_SQL).not.toContain(`"shown"."projectId"`);
+  });
+
+  /*
+   * Once, for images a private incident or episode made public while its
+   * switch was still on: those, and only those, become private - unless a
+   * published record still shows them, or they are icons.
+   */
+  test("HIDE_PRIVATE_RECORD_IMAGES_SQL makes private only the public images of private records of the file's own project", () => {
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `UPDATE "File" AS "file" SET "isPublic" = false WHERE "file"."isPublic" = true`,
+    );
+    // Only images a private record holds, of that record's own project or of none.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `EXISTS (SELECT 1 FROM "hiddenToken" WHERE "hiddenToken"."token" = "file"."imageAccessToken" AND ("file"."projectId" IS NULL OR "hiddenToken"."projectId" = "file"."projectId"))`,
+    );
+    for (const [table, column] of [
+      ["Incident", "description"],
+      ["Incident", "postmortemNote"],
+      ["Incident", "customFields"],
+      ["IncidentEpisode", "description"],
+    ] as Array<[string, string]>) {
+      expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+        `FROM "${table}" WHERE "deletedAt" IS NULL AND ("isPrivate" IS TRUE) AND concat_ws(' ', "${column}"::text) LIKE '%/file/image/access-token/%'`,
+      );
+    }
+    // Nothing that has no Private switch is read as hiding anything.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toMatch(
+      /FROM "(ScheduledMaintenance|IncidentPublicNote|StatusPageAnnouncement|Form)" WHERE "deletedAt" IS NULL AND \(/,
+    );
+    // Kept: what a published record still shows, by token or by id, and icons.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "shownToken" WHERE "shownToken"."token" = "file"."imageAccessToken")`,
+    );
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "shownId" WHERE "shownId"."fileId" = "file"."_id"::text)`,
+    );
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "Probe" WHERE "Probe"."iconFileId" = "file"."_id")`,
+    );
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `NOT EXISTS (SELECT 1 FROM "AIAgent" WHERE "AIAgent"."iconFileId" = "file"."_id")`,
+    );
+    // The shown images are read by the rule that leaves private records out.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).toContain(
+      `FROM "Incident" WHERE "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE AND concat_ws(' ', "description"::text) LIKE '%/file/image/access-token/%'`,
+    );
+    // It never makes anything public.
+    expect(HIDE_PRIVATE_RECORD_IMAGES_SQL).not.toContain(
+      `SET "isPublic" = true`,
+    );
+  });
+
+  test("the one-off statements read private records out of what is published", () => {
+    expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(
+      `FROM "Incident" WHERE "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE`,
+    );
+    expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(
+      `FROM "IncidentEpisode" WHERE "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "isPrivate" IS NOT TRUE`,
+    );
+    expect(HIDE_UNSHOWN_FILES_SQL).toContain(`"isPrivate" IS NOT TRUE`);
   });
 });
 

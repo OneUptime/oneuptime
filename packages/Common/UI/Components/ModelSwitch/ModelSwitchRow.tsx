@@ -143,6 +143,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * so what a trial left on can be switched back off: once it is, it stays.
    */
   locksWhenPlanNeeded?: boolean | undefined;
+  /*
+   * Lock the switch where it is, saying why (an English sentence, shown as
+   * its tooltip): for a switch the record's other settings decide while they
+   * hold, such as Visible on Status Page on a private episode. A missing
+   * permission's reason comes first.
+   */
+  lockedReason?: string | undefined;
 }
 
 export enum ModelSwitchSaveState {
@@ -393,11 +400,16 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
     saveState === ModelSwitchSaveState.Saving ||
     saveState === ModelSwitchSaveState.Confirming ||
     !updateGate.isAllowed ||
+    Boolean(props.lockedReason) ||
     Boolean(planNeededToFlip);
 
-  // Why it is locked: the missing permission first, then the plan.
+  /*
+   * Why it is locked: the missing permission first, then what the record
+   * says (lockedReason), then the plan.
+   */
   const lockedReason: string | undefined =
     updateGate.disabledReason ||
+    props.lockedReason ||
     (planNeededToFlip
       ? translator.translateTemplate(SWITCH_PLAN_LOCKED_COPY, {
           planName: planNeededToFlip,

@@ -28,7 +28,9 @@ import { getJestSpyOn } from "../../Spy";
  *
  *   - Alert: "Who can see this alert" (Private Alert, asking first before
  *     it makes the alert private) and Reminders.
- *   - Episode: Status Pages (Visible on Status Page, a checkbox before).
+ *   - Episode: Status Pages (Visible on Status Page, a checkbox before),
+ *     locked off while the episode is private: a private episode is never
+ *     shown on a status page.
  *   - Scheduled maintenance: Status Pages and Reminders.
  *   - Runbook: Execution ("Run this runbook").
  *   - Incident: Reminders. Its Incident Settings and Status Page Scope cards
@@ -90,6 +92,7 @@ import RunbookSwitchCopy, {
   RUNBOOK_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookSwitchCopy";
 import StatusPageVisibilitySwitchCopy, {
+  PRIVATE_EPISODE_VISIBILITY_COPY,
   STATUS_PAGE_VISIBILITY_KIND_COPY,
   STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID,
   StatusPageVisibilityKind,
@@ -421,6 +424,102 @@ describe("an episode's Settings", () => {
         ].switchOnDescription,
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * A private episode is never shown on a status page, whatever its switch
+ * says, and the server keeps the switch off while it is private: the card
+ * says so, and locks the switch off rather than show it on.
+ */
+describe("a private episode's Settings", () => {
+  beforeEach(() => {
+    storedFor(IncidentEpisode)["isPrivate"] = true;
+  });
+
+  test("the switch is locked off, and says the episode is hidden and why", async () => {
+    await renderPage(EpisodeSettings);
+
+    const control: HTMLElement = screen.getByTestId(
+      STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID,
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(control).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText(PRIVATE_EPISODE_VISIBILITY_COPY.description),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(PRIVATE_EPISODE_VISIBILITY_COPY.lockedReason),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        STATUS_PAGE_VISIBILITY_KIND_COPY[
+          StatusPageVisibilityKind.IncidentEpisode
+        ].switchOffDescription,
+      ),
+    ).toBeNull();
+
+    fireEvent.click(control);
+    await flush();
+
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(control).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("reads the episode's privacy with the switch", async () => {
+    await renderPage(EpisodeSettings);
+
+    expect(
+      (getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual(
+      expect.objectContaining({ isVisibleOnStatusPage: true, isPrivate: true }),
+    );
+  });
+
+  test("one stored shown from before can still be hidden, and then stays locked off", async () => {
+    storedFor(IncidentEpisode)["isVisibleOnStatusPage"] = true;
+
+    await renderPage(EpisodeSettings);
+
+    const control: HTMLElement = screen.getByTestId(
+      STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID,
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(control).not.toHaveAttribute("aria-disabled", "true");
+    // It is hidden all the same, and says so.
+    expect(
+      screen.getByText(PRIVATE_EPISODE_VISIBILITY_COPY.description),
+    ).toBeInTheDocument();
+
+    fireEvent.click(control);
+    await flush();
+
+    expect(updateCalls()).toEqual([
+      expect.objectContaining({
+        modelType: IncidentEpisode,
+        data: { isVisibleOnStatusPage: false },
+      }),
+    ]);
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(control).toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("an episode that is not private keeps its switch free", async () => {
+    storedFor(IncidentEpisode)["isPrivate"] = false;
+
+    await renderPage(EpisodeSettings);
+
+    const control: HTMLElement = screen.getByTestId(
+      STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID,
+    );
+
+    expect(control).not.toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.queryByText(PRIVATE_EPISODE_VISIBILITY_COPY.description),
+    ).toBeNull();
   });
 });
 

@@ -77,6 +77,7 @@ import IncidentPostmortemPublication, {
   IncidentPostmortemStoredState,
   PostmortemNotificationAction,
 } from "../../Types/StatusPage/IncidentPostmortemPublication";
+import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
 import IncidentScopeAddedPagesNotification, {
   IncidentScopeAddedPagesNotificationAction,
   StatusPageScopeChange,
@@ -680,9 +681,15 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.props,
     );
 
-    if (updateBy.data.isPrivate === true) {
-      updateBy.data.isVisibleOnStatusPage = false;
-    }
+    /*
+     * Visible on Status Page and Private Incident as they are stored, and a
+     * private incident hidden from status pages (StatusPageVisibility):
+     * making an incident private switches Visible on Status Page off with
+     * it, whoever writes it. Before anything below reads the update.
+     */
+    StatusPageVisibility.normalizeWrite(
+      updateBy.data as unknown as Record<string, unknown>,
+    );
 
     this.stripServiceOwnedScopeColumns(updateBy);
 
@@ -1049,6 +1056,40 @@ export class Service extends ProjectReferencesService<Model> {
           : {}),
       };
     }
+  }
+
+  /*
+   * A private incident is hidden from every status page (StatusPageVisibility),
+   * so an update that turns Visible on Status Page on and leaves Private
+   * Incident as it is shows only the incidents that are not private - the
+   * same as the incident's Settings form, which sends both switches with
+   * every save, has always done. It holds whoever writes: the API,
+   * Terraform, a workflow.
+   *
+   * Each incident is decided by itself, on the row the update reads right
+   * before writing it (DatabaseService.getRowWriteOverrides): a private one
+   * is written with Visible on Status Page off, in its own write, so what is
+   * stored, the workflow trigger and the audit log all say the same, and
+   * the others are shown. No earlier read, and no other incident, decides
+   * it. Every status page read and subscriber job leaves a private incident
+   * out whatever its switch says.
+   */
+  protected override getColumnsForRowWriteOverrides(
+    data: PartialEntity<Model>,
+  ): Array<string> {
+    return StatusPageVisibility.getColumnsReadForRecordWrite(
+      data as unknown as Record<string, unknown>,
+    );
+  }
+
+  protected override getRowWriteOverrides(data: {
+    row: Model;
+    data: PartialEntity<Model>;
+  }): PartialEntity<Model> {
+    return StatusPageVisibility.getRecordOverrides({
+      written: data.data as unknown as Record<string, unknown>,
+      record: data.row,
+    }) as PartialEntity<Model>;
   }
 
   /*
@@ -2411,8 +2452,17 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("ProjectId required to create incident.");
     }
 
-    if (createBy.data.isPrivate === true) {
-      createBy.data.isVisibleOnStatusPage = false;
+    /*
+     * A private incident is hidden from every status page
+     * (StatusPageVisibility): created private, it is created with Visible on
+     * Status Page off, and nobody is told it was created - whoever creates
+     * it, with whatever the request says for either.
+     */
+    StatusPageVisibility.normalizeWrite(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (StatusPageVisibility.isPrivate(createBy.data)) {
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
         false;
     }

@@ -38,6 +38,7 @@ import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource"
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import StatusPageVisibility from "Common/Types/StatusPage/StatusPageVisibility";
 import IncidentFeedService from "Common/Server/Services/IncidentFeedService";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
 import { Blue500, Red500, Yellow500 } from "Common/Types/BrandColors";
@@ -250,7 +251,9 @@ RunCron(
                 name: true,
                 color: true,
               },
+              // Whether a status page shows it (StatusPageVisibility): visible, and not private.
               isVisibleOnStatusPage: true,
+              isPrivate: true,
               incidentNumber: true,
               incidentNumberWithPrefix: true,
               // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
@@ -303,7 +306,7 @@ RunCron(
             continue;
           }
 
-          if (!incident.isVisibleOnStatusPage) {
+          if (!StatusPageVisibility.isShown(incident)) {
             logger.debug(
               `Incident ${incident.id} not visible on status page; marking as Skipped.`,
               {

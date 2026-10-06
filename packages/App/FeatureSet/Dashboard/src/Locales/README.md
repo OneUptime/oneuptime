@@ -122,6 +122,11 @@ translator.translateTemplate("Changing this needs {{permissions}}.", {
 });
 ```
 
+A term can also be English you write yourself, such as the fallback for a
+missing name: `monitor.name || translatableTerm("this monitor")`. The
+extractor reads a literal term as a key, so `npm run i18n:extract` adds it to
+`en.json` and it is translated along with the sentence.
+
 `useTranslateValue()` (`Common/UI/Utils/Translation`) has the same helpers
 plus `translateString`, and many pages already use it. `t()` from
 `react-i18next` is for the nested keys only.

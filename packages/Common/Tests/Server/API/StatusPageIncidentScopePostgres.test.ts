@@ -30,7 +30,9 @@ import { DataSource } from "typeorm";
  * The public status page endpoints against a migrated Postgres: what a page
  * shows of incidents limited to some status pages, with the real SQL behind
  * every read - the IncidentMonitor and IncidentStatusPage joins, the scope
- * split, the relation selects, and the report count's window. The in-memory
+ * split, the relation selects, the report count's window, and the rule that
+ * a private incident or episode is shown on no page whatever its Visible on
+ * Status Page switch says (StatusPageVisibility). The in-memory
  * version (StatusPageIncidentScope.test.ts) covers every endpoint and case;
  * this pins down that the same queries do the same on the database.
  *
@@ -205,10 +207,17 @@ describePostgres(
     let secondScopedToA: ObjectID;
     let resolvedScopedToB: ObjectID;
     let otherProjectIncident: ObjectID;
+    // Private, with Visible on Status Page on: shown nowhere.
+    let privateUnscoped: ObjectID;
+    let privateScopedToAAndC: ObjectID;
 
     // The episodes, by their members.
     let episodeScopedToA: ObjectID;
     let episodeMixed: ObjectID;
+    // Its only incident is private.
+    let episodeOfPrivateIncident: ObjectID;
+    // Private itself, of an incident every page shows.
+    let privateEpisode: ObjectID;
 
     async function insert(
       table: string,
@@ -322,6 +331,7 @@ describePostgres(
       hoursAgo: number;
       scopedTo?: Array<ObjectID>;
       isVisibleOnStatusPage?: boolean;
+      isPrivate?: boolean;
       project?: ObjectID;
       stateId?: ObjectID;
     }): Promise<ObjectID> {
@@ -339,6 +349,7 @@ describePostgres(
         createdAt: at,
         declaredAt: at,
         isVisibleOnStatusPage: data.isVisibleOnStatusPage !== false,
+        isPrivate: data.isPrivate === true,
         isScopedToStatusPages: data.scopedTo !== undefined,
         statusPagesNotifiedOnCreation: JSON.stringify(
           (data.scopedTo || []).map((pageId: ObjectID): string => {
@@ -367,6 +378,7 @@ describePostgres(
     async function seedEpisode(
       title: string,
       memberIds: Array<ObjectID>,
+      options?: { isPrivate?: boolean },
     ): Promise<ObjectID> {
       const id: ObjectID = ObjectID.generate();
       await insert("IncidentEpisode", {
@@ -375,6 +387,7 @@ describePostgres(
         title: title,
         currentIncidentStateId: investigating,
         isVisibleOnStatusPage: true,
+        isPrivate: options?.isPrivate === true,
         declaredAt: new Date(),
         version: 1,
       });
@@ -480,6 +493,19 @@ describePostgres(
         hoursAgo: 1,
         project: otherProjectId,
       });
+      privateUnscoped = await seedIncident({
+        title: "A private outage everywhere",
+        monitorIds: [sharedMonitor, secondMonitor],
+        hoursAgo: 0.5,
+        isPrivate: true,
+      });
+      privateScopedToAAndC = await seedIncident({
+        title: "A private outage at Sites A and C",
+        monitorIds: [sharedMonitor],
+        hoursAgo: 0.4,
+        scopedTo: [siteA, siteC],
+        isPrivate: true,
+      });
 
       episodeScopedToA = await seedEpisode("Site A checkout episode", [
         scopedToA,
@@ -488,6 +514,13 @@ describePostgres(
         unscoped,
         secondScopedToA,
       ]);
+      episodeOfPrivateIncident = await seedEpisode(
+        "An episode of a private outage",
+        [privateUnscoped],
+      );
+      privateEpisode = await seedEpisode("A private episode", [unscoped], {
+        isPrivate: true,
+      });
 
       (Response.sendJsonObjectResponse as unknown as jest.Mock).mockClear();
     });
@@ -747,6 +780,81 @@ describePostgres(
       }
     });
 
+    test("a private incident or episode is shown on no page, by any route, even with Visible on Status Page on", async () => {
+      for (const page of [siteA, siteB, siteC]) {
+        const overview: JSONObject = await getJson(OVERVIEW_ROUTE, {
+          statusPageIdOrDomain: page.toString(),
+        });
+        const incidents: JSONObject = await getJson(INCIDENTS_ROUTE, {
+          statusPageIdOrDomain: page.toString(),
+        });
+        const episodes: JSONObject = await getJson(EPISODES_ROUTE, {
+          statusPageIdOrDomain: page.toString(),
+        });
+
+        const shown: Array<string> = [
+          ...ids(overview["activeIncidents"]),
+          ...ids(overview["timelineIncidents"]),
+          ...ids(overview["activeEpisodes"]),
+          ...ids(incidents["incidents"]),
+          ...ids(episodes["episodes"]),
+        ];
+
+        for (const hidden of [
+          privateUnscoped,
+          privateScopedToAAndC,
+          episodeOfPrivateIncident,
+          privateEpisode,
+        ]) {
+          expect(shown).not.toContain(hidden.toString());
+        }
+
+        // Nothing of them in what the page is sent, by title either.
+        const sent: string = JSON.stringify([overview, incidents, episodes]);
+        expect(sent).not.toContain("A private outage");
+        expect(sent).not.toContain("A private episode");
+        expect(sent).not.toContain("An episode of a private outage");
+
+        // Opened by id: nothing.
+        for (const incident of [privateUnscoped, privateScopedToAAndC]) {
+          expect(
+            ids(
+              (
+                await getJson(INCIDENT_DETAIL_ROUTE, {
+                  statusPageIdOrDomain: page.toString(),
+                  incidentId: incident.toString(),
+                })
+              )["incidents"],
+            ),
+          ).toEqual([]);
+        }
+
+        // An episode only a private incident takes to the page is not found.
+        const throughPrivate: RouteResult = await invokeRoute({
+          route: EPISODE_DETAIL_ROUTE,
+          params: {
+            statusPageIdOrDomain: page.toString(),
+            episodeId: episodeOfPrivateIncident.toString(),
+          },
+        });
+        expect(throughPrivate.error).toBeInstanceOf(NotFoundException);
+      }
+
+      // A private episode of an incident the page shows opens as nothing.
+      for (const page of [siteA, siteB]) {
+        expect(
+          ids(
+            (
+              await getJson(EPISODE_DETAIL_ROUTE, {
+                statusPageIdOrDomain: page.toString(),
+                episodeId: privateEpisode.toString(),
+              })
+            )["episodes"],
+          ),
+        ).toEqual([]);
+      }
+    });
+
     test("the report counts on each page the incidents it shows, visible and in its project", async () => {
       const count: (page: ObjectID, onlyScoped: boolean) => Promise<number> = (
         page: ObjectID,
@@ -769,6 +877,7 @@ describePostgres(
       expect(await count(siteA, false)).toBe(4);
       // unscoped, the resolved one limited to B. Not the hidden one.
       expect(await count(siteB, false)).toBe(2);
+      // Never a private one, on any page.
       expect(await count(siteC, true)).toBe(1);
 
       // A window that ends before any of them: none.
