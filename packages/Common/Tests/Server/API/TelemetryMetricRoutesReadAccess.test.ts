@@ -123,18 +123,29 @@ function findRoute(uri: string): RecordedRoute {
 const projectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
 
-function requestWith(permissions: Array<Permission>): ExpressRequest {
-  const tenantPermission: UserTenantAccessPermission = {
-    _type: "UserTenantAccessPermission",
-    projectId: projectId,
-    permissions: permissions.map((permission: Permission): UserPermission => {
+function requestWith(
+  permissions: Array<Permission>,
+  blocked: Array<Permission> = [],
+): ExpressRequest {
+  const row: (
+    isBlockPermission: boolean,
+  ) => (permission: Permission) => UserPermission = (
+    isBlockPermission: boolean,
+  ): ((permission: Permission) => UserPermission) => {
+    return (permission: Permission): UserPermission => {
       return {
         _type: "UserPermission",
         permission: permission,
         labelIds: [],
-        isBlockPermission: false,
+        isBlockPermission: isBlockPermission,
       };
-    }),
+    };
+  };
+
+  const tenantPermission: UserTenantAccessPermission = {
+    _type: "UserTenantAccessPermission",
+    projectId: projectId,
+    permissions: [...permissions.map(row(false)), ...blocked.map(row(true))],
   };
 
   const permissionMap: Dictionary<UserTenantAccessPermission> = {};
@@ -160,9 +171,10 @@ function requestWith(permissions: Array<Permission>): ExpressRequest {
 async function passesGuards(
   uri: string,
   permissions: Array<Permission>,
+  blocked: Array<Permission> = [],
 ): Promise<boolean> {
   const route: RecordedRoute = findRoute(uri);
-  const req: ExpressRequest = requestWith(permissions);
+  const req: ExpressRequest = requestWith(permissions, blocked);
   const res: ExpressResponse = {
     status: jest.fn().mockReturnThis(),
     send: jest.fn(),
@@ -249,6 +261,54 @@ describe("the metric routes read with the metric permissions", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalled();
     },
   );
+
+  /*
+   * A block row names a permission in order to deny it. The metric
+   * permission held only as a block - set on a team to keep it away from
+   * metrics - opens none of these routes.
+   */
+  test.each(METRIC_ROUTES)(
+    "%s is refused to the metric permission held only as a block",
+    async (uri: string) => {
+      expect(
+        await passesGuards(uri, [], [Permission.ReadTelemetryServiceMetrics]),
+      ).toBe(false);
+      expect(
+        await passesGuards(
+          uri,
+          [Permission.ReadTelemetryServiceLog],
+          [Permission.ReadTelemetryServiceMetrics],
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("a block next to an allow of the same permission leaves the allow standing", async () => {
+    expect(
+      await passesGuards(
+        "/telemetry/metrics/get-attributes",
+        [Permission.ReadTelemetryServiceMetrics],
+        [Permission.ReadTelemetryServiceMetrics],
+      ),
+    ).toBe(true);
+  });
+
+  test("no route of the file counts a block row as holding its permission", async () => {
+    expect(
+      await passesGuards(
+        "/telemetry/traces/get-attributes",
+        [],
+        [Permission.ReadTelemetryServiceTraces],
+      ),
+    ).toBe(false);
+    expect(
+      await passesGuards(
+        "/telemetry/traces/get-attributes",
+        [],
+        [Permission.ProjectOwner],
+      ),
+    ).toBe(false);
+  });
 
   test("the trace routes still read with the trace permission", async () => {
     expect(

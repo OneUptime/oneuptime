@@ -1,8 +1,11 @@
 import DataMigrationBase from "./DataMigrationBase";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import Permission from "Common/Types/Permission";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import ApiKeyPermissionService from "Common/Server/Services/ApiKeyPermissionService";
@@ -10,52 +13,64 @@ import TeamPermissionService from "Common/Server/Services/TeamPermissionService"
 import APIKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import Label from "Common/Models/DatabaseModels/Label";
-import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
+import logger, {
+  EXTERNAL_FAULT,
+  LogAttributes,
+} from "Common/Server/Utils/Logger";
 
 /*
  * Metric data points are now read with Read Telemetry Service Metrics.
  * Until now metric reads went through Read Telemetry Service Traces: the
  * Metric table's read list, the /telemetry/metrics/* routes (attribute
  * names and values, a trace's metrics) and the AI metric tools all named
- * it, and the table's columns named Read Telemetry Service Log. This gives
- * every team and API key that holds Read Traces the metric read it stood
- * for, so the metrics a grantee read before the upgrade it still reads
- * after it.
+ * it, and the table's columns named Read Telemetry Service Log. Read
+ * Metrics itself read only the metric catalogue (MetricType), whose reads
+ * apply no scope and no labels. This keeps every team's and API key's
+ * metric reads where they were.
  *
  * COPY, NEVER RENAME: Read Telemetry Service Traces still reads traces.
  *
- *   Read Traces (allow) -> Read Metrics (allow), with the same scope and
- *   labels: that row decided which services' metrics the grantee read. It
- *   is copied on its own, because a member reads with every team's grants
- *   together, so the Read Log the columns asked for can sit on another of
- *   their teams. Read Metrics also reads the metric catalogue (metric
- *   names, descriptions and units), which goes with reading the metrics.
+ *   - Read Traces (allow) -> Read Metrics (allow), with the same scope and
+ *     labels: that row decided which services' metrics the grantee read.
+ *     It is copied on its own, because a member reads with every team's
+ *     grants together, so the Read Log the columns asked for can sit on
+ *     another of their teams. Read Metrics also reads the metric catalogue,
+ *     project-wide whatever its scope and labels, as it always has.
+ *   - A grantee that already holds Read Metrics (allow) keeps its row (the
+ *     services refuse a second row of one permission), set to the scope and
+ *     labels of its Read Traces grant when they reach other services: on
+ *     the catalogue that row's scope and labels never narrowed anything, and
+ *     on metrics the trace grant's did, so nothing either surface reads
+ *     changes.
  *
  * Nothing else is copied, on purpose:
  *
- *   - Blocks. A block on Read Traces never refused a metric read through
- *     the dashboard or the API (analytics reads do not apply block rows).
- *     Copied onto Read Metrics it would refuse the metric catalogue, a
- *     Postgres table that does apply them, to every member of the team.
+ *   - Blocks. A block on Read Traces refused only the AI metric tools,
+ *     which refuse a tool when any permission it asks for is blocked; it
+ *     never refused a metric read through the dashboard or the API, as
+ *     analytics reads do not apply block rows. Copied onto Read Metrics it
+ *     would also refuse the metric catalogue, a Postgres table that does
+ *     apply them, to every member of the team.
  *   - Writes. Create and Delete Metrics also create and delete entries of
  *     the metric catalogue, which the trace and log permissions never did,
- *     and a write is not widened. Whoever created or deleted metric data
- *     points through the API is given those permissions by hand.
+ *     and a write is not widened. Every grantee holding Create or Delete
+ *     Traces without its metric counterpart is named in the log, to be given
+ *     it by hand if it still creates or deletes metric data points.
  *   - Edit Traces: no metric column can be changed by anyone but the
  *     server.
  *
- * Idempotent: a grantee that already holds Read Metrics (allow) keeps that
- * row as it is (the services refuse a second row of one permission). When
- * that row reaches other services' metrics than the trace grant would
- * have, it is the project's own setting and is not changed, but the log
- * says so, at the level a default install prints. Every grant is read,
- * page by page, before anything is written, so the rows written cannot
- * shift the pages. Writes go through the services so each member's cached
- * permissions are refreshed (TeamPermissionService.onCreateSuccess); a row
- * that cannot be added is logged and the rest are still added.
+ * Every change and every grantee to look at is logged at the level a
+ * default install prints (LOG_LEVEL=ERROR), as the project's own settings
+ * rather than faults. Idempotent: a second run finds the rows the first
+ * one wrote. Every grant is read, page by page, before anything is
+ * written, so the rows written cannot shift the pages. Writes go through
+ * the services so each member's cached permissions are refreshed; a row
+ * that cannot be written is logged and the rest are still written.
  */
 
 export interface TelemetryGrant {
+  // The permission row, when the grant is one already stored.
+  rowId?: string | undefined;
   granteeId: string;
   projectId: string;
   permission: Permission;
@@ -64,81 +79,118 @@ export interface TelemetryGrant {
   labelIds: Array<string>;
 }
 
-// The grants the plan reads: the copied permission and its target.
+// Write grants whose metric counterpart is not copied, only named in the log.
+export const METRIC_WRITES_NOT_COPIED: Array<{
+  from: Permission;
+  to: Permission;
+}> = [
+  {
+    from: Permission.CreateTelemetryServiceTraces,
+    to: Permission.CreateTelemetryServiceMetrics,
+  },
+  {
+    from: Permission.DeleteTelemetryServiceTraces,
+    to: Permission.DeleteTelemetryServiceMetrics,
+  },
+];
+
+// Every grant the plan reads.
 export const METRIC_PERMISSION_COPY_INPUTS: Array<Permission> = [
   Permission.ReadTelemetryServiceTraces,
   Permission.ReadTelemetryServiceMetrics,
+  ...METRIC_WRITES_NOT_COPIED.flatMap(
+    (write: { from: Permission; to: Permission }): Array<Permission> => {
+      return [write.from, write.to];
+    },
+  ),
 ];
 
+export interface MetricReadUpdate {
+  // The grantee's Read Metrics (allow) row, as stored.
+  existing: TelemetryGrant;
+  // The scope and labels of its Read Traces grant, which it is set to.
+  to: TelemetryGrant;
+}
+
 export interface MetricPermissionPlan {
-  // The Read Metrics grants to add.
+  // Read Metrics grants to add.
   copies: Array<TelemetryGrant>;
-  /*
-   * The copies left out because the grantee already holds Read Metrics
-   * reaching other services' metrics (another scope, other labels). Logged,
-   * not changed.
-   */
-  differing: Array<TelemetryGrant>;
+  // Read Metrics grants already held, to set to the trace grant's reach.
+  updates: Array<MetricReadUpdate>;
+  // Create / Delete Traces grants whose metric counterpart is not held.
+  writesNotCopied: Array<TelemetryGrant>;
 }
 
 /*
- * The grants to add, given every Read Traces and Read Metrics grant that
- * the teams (or the API keys) hold. Pure, so the rule is tested without a
- * database.
+ * What to write, given every grant of the inputs above that the teams (or
+ * the API keys) hold. Pure, so the rules are tested without a database.
  */
 export function planMetricPermissionCopies(
   grants: Array<TelemetryGrant>,
 ): MetricPermissionPlan {
-  const heldMetricReads: Map<string, TelemetryGrant> = new Map<
-    string,
-    TelemetryGrant
-  >();
+  const allows: Map<string, TelemetryGrant> = new Map<string, TelemetryGrant>();
 
   for (const grant of grants) {
-    if (
-      grant.permission === Permission.ReadTelemetryServiceMetrics &&
-      !grant.isBlockPermission
-    ) {
-      heldMetricReads.set(grant.granteeId, grant);
+    if (!grant.isBlockPermission) {
+      allows.set(heldKey(grant.granteeId, grant.permission), grant);
     }
   }
 
-  const plan: MetricPermissionPlan = { copies: [], differing: [] };
+  const plan: MetricPermissionPlan = {
+    copies: [],
+    updates: [],
+    writesNotCopied: [],
+  };
 
   for (const grant of grants) {
-    if (
-      grant.permission !== Permission.ReadTelemetryServiceTraces ||
-      grant.isBlockPermission
-    ) {
+    if (grant.isBlockPermission) {
       continue;
     }
 
-    const copy: TelemetryGrant = {
-      granteeId: grant.granteeId,
-      projectId: grant.projectId,
-      permission: Permission.ReadTelemetryServiceMetrics,
-      isBlockPermission: false,
-      scope: grant.scope,
-      labelIds: [...grant.labelIds],
-    };
+    if (grant.permission === Permission.ReadTelemetryServiceTraces) {
+      const to: TelemetryGrant = {
+        granteeId: grant.granteeId,
+        projectId: grant.projectId,
+        permission: Permission.ReadTelemetryServiceMetrics,
+        isBlockPermission: false,
+        scope: grant.scope,
+        labelIds: [...grant.labelIds],
+      };
 
-    const existing: TelemetryGrant | undefined = heldMetricReads.get(
-      grant.granteeId,
-    );
+      const key: string = heldKey(
+        grant.granteeId,
+        Permission.ReadTelemetryServiceMetrics,
+      );
+      const existing: TelemetryGrant | undefined = allows.get(key);
 
-    if (existing) {
-      if (getMetricReach(existing) !== getMetricReach(copy)) {
-        plan.differing.push(copy);
+      if (!existing) {
+        allows.set(key, to);
+        plan.copies.push(to);
+        continue;
+      }
+
+      if (existing.rowId && getMetricReach(existing) !== getMetricReach(to)) {
+        plan.updates.push({ existing: existing, to: to });
       }
 
       continue;
     }
 
-    heldMetricReads.set(grant.granteeId, copy);
-    plan.copies.push(copy);
+    for (const write of METRIC_WRITES_NOT_COPIED) {
+      if (
+        grant.permission === write.from &&
+        !allows.has(heldKey(grant.granteeId, write.to))
+      ) {
+        plan.writesNotCopied.push(grant);
+      }
+    }
   }
 
   return plan;
+}
+
+function heldKey(granteeId: string, permission: Permission): string {
+  return `${granteeId}:${permission}`;
 }
 
 /*
@@ -202,17 +254,46 @@ function labelsOf(labelIds: Array<string>): Array<Label> {
 }
 
 /*
- * The project's own setting, not a fault: printed at the level a default
- * install keeps (LOG_LEVEL=ERROR), never raised as an issue.
+ * A line about the project's own settings: printed at the level a default
+ * install keeps, never raised as an issue.
  */
-function logDiffering(
+function logSetting(message: string): void {
+  logger.error(
+    `AddTelemetryServiceMetricsPermissions: ${message}`,
+    EXTERNAL_FAULT,
+  );
+}
+
+/*
+ * A write the services refused. A refusal of the project's own settings (a
+ * locked team, restriction labels already on the block list) is reported
+ * like one; anything else stays a fault.
+ */
+function logRefused(message: string, err: unknown): void {
+  const attributes: LogAttributes | undefined =
+    err instanceof BadDataException || err instanceof NotAuthorizedException
+      ? EXTERNAL_FAULT
+      : undefined;
+
+  logger.error(
+    `AddTelemetryServiceMetricsPermissions: ${message} (${err instanceof Error ? err.message : String(err)}); set it by hand.`,
+    attributes,
+  );
+}
+
+function logWritesNotCopied(
   granteeKind: string,
-  differing: Array<TelemetryGrant>,
+  writes: Array<TelemetryGrant>,
 ): void {
-  for (const grant of differing) {
-    logger.error(
-      `AddTelemetryServiceMetricsPermissions: ${granteeKind} ${grant.granteeId} already holds ${Permission.ReadTelemetryServiceMetrics}, reaching other services' metrics than its ${Permission.ReadTelemetryServiceTraces} grant; left as it is.`,
-      EXTERNAL_FAULT,
+  for (const write of writes) {
+    const counterpart: Permission | undefined = METRIC_WRITES_NOT_COPIED.find(
+      (each: { from: Permission; to: Permission }): boolean => {
+        return each.from === write.permission;
+      },
+    )?.to;
+
+    logSetting(
+      `${granteeKind} ${write.granteeId} holds ${write.permission}, which (with ${Permission.CreateTelemetryServiceLog} for a create) wrote metric data points through the API; it is not given ${counterpart}, which also writes the metric catalogue. Add it by hand if it still should.`,
     );
   }
 }
@@ -223,15 +304,11 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
   }
 
   public override async migrate(): Promise<void> {
-    const teamCopies: number = await this.copyTeamPermissions();
-    const keyCopies: number = await this.copyApiKeyPermissions();
-
-    logger.info(
-      `AddTelemetryServiceMetricsPermissions: added ${teamCopies} team and ${keyCopies} API key metric read permissions.`,
-    );
+    await this.migrateTeamPermissions();
+    await this.migrateApiKeyPermissions();
   }
 
-  private async copyTeamPermissions(): Promise<number> {
+  private async migrateTeamPermissions(): Promise<void> {
     const rows: Array<TeamPermission> = await readAllPages(
       (skip: number): Promise<Array<TeamPermission>> => {
         return TeamPermissionService.findBy({
@@ -267,6 +344,7 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
       }
 
       grants.push({
+        rowId: row.id?.toString(),
         granteeId: row.teamId.toString(),
         projectId: row.projectId.toString(),
         permission: row.permission,
@@ -277,9 +355,7 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
     }
 
     const plan: MetricPermissionPlan = planMetricPermissionCopies(grants);
-    logDiffering("team", plan.differing);
-
-    let created: number = 0;
+    let written: number = 0;
 
     for (const copy of plan.copies) {
       const permission: TeamPermission = new TeamPermission();
@@ -296,24 +372,46 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
           data: permission,
           props: { isRoot: true },
         });
-        created++;
+        written++;
       } catch (err) {
-        /*
-         * A locked team (its permissions are not editable) refuses new
-         * rows; those teams hold roles, not these granular grants. Log and
-         * go on rather than halt every migration queued after this one.
-         */
-        logger.error(
-          `AddTelemetryServiceMetricsPermissions: could not add ${copy.permission} to team ${copy.granteeId}; add it by hand.`,
+        logRefused(
+          `could not add ${copy.permission} to team ${copy.granteeId}`,
+          err,
         );
-        logger.error(err);
       }
     }
 
-    return created;
+    for (const update of plan.updates) {
+      try {
+        await TeamPermissionService.updateOneById({
+          id: new ObjectID(update.existing.rowId!),
+          // Cast past the deep partial type: labels are whole Label models.
+          data: {
+            scope: update.to.scope || PermissionScope.All,
+            labels: labelsOf(update.to.labelIds),
+          } as unknown as QueryDeepPartialEntity<TeamPermission>,
+          props: { isRoot: true },
+        });
+        written++;
+        logSetting(
+          `set the scope and labels of team ${update.existing.granteeId}'s ${update.existing.permission} to its ${Permission.ReadTelemetryServiceTraces} grant's, which decided its metric reads before.`,
+        );
+      } catch (err) {
+        logRefused(
+          `could not set team ${update.existing.granteeId}'s ${update.existing.permission} to its ${Permission.ReadTelemetryServiceTraces} grant's scope and labels`,
+          err,
+        );
+      }
+    }
+
+    logWritesNotCopied("team", plan.writesNotCopied);
+
+    logger.info(
+      `AddTelemetryServiceMetricsPermissions: wrote ${written} team metric read permissions.`,
+    );
   }
 
-  private async copyApiKeyPermissions(): Promise<number> {
+  private async migrateApiKeyPermissions(): Promise<void> {
     const rows: Array<APIKeyPermission> = await readAllPages(
       (skip: number): Promise<Array<APIKeyPermission>> => {
         return ApiKeyPermissionService.findBy({
@@ -348,6 +446,7 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
       }
 
       grants.push({
+        rowId: row.id?.toString(),
         granteeId: row.apiKeyId.toString(),
         projectId: row.projectId.toString(),
         permission: row.permission,
@@ -357,9 +456,7 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
     }
 
     const plan: MetricPermissionPlan = planMetricPermissionCopies(grants);
-    logDiffering("API key", plan.differing);
-
-    let created: number = 0;
+    let written: number = 0;
 
     for (const copy of plan.copies) {
       const permission: APIKeyPermission = new APIKeyPermission();
@@ -374,16 +471,42 @@ export default class AddTelemetryServiceMetricsPermissions extends DataMigration
           data: permission,
           props: { isRoot: true },
         });
-        created++;
+        written++;
       } catch (err) {
-        logger.error(
-          `AddTelemetryServiceMetricsPermissions: could not add ${copy.permission} to API key ${copy.granteeId}; add it by hand.`,
+        logRefused(
+          `could not add ${copy.permission} to API key ${copy.granteeId}`,
+          err,
         );
-        logger.error(err);
       }
     }
 
-    return created;
+    for (const update of plan.updates) {
+      try {
+        // An API key's grant has no scope: its labels alone decide.
+        await ApiKeyPermissionService.updateOneById({
+          id: new ObjectID(update.existing.rowId!),
+          data: {
+            labels: labelsOf(update.to.labelIds),
+          } as unknown as QueryDeepPartialEntity<APIKeyPermission>,
+          props: { isRoot: true },
+        });
+        written++;
+        logSetting(
+          `set the labels of API key ${update.existing.granteeId}'s ${update.existing.permission} to its ${Permission.ReadTelemetryServiceTraces} grant's, which decided its metric reads before.`,
+        );
+      } catch (err) {
+        logRefused(
+          `could not set API key ${update.existing.granteeId}'s ${update.existing.permission} to its ${Permission.ReadTelemetryServiceTraces} grant's labels`,
+          err,
+        );
+      }
+    }
+
+    logWritesNotCopied("API key", plan.writesNotCopied);
+
+    logger.info(
+      `AddTelemetryServiceMetricsPermissions: wrote ${written} API key metric read permissions.`,
+    );
   }
 
   public override async rollback(): Promise<void> {
