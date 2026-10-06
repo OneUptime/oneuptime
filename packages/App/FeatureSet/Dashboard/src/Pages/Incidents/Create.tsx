@@ -1580,7 +1580,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Initial State",
                   stepId: "incident-details",
                   description:
-                    "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.",
+                    "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,

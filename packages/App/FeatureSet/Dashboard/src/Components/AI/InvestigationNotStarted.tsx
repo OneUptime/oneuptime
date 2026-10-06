@@ -80,6 +80,7 @@ const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
   "project_daily_limit_reached",
   "severity_below_threshold",
   "monitor_cooldown",
+  "created_resolved",
   "daily_budget_exhausted",
   "budget_check_failed",
   "enqueue_failed",
@@ -210,6 +211,14 @@ export function getSettingsAction(
     code === "enqueue_failed" ||
     code === "eligibility_check_failed"
   ) {
+    return null;
+  }
+
+  /*
+   * Created already resolved: no setting would have changed it, so there is
+   * no page to send anyone to. The reason's own next step says what to do.
+   */
+  if (code === "created_resolved") {
     return null;
   }
 

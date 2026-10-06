@@ -22399,9 +22399,6 @@
   "Enter a whole number of days, 1 or more.": "یک عدد صحیح روز وارد کنید، ۱ یا بیشتر.",
   "Hidden from visitors, and subscribers aren't notified about them.": "از بازدیدکنندگان پنهان است و مشترکان درباره آن اعلانی دریافت نمی‌کنند.",
   "How many days the uptime bars and uptime percentages cover, up to {{max}}.": "تعداد روزهایی که نوارها و درصدهای زمان کارکرد پوشش می‌دهند، حداکثر {{max}}.",
-  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت هشداری که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید.",
-  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت اپیزودی که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید.",
-  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت حادثه‌ای که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید.",
   "Logo and Cover Image": "لوگو و تصویر جلد",
   "Nobody picked. You take any role marked Primary.": "کسی انتخاب نشده است. هر نقشی با برچسب «اصلی» را خودتان بر عهده می‌گیرید.",
   "On-Call & Owners": "آنکال و مالکان",
@@ -24865,7 +24862,6 @@
   "Max {{size}} each.": "هر فایل حداکثر {{size}}.",
   "These files exceed the {{size}} limit: {{fileNames}}.": "این فایل‌ها از سقف {{size}} بزرگ‌ترند: {{fileNames}}.",
   "Types: {{types}}. Max {{size}} each.": "نوع‌ها: {{types}}. هر فایل حداکثر {{size}}.",
-  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید.",
   "The usual starting state": "وضعیت آغازین معمول",
   "Their names could not be loaded.": "نام‌هایشان بارگیری نشد.",
   "Who takes each role on this incident.": "چه کسی هر نقش را در این حادثه بر عهده می‌گیرد.",
@@ -25327,5 +25323,10 @@
   "This rule runs when all of these conditions are met:": "این قانون زمانی اجرا می‌شود که همه این شرط‌ها برقرار باشند:",
   "This rule runs when any one of these conditions is met:": "این قانون زمانی اجرا می‌شود که هر یک از این شرط‌ها برقرار باشد:",
   "This rule runs when this condition is met:": "این قانون زمانی اجرا می‌شود که این شرط برقرار باشد:",
-  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "این قاعده هنوز یک تخصیص‌یافتهٔ پیش‌فرض دارد که توسط نسخهٔ قدیمی‌تر این فرم تنظیم شده است. این بخش را باز کنید تا آن‌ها را به‌عنوان مالک اضافه کنید یا آن را حذف کنید."
+  "This rule still has a default assignee set by an older version of this form. Open this section to add them as owners or remove it.": "این قاعده هنوز یک تخصیص‌یافتهٔ پیش‌فرض دارد که توسط نسخهٔ قدیمی‌تر این فرم تنظیم شده است. این بخش را باز کنید تا آن‌ها را به‌عنوان مالک اضافه کنید یا آن را حذف کنید.",
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.": "حادثه‌هایی که از این قالب اعلام می‌شوند در این وضعیت آغاز می‌شوند. برای وضعیت آغازین معمول خالی بگذارید. حادثه‌ای که تأییدشده یا برطرف‌شده آغاز شود، کسی را فرانمی‌خواند.",
+  "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت هشداری که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید. برای آن کسی فراخوانده نمی‌شود.",
+  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت اپیزودی که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید. برای آن کسی فراخوانده نمی‌شود.",
+  "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.": "برای وضعیت آغازین معمول خالی بگذارید. برای ثبت حادثه‌ای که از پیش تأیید یا برطرف شده، وضعیتی بعدی را انتخاب کنید. برای آن کسی فراخوانده نمی‌شود.",
+  "They were created already resolved.": "هنگام ایجاد، از پیش برطرف شده بودند."
 }
