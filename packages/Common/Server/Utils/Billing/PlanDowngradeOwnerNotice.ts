@@ -64,7 +64,8 @@ export default class PlanDowngradeOwnerNotice {
     fromPlan: PlanType | null;
     toPlan: PlanType;
   }): Array<PlanCutoffCredential> {
-    if (!data.fromPlan) {
+    // A move within one plan (monthly to yearly, say) changes nothing here.
+    if (!data.fromPlan || data.fromPlan === data.toPlan) {
       return [];
     }
 
@@ -275,8 +276,9 @@ export default class PlanDowngradeOwnerNotice {
       );
     }
 
-    const nothingDeleted: string =
-      "Nothing was deleted. Upgrade the project in Project Settings > Billing and they work again as they are, with no new keys and no new setup";
+    const nothingDeleted: string = `Nothing was deleted. Upgrade the project in Project Settings > Billing and they work again as they are: ${PlanDowngradeOwnerNotice.getNothingToRedo(
+      data.stopped,
+    )}`;
 
     const settingsLink: URL | null = PlanDowngradeOwnerNotice.getSettingsLink(
       data.projectId,
@@ -286,7 +288,7 @@ export default class PlanDowngradeOwnerNotice {
       const link: string = SafeHtml.escape(settingsLink.toString());
 
       paragraphs.push(
-        `${SafeHtml.escape(`${nothingDeleted}:`)} <br/> <a href="${link}">${link}</a>`,
+        `${SafeHtml.escape(`${nothingDeleted}.`)} <br/> <a href="${link}">${link}</a>`,
       );
     } else {
       paragraphs.push(SafeHtml.escape(`${nothingDeleted}.`));
@@ -299,6 +301,19 @@ export default class PlanDowngradeOwnerNotice {
     );
 
     return paragraphs.join(" <br/> <br/> ");
+  }
+
+  // What need not be done again once the project is back on the plan.
+  private static getNothingToRedo(stopped: StoppedByPlanChange): string {
+    if (stopped.apiKeys > 0 && stopped.scimConnections > 0) {
+      return "no new keys to make, and nothing to set up again in your identity provider";
+    }
+
+    if (stopped.apiKeys > 0) {
+      return "there are no new keys to make";
+    }
+
+    return "nothing needs setting up again in your identity provider";
   }
 
   /*
