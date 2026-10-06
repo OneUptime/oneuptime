@@ -388,12 +388,13 @@ export default class HeldPermissionsUtil {
   }
 
   /*
-   * Whether a select may name a column, as the server's select check
-   * decides it: a column the server never checks (ALWAYS_SELECTABLE_COLUMNS)
-   * when the model declares no read rule for it - a database model gives
-   * them its own read list, which is then followed - and every other column
-   * by the permissions it declares for reading (holdsColumnPermission). A
-   * column that declares none is closed, as the server closes it.
+   * Whether a select may name a column: a column the server never checks
+   * (ALWAYS_SELECTABLE_COLUMNS) when the model declares no read rule for it,
+   * and every other column - those too when the model declares one, as a
+   * database model does with its own read list - by the permissions it
+   * declares for reading (holdsColumnPermission), as the server's column
+   * check asks. A column that declares none is closed, as the server's
+   * select check closes it.
    */
   public static canSelectColumn(
     held: HeldPermissions,
