@@ -2,6 +2,11 @@ import FileService from "../../../Server/Services/FileService";
 import ProbeService from "../../../Server/Services/ProbeService";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import { FileOwners } from "../../../Server/Utils/File/FileOwnership";
+import { FileAccessFacts } from "../../../Server/Utils/File/RelatedFileAccess";
+import {
+  HIDE_UNSHOWN_FILES_SQL,
+  PUBLISH_SHOWN_IMAGES_SQL,
+} from "../../../Server/Utils/File/PublishedImages";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import File from "../../../Models/DatabaseModels/File";
@@ -533,5 +538,128 @@ describe("FileService.makeRecordFilePublic: only a record's own file becomes pub
     });
 
     expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("FileService.getFileAccess: who may see each file", () => {
+  test("reads every file's project, uploader and visibility in one query - never the bytes", async () => {
+    const recording: Recording = withRows([
+      {
+        _id: FILE_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+        createdByUserId: USER_ID.toString(),
+        isPublic: false,
+      },
+      {
+        _id: SECOND_FILE_ID.toString().toUpperCase(),
+        projectId: null,
+        createdByUserId: null,
+        isPublic: true,
+      },
+    ]);
+
+    const facts: Map<string, FileAccessFacts> = await FileService.getFileAccess(
+      [new ObjectID(FILE_ID.toString().toUpperCase()), SECOND_FILE_ID, FILE_ID],
+    );
+
+    expect(recording.calls).toEqual([
+      ["createQueryBuilder", ["file"]],
+      ["select", ['"file"."_id"', "_id"]],
+      ["addSelect", ['"file"."projectId"', "projectId"]],
+      ["addSelect", ['"file"."createdByUserId"', "createdByUserId"]],
+      ["addSelect", ['"file"."isPublic"', "isPublic"]],
+      [
+        "where",
+        [
+          '"file"."_id" IN (:...ids)',
+          { ids: [FILE_ID.toString(), SECOND_FILE_ID.toString()] },
+        ],
+      ],
+      ["andWhere", ['"file"."deletedAt" IS NULL']],
+      ["getRawMany", []],
+    ]);
+
+    expect(facts.get(FILE_ID.toString())).toEqual({
+      projectId: PROJECT_ID,
+      createdByUserId: USER_ID,
+      isPublic: false,
+    });
+    // Keyed in lower case, whatever case Postgres or the caller used.
+    expect(facts.get(SECOND_FILE_ID.toString())).toEqual({
+      projectId: null,
+      createdByUserId: null,
+      isPublic: true,
+    });
+  });
+
+  test("reads only a real true as public", async () => {
+    withRows([
+      { _id: FILE_ID.toString(), projectId: null, isPublic: "true" },
+      { _id: SECOND_FILE_ID.toString(), projectId: null, isPublic: null },
+    ]);
+
+    const facts: Map<string, FileAccessFacts> = await FileService.getFileAccess(
+      [FILE_ID, SECOND_FILE_ID],
+    );
+
+    expect(facts.get(FILE_ID.toString())?.isPublic).toBe(false);
+    expect(facts.get(SECOND_FILE_ID.toString())?.isPublic).toBe(false);
+  });
+
+  test("leaves out a file that does not exist, and never asks about an id that is not one", async () => {
+    const recording: Recording = withRows([]);
+
+    expect((await FileService.getFileAccess([FILE_ID])).size).toBe(0);
+
+    recording.createQueryBuilder.mockClear();
+
+    expect(
+      (
+        await FileService.getFileAccess([
+          new ObjectID("' OR 1=1 --"),
+          new ObjectID(""),
+        ])
+      ).size,
+    ).toBe(0);
+    expect(recording.createQueryBuilder).not.toHaveBeenCalled();
+  });
+});
+
+describe("FileService.setVisibilityFromPublishedRecords: files from before the rule, once", () => {
+  test("makes shown images public, then hides what nothing shows, and says how many moved", async () => {
+    const query: Mock<(sql: string) => Promise<unknown>> = jest.fn(
+      async (sql: string): Promise<unknown> => {
+        // An UPDATE answers [rows, affected].
+        return sql === PUBLISH_SHOWN_IMAGES_SQL ? [[], 3] : [[], 5];
+      },
+    );
+
+    jest.spyOn(FileService, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+
+    await expect(
+      FileService.setVisibilityFromPublishedRecords(),
+    ).resolves.toEqual({ madePublic: 3, madePrivate: 5 });
+
+    expect(
+      query.mock.calls.map((call: [string]): string => {
+        return call[0];
+      }),
+    ).toEqual([PUBLISH_SHOWN_IMAGES_SQL, HIDE_UNSHOWN_FILES_SQL]);
+  });
+
+  test("an answer without a count reads as nothing moved", async () => {
+    jest.spyOn(FileService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (): Promise<unknown> => {
+          return [];
+        },
+      },
+    } as never);
+
+    await expect(
+      FileService.setVisibilityFromPublishedRecords(),
+    ).resolves.toEqual({ madePublic: 0, madePrivate: 0 });
   });
 });

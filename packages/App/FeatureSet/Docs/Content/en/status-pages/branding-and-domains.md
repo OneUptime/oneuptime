@@ -34,7 +34,7 @@ The first card, **Logo and Cover Image**, has an **Edit Images** button that ope
 - **Title and Description** — the card notes this is also used for SEO. **Edit** opens **Page Title** (placeholder `Please enter page title here.`) and **Page Description**. This is what search engines and link previews show, so write it for a customer, not for your team.
 - **Favicon** — **Edit Favicon** opens the **Favicon** image upload. This is the little icon in the browser tab.
 
-The logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it. Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none. The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.
+The logo, the cover image and the favicon are files uploaded in the status page's own project, and that is checked whenever one is saved — from the dashboard, the API, Terraform or a workflow. A file uploaded in another project is refused with the words a file that no longer exists gets: "The logo's file could not be found. Upload the logo again.", "The cover image's file could not be found. Upload the cover image again." or "The favicon's file could not be found. Upload the favicon again." Uploading the image again from the page fixes it. Your status page shows only images of its own project; an image it cannot show is left out, as if the page had none. The dashboard, the API and Terraform read the page's images the same way: an image of another project comes back as no image at all. The emails the page sends — to subscribers, and to private users about their sign-in — show its logo the same way: a logo the page cannot show is left out of them too, rather than shown as a broken image.
 
 ### Header links
 
@@ -44,7 +44,7 @@ Good for: pointing visitors back to your marketing site, your docs, or a support
 
 ### Overview page description
 
-**Overview Page Description** is the first thing on the status page's overview, above the announcements, the overall status and your resources. **Edit Description** opens a markdown field. Use it for a sentence of context: what this page covers, and where to go for support.
+**Overview Page Description** is the first thing on the status page's overview, above the announcements, the overall status and your resources. **Edit Description** opens a markdown field. Use it for a sentence of context: what this page covers, and where to go for support. An image you put in it is shown to every visitor of the page.
 
 ### Footer
 

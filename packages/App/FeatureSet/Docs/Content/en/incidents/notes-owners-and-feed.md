@@ -73,7 +73,9 @@ Images follow the same decision. An image you paste or drop into a note, or add 
 - **In a private note** — or in a public note before it is posted — an image is shown only to the members of the project, signed in the way the project requires. Anyone else who opens its address sees nothing, as if there were no image there.
 - **In a public note** an image is shown to everyone who can see the note: on the status page, and in the emails its subscribers get.
 
-Every upload starts private, from the dashboard and from the API alike. An image becomes viewable by everyone only when a public record shows it — a public note, an announcement, a postmortem published on the status page.
+Every upload starts private, from the dashboard and from the API alike. An image is viewable by everyone only while something your status pages show has it in it: a public note, an announcement, the incident's description while the incident is **Visible on Status Page**, its postmortem once that is published there too, an episode's or a scheduled maintenance event's description while it is shown on status pages, and the status page's own overview, group and resource descriptions. When that stops — the incident is hidden, the image is edited out, the note or the incident is deleted — the image is private again, unless something else your status pages show still has it in it. A form's description and thank-you message show their images to everyone the same way, while the form is accepting submissions.
+
+Reading a note through the API, Terraform or a workflow lists only the attachments the reader may open: files of the note's project, and public files. An attachment a note names from another project is left out of the list, as if the note did not have it.
 
 ## Generating a note with AI
 

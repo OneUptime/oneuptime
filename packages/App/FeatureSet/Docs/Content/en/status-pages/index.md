@@ -141,6 +141,8 @@ Not every status page is for the public. Who can see a page is one choice, the f
 
 Picking a choice asks you to confirm, saying what changes for visitors, and saves at once. There is no Edit button.
 
+**Images.** An image in what the page shows — a public note, an announcement, a description — is opened by its own long, unguessable address, which works without signing in, so that the emails your subscribers get can show it too. The page itself still asks for the sign-in or the password.
+
 **What it stores.** The choice is three columns, which the API and Terraform read and write as before: `isPublicStatusPage`, `enableMasterPassword` and `masterPassword`. Visitors are asked for the password only on a page that is not public, with `enableMasterPassword` on and a password set; a private page with the switch on but no password is a sign-in page. Picking **Anyone with the link** also turns `enableMasterPassword` off, since a public page never asks for it. The **Access** screen writes only the columns a choice changes.
 
 **Plans.** On OneUptime Cloud, making a page private needs the **Growth** plan: on a lower plan the two private choices show the plan they need and can't be picked. Making it public again — **Anyone with the link** — works on every plan, so a page left private when a trial ended, or after a move to a lower plan, can always be opened up; the dialog says that making it private again needs **Growth**. Moving between **Only people who sign in** and **Anyone with the password** works on every plan, and so does **Change Password**.
