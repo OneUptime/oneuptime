@@ -149,7 +149,14 @@ export const INCIDENT_POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     stepId: "status-page",
     fieldType: FormFieldSchemaType.Checkbox,
     required: false,
-    description: "Notify subscribers when this postmortem is published.",
+    /*
+     * Subscribers are told once, when the postmortem is published: saving
+     * it again, or editing it while it is published, tells nobody
+     * (IncidentPostmortemPublication). Said here because the box stays
+     * ticked on every later edit.
+     */
+    description:
+      "Notify subscribers when this postmortem is published. Later edits do not notify them again.",
     defaultValue: true,
     showIf: isPublishing,
   },
