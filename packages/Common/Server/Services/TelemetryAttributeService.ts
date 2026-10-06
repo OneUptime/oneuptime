@@ -18,6 +18,10 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TelemetryReadScopeUtil, {
+  TelemetryServiceFilter,
+} from "../Utils/Telemetry/TelemetryReadScope";
+import crypto from "crypto";
 import AnalyticsDatabaseService, {
   DbJSONResponse,
   Results,
@@ -127,11 +131,29 @@ export class TelemetryAttributeService {
     }
   }
 
+  /*
+   * Whether a signal has attribute keys and values to offer. Profiles have
+   * none: a route answers them with nothing, without working out whose
+   * telemetry the caller may read.
+   */
+  public hasAttributeSource(
+    telemetryType: TelemetryType,
+    metricName?: string | undefined,
+  ): boolean {
+    return this.getTelemetrySource(telemetryType, metricName) !== null;
+  }
+
+  /*
+   * `serviceFilter` is whose telemetry the caller may read
+   * (TelemetryReadAccess.getServiceFilter): keys are read from those
+   * resources' rows only, and cached apart from the whole project's.
+   */
   @CaptureSpan()
   public async fetchAttributes(data: {
     projectId: ObjectID;
     telemetryType: TelemetryType;
     metricName?: string | undefined;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
@@ -147,6 +169,7 @@ export class TelemetryAttributeService {
       data.telemetryType,
       data.metricName,
       source.tableName,
+      data.serviceFilter,
     );
 
     const cachedEntry: TelemetryAttributesCacheEntry | null =
@@ -163,6 +186,7 @@ export class TelemetryAttributeService {
         projectId: data.projectId,
         source,
         metricName: data.metricName,
+        serviceFilter: data.serviceFilter,
       });
     } catch (error) {
       if (cachedEntry) {
@@ -189,14 +213,57 @@ export class TelemetryAttributeService {
     telemetryType: TelemetryType,
     metricName?: string | undefined,
     sourceTableName?: string | undefined,
+    serviceFilter?: TelemetryServiceFilter | undefined,
   ): string {
-    const base: string = `${projectId.toString()}:${telemetryType}:${
+    let base: string = `${projectId.toString()}:${telemetryType}:${
       sourceTableName || "default"
     }`;
+
+    /*
+     * A caller limited to some resources gets keys from those resources
+     * only, so their answer is cached under its own scope and never served
+     * to (or from) the whole project's.
+     */
+    const scopeKey: string | null =
+      TelemetryAttributeService.getServiceFilterCacheKey(serviceFilter);
+
+    if (scopeKey) {
+      base = `${base}:scope:${scopeKey}`;
+    }
+
     if (metricName) {
       return `${base}:${metricName}`;
     }
     return base;
+  }
+
+  // A stable digest of a service filter, or null when it filters nothing.
+  private static getServiceFilterCacheKey(
+    serviceFilter: TelemetryServiceFilter | undefined,
+  ): string | null {
+    const toSortedIds: (ids: Array<ObjectID> | undefined) => Array<string> = (
+      ids: Array<ObjectID> | undefined,
+    ): Array<string> => {
+      return (ids || [])
+        .map((id: ObjectID): string => {
+          return id.toString();
+        })
+        .sort();
+    };
+
+    const serviceIds: Array<string> = toSortedIds(serviceFilter?.serviceIds);
+    const excludedServiceIds: Array<string> = toSortedIds(
+      serviceFilter?.excludedServiceIds,
+    );
+
+    if (serviceIds.length === 0 && excludedServiceIds.length === 0) {
+      return null;
+    }
+
+    return crypto
+      .createHash("sha256")
+      .update(`in:${serviceIds.join(",")}|out:${excludedServiceIds.join(",")}`)
+      .digest("hex");
   }
 
   private static getLookbackStartDate(): Date {
@@ -294,6 +361,7 @@ export class TelemetryAttributeService {
     timeColumn: string;
     metricName?: string | undefined;
     isMutableMetricSource?: boolean | undefined;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
@@ -307,6 +375,7 @@ export class TelemetryAttributeService {
         timeColumn: data.timeColumn,
         metricName: data.metricName,
         lookbackStartDate,
+        serviceFilter: data.serviceFilter,
       });
     }
 
@@ -361,6 +430,11 @@ export class TelemetryAttributeService {
       );
     }
 
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+
     /*
      * Cap runtime below the ClickHouse client's 58s request_timeout so a
      * slow scan on a large project can't hold a pool connection for the
@@ -378,6 +452,7 @@ export class TelemetryAttributeService {
     projectId: ObjectID;
     source: TelemetrySource;
     metricName?: string | undefined;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<string>> {
     const statement: Statement =
       TelemetryAttributeService.buildAttributesStatement({
@@ -388,6 +463,7 @@ export class TelemetryAttributeService {
         timeColumn: data.source.timeColumn,
         metricName: data.metricName,
         isMutableMetricSource: data.source.isMutableMetricSource,
+        serviceFilter: data.serviceFilter,
       });
 
     const dbResult: Results = await data.source.service.executeQuery(statement);
@@ -423,6 +499,11 @@ export class TelemetryAttributeService {
 
   private static readonly ATTRIBUTE_VALUES_LIMIT: number = 100;
 
+  /*
+   * `serviceFilter` is whose telemetry the caller may read
+   * (TelemetryReadAccess.getServiceFilter): values are read from those
+   * resources' rows only.
+   */
   @CaptureSpan()
   public async fetchAttributeValues(data: {
     projectId: ObjectID;
@@ -430,6 +511,7 @@ export class TelemetryAttributeService {
     metricName?: string | undefined;
     attributeKey: string;
     searchText?: string | undefined;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<string[]> {
     const source: TelemetrySource | null = this.getTelemetrySource(
       data.telemetryType,
@@ -446,6 +528,7 @@ export class TelemetryAttributeService {
       metricName: data.metricName,
       attributeKey: data.attributeKey,
       searchText: data.searchText,
+      serviceFilter: data.serviceFilter,
     });
   }
 
@@ -455,6 +538,7 @@ export class TelemetryAttributeService {
     metricName?: string | undefined;
     attributeKey: string;
     searchText?: string | undefined;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Statement {
     const lookbackStartDate: Date =
       TelemetryAttributeService.getLookbackStartDate();
@@ -468,6 +552,7 @@ export class TelemetryAttributeService {
           attributeKey: data.attributeKey,
           searchText: data.searchText,
           lookbackStartDate,
+          serviceFilter: data.serviceFilter,
         },
       );
     }
@@ -500,6 +585,11 @@ export class TelemetryAttributeService {
         }}`,
       );
     }
+
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
 
     /*
      * Case-insensitive substring filter so the value autocomplete keeps
@@ -554,6 +644,7 @@ export class TelemetryAttributeService {
     metricName?: string | undefined;
     attributeKey: string;
     searchText?: string | undefined;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<string>> {
     const statement: Statement =
       TelemetryAttributeService.buildAttributeValuesStatement(data);
@@ -583,6 +674,7 @@ export class TelemetryAttributeService {
     timeColumn: string;
     metricName?: string | undefined;
     lookbackStartDate: Date;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Statement {
     const attributeKeysColumn: string =
       data.attributeKeysColumn || "attributeKeys";
@@ -612,6 +704,11 @@ export class TelemetryAttributeService {
       );
     }
 
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+
     statement.append(SQL`
         GROUP BY projectId, name, primaryEntityId, primaryEntityType, metricPointId
       )
@@ -637,6 +734,7 @@ export class TelemetryAttributeService {
     attributeKey: string;
     searchText?: string | undefined;
     lookbackStartDate: Date;
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Statement {
     const statement: Statement = SQL`
       SELECT DISTINCT ${data.source.attributesColumn}[${{
@@ -664,6 +762,11 @@ export class TelemetryAttributeService {
         }}`,
       );
     }
+
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
 
     statement.append(SQL`
         GROUP BY projectId, name, primaryEntityId, primaryEntityType, metricPointId

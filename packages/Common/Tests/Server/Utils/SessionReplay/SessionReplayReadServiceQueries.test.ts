@@ -546,6 +546,49 @@ describe("SessionReplayReadService statements", () => {
       ).toEqual(["session-a"]);
     });
 
+    test("a block with labels leaves its applications out after the per-id count, never in WHERE", async () => {
+      await SessionReplayReadService.resolveSessions(
+        resolveRequest({ excludedRumApplicationIds: [otherApplicationId] }),
+      );
+
+      const statement: Statement = statementOf(headerQuerySpy);
+
+      expect(qualifySection(statement.query)).toContain(
+        "AND rumApplicationId NOT IN (",
+      );
+      expect(whereSection(statement.query)).not.toContain("rumApplicationId");
+      expect(boundValues(statement)).toContainEqual([
+        otherApplicationId.toString(),
+      ]);
+    });
+
+    test("a row for an application a block takes away never reaches the answer", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-a",
+            applicationId: rumApplicationId.toString(),
+          }),
+          resolvedRow({
+            sessionId: "session-b",
+            /* Whatever case the id comes back in. */
+            applicationId: otherApplicationId.toString().toUpperCase(),
+          }),
+        ]) as never,
+      );
+
+      const resolved: Array<SessionReplayResolvedSession> =
+        await SessionReplayReadService.resolveSessions(
+          resolveRequest({ excludedRumApplicationIds: [otherApplicationId] }),
+        );
+
+      expect(
+        resolved.map((row: SessionReplayResolvedSession): string => {
+          return row.sessionId;
+        }),
+      ).toEqual(["session-a"]);
+    });
+
     test("a row for an application outside the restriction never reaches the answer", async () => {
       headerQuerySpy.mockResolvedValue(
         fakeResultSet([
@@ -3799,6 +3842,83 @@ describe("SessionReplayReadService statements", () => {
       expect(sessions).toEqual([]);
       expect(headerQuerySpy).not.toHaveBeenCalled();
       expect(exceptionQuerySpy).not.toHaveBeenCalled();
+    });
+    test("a block with labels leaves its applications out of an exception's sessions", async () => {
+      const blockedApplicationId: ObjectID = ObjectID.generate();
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "readable-session",
+            applicationId: rumApplicationId.toString(),
+            aggStartTime: "2026-08-14 10:00:00.000",
+            aggEndTime: "2026-08-14 10:10:00.000",
+          },
+          {
+            sessionId: "blocked-session",
+            applicationId: blockedApplicationId.toString().toUpperCase(),
+            aggStartTime: "2026-08-14 10:00:00.000",
+            aggEndTime: "2026-08-14 10:10:00.000",
+          },
+        ]) as never,
+      );
+
+      const sessions: Array<SessionReplayExceptionSession> =
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          accessibleRumApplicationIds: null,
+          excludedRumApplicationIds: [blockedApplicationId],
+          limit: 5,
+        });
+
+      expect(
+        sessions.map((session: SessionReplayExceptionSession): string => {
+          return session.sessionId;
+        }),
+      ).toEqual(["readable-session"]);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      expect(whereSection(headers.query)).toContain(
+        "AND rumApplicationId NOT IN (",
+      );
+      expect(boundValues(headers)).toContainEqual([
+        blockedApplicationId.toString(),
+      ]);
+    });
+
+    test("for a scoped backend exception the block applies after the collision count", async () => {
+      const primaryEntityId: ObjectID = ObjectID.generate();
+      const blockedApplicationId: ObjectID = ObjectID.generate();
+
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "proven-session" }]) as never,
+      );
+
+      await SessionReplayReadService.getSessionsForException({
+        projectId: projectId,
+        exceptionFingerprint: "shared-fingerprint",
+        primaryEntityId: primaryEntityId,
+        primaryEntityType: ServiceType.OpenTelemetry,
+        accessibleRumApplicationIds: null,
+        excludedRumApplicationIds: [blockedApplicationId],
+        limit: 5,
+      });
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      const qualifyIndex: number = headers.query.indexOf(
+        "QUALIFY matchedApplicationCount = 1",
+      );
+      const exclusionIndex: number = headers.query.indexOf(
+        "rumApplicationId NOT IN (",
+      );
+
+      expect(whereSection(headers.query)).not.toContain("rumApplicationId");
+      expect(qualifyIndex).toBeGreaterThan(-1);
+      expect(exclusionIndex).toBeGreaterThan(qualifyIndex);
+      expect(boundValues(headers)).toContainEqual([
+        blockedApplicationId.toString(),
+      ]);
     });
   });
 

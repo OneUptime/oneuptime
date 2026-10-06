@@ -13,6 +13,7 @@ import { OnCreate } from "../Types/Database/Hooks";
 import CreatePermission from "../Types/Database/Permissions/CreatePermission";
 import ReadPermission from "../Types/Database/Permissions/ReadPermission";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
+import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -366,7 +367,7 @@ export class Service extends ProjectReferencesService<Model> {
     pinKey: PinKey,
     props: DatabaseCommonInteractionProps,
   ): Promise<Model> {
-    if (await this.callerMayReadPins(props)) {
+    if (await this.callerMayReadPin(pin, props)) {
       return pin;
     }
 
@@ -383,26 +384,59 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The gates a read of this table applies, answered instead of thrown: the
-   * read block list (label-scoped blocks included, which this model cannot
-   * narrow to rows and so refuses outright) and the read list itself. Any
-   * refusal, whatever its type, means the caller does not get the pin.
+   * Whether the caller could read THIS pin, by the gates a read of the table
+   * applies, answered instead of thrown: the read list, the block list (a
+   * block with no labels refuses outright), and a block with labels, which
+   * leaves out the pins of a recording whose application, incident or alert
+   * carries one of its labels (ReadPermission.checkReadBlockPermission) - so
+   * the pin is looked up again with that condition, and is the caller's to
+   * read only if it is still found. Any refusal, whatever its type, means
+   * the caller does not get the pin.
    */
-  private async callerMayReadPins(
+  private async callerMayReadPin(
+    pin: Model,
     props: DatabaseCommonInteractionProps,
   ): Promise<boolean> {
     if (isInternalCaller(props)) {
       return true;
     }
 
-    try {
-      await ReadPermission.checkReadBlockPermission(Model, {}, props);
+    if (!pin.id) {
+      return false;
+    }
 
+    try {
       TablePermission.checkTableLevelPermissions(
         Model,
         props,
         DatabaseRequestType.Read,
       );
+
+      const pinId: string = pin.id.toString();
+      const blocked: { query: Query<Model> } =
+        await ReadPermission.checkReadBlockPermission(
+          Model,
+          { _id: pinId } as Query<Model>,
+          props,
+        );
+
+      const isNarrowed: boolean =
+        blocked.query._id !== pinId ||
+        Object.keys(blocked.query).some((key: string): boolean => {
+          return key !== "_id";
+        });
+
+      if (!isNarrowed) {
+        return true;
+      }
+
+      const stillReadable: Model | null = await this.findOneBy({
+        query: blocked.query,
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      return Boolean(stillReadable);
     } catch (err) {
       if (err instanceof Exception) {
         return false;
@@ -410,8 +444,6 @@ export class Service extends ProjectReferencesService<Model> {
 
       throw err;
     }
-
-    return true;
   }
 
   /* Null when the recording is not pinned. */

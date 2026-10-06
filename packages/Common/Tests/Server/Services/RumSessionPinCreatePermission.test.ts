@@ -18,6 +18,8 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { JSONObject } from "../../../Types/JSON";
+import QueryUtil from "../../../Server/Types/Database/QueryUtil";
+import { FindOperator } from "typeorm";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -479,25 +481,115 @@ describe("RumSessionPinService.create permission gate", () => {
       expectAcknowledgementOnly(result);
     });
 
-    test("a label-scoped read block also gets the acknowledgement", async () => {
+    describe("a block with labels on reading pins", () => {
+      const BLOCKED_LABEL: ObjectID = new ObjectID(
+        "00000000-0000-4000-8000-0000000000aa",
+      );
+
       /*
-       * Pins carry no labels, so the read path cannot narrow a label-scoped
-       * block to rows and refuses the read outright.
+       * Pins carry no labels of their own: a block with labels leaves out
+       * the pins of a recording whose application, incident or alert carries
+       * them. The join tables those labels live in, as the database reports
+       * them.
        */
-      const result: RumSessionPin = await RumSessionPinService.create(
-        pinRequest(
-          memberProps({
+      beforeEach(() => {
+        jest
+          .spyOn(QueryUtil, "getManyToManyRelationMetadata")
+          .mockImplementation(
+            (modelType: { new (): DatabaseBaseModel }, column: string) => {
+              const tableName: string | undefined =
+                new modelType().tableName || undefined;
+
+              if (column !== "labels" || !tableName) {
+                return null;
+              }
+
+              return {
+                joinTableName: `${tableName}Label`,
+                ownerColumnName: `${tableName.charAt(0).toLowerCase()}${tableName.slice(1)}Id`,
+                relationColumnName: "labelId",
+              };
+            },
+          );
+      });
+
+      const blockedMember: () => DatabaseCommonInteractionProps =
+        (): DatabaseCommonInteractionProps => {
+          return memberProps({
             tenantId: VICTIM_PROJECT_ID,
             permissions: [Permission.ProjectMember],
             blockedPermissions: [Permission.ReadRumSessionReplay],
-            blockLabelIds: [
-              new ObjectID("00000000-0000-4000-8000-0000000000aa"),
-            ],
-          }),
-        ),
-      );
+            blockLabelIds: [BLOCKED_LABEL],
+          });
+        };
 
-      expectAcknowledgementOnly(result);
+      // The lookups made as root with the block's condition on the pin.
+      const blockedLookups: () => Array<FindOneBy<RumSessionPin>> = (): Array<
+        FindOneBy<RumSessionPin>
+      > => {
+        return findOneBySpy.mock.calls
+          .map((call: Array<unknown>): FindOneBy<RumSessionPin> => {
+            return call[0] as FindOneBy<RumSessionPin>;
+          })
+          .filter((lookup: FindOneBy<RumSessionPin>): boolean => {
+            return lookup.query._id === PIN_ID;
+          });
+      };
+
+      test("gets the acknowledgement when the recording carries a blocked label", async () => {
+        findOneBySpy.mockImplementation(
+          async (
+            findOneBy: FindOneBy<RumSessionPin>,
+          ): Promise<RumSessionPin | null> => {
+            // The pin's application carries the label: the block leaves it out.
+            return findOneBy.query._id === PIN_ID
+              ? null
+              : storedPin(findOneBy.query.projectId as ObjectID);
+          },
+        );
+
+        const result: RumSessionPin = await RumSessionPinService.create(
+          pinRequest(blockedMember()),
+        );
+
+        expectAcknowledgementOnly(result);
+
+        // The pin was looked up again with the block on its application.
+        expect(blockedLookups()).toHaveLength(1);
+        const lookup: FindOneBy<RumSessionPin> = blockedLookups()[0]!;
+        expect(lookup.props.isRoot).toBe(true);
+
+        const onApplication: unknown = (
+          lookup.query as unknown as Record<string, unknown>
+        )["rumApplicationId"];
+        expect(onApplication).toBeInstanceOf(FindOperator);
+        expect(
+          (onApplication as FindOperator<unknown>).getSql!("pinApplication"),
+        ).toContain('FROM "RumApplicationLabel"');
+      });
+
+      test("gets the whole pin when the recording carries none of the blocked labels", async () => {
+        const result: RumSessionPin = await RumSessionPinService.create(
+          pinRequest(blockedMember()),
+        );
+
+        expectFullPin(result);
+        expect(blockedLookups()).toHaveLength(1);
+      });
+
+      test("is not asked again for a member with no block on reading pins", async () => {
+        const result: RumSessionPin = await RumSessionPinService.create(
+          pinRequest(
+            memberProps({
+              tenantId: VICTIM_PROJECT_ID,
+              permissions: [Permission.ProjectMember],
+            }),
+          ),
+        );
+
+        expectFullPin(result);
+        expect(blockedLookups()).toHaveLength(0);
+      });
     });
 
     test("the race recovery is held to the same rule", async () => {
