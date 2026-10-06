@@ -28,6 +28,12 @@
  *    lines that hold a command or a command's flag line. The Jest suites
  *    (AgentUpgradeGuides, KubernetesClusterAiAccessSettings, the docs
  *    suites) hold the rendered commands to the same rule.
+ *
+ * The dashboard's copy says which flag keeps the values, in 17 languages: a
+ * translation names the flags its English names. And the upgrade for an
+ * older Helm saves what `helm get values` prints, which is only the values
+ * the release was given unless --all asks for every value, the old chart's
+ * defaults included: the saved values never ask for all of them.
  */
 
 const fs = require("fs");
@@ -43,6 +49,7 @@ const CHART_VALUES = `${CHART_DIR}/values.yaml`;
 const TROUBLESHOOT = `${CHART_DIR}/troubleshoot.sh`;
 const INSTALL_SCRIPT = "HelmChart/Public/install.sh";
 const DOCS_CONTENT = "packages/App/FeatureSet/Docs/Content";
+const DASHBOARD_LOCALES = "packages/App/FeatureSet/Dashboard/src/Locales";
 const CODE_SOURCES = [
   "packages/App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentUpgradeGuides.ts",
   "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown.ts",
@@ -57,6 +64,13 @@ const CODE_SOURCES = [
 // The flag itself, not --reset-then-reuse-values.
 const REUSE_VALUES = /(^|[^\w-])--reuse-values(?![\w-])/;
 const KEEP_VALUES = "--reset-then-reuse-values";
+// The flags that say which values an upgrade starts from.
+const VALUES_FLAGS = ["--reuse-values", KEEP_VALUES, "--reset-values"];
+/*
+ * A flag in prose. ASCII only (JavaScript's \w is), so a word a language
+ * writes onto it (Korean `--reuse-values는`) is not part of it.
+ */
+const FLAG = /(?<![\w-])--[a-z][a-z0-9-]*/g;
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -124,13 +138,11 @@ function joinContinuations(text) {
 }
 
 /**
- * The commands in a markdown file: every logical line of a fenced code
- * block (inside a blockquote too), and every inline code span that names a
- * chart. An inline span without one (`helm upgrade --reuse-values`) is a
- * flag being talked about, not a command.
- * @returns {Array<{ where: string, command: string }>}
+ * The code in a markdown file: every logical line of a fenced code block
+ * (inside a blockquote too), and every inline code span, marked `inline`.
+ * @returns {Array<{ where: string, command: string, inline: boolean }>}
  */
-function markdownCommands(relativePath) {
+function markdownCode(relativePath) {
   const commands = [];
   const lines = read(relativePath).split("\n");
   let block = null;
@@ -146,6 +158,7 @@ function markdownCommands(relativePath) {
           commands.push({
             where: `${relativePath}:${block.start} (code block)`,
             command: logical,
+            inline: false,
           });
         }
         block = null;
@@ -157,15 +170,34 @@ function markdownCommands(relativePath) {
       return;
     }
     for (const span of rawLine.match(/`[^`]+`/g) || []) {
-      if (/helm\s+upgrade/.test(span) && isInlineCommand(span.slice(1, -1))) {
-        commands.push({
-          where: `${relativePath}:${index + 1} (inline)`,
-          command: span.slice(1, -1),
-        });
-      }
+      commands.push({
+        where: `${relativePath}:${index + 1} (inline)`,
+        command: span.slice(1, -1),
+        inline: true,
+      });
     }
   });
   return commands;
+}
+
+/**
+ * The commands in a markdown file: every logical line of a fenced code
+ * block, and every inline code span that is a `helm upgrade` naming a
+ * chart. An inline span without one (`helm upgrade --reuse-values`) is a
+ * flag being talked about, not a command.
+ * @returns {Array<{ where: string, command: string }>}
+ */
+function markdownCommands(relativePath) {
+  return markdownCode(relativePath)
+    .filter((entry) => {
+      return (
+        !entry.inline ||
+        (/helm\s+upgrade/.test(entry.command) && isInlineCommand(entry.command))
+      );
+    })
+    .map((entry) => {
+      return { where: entry.where, command: entry.command };
+    });
 }
 
 /**
@@ -190,23 +222,29 @@ function notesCommands() {
   return commands;
 }
 
-// Every `helm upgrade` a shell script runs or prints, comments left out.
-function shellCommands(relativePath) {
-  const commands = [];
+// A shell script's logical lines, comments left out.
+function shellLines(relativePath) {
+  const lines = [];
   joinContinuations(read(relativePath))
     .split("\n")
     .forEach((line, index) => {
-      if (line.trim().startsWith("#")) {
-        return;
-      }
-      for (const upgrade of helmUpgradesIn(line)) {
-        commands.push({
+      if (!line.trim().startsWith("#")) {
+        lines.push({
           where: `${relativePath} (logical line ${index + 1})`,
-          command: upgrade,
+          command: line,
         });
       }
     });
-  return commands;
+  return lines;
+}
+
+// Every `helm upgrade` a shell script runs or prints, comments left out.
+function shellCommands(relativePath) {
+  return shellLines(relativePath).flatMap((line) => {
+    return helmUpgradesIn(line.command).map((upgrade) => {
+      return { where: line.where, command: upgrade };
+    });
+  });
 }
 
 /*
@@ -236,28 +274,34 @@ function valuesCommentCommands() {
   return commands;
 }
 
+// Code with its comments blanked out, line numbers kept.
+function withoutCodeComments(code) {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => {
+      return comment.replace(/[^\n]/g, " ");
+    })
+    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+}
+
 /**
  * The lines of code that print a command: outside comments, a line that
  * names `helm upgrade`, or is a command's flag line (it carries --namespace
  * or a line continuation, or is nothing but the flag in quotes).
  */
 function codeCommandLines(relativePath) {
-  const withoutComments = read(relativePath)
-    .replace(/\/\*[\s\S]*?\*\//g, (comment) => {
-      return comment.replace(/[^\n]/g, " ");
-    })
-    .replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
   const commands = [];
-  withoutComments.split("\n").forEach((line, index) => {
-    if (
-      /helm\s+upgrade/.test(line) ||
-      /--namespace/.test(line) ||
-      /\\\\\s*["'`,]*\s*$/.test(line) ||
-      /^\s*["'`]\s*--[\w-]+\s*["'`][,;]?\s*$/.test(line)
-    ) {
-      commands.push({ where: `${relativePath}:${index + 1}`, command: line });
-    }
-  });
+  withoutCodeComments(read(relativePath))
+    .split("\n")
+    .forEach((line, index) => {
+      if (
+        /helm\s+upgrade/.test(line) ||
+        /--namespace/.test(line) ||
+        /\\\\\s*["'`,]*\s*$/.test(line) ||
+        /^\s*["'`]\s*--[\w-]+\s*["'`][,;]?\s*$/.test(line)
+      ) {
+        commands.push({ where: `${relativePath}:${index + 1}`, command: line });
+      }
+    });
   return commands;
 }
 
@@ -266,6 +310,53 @@ function expectNoReuseValues(commands) {
     return REUSE_VALUES.test(entry.command);
   });
   expect(offending).toEqual([]);
+}
+
+// The flags a text names, sorted, each as often as it names it.
+function flagsIn(text) {
+  return (text.match(FLAG) || []).sort();
+}
+
+/**
+ * Each `helm get values` in a line that saves what it prints to a file
+ * (`> file`, not the `>` of a `<release>` placeholder), up to the end of its
+ * command: the values an upgrade then takes with -f. One piped into grep
+ * only shows them.
+ * @param {string} line - one logical line, continuations already joined
+ * @returns {Array<string>}
+ */
+function savedValuesIn(line) {
+  const saved = [];
+  const pattern = /helm\s+get\s+values\b/g;
+  let match;
+  while ((match = pattern.exec(line)) !== null) {
+    const rest = line.slice(match.index);
+    const end = rest.search(/&&|;|\|/);
+    const command = end < 0 ? rest : rest.slice(0, end);
+    if (/(^|\s)>/.test(command)) {
+      saved.push(command);
+    }
+  }
+  return saved;
+}
+
+/*
+ * Whether `helm get values` is asked for every value (--all, or -a alone or
+ * with other short flags), the chart's defaults included.
+ */
+function asksForAllValues(command) {
+  return command.split(/\s+/).some((word) => {
+    return (
+      word === "--all" ||
+      word.startsWith("--all=") ||
+      /^-[A-Za-z]*a[A-Za-z]*$/.test(word)
+    );
+  });
+}
+
+// Whether it prints YAML, which -f reads (the default is a table).
+function printsYaml(command) {
+  return /(^|\s)(-o|--output)(\s+|=)yaml(\s|$)/.test(command);
 }
 
 describe("recommended helm upgrades never use --reuse-values", () => {
@@ -359,8 +450,188 @@ describe("recommended helm upgrades never use --reuse-values", () => {
   });
 });
 
+/*
+ * The dashboard's copy names the flag that keeps the values ("Run this ...
+ * --reset-then-reuse-values keeps the values you set") and the one not to
+ * use, and the older-Helm tab says it saves the values to values.yaml, the
+ * file its command passes back with -f. A translation that named
+ * --reuse-values in place of the flag, or another file, would tell the
+ * reader to run something else, and the dialog's commands would still be
+ * right.
+ */
+describe("the dashboard's translations name the flags and the file its English names", () => {
+  const english = JSON.parse(read(`${DASHBOARD_LOCALES}/en.json`));
+  const keys = Object.keys(english).filter((key) => {
+    return (
+      key.includes("values.yaml") ||
+      flagsIn(key).some((flag) => {
+        return VALUES_FLAGS.includes(flag);
+      })
+    );
+  });
+  const locales = fs
+    .readdirSync(path.join(REPO_ROOT, DASHBOARD_LOCALES))
+    .filter((name) => {
+      return name.endsWith(".json") && name !== "en.json";
+    })
+    .sort();
+
+  test("the copy that names them was found, in every language", () => {
+    expect(keys.length).toBeGreaterThanOrEqual(4);
+    expect(
+      keys.some((key) => {
+        return flagsIn(key).includes(KEEP_VALUES);
+      }),
+    ).toBe(true);
+    // The older-Helm tab's step, which saves the values to values.yaml.
+    expect(
+      keys.some((key) => {
+        return key.includes("saves the values you set to values.yaml");
+      }),
+    ).toBe(true);
+    expect(locales).toHaveLength(16);
+  });
+
+  test.each(locales)("%s", (locale) => {
+    const translations = JSON.parse(read(`${DASHBOARD_LOCALES}/${locale}`));
+    const offending = keys
+      .filter((key) => {
+        const translation = translations[key];
+        return (
+          typeof translation !== "string" ||
+          flagsIn(translation).join(" ") !== flagsIn(key).join(" ") ||
+          translation.split("values.yaml").length !==
+            key.split("values.yaml").length
+        );
+      })
+      .map((key) => {
+        return { key, translation: translations[key] };
+      });
+    expect(offending).toEqual([]);
+  });
+});
+
+/*
+ * The upgrade for Helm before 3.14 saves `helm get values` and passes it back
+ * with -f. Without --all that is only the values the release was given
+ * (pkg/action/get_values.go returns rel.Config); with it, every value,
+ * the old chart's defaults included, which -f would then pin the way
+ * --reuse-values does. And it has to be YAML: the default output is a table
+ * -f cannot read.
+ */
+describe("an upgrade from saved values saves only the values set, as YAML", () => {
+  const saved = [
+    ...[CHART_README, ...markdownFiles(DOCS_CONTENT)].flatMap((file) => {
+      return markdownCode(file);
+    }),
+    ...notesCommands(),
+    ...[TROUBLESHOOT, INSTALL_SCRIPT].flatMap((script) => {
+      return shellLines(script);
+    }),
+    ...CODE_SOURCES.flatMap((file) => {
+      return withoutCodeComments(read(file))
+        .split("\n")
+        .map((line, index) => {
+          return { where: `${file}:${index + 1}`, command: line };
+        });
+    }),
+  ].flatMap((entry) => {
+    return savedValuesIn(entry.command).map((command) => {
+      return { where: entry.where, command };
+    });
+  });
+
+  test("every place that shows the upgrade was read", () => {
+    const files = new Set(
+      saved.map((entry) => {
+        return entry.where.replace(/:.*$| \(.*$/, "");
+      }),
+    );
+    for (const file of [
+      CHART_README,
+      CHART_NOTES,
+      INSTALL_SCRIPT,
+      "packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown.ts",
+    ]) {
+      expect({ file, read: files.has(file) }).toEqual({ file, read: true });
+    }
+    // Both Kubernetes agent pages, in each of the 17 languages.
+    const docs = [...files].filter((file) => {
+      return file.startsWith(DOCS_CONTENT);
+    });
+    const languages = new Set(
+      docs.map((file) => {
+        return file.split("/")[5];
+      }),
+    );
+    expect(languages.size).toBe(17);
+    expect(docs.sort()).toEqual(
+      [...languages].sort().flatMap((language) => {
+        return [
+          `${DOCS_CONTENT}/${language}/monitor/kubernetes-agent.md`,
+          `${DOCS_CONTENT}/${language}/telemetry/kubernetes-agent.md`,
+        ];
+      }),
+    );
+  });
+
+  test("none asks for every value, and each prints YAML", () => {
+    expect(
+      saved.filter((entry) => {
+        return asksForAllValues(entry.command) || !printsYaml(entry.command);
+      }),
+    ).toEqual([]);
+  });
+});
+
 // The readers above, on inputs whose answer is known.
 describe("the command readers", () => {
+  test("read the flags prose names, and the values a command saves", () => {
+    expect(
+      flagsIn(
+        "--reuse-values는 사용하지 마세요. --reset-then-reuse-values (Helm 3.14)",
+      ),
+    ).toEqual(["--reset-then-reuse-values", "--reuse-values"]);
+    expect(flagsIn("curl --cert / --key처럼")).toEqual(["--cert", "--key"]);
+    expect(flagsIn("var(--ou-link) a--b")).toEqual(["--ou-link"]);
+
+    expect(
+      savedValuesIn(
+        "helm get values r -n ns -o yaml > v.yaml && helm upgrade r c -f v.yaml",
+      ),
+    ).toEqual(["helm get values r -n ns -o yaml > v.yaml "]);
+    expect(
+      savedValuesIn("helm get values <release> -n ns -a | grep -A2 x"),
+    ).toEqual([]);
+    expect(
+      savedValuesIn('sudo helm get values "$release" -o yaml > "$values" &&'),
+    ).toEqual(['helm get values "$release" -o yaml > "$values" ']);
+    expect(
+      savedValuesIn('printf "helm get values %s -n %s -o yaml > values.yaml"'),
+    ).toEqual(['helm get values %s -n %s -o yaml > values.yaml"']);
+
+    for (const command of [
+      "helm get values r --all -o yaml > v.yaml",
+      "helm get values r -a -o yaml > v.yaml",
+      "helm get values r -ao yaml > v.yaml",
+      "helm get values r --all=true -o yaml > v.yaml",
+    ]) {
+      expect({ command, all: asksForAllValues(command) }).toEqual({
+        command,
+        all: true,
+      });
+    }
+    expect(
+      asksForAllValues(
+        "helm get values oneuptime-agent --namespace oneuptime-agent -o yaml > values.yaml",
+      ),
+    ).toBe(false);
+    expect(printsYaml("helm get values r -o yaml > v.yaml")).toBe(true);
+    expect(printsYaml("helm get values r --output=yaml > v.yaml")).toBe(true);
+    expect(printsYaml("helm get values r > values.yaml")).toBe(false);
+    expect(printsYaml("helm get values r -o json > values.yaml")).toBe(false);
+  });
+
   test("find --reuse-values in a command, but not in talk about it", () => {
     expect(
       helmUpgradesIn(
