@@ -130,7 +130,7 @@ const EpisodeCreate: FunctionComponent<
                 title: "Initial State",
                 stepId: "episode-details",
                 description:
-                  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved.",
+                  "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: AlertState,

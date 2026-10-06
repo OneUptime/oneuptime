@@ -160,7 +160,7 @@ import Navigation from "../../../UI/Utils/Navigation";
 const TEMPLATE_ID: string = "a1b2c3d4-0000-4000-8000-0000000000aa";
 
 const HELP: string =
-  "Incidents declared from this template start in this state. Leave it empty for the usual starting state.";
+  "Incidents declared from this template start in this state. Leave it empty for the usual starting state. An incident that starts acknowledged or resolved pages no one.";
 
 const PLACEHOLDER: string = "The usual starting state";
 

@@ -29,6 +29,8 @@ Plegada, la cabecera de **Más campos** nombra los dos y muestra los que tiene l
 
 Cuando un incidente o una alerta llega a la política, **Level 1** avisa a sus destinatarios de inmediato. Si nadie confirma dentro de su espera, se avisa a **Level 2**, y así sucesivamente. Cuando la espera del último nivel termina sin confirmación, la política vuelve a empezar desde **Level 1** si su **Política de repetición** (debajo de las reglas) indica repetir, tantas veces como permita, y si no, se detiene.
 
+Un incidente, una alerta o un episodio que se crea ya reconocido o resuelto —registrado a posteriori— no ejecuta ninguna de sus políticas: no se avisa a nadie, y su feed lo indica, nombrándolas.
+
 El resumen en la parte superior de la página **Reglas de escalado** muestra toda la escalera: cuándo se avisa a cada nivel, a quién avisa y qué pasa después del último. Un nivel cuyos destinatarios no pueden recibir todos el aviso lo indica en su tarjeta; haz clic en la etiqueta para ver quién y por qué.
 
 A cada persona a la que avisa un nivel se la contacta según sus propias reglas de guardia: **Ajustes de usuario** > **Reglas de guardia**, con una pestaña para incidentes, episodios de incidente, alertas y episodios de alerta, y una tarjeta por gravedad que indica qué método de notificación se usa y tras cuánto tiempo. Un administrador del proyecto puede ver y cambiar las reglas de un miembro en **Usuarios** > el miembro > **Reglas de guardia**.

@@ -46,6 +46,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { StartingStage } from "../../../Utils/StartingStage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -83,6 +84,17 @@ const ACKNOWLEDGED_STATE_ID: string = "0194c3a9-0000-4000-8000-0000000000d2";
 const SEVERITY_ID: ObjectID = new ObjectID(
   "0194c3a9-0000-4000-8000-0000000000e1",
 );
+
+/*
+ * What onBeforeCreate hands onCreateSuccess for an incident declared in the
+ * created state from no alerts: only where it starts (StartingStage).
+ */
+const NOTHING_CARRIED: Record<string, unknown> = {
+  startingStage: StartingStage.Open,
+  alertIdsToLink: [],
+  acknowledgedAlertStateId: null,
+  alertIdsToAcknowledge: [],
+};
 
 type HookFunction = (...args: Array<unknown>) => Promise<unknown>;
 
@@ -236,7 +248,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
     const result: OnCreate<Incident> = await onBeforeCreate(undefined);
 
     expect(validate).not.toHaveBeenCalled();
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
     expect(counter).toHaveBeenCalledTimes(1);
   });
 
@@ -246,7 +258,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
     });
 
     expect(validate).not.toHaveBeenCalled();
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
   });
 
   test("a null list is treated as no list", async () => {
@@ -255,7 +267,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
     });
 
     expect(validate).not.toHaveBeenCalled();
-    expect(result.carryForward).toBeNull();
+    expect(result.carryForward).toEqual(NOTHING_CARRIED);
   });
 
   test.each([
