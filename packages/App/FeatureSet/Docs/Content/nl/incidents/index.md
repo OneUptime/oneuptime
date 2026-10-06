@@ -49,7 +49,7 @@ Dat onderscheid telt zwaarder dan het klinkt:
 
 - `isCreatedState` bepaalt waar een nieuw incident begint. Wordt er bij het aanmaken geen status gekozen, dan zoekt OneUptime de aangemaakt-status van het project op en gebruikt die.
 - `isAcknowledgedState` en `isResolvedState` sturen de knoppen **Acknowledge** en **Oplossen** in de incidentkop, de twee stat-tegels op het **Overzicht** van het incident, en de badge met de teller **Actieve incidenten** in het zijmenu.
-- **Actieve incidenten** is puur gedefinieerd als "de huidige status is niet de opgeloste status". Elke eigen status die je toevoegt is dus actief, tenzij het de opgeloste is.
+- **Actieve incidenten** is puur gedefinieerd als "de huidige status staat boven de opgeloste status". Een eigen status die je boven de opgeloste status toevoegt is dus actief; een die je erna plaatst telt als opgelost, net als de opgeloste status zelf.
 
 **Let op de naamgeving.** De eerste voorgeconfigureerde status heet **Identified**, ook al noemen verschillende beschrijvingen in het product hem nog de aangemaakt-status. Zoek je in de statuslijst van je project naar "Created", dan is dat de rij met de naam **Identified**.
 
@@ -102,7 +102,7 @@ Responders bevestigen het incident, koppelen getroffen middelen, draaien runbook
 
 ### 4. Het wordt opgelost
 
-Klikken op **Oplossen** zet het incident in de opgeloste status, stempelt de statustijdlijn, stopt de duurklok en haalt het incident uit het actieve deel van elke statuspagina waarop het stond. Er hoeft verder niets te veranderen om dat te laten gebeuren — de vlag voor de opgeloste status is waar de statuspagina-query naar kijkt.
+Klikken op **Oplossen** zet het incident in de opgeloste status, stempelt de statustijdlijn, stopt de duurklok, geeft de monitoren terug die het vasthoudt en haalt het incident uit het actieve deel van elke statuspagina waarop het stond. Er hoeft verder niets te veranderen om dat te laten gebeuren — een statuspagina toont alleen incidenten in een status boven de opgeloste status. Zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
 
 Daarna kun je een postmortem schrijven en die desgewenst op de statuspagina publiceren.
 
@@ -112,7 +112,7 @@ Open **Incidenten** in de linkernavigatie. Het zijmenu is opgedeeld in secties:
 
 | Sectie          | Wat je daar doet                                                                                                                                                         |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overzicht**   | **Alle incidenten** en **Actieve incidenten** — die laatste draagt een rode badge met het aantal incidenten dat niet in de opgeloste status staat.                        |
+| **Overzicht**   | **Alle incidenten** en **Actieve incidenten** — die laatste draagt een rode badge met het aantal incidenten in een status boven de opgeloste status.                        |
 | **Episoden**    | Incident-episoden, een aparte groeperingsfunctie met eigen pagina's.                                                                                                      |
 | **AI** | **Inzichten**, **Logboeken**, **Instellingen**, **Regels voor automatisch herstel**: wat OneUptime AI van je incidenten heeft geleerd en alles wat het ervoor heeft gedaan, wat het zelfstandig mag doen, en de regels die incidenten met runbooks oplossen. Zie [AI SRE](/docs/ai/ai-sre). |
 | **Werkruimte**  | **Slack**- en **Microsoft Teams**-verbindingen voor incidenten.                                                                                                          |
@@ -145,7 +145,7 @@ Open een incident en je krijgt links een zijmenu, zo gegroepeerd:
 - **Monitoren zien het probleem; incidenten leggen het vast.** Een criteriaregel op een monitor kan automatisch een incident melden en daarbij titel, ernst, bereikbaarheidsbeleid, eigenaren, labels en herstelnotities vooraf invullen. Zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating) voor de variabelen die daar beschikbaar zijn.
 - **Bereikbaarheidsbeleid doet het pagen.** Koppel beleid in de stap **Bereikbaarheid** van de meldwizard, op een sjabloon, of via **Incidenten → Regels → Bereikbaarheidsregels**. Elke matchende regel gaat af — wat er draait is de vereniging van alle matches plus alles wat je direct hebt gekoppeld, ontdubbeld.
 - **Runbooks vertellen mensen wat te doen.** Runbook-regels koppelen automatisch een procedure zodra er een matchend incident wordt aangemaakt, en responders kunnen er met de hand een starten vanaf het incident. Zie [Runbooks – Overzicht](/docs/runbooks/index).
-- **Statuspagina's vertellen het klanten.** Een incident verschijnt in de actieve lijst van een statuspagina wanneer die pagina incidenten toont, het incident als zichtbaar op de statuspagina is gemarkeerd, en zijn huidige status niet de opgeloste status is. Privé-incidenten blijven altijd verborgen voor elke statuspagina. Zie [Statuspagina's – Overzicht](/docs/status-pages/index).
+- **Statuspagina's vertellen het klanten.** Een incident verschijnt in de actieve lijst van een statuspagina wanneer die pagina incidenten toont, het incident als zichtbaar op de statuspagina is gemarkeerd, en zijn huidige status boven de opgeloste status staat. Privé-incidenten blijven altijd verborgen voor elke statuspagina. Zie [Statuspagina's – Overzicht](/docs/status-pages/index).
 - **Workflows automatiseren eromheen.** Met de triggers **On Create Incident**, **On Update Incident** en **On Delete Incident** bouw je no-code-automatisering bovenop de incidentlevenscyclus. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Waar verder lezen

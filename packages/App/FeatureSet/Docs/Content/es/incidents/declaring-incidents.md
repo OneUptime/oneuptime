@@ -164,7 +164,7 @@ La llamada de creación hace bastante más que escribir una fila. En orden:
 9. **Se ponen en cola los suscriptores**, si se dejó activado **Notificar a suscriptores de la página de estado** y el incidente es visible en la página de estado. La entrega la gestiona un trabajo en segundo plano, no tu petición.
 10. **Se disparan los flujos de trabajo.** El disparador **On Create Incident** arranca cualquier flujo de trabajo construido sobre él. Consulta [Visión general de los flujos de trabajo](/docs/workflows/index).
 
-A partir de ahí el incidente está vivo: cuenta para la insignia de **Incidentes Activos** del menú lateral de Incidentes (cualquier estado sin el indicador `isResolvedState` cuenta como activo), aparece en las páginas de estado que incluyan uno de sus monitores, y su **Línea de Tiempo de Estado** empieza a registrar.
+A partir de ahí el incidente está vivo: cuenta para la insignia de **Incidentes Activos** del menú lateral de Incidentes (cualquier estado por encima de tu estado resuelto cuenta como activo), aparece en las páginas de estado que incluyan uno de sus monitores, y su **Línea de Tiempo de Estado** empieza a registrar.
 
 ## Qué leer a continuación
 

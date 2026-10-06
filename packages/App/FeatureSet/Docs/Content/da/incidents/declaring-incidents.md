@@ -164,7 +164,7 @@ Oprettelseskaldet gør mere end at skrive en række. I rækkefølge:
 9. **Abonnenter sættes i kø**, hvis **Underret statussideabonnenter** blev ladt slået til, og hændelsen er synlig på statussiden. Leveringen håndteres af et baggrundsjob, ikke inline med din anmodning.
 10. **Workflows udløses.** Triggeren **On Create Incident** starter alle workflows bygget på den. Se [Workflows – Oversigt](/docs/workflows/index).
 
-Derfra er hændelsen i live: den tæller med i mærket **Aktive hændelser** i hændelsernes sidemenu (enhver tilstand, der ikke er flagget `isResolvedState`, tæller som aktiv), den optræder på de statussider, der bærer en af dens monitorer, og dens **Tilstandstidslinje** begynder at registrere.
+Derfra er hændelsen i live: den tæller med i mærket **Aktive hændelser** i hændelsernes sidemenu (enhver tilstand over din løste tilstand tæller som aktiv), den optræder på de statussider, der bærer en af dens monitorer, og dens **Tilstandstidslinje** begynder at registrere.
 
 ## Læs videre
 

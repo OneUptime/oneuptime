@@ -2,7 +2,7 @@
 
 Every incident carries two classifications: a **state** that says where it is in your response, and a **severity** that says how much it hurts. In the dashboard they look alike — both render as colored pills on the incidents list and as a colored dot before the name wherever you pick one, both are project-scoped lists you can rename and recolor. They do very different jobs.
 
-States drive behavior. Three boolean flags on the state rows decide which incidents count as active, which buttons appear on the incident header, when the SLA clock stops, and when the incident drops off your status page. Severities drive nothing by themselves — they are labels that describe impact, and that other rules can match on.
+States drive behavior. Three boolean flags on the state rows, together with the states' order, decide which incidents count as active, which buttons appear on the incident header, when the SLA clock stops, and when the incident drops off your status page. Severities drive nothing by themselves — they are labels that describe impact, and that other rules can match on.
 
 Both lists are seeded when your project is created, and both are edited under **Incidents → Settings**. That section of the Incidents side menu is collapsed by default, so expand **Settings** before you go looking for it.
 
@@ -36,7 +36,7 @@ Note the name: the first state is **Identified**, even though several descriptio
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isCreatedState`      | The state an incident gets when nobody picked one. If no state in the project carries this flag, creating an incident fails with an error telling you to add a created incident state from settings. |
 | `isAcknowledgedState` | Powers the **Acknowledge** button and the "<state name> in" stat tile on the incident **Overview**. On a state change into this state, the incident's SLA is marked as responded.                    |
-| `isResolvedState`     | Powers the **Resolve** button and the resolved stat tile, defines the **Active Incidents** list, and is what removes the incident from a status page's active section. Marks the SLA resolved.       |
+| `isResolvedState`     | Marks the project's resolved state: the one **Resolve** moves an incident to and the resolved stat tile shows. An incident in it, or in any state after it, is resolved — it leaves **Active Incidents** and a status page's active section, and its SLA is marked resolved. |
 
 Only one state per project is expected to hold each flag — the lookups fetch the first one in the order. The three flagged states carry a **Built-in** tag on the settings page; hover it (or tab to it) to read what OneUptime does with the state. They can be renamed, recolored and dragged, but:
 
@@ -64,7 +64,7 @@ Every one of those pickers lists the states in the order this page puts them in.
 You cannot set the three flags from this form — they belong to the seeded rows. A state you add is therefore an unflagged state, which has three consequences worth planning around:
 
 - **Where it sits decides what it counts as.** The **Counts as** column shows it, and changes as you drag: above the acknowledged state an incident in it is **Not acknowledged**; from the acknowledged state down it counts as **Acknowledged**, so on-call policies stop escalating it; from the resolved state down it counts as **Resolved**, so status pages stop showing it as active.
-- **It stays in Active Incidents.** **Active Incidents** is defined as "current state is not the resolved state", so anything you add other than the resolved state keeps the incident in the active list and in the sidebar count.
+- **Above the resolved state, it keeps the incident active.** **Active Incidents** holds the incidents whose current state sits above the resolved state, so a state you add there keeps the incident in the active list and in the sidebar count. A state dragged below the resolved state counts as resolved everywhere — the active lists, status pages, reminders and the SLA — and moving an incident into it from **Resolved** is not a second resolve.
 - **Its transition button is generic.** Instead of **Acknowledge** or **Resolve**, the confirmation modal is titled **Mark Incident as `<state name>`** with a **Mark as `<state name>`** submit button.
 
 A common shape is a mitigation step between the acknowledged and resolved states — create "Mitigated" and it lands just above **Resolved**, after **Acknowledged**, counting as acknowledged. For a triage step before anyone has acknowledged the incident, drag it above **Acknowledged**.
@@ -118,6 +118,15 @@ There are four ways an incident changes state:
 
 Every one of these writes a timeline row. A state change also does a few things you do not have to ask for: it posts an entry to the incident feed, assigns an Incident Commander if the incident does not have one yet, and updates the SLA clock. Reopening a resolved incident starts a fresh SLA record from the reopen time.
 
+## What resolving does
+
+An incident is resolved when it moves from a state above your resolved state into the resolved state, or into any state after it — whichever of the four ways above moves it. Each resolve:
+
+- **Gives back the monitors the incident holds.** An incident declared open holds its monitors: it put them in its **Change Monitor Status to** status, when it names one, and, declared by hand, paused their monitoring. An edit while it is open — adding monitors, or changing that status — makes it hold them too. Resolving resumes their monitoring and returns them to operational, unless another open incident is still on them, and from then on the incident holds nothing. So an incident declared already resolved gives nothing back, and neither does a second resolve after a reopen: a status its monitors got in between — from their probes, from maintenance or set by hand — stays.
+- **Marks the SLA resolved** and, when OneUptime AI postmortem drafts are on, drafts a postmortem.
+
+Moving on from **Resolved** to a state after it — **Closed**, say — is not a second resolve: none of this runs again, and no new SLA starts. An incident declared before OneUptime started recording this gives its monitors back on its next resolve, as before.
+
 ## The state timeline
 
 The incident's **State Timeline** page in the incident side menu is the audit trail of every state the incident has been in. The card on that page is titled **Status Timeline**, and it is sorted newest first.
@@ -139,11 +148,11 @@ Timeline rows can be created and deleted, but not edited. Deleting the wrong row
 
 ## The Active Incidents list
 
-**Incidents → Active Incidents** is the list you watch during a shift. Its definition is exactly one condition: the incident's current state is a state where `isResolvedState` is false. Nothing else is considered — not severity, not age, not whether anyone has acknowledged it.
+**Incidents → Active Incidents** is the list you watch during a shift. Its definition is exactly one condition: the incident's current state sits above your resolved state — the first state in the order flagged `isResolvedState`. Nothing else is considered — not severity, not age, not whether anyone has acknowledged it.
 
 The side-menu item carries a red count badge using the same query, so the badge and the list always agree. When there is nothing to see, the page says so.
 
-The practical consequence: any custom state you add keeps incidents in this list. That is usually what you want — "Mitigated" is not "done" — but it does mean the badge only clears when incidents actually reach the resolved state.
+The practical consequence: a custom state you add above the resolved state keeps incidents in this list — "Mitigated" is not "done" — and one you place after it takes them off, as the resolved state does. Alerts and episodes follow the same rule with their own states, and the side-menu counts, reminders, status pages and the mobile app all read it.
 
 ## Telling status page subscribers about a state change
 
@@ -176,7 +185,7 @@ Four separate things decide whether an incident is on a public page at all, and 
 - **Show Incidents** (`showIncidentsOnStatusPage`) on the status page itself.
 - **Visible on Status Page** (`isVisibleOnStatusPage`) on the incident — a toggle on the incident's **Settings** page. It defaults to true and is not on the declare wizard; a monitor criterion can set it with **Show Incident on Status Page**. An incident declared hidden tells no subscriber when it is created; when you turn this toggle on later, the edit form offers **Notify subscribers that this incident was created**. See [Declaring an Incident](/docs/incidents/declaring-incidents).
 - **The page is in the incident's reach.** The page lists one of the incident's monitors and, if the incident is limited to some status pages, is one of them. A page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
-- **The current state is not the resolved state.** This is what removes an incident from the active section: the status page query fetches incidents whose current state is any unresolved state. You do not archive or close anything — you resolve it, and it moves into history.
+- **The current state sits above the resolved state.** This is what removes an incident from the active section: the status page query fetches incidents whose current state is above your resolved state, so the resolved state and any state after it take the incident off. You do not archive or close anything — you resolve it, and it moves into history.
 
 **Private incidents never appear.** Turning on **Private Incident** hides the incident from every status page, regardless of the toggles above, and restricts it to its owners plus project admins and owners.
 

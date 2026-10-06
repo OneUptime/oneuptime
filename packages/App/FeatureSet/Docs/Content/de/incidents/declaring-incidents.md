@@ -164,7 +164,7 @@ Der Erstellungsaufruf schreibt mehr als nur eine Zeile. Der Reihe nach:
 9. **Abonnenten werden eingereiht**, sofern **Statusseiten-Abonnenten benachrichtigen** aktiv blieb und der Vorfall auf der Statusseite sichtbar ist. Die Zustellung übernimmt ein Hintergrundjob, nicht Ihre Anfrage selbst.
 10. **Workflows starten.** Der Trigger **On Create Incident** startet jeden darauf aufgebauten Workflow. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
-Ab da ist der Vorfall live: Er zählt für das Badge **Aktive Vorfälle** im Seitenmenü Vorfälle (jeder Status ohne das Flag `isResolvedState` gilt als aktiv), er erscheint auf den Statusseiten, die einen seiner Monitore führen, und seine **Zustands-Zeitachse** beginnt aufzuzeichnen.
+Ab da ist der Vorfall live: Er zählt für das Badge **Aktive Vorfälle** im Seitenmenü Vorfälle (jeder Status über Ihrem behobenen Status gilt als aktiv), er erscheint auf den Statusseiten, die einen seiner Monitore führen, und seine **Zustands-Zeitachse** beginnt aufzuzeichnen.
 
 ## Wo Sie als Nächstes lesen sollten
 
