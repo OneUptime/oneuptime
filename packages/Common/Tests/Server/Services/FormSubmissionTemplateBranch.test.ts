@@ -54,6 +54,7 @@ import FormSubmissionService from "../../../Server/Services/FormSubmissionServic
 import IncidentInternalNoteService from "../../../Server/Services/IncidentInternalNoteService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
+import { StartingStage } from "../../../Utils/StartingStage";
 import IncidentTemplateOwnerTeamService from "../../../Server/Services/IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "../../../Server/Services/IncidentTemplateOwnerUserService";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
@@ -254,6 +255,14 @@ beforeEach(() => {
           : String(findBy.query["_id"]);
       return state;
     }) as never);
+  /*
+   * Where the template's state sits among the project's states: open, so
+   * the incident sets off what any new one does (StartingStage has its own
+   * suite, CreatedClosedNoAutomations).
+   */
+  jest
+    .spyOn(IncidentStateService, "getStartingStage")
+    .mockResolvedValue(StartingStage.Open as never);
   jest
     .spyOn(ProjectScopedReferenceValidator, "validateReferencesBelongToProject")
     .mockResolvedValue(undefined as never);

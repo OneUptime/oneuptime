@@ -35,6 +35,7 @@ import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { StartingStage } from "../../../Utils/StartingStage";
 import {
   afterEach,
   beforeEach,
@@ -106,6 +107,8 @@ const MISSING_STATE: string = "0193c0de-5a7e-4aaa-8bbb-0000000000e9";
 
 interface StateRow {
   id: string;
+  // Its place in the project's list: 1 is the top.
+  order: number;
   isCreatedState: boolean;
   isAcknowledgedState: boolean;
   isResolvedState: boolean;
@@ -114,18 +117,21 @@ interface StateRow {
 const PROJECT_STATES: Array<StateRow> = [
   {
     id: CREATED_STATE,
+    order: 1,
     isCreatedState: true,
     isAcknowledgedState: false,
     isResolvedState: false,
   },
   {
     id: ACKNOWLEDGED_STATE,
+    order: 2,
     isCreatedState: false,
     isAcknowledgedState: true,
     isResolvedState: false,
   },
   {
     id: RESOLVED_STATE,
+    order: 3,
     isCreatedState: false,
     isAcknowledgedState: false,
     isResolvedState: true,
@@ -237,11 +243,44 @@ let stateLookups: Array<Record<string, unknown>> = [];
 // The counter increments a create spent.
 let numbersUsed: number = 0;
 
+// One of the project's states, as the database hands it back.
+function stateModelOf(kind: Kind, row: StateRow): StateModel {
+  const state: StateModel = new kind.stateModel();
+  state._id = row.id;
+  state.order = row.order;
+  state.isCreatedState = row.isCreatedState;
+  state.isAcknowledgedState = row.isAcknowledgedState;
+  state.isResolvedState = row.isResolvedState;
+  return state;
+}
+
 /*
  * The project's states, answered the way the database would: pinned to the
- * project, by id or by the created-state flag.
+ * project, one by id or by the created-state flag, or the whole list in its
+ * order - which is how where a record starts is read (getStartingStage).
  */
 function stubStateLookups(kind: Kind): void {
+  jest
+    .spyOn(
+      kind.stateService as {
+        findBy: (...args: Array<unknown>) => Promise<unknown>;
+      },
+      "findBy",
+    )
+    .mockImplementation((async (findBy: {
+      query: Record<string, unknown>;
+    }): Promise<Array<StateModel>> => {
+      stateLookups.push(findBy.query);
+
+      if (idOf(findBy.query["projectId"]) !== idOf(PROJECT_ID)) {
+        return [];
+      }
+
+      return PROJECT_STATES.map((row: StateRow): StateModel => {
+        return stateModelOf(kind, row);
+      });
+    }) as never);
+
   jest
     .spyOn(
       kind.stateService as {
@@ -277,12 +316,7 @@ function stubStateLookups(kind: Kind): void {
         return null;
       }
 
-      const state: StateModel = new kind.stateModel();
-      state._id = row.id;
-      state.isCreatedState = row.isCreatedState;
-      state.isAcknowledgedState = row.isAcknowledgedState;
-      state.isResolvedState = row.isResolvedState;
-      return state;
+      return stateModelOf(kind, row);
     }) as never);
 }
 
@@ -620,7 +654,7 @@ describe.each(
     const data: Record<string, unknown> = await create(kind, {});
 
     expect(data["resolvedAt"]).toBeUndefined();
-    // Only the created-state lookup: nothing asked whether it is resolved.
+    // Only the created-state lookup: nothing asked where it starts.
     expect(stateLookups).toHaveLength(1);
     expect(createdStateLookups()).toBe(1);
   });
@@ -920,18 +954,19 @@ describe("the first timeline row is the state the record starts in", () => {
 
 /*
  * The lookups the create hooks share, on the state services: the project's
- * created state, and whether a state is its resolved state. Each is pinned
- * to the project and reads only what it needs.
+ * created state, and how far along a state is (getStartingStage, which the
+ * StartingStage suites cover in full). Each is pinned to the project and
+ * reads only what it needs.
  */
 describe("the state services' starting-state lookups", () => {
   interface Lookup {
     name: string;
     stateService: unknown;
     getCreatedStateId: (projectId: ObjectID) => Promise<ObjectID>;
-    isResolvedState: (
+    getStartingStage: (
       projectId: ObjectID,
       stateId: ObjectID,
-    ) => Promise<boolean>;
+    ) => Promise<StartingStage>;
     stateModel: new () => StateModel;
     noCreatedState: string;
   }
@@ -943,11 +978,11 @@ describe("the state services' starting-state lookups", () => {
       getCreatedStateId: (projectId: ObjectID): Promise<ObjectID> => {
         return AlertStateService.getCreatedAlertStateId(projectId);
       },
-      isResolvedState: (
+      getStartingStage: (
         projectId: ObjectID,
         stateId: ObjectID,
-      ): Promise<boolean> => {
-        return AlertStateService.isResolvedAlertState({
+      ): Promise<StartingStage> => {
+        return AlertStateService.getStartingStage({
           projectId: projectId,
           alertStateId: stateId,
         });
@@ -962,11 +997,11 @@ describe("the state services' starting-state lookups", () => {
       getCreatedStateId: (projectId: ObjectID): Promise<ObjectID> => {
         return IncidentStateService.getCreatedIncidentStateId(projectId);
       },
-      isResolvedState: (
+      getStartingStage: (
         projectId: ObjectID,
         stateId: ObjectID,
-      ): Promise<boolean> => {
-        return IncidentStateService.isResolvedIncidentState({
+      ): Promise<StartingStage> => {
+        return IncidentStateService.getStartingStage({
           projectId: projectId,
           incidentStateId: stateId,
         });
@@ -1008,10 +1043,9 @@ describe("the state services' starting-state lookups", () => {
     return reads;
   }
 
-  function state(lookup: Lookup, id: string, isResolved: boolean): StateModel {
+  function state(lookup: Lookup, id: string): StateModel {
     const row: StateModel = new lookup.stateModel();
     row._id = id;
-    row.isResolvedState = isResolved;
     return row;
   }
 
@@ -1021,7 +1055,7 @@ describe("the state services' starting-state lookups", () => {
       const reads: Array<{
         query: Record<string, unknown>;
         select: Record<string, unknown>;
-      }> = stubReads(lookup, state(lookup, CREATED_STATE, false));
+      }> = stubReads(lookup, state(lookup, CREATED_STATE));
 
       expect(idOf(await lookup.getCreatedStateId(PROJECT_ID))).toBe(
         CREATED_STATE,
@@ -1044,38 +1078,96 @@ describe("the state services' starting-state lookups", () => {
     },
   );
 
+  // The project's whole list, as getStartingStage reads it.
+  function stubListReads(lookup: Lookup): Array<{
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    props: Record<string, unknown>;
+  }> {
+    const reads: Array<{
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      props: Record<string, unknown>;
+    }> = [];
+
+    jest
+      .spyOn(
+        lookup.stateService as {
+          findBy: (...args: Array<unknown>) => Promise<unknown>;
+        },
+        "findBy",
+      )
+      .mockImplementation((async (findBy: {
+        query: Record<string, unknown>;
+        select: Record<string, unknown>;
+        props: Record<string, unknown>;
+      }): Promise<Array<StateModel>> => {
+        reads.push({
+          query: findBy.query,
+          select: findBy.select,
+          props: findBy.props,
+        });
+
+        return PROJECT_STATES.map((row: StateRow): StateModel => {
+          const model: StateModel = new lookup.stateModel();
+          model._id = row.id;
+          model.order = row.order;
+          model.isCreatedState = row.isCreatedState;
+          model.isAcknowledgedState = row.isAcknowledgedState;
+          model.isResolvedState = row.isResolvedState;
+          return model;
+        });
+      }) as never);
+
+    return reads;
+  }
+
   test.each(LOOKUPS)(
-    "$name: whether a state is resolved is read pinned to the project",
+    "$name: where a state stands is read once, from the project's whole list, as OneUptime",
     async (lookup: Lookup) => {
       const reads: Array<{
         query: Record<string, unknown>;
         select: Record<string, unknown>;
-      }> = stubReads(lookup, state(lookup, RESOLVED_STATE, true));
+        props: Record<string, unknown>;
+      }> = stubListReads(lookup);
 
       expect(
-        await lookup.isResolvedState(PROJECT_ID, new ObjectID(RESOLVED_STATE)),
-      ).toBe(true);
-      expect(idOf(reads[0]!.query["_id"])).toBe(RESOLVED_STATE);
+        await lookup.getStartingStage(PROJECT_ID, new ObjectID(RESOLVED_STATE)),
+      ).toBe(StartingStage.Resolved);
+      expect(reads).toHaveLength(1);
       expect(idOf(reads[0]!.query["projectId"])).toBe(idOf(PROJECT_ID));
-      expect(reads[0]!.select).toEqual({ isResolvedState: true });
+      expect(reads[0]!.select).toEqual(
+        expect.objectContaining({
+          _id: true,
+          order: true,
+          isAcknowledgedState: true,
+          isResolvedState: true,
+        }),
+      );
+      expect(reads[0]!.props).toEqual({ isRoot: true });
     },
   );
 
   test.each(LOOKUPS)(
-    "$name: a state that is not resolved, or not the project's, is not resolved",
+    "$name: the created, acknowledged and resolved states are open, acknowledged and resolved; a state not in the list is open",
     async (lookup: Lookup) => {
-      stubReads(lookup, state(lookup, ACKNOWLEDGED_STATE, false));
+      stubListReads(lookup);
+
       expect(
-        await lookup.isResolvedState(
+        await lookup.getStartingStage(PROJECT_ID, new ObjectID(CREATED_STATE)),
+      ).toBe(StartingStage.Open);
+      expect(
+        await lookup.getStartingStage(
           PROJECT_ID,
           new ObjectID(ACKNOWLEDGED_STATE),
         ),
-      ).toBe(false);
-
-      stubReads(lookup, null);
+      ).toBe(StartingStage.Acknowledged);
       expect(
-        await lookup.isResolvedState(PROJECT_ID, new ObjectID(FOREIGN_STATE)),
-      ).toBe(false);
+        await lookup.getStartingStage(PROJECT_ID, new ObjectID(RESOLVED_STATE)),
+      ).toBe(StartingStage.Resolved);
+      expect(
+        await lookup.getStartingStage(PROJECT_ID, new ObjectID(FOREIGN_STATE)),
+      ).toBe(StartingStage.Open);
     },
   );
 });

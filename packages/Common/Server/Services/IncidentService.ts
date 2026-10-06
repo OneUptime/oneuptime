@@ -154,6 +154,12 @@ import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
+import InvestigationEligibility from "../Utils/AI/SRE/InvestigationEligibility";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+} from "../../Utils/StartingStage";
 
 /*
  * How an update changed an incident's status page scope, for its feed item.
@@ -214,11 +220,15 @@ type UpdateCarryForward = Dictionary<{
 }>;
 
 /*
- * What onBeforeCreate hands to onCreateSuccess. Null unless the incident is
- * being declared from alerts.
+ * What onBeforeCreate hands to onCreateSuccess: how far along the incident
+ * starts (StartingStage), which decides what its create sets off, and the
+ * alerts it is being declared from, if any.
  */
-type IncidentCreateCarryForward = {
-  // Validated, deduplicated alert ids to link once the incident exists.
+type IncidentCreateCarryForward = StartingStageCarryForward & {
+  /*
+   * Validated, deduplicated alert ids to link once the incident exists.
+   * Empty unless the incident is being declared from alerts.
+   */
   alertIdsToLink: Array<ObjectID>;
   /*
    * Acknowledge alerts once they are linked, as the declaring user
@@ -228,7 +238,7 @@ type IncidentCreateCarryForward = {
    */
   acknowledgedAlertStateId: ObjectID | null;
   alertIdsToAcknowledge: Array<ObjectID>;
-} | null;
+};
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -2275,8 +2285,6 @@ export class Service extends ProjectReferencesService<Model> {
      * incident behind that is missing some of its alerts. The alerts are
      * linked in onCreateSuccess, once the incident exists.
      */
-    let carryForward: IncidentCreateCarryForward = null;
-
     const alertIdsToLink: unknown =
       createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
 
@@ -2303,15 +2311,6 @@ export class Service extends ProjectReferencesService<Model> {
         alertIds: validatedAlertIds,
         props: createBy.props,
       });
-
-    if (validatedAlertIds.length > 0) {
-      carryForward = {
-        alertIdsToLink: validatedAlertIds,
-        acknowledgedAlertStateId:
-          alertsToAcknowledge?.acknowledgedAlertStateId || null,
-        alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
-      };
-    }
 
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
@@ -2635,29 +2634,17 @@ export class Service extends ProjectReferencesService<Model> {
       isScopedToNothingByTemplate: isScopedToNothingByTemplate,
     });
 
-    // If no custom state is provided or found, fall back to default created state
+    /*
+     * With no state picked, and none from a template, the incident starts in
+     * the project's created state - as every incident a monitor declares
+     * does - which is open (StartingStage) with no need to read the rest of
+     * the project's states.
+     */
+    const startsInCreatedState: boolean = !initialIncidentStateId;
+
     if (!initialIncidentStateId) {
-      const incidentState: IncidentState | null =
-        await IncidentStateService.findOneBy({
-          query: {
-            projectId: projectId,
-            isCreatedState: true,
-          },
-          select: {
-            _id: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (!incidentState || !incidentState.id) {
-        throw new BadDataException(
-          "Created incident state not found for this project. Please add created incident state from settings.",
-        );
-      }
-
-      initialIncidentStateId = incidentState.id;
+      initialIncidentStateId =
+        await IncidentStateService.getCreatedIncidentStateId(projectId);
     }
 
     /*
@@ -2728,6 +2715,32 @@ export class Service extends ProjectReferencesService<Model> {
       projectId: projectId,
       statusPagesFromCaller: statusPagesFromCaller,
     });
+
+    /*
+     * How far along it starts (StartingStage): read once, here, and handed
+     * to onCreateSuccess, which decides on it what the create sets off. An
+     * incident declared already acknowledged pages nobody, and one declared
+     * resolved also sets off nothing that answers a live problem.
+     */
+    const startingStage: StartingStage = startsInCreatedState
+      ? StartingStage.Open
+      : await IncidentStateService.getStartingStage({
+          projectId: projectId,
+          incidentStateId: initialIncidentStateId,
+        });
+
+    const carryForward: IncidentCreateCarryForward = {
+      startingStage: startingStage,
+      alertIdsToLink: validatedAlertIds,
+      acknowledgedAlertStateId:
+        validatedAlertIds.length > 0
+          ? alertsToAcknowledge?.acknowledgedAlertStateId || null
+          : null,
+      alertIdsToAcknowledge:
+        validatedAlertIds.length > 0
+          ? alertsToAcknowledge?.alertIdsToAcknowledge || []
+          : [],
+    };
 
     const incidentCounterResult: {
       counter: number;
@@ -2868,6 +2881,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * How far along the incident starts, as onBeforeCreate read it
+     * (StartingStage). Declared already acknowledged, no on-call policy
+     * runs. Declared resolved, it is over, and nothing below that answers a
+     * live problem runs either: no channel, monitor status, paused
+     * monitoring, runbook, grouping, SLA, AI investigation or remediation.
+     * Its rules, its owners, its feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+    const isOngoing: boolean = StartingStageUtil.isOngoing(startingStage);
+
+    /*
      * Whether an AI investigation run was enqueued for this incident — set
      * by the investigation step below and read by the auto-remediation step
      * after it: an enqueued investigation DEFERS remediation until the run
@@ -2904,8 +2930,13 @@ export class Service extends ProjectReferencesService<Model> {
     // Execute operations sequentially with error handling
     privacyRulesApplied
       .then(async () => {
+        /*
+         * No channel is opened for an incident declared resolved. Its
+         * created feed entry still goes to the channels the workspace rules
+         * name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
+          if (createdItem.projectId && createdItem.id && isOngoing) {
             return await this.handleIncidentWorkspaceOperationsAsync(
               createdItem,
             );
@@ -3077,8 +3108,17 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * An incident declared resolved leaves its monitors' status alone:
+         * its first state has already put them back to operational, and
+         * nothing would put them back again.
+         */
         try {
-          if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+          if (
+            createdItem.changeMonitorStatusToId &&
+            createdItem.projectId &&
+            isOngoing
+          ) {
             return await this.handleMonitorStatusChangeAsync(
               createdItem,
               onCreate,
@@ -3098,6 +3138,14 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Nor does it pause their monitoring: nothing would ever resume it,
+         * since only resolving the incident does.
+         */
+        if (!isOngoing) {
+          return Promise.resolve();
+        }
+
         try {
           return await this.disableActiveMonitoringIfManualIncident(
             createdItem.id!,
@@ -3171,6 +3219,11 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        // No runbook is started for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await RunbookRuleEngineService.applyRulesToIncident(createdItem);
         } catch (error) {
@@ -3189,7 +3242,10 @@ export class Service extends ProjectReferencesService<Model> {
             createdItem.onCallDutyPolicies?.length &&
             createdItem.onCallDutyPolicies?.length > 0
           ) {
-            return await this.executeOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeOnCallDutyPoliciesAsync(
+              createdItem,
+              startingStage,
+            );
           }
           return Promise.resolve();
         } catch (error) {
@@ -3205,7 +3261,14 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        // Process incident for grouping into episodes
+        /*
+         * Process incident for grouping into episodes - unless it was
+         * declared resolved: grouped, it could open an episode that pages.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await IncidentGroupingEngineService.processIncident(createdItem);
         } catch (error) {
@@ -3220,7 +3283,17 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        // Create SLA record for incident if a matching rule exists
+        /*
+         * Create SLA record for incident if a matching rule exists. An
+         * incident declared resolved has nothing left to respond to or
+         * resolve in time: it starts none. One declared acknowledged was
+         * responded to when it was declared, so its response deadline cannot
+         * be missed for it.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           if (
             createdItem.projectId &&
@@ -3231,6 +3304,9 @@ export class Service extends ProjectReferencesService<Model> {
               incidentId: createdItem.id,
               projectId: createdItem.projectId,
               declaredAt: createdItem.declaredAt,
+              ...(startingStage === StartingStage.Acknowledged
+                ? { respondedAt: createdItem.declaredAt }
+                : {}),
             });
           }
         } catch (error) {
@@ -3273,6 +3349,21 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
+            if (!isOngoing) {
+              /*
+               * Over before it was declared: nothing to investigate. Its AI
+               * card says why no investigation ran.
+               */
+              await InvestigationEligibility.recordSkipped(
+                {
+                  projectId: createdItem.projectId,
+                  incidentId: createdItem.id,
+                },
+                "created_resolved",
+              );
+              return;
+            }
+
             aiInvestigationEnqueued =
               await AIIncidentInvestigationRunner.investigateNewIncident({
                 incidentId: createdItem.id,
@@ -3302,6 +3393,11 @@ export class Service extends ProjectReferencesService<Model> {
          * Remediation card says it waits for the analysis
          * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
+        // Nothing is left to remediate for an incident declared resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await AutoRemediationRuleEngineService.onIncidentCreated({
             incident: createdItem,
@@ -3339,8 +3435,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   // The validated alert ids an incident is being declared from, if any.
   private getAlertIdsDeclaredWith(onCreate: OnCreate<Model>): Array<ObjectID> {
-    const carryForward: IncidentCreateCarryForward =
-      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+    const carryForward: IncidentCreateCarryForward | null =
+      (onCreate.carryForward as IncidentCreateCarryForward | undefined) ||
+      null;
 
     return carryForward?.alertIdsToLink || [];
   }
@@ -3353,8 +3450,9 @@ export class Service extends ProjectReferencesService<Model> {
   private getAlertIdsToAcknowledgeDeclaredWith(
     onCreate: OnCreate<Model>,
   ): Array<ObjectID> {
-    const carryForward: IncidentCreateCarryForward =
-      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+    const carryForward: IncidentCreateCarryForward | null =
+      (onCreate.carryForward as IncidentCreateCarryForward | undefined) ||
+      null;
 
     if (!carryForward?.acknowledgedAlertStateId) {
       return [];
@@ -3801,15 +3899,28 @@ ${incident.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  /*
+   * Runs the incident's on-call policies - the ones its create named,
+   * inherited from a template, or added by its on-call rules - when it
+   * starts open. Declared already acknowledged or resolved, somebody is on
+   * it or it is over: none of them runs, and its feed says so instead,
+   * naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
+        if (!StartingStageUtil.pagesOnCall(startingStage)) {
+          await this.createOnCallNotRunFeedItem(createdItem, startingStage);
+          return;
+        }
+
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -3832,6 +3943,37 @@ ${incident.remediationNotes || "No remediation notes provided."}
       } as LogAttributes);
       throw error;
     }
+  }
+
+  // The feed line of an incident declared past open, in place of paging.
+  private async createOnCallNotRunFeedItem(
+    createdItem: Model,
+    startingStage: StartingStage,
+  ): Promise<void> {
+    const feedInfoInMarkdown: string | null =
+      await OnCallNotRunOnCreate.getFeedMarkdown({
+        noun: "incident",
+        stage: startingStage,
+        policyIds: (createdItem.onCallDutyPolicies || [])
+          .map((policy: OnCallDutyPolicy): string => {
+            return String(policy["_id"] || "");
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      });
+
+    if (!feedInfoInMarkdown) {
+      return;
+    }
+
+    await IncidentFeedService.createIncidentFeedItem({
+      incidentId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      incidentFeedEventType: IncidentFeedEventType.OnCallPolicy,
+      displayColor: Gray500,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+    });
   }
 
   @CaptureSpan()

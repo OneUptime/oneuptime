@@ -9,6 +9,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
+import { StartingStage } from "../../../Utils/StartingStage";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -112,6 +113,18 @@ beforeEach(() => {
   jest
     .spyOn(ScheduledMaintenanceStateService, "findOneBy")
     .mockResolvedValue(row(ScheduledMaintenanceState, CREATED_STATE) as never);
+
+  /*
+   * Where a record starts among the project's states decides what its
+   * create sets off (StartingStage), not which name of the state is kept:
+   * open here.
+   */
+  jest
+    .spyOn(IncidentStateService, "getStartingStage")
+    .mockResolvedValue(StartingStage.Open as never);
+  jest
+    .spyOn(AlertStateService, "getStartingStage")
+    .mockResolvedValue(StartingStage.Open as never);
 
   jest
     .spyOn(CustomFieldMappingService, "restampAfterMultiRowUpdate")

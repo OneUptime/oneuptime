@@ -117,6 +117,11 @@ export default class InvestigationEligibility {
         nextStep:
           "Review recent investigations for the affected monitor, or adjust the investigation cooldown for new records. An earlier run may still be queued, running, or may have failed.",
       },
+      created_resolved: {
+        title: `This ${kind} was created already resolved`,
+        description: `It was already resolved when it was created, so OneUptime AI did not investigate it automatically.`,
+        nextStep: "To look into it anyway, ask OneUptime AI below.",
+      },
       daily_budget_exhausted: {
         title:
           budget?.limitInTokens === 0

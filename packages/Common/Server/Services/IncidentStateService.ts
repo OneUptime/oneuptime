@@ -10,6 +10,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import { STATE_LISTS, StateListType } from "../../Utils/StateOrder";
+import StartingStageUtil, { StartingStage } from "../../Utils/StartingStage";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -184,9 +185,12 @@ export class Service extends DatabaseService<IncidentState> {
   }
 
   /*
-   * The project's created state: where a new incident episode starts when
-   * its create names no state (IncidentEpisodeService), as every one a
-   * grouping rule opens does.
+   * The project's created state: where a new incident or incident episode
+   * starts when its create names no state and, for an incident, no template
+   * names one (IncidentService, IncidentEpisodeService) - as every incident a
+   * monitor declares and every episode a grouping rule opens does. Such a
+   * record starts open (StartingStage), with no need to read the rest of the
+   * list.
    */
   @CaptureSpan()
   public async getCreatedIncidentStateId(
@@ -214,26 +218,32 @@ export class Service extends DatabaseService<IncidentState> {
     return createdIncidentState.id;
   }
 
-  // Whether one of the project's incident states is its resolved state.
+  /*
+   * How far along an incident or an incident episode starts when it is
+   * created in one of the project's incident states: open, acknowledged or
+   * resolved, by the state's place in the project's list (StartingStage).
+   * What its create then sets off follows from it - no on-call from
+   * acknowledged on, nothing that answers a live problem once resolved. Read
+   * once per create, from the project's whole list, as OneUptime.
+   */
   @CaptureSpan()
-  public async isResolvedIncidentState(data: {
+  public async getStartingStage(data: {
     projectId: ObjectID;
     incidentStateId: ObjectID;
-  }): Promise<boolean> {
-    const incidentState: IncidentState | null = await this.findOneBy({
-      query: {
-        _id: data.incidentStateId.toString(),
+  }): Promise<StartingStage> {
+    const incidentStates: Array<IncidentState> =
+      await this.getAllIncidentStates({
         projectId: data.projectId,
-      },
-      select: {
-        isResolvedState: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+        props: {
+          isRoot: true,
+        },
+      });
 
-    return Boolean(incidentState?.isResolvedState);
+    return StartingStageUtil.getStage({
+      definition: STATE_LISTS[StateListType.IncidentState],
+      states: incidentStates,
+      stateId: data.incidentStateId,
+    });
   }
 }
 export default new Service();

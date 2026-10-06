@@ -315,13 +315,47 @@ function stubStates(kind: Kind): void {
         return null;
       }
 
-      const state: StateModel = new kind.stateModel();
-      state._id = id;
-      state.isCreatedState = id === CREATED_STATE;
-      state.isAcknowledgedState = id === ACKNOWLEDGED_STATE;
-      state.isResolvedState = id === RESOLVED_STATE;
-      return state;
+      return stateRow(kind, id);
     }) as never);
+
+  /*
+   * The project's whole list, in its order, as where a record starts is
+   * read from it (getStartingStage).
+   */
+  jest
+    .spyOn(
+      kind.stateService as {
+        findBy: (...args: Array<unknown>) => Promise<unknown>;
+      },
+      "findBy",
+    )
+    .mockImplementation((async (findBy: {
+      query: Record<string, unknown>;
+    }): Promise<Array<StateModel>> => {
+      if (
+        String(findBy.query["projectId"]).toLowerCase() !==
+        PROJECT_ID.toString().toLowerCase()
+      ) {
+        return [];
+      }
+
+      return [CREATED_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE].map(
+        (id: string): StateModel => {
+          return stateRow(kind, id);
+        },
+      );
+    }) as never);
+}
+
+// One of the project's states, with its flags and its place in the list.
+function stateRow(kind: Kind, id: string): StateModel {
+  const state: StateModel = new kind.stateModel();
+  state._id = id;
+  state.isCreatedState = id === CREATED_STATE;
+  state.isAcknowledgedState = id === ACKNOWLEDGED_STATE;
+  state.isResolvedState = id === RESOLVED_STATE;
+  state.order = [CREATED_STATE, ACKNOWLEDGED_STATE, RESOLVED_STATE].indexOf(id) + 1;
+  return state;
 }
 
 // The database behind the service: the save hands the row back as stored.

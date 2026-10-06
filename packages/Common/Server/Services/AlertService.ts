@@ -102,6 +102,12 @@ import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
+import InvestigationEligibility from "../Utils/AI/SRE/InvestigationEligibility";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+} from "../../Utils/StartingStage";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -862,6 +868,21 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
+     * How far along it starts (StartingStage): read once, here, and handed
+     * to onCreateSuccess, which decides on it what the create sets off. An
+     * alert recorded already acknowledged pages nobody, and one recorded
+     * resolved also sets off nothing that answers a live problem. With no
+     * state picked it starts in the created state - open, as every alert a
+     * monitor raises - and there is nothing to read.
+     */
+    const startingStage: StartingStage = pickedAlertStateId
+      ? await AlertStateService.getStartingStage({
+          projectId: projectId,
+          alertStateId: pickedAlertStateId,
+        })
+      : StartingStage.Open;
+
+    /*
      * The state it starts in, under the ID column alone: stamp leaves no
      * other name of it to be stored instead, so the state checked above is
      * the state stored - and the state onCreateSuccess writes the alert's
@@ -916,7 +937,11 @@ export class Service extends ProjectReferencesService<Model> {
       )}`;
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: StartingStageCarryForward = {
+      startingStage: startingStage,
+    };
+
+    return { createBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
@@ -935,6 +960,19 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createdItem.currentAlertStateId) {
       throw new BadDataException("currentAlertStateId is required");
     }
+
+    /*
+     * How far along the alert starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, it is over, and nothing below that answers a live
+     * problem runs either: no channel, runbook, grouping, AI investigation
+     * or remediation. Its rules, its owners, its feed and its first state
+     * still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
+    const isOngoing: boolean = StartingStageUtil.isOngoing(startingStage);
 
     /*
      * Whether an AI investigation run was enqueued for this alert — set by
@@ -965,7 +1003,11 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        if (createdItem.projectId && createdItem.id) {
+        /*
+         * No channel is opened for an alert created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
           try {
             return await this.handleAlertWorkspaceOperationsAsync(createdItem);
           } catch (error) {
@@ -1088,6 +1130,11 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        // No runbook is started for an alert created resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await RunbookRuleEngineService.applyRulesToAlert(createdItem);
         } catch (error) {
@@ -1106,7 +1153,10 @@ export class Service extends ProjectReferencesService<Model> {
           createdItem.onCallDutyPolicies?.length > 0
         ) {
           try {
-            return await this.executeAlertOnCallDutyPoliciesAsync(createdItem);
+            return await this.executeAlertOnCallDutyPoliciesAsync(
+              createdItem,
+              startingStage,
+            );
           } catch (error) {
             logger.error(
               `On-call duty policy execution failed in AlertService.onCreateSuccess: ${error}`,
@@ -1121,7 +1171,14 @@ export class Service extends ProjectReferencesService<Model> {
         return Promise.resolve();
       })
       .then(async () => {
-        // Process alert for grouping into episodes
+        /*
+         * Process alert for grouping into episodes - unless it was created
+         * resolved: grouped, it could open an episode that pages.
+         */
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await AlertGroupingEngineService.processAlert(createdItem);
         } catch (error) {
@@ -1163,6 +1220,21 @@ export class Service extends ProjectReferencesService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
+            if (!isOngoing) {
+              /*
+               * Over before it was recorded: nothing to investigate. Its
+               * AI card says why no investigation ran.
+               */
+              await InvestigationEligibility.recordSkipped(
+                {
+                  projectId: createdItem.projectId,
+                  alertId: createdItem.id,
+                },
+                "created_resolved",
+              );
+              return;
+            }
+
             aiInvestigationEnqueued =
               await AIAlertInvestigationRunner.investigateNewAlert({
                 alertId: createdItem.id,
@@ -1192,6 +1264,11 @@ export class Service extends ProjectReferencesService<Model> {
          * Remediation card says it waits for the analysis
          * (AutoRemediationRuleEngineService.onIncidentCreated/onAlertCreated).
          */
+        // Nothing is left to remediate for an alert created resolved.
+        if (!isOngoing) {
+          return;
+        }
+
         try {
           await AutoRemediationRuleEngineService.onAlertCreated({
             alert: createdItem,
@@ -1436,15 +1513,27 @@ ${alert.remediationNotes || "No remediation notes provided."}
     }
   }
 
+  /*
+   * Runs the alert's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeAlertOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     try {
       if (
         createdItem.onCallDutyPolicies?.length &&
         createdItem.onCallDutyPolicies?.length > 0
       ) {
+        if (!StartingStageUtil.pagesOnCall(startingStage)) {
+          await this.createOnCallNotRunFeedItem(createdItem, startingStage);
+          return;
+        }
+
         // Execute all on-call policies in parallel
         const policyPromises: Promise<void>[] =
           createdItem.onCallDutyPolicies.map((policy: OnCallDutyPolicy) => {
@@ -1467,6 +1556,37 @@ ${alert.remediationNotes || "No remediation notes provided."}
       } as LogAttributes);
       throw error;
     }
+  }
+
+  // The feed line of an alert created past open, in place of paging.
+  private async createOnCallNotRunFeedItem(
+    createdItem: Model,
+    startingStage: StartingStage,
+  ): Promise<void> {
+    const feedInfoInMarkdown: string | null =
+      await OnCallNotRunOnCreate.getFeedMarkdown({
+        noun: "alert",
+        stage: startingStage,
+        policyIds: (createdItem.onCallDutyPolicies || [])
+          .map((policy: OnCallDutyPolicy): string => {
+            return String(policy["_id"] || "");
+          })
+          .filter((id: string): boolean => {
+            return Boolean(id);
+          }),
+      });
+
+    if (!feedInfoInMarkdown) {
+      return;
+    }
+
+    await AlertFeedService.createAlertFeedItem({
+      alertId: createdItem.id!,
+      projectId: createdItem.projectId!,
+      alertFeedEventType: AlertFeedEventType.OnCallPolicy,
+      displayColor: Gray500,
+      feedInfoInMarkdown: feedInfoInMarkdown,
+    });
   }
 
   @CaptureSpan()

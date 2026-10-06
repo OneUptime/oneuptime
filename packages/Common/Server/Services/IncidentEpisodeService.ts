@@ -27,7 +27,12 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
 import { IncidentEpisodeFeedEventType } from "../../Models/DatabaseModels/IncidentEpisodeFeed";
-import { Red500, Yellow500, Purple500 } from "../../Types/BrandColors";
+import {
+  Red500,
+  Yellow500,
+  Purple500,
+  Gray500,
+} from "../../Types/BrandColors";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import IncidentSeverityService from "./IncidentSeverityService";
@@ -60,6 +65,11 @@ import IncidentEpisodeLabelRuleEngineService from "./IncidentEpisodeLabelRuleEng
 import IncidentEpisodeOnCallRuleEngineService from "./IncidentEpisodeOnCallRuleEngineService";
 import IncidentEpisodeOwnerRuleEngineService from "./IncidentEpisodeOwnerRuleEngineService";
 import IncidentEpisodePrivacyRuleEngineService from "./IncidentEpisodePrivacyRuleEngineService";
+import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
+import StartingStageUtil, {
+  StartingStage,
+  StartingStageCarryForward,
+} from "../../Utils/StartingStage";
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -266,6 +276,21 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     /*
+     * How far along it starts (StartingStage): read once, here, and handed
+     * to onCreateSuccess, which decides on it what the create sets off. An
+     * episode recorded already acknowledged pages nobody, and one recorded
+     * resolved opens no channel either. With no state picked it starts in
+     * the created state - open, as every episode a grouping rule opens - and
+     * there is nothing to read.
+     */
+    const startingStage: StartingStage = pickedIncidentStateId
+      ? await IncidentStateService.getStartingStage({
+          projectId: projectId,
+          incidentStateId: pickedIncidentStateId,
+        })
+      : StartingStage.Open;
+
+    /*
      * resolvedAt follows the state the episode starts in. One recorded as
      * already resolved is resolved from the moment it exists: grouping,
      * auto-resolve and the unresolved episode lists read resolvedAt, which
@@ -274,13 +299,7 @@ export class Service extends ProjectReferencesService<Model> {
      * moment that row records. Any other episode has none yet, whatever the
      * write sent: the first timeline row would clear it anyway.
      */
-    if (
-      pickedIncidentStateId &&
-      (await IncidentStateService.isResolvedIncidentState({
-        projectId: projectId,
-        incidentStateId: pickedIncidentStateId,
-      }))
-    ) {
+    if (startingStage === StartingStage.Resolved) {
       createBy.data.resolvedAt = OneUptimeDate.getCurrentDate();
     } else {
       delete createData["resolvedAt"];
@@ -337,12 +356,16 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { createBy, carryForward: null };
+    const carryForward: StartingStageCarryForward = {
+      startingStage: startingStage,
+    };
+
+    return { createBy, carryForward: carryForward };
   }
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
@@ -356,6 +379,16 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createdItem.currentIncidentStateId) {
       throw new BadDataException("currentIncidentStateId is required");
     }
+
+    /*
+     * How far along the episode starts, as onBeforeCreate read it
+     * (StartingStage). Created already acknowledged, no on-call policy runs;
+     * created resolved, no channel is opened for it either. Its rules, its
+     * feed and its first state still happen.
+     */
+    const startingStage: StartingStage = StartingStageUtil.fromCarryForward(
+      onCreate.carryForward,
+    );
 
     // Create initial state timeline entry
     Promise.resolve()
@@ -380,8 +413,16 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * No channel is opened for an episode created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
         try {
-          if (createdItem.projectId && createdItem.id) {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            StartingStageUtil.isOngoing(startingStage)
+          ) {
             await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
           }
         } catch (error) {
@@ -485,7 +526,10 @@ export class Service extends ProjectReferencesService<Model> {
       .then(async () => {
         // Execute on-call duty policies
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(createdItem);
+          await this.executeEpisodeOnCallDutyPoliciesAsync(
+            createdItem,
+            startingStage,
+          );
         } catch (error) {
           logger.error(
             `On-call duty policy execution failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
@@ -608,9 +652,16 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * Runs the episode's on-call policies - the ones its create named and the
+   * ones its on-call rules added - when it starts open. Created already
+   * acknowledged or resolved, somebody is on it or it is over: none of them
+   * runs, and its feed says so instead, naming them (OnCallNotRunOnCreate).
+   */
   @CaptureSpan()
   private async executeEpisodeOnCallDutyPoliciesAsync(
     createdItem: Model,
+    startingStage: StartingStage,
   ): Promise<void> {
     if (!createdItem.id || !createdItem.projectId) {
       return;
@@ -635,6 +686,34 @@ export class Service extends ProjectReferencesService<Model> {
         !episodeWithPolicies?.onCallDutyPolicies?.length ||
         episodeWithPolicies.onCallDutyPolicies.length === 0
       ) {
+        return;
+      }
+
+      if (!StartingStageUtil.pagesOnCall(startingStage)) {
+        const notRunMarkdown: string | null =
+          await OnCallNotRunOnCreate.getFeedMarkdown({
+            noun: "episode",
+            stage: startingStage,
+            policyIds: episodeWithPolicies.onCallDutyPolicies
+              .map((policy: OnCallDutyPolicy): string => {
+                return String(policy._id || "");
+              })
+              .filter((id: string): boolean => {
+                return Boolean(id);
+              }),
+          });
+
+        if (notRunMarkdown) {
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: createdItem.id,
+            projectId: createdItem.projectId,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.OnCallPolicy,
+            displayColor: Gray500,
+            feedInfoInMarkdown: notRunMarkdown,
+          });
+        }
+
         return;
       }
 
