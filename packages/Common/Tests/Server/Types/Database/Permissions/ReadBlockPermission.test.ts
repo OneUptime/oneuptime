@@ -775,18 +775,77 @@ describe("ReadPermission.checkReadBlockPermission on models without labels", () 
   });
 
   /*
-   * A resource id several kinds of resource share cannot be told apart, so
-   * a block with labels cannot leave out only the rows naming a blocked
-   * resource: it refuses the read, as a block with no labels does.
+   * An inventory item names its resource by an id several kinds of resource
+   * share. A record id names one record in the whole database, so the id is
+   * weighed against every model that carries labels: the item is left out
+   * when the resource it names, whatever its kind, carries a blocked label,
+   * and an item that names no resource stays.
    */
-  it("refuses a model whose key column names a record it cannot tell", async () => {
-    await expect(
-      ReadPermission.checkReadBlockPermission(
-        InventoryItem,
-        { projectId } as any,
-        propsWithBlock(Permission.ProjectMember),
-      ),
-    ).rejects.toThrow(NotAuthorizedException);
+  it("weighs a resource id of any kind against every model that carries labels", async () => {
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      InventoryItem,
+      { projectId } as any,
+      propsWithBlock(Permission.ProjectMember),
+    );
+
+    const conditions: Array<any> = [];
+    const collect: (operator: any) => void = (operator: any): void => {
+      if (operator.type === "and") {
+        operator.value.forEach(collect);
+        return;
+      }
+      conditions.push(operator);
+    };
+    collect(result.query.resourceId);
+
+    const sql: string = conditions
+      .map((condition: any): string => {
+        return rawSql(condition, "resourceKey");
+      })
+      .join(" AND ");
+
+    for (const joinTable of [
+      "MonitorLabel",
+      "ServiceLabel",
+      "HostLabel",
+      "DockerHostLabel",
+      "KubernetesClusterLabel",
+      "DatabaseServerLabel",
+      "StatusPageLabel",
+    ]) {
+      expect([joinTable, sql.includes(`FROM "${joinTable}"`)]).toEqual([
+        joinTable,
+        true,
+      ]);
+    }
+
+    // One condition per model that carries labels, each keeping empty ids.
+    expect(conditions.length).toBeGreaterThan(30);
+    for (const condition of conditions) {
+      expect(rawSql(condition, "resourceKey")).toContain(
+        "resourceKey IS NULL OR resourceKey NOT IN",
+      );
+      expect(boundValues(condition)).toEqual([blockedLabel.toString()]);
+    }
+
+    // Nothing else about the item is narrowed.
+    expect(result.query._id).toBeUndefined();
+    expect(result.query.projectId).toBe(projectId);
+  });
+
+  it("keeps the caller's own resource filter next to the block", async () => {
+    const resourceId: ObjectID = ObjectID.generate();
+
+    const result: any = await ReadPermission.checkReadBlockPermission(
+      InventoryItem,
+      { projectId, resourceId } as any,
+      propsWithBlock(Permission.ProjectMember),
+    );
+
+    expect(result.query.resourceId).toBeInstanceOf(FindOperator);
+    expect(JSON.stringify(result.query.resourceId)).toContain(
+      resourceId.toString(),
+    );
   });
 
   it("leaves a model whose keys name no labelled record as it is (the project)", async () => {

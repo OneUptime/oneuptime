@@ -14,7 +14,6 @@ import DatabaseCommonInteractionPropsUtil, {
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../../../Types/ObjectID";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import UserAttribution from "../../../../Types/Database/UserAttribution";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import Permission, { UserPermission } from "../../../../Types/Permission";
@@ -33,11 +32,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 export interface LabelledReferences {
   keys: Array<{ column: string; modelTypes: Array<{ new (): BaseModel }> }>;
   /*
-   * Key columns whose record cannot be told: a block with labels on the
-   * model refuses its reads rather than let rows naming a blocked record
-   * through.
+   * Key columns whose record's kind cannot be told from the column (a
+   * resource id several kinds of resource share). Each is weighed against
+   * every model that carries labels: a record id names one record in the
+   * whole database, so it can only match the labels of the record it names.
    */
-  unresolvedColumns: Array<string>;
+  anyKindColumns: Array<string>;
 }
 
 /*
@@ -67,6 +67,20 @@ interface ModelByTableName {
 }
 
 let modelsByTableName: Array<ModelByTableName> | null = null;
+let labelledModelTypes: Array<{ new (): BaseModel }> | null = null;
+
+// Every model whose records carry labels.
+function getLabelledModelTypes(): Array<{ new (): BaseModel }> {
+  if (!labelledModelTypes) {
+    labelledModelTypes = AllModelTypes.filter(
+      (modelType: { new (): BaseModel }): boolean => {
+        return Boolean(new modelType().getAccessControlColumn());
+      },
+    );
+  }
+
+  return labelledModelTypes;
+}
 
 // Every model by table name, longest first, for getModelNamedByColumn.
 function getModelsByTableName(): Array<ModelByTableName> {
@@ -215,12 +229,7 @@ export default class ReadPermission {
        * is what takes a whole table away (refused above).
        */
       return {
-        query: this.addParentLabelBlockToQuery(
-          modelType,
-          query,
-          labelIds,
-          blockPermissionsBelongToThisModel[0]!.permission,
-        ),
+        query: this.addParentLabelBlockToQuery(modelType, query, labelIds),
       };
     }
 
@@ -281,19 +290,16 @@ export default class ReadPermission {
    *   - every record it names by key (getLabelledReferences) - the resource
    *     its owner key names, a many-to-one relation's record, a plain id
    *     column's record (an AI run's monitor, an on-call time log's
-   *     schedule).
+   *     schedule), and the record a resource id of any kind names (an
+   *     inventory item's resource).
    *
    * A row whose key is empty names nothing there and stays. A model that
-   * names a parent it does not have is misconfigured and refused; a model
-   * with a key column whose record cannot be told (a resource id shared by
-   * several kinds of resource) is refused as a block with no labels refuses
-   * it, rather than let rows naming a blocked record through.
+   * names a parent it does not have is misconfigured and refused.
    */
   private static addParentLabelBlockToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     labelIds: Array<ObjectID>,
-    blockedPermission: Permission,
   ): Query<TBaseModel> {
     const model: TBaseModel = new modelType();
     const declaredParent: string | null = model.canAccessIfCanReadOn;
@@ -316,12 +322,6 @@ export default class ReadPermission {
 
     const references: LabelledReferences =
       ReadPermission.getLabelledReferences(modelType);
-
-    if (references.unresolvedColumns.length > 0) {
-      throw new NotAuthorizedException(
-        `You are not authorized to read ${model.singularName} because ${blockedPermission} is in your team's permission block list.`,
-      );
-    }
 
     // A parent through a join table (an announcement's status pages).
     if (
@@ -366,8 +366,9 @@ export default class ReadPermission {
    * Only models that carry labels are kept. Who did something to the row
    * (`createdByUserId`) names a user, and users carry no labels. A plain id
    * column whose name says nothing (`resourceId`, which several kinds of
-   * resource share) is unresolved, unless it is known to name a record that
-   * carries no labels (PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS).
+   * resource share) names a record of any kind: it is weighed against every
+   * model that carries labels (anyKindColumns), unless it is known to name
+   * a record that carries no labels (PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS).
    */
   public static getLabelledReferences(modelType: {
     new (): BaseModel;
@@ -435,7 +436,7 @@ export default class ReadPermission {
       }
     }
 
-    const unresolvedColumns: Array<string> = [];
+    const anyKindColumns: Array<string> = [];
 
     for (const columnName of Object.keys(columns)) {
       const column: TableColumnMetadata | undefined = columns[columnName];
@@ -457,7 +458,12 @@ export default class ReadPermission {
         ReadPermission.getModelNamedByColumn(columnName);
 
       if (!namedModelType) {
-        unresolvedColumns.push(columnName);
+        anyKindColumns.push(columnName);
+
+        for (const labelledModelType of getLabelledModelTypes()) {
+          addKey(columnName, labelledModelType);
+        }
+
         continue;
       }
 
@@ -470,7 +476,7 @@ export default class ReadPermission {
           return { column: column, modelTypes: Array.from(modelTypes) };
         },
       ),
-      unresolvedColumns: unresolvedColumns,
+      anyKindColumns: anyKindColumns,
     };
 
     labelledReferencesCache.set(modelType, references);

@@ -6,6 +6,9 @@ import ReadPermission, {
   PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS,
 } from "../../../Server/Types/Database/Permissions/ReadPermission";
 import { describe, expect, test } from "@jest/globals";
+import { getMetadataArgsStorage } from "typeorm";
+import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
+import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 
 /*
  * EVERY MODEL THAT NAMES THE RECORD IT IS READ THROUGH NAMES A REAL ONE.
@@ -60,8 +63,11 @@ describe("canAccessIfCanReadOn", () => {
  * it names by key carries one of the labels (ReadPermission
  * .getLabelledReferences): a relation's record, the owner key's resource, a
  * plain id column's record by the model its name ends with. A key column
- * whose record cannot be told refuses the read instead, so the models that
- * have one are pinned here: a new one is a decision, not an accident.
+ * whose record's kind cannot be told is weighed against every model that
+ * carries labels - one condition per model on every read under such a
+ * block - so the models that have one are pinned here: a new one is a
+ * decision (or a column for PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS), not an
+ * accident.
  */
 describe("records with no labels of their own", () => {
   const labelLess: Array<{ new (): BaseModel }> = AllModelTypes.filter(
@@ -70,27 +76,102 @@ describe("records with no labels of their own", () => {
     },
   );
 
+  const labelled: Array<{ new (): BaseModel }> = AllModelTypes.filter(
+    (modelType: { new (): BaseModel }): boolean => {
+      return Boolean(new modelType().getAccessControlColumn());
+    },
+  );
+
   test("name records the rule can tell, but for the resource ids several kinds share", () => {
-    const refused: Record<string, Array<string>> = {};
+    const anyKind: Record<string, Array<string>> = {};
 
     for (const modelType of labelLess) {
-      const unresolved: Array<string> =
-        ReadPermission.getLabelledReferences(modelType).unresolvedColumns;
+      const columns: Array<string> =
+        ReadPermission.getLabelledReferences(modelType).anyKindColumns;
 
-      if (unresolved.length > 0) {
-        refused[new modelType().tableName || modelType.name] = [
-          ...unresolved,
+      if (columns.length > 0) {
+        anyKind[new modelType().tableName || modelType.name] = [
+          ...columns,
         ].sort();
       }
     }
 
-    expect(refused).toEqual({
+    expect(anyKind).toEqual({
       AutoRemediationSuggestion: ["resourceId"],
       InventoryItem: ["resourceId"],
       RecommendationDismissal: ["resourceId"],
       ResourceAiAgent: ["resourceId"],
       RunnerJob: ["assignedAgentId", "resourceId"],
     });
+  });
+
+  test("a resource id of any kind is weighed against every model that carries labels", () => {
+    const references: ReturnType<typeof ReadPermission.getLabelledReferences> =
+      ReadPermission.getLabelledReferences(
+        labelLess.find((modelType: { new (): BaseModel }): boolean => {
+          return new modelType().tableName === "InventoryItem";
+        })!,
+      );
+
+    const resourceId:
+      | { column: string; modelTypes: Array<{ new (): BaseModel }> }
+      | undefined = references.keys.find((key: { column: string }): boolean => {
+      return key.column === "resourceId";
+    });
+
+    expect(labelled.length).toBeGreaterThan(30);
+    expect(new Set(resourceId?.modelTypes)).toEqual(new Set(labelled));
+  });
+
+  /*
+   * A block with labels reaches a labelled record's labels through the join
+   * table its labels are kept in, so every model that carries labels names
+   * one, many-to-many, with the columns on both sides.
+   */
+  test("every model that carries labels names the join table they are kept in", () => {
+    const unnamed: Array<string> = [];
+
+    for (const modelType of labelled) {
+      const labelsColumn: string = new modelType().getAccessControlColumn()!;
+      let joinTable: JoinTableMetadataArgs | undefined = undefined;
+      let relation: RelationMetadataArgs | undefined = undefined;
+
+      // The labels may be declared on a model the model extends.
+      for (
+        let target: unknown = modelType;
+        target && target !== Function.prototype && !joinTable;
+        target = Object.getPrototypeOf(target)
+      ) {
+        joinTable = getMetadataArgsStorage().joinTables.find(
+          (candidate: JoinTableMetadataArgs): boolean => {
+            return (
+              candidate.target === target &&
+              candidate.propertyName === labelsColumn
+            );
+          },
+        );
+        relation = getMetadataArgsStorage().relations.find(
+          (candidate: RelationMetadataArgs): boolean => {
+            return (
+              candidate.target === target &&
+              candidate.propertyName === labelsColumn
+            );
+          },
+        );
+      }
+
+      if (
+        !joinTable ||
+        !joinTable.name ||
+        joinTable.joinColumns?.length !== 1 ||
+        joinTable.inverseJoinColumns?.length !== 1 ||
+        relation?.relationType !== "many-to-many"
+      ) {
+        unnamed.push(`${new modelType().tableName}.${labelsColumn}`);
+      }
+    }
+
+    expect(unnamed).toEqual([]);
   });
 
   test("the plain columns known to name records without labels are real columns", () => {
