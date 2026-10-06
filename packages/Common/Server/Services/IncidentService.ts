@@ -235,23 +235,27 @@ type UpdateCarryForward = Dictionary<{
 /*
  * What onBeforeCreate hands to onCreateSuccess: how far along the incident
  * starts (StartingStage), which decides what its create sets off, and the
- * alerts it is being declared from, if any.
+ * alerts it is being declared from, if any. Null only for a success hook run
+ * without one, which then sets off what a new incident always did.
  */
-type IncidentCreateCarryForward = StartingStageCarryForward & {
-  /*
-   * Validated, deduplicated alert ids to link once the incident exists.
-   * Empty unless the incident is being declared from alerts.
-   */
-  alertIdsToLink: Array<ObjectID>;
-  /*
-   * Acknowledge alerts once they are linked, as the declaring user
-   * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their escalation.
-   * When asked to: the project's Acknowledged alert state, and the alerts
-   * not acknowledged yet, which the caller was checked for. Null otherwise.
-   */
-  acknowledgedAlertStateId: ObjectID | null;
-  alertIdsToAcknowledge: Array<ObjectID>;
-};
+type IncidentCreateCarryForward =
+  | (StartingStageCarryForward & {
+      /*
+       * Validated, deduplicated alert ids to link once the incident exists.
+       * Empty unless the incident is being declared from alerts.
+       */
+      alertIdsToLink: Array<ObjectID>;
+      /*
+       * Acknowledge alerts once they are linked, as the declaring user
+       * (INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY) - what stops their
+       * escalation. When asked to: the project's Acknowledged alert state,
+       * and the alerts not acknowledged yet, which the caller was checked
+       * for. Null otherwise.
+       */
+      acknowledgedAlertStateId: ObjectID | null;
+      alertIdsToAcknowledge: Array<ObjectID>;
+    })
+  | null;
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -2788,17 +2792,17 @@ export class Service extends ProjectReferencesService<Model> {
           incidentStateId: initialIncidentStateId,
         });
 
+    /*
+     * The alerts to acknowledge are asked for only with alerts to link (the
+     * validator refuses the request otherwise), so they are empty, and the
+     * state null, for an incident declared from no alerts.
+     */
     const carryForward: IncidentCreateCarryForward = {
       startingStage: startingStage,
       alertIdsToLink: validatedAlertIds,
       acknowledgedAlertStateId:
-        validatedAlertIds.length > 0
-          ? alertsToAcknowledge?.acknowledgedAlertStateId || null
-          : null,
-      alertIdsToAcknowledge:
-        validatedAlertIds.length > 0
-          ? alertsToAcknowledge?.alertIdsToAcknowledge || []
-          : [],
+        alertsToAcknowledge?.acknowledgedAlertStateId || null,
+      alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
     };
 
     const incidentCounterResult: {
@@ -3494,8 +3498,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   // The validated alert ids an incident is being declared from, if any.
   private getAlertIdsDeclaredWith(onCreate: OnCreate<Model>): Array<ObjectID> {
-    const carryForward: IncidentCreateCarryForward | null =
-      (onCreate.carryForward as IncidentCreateCarryForward | undefined) || null;
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
 
     return carryForward?.alertIdsToLink || [];
   }
@@ -3508,8 +3512,8 @@ export class Service extends ProjectReferencesService<Model> {
   private getAlertIdsToAcknowledgeDeclaredWith(
     onCreate: OnCreate<Model>,
   ): Array<ObjectID> {
-    const carryForward: IncidentCreateCarryForward | null =
-      (onCreate.carryForward as IncidentCreateCarryForward | undefined) || null;
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
 
     if (!carryForward?.acknowledgedAlertStateId) {
       return [];
