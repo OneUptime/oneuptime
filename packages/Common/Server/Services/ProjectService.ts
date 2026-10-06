@@ -29,6 +29,7 @@ import {
 import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import type AuditLogServiceType from "./AuditLogService";
+import type PlanDowngradeOwnerNoticeType from "../Utils/Billing/PlanDowngradeOwnerNotice";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -313,12 +314,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
    * authenticated request when billing is enabled — without caching,
-   * that's one Postgres findOneById per API call to a billable project.
+   * that's one Postgres findOneById per API call to a billable project —
+   * and by the API-key and SCIM middleware, which refuse a project's keys
+   * and SCIM connections below their plan (PlanCutoffCredentialAccess).
    * Plans change rarely (subscription create / cancel / change), so a
-   * 60s staleness window is acceptable.
+   * 60s staleness window is acceptable. A plan change drops the project's
+   * entry on the server that made it (forgetCurrentPlan), so there the
+   * new plan applies at once, and everywhere else within the 60 seconds.
    */
   private currentPlanCache: InMemoryTTLCache<CurrentPlan> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * How long a project's plan is cached on a server: the longest a plan
+   * change takes to reach a server that did not make it.
+   */
+  public static readonly CURRENT_PLAN_CACHE_TTL_MS: number = 60_000;
 
   public constructor() {
     super(Model);
@@ -1251,12 +1262,34 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     /*
+     * The new plan applies to the next request: what the project's API keys
+     * and SCIM connections may do turns on it (PlanCutoffCredentialAccess).
+     */
+    this.forgetCurrentPlan(project.id!);
+
+    /*
      * Raised after the row is written, because the row is what makes these ids
      * unreachable: it now carries the replacements.
      */
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,
       subscriptionIds: subscription.subscriptionIdsPendingCancellation,
+    });
+
+    /*
+     * A move below the plan the project's API keys or SCIM connections need
+     * stops them; its owners are told once, now, what stopped. Never throws.
+     * Lazy require: the notice reads and emails through ProjectService, so a
+     * top-level import here would be circular.
+     */
+    const planDowngradeOwnerNotice: typeof PlanDowngradeOwnerNoticeType =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      require("../Utils/Billing/PlanDowngradeOwnerNotice").default;
+
+    await planDowngradeOwnerNotice.notifyIfStopped({
+      projectId: project.id!,
+      fromPlanId: project.paymentProviderPlanId,
+      toPlanId: params.paymentProviderPlanId,
     });
 
     this.capturePlanChangeAnalytics({
@@ -3191,8 +3224,21 @@ These are no longer recorded against the project and have to be cancelled by han
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };
-    this.currentPlanCache.set(cacheKey, result, 60_000);
+    this.currentPlanCache.set(
+      cacheKey,
+      result,
+      ProjectService.CURRENT_PLAN_CACHE_TTL_MS,
+    );
     return result;
+  }
+
+  /*
+   * Drop this server's cached plan of the project, so the next request
+   * reads the plan just written. Other servers keep theirs until it
+   * expires (CURRENT_PLAN_CACHE_TTL_MS).
+   */
+  public forgetCurrentPlan(projectId: ObjectID): void {
+    this.currentPlanCache.delete(projectId.toString());
   }
 
   /*
@@ -3447,6 +3493,9 @@ These are no longer recorded against the project and have to be cancelled by han
         isRoot: true,
       },
     });
+
+    // The subscription's new status applies to the next request.
+    this.forgetCurrentPlan(project.id!);
 
     this.alertOnSubscriptionsPendingCancellation({
       projectId: project.id!,

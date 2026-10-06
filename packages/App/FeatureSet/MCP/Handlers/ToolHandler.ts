@@ -211,6 +211,14 @@ function getSuggestionForStatusCode(
       return isOAuth
         ? "The sign-in was not accepted for this request. The user may have left the project or been blocked; ask them to connect this MCP client again."
         : "The API key was rejected. Verify the key is correct and not expired (sent via the x-api-key header).";
+    /*
+     * The project's plan does not include what was asked - for an API key,
+     * possibly the key itself: below the plan that sells API keys, every
+     * request made with one is refused (Common/Types/Billing/
+     * PlanCutoffCredentials). The error names the plan; retrying cannot help.
+     */
+    case 402:
+      return "The project's plan does not include this; the error names the plan it needs. Do not retry: ask a project owner to upgrade the project in Project Settings > Billing.";
     case 403:
       return isOAuth
         ? "The signed-in user lacks permission for this operation in this project. Ask a project admin to grant their team the relevant permission."
