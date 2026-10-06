@@ -1,5 +1,4 @@
 import ObjectID from "../../Types/ObjectID";
-import FileOwnership from "./File/FileOwnership";
 import PublishedImages, {
   extractImageAccessTokens,
 } from "./File/PublishedImages";
@@ -31,17 +30,6 @@ import logger from "./Logger";
  * in a template and every incident made from it.
  */
 export { extractImageAccessTokens };
-
-// Whether a record of this project may make the image public, or private.
-export const mayChangeImageVisibility: (
-  file: { projectId?: ObjectID | null | undefined },
-  projectId: ObjectID | null | undefined,
-) => boolean = (
-  file: { projectId?: ObjectID | null | undefined },
-  projectId: ObjectID | null | undefined,
-): boolean => {
-  return FileOwnership.isFileOfProject(file, projectId);
-};
 
 /*
  * Every image of a piece of markdown public, or private

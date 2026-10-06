@@ -28,7 +28,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 import { FindOperator, getMetadataArgsStorage } from "typeorm";
@@ -176,40 +176,48 @@ describe("PUBLISHED_MARKDOWN: what records show to everyone, and when", () => {
     },
   );
 
-  test("names every record a status page shows what people write in", () => {
+  test("names every record a status page or a form's page shows what people write in", () => {
     expect(
       PUBLISHED_MARKDOWN.map((source: PublishedMarkdown): string => {
         return `${source.tableName}.${source.markdownColumns.join("+")} when ${
           source.shownWhen.join(" and ") || "always"
-        }`;
+        } on ${source.shownOn}`;
       }),
     ).toEqual([
-      "Incident.description when isVisibleOnStatusPage",
-      "Incident.postmortemNote when isVisibleOnStatusPage and showPostmortemOnStatusPage",
-      "IncidentPublicNote.note when always",
-      "IncidentEpisode.description when isVisibleOnStatusPage",
-      "IncidentEpisodePublicNote.note when always",
-      "ScheduledMaintenance.description when isVisibleOnStatusPage",
-      "ScheduledMaintenancePublicNote.note when always",
-      "StatusPageAnnouncement.description when always",
-      "StatusPage.overviewPageDescription when always",
-      "StatusPageGroup.description when always",
-      "StatusPageResource.displayDescription when always",
+      "Incident.description when isVisibleOnStatusPage on statusPage",
+      "Incident.postmortemNote when isVisibleOnStatusPage and showPostmortemOnStatusPage on statusPage",
+      "IncidentPublicNote.note when always on statusPage",
+      "IncidentEpisode.description when isVisibleOnStatusPage on statusPage",
+      "IncidentEpisodePublicNote.note when always on statusPage",
+      "ScheduledMaintenance.description when isVisibleOnStatusPage on statusPage",
+      "ScheduledMaintenancePublicNote.note when always on statusPage",
+      "StatusPageAnnouncement.description when always on statusPage",
+      "StatusPage.overviewPageDescription when always on statusPage",
+      "StatusPageGroup.description when always on statusPage",
+      "StatusPageResource.displayDescription when always on statusPage",
+      "Form.description+successMessage when isEnabled on formPage",
     ]);
   });
 
-  test("keeps what goes out to everyone without a page of its own: custom fields, and a form's public texts", () => {
+  test("keeps what is sent out to everyone without being kept in step: a shown incident's custom fields", () => {
     expect(
       KEPT_MARKDOWN.map((source: PublishedMarkdown): string => {
-        return `${source.tableName}.${source.markdownColumns.join("+")}`;
+        return `${source.tableName}.${source.markdownColumns.join("+")} when ${source.shownWhen.join(" and ")} on ${source.shownOn}`;
       }),
-    ).toEqual(["Incident.customFields", "Form.description+successMessage"]);
+    ).toEqual([
+      "Incident.customFields when isVisibleOnStatusPage on notifications",
+    ]);
 
-    // Kept, never kept in step: a form's or a custom field's write sets nothing.
-    expect(PublishedImages.getColumns("Form")).toEqual([]);
+    // Kept, never kept in step: a write of custom fields sets nothing.
     expect(PublishedImages.getColumns("Incident")).not.toContain(
       "customFields",
     );
+    // A form's texts are kept in step, by its switch.
+    expect(PublishedImages.getColumns("Form").sort()).toEqual([
+      "description",
+      "isEnabled",
+      "successMessage",
+    ]);
   });
 });
 
@@ -265,8 +273,11 @@ describe("GUARD: every Markdown column a status page could show is classified", 
     return new modelType();
   });
 
+  // What the status pages show; a form's page is not read here.
   const published: Set<string> = new Set<string>(
-    PUBLISHED_MARKDOWN.flatMap((source: PublishedMarkdown): Array<string> => {
+    PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+      return source.shownOn === "statusPage";
+    }).flatMap((source: PublishedMarkdown): Array<string> => {
       return source.markdownColumns.map((column: string): string => {
         return `${source.tableName}.${column}`;
       });
@@ -558,6 +569,22 @@ describe("PublishedImages.getShownTokens: what a record shows to everyone", () =
         ),
       ).toEqual(["ddd444"]);
     }
+  });
+
+  test("a form's description and thank-you message while it accepts submissions", () => {
+    const row: Record<string, unknown> = {
+      description: image("aaa111"),
+      successMessage: image("bbb222"),
+      isEnabled: true,
+    };
+
+    expect(Array.from(PublishedImages.getShownTokens("Form", row))).toEqual([
+      "aaa111",
+      "bbb222",
+    ]);
+    expect(
+      PublishedImages.getShownTokens("Form", { ...row, isEnabled: false }).size,
+    ).toBe(0);
   });
 
   test("nothing a status page does not show", () => {
@@ -905,12 +932,21 @@ describe("PublishedImages.afterDelete", () => {
     expect(visibilityAsked()).toEqual(["aaa111:private", "bbb222:private"]);
   });
 
-  test("a deleted record of a table that shows nothing changes nothing", async () => {
+  test("a deleted record of a table that shows nothing changes nothing, and reads nothing of its rows", async () => {
+    const getShownTokens: SpyInstance<typeof PublishedImages.getShownTokens> =
+      jest.spyOn(PublishedImages, "getShownTokens");
+
     await PublishedImages.afterDelete({
       tableName: "AlertInternalNote",
       rowsDeleted: [{ projectId: PROJECT_ID, note: image("aaa111") }],
     });
+    await PublishedImages.afterDelete({
+      tableName: "AlertInternalNote",
+      rowsDeleted: [{ projectId: PROJECT_ID }],
+      cascaded: [],
+    });
 
+    expect(getShownTokens).not.toHaveBeenCalled();
     expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 
@@ -1169,6 +1205,85 @@ describe("PublishedImages.readCascadedRows: what a delete takes with it", () => 
       }),
     ).resolves.toEqual([]);
   });
+
+  test("one failed read leaves the others to be made", async () => {
+    const tree: QueryMock = statusPageTree();
+    const groupsOfPage: string = getCascadedRowsSql(
+      cascadeOf("StatusPageGroup", "statusPageId"),
+    );
+    const query: QueryMock = jest.fn(
+      async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+        if (sql === groupsOfPage) {
+          throw new Error("db down");
+        }
+
+        return await tree(sql, parameters);
+      },
+    );
+
+    const cascaded: Array<CascadedRow> = await PublishedImages.readCascadedRows(
+      {
+        tableName: "StatusPage",
+        ids: [STATUS_PAGE_ID],
+        query: query,
+      },
+    );
+
+    // The page's resources are still read; its groups could not be.
+    expect(
+      cascaded
+        .map((entry: CascadedRow): string => {
+          return `${entry.tableName}:${String(entry.row["_id"])}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `StatusPageResource:${RESOURCE_ID}`,
+        `StatusPageResource:${GROUPED_RESOURCE_ID}`,
+      ].sort(),
+    );
+  });
+
+  test("reads a table's rows together, and never a row being deleted itself", async () => {
+    const query: QueryMock = statusPageTree();
+
+    // The group and its sub-group deleted together.
+    const cascaded: Array<CascadedRow> = await PublishedImages.readCascadedRows(
+      {
+        tableName: "StatusPageGroup",
+        ids: [GROUP_ID, SUB_GROUP_ID],
+        query: query,
+      },
+    );
+
+    expect(
+      cascaded
+        .map((entry: CascadedRow): string => {
+          return `${entry.tableName}:${String(entry.row["_id"])}`;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `StatusPageResource:${GROUPED_RESOURCE_ID}`,
+        `StatusPageResource:${SUB_GROUP_RESOURCE_ID}`,
+      ].sort(),
+    );
+
+    // Each cascade of a group asked once, for both groups at once.
+    const groupCascades: Array<PublishedCascade> = CASCADES.filter(
+      (cascade: PublishedCascade): boolean => {
+        return cascade.parentTable === "StatusPageGroup";
+      },
+    );
+
+    expect(query).toHaveBeenCalledTimes(groupCascades.length);
+
+    for (const call of query.mock.calls) {
+      expect((call[1][0] as Array<string>).sort()).toEqual(
+        [GROUP_ID, SUB_GROUP_ID].sort(),
+      );
+    }
+  });
 });
 
 describe("PublishedImages.setImagesVisibility: one project's images, public or private", () => {
@@ -1401,6 +1516,49 @@ describe("PublishedImages.setImagesVisibility: one project's images, public or p
     expect(updateBy).toHaveBeenCalledTimes(2);
     expect(writes()[1]).toBe(`private: ${OWN_PUBLIC._id}`);
   });
+
+  test("a write of several files that fails is made a file at a time, so one that cannot be written leaves the rest", async () => {
+    const SECOND_OWN_PRIVATE: File = file({
+      id: "dddddddd-0000-4000-8000-000000000006",
+      token: "abc666",
+      projectId: PROJECT_ID,
+      isPublic: false,
+    });
+    const THIRD_OWN_PRIVATE: File = file({
+      id: "dddddddd-0000-4000-8000-000000000007",
+      token: "abc777",
+      projectId: PROJECT_ID,
+      isPublic: false,
+    });
+
+    findBy.mockResolvedValue([
+      OWN_PRIVATE,
+      SECOND_OWN_PRIVATE,
+      THIRD_OWN_PRIVATE,
+    ]);
+
+    // The write of all three fails, and then the second file's own.
+    updateBy
+      .mockRejectedValueOnce(new Error("statement timeout"))
+      .mockResolvedValueOnce(1)
+      .mockRejectedValueOnce(new Error("row locked"))
+      .mockResolvedValueOnce(1);
+
+    await expect(
+      PublishedImages.setImagesVisibility({
+        projectId: PROJECT_ID,
+        publish: ["aaa111", "abc666", "abc777"],
+        unpublish: [],
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(writes()).toEqual([
+      `public: ${OWN_PRIVATE._id},${SECOND_OWN_PRIVATE._id},${THIRD_OWN_PRIVATE._id}`,
+      `public: ${OWN_PRIVATE._id}`,
+      `public: ${SECOND_OWN_PRIVATE._id}`,
+      `public: ${THIRD_OWN_PRIVATE._id}`,
+    ]);
+  });
 });
 
 describe("PublishedImages.findStillShown", () => {
@@ -1494,15 +1652,23 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
     expect(STILL_SHOWN_SQL).toContain(
       `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND "showPostmortemOnStatusPage" = true AND concat_ws(' ', "postmortemNote"::text) LIKE ANY($2)`,
     );
+    // Custom fields count while the incident is shown, and so sent out.
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isVisibleOnStatusPage" = true AND concat_ws(' ', "customFields"::text) LIKE ANY($2)`,
+    );
+    // A form, while it accepts submissions.
+    expect(STILL_SHOWN_SQL).toContain(
+      `FROM "Form" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND "isEnabled" = true AND concat_ws(' ', "description"::text, "successMessage"::text) LIKE ANY($2)`,
+    );
     expect(STILL_SHOWN_SQL).toMatch(/^SELECT DISTINCT "shown"\."token"/);
     expect(STILL_SHOWN_SQL.endsWith(`WHERE "shown"."token" = ANY($3)`)).toBe(
       true,
     );
   });
 
-  test("PROJECT_FILES_PRIVATE_SQL makes the deleted projects' public files private, and nothing else", () => {
+  test("PROJECT_FILES_PRIVATE_SQL makes the deleted projects' public files private, but an icon still in use", () => {
     expect(PROJECT_FILES_PRIVATE_SQL).toBe(
-      `UPDATE "File" SET "isPublic" = false WHERE "isPublic" = true AND "projectId" = ANY($1::uuid[])`,
+      `UPDATE "File" AS "file" SET "isPublic" = false WHERE "file"."isPublic" = true AND "file"."projectId" = ANY($1::uuid[]) AND NOT EXISTS (SELECT 1 FROM "Probe" WHERE "Probe"."iconFileId" = "file"."_id") AND NOT EXISTS (SELECT 1 FROM "AIAgent" WHERE "AIAgent"."iconFileId" = "file"."_id")`,
     );
   });
 
@@ -1519,9 +1685,8 @@ describe("the SQL the still-shown check, a project's delete and the data migrati
       expect(PUBLISH_SHOWN_IMAGES_SQL).toContain(`FROM "${source.tableName}"`);
     }
 
-    // What is merely sent out, or a form's text, is not made public by it.
+    // What is merely sent out is not made public by it.
     expect(PUBLISH_SHOWN_IMAGES_SQL).not.toContain(`"customFields"`);
-    expect(PUBLISH_SHOWN_IMAGES_SQL).not.toContain(`FROM "Form"`);
   });
 
   test("HIDE_UNSHOWN_FILES_SQL keeps icons, and every image published or sent, by token or by id", () => {

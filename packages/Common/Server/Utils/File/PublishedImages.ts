@@ -23,7 +23,9 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  *   - public notes (of incidents, episodes and scheduled maintenance) and
  *     announcements, always;
  *   - a status page's overview description, and the descriptions of its
- *     groups and resources, always.
+ *     groups and resources, always;
+ *   - a form's description and thank-you message, on its public page,
+ *     while the form accepts submissions.
  *
  * A status page that asks its visitors to sign in shows the same, to people
  * who are not members of the project; the image routes can serve them only a
@@ -47,7 +49,9 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  *
  * A file is public for nothing else but a probe's or an AI agent's icon
  * (FileService.makeStoredIconsPublic), and the images of what goes out to
- * everyone without a page of its own (KEPT_MARKDOWN). Files made public
+ * everyone without a page of its own (KEPT_MARKDOWN). Rows a delete takes
+ * with it unseen are read before it (CASCADES), and a deleted project's
+ * files are made private (PROJECT_FILES_PRIVATE_SQL). Files made public
  * before this rule existed were set to it once
  * (SetFileVisibilityFromPublishedRecords, a data migration that runs
  * PUBLISH_SHOWN_IMAGES_SQL and HIDE_UNSHOWN_FILES_SQL).
@@ -99,9 +103,11 @@ export interface PublishedMarkdown {
   markdownColumns: Array<string>;
   /*
    * The record's switches that must all be on for it to show that markdown,
-   * as the status page reads them; none for a record that always does.
+   * as the page reads them; none for a record that always does.
    */
   shownWhen: Array<string>;
+  // Where everyone sees it.
+  shownOn: "statusPage" | "formPage" | "notifications";
 }
 
 export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
@@ -109,78 +115,90 @@ export const PUBLISHED_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
     tableName: "Incident",
     markdownColumns: ["description"],
     shownWhen: ["isVisibleOnStatusPage"],
+    shownOn: "statusPage",
   },
   {
     tableName: "Incident",
     markdownColumns: ["postmortemNote"],
     shownWhen: ["isVisibleOnStatusPage", "showPostmortemOnStatusPage"],
+    shownOn: "statusPage",
   },
   {
     tableName: "IncidentPublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
+    shownOn: "statusPage",
   },
   {
     tableName: "IncidentEpisode",
     markdownColumns: ["description"],
     shownWhen: ["isVisibleOnStatusPage"],
+    shownOn: "statusPage",
   },
   {
     tableName: "IncidentEpisodePublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
+    shownOn: "statusPage",
   },
   {
     tableName: "ScheduledMaintenance",
     markdownColumns: ["description"],
     shownWhen: ["isVisibleOnStatusPage"],
+    shownOn: "statusPage",
   },
   {
     tableName: "ScheduledMaintenancePublicNote",
     markdownColumns: ["note"],
     shownWhen: [],
+    shownOn: "statusPage",
   },
   {
     tableName: "StatusPageAnnouncement",
     markdownColumns: ["description"],
     shownWhen: [],
+    shownOn: "statusPage",
   },
   {
     tableName: "StatusPage",
     markdownColumns: ["overviewPageDescription"],
     shownWhen: [],
+    shownOn: "statusPage",
   },
   {
     tableName: "StatusPageGroup",
     markdownColumns: ["description"],
     shownWhen: [],
+    shownOn: "statusPage",
   },
   {
     tableName: "StatusPageResource",
     markdownColumns: ["displayDescription"],
     shownWhen: [],
+    shownOn: "statusPage",
+  },
+  {
+    tableName: "Form",
+    markdownColumns: ["description", "successMessage"],
+    shownWhen: ["isEnabled"],
+    shownOn: "formPage",
   },
 ];
 
 /*
  * Markdown that goes out to everyone without being kept in step here: an
  * incident's custom fields, whose rich text values are sent in subscriber
- * notifications and whose images are made public as they are sent
- * (IncidentTemplateVariableBuilder), and a form's description and success
- * message, shown on its public page (a form takes no image uploads, but its
- * markdown may name one). An image any of them shows is never made private
- * here, by an edit elsewhere or by the data migration.
+ * notifications - of an incident shown on status pages - and whose images
+ * are made public as they are sent (IncidentTemplateVariableBuilder). An
+ * image they show is never made private here while the incident is shown,
+ * by an edit elsewhere or by the data migration.
  */
 export const KEPT_MARKDOWN: ReadonlyArray<PublishedMarkdown> = [
   {
     tableName: "Incident",
     markdownColumns: ["customFields"],
-    shownWhen: [],
-  },
-  {
-    tableName: "Form",
-    markdownColumns: ["description", "successMessage"],
-    shownWhen: [],
+    shownWhen: ["isVisibleOnStatusPage"],
+    shownOn: "notifications",
   },
 ];
 
@@ -381,8 +399,25 @@ export const STILL_SHOWN_SQL: string = `SELECT DISTINCT ${quote("shown")}.${quot
     " UNION ALL ",
   )}) AS ${quote("shown")} WHERE ${quote("shown")}.${quote("token")} = ANY($3)`;
 
-// A deleted project's files are nobody's to show any more: $1 is the projects.
-export const PROJECT_FILES_PRIVATE_SQL: string = `UPDATE ${quote("File")} SET ${quote("isPublic")} = false WHERE ${quote("isPublic")} = true AND ${quote("projectId")} = ANY($1::uuid[])`;
+/*
+ * A probe's or an AI agent's icon is public for as long as one uses it,
+ * whichever project it was uploaded in (FileService.makeStoredIconsPublic).
+ */
+const getNotAnIconSql: (fileAlias: string) => string = (
+  fileAlias: string,
+): string => {
+  return ["Probe", "AIAgent"]
+    .map((table: string): string => {
+      return `NOT EXISTS (SELECT 1 FROM ${quote(table)} WHERE ${quote(table)}.${quote("iconFileId")} = ${quote(fileAlias)}.${quote("_id")})`;
+    })
+    .join(" AND ");
+};
+
+/*
+ * A deleted project's files are nobody's to show any more, but for an icon
+ * something outside the project still uses: $1 is the projects.
+ */
+export const PROJECT_FILES_PRIVATE_SQL: string = `UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${quote("file")}.${quote("projectId")} = ANY($1::uuid[]) AND ${getNotAnIconSql("file")}`;
 
 /*
  * Once, for files from before this rule: every image a published record of
@@ -405,7 +440,7 @@ export const HIDE_UNSHOWN_FILES_SQL: string = `WITH ${quote("shownToken")} AS (S
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
 )}) AS ${quote("tokens")}), ${quote("shownId")} AS (SELECT ${quote("fileId")} FROM (${getShownFileIdsSql(
   [...PUBLISHED_MARKDOWN, ...KEPT_MARKDOWN],
-)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND NOT EXISTS (SELECT 1 FROM ${quote("Probe")} WHERE ${quote("Probe")}.${quote("iconFileId")} = ${quote("file")}.${quote("_id")}) AND NOT EXISTS (SELECT 1 FROM ${quote("AIAgent")} WHERE ${quote("AIAgent")}.${quote("iconFileId")} = ${quote("file")}.${quote("_id")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
+)}) AS ${quote("ids")}) UPDATE ${quote("File")} AS ${quote("file")} SET ${quote("isPublic")} = false WHERE ${quote("file")}.${quote("isPublic")} = true AND ${getNotAnIconSql("file")} AND NOT EXISTS (SELECT 1 FROM ${quote("shownToken")} WHERE ${quote("shownToken")}.${quote("token")} = ${quote("file")}.${quote("imageAccessToken")}) AND NOT EXISTS (SELECT 1 FROM ${quote("shownId")} WHERE ${quote("shownId")}.${quote("fileId")} = ${quote("file")}.${quote("_id")}::text)`;
 
 // The published rows of a table a delete of its parent takes with it.
 export const getCascadedRowsSql: (cascade: PublishedCascade) => string = (
@@ -638,9 +673,10 @@ export default class PublishedImages {
   /*
    * The published rows a delete of these rows takes with it (CASCADES),
    * read before the delete, since the database removes them unseen - and
-   * the rows those take with them in turn (a group's sub-groups). Best-
-   * effort: the images of rows a failed read would have found are left as
-   * they are, and the delete goes ahead.
+   * the rows those take with them in turn (a group's sub-groups), a table
+   * at a time, each row once. Best-effort: the images of rows a failed read
+   * would have found are left as they are, the other reads go on, and the
+   * delete goes ahead.
    */
   public static async readCascadedRows(data: {
     tableName: string | null | undefined;
@@ -648,69 +684,77 @@ export default class PublishedImages {
     query: QueryFunction;
   }): Promise<Array<CascadedRow>> {
     const cascaded: Array<CascadedRow> = [];
+    const rootTable: string = data.tableName || "";
 
-    try {
-      const seen: Set<string> = new Set<string>();
-      let pending: Array<{ tableName: string; ids: Array<string> }> = [
-        {
-          tableName: data.tableName || "",
-          ids: data.ids.map((id: ObjectID | string): string => {
-            return normalizeFileId(id);
-          }),
-        },
-      ];
+    // Every row met so far, the deleted ones included, as "table:id".
+    const seen: Set<string> = new Set<string>();
 
-      while (pending.length > 0) {
-        const next: Array<{ tableName: string; ids: Array<string> }> = [];
-
-        for (const parent of pending) {
-          const parentIds: Array<string> = parent.ids.filter(
-            (id: string): boolean => {
+    let pending: Map<string, Set<string>> = new Map([
+      [
+        rootTable,
+        new Set<string>(
+          data.ids
+            .map((id: ObjectID | string): string => {
+              return normalizeFileId(id);
+            })
+            .filter((id: string): boolean => {
               return ObjectID.isValidUUID(id);
-            },
-          );
+            }),
+        ),
+      ],
+    ]);
 
-          if (parentIds.length === 0) {
+    for (const id of pending.get(rootTable)!) {
+      seen.add(`${rootTable}:${id}`);
+    }
+
+    while (pending.size > 0) {
+      const next: Map<string, Set<string>> = new Map();
+
+      for (const [parentTable, parentIdSet] of pending) {
+        const parentIds: Array<string> = Array.from(parentIdSet);
+
+        if (parentIds.length === 0) {
+          continue;
+        }
+
+        for (const cascade of CASCADES) {
+          if (cascade.parentTable !== parentTable) {
             continue;
           }
 
-          for (const cascade of CASCADES) {
-            if (cascade.parentTable !== parent.tableName) {
+          let rows: unknown = [];
+
+          try {
+            rows = await data.query(getCascadedRowsSql(cascade), [parentIds]);
+          } catch (err) {
+            logger.error(
+              `Failed to read the ${cascade.tableName} rows a delete of ${parentTable} takes with it: ${String(err)}`,
+            );
+            continue;
+          }
+
+          for (const row of Array.isArray(rows) ? (rows as Array<Row>) : []) {
+            const rowId: string = normalizeFileId(row["_id"]);
+            const key: string = `${cascade.tableName}:${rowId}`;
+
+            if (!ObjectID.isValidUUID(rowId) || seen.has(key)) {
               continue;
             }
 
-            const rows: unknown = await data.query(
-              getCascadedRowsSql(cascade),
-              [parentIds],
-            );
+            seen.add(key);
+            cascaded.push({ tableName: cascade.tableName, row: row });
 
-            const childIds: Array<string> = [];
-
-            for (const row of Array.isArray(rows) ? (rows as Array<Row>) : []) {
-              const rowId: string = normalizeFileId(row["_id"]);
-              const key: string = `${cascade.tableName}:${rowId}`;
-
-              if (!rowId || seen.has(key)) {
-                continue;
-              }
-
-              seen.add(key);
-              cascaded.push({ tableName: cascade.tableName, row: row });
-              childIds.push(rowId);
+            if (!next.has(cascade.tableName)) {
+              next.set(cascade.tableName, new Set<string>());
             }
 
-            if (childIds.length > 0) {
-              next.push({ tableName: cascade.tableName, ids: childIds });
-            }
+            next.get(cascade.tableName)!.add(rowId);
           }
         }
-
-        pending = next;
       }
-    } catch (err) {
-      logger.error(
-        `Failed to read what a delete of ${String(data.tableName)} takes with it: ${String(err)}`,
-      );
+
+      pending = next;
     }
 
     return cascaded;
@@ -730,6 +774,13 @@ export default class PublishedImages {
     try {
       if (data.tableName === PROJECT_TABLE_NAME) {
         await this.makeProjectFilesPrivate(data.rowsDeleted);
+        return;
+      }
+
+      if (
+        this.getSources(data.tableName).length === 0 &&
+        (data.cascaded || []).length === 0
+      ) {
         return;
       }
 
@@ -963,6 +1014,10 @@ export default class PublishedImages {
     }
   }
 
+  /*
+   * Every file in one write; when that fails, a file at a time, so one that
+   * cannot be written leaves the others to be.
+   */
   private static async writeVisibility(
     fileWriter: FileWriter,
     files: Array<File>,
@@ -972,11 +1027,13 @@ export default class PublishedImages {
       return;
     }
 
-    try {
+    const write: (batch: Array<File>) => Promise<void> = async (
+      batch: Array<File>,
+    ): Promise<void> => {
       await fileWriter.updateBy({
         query: {
           _id: QueryHelper.any(
-            files.map((file: File): string => {
+            batch.map((file: File): string => {
               return file._id!.toString();
             }),
           ),
@@ -991,10 +1048,28 @@ export default class PublishedImages {
           ignoreHooks: true,
         },
       });
+    };
+
+    try {
+      await write(files);
+      return;
     } catch (err) {
-      logger.error(
-        `Failed to make ${files.length} image(s) ${isPublic ? "public" : "private"}: ${String(err)}`,
-      );
+      if (files.length === 1) {
+        logger.error(
+          `Failed to make an image ${isPublic ? "public" : "private"}: ${String(err)}`,
+        );
+        return;
+      }
+    }
+
+    for (const file of files) {
+      try {
+        await write([file]);
+      } catch (err) {
+        logger.error(
+          `Failed to make image ${String(file._id)} ${isPublic ? "public" : "private"}: ${String(err)}`,
+        );
+      }
     }
   }
 

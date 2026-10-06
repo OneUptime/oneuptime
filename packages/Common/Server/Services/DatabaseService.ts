@@ -600,6 +600,82 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The rows a delete removes, with what they show to everyone - their
+   * project and the columns PublishedImages reads - read as root, the
+   * deleted rows included, since a hard delete removes those too. The rows
+   * as given for a table that shows nothing, or when the read fails.
+   */
+  private async readRowsShowingImages(
+    items: Array<TBaseModel>,
+  ): Promise<Array<TBaseModel>> {
+    const columns: Array<string> = PublishedImages.getColumns(
+      this.model.tableName,
+    );
+
+    if (columns.length === 0 || items.length === 0) {
+      return items;
+    }
+
+    const select: Dictionary<boolean> = { _id: true };
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (tenantColumn) {
+      select[tenantColumn] = true;
+    }
+
+    for (const column of columns) {
+      select[column] = true;
+    }
+
+    try {
+      return await this._findBy(
+        {
+          query: {
+            _id: QueryHelper.any(
+              items.map((item: TBaseModel) => {
+                return item.id!;
+              }),
+            ),
+          } as Query<TBaseModel>,
+          select: select as Select<TBaseModel>,
+          skip: 0,
+          limit: items.length,
+          props: { isRoot: true, ignoreHooks: true },
+        },
+        true,
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to read what deleted ${String(this.model.tableName)} rows showed: ${String(err)}`,
+      );
+
+      return items;
+    }
+  }
+
+  /*
+   * The rows showing images to everyone that the database deletes along
+   * with these (the notes of an incident, the groups of a status page),
+   * read while they are still there. See PublishedImages.
+   */
+  private async readRowsDeletedWith(
+    items: Array<TBaseModel>,
+  ): Promise<Array<CascadedRow>> {
+    return await PublishedImages.readCascadedRows({
+      tableName: this.model.tableName,
+      ids: items.map((item: TBaseModel) => {
+        return item.id!;
+      }),
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        return await this.getRepository().manager.query(sql, parameters);
+      },
+    });
+  }
+
+  /*
    * The update's half of assertFileReferencesOwnedOnCreate, on the rows the
    * update reads before it writes them - each row's project (the tenant
    * column) and the files it points at now (the written columns, read as
@@ -3799,9 +3875,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           ),
         };
 
+        // What the rows, and the rows deleted with them, showed to everyone.
+        const rowsDeleted: Array<TBaseModel> =
+          await this.readRowsShowingImages(items);
+        const cascaded: Array<CascadedRow> =
+          await this.readRowsDeletedWith(items);
+
         numberOfDocsAffected =
           (await this.getRepository().delete(beforeDeleteBy.query as any))
             .affected || 0;
+
+        /*
+         * Their images are private again, unless another record still shows
+         * them - a retention purge included. See PublishedImages.
+         */
+        await PublishedImages.afterDelete({
+          tableName: this.model.tableName,
+          rowsDeleted: rowsDeleted,
+          cascaded: cascaded,
+        });
       }
 
       return numberOfDocsAffected;
@@ -3922,24 +4014,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           ),
         };
 
-        /*
-         * The rows showing images to everyone that the database deletes
-         * along with these (the notes of an incident, the groups of a status
-         * page), read while they are still there. See PublishedImages.
-         */
+        // The rows the database deletes along with these, while they are there.
         const cascaded: Array<CascadedRow> =
-          await PublishedImages.readCascadedRows({
-            tableName: this.model.tableName,
-            ids: items.map((i: TBaseModel) => {
-              return i.id!;
-            }),
-            query: async (
-              sql: string,
-              parameters: Array<unknown>,
-            ): Promise<unknown> => {
-              return await this.getRepository().manager.query(sql, parameters);
-            },
-          });
+          await this.readRowsDeletedWith(items);
 
         numberOfDocsAffected =
           (await this.getRepository().delete(query as any)).affected || 0;

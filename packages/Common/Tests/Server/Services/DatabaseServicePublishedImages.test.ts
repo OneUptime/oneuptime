@@ -617,3 +617,90 @@ describe("delete", () => {
     expect(setImagesVisibility).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A hard delete - the retention purge of old incidents, events and their
+ * notes - takes the images out of view the same way.
+ */
+describe("hard delete", () => {
+  test("a purged incident's shown images, and its public notes', become private", async () => {
+    const notesOfIncident: PublishedCascade = CASCADES.find(
+      (cascade: PublishedCascade): boolean => {
+        return (
+          cascade.parentTable === "Incident" &&
+          cascade.tableName === "IncidentPublicNote"
+        );
+      },
+    )!;
+
+    const service: IncidentWrites = new IncidentWrites();
+    const repository: FakeRepository = useRepository(
+      service as never,
+      [
+        storedIncident({
+          description: image("aaa111"),
+          isVisibleOnStatusPage: true,
+        }),
+      ],
+      new Map([
+        [
+          getCascadedRowsSql(notesOfIncident),
+          [
+            {
+              _id: NOTE_ID,
+              projectId: PROJECT_ID.toString(),
+              note: `Fixed: ${image("abc777")}`,
+            },
+          ],
+        ],
+      ]),
+    );
+
+    await service.hardDeleteBy({
+      query: {},
+      limit: 100,
+      skip: 0,
+      props: rootProps(),
+    });
+
+    expect(repository.delete).toHaveBeenCalledTimes(1);
+    expect(visibilityAsked()).toEqual(["aaa111:private", "abc777:private"]);
+    expect(events).toEqual([
+      "read cascaded rows",
+      "delete",
+      "aaa111:private",
+      "abc777:private",
+    ]);
+
+    // The rows were read again, as root, with what they show.
+    expect(
+      selectsAsked(repository).some((select: Array<string>): boolean => {
+        return INCIDENT_SHOWN_COLUMNS.every((column: string): boolean => {
+          return select.includes(column);
+        });
+      }),
+    ).toBe(true);
+  });
+
+  test("a purge of a note with no image changes no image, and reads nothing it takes with it", async () => {
+    const service: NoteWrites = new NoteWrites();
+    const stored: IncidentPublicNote = new IncidentPublicNote();
+    stored._id = RECORD_ID;
+    stored.projectId = PROJECT_ID;
+    stored.note = "Investigating.";
+    const repository: FakeRepository = useRepository(service as never, [
+      stored,
+    ]);
+
+    await service.hardDeleteBy({
+      query: {},
+      limit: 100,
+      skip: 0,
+      props: rootProps(),
+    });
+
+    expect(repository.delete).toHaveBeenCalledTimes(1);
+    expect(repository.manager.query).not.toHaveBeenCalled();
+    expect(setImagesVisibility).not.toHaveBeenCalled();
+  });
+});

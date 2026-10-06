@@ -1,6 +1,5 @@
 import {
   extractImageAccessTokens,
-  mayChangeImageVisibility,
   setIsPublicForMarkdownImages,
   syncIsPublicForMarkdownImages,
 } from "../../../Server/Utils/InlineImageAccessTokenSync";
@@ -403,36 +402,6 @@ describe("setIsPublicForMarkdownImages: the markdown's images, through Published
     }
 
     expect(updateBy).not.toHaveBeenCalled();
-  });
-});
-
-describe("mayChangeImageVisibility", () => {
-  it("lets a record change its own project's images, in any case of id", () => {
-    expect(
-      mayChangeImageVisibility({ projectId: PROJECT_ID }, PROJECT_ID),
-    ).toBe(true);
-    expect(
-      mayChangeImageVisibility(
-        { projectId: new ObjectID(PROJECT_ID.toString().toUpperCase()) },
-        PROJECT_ID,
-      ),
-    ).toBe(true);
-  });
-
-  it("refuses another project's images, images with no project, and any image for a note of no project", () => {
-    expect(
-      mayChangeImageVisibility({ projectId: OTHER_PROJECT_ID }, PROJECT_ID),
-    ).toBe(false);
-    expect(mayChangeImageVisibility({}, PROJECT_ID)).toBe(false);
-    expect(mayChangeImageVisibility({ projectId: null }, PROJECT_ID)).toBe(
-      false,
-    );
-    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, null)).toBe(
-      false,
-    );
-    expect(mayChangeImageVisibility({ projectId: PROJECT_ID }, undefined)).toBe(
-      false,
-    );
   });
 });
 

@@ -522,21 +522,50 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await isPublic(fileId)).toBe(true);
     });
 
-    test("keeps an image an incident's custom fields send out", async () => {
+    test("keeps an image a shown incident's custom fields send out, not a hidden one's", async () => {
       const sent: string = token();
-      const fileId: string = await insertFile({
+      const neverSent: string = token();
+      const sentFileId: string = await insertFile({
         projectId: PROJECT_A,
         isPublic: true,
         imageAccessToken: sent,
       });
+      const neverSentFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: neverSent,
+      });
 
       await runner.query(
-        `INSERT INTO "Incident" ("projectId", "customFields", "isVisibleOnStatusPage") VALUES ($1, $2, false)`,
-        [PROJECT_A, JSON.stringify({ impact: { value: byToken(sent) } })],
+        `INSERT INTO "Incident" ("projectId", "customFields", "isVisibleOnStatusPage") VALUES ($1, $2, true), ($1, $3, false)`,
+        [
+          PROJECT_A,
+          JSON.stringify({ impact: { value: byToken(sent) } }),
+          JSON.stringify({ impact: { value: byToken(neverSent) } }),
+        ],
       );
 
-      expect(await affected(HIDE_UNSHOWN_FILES_SQL)).toBe(0);
-      expect(await isPublic(fileId)).toBe(true);
+      expect(await affected(HIDE_UNSHOWN_FILES_SQL)).toBe(1);
+      expect(await isPublic(sentFileId)).toBe(true);
+      expect(await isPublic(neverSentFileId)).toBe(false);
+    });
+
+    test("makes private an image only a turned-off form shows", async () => {
+      const onForm: string = token();
+      const fileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: onForm,
+      });
+
+      await insertRecord(sourceOf("Form", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(onForm),
+        isEnabled: false,
+      });
+
+      expect(await affected(HIDE_UNSHOWN_FILES_SQL)).toBe(1);
+      expect(await isPublic(fileId)).toBe(false);
     });
 
     test("makes private an image only a hidden or deleted record shows", async () => {
@@ -651,6 +680,8 @@ describePostgres("PublishedImages against Postgres", () => {
       const inCustomField: string = token();
       const shownByNothing: string = token();
       const onHiddenIncident: string = token();
+      const inHiddenCustomField: string = token();
+      const onTurnedOffForm: string = token();
 
       await insertRecord(sourceOf("IncidentPublicNote", "note"), {
         projectId: PROJECT_A,
@@ -664,11 +695,24 @@ describePostgres("PublishedImages against Postgres", () => {
         projectId: PROJECT_A,
         successMessage: byToken(onFormPage),
       });
+      await insertRecord(sourceOf("Form", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(onTurnedOffForm),
+        isEnabled: false,
+      });
+      // A shown incident sends its custom fields; a hidden one shows nothing.
+      await runner.query(
+        `INSERT INTO "Incident" ("projectId", "customFields", "isVisibleOnStatusPage") VALUES ($1, $2, true)`,
+        [
+          PROJECT_A,
+          JSON.stringify({ impact: { value: byToken(inCustomField) } }),
+        ],
+      );
       await runner.query(
         `INSERT INTO "Incident" ("projectId", "customFields", "description", "isVisibleOnStatusPage") VALUES ($1, $2, $3, false)`,
         [
           PROJECT_A,
-          JSON.stringify({ impact: { value: byToken(inCustomField) } }),
+          JSON.stringify({ impact: { value: byToken(inHiddenCustomField) } }),
           byToken(onHiddenIncident),
         ],
       );
@@ -681,6 +725,8 @@ describePostgres("PublishedImages against Postgres", () => {
           inCustomField,
           shownByNothing,
           onHiddenIncident,
+          inHiddenCustomField,
+          onTurnedOffForm,
         ]),
       ).toEqual([shownByNote, shownTwice, onFormPage, inCustomField].sort());
 
@@ -773,6 +819,35 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await isPublic(privateOfA)).toBe(false);
       expect(await isPublic(publicOfB)).toBe(true);
       expect(await isPublic(publicOfNone)).toBe(true);
+    });
+
+    test("keeps public an icon a probe or an AI agent outside the project still uses", async () => {
+      const probeIcon: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+      });
+      const agentIcon: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+      });
+      const unusedIcon: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+      });
+
+      await runner.query(
+        `INSERT INTO "Probe" ("projectId", "iconFileId") VALUES (NULL, $1)`,
+        [probeIcon],
+      );
+      await runner.query(
+        `INSERT INTO "AIAgent" ("projectId", "iconFileId") VALUES (NULL, $1)`,
+        [agentIcon],
+      );
+
+      expect(await affected(PROJECT_FILES_PRIVATE_SQL, [[PROJECT_A]])).toBe(1);
+      expect(await isPublic(probeIcon)).toBe(true);
+      expect(await isPublic(agentIcon)).toBe(true);
+      expect(await isPublic(unusedIcon)).toBe(false);
     });
   });
 });

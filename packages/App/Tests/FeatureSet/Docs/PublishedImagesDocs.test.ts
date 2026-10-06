@@ -61,6 +61,11 @@ describe("Incident notes docs: an image is public only while the status pages sh
 
   it("names every kind of record whose images everyone sees", () => {
     for (const source of PUBLISHED_MARKDOWN) {
+      if (source.shownOn !== "statusPage") {
+        // A form's page has its own page of docs, below.
+        continue;
+      }
+
       for (const column of source.markdownColumns) {
         const name: string = `${(source as PublishedMarkdown).tableName}.${column}`;
 
@@ -88,6 +93,27 @@ describe("Incident notes docs: an image is public only while the status pages sh
   it("says a read lists only the attachments the reader may open", () => {
     expect(page).toContain(
       "Reading a note through the API, Terraform or a workflow lists only the attachments the reader may open: files of the note's project, and public files.",
+    );
+  });
+});
+
+describe("Forms docs: a form's texts show their images while it accepts submissions", () => {
+  it("names every kind of form text whose images everyone sees", () => {
+    expect(
+      PUBLISHED_MARKDOWN.filter((source: PublishedMarkdown): boolean => {
+        return source.shownOn === "formPage";
+      }).map((source: PublishedMarkdown): string => {
+        return `${source.tableName}.${source.markdownColumns.join("+")} when ${source.shownWhen.join(" and ")}`;
+      }),
+    ).toEqual(["Form.description+successMessage when isEnabled"]);
+  });
+
+  it("says who sees an image in a form's description or thank-you message", () => {
+    expect(readPage("forms/sharing-and-security.md")).toContain(
+      "An image in the form's description or thank-you message is shown to everyone who opens the link while the form is **Accepting Submissions**. Turn the form off, or take the image out, and the image is private again, unless something else everyone sees still has it in it.",
+    );
+    expect(readPage("incidents/notes-owners-and-feed.md")).toContain(
+      "A form's description and thank-you message show their images to everyone the same way, while the form is accepting submissions.",
     );
   });
 });
