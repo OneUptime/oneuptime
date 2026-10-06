@@ -201,6 +201,7 @@ import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import Timezone from "../../../Types/Timezone";
 import {
   ConditionType,
   NotificationRuleConditionCheckOn,
@@ -770,7 +771,7 @@ describe("editing a workspace summary", () => {
     modalMode = "edit";
     const saved: WorkspaceNotificationSummary = savedSummary();
     saved.timezone =
-      "America/New_York" as WorkspaceNotificationSummary["timezone"];
+      "America/New_York" as Timezone;
     getItemMock.mockResolvedValue(saved);
 
     const user: UserEvent = await renderForm();
@@ -790,7 +791,7 @@ describe("editing a workspace summary", () => {
     modalMode = "edit";
     const saved: WorkspaceNotificationSummary = savedSummary();
     saved.timezone =
-      "America/New_York" as WorkspaceNotificationSummary["timezone"];
+      "America/New_York" as Timezone;
     getItemMock.mockResolvedValue(saved);
 
     const user: UserEvent = await renderForm();
@@ -822,7 +823,7 @@ describe("editing a workspace summary", () => {
   test("shows a summary saved under a legacy name in its zone's option", async () => {
     modalMode = "edit";
     const saved: WorkspaceNotificationSummary = savedSummary();
-    saved.timezone = "US/Eastern" as WorkspaceNotificationSummary["timezone"];
+    saved.timezone = "US/Eastern" as Timezone;
     getItemMock.mockResolvedValue(saved);
 
     const user: UserEvent = await renderForm();

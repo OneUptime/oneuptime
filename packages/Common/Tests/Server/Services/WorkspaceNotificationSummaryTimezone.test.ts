@@ -487,11 +487,12 @@ describe("giving the summaries made before time zones one (the data migration's 
             string,
             { createdByUserId?: string | undefined },
           ]): WorkspaceNotificationSummary => {
-            return stored(new ObjectID(id), {
-              createdByUserId: row.createdByUserId
-                ? new ObjectID(row.createdByUserId)
-                : undefined,
-            });
+            return stored(
+              new ObjectID(id),
+              row.createdByUserId
+                ? { createdByUserId: new ObjectID(row.createdByUserId) }
+                : {},
+            );
           },
         );
     }) as never);
