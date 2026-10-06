@@ -43,13 +43,11 @@ import { InvestigationNotStartedCode } from "Common/Types/AI/InvestigationNotSta
 import Route from "Common/Types/API/Route";
 import { Yellow500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
-import { PermissionHelper } from "Common/Types/Permission";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Pill from "Common/UI/Components/Pill/Pill";
 import StackedProgressBar from "Common/UI/Components/StackedProgressBar/StackedProgressBar";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import {
   translatableTerm,
   translationKey,
@@ -57,6 +55,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * An AI Insights page's body (AiActivityInsightsPage loads it): what
@@ -171,10 +170,7 @@ function getSkipAction(
 
   return {
     action,
-    canAct: PermissionHelper.doesPermissionsIntersect(
-      action.permissions,
-      PermissionUtil.getAllPermissions(),
-    ),
+    canAct: PermissionGate.holdsAnyOf(action.permissions),
   };
 }
 

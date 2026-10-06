@@ -25,6 +25,7 @@ import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "../../Utils/Project/NotificationChannels";
+import { getProjectBalanceTooLowMessage } from "../../Utils/Project/ProjectBalance";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -138,7 +139,7 @@ export class Service extends DatabaseService<Model> {
       IsBillingEnabled
     ) {
       throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
+        getProjectBalanceTooLowMessage(ProjectNotificationChannel.Call),
       );
     }
 
@@ -222,7 +223,7 @@ export class Service extends DatabaseService<Model> {
       IsBillingEnabled
     ) {
       throw new BadDataException(
-        "Your SMS balance is low. Please recharge your SMS balance in Project Settings > Notification Settings.",
+        getProjectBalanceTooLowMessage(ProjectNotificationChannel.Call),
       );
     }
 

@@ -113,6 +113,10 @@ jest.mock("../../../UI/Utils/Permission", () => {
       getAllPermissions: (): Array<Permission> => {
         return [Permission.ProjectOwner];
       },
+      // The rows PermissionGate reads the blocks from: none.
+      getProjectPermissions: (): null => {
+        return null;
+      },
     },
   };
 });

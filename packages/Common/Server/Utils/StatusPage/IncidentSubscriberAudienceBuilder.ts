@@ -2,10 +2,8 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import Permission, { UserPermission } from "../../../Types/Permission";
+import Permission from "../../../Types/Permission";
+import CallerPermission from "../Permission/CallerPermission";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -139,10 +137,10 @@ export default class IncidentSubscriberAudienceBuilder {
   ];
 
   /*
-   * Refuses a caller who holds none of PERMISSIONS in the project. Read
-   * through getUserPermissions(Allow): the tenant permission list holds
-   * grants and denials together, and a team's block entry for one of these
-   * must not count as a grant of it.
+   * Refuses a caller who holds none of PERMISSIONS in the project, read the
+   * way every permission check reads it (CallerPermission): a team's block
+   * entry for one of these is no grant of it, and a block with no labels on
+   * any of them takes the audience away.
    */
   public static assertCallerMaySeeAudience(
     props: DatabaseCommonInteractionProps,
@@ -151,17 +149,10 @@ export default class IncidentSubscriberAudienceBuilder {
       return;
     }
 
-    const permissions: Array<Permission> =
-      DatabaseCommonInteractionPropsUtil.getUserPermissions(
-        props,
-        PermissionType.Allow,
-      ).map((userPermission: UserPermission) => {
-        return userPermission.permission;
-      });
-
-    const hasPermission: boolean = permissions.some((p: Permission) => {
-      return this.PERMISSIONS.includes(p);
-    });
+    const hasPermission: boolean = CallerPermission.holdsAnyOf(
+      props,
+      this.PERMISSIONS,
+    );
 
     if (!hasPermission) {
       throw new NotAuthorizedException(

@@ -1,20 +1,16 @@
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import User from "Common/UI/Utils/User";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
 import { RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS } from "./ResourceAiAccessSettingsUtil";
 import {
-  translatableTerm,
-  translateTemplate,
-} from "Common/UI/Utils/TranslateTemplate";
+  getAiAccessTestPermissionMessage,
+  getAiAccessTestPermissionRequirement,
+} from "../AiAccess/AiAccessModes";
 
 /*
  * What the signed-in user may do on a resource's AI pages, read from the
@@ -25,25 +21,15 @@ import {
 
 /*
  * Whether the signed-in user holds one of `allowed` in this project, read
- * the way the server reads it: from the project's permission rows only,
- * and a BLOCK row is a denial rather than a grant. A master admin holds
- * everything.
+ * the way the server reads it (PermissionGate.holdsAnyOf): a BLOCK row is a
+ * denial rather than a grant, and a block with no labels on any of them
+ * takes them away. A master admin holds everything.
  */
 export function holdsProjectPermission(
   allowed: ReadonlyArray<Permission>,
+  options?: PermissionGateOptions | undefined,
 ): boolean {
-  if (User.isMasterAdmin()) {
-    return true;
-  }
-
-  const tenantPermission: UserTenantAccessPermission | null =
-    PermissionUtil.getProjectPermissions();
-
-  return Boolean(
-    tenantPermission?.permissions?.some((row: UserPermission): boolean => {
-      return !row.isBlockPermission && allowed.includes(row.permission);
-    }),
-  );
+  return PermissionGate.holdsAnyOf(allowed, options);
 }
 
 /*
@@ -58,10 +44,13 @@ export function canConfigureUnattendedResourceAiAccess(): boolean {
 
 /*
  * Resetting the agent revokes its key; the agent registers again on its
- * own. The server gates the route on the admin set.
+ * own. The server gates the route on the admin set, and counts a block on
+ * any of them as a refusal, labelled or not.
  */
 export function canResetResourceAiAgent(): boolean {
-  return canConfigureUnattendedResourceAiAccess();
+  return holdsProjectPermission(RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS, {
+    labelledBlocksRefuse: true,
+  });
 }
 
 /*
@@ -109,19 +98,23 @@ export function getResourceAccessTestPermissionGate(
   return getResourceSettingsGate(descriptor);
 }
 
+// Who may edit the resource, and so run the test.
+function getResourceAccessTestPermissionTitles(
+  descriptor: ResourceAiAgentDescriptor,
+): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new descriptor.modelType().getUpdatePermissions(),
+  );
+}
+
 // Why the test is locked, for the disabled button's tooltip and note.
 export function getResourceAccessTestPermissionRequirement(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return translateTemplate(
-    "Testing the connection needs permission to edit this {{noun}} (one of: {{permissions}}).",
-    {
-      noun: translatableTerm(descriptor.noun, { inSentence: true }),
-      permissions: PermissionGate.getPermissionTitles(
-        new descriptor.modelType().getUpdatePermissions(),
-      ).join(", "),
-    },
-  );
+  return getAiAccessTestPermissionRequirement({
+    noun: descriptor.noun,
+    permissionTitles: getResourceAccessTestPermissionTitles(descriptor),
+  });
 }
 
 /*
@@ -131,11 +124,8 @@ export function getResourceAccessTestPermissionRequirement(
 export function getResourceAccessTestPermissionMessage(
   descriptor: ResourceAiAgentDescriptor,
 ): string {
-  return translateTemplate(
-    "{{requirement}} Nothing on the {{noun}} or in its AI settings was changed.",
-    {
-      requirement: getResourceAccessTestPermissionRequirement(descriptor),
-      noun: translatableTerm(descriptor.noun, { inSentence: true }),
-    },
-  );
+  return getAiAccessTestPermissionMessage({
+    noun: descriptor.noun,
+    permissionTitles: getResourceAccessTestPermissionTitles(descriptor),
+  });
 }

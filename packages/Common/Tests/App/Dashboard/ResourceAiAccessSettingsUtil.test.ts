@@ -1103,15 +1103,15 @@ describe("small words", () => {
 });
 
 /*
- * The mode cards are whole keyed sentences, and the changes they name go in
- * as terms, translated along with them. Automatic's riskier changes used to
- * be riskierExamples with "riskier changes such as " cut off: words no
- * locale had a key for, so they stayed English inside a translated sentence.
+ * What the resource's Change modal and its confirmations say is looked up
+ * in the Dashboard's locale files (src/Locales/README.md). The protections
+ * said as one sentence and the refused loosening are built from translated
+ * pieces in the language of the sentence they go into: a locale that words
+ * the pieces but not the confirmation reads an English confirmation, never
+ * English around translated clauses.
  *
- * A pseudo-locale wraps every en.json entry in ‹ ›, so a sentence that was
- * looked up comes back wrapped, and so does a word translated along with
- * it. These run last: they set up the global i18next instance the functions
- * read, which each jest file has to itself.
+ * A pseudo-locale wraps every en.json entry in ‹ ›. These run last: they set
+ * up the global i18next instance the functions read.
  */
 describe("in the reader's language", () => {
   const ENGLISH: Record<string, unknown> = JSON.parse(
@@ -1126,6 +1126,19 @@ describe("in the reader's language", () => {
 
   const LOOKED_UP: RegExp = /^‹[^]*›$/;
 
+  const BYPASS_SENTENCE: string =
+    "With Bypass approval OneUptime AI does not ask: it applies every fix the command policy allows on this {{noun}} on its own — {{riskierExamples}} included, in follow-up rounds too. Even so, {{protections}}.";
+
+  const toBypass: {
+    descriptor: ResourceAiAgentDescriptor;
+    saved: ResourceAiAccessSavedSettings;
+    changes: JSONObject;
+  } = {
+    descriptor: DOCKER,
+    saved: saved(),
+    changes: { aiRemediationMode: ResourceAiRemediationMode.BypassApproval },
+  };
+
   beforeAll(async () => {
     const pseudo: Record<string, string> = {};
 
@@ -1135,10 +1148,17 @@ describe("in the reader's language", () => {
       }
     }
 
+    // Every wording but the Bypass approval confirmation's.
+    const withoutBypassSentence: Record<string, string> = { ...pseudo };
+    delete withoutBypassSentence[BYPASS_SENTENCE];
+
     await i18next.init({
       lng: "xx",
       fallbackLng: "en",
-      resources: { xx: { translation: pseudo } },
+      resources: {
+        xx: { translation: pseudo },
+        yy: { translation: withoutBypassSentence },
+      },
       interpolation: { escapeValue: false },
       keySeparator: false,
       nsSeparator: false,
@@ -1147,6 +1167,18 @@ describe("in the reader's language", () => {
 
   afterAll(async () => {
     await i18next.changeLanguage("en");
+  });
+
+  test("the mode maps are keys in en.json", async () => {
+    await i18next.changeLanguage("xx");
+
+    for (const key of [
+      ...Object.values(RESOURCE_REMEDIATION_MODE_SHORT_NAMES),
+      ...Object.values(RESOURCE_REMEDIATION_MODE_SUMMARIES),
+      getResourceAiAccessConfirmation(toBypass)!.title,
+    ]) {
+      expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
+    }
   });
 
   test("every type's riskier changes are keys in en.json, with and without the prefix", () => {
@@ -1163,9 +1195,17 @@ describe("in the reader's language", () => {
     }
   });
 
+  /*
+   * The mode cards name the changes as terms, translated along with them.
+   * Automatic's riskier changes used to be riskierExamples with "riskier
+   * changes such as " cut off: words no locale had a key for, so they
+   * stayed English inside a translated sentence.
+   */
   test.each(ALL_AI_RESOURCE_TYPES)(
     "%s: every mode card is looked up whole, the changes it names with it",
-    (type: AiResourceType) => {
+    async (type: AiResourceType) => {
+      await i18next.changeLanguage("xx");
+
       const descriptor: ResourceAiAgentDescriptor =
         getResourceAiAgentDescriptor(type);
       const descriptions: Record<ResourceAiRemediationMode, string> =
@@ -1191,17 +1231,89 @@ describe("in the reader's language", () => {
     },
   );
 
-  test("the Bypass approval confirmation names them with the prefix, looked up too", () => {
-    expect(
-      getResourceAiAccessConfirmation({
-        descriptor: DOCKER,
-        saved: saved(),
-        changes: {
-          aiRemediationMode: ResourceAiRemediationMode.BypassApproval,
-        },
-      })?.description,
-    ).toContain(
+  test("the Bypass approval confirmation names them with the prefix, looked up too", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(getResourceAiAccessConfirmation(toBypass)!.description).toContain(
       "on its own — ‹riskier changes such as stopping, killing or updating a container› included",
     );
+  });
+
+  test("every resource's protections, one by one and as one sentence", async () => {
+    await i18next.changeLanguage("xx");
+
+    for (const type of ALL_AI_RESOURCE_TYPES) {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      const clauses: Array<string> = getEveryModeProtections(descriptor);
+
+      for (const clause of clauses) {
+        expect({ type, clause }).toEqual({
+          type,
+          clause: expect.stringMatching(LOOKED_UP),
+        });
+      }
+      expect(getEveryModeProtectionsSentence(descriptor)).toMatch(LOOKED_UP);
+    }
+  });
+
+  test("what loosens, and the allowlist's errors", async () => {
+    await i18next.changeLanguage("xx");
+
+    expect(
+      getResourceAiAccessLooseningChanges({
+        saved: saved({ aiRemediationMode: ResourceAiRemediationMode.Disabled }),
+        changes: {
+          aiRemediationMode: ResourceAiRemediationMode.Automatic,
+          aiCommandAllowlist: ["docker stop web"],
+        },
+      }),
+    ).toEqual([
+      "‹switching fixes to ‹Automatic››",
+      '‹adding the allowlist entry "docker stop web"›',
+    ]);
+    // The policy's own words stay as it says them.
+    expect(
+      validateResourceAllowlistText(
+        AiResourceType.DockerHost,
+        "docker stop web\nrm -rf /",
+      ),
+    ).toMatch(/^‹Entry 2: .+›$/);
+  });
+
+  test("the confirmations, the protections in them in the reader's words", async () => {
+    await i18next.changeLanguage("xx");
+
+    const bypass: ResourceAiAccessConfirmation | null =
+      getResourceAiAccessConfirmation(toBypass);
+
+    expect(bypass!.description).toMatch(LOOKED_UP);
+    expect(bypass!.description).toContain(
+      getEveryModeProtectionsSentence(DOCKER),
+    );
+
+    const broad: ResourceAiAccessConfirmation | null =
+      getResourceAiAccessConfirmation({
+        descriptor: DOCKER,
+        saved: saved({
+          aiRemediationMode: ResourceAiRemediationMode.Automatic,
+        }),
+        changes: { aiCommandAllowlist: ["docker stop *"] },
+      });
+
+    expect(ENGLISH[broad!.title]).toBe(broad!.title);
+    expect(broad!.description).toMatch(LOOKED_UP);
+  });
+
+  test("a confirmation the reader's language lacks is English, its protections too", async () => {
+    await i18next.changeLanguage("en");
+    const english: string =
+      getResourceAiAccessConfirmation(toBypass)!.description;
+
+    await i18next.changeLanguage("yy");
+    expect(getResourceAiAccessConfirmation(toBypass)!.description).toBe(
+      english,
+    );
+    expect(getEveryModeProtectionsSentence(DOCKER)).toMatch(LOOKED_UP);
   });
 });

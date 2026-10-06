@@ -374,7 +374,7 @@ describe("the shape of the backstop's project read", () => {
     });
 
     await expect(execute(INTERACTIVE_FEATURE)).rejects.toThrow(
-      /Insufficient AI balance/,
+      /This project's AI credits are used up\./,
     );
     expect(getCompletion).not.toHaveBeenCalled();
     expect(createLlmLog).toHaveBeenCalledTimes(1);

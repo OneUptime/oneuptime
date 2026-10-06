@@ -217,13 +217,26 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
     "Pages/Global/UserProfile/Index.tsx",
     "Your name and email as your team sees them, and the time zone OneUptime shows times in.",
   ],
+  /*
+   * The two balance pages' Current Balance cards: asking someone who may
+   * recharge to, and telling everyone else who can (both kept in the
+   * balance copy, which each page picks from by the reader's permissions).
+   */
   [
-    "Pages/Settings/NotificationSettings.tsx",
+    "Components/ProjectBalance/ProjectBalanceCopy.ts",
     "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
   ],
   [
-    "Pages/Settings/AICredits.tsx",
+    "Components/ProjectBalance/ProjectBalanceCopy.ts",
+    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+  ],
+  [
+    "Components/ProjectBalance/ProjectBalanceCopy.ts",
     "AI features are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
+  ],
+  [
+    "Components/ProjectBalance/ProjectBalanceCopy.ts",
+    "AI features are paid from this balance, in USD. A project owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ApiKey/ApiKeyPermissionTable.tsx",

@@ -166,9 +166,14 @@ describe("Monitor.disableActiveMonitoring", () => {
     Permission.EditProjectMonitor,
   ];
 
+  /*
+   * And Edit All Operational Resources: a monitor is an operational
+   * resource, and the column lets in everyone its table does, so it accepts
+   * the table's wildcard as the table does.
+   */
   test("whoever may edit a monitor may turn its checks off and on", () => {
     expect(whoMayUpdate(Monitor, "disableActiveMonitoring", true)).toEqual(
-      [...EDITORS].sort(),
+      [...EDITORS, Permission.EditAllOperationalResources].sort(),
     );
   });
 
@@ -316,11 +321,16 @@ describe("Workflow", () => {
     );
   });
 
+  /*
+   * A workflow is an operational resource, and each of these columns lets
+   * in everyone the workflow's own list does, so each accepts Edit All
+   * Operational Resources as the record does.
+   */
   test.each(COLUMNS)(
     "%s is changed by exactly the workflow's editors",
     (column: string, value: unknown) => {
       expect(whoMayUpdate(Workflow, column, value)).toEqual(
-        [...EDITORS].sort(),
+        [...EDITORS, Permission.EditAllOperationalResources].sort(),
       );
     },
   );

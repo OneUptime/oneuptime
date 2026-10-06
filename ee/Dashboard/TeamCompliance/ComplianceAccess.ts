@@ -1,6 +1,5 @@
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
-import PermissionUtil from "Common/UI/Utils/Permission";
+import Permission from "Common/Types/Permission";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -53,10 +52,7 @@ export const getComplianceAccess: () => ComplianceAccess =
       delete: PermissionGate.check(model, ModelAction.Delete, GATE_OPTIONS),
       canViewMemberSetup:
         UserUtil.isMasterAdmin() ||
-        PermissionHelper.doesPermissionsIntersect(
-          PermissionUtil.getAllPermissions(),
-          [...MEMBER_SETUP_READ_PERMISSIONS],
-        ),
+        PermissionGate.holdsAnyOf([...MEMBER_SETUP_READ_PERMISSIONS]),
       currentUserId: UserUtil.getUserId().toString(),
     };
   };

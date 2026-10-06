@@ -17,13 +17,21 @@ import ResourceCommandPolicy, {
 } from "Common/Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ResourceAiAgentDescriptor } from "./ResourceAiAgentDescriptors";
-import { joinAiAccessProtections } from "../AiAccess/AiAccessModes";
 import {
+  capitalizeFirst,
+  formatNameList,
+  joinAiAccessProtections,
+} from "../AiAccess/AiAccessModes";
+import {
+  ComposedValue,
+  composedValue,
+  getGlobalTranslator,
   PluralTemplate,
   translatableTerm,
   translatePlural,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -115,20 +123,8 @@ export function readResourceRemediationMode(
   return parseResourceAiRemediationMode(value);
 }
 
-// "a, b and c" / "a, b or c".
-export function formatNameList(
-  names: ReadonlyArray<string>,
-  conjunction: string,
-): string {
-  if (names.length <= 1) {
-    return names.join("");
-  }
-  return `${names.slice(0, -1).join(", ")} ${conjunction} ${names[names.length - 1]}`;
-}
-
-export function capitalizeFirst(value: string): string {
-  return value.length > 0 ? `${value[0]!.toUpperCase()}${value.slice(1)}` : "";
-}
+// "a, b and c" / "a, b or c", in the reader's language.
+export { capitalizeFirst, formatNameList };
 
 /*
  * What holds in every mode, Bypass approval included — the canonical
@@ -136,18 +132,22 @@ export function capitalizeFirst(value: string): string {
  * resource's own always-a-person changes named. The Change modal lists
  * the clauses under "What stays protected in every mode"; the
  * confirmations say them as one sentence.
+ *
+ * In `translator`'s language: the reader's, unless they go into a sentence
+ * as a composedValue() of it.
  */
 export function getEveryModeProtections(
   descriptor: ResourceAiAgentDescriptor,
+  translator: Translator = getGlobalTranslator(),
 ): Array<string> {
   // Clauses of one sentence, so each starts lower-case.
   return [
-    translateTemplate(
+    translator.translateTemplate(
       "commands the policy denies (a shell, exec, deleting data, anything that reads credentials, anything it does not know) never run",
     ),
     ...(descriptor.alwaysHumanExamples
       ? [
-          translateTemplate(
+          translator.translateTemplate(
             "changes such as {{examples}} always need a human",
             {
               examples: translatableTerm(descriptor.alwaysHumanExamples),
@@ -155,7 +155,7 @@ export function getEveryModeProtections(
           ),
         ]
       : []),
-    translateTemplate(
+    translator.translateTemplate(
       "the {{agent}} changes nothing unless it was started with {{allowWrites}}=true, and then never itself, the collector beside it or a target outside {{targets}}",
       {
         agent: translatableTerm(descriptor.agentName),
@@ -163,7 +163,7 @@ export function getEveryModeProtections(
         targets: RESOURCE_AI_WRITE_TARGETS_ENV,
       },
     ),
-    translateTemplate(
+    translator.translateTemplate(
       "an unattended run becomes a proposal when the hourly circuit breaker trips or another unattended round already holds this {{noun}}",
       { noun: translatableTerm(descriptor.noun, { inSentence: true }) },
     ),
@@ -172,8 +172,12 @@ export function getEveryModeProtections(
 
 export function getEveryModeProtectionsSentence(
   descriptor: ResourceAiAgentDescriptor,
+  translator: Translator = getGlobalTranslator(),
 ): string {
-  return joinAiAccessProtections(getEveryModeProtections(descriptor));
+  return joinAiAccessProtections(
+    getEveryModeProtections(descriptor, translator),
+    translator,
+  );
 }
 
 /*
@@ -289,8 +293,12 @@ export function validateResourceAllowlistText(
         pattern: patterns[index],
       });
 
+    // The policy's own words (Common/Utils) are English.
     if (patternProblem) {
-      return `Entry ${index + 1}: ${patternProblem}`;
+      return translateTemplate("Entry {{number}}: {{problem}}", {
+        number: index + 1,
+        problem: patternProblem,
+      });
     }
   }
 
@@ -626,12 +634,16 @@ export function isResourceRemediationModeOpenToEveryEditor(
  * - allowlist: an entry the stored list does not already hold, compared the
  *   way the server compares them (trimmed stored strings).
  *
- * Each entry names the change for the refusal; empty when nothing loosens.
+ * Each entry names the change for the refusal (getAiAccessLooseningRefusal),
+ * in `translator`'s language; empty when nothing loosens.
  */
-export function getResourceAiAccessLooseningChanges(data: {
-  saved: ResourceAiAccessSavedSettings;
-  changes: JSONObject;
-}): Array<string> {
+export function getResourceAiAccessLooseningChanges(
+  data: {
+    saved: ResourceAiAccessSavedSettings;
+    changes: JSONObject;
+  },
+  translator: Translator = getGlobalTranslator(),
+): Array<string> {
   const loosening: Array<string> = [];
 
   const mode: ResourceAiRemediationMode | undefined = data.changes[
@@ -645,7 +657,7 @@ export function getResourceAiAccessLooseningChanges(data: {
       getRemediationModeAutonomy(data.saved.aiRemediationMode)
   ) {
     loosening.push(
-      translateTemplate("switching fixes to {{mode}}", {
+      translator.translateTemplate("switching fixes to {{mode}}", {
         mode: translatableTerm(RESOURCE_REMEDIATION_MODE_SHORT_NAMES[mode]),
       }),
     );
@@ -667,7 +679,7 @@ export function getResourceAiAccessLooseningChanges(data: {
 
     if (added.length > 0) {
       loosening.push(
-        translatePlural(
+        translator.translatePlural(
           {
             one: "adding the allowlist entry {{patterns}}",
             other: "adding the allowlist entries {{patterns}}",
@@ -747,15 +759,23 @@ export function getResourceAiAccessConfirmation(data: {
     newMode || data.saved.aiRemediationMode;
   const noun: string = data.descriptor.noun;
 
+  // The every-mode protections, in the language of the sentence they end.
+  const protections: ComposedValue = composedValue(
+    (translator: Translator): string => {
+      return getEveryModeProtectionsSentence(data.descriptor, translator);
+    },
+  );
+
   if (newMode === ResourceAiRemediationMode.BypassApproval) {
     return {
-      title: "Turn on Bypass approval?",
+      // A key: ConfirmModal looks its title up.
+      title: translationKey("Turn on Bypass approval?"),
       description: translateTemplate(
         "With Bypass approval OneUptime AI does not ask: it applies every fix the command policy allows on this {{noun}} on its own — {{riskierExamples}} included, in follow-up rounds too. Even so, {{protections}}.",
         {
           noun: translatableTerm(noun),
           riskierExamples: translatableTerm(data.descriptor.riskierExamples),
-          protections: getEveryModeProtectionsSentence(data.descriptor),
+          protections: protections,
         },
       ),
     };
@@ -824,11 +844,11 @@ export function getResourceAiAccessConfirmation(data: {
         };
 
   return {
-    title: "Let riskier changes run without approval?",
+    title: translationKey("Let riskier changes run without approval?"),
     description: translatePlural(broadEntriesSentence, broadPatterns.length, {
       patterns: quoted,
       noun: translatableTerm(noun),
-      protections: getEveryModeProtectionsSentence(data.descriptor),
+      protections: protections,
     }),
   };
 }

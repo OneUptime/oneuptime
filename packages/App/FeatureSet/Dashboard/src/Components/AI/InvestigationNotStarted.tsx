@@ -6,19 +6,21 @@ import InvestigationNotStartedReason, {
 } from "Common/Types/AI/InvestigationNotStartedReason";
 import Project from "Common/Models/DatabaseModels/Project";
 import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
+import { PROJECT_BALANCE_RECHARGE_PERMISSIONS } from "Common/Utils/Project/ProjectBalance";
+import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -162,16 +164,15 @@ export function getSettingsAction(
   /*
    * Only produced when billing is on, which is exactly when AI Credits is
    * in the settings menu. Recharging takes the permissions AIBillingAPI's
-   * /ai/recharge checks.
+   * /ai/recharge checks (Utils/Project/ProjectBalance), and everyone else is
+   * told who has them.
    */
   if (code === "insufficient_ai_balance") {
     return {
       label: "Add AI credits",
       page: PageMap.SETTINGS_AI_CREDITS,
-      permissions: [Permission.ProjectOwner, Permission.ManageProjectBilling],
-      whoCanAct: translationKey(
-        "A project owner or someone with Manage Billing can add AI credits.",
-      ),
+      permissions: [...PROJECT_BALANCE_RECHARGE_PERMISSIONS],
+      whoCanAct: WHO_CAN_ADD_AI_CREDITS,
     };
   }
 
@@ -295,11 +296,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
       ? getSettingsAction(reason?.code || "no_run_recorded", subjectType)
       : null;
   const canReviewSettings: boolean = Boolean(
-    action &&
-      PermissionHelper.doesPermissionsIntersect(
-        action.permissions,
-        PermissionUtil.getAllPermissions(),
-      ),
+    action && PermissionGate.holdsAnyOf(action.permissions),
   );
   const sourceLabel: string = translator.translateText(
     reason?.source === "recorded"

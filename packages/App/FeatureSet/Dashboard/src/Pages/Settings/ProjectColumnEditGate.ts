@@ -1,10 +1,9 @@
 import Project from "Common/Models/DatabaseModels/Project";
 import IconProp from "Common/Types/Icon/IconProp";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 
 /*
@@ -45,14 +44,25 @@ export function getProjectColumnsUpdatePermissions(
   });
 }
 
+/*
+ * Held the way the server reads it (PermissionGate.holdsAnyOf): one
+ * permission every column allows, and on every column no team block that
+ * takes its update away.
+ */
 export function canUpdateProjectColumns(fields: Array<string>): boolean {
   if (User.isMasterAdmin()) {
     return true;
   }
 
-  return PermissionHelper.doesPermissionsIntersect(
-    PermissionUtil.getAllPermissions(),
-    getProjectColumnsUpdatePermissions(fields),
+  const project: Project = new Project();
+
+  return (
+    PermissionGate.holdsAnyOf(getProjectColumnsUpdatePermissions(fields)) &&
+    fields.every((field: string): boolean => {
+      return PermissionGate.holdsAnyOf(
+        project.getColumnAccessControlFor(field)?.update || [],
+      );
+    })
   );
 }
 
@@ -82,8 +92,7 @@ export function getProjectColumnsEditGate(data: {
   buttonTitle: string;
 }): ProjectColumnsEditGate {
   const isEditable: boolean = canUpdateProjectColumns(data.fields);
-  const hasPermissionSnapshot: boolean =
-    User.isMasterAdmin() || PermissionUtil.getAllPermissions().length > 0;
+  const hasPermissionSnapshot: boolean = PermissionGate.hasPermissionSnapshot();
 
   if (isEditable || !hasPermissionSnapshot) {
     return { isEditable, lockedButtons: [] };

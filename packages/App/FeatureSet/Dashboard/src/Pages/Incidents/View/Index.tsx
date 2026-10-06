@@ -44,7 +44,6 @@ import React, {
 import UserElement from "../../../Components/User/User";
 import { canWriteNoteColumn } from "../../../Components/EventNotes/EventNotesUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
@@ -620,7 +619,7 @@ const IncidentView: FunctionComponent<
       model: incidentModelForPermissions,
       column: "subscriberNotificationStatusOnIncidentCreated",
       action: "update",
-      userPermissions: PermissionUtil.getAllPermissions(),
+      held: PermissionGate.getHeldPermissions(),
       isMasterAdmin: User.isMasterAdmin(),
     });
 

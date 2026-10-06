@@ -21,6 +21,7 @@ import {
   getProjectNotificationChannelOffMessage,
   ProjectNotificationChannel,
 } from "../../Utils/Project/NotificationChannels";
+import { getProjectBalanceTooLowMessage } from "../../Utils/Project/ProjectBalance";
 import TelegramVerificationToken from "../Utils/TelegramVerificationToken";
 import {
   QueryDeepPartialEntity,
@@ -195,7 +196,7 @@ export class Service extends DatabaseService<Model> {
       IsBillingEnabled
     ) {
       throw new BadDataException(
-        "Your notification balance is low. Please recharge your balance in Project Settings > Notification Settings.",
+        getProjectBalanceTooLowMessage(ProjectNotificationChannel.Telegram),
       );
     }
 

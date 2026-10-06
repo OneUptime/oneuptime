@@ -15,6 +15,18 @@ import {
 } from "../../../../Types/AI/AIFixReadiness";
 import { IsBillingEnabled } from "../../../EnvironmentConfig";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import {
+  getProjectBalanceWhoCanAddSentence,
+  ProjectBalanceType,
+} from "../../../../Utils/Project/ProjectBalance";
+
+/*
+ * Why AI fix tasks cannot run on the OneUptime-hosted provider once the
+ * project's AI credits are used up: who can add credits, and where - most
+ * readers of the AI Tasks page cannot - and that a provider of the
+ * project's own needs none.
+ */
+export const CODE_FIX_AI_CREDITS_USED_UP_DETAIL: string = `AI fix tasks would use the OneUptime-hosted LLM provider, which is paid from this project's AI credits, and they are used up. ${getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI)} A provider of the project's own (Project Settings > AI > LLM Providers) needs no AI credits.`;
 
 /*
  * The gates every CodeFix run passes through, in one place. Two surfaces ask
@@ -86,8 +98,7 @@ export default class CodeFixReadiness {
           id: "llmProvider",
           ok: false,
           title: "LLM provider",
-          detail:
-            "AI fix tasks would use the OneUptime-hosted LLM provider, which is billed against your AI balance — and the project's balance is empty. Recharge it in Project Settings > AI Credits, or add your own LLM provider in Project Settings > AI > LLM Providers.",
+          detail: CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
         };
       }
     }

@@ -309,6 +309,34 @@ describe("user-facing properties and attributes", () => {
     ).toEqual([]);
   });
 
+  /*
+   * The "What AI may do" building blocks look up these props themselves,
+   * like Card and Pill look up theirs, so a page hands them English.
+   */
+  test("reads the AI access building blocks' own copy props", () => {
+    expect(
+      textsOf(
+        scan(`
+          const a = (
+            <>
+              <AiAccessRow sentence="AI never proposes or runs a fix." />
+              <AiAccessPermissionNote
+                canText="You can lower fixes."
+                cannotText="Turning fixes on needs an admin."
+              />
+              <AiAccessAllowlist editText="Edit" />
+            </>
+          );
+        `),
+      ),
+    ).toEqual([
+      "AI never proposes or runs a fix.",
+      "You can lower fixes.",
+      "Turning fixes on needs an admin.",
+      "Edit",
+    ]);
+  });
+
   test("lists the names it treats as copy", () => {
     for (const name of [
       "title",
