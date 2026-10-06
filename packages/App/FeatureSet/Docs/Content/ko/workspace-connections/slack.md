@@ -26,6 +26,8 @@
 
 **프로젝트 설정** > **Workspace** > **Slack**에서 채널 옆의 **테스트 보내기**와 마찬가지로, 알림 규칙을 만들 권한이 필요합니다: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, 또는 사용자 지정 역할의 **Create Workspace Notification Rule** 및 **Read Workspace Notification Rule**. 규칙을 보기만 할 수 있는 사람(예: **Viewer**)에게는 **테스트 규칙**이 잠겨 있고 툴팁이 무엇이 필요한지 알려 줍니다. API는 그 사람의 테스트를 "You do not have permission to send test notifications in this project."로 거부합니다. OneUptime Cloud에서는 규칙을 추가할 때와 마찬가지로 규칙을 테스트하려면 **Growth** 요금제가 필요합니다.
 
+OneUptime Cloud에서는 채널 옆의 **테스트 보내기**에도 **Growth** 요금제가 필요합니다. 채널에 게시하는 것은 규칙과 요약이 하는 일이기 때문입니다. 요약의 **지금 테스트 보내기**에는 요약을 만들 권한(사용자 지정 역할의 **Create Workspace Notification Summary** 및 **Read Workspace Notification Summary**)과, OneUptime Cloud에서는 **Growth** 요금제가 필요합니다. 그 밖의 사람에게는 잠겨 있고 툴팁이 무엇이 필요한지 알려 줍니다. 읽기 전용으로 연결된 MCP 클라이언트는 어떤 테스트도 보낼 수 없습니다.
+
 ## 요약
 
 **인시던트** > **Workspace** > **Slack**(그리고 **알림**)의 **Summary** 탭은 지정한 채널에 정기적인 요약을 게시합니다. 인시던트나 알림이 몇 건이었는지, 얼마나 빨리 확인되고 해결되었는지, 링크가 포함된 목록이 담깁니다. 새 요약은 매주 전송되며 최근 7일을 다룹니다. **첫 보고서 전송 시각**을 비워 두면 첫 요약은 다음 주, 다음 날 또는 다음 달이 시작될 때 09:00에 전송되며, 언제인지 양식에 표시됩니다.

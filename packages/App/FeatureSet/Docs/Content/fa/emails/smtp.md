@@ -27,7 +27,7 @@
 
 **Microsoft Graph.** **More fields** را باز کنید، **Transport** را روی `Microsoft Graph` بگذارید و یک برنامهٔ Azure با مجوز برنامهٔ **Mail.Send** را وارد کنید: شناسهٔ کلاینت و رمز کلاینت آن، نشانی توکن `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` و دامنهٔ `https://graph.microsoft.com/.default`. ایمیل از صندوق پستی **From Email** ارسال می‌شود که باید یک صندوق پستی دارای مجوز در تننت شما باشد.
 
-پس از ذخیرهٔ پیکربندی پروژه، **Send Test Email** در ردیف آن بررسی می‌کند که کار می‌کند.
+پس از ذخیرهٔ پیکربندی پروژه، **Send Test Email** در ردیف آن بررسی می‌کند که کار می‌کند. این کار به مجوز افزودن پیکربندی‌های SMTP نیاز دارد: **Project Owner**، **Project Admin** یا **Create SMTP Config** و **Read SMTP Config** در یک نقش سفارشی. در OneUptime Cloud، مانند افزودن یک پیکربندی، به طرح **Growth** هم نیاز دارد. برای هر کس دیگری قفل است و راهنمای آن می‌گوید چه لازم است.
 
 ## احراز هویت OAuth 2.0
 

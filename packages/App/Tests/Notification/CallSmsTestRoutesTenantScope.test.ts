@@ -195,9 +195,14 @@ function buildMemberProps(data: {
   projectId: ObjectID;
   userId: ObjectID;
 }): DatabaseCommonInteractionProps {
+  /*
+   * Project Admin: one who could add the config, and so may send its test
+   * (TestSendAccess). Who else may, and who may not, is
+   * TestSendRoutesAskTheRule.test.ts.
+   */
   const memberPermission: UserPermission = {
     _type: "UserPermission",
-    permission: Permission.ProjectMember,
+    permission: Permission.ProjectAdmin,
     labelIds: [],
   };
 
@@ -526,32 +531,45 @@ describe("The Call and SMS test routes are scoped to the caller's project", () =
       });
 
       /*
-       * The ownership check can only work if the read asks for the column it
-       * compares, and only needs isRoot because it must see the credentials.
-       * Pin the inputs, not just the outcome.
+       * The config is read twice: first as the caller, for their one project
+       * (the test is theirs only if they may read it), and only then as
+       * root, for the credentials the send needs. Pin the inputs, not just
+       * the outcome.
        */
-      test("reads the config as root and selects its projectId", async () => {
+      test("reads the config as the caller first, and as root only for its credentials", async () => {
         await callRoute({ handler: route.handler, body: body() });
 
-        expect(findOneByIdSpy).toHaveBeenCalledTimes(1);
+        expect(findOneByIdSpy).toHaveBeenCalledTimes(2);
 
-        const readArgs: {
+        type ReadArgs = {
           id: ObjectID;
           select: Dictionary<boolean>;
-          props: Dictionary<boolean>;
-        } = findOneByIdSpy.mock.calls[0]![0] as {
-          id: ObjectID;
-          select: Dictionary<boolean>;
-          props: Dictionary<boolean>;
+          props: DatabaseCommonInteractionProps;
         };
 
-        expect(readArgs.id.toString()).toBe(configId.toString());
-        expect(readArgs.select["projectId"]).toBe(true);
-        expect(readArgs.props["isRoot"]).toBe(true);
+        const asCaller: ReadArgs = findOneByIdSpy.mock.calls[0]![0] as ReadArgs;
+        const asRoot: ReadArgs = findOneByIdSpy.mock.calls[1]![0] as ReadArgs;
+
+        expect(asCaller.id.toString()).toBe(configId.toString());
+        expect(asCaller.select["projectId"]).toBe(true);
+        expect(asCaller.select["twilioAuthToken"]).toBeUndefined();
+        expect(asCaller.props.isRoot).toBeFalsy();
+        expect(asCaller.props.tenantId?.toString()).toBe(
+          callerProjectId.toString(),
+        );
+        expect(asCaller.props.isMultiTenantRequest).toBe(false);
+
+        expect(asRoot.id.toString()).toBe(configId.toString());
+        expect(asRoot.select["twilioAuthToken"]).toBe(true);
+        expect(asRoot.props.isRoot).toBe(true);
       });
     });
 
-    test("refuses when the named config does not exist", async () => {
+    /*
+     * A config that does not exist is answered like another project's, so
+     * the route tells nobody which config ids exist.
+     */
+    test("refuses when the named config does not exist, as it refuses another project's", async () => {
       mockProps(
         buildMemberProps({
           projectId: callerProjectId,
@@ -560,12 +578,23 @@ describe("The Call and SMS test routes are scoped to the caller's project", () =
       );
       mockConfigInProject(null);
 
-      await callRoute({ handler: route.handler, body: body() });
+      const missing: RouteCallResult = await callRoute({
+        handler: route.handler,
+        body: body(),
+      });
 
-      expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
-      expect(
-        (Response.sendErrorResponse as unknown as jest.Mock).mock.calls[0]![2],
-      ).toBeInstanceOf(BadDataException);
+      mockConfigInProject(otherProjectId);
+
+      const foreign: RouteCallResult = await callRoute({
+        handler: route.handler,
+        body: body(),
+      });
+
+      expect(missing.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(foreign.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((missing.thrownToNext as Exception).message).toBe(
+        (foreign.thrownToNext as Exception).message,
+      );
       expect(route.send).not.toHaveBeenCalled();
       expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
     });

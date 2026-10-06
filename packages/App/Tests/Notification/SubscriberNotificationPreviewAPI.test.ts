@@ -15,6 +15,7 @@ import SubscriberNotificationPreviewBuilder, {
 import User from "Common/Models/DatabaseModels/User";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DatabaseCommonInteractionPropsUtil from "Common/Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
@@ -538,6 +539,51 @@ describe("POST /send-test", () => {
         }
       ).id.toString(),
     ).toBe(USER_ID.toString());
+  });
+
+  /*
+   * Sending is a change made through the caller's credential, so one issued
+   * for reading only sends nothing (TestSendAccess) - refused before the
+   * caller's address is read or anything is built.
+   */
+  test("a credential issued for reading only is refused, and nothing is read, built or sent", async () => {
+    callerProps = { ...memberProps(PROJECT_ID), isReadOnlyCredential: true };
+
+    const call: RouteCall = await post(SEND_TEST_ROUTE, SEND_TEST_BODY);
+
+    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((call.thrown as Error).message).toBe(
+      DatabaseCommonInteractionPropsUtil.READ_ONLY_CREDENTIAL_MESSAGE,
+    );
+    expect(UserService.findOneById).not.toHaveBeenCalled();
+    expect(buildSpy).not.toHaveBeenCalled();
+    expect(MailService.send).not.toHaveBeenCalled();
+  });
+
+  test("the preview itself sends nothing, so a read-only credential may still look", async () => {
+    callerProps = { ...memberProps(PROJECT_ID), isReadOnlyCredential: true };
+
+    const call: RouteCall = await post(PREVIEW_ROUTE, NOTE_BODY);
+
+    expect(call.thrown).toBeUndefined();
+    expect(MailService.send).not.toHaveBeenCalled();
+  });
+
+  test("the email is built for the caller's one project, never a multi-tenant read", async () => {
+    callerProps = { ...memberProps(PROJECT_ID), isMultiTenantRequest: true };
+
+    await post(SEND_TEST_ROUTE, SEND_TEST_BODY);
+
+    const buildArgs: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    } = buildSpy.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    expect(buildArgs.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(buildArgs.props.isMultiTenantRequest).toBe(false);
   });
 
   test("a page with no SMTP server of its own sends through the instance's mail settings", async () => {

@@ -26,6 +26,8 @@
 
 **プロジェクト設定** > **Workspace** > **Microsoft Teams** のチャネルの横にある **テストを送信** と同じく、通知ルールを作成する権限が必要です。**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**、またはカスタムロールの **Create Workspace Notification Rule** と **Read Workspace Notification Rule** です。ルールを見ることしかできない人（**Viewer** など）には **ルールをテスト** がロックされ、ツールチップに必要なものが表示されます。API はその人のテストを "You do not have permission to send test notifications in this project." で拒否します。OneUptime Cloud では、ルールのテストにはルールの追加と同じく **Growth** プランが必要です。
 
+OneUptime Cloud では、チャネルやチャットの横にある **テストを送信** にも **Growth** プランが必要です。チャネルへの投稿はルールとサマリーが行うことだからです。サマリーの **今すぐテストを送信** には、サマリーを作成する権限（カスタムロールの **Create Workspace Notification Summary** と **Read Workspace Notification Summary**）と、OneUptime Cloud では **Growth** プランが必要です。それ以外の人にはロックされ、ツールチップに必要なものが表示されます。読み取り専用で接続された MCP クライアントは、どのテストも送信できません。
+
 ## サマリー
 
 **インシデント** > **Workspace** > **Microsoft Teams**（および **アラート**）の **概要** タブは、指定したチャネルに定期的なまとめを投稿します。インシデントやアラートの件数、確認と解決までの速さ、リンク付きの一覧が含まれます。新しいサマリーは毎週送信され、直近 7 日間を対象にします。**最初のレポートの送信時刻** を空欄のままにすると、最初のサマリーは次の週・日・月の始めの 09:00 に送信されます。いつ送信されるかはフォームに表示されます。

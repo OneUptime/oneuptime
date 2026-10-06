@@ -26,6 +26,8 @@
 
 **Project Settings** > **Workspace** > **Microsoft Teams** में किसी channel के पास **परीक्षण भेजें** की तरह, इसके लिए notification नियम बनाने की अनुमति चाहिए: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member**, या किसी custom role में **Create Workspace Notification Rule** और **Read Workspace Notification Rule**। जो केवल नियम देख सकता है, जैसे कोई **Viewer**, उसके लिए **परीक्षण नियम** बंद रहता है और उसका tooltip बताता है कि क्या चाहिए; API उसका test "You do not have permission to send test notifications in this project." कहकर अस्वीकार करता है। OneUptime Cloud पर किसी नियम को परखने के लिए, नियम जोड़ने की तरह, **Growth** plan चाहिए।
 
+OneUptime Cloud पर किसी channel या chat के पास **परीक्षण भेजें** के लिए भी **Growth** plan चाहिए, क्योंकि channel में post करना वही है जो नियम और सारांश करते हैं। किसी सारांश पर **अभी परीक्षण भेजें** के लिए सारांश बनाने की अनुमति (किसी custom role में **Create Workspace Notification Summary** और **Read Workspace Notification Summary**) और OneUptime Cloud पर **Growth** plan चाहिए; बाकी सबके लिए यह बंद रहता है और उसका tooltip बताता है कि क्या चाहिए। केवल पढ़ने की पहुँच से जुड़ा MCP client कोई भी परीक्षण नहीं भेज सकता।
+
 ## सारांश
 
 **घटनाएं** > **Workspace** > **Microsoft Teams** (और **अलर्ट**) का **Summary** टैब आपके बताए चैनलों में नियमित सारांश पोस्ट करता है: कितनी घटनाएं या अलर्ट हुए, उन्हें कितनी जल्दी स्वीकार और हल किया गया, और लिंक वाली एक सूची। नया सारांश हर हफ़्ते भेजा जाता है और पिछले 7 दिनों को कवर करता है। **पहली रिपोर्ट इस समय भेजें** खाली छोड़ दें, तो पहला सारांश अगले सप्ताह, दिन या महीने की शुरुआत में 09:00 बजे भेजा जाता है; फ़ॉर्म बताता है कि कब।

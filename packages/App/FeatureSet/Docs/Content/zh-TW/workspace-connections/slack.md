@@ -26,6 +26,8 @@
 
 和 **專案設定** > **Workspace** > **Slack** 中頻道旁邊的 **傳送測試** 一樣，它需要建立通知規則的權限：**Project Owner**、**Project Admin**、**Project Member**、**Settings Admin**、**Settings Member**，或自訂角色中的 **Create Workspace Notification Rule** 與 **Read Workspace Notification Rule**。對於只能檢視規則的人（例如 **Viewer**），**測試規則** 是鎖定的，它的提示會說明需要什麼；API 會以 "You do not have permission to send test notifications in this project." 拒絕其測試。在 OneUptime Cloud 上，測試規則和新增規則一樣需要 **Growth** 方案。
 
+在 OneUptime Cloud 上，頻道旁邊的 **傳送測試** 也需要 **Growth** 方案，因為在頻道中發文正是規則和摘要所做的事。摘要上的 **立即發送測試** 需要建立摘要的權限（自訂角色中的 **Create Workspace Notification Summary** 與 **Read Workspace Notification Summary**），在 OneUptime Cloud 上還需要 **Growth** 方案；對其他人它是鎖定的，它的提示會說明需要什麼。以唯讀權限連線的 MCP 用戶端無法傳送任何測試。
+
 ## 摘要
 
 **事件** > **Workspace** > **Slack**（以及 **警示**）的 **Summary** 分頁會定期向你指定的頻道發布彙整：有多少事件或警示、確認與解決的速度，以及附連結的清單。新摘要每週發送一次，涵蓋最近 7 天。將 **首次報告發送於** 留空，第一份摘要會在下一週、下一天或下個月開始時的 09:00 發送；表單會顯示確切時間。
