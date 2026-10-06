@@ -518,9 +518,7 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       summary({
         nextSendAt: OneUptimeDate.fromString("2027-03-08T14:00:00.000Z"),
         recurringInterval: every(EventInterval.Week, 1),
-        sendFirstReportAt: OneUptimeDate.fromString(
-          "2026-11-02T14:00:00.000Z",
-        ),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-11-02T14:00:00.000Z"),
         timezone: "America/New_York",
       }),
     ]);
@@ -535,9 +533,7 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       summary({
         nextSendAt: OneUptimeDate.fromString("2026-10-24T07:00:00.000Z"),
         recurringInterval: every(EventInterval.Day, 1),
-        sendFirstReportAt: OneUptimeDate.fromString(
-          "2026-10-01T07:00:00.000Z",
-        ),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-10-01T07:00:00.000Z"),
         timezone: "Europe/Berlin",
       }),
     ]);
@@ -552,9 +548,7 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       summary({
         nextSendAt: OneUptimeDate.fromString("2026-10-19T07:00:00.000Z"),
         recurringInterval: every(EventInterval.Week, 1),
-        sendFirstReportAt: OneUptimeDate.fromString(
-          "2026-10-12T07:00:00.000Z",
-        ),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-10-12T07:00:00.000Z"),
       }),
     ]);
 
@@ -572,9 +566,7 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       summary({
         nextSendAt: OneUptimeDate.fromString("2026-10-11T23:00:00.000Z"),
         recurringInterval: every(EventInterval.Week, 1),
-        sendFirstReportAt: OneUptimeDate.fromString(
-          "2026-06-14T23:00:00.000Z",
-        ),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-06-14T23:00:00.000Z"),
         timezone: "Australia/Sydney",
       }),
     ]);
@@ -589,9 +581,7 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       summary({
         nextSendAt: OneUptimeDate.fromString("2027-02-28T08:00:00.000Z"),
         recurringInterval: every(EventInterval.Month, 1),
-        sendFirstReportAt: OneUptimeDate.fromString(
-          "2027-01-31T08:00:00.000Z",
-        ),
+        sendFirstReportAt: OneUptimeDate.fromString("2027-01-31T08:00:00.000Z"),
         timezone: "Europe/Berlin",
       }),
     ]);
@@ -610,9 +600,7 @@ describe("WorkspaceNotificationSummary:SendSummary, across a daylight saving cha
       summary({
         nextSendAt: OneUptimeDate.fromString("2026-10-19T07:00:00.000Z"),
         recurringInterval: every(EventInterval.Week, 1),
-        sendFirstReportAt: OneUptimeDate.fromString(
-          "2026-10-12T07:00:00.000Z",
-        ),
+        sendFirstReportAt: OneUptimeDate.fromString("2026-10-12T07:00:00.000Z"),
         timezone: "Europe/Berlin",
       }),
     ]);

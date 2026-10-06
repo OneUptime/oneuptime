@@ -305,11 +305,9 @@ beforeEach(() => {
       return caller;
     }) as never);
 
-  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation(
-    (): Date => {
-      return new Date(NOW.getTime());
-    },
-  );
+  getJestSpyOn(OneUptimeDate, "getCurrentDate").mockImplementation((): Date => {
+    return new Date(NOW.getTime());
+  });
 
   getJestSpyOn(ProjectService, "getCurrentPlan").mockImplementation(
     async (): Promise<{
@@ -332,8 +330,7 @@ beforeEach(() => {
 
     const user: User = new User();
     user._id = PERSON_ID.toString();
-    (user as unknown as { timezone: string | null }).timezone =
-      profileTimezone;
+    (user as unknown as { timezone: string | null }).timezone = profileTimezone;
     return user;
   }) as never);
 
@@ -477,10 +474,12 @@ describe.each(BILLING)(
       async (_what: string, timezone: string) => {
         caller = apiKey();
 
-        await expect(post({ ...newSummary(), timezone: timezone })).rejects.toThrow(
-          BadDataException,
-        );
-        await expect(post({ ...newSummary(), timezone: timezone })).rejects.toThrow(
+        await expect(
+          post({ ...newSummary(), timezone: timezone }),
+        ).rejects.toThrow(BadDataException);
+        await expect(
+          post({ ...newSummary(), timezone: timezone }),
+        ).rejects.toThrow(
           'timezone is not a time zone. Send an IANA time zone name, such as "Europe/Berlin", "America/New_York" or "UTC".',
         );
         expect(repositorySave).not.toHaveBeenCalled();

@@ -99,12 +99,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
 
   // The time zones the Timezone field offers: worked out once, not per render.
-  const timezoneOptions: Array<DropdownOption> = useMemo(
-    (): Array<DropdownOption> => {
+  const timezoneOptions: Array<DropdownOption> =
+    useMemo((): Array<DropdownOption> => {
       return TimezoneUtil.getTimezoneDropdownOptions();
-    },
-    [],
-  );
+    }, []);
 
   // Map summary type to notification rule event type for filters
   type GetEventTypeFunction = () => NotificationRuleEventType;

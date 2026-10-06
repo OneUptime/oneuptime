@@ -266,8 +266,7 @@ export default class WorkspaceSummaryScheduleUtil {
     let timezone: Timezone | undefined = this.toTimezone(data.write.timezone);
 
     if (!timezone) {
-      timezone =
-        this.toCurrentTimezone(data.timezone) || this.DEFAULT_TIMEZONE;
+      timezone = this.toCurrentTimezone(data.timezone) || this.DEFAULT_TIMEZONE;
       result.timezone = timezone;
     }
 

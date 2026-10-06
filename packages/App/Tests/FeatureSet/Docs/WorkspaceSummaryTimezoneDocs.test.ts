@@ -116,55 +116,58 @@ describe("the sources the pages are checked against", () => {
   });
 });
 
-describe.each(PAGES)("the English %s page", (page: string, workspace: string) => {
-  const section: string = findSummariesSection("en", page);
+describe.each(PAGES)(
+  "the English %s page",
+  (page: string, workspace: string) => {
+    const section: string = findSummariesSection("en", page);
 
-  it("is headed Summaries and says where the summaries are", () => {
-    expect(section.startsWith("## Summaries\n")).toBe(true);
-    expect(section).toContain(
-      `The **Summary** tab of **Incidents** > **Workspace** > **${workspace}** (and of **Alerts**)`,
-    );
-  });
+    it("is headed Summaries and says where the summaries are", () => {
+      expect(section.startsWith("## Summaries\n")).toBe(true);
+      expect(section).toContain(
+        `The **Summary** tab of **Incidents** > **Workspace** > **${workspace}** (and of **Alerts**)`,
+      );
+    });
 
-  it("says what a new summary does by default", () => {
-    expect(section).toContain(
-      "A new summary goes out every week and covers the last 7 days.",
-    );
-    expect(section).toContain(
-      "Leave **Send First Report At** empty, and the first one goes out at 09:00 at the start of the next week, day or month; the form says when.",
-    );
-  });
+    it("says what a new summary does by default", () => {
+      expect(section).toContain(
+        "A new summary goes out every week and covers the last 7 days.",
+      );
+      expect(section).toContain(
+        "Leave **Send First Report At** empty, and the first one goes out at 09:00 at the start of the next week, day or month; the form says when.",
+      );
+    });
 
-  it("says the summary keeps its time of day on its Timezone's clock, which starts on yours", () => {
-    expect(section).toContain(
-      "A summary goes out on the clock of its **Timezone**, which starts on yours.",
-    );
-    expect(section).toContain(
-      "one set for 09:00 in Berlin still goes out at 09:00 in Berlin after the clocks change for daylight saving time",
-    );
-  });
+    it("says the summary keeps its time of day on its Timezone's clock, which starts on yours", () => {
+      expect(section).toContain(
+        "A summary goes out on the clock of its **Timezone**, which starts on yours.",
+      );
+      expect(section).toContain(
+        "one set for 09:00 in Berlin still goes out at 09:00 in Berlin after the clocks change for daylight saving time",
+      );
+    });
 
-  it("tells API users how to send one, and what a summary without one gets", () => {
-    expect(section).toContain(
-      "Through the API, send `timezone` as an IANA time zone name, such as `Europe/Berlin`.",
-    );
-    expect(section).toContain(
-      "A summary created without one takes the time zone in its creator's profile, or UTC when an API key creates it.",
-    );
-  });
+    it("tells API users how to send one, and what a summary without one gets", () => {
+      expect(section).toContain(
+        "Through the API, send `timezone` as an IANA time zone name, such as `Europe/Berlin`.",
+      );
+      expect(section).toContain(
+        "A summary created without one takes the time zone in its creator's profile, or UTC when an API key creates it.",
+      );
+    });
 
-  it("sits between Testing a rule and the plan note", () => {
-    const headings: Array<string> = readPage("en", page)
-      .split("\n")
-      .filter((line: string): boolean => {
-        return line.startsWith("## ");
-      });
+    it("sits between Testing a rule and the plan note", () => {
+      const headings: Array<string> = readPage("en", page)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith("## ");
+        });
 
-    expect(headings.indexOf("## Summaries")).toBe(
-      headings.indexOf("## Testing a rule") + 1,
-    );
-  });
-});
+      expect(headings.indexOf("## Summaries")).toBe(
+        headings.indexOf("## Testing a rule") + 1,
+      );
+    });
+  },
+);
 
 describe.each(LANGUAGES)("the %s pages", (lang: string) => {
   const locale: Record<string, string> = readDashboardLocale(lang);
@@ -216,9 +219,9 @@ describe.each(LANGUAGES)("the %s pages", (lang: string) => {
       expect(section).toContain("7");
       expect(section).toContain("09:00");
       // No other hour of the day: the default, and Berlin's 09:00, only.
-      expect(
-        [...new Set(section.match(/\d{2}:\d{2}/g) || [])].sort(),
-      ).toEqual(["09:00"]);
+      expect([...new Set(section.match(/\d{2}:\d{2}/g) || [])].sort()).toEqual([
+        "09:00",
+      ]);
     },
   );
 });

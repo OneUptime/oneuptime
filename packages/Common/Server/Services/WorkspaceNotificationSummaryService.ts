@@ -389,26 +389,26 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const seenSummaryIds: Set<string> = new Set<string>();
 
     for (;;) {
-      const summaries: Array<WorkspaceNotificationSummary> = await this.findBy(
-        {
-          query: {
-            timezone: QueryHelper.isNull(),
-          },
-          select: {
-            _id: true,
-            createdByUserId: true,
-          },
-          skip: 0,
-          limit: TIMEZONE_BACKFILL_BATCH_SIZE,
-          props: {
-            isRoot: true,
-          },
+      const summaries: Array<WorkspaceNotificationSummary> = await this.findBy({
+        query: {
+          timezone: QueryHelper.isNull(),
         },
-      );
+        select: {
+          _id: true,
+          createdByUserId: true,
+        },
+        skip: 0,
+        limit: TIMEZONE_BACKFILL_BATCH_SIZE,
+        props: {
+          isRoot: true,
+        },
+      });
 
       const unseen: Array<WorkspaceNotificationSummary> = summaries.filter(
         (summary: WorkspaceNotificationSummary): boolean => {
-          return Boolean(summary.id) && !seenSummaryIds.has(summary.id!.toString());
+          return (
+            Boolean(summary.id) && !seenSummaryIds.has(summary.id!.toString())
+          );
         },
       );
 

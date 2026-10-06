@@ -472,30 +472,33 @@ describe("giving the summaries made before time zones one (the data migration's 
     rows = {};
     writes = [];
 
-    getJestSpyOn(WorkspaceNotificationSummaryService, "findBy").mockImplementation(
-      (async (): Promise<Array<WorkspaceNotificationSummary>> => {
-        return Object.entries(rows)
-          .filter(([, row]: [string, { timezone: string | null }]): boolean => {
-            return row.timezone === null;
-          })
-          .map(
-            ([id, row]: [
-              string,
-              { createdByUserId?: string | undefined },
-            ]): WorkspaceNotificationSummary => {
-              return stored(new ObjectID(id), {
-                createdByUserId: row.createdByUserId
-                  ? new ObjectID(row.createdByUserId)
-                  : undefined,
-              });
-            },
-          );
-      }) as never,
-    );
+    getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findBy",
+    ).mockImplementation((async (): Promise<
+      Array<WorkspaceNotificationSummary>
+    > => {
+      return Object.entries(rows)
+        .filter(([, row]: [string, { timezone: string | null }]): boolean => {
+          return row.timezone === null;
+        })
+        .map(
+          ([id, row]: [
+            string,
+            { createdByUserId?: string | undefined },
+          ]): WorkspaceNotificationSummary => {
+            return stored(new ObjectID(id), {
+              createdByUserId: row.createdByUserId
+                ? new ObjectID(row.createdByUserId)
+                : undefined,
+            });
+          },
+        );
+    }) as never);
 
-    getJestSpyOn(UserService, "findBy").mockImplementation((async (data: {
-      query: { _id: unknown };
-    }): Promise<Array<User>> => {
+    getJestSpyOn(UserService, "findBy").mockImplementation((async (): Promise<
+      Array<User>
+    > => {
       return Object.entries(userTimezones).map(
         ([id, timezone]: [string, string | null]): User => {
           return profile(new ObjectID(id), timezone);
@@ -511,8 +514,7 @@ describe("giving the summaries made before time zones one (the data migration's 
       data: { timezone: string };
       props: unknown;
     }): Promise<number> => {
-      const row: { timezone: string | null } | undefined =
-        rows[data.query._id];
+      const row: { timezone: string | null } | undefined = rows[data.query._id];
 
       // Written only while it still has no time zone.
       if (!row || row.timezone !== null) {

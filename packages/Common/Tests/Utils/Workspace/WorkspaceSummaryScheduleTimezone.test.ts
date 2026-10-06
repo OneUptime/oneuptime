@@ -139,14 +139,15 @@ describe("the report worker's next send, in the summary's time zone", () => {
     // Berlin skips 02:00-03:00 on Sun 28 Mar 2027.
     const anchor: Date = at("2027-03-20T01:30:00.000Z"); // 02:30 CET
 
-    const skippedNight: Date =
-      WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+    const skippedNight: Date = WorkspaceSummaryScheduleUtil.getNextSendAfterDue(
+      {
         dueAt: at("2027-03-27T01:30:00.000Z"),
         recurringInterval: every(EventInterval.Day, 1),
         sendFirstReportAt: anchor,
         timezone: BERLIN,
         now: at("2027-03-27T01:30:20.000Z"),
-      });
+      },
+    );
 
     // Once that night, within the hour the clocks skip.
     expect(skippedNight.getTime()).toBeGreaterThan(
@@ -158,15 +159,13 @@ describe("the report worker's next send, in the summary's time zone", () => {
       ),
     ).toBeLessThanOrEqual(60 * 60 * 1000);
 
-    const nightAfter: Date = WorkspaceSummaryScheduleUtil.getNextSendAfterDue(
-      {
-        dueAt: skippedNight,
-        recurringInterval: every(EventInterval.Day, 1),
-        sendFirstReportAt: anchor,
-        timezone: BERLIN,
-        now: OneUptimeDate.addRemoveSeconds(skippedNight, 20),
-      },
-    );
+    const nightAfter: Date = WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
+      dueAt: skippedNight,
+      recurringInterval: every(EventInterval.Day, 1),
+      sendFirstReportAt: anchor,
+      timezone: BERLIN,
+      now: OneUptimeDate.addRemoveSeconds(skippedNight, 20),
+    });
 
     // Back at 02:30, not left at whatever the skipped night moved it to.
     expect(wallClock(nightAfter, BERLIN)).toBe("Mon 2027-03-29 02:30 CEST");
@@ -182,9 +181,7 @@ describe("the report worker's next send, in the summary's time zone", () => {
         now: at("2026-10-26T13:00:30.000Z"),
       });
 
-    expect(wallClock(afterFallBack, NEW_YORK)).toBe(
-      "Mon 2026-11-02 09:00 EST",
-    );
+    expect(wallClock(afterFallBack, NEW_YORK)).toBe("Mon 2026-11-02 09:00 EST");
 
     const afterSpringForward: Date =
       WorkspaceSummaryScheduleUtil.getNextSendAfterDue({
@@ -471,9 +468,9 @@ describe("an update that changes a summary's time zone", () => {
     expect(
       WorkspaceSummaryScheduleUtil.isScheduleWrite({ timezone: BERLIN }),
     ).toBe(true);
-    expect(WorkspaceSummaryScheduleUtil.isRescheduleWrite({ timezone: null })).toBe(
-      true,
-    );
+    expect(
+      WorkspaceSummaryScheduleUtil.isRescheduleWrite({ timezone: null }),
+    ).toBe(true);
   });
 
   test("moves the next send to the first summary's time of day in the new zone", () => {
@@ -509,7 +506,10 @@ describe("an update that changes a summary's time zone", () => {
   test("that sends the zone it has back - the edit form's every save - adds nothing", () => {
     expect(
       WorkspaceSummaryScheduleUtil.getUpdateWrite({
-        write: { timezone: BERLIN, sendFirstReportAt: STORED.sendFirstReportAt },
+        write: {
+          timezone: BERLIN,
+          sendFirstReportAt: STORED.sendFirstReportAt,
+        },
         stored: { ...STORED, timezone: BERLIN },
         now: NOW,
       }),
