@@ -1719,6 +1719,23 @@
                   <p class="text-base leading-7 text-gray-600">Annual billing is discounted against monthly billing &mdash; the annual price for each plan is shown in the table above. You can upgrade an existing plan to annual billing at any time. Volume discounts are available on high monitor counts, high telemetry ingest, and extended retention; contact us for a written quote.</p>
                 </dd>
               </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">What happens to API keys and SCIM if I move to a lower
+                      plan?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">API keys need the Growth plan and SCIM provisioning needs
+                    the Scale plan. On a lower plan they stop working: requests made with your API keys, and your
+                    identity provider's SCIM requests, are refused until you upgrade again. Nothing is deleted &mdash;
+                    they work again as they are as soon as you are back on the plan.</p>
+                </dd>
+              </div>
             </dl>
           </div>
         </div>

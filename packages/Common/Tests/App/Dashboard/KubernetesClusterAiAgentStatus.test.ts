@@ -67,7 +67,10 @@ import {
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
-import { fillTemplate } from "../../../UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  fillTemplate,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * The pure reading of the server's access status behind the cluster's AI
@@ -2334,6 +2337,29 @@ describe("in the reader's language", () => {
       "‹Can change: web, api›",
       "‹node operations on›",
     ]);
+  });
+
+  /*
+   * The switch dialog's sentence takes what the agent may change as a
+   * composedValue(): in that sentence's language, English while the
+   * reader's language has no wording of it.
+   */
+  test("what the target may change, in the language of the sentence it goes into", () => {
+    const posture: KubernetesAiAgentSummary["posture"] = {
+      allowWrites: true,
+      writeNamespaces: ["web", "api"],
+    };
+
+    expect(describeAiAgentWriteAccess(posture)).toBe("‹Can change: web, api›");
+    expect(
+      describeAiAgentWriteAccess(posture, createTranslator(undefined, "en")),
+    ).toBe("Can change: web, api");
+    expect(
+      describeAiAgentWriteAccess(
+        { allowWrites: false },
+        createTranslator(undefined, "en"),
+      ),
+    ).toBe("Read-only");
   });
 
   test("the headline and every step: the page's words looked up, or the server's untouched", () => {

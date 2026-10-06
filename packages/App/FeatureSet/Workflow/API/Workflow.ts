@@ -1,3 +1,4 @@
+import QueueWorkflow from "../Services/QueueWorkflow";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
@@ -11,6 +12,7 @@ import Express, {
   ExpressRouter,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import logger from "Common/Server/Utils/Logger";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 
 export default class WorkflowAPI {
@@ -46,8 +48,28 @@ export default class WorkflowAPI {
       );
     }
 
+    const workflowId: ObjectID = new ObjectID(req.params["workflowId"]);
+
+    /*
+     * Runs for every save and for a delete: whatever the workflow's trigger is
+     * now, a schedule it no longer qualifies for is taken off the queue. The
+     * trigger's own update() below only ever sees the CURRENT trigger.
+     *
+     * Best effort: Express 4 does not catch a rejected async handler, so a
+     * Valkey or database error here would leave the save that called this
+     * waiting for a response. The startup sweep removes what a failure leaves.
+     */
+    try {
+      await QueueWorkflow.reconcileSchedule(workflowId);
+    } catch (err) {
+      logger.error(
+        `Failed to reconcile the schedule of workflow ${workflowId.toString()}`,
+      );
+      logger.error(err);
+    }
+
     const workflow: Workflow | null = await WorkflowService.findOneById({
-      id: new ObjectID(req.params["workflowId"]),
+      id: workflowId,
       select: {
         _id: true,
         triggerId: true,

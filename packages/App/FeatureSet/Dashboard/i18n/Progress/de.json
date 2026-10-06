@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 25672,
-    "untranslated": 4585
+    "keys": 25852,
+    "untranslated": 4386
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -466,6 +466,7 @@
     "VLAN",
     "VMID",
     "VMs",
+    "VMware vCenter",
     "Vanuatu",
     "Variable",
     "Version",

@@ -129,6 +129,7 @@ import RewriteMeasurementPointsInTheirUnit from "./RewriteMeasurementPointsInThe
 import SetFileVisibilityFromPublishedRecords from "./SetFileVisibilityFromPublishedRecords";
 import SetWorkspaceSummaryTimezones from "./SetWorkspaceSummaryTimezones";
 import AddTelemetryServiceMetricsPermissions from "./AddTelemetryServiceMetricsPermissions";
+import HideImagesOfPrivateIncidents from "./HideImagesOfPrivateIncidents";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -623,6 +624,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement, so it sits before the last slot.
    */
   new AddTelemetryServiceMetricsPermissions(),
+  /*
+   * A private incident or episode is never shown on a status page, so the
+   * images of one stored private with Visible on Status Page still on, made
+   * public as if it were shown, become private again - unless a published
+   * record still shows them, or they are icons (PublishedImages).
+   * Postgres-only, idempotent. No ordering requirement, so it sits before
+   * the last slot.
+   */
+  new HideImagesOfPrivateIncidents(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

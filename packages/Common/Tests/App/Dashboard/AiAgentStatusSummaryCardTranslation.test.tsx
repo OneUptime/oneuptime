@@ -271,7 +271,7 @@ describe("the Overview's AI agent card in Japanese", () => {
       de: ["Offline"],
       fr: ["Investigation"],
       it: ["Offline"],
-      nl: ["Fixes", "Offline"],
+      nl: ["Offline"],
       pt: ["Offline"],
       sv: ["Offline"],
     };
@@ -349,10 +349,11 @@ describe("the Overview's AI agent card in Japanese", () => {
 
 /*
  * The Connection sentence holds the agent's name as written on its own.
- * French writes the Kubernetes agent's as "Agent IA Kubernetes" and keeps
+ * French wrote the Kubernetes agent's as "Agent IA Kubernetes" and kept
  * the resource agents' English, so its sentence used to read "Le Agent IA
- * Kubernetes est connecté.": an article that suits "Docker AI agent" only.
- * French now words the sentence without an article, for every name.
+ * Kubernetes est connecté.": an article that suited "Docker AI agent" only.
+ * French words the sentence without an article, for every name: the
+ * resource agents' French names ("Agent IA Docker") start it too.
  */
 describe("the Overview's AI agent card in French", () => {
   beforeEach(async () => {
@@ -430,7 +431,11 @@ describe("the Overview's AI agent card in French", () => {
     expect(sentence).not.toMatch(/\bLe Agent\b/);
   });
 
-  test("a resource's agent: its English name, with the same sentence agreeing", async () => {
+  /*
+   * The resource agents' French names start with "Agent" too ("Agent IA
+   * Docker"), and the sentence starts with the name, so no "Le" clashes.
+   */
+  test("a resource's agent: its French name, with the same sentence agreeing", async () => {
     postSpy.mockImplementation(async (): Promise<HTTPResponse<JSONObject>> => {
       return new HTTPResponse<JSONObject>(
         200,
@@ -458,15 +463,19 @@ describe("the Overview's AI agent card in French", () => {
     );
     await findCard();
 
-    expect(
+    const sentence: string =
       screen.getByTestId(`${AI_AGENT_STATUS_SUMMARY_TEST_ID}-connection-value`)
-        .textContent,
-    ).toBe(
+        .textContent || "";
+
+    expect(FR["Docker AI agent"]).toBe("Agent IA Docker");
+    expect(sentence).toBe(
       FR["The {{agent}} is not installed yet."]!.replace(
         "{{agent}}",
-        "Docker AI agent",
+        FR["Docker AI agent"]!,
       ),
     );
+    expect(sentence.startsWith("Agent IA Docker ")).toBe(true);
+    expect(sentence).not.toMatch(/\bLe Agent\b/);
   });
 
   // Every Connection sentence starts with the name, so no article can clash.

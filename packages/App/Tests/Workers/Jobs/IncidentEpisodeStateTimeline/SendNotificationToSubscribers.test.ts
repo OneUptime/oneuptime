@@ -388,6 +388,7 @@ function stateTimeline(overrides?: {
 
 function episode(overrides?: {
   isVisibleOnStatusPage?: boolean;
+  isPrivate?: boolean;
   withoutTitle?: boolean;
   withoutSeverity?: boolean;
 }): IncidentEpisode {
@@ -398,6 +399,9 @@ function episode(overrides?: {
   }
   row.projectId = PROJECT_ID;
   row.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+  if (overrides?.isPrivate !== undefined) {
+    row.isPrivate = overrides.isPrivate;
+  }
   row.episodeNumber = 3;
 
   if (!overrides?.withoutSeverity) {
@@ -1064,6 +1068,15 @@ describe("IncidentEpisodeStateTimeline:SendNotificationToSubscribers", () => {
       arrange: (): void => {
         pendingTimelines = [stateTimeline()];
         storedEpisode = episode({ isVisibleOnStatusPage: false });
+      },
+      message: "Episode is not visible on status page. Skipping notifications.",
+    },
+    // A private episode is hidden from every status page (StatusPageVisibility).
+    {
+      name: "the episode is private, even with its Status Pages switch on",
+      arrange: (): void => {
+        pendingTimelines = [stateTimeline()];
+        storedEpisode = episode({ isPrivate: true });
       },
       message: "Episode is not visible on status page. Skipping notifications.",
     },

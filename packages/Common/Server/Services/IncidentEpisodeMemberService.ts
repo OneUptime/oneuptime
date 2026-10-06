@@ -1,8 +1,14 @@
+import CountBy from "../Types/Database/CountBy";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import FindBy from "../Types/Database/FindBy";
+import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import ProjectReferencesService from "./ProjectReferencesService";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import { applyIncidentEpisodeRelatedRecordPrivacyFilter } from "../Utils/IncidentEpisode/IncidentEpisodePrivacyFilter";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -48,6 +54,53 @@ export class Service extends ProjectReferencesService<Model> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * A member row reveals both of its ends, so it is only visible to a user
+   * who can see the private incident AND the private episode. The two
+   * filters write different keys (incidentId / incidentEpisodeId) and
+   * compose. Relation joins (`select: { incident: { title } }`, as the
+   * episode's Incidents tab sends) run neither IncidentService's nor
+   * IncidentEpisodeService's onBeforeFind, so these are the only thing
+   * keeping a private incident's title out of an episode's member list, and
+   * a private episode's incidents from anyone who knows its id. This
+   * service's own reads are made as root, which neither filter narrows.
+   */
+  private applyPrivacyFilters<T>(
+    query: T,
+    props: DatabaseCommonInteractionProps,
+  ): T {
+    return applyIncidentEpisodeRelatedRecordPrivacyFilter(
+      applyIncidentRelatedRecordPrivacyFilter(query, props),
+      props,
+    );
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeFind(
+    findBy: FindBy<Model>,
+  ): Promise<OnFind<Model>> {
+    findBy.query = this.applyPrivacyFilters(findBy.query, findBy.props);
+    return { findBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  public override async countBy(
+    countBy: CountBy<Model>,
+  ): Promise<PositiveNumber> {
+    countBy.query = this.applyPrivacyFilters(countBy.query, countBy.props);
+    return super.countBy(countBy);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    updateBy.query = this.applyPrivacyFilters(updateBy.query, updateBy.props);
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -239,6 +292,9 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    // Only members the caller can see are deleted, and carried forward.
+    deleteBy.query = this.applyPrivacyFilters(deleteBy.query, deleteBy.props);
+
     // Get the member records before deletion
     const membersToDelete: Model[] = await this.findBy({
       query: deleteBy.query,

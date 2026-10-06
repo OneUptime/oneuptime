@@ -1,6 +1,7 @@
 import {
   CASCADES,
   getCascadedRowsSql,
+  HIDE_PRIVATE_RECORD_IMAGES_SQL,
   HIDE_UNSHOWN_FILES_SQL,
   KEPT_MARKDOWN,
   PROJECT_FILES_PRIVATE_SQL,
@@ -26,10 +27,13 @@ import { DataSource, QueryRunner } from "typeorm";
  * The SQL of PublishedImages against a real Postgres, on real rows: the
  * still-shown check DatabaseService asks before it makes images private, the
  * reads of the rows a delete takes with it, the statement a deleted
- * project's files are made private by, and the two statements the
+ * project's files are made private by, the two statements the
  * SetFileVisibilityFromPublishedRecords data migration runs once - images
  * published records show become public, and public files nothing published
- * shows become private.
+ * shows become private - and the one the HideImagesOfPrivateIncidents data
+ * migration runs once: images a private incident or episode made public
+ * become private. A private incident or episode shows nothing, whatever its
+ * Visible on Status Page switch says (StatusPageVisibility).
  *
  * Opt in with RUN_POSTGRES_PUBLISHED_IMAGES_TESTS=true and the normal
  * database credentials; PUBLISHED_IMAGES_TEST_DATABASE_HOST / _PORT point
@@ -99,7 +103,7 @@ function createTablesSql(): Array<string> {
       );
     }
 
-    for (const column of source.shownWhen) {
+    for (const column of [...source.shownWhen, ...(source.hiddenWhen || [])]) {
       columns.add(`"${column}" boolean`);
     }
   }
@@ -141,7 +145,10 @@ describePostgres("PublishedImages against Postgres", () => {
     return fileId;
   }
 
-  // A record of a table, with the values given (switches on by default).
+  /*
+   * A record of a table, with the values given (switches that show it on by
+   * default; one that hides it, such as Private, left unset - NULL, off).
+   */
   async function insertRecord(
     source: PublishedMarkdown,
     values: Record<string, unknown>,
@@ -377,6 +384,80 @@ describePostgres("PublishedImages against Postgres", () => {
       }
     });
 
+    test("leaves private every image of a private incident or episode, even with Visible on Status Page on", async () => {
+      const description: string = token();
+      const postmortem: string = token();
+      const customField: string = token();
+      const episodeDescription: string = token();
+
+      const fileIds: Array<string> = [];
+
+      for (const imageToken of [
+        description,
+        postmortem,
+        customField,
+        episodeDescription,
+      ]) {
+        fileIds.push(
+          await insertFile({
+            projectId: PROJECT_A,
+            isPublic: false,
+            imageAccessToken: imageToken,
+          }),
+        );
+      }
+
+      await runner.query(
+        `INSERT INTO "Incident" ("projectId", "description", "postmortemNote", "customFields", "isVisibleOnStatusPage", "showPostmortemOnStatusPage", "isPrivate") VALUES ($1, $2, $3, $4, true, true, true)`,
+        [
+          PROJECT_A,
+          byToken(description),
+          byToken(postmortem),
+          JSON.stringify({ impact: { value: byToken(customField) } }),
+        ],
+      );
+      await insertRecord(sourceOf("IncidentEpisode", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(episodeDescription),
+        isPrivate: true,
+      });
+
+      expect(await affected(PUBLISH_SHOWN_IMAGES_SQL)).toBe(0);
+
+      for (const fileId of fileIds) {
+        expect(await isPublic(fileId)).toBe(false);
+      }
+    });
+
+    test("a Private never set, or off, publishes as before", async () => {
+      const neverSet: string = token();
+      const off: string = token();
+      const neverSetFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: false,
+        imageAccessToken: neverSet,
+      });
+      const offFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: false,
+        imageAccessToken: off,
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(neverSet),
+      });
+      await insertRecord(sourceOf("IncidentEpisode", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(off),
+        isPrivate: false,
+      });
+
+      expect(await affected(PUBLISH_SHOWN_IMAGES_SQL)).toBe(2);
+      expect(await isPublic(neverSetFileId)).toBe(true);
+      expect(await isPublic(offFileId)).toBe(true);
+    });
+
     test("never makes another project's image, or one with no project, public", async () => {
       const foreign: string = token();
       const unowned: string = token();
@@ -550,6 +631,24 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await isPublic(neverSentFileId)).toBe(false);
     });
 
+    test("makes private an image only a private incident shows, even with Visible on Status Page on", async () => {
+      const onPrivateIncident: string = token();
+      const fileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: onPrivateIncident,
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(onPrivateIncident),
+        isPrivate: true,
+      });
+
+      expect(await affected(HIDE_UNSHOWN_FILES_SQL)).toBe(1);
+      expect(await isPublic(fileId)).toBe(false);
+    });
+
     test("makes private an image only a turned-off form shows", async () => {
       const onForm: string = token();
       const fileId: string = await insertFile({
@@ -662,6 +761,31 @@ describePostgres("PublishedImages against Postgres", () => {
       expect(await stillShown(PROJECT_A, imageToken)).toBe(false);
     });
 
+    test("does not count a private incident or episode, even with Visible on Status Page on", async () => {
+      const imageToken: string = token();
+
+      await runner.query(
+        `INSERT INTO "Incident" ("projectId", "description", "postmortemNote", "customFields", "isVisibleOnStatusPage", "showPostmortemOnStatusPage", "isPrivate") VALUES ($1, $2, $2, $3, true, true, true)`,
+        [
+          PROJECT_A,
+          byToken(imageToken),
+          JSON.stringify({ impact: { value: byToken(imageToken) } }),
+        ],
+      );
+      await insertRecord(sourceOf("IncidentEpisode", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(imageToken),
+        isPrivate: true,
+      });
+
+      expect(await stillShown(PROJECT_A, imageToken)).toBe(false);
+
+      // Made not private, the same incident shows it again.
+      await runner.query(`UPDATE "Incident" SET "isPrivate" = false`);
+
+      expect(await stillShown(PROJECT_A, imageToken)).toBe(true);
+    });
+
     test("an incident's description still shows an image its unpublished postmortem dropped", async () => {
       const imageToken: string = token();
 
@@ -746,6 +870,281 @@ describePostgres("PublishedImages against Postgres", () => {
       });
 
       expect(await stillShownOf(PROJECT_A, [asked])).toEqual([asked]);
+    });
+  });
+
+  describe("HIDE_PRIVATE_RECORD_IMAGES_SQL", () => {
+    test("makes private every public image a private incident or episode of the file's project holds", async () => {
+      const description: string = token();
+      const postmortem: string = token();
+      const customField: string = token();
+      const episodeDescription: string = token();
+
+      const fileIds: Array<string> = [];
+
+      for (const imageToken of [
+        description,
+        postmortem,
+        customField,
+        episodeDescription,
+      ]) {
+        fileIds.push(
+          await insertFile({
+            projectId: PROJECT_A,
+            isPublic: true,
+            imageAccessToken: imageToken,
+          }),
+        );
+      }
+
+      await runner.query(
+        `INSERT INTO "Incident" ("projectId", "description", "postmortemNote", "customFields", "isVisibleOnStatusPage", "showPostmortemOnStatusPage", "isPrivate") VALUES ($1, $2, $3, $4, true, true, true)`,
+        [
+          PROJECT_A,
+          byToken(description),
+          byToken(postmortem),
+          JSON.stringify({ impact: { value: byToken(customField) } }),
+        ],
+      );
+      await insertRecord(sourceOf("IncidentEpisode", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(episodeDescription),
+        isPrivate: true,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(4);
+
+      for (const fileId of fileIds) {
+        expect(await isPublic(fileId)).toBe(false);
+      }
+    });
+
+    test("keeps public an image a published record still shows, by its token or by its id", async () => {
+      const alsoOnAnnouncement: string = token();
+      const alsoLinkedById: string = token();
+      const onAnnouncementFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: alsoOnAnnouncement,
+      });
+      const linkedByIdFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: alsoLinkedById,
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: `${byToken(alsoOnAnnouncement)} ${byToken(alsoLinkedById)}`,
+        isPrivate: true,
+      });
+      await insertRecord(sourceOf("StatusPageAnnouncement", "description"), {
+        projectId: PROJECT_A,
+        description: `${byToken(alsoOnAnnouncement)} ${byId(linkedByIdFileId)}`,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+      expect(await isPublic(onAnnouncementFileId)).toBe(true);
+      expect(await isPublic(linkedByIdFileId)).toBe(true);
+    });
+
+    test("makes private an image a private record holds by its id, as hand-written markdown addresses it", async () => {
+      const byIdFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+      const unownedByIdFileId: string = await insertFile({
+        projectId: null,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: `${byId(byIdFileId)} ${byId(unownedByIdFileId.toUpperCase())}`,
+        isPrivate: true,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(2);
+      expect(await isPublic(byIdFileId)).toBe(false);
+      expect(await isPublic(unownedByIdFileId)).toBe(false);
+    });
+
+    test("by its id too, moves nothing else: another project's image, one a published record still shows, a hidden record's", async () => {
+      const foreignFileId: string = await insertFile({
+        projectId: PROJECT_B,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+      const stillShownFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+      const onHiddenFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: token(),
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: `${byId(foreignFileId)} ${byId(stillShownFileId)}`,
+        isPrivate: true,
+      });
+      await insertRecord(sourceOf("StatusPageAnnouncement", "description"), {
+        projectId: PROJECT_A,
+        description: byId(stillShownFileId),
+      });
+      // Hidden, but not private: left to the switch, as before.
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byId(onHiddenFileId),
+        isVisibleOnStatusPage: false,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+
+      for (const fileId of [foreignFileId, stillShownFileId, onHiddenFileId]) {
+        expect(await isPublic(fileId)).toBe(true);
+      }
+    });
+
+    test("makes private an image of no project a private record holds: a file from before files had a project", async () => {
+      const unowned: string = token();
+      const unownedFileId: string = await insertFile({
+        projectId: null,
+        isPublic: true,
+        imageAccessToken: unowned,
+      });
+
+      await insertRecord(sourceOf("Incident", "postmortemNote"), {
+        projectId: PROJECT_A,
+        postmortemNote: byToken(unowned),
+        isPrivate: true,
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(1);
+      expect(await isPublic(unownedFileId)).toBe(false);
+    });
+
+    test("keeps a probe's or an AI agent's icon public", async () => {
+      const iconToken: string = token();
+      const iconFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: iconToken,
+      });
+
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(iconToken),
+        isPrivate: true,
+      });
+      await runner.query(
+        `INSERT INTO "Probe" ("projectId", "iconFileId") VALUES ($1, $2)`,
+        [PROJECT_A, iconFileId],
+      );
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+      expect(await isPublic(iconFileId)).toBe(true);
+    });
+
+    test("moves nothing else: another project's image, an image no private record holds, a hidden record's, a deleted one's, a private file", async () => {
+      const foreign: string = token();
+      const orphan: string = token();
+      const onHiddenIncident: string = token();
+      const onDeletedPrivateIncident: string = token();
+      const alreadyPrivate: string = token();
+
+      const foreignFileId: string = await insertFile({
+        projectId: PROJECT_B,
+        isPublic: true,
+        imageAccessToken: foreign,
+      });
+      const orphanFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: orphan,
+      });
+      const hiddenFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: onHiddenIncident,
+      });
+      const deletedFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: onDeletedPrivateIncident,
+      });
+      const privateFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: false,
+        imageAccessToken: alreadyPrivate,
+      });
+
+      // Project A's private incident names project B's image.
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: `${byToken(foreign)} ${byToken(alreadyPrivate)}`,
+        isPrivate: true,
+      });
+      // Hidden, but not private: left to the switch, as before.
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(onHiddenIncident),
+        isVisibleOnStatusPage: false,
+      });
+      await insertRecord(sourceOf("Incident", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(onDeletedPrivateIncident),
+        isPrivate: true,
+        deletedAt: new Date(),
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+
+      for (const fileId of [
+        foreignFileId,
+        orphanFileId,
+        hiddenFileId,
+        deletedFileId,
+      ]) {
+        expect(await isPublic(fileId)).toBe(true);
+      }
+      expect(await isPublic(privateFileId)).toBe(false);
+    });
+
+    test("a second run moves nothing, and it never makes an image public", async () => {
+      const imageToken: string = token();
+      const fileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: true,
+        imageAccessToken: imageToken,
+      });
+      const privateImage: string = token();
+      const privateFileId: string = await insertFile({
+        projectId: PROJECT_A,
+        isPublic: false,
+        imageAccessToken: privateImage,
+      });
+
+      await insertRecord(sourceOf("IncidentEpisode", "description"), {
+        projectId: PROJECT_A,
+        description: byToken(imageToken),
+        isPrivate: true,
+      });
+      // Shown by a public note: stays as it is, private.
+      await insertRecord(sourceOf("IncidentPublicNote", "note"), {
+        projectId: PROJECT_A,
+        note: byToken(privateImage),
+      });
+
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(1);
+      expect(await affected(HIDE_PRIVATE_RECORD_IMAGES_SQL)).toBe(0);
+      expect(await isPublic(fileId)).toBe(false);
+      expect(await isPublic(privateFileId)).toBe(false);
     });
   });
 
