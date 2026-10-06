@@ -557,9 +557,9 @@ describe("composedValue", () => {
   });
 
   test("a translated sentence builds it in the reader's language", () => {
-    expect(
-      withSentence.translateTemplate(NEEDS, { permissions: either }),
-    ).toBe("Dafür braucht es Project Owner oder Vorfälle.");
+    expect(withSentence.translateTemplate(NEEDS, { permissions: either })).toBe(
+      "Dafür braucht es Project Owner oder Vorfälle.",
+    );
   });
 
   test("a sentence the locale lacks builds it in English, pieces and all", () => {

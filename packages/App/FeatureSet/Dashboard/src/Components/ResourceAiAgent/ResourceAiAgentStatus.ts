@@ -391,7 +391,9 @@ export function getResourceAiAgentOfflineReason(
  * product name ("Database AI agent" keeps its capitals in English), the
  * resource cased for the middle of a sentence.
  */
-function getAgentAndNoun(descriptor: ResourceAiAgentDescriptor): TemplateValues {
+function getAgentAndNoun(
+  descriptor: ResourceAiAgentDescriptor,
+): TemplateValues {
   return {
     agent: translatableTerm(descriptor.agentName),
     noun: translatableTerm(descriptor.noun, { inSentence: true }),

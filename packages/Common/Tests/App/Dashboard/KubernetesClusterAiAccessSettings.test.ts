@@ -3099,13 +3099,15 @@ describe("in the reader's language", () => {
   const BYPASS_SENTENCE: string =
     "With Bypass approval OneUptime AI does not ask: it applies every fix the kubectl policy allows on this cluster on its own — {{examples}} included, in follow-up rounds too. Even so, {{protections}}.";
 
-  const toBypass: { saved: KubernetesAiAccessSavedSettings; changes: JSONObject } =
-    {
-      saved: makeSaved({
-        aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
-      }),
-      changes: { aiRemediationMode: KubernetesAiRemediationMode.BypassApproval },
-    };
+  const toBypass: {
+    saved: KubernetesAiAccessSavedSettings;
+    changes: JSONObject;
+  } = {
+    saved: makeSaved({
+      aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+    }),
+    changes: { aiRemediationMode: KubernetesAiRemediationMode.BypassApproval },
+  };
 
   beforeAll(async () => {
     const pseudo: Record<string, string> = {};
@@ -3367,8 +3369,12 @@ describe("in the reader's language", () => {
     const disclosure: string = getAiAgentWriteDisclosure();
 
     expect(disclosure).toMatch(LOOKED_UP);
-    expect(disclosure).toContain("‹kube-system, kube-public and kube-node-lease›");
-    expect(disclosure).toContain("‹kube-system, kube-public or kube-node-lease›");
+    expect(disclosure).toContain(
+      "‹kube-system, kube-public and kube-node-lease›",
+    );
+    expect(disclosure).toContain(
+      "‹kube-system, kube-public or kube-node-lease›",
+    );
   });
 
   test("the connection test's permission sentences", async () => {

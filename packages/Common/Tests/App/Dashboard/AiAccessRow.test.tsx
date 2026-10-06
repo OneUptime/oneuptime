@@ -592,13 +592,13 @@ describe("in the reader's language", () => {
     expect(screen.getByTestId("set-by-text")).toHaveTextContent(
       "‹Chosen on this page.›",
     );
-    expect(screen.getByTestId("set-by-action")).toHaveTextContent(
-      "‹Show how›",
-    );
+    expect(screen.getByTestId("set-by-action")).toHaveTextContent("‹Show how›");
   });
 
   test("the hint", () => {
-    pseudo("Want AI to propose fixes? Click Change and choose Ask for approval.");
+    pseudo(
+      "Want AI to propose fixes? Click Change and choose Ask for approval.",
+    );
     render(
       <AiAccessHint
         text="Want AI to propose fixes? Click Change and choose Ask for approval."
@@ -653,13 +653,15 @@ describe("in the reader's language", () => {
 
   test("the every-mode protections: the title and each line", () => {
     pseudo(AI_ACCESS_PROTECTIONS_TITLE, "Denied commands never run.");
-    render(<AiAccessProtections protections={["Denied commands never run."]} />);
+    render(
+      <AiAccessProtections protections={["Denied commands never run."]} />,
+    );
 
     const details: HTMLElement = screen.getByTestId("ai-access-protections");
     expect(details).toHaveTextContent(`‹${AI_ACCESS_PROTECTIONS_TITLE}›`);
-    expect(
-      screen.getByTestId("ai-access-protections-list").textContent,
-    ).toBe("‹Denied commands never run.›");
+    expect(screen.getByTestId("ai-access-protections-list").textContent).toBe(
+      "‹Denied commands never run.›",
+    );
   });
 
   test("the admin note and the to-do panel", () => {

@@ -79,7 +79,8 @@ case:
    own text props: Card `title`/`description`, ModelTable, ModelDetail and form
    field `title`/`description`/`placeholder`, Button `title`, Modal `title` and
    button texts, Pill and StatusBadge `text`, Tooltip `text`, MoreMenuItem,
-   Checkbox, CollapsibleSection, SideOver, Link, EmptyState, and more. Do not
+   Checkbox, CollapsibleSection, SideOver, Link, EmptyState, the "What AI may
+   do" building blocks (`Components/AiAccess/AiAccessRow.tsx`), and more. Do not
    translate a prop before you pass it. Write it as a literal, so the extractor
    sees it. `USER_FACING_PROPS` in `scripts/i18n/ExtractStrings.ts` lists the
    prop names the extractor reads.

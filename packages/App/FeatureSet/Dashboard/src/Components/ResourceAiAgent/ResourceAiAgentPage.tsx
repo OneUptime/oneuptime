@@ -544,7 +544,10 @@ const ResourceAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       const getLoosening: (sentence?: Translator) => Array<string> = (
         sentence?: Translator,
       ): Array<string> => {
-        return getResourceAiAccessLooseningChanges({ saved, changes }, sentence);
+        return getResourceAiAccessLooseningChanges(
+          { saved, changes },
+          sentence,
+        );
       };
 
       if (getLoosening().length > 0) {

@@ -202,17 +202,19 @@ export function getAiAgentWriteDisclosure(): string {
     "Write access lets the agent patch and update Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Pods and HPAs, create Jobs and HPAs, and delete Pods and Jobs — and, unless aiAgent.remediation.nodeOperations=false, cordon, uncordon, drain and taint every node. In a namespace, that is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets. Without aiAgent.remediation.namespaces it applies cluster-wide — {{protectedNamespaces}} and the agent's own namespace included. There OneUptime still holds the line: a change in {{anyProtectedNamespace}} always needs a person, and the agent never changes its own namespace.",
     {
       protectedNamespaces: composedValue((translator: Translator): string => {
-        return formatNameList(PROTECTED_KUBERNETES_NAMESPACES, "and", translator);
+        return formatNameList(
+          PROTECTED_KUBERNETES_NAMESPACES,
+          "and",
+          translator,
+        );
       }),
-      anyProtectedNamespace: composedValue(
-        (translator: Translator): string => {
-          return formatNameList(
-            PROTECTED_KUBERNETES_NAMESPACES,
-            "or",
-            translator,
-          );
-        },
-      ),
+      anyProtectedNamespace: composedValue((translator: Translator): string => {
+        return formatNameList(
+          PROTECTED_KUBERNETES_NAMESPACES,
+          "or",
+          translator,
+        );
+      }),
     },
   );
 }

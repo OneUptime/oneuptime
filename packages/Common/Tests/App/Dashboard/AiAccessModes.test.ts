@@ -1,10 +1,4 @@
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import i18next from "i18next";
 import path from "path";
@@ -527,8 +521,10 @@ describe("in the reader's language", () => {
       getAiInvestigationBadge(true).text,
       getAiInvestigationBadge(false).text,
       ...MODES_BY_AUTONOMY.map((mode: AiFixesMode): string => {
-        return getAiFixesBadge({ mode, shortNames: REMEDIATION_MODE_SHORT_NAMES })
-          .text;
+        return getAiFixesBadge({
+          mode,
+          shortNames: REMEDIATION_MODE_SHORT_NAMES,
+        }).text;
       }),
     ]) {
       expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
@@ -541,9 +537,7 @@ describe("in the reader's language", () => {
     expect(getAiAccessCardDescription("cluster")).toBe(
       "‹For incidents and alerts on this ‹cluster›. Changes apply from the next one.›",
     );
-    expect(getAiInvestigationOffSentence("database server")).toMatch(
-      LOOKED_UP,
-    );
+    expect(getAiInvestigationOffSentence("database server")).toMatch(LOOKED_UP);
     expect(getAiFixesOffHint(true)).toBe(
       "‹Want AI to propose fixes? Click Change and choose Ask for approval.›",
     );

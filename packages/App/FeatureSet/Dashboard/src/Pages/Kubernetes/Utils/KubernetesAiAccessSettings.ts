@@ -135,7 +135,11 @@ export function getEveryModeProtections(
       "a write in {{namespaces}}, a node drain, a node taint and a patch of a node always need a human",
       {
         namespaces: composedValue((sentence: Translator): string => {
-          return formatNameList(PROTECTED_KUBERNETES_NAMESPACES, "or", sentence);
+          return formatNameList(
+            PROTECTED_KUBERNETES_NAMESPACES,
+            "or",
+            sentence,
+          );
         }),
       },
     ),
@@ -791,7 +795,9 @@ export function getKubernetesAiAccessLooseningChanges(
     const runnerId: unknown = data.changes["aiAccessRunnerId"];
 
     if (runnerId && String(runnerId) !== data.saved.aiAccessRunnerId) {
-      loosening.push(translator.translateTemplate("binding a different Runner"));
+      loosening.push(
+        translator.translateTemplate("binding a different Runner"),
+      );
     } else if (
       !runnerId &&
       data.saved.aiAccessRunnerId !== null &&
@@ -1215,8 +1221,7 @@ export function buildKubernetesAiCredentialOptions(data: {
     options.unshift({
       value: data.boundCredentialId,
       label: translateTemplate("{{name}} (currently bound)", {
-        name:
-          data.boundCredentialName || translatableTerm(BOUND_CREDENTIAL),
+        name: data.boundCredentialName || translatableTerm(BOUND_CREDENTIAL),
       }),
     });
   }

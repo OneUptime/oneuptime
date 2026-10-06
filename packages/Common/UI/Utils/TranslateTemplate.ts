@@ -63,11 +63,7 @@ export interface ComposedValue {
   readonly compose: (translator: Translator) => string;
 }
 
-export type TemplateValue =
-  | string
-  | number
-  | TranslatableTerm
-  | ComposedValue;
+export type TemplateValue = string | number | TranslatableTerm | ComposedValue;
 
 export type TemplateValues = Record<string, TemplateValue>;
 
