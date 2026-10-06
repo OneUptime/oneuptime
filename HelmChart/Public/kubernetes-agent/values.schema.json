@@ -894,6 +894,10 @@
           "type": "boolean",
           "description": "Drop an application's eBPF database call (db.system.name set, not SERVER) that has no parent: background work such as queue workers polling Redis, pool pings, cron jobs. Trade-off: a database that only such work talks to is no longer discovered from traces and shows on the service map as a remote endpoint. Spans pushed by application SDKs are never touched, and database metrics are unaffected."
         },
+        "dropUnlinkedClientCalls": {
+          "type": "boolean",
+          "description": "Drop an application's eBPF client call (kind CLIENT, no parent) that is not a database, messaging, GenAI or MCP call: HTTP, gRPC and other calls made by background work, and calls OBI could not place in their request's trace. Off by default; only true turns it on. Trade-offs: a call that OBI linked a request under (on the same node; on any node with ebpf.contextPropagation, SDK-instrumented services included) is the root of that trace, which then loses its root; the service map draws a dependency only background work calls from OBI's service graph metrics alone, and counts only in-request calls on an edge also seen inside requests; a service's overview counts only the spans left. Spans pushed by application SDKs are never dropped, and OBI's metrics are unaffected."
+        },
         "dropNodeInspectorMetrics": {
           "type": "boolean",
           "description": "Drop the http.server.* datapoints OBI v0.14 records for its own Node.js agent injection: GET on port 9229 with route /json/list, /json/version, or /* answered 101 (OBI's default route naming; nothing is dropped with ebpf.nodejs.enabled false). A datapoint has no client address, so an app's own GET /json/list or /json/version on port 9229, and its own WebSocket upgrades there that OBI names /*, are dropped too. Only OBI's http.server.* datapoints are considered: its span metrics still count the injection. OneUptime drops the injection's spans on ingest."
