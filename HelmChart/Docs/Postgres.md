@@ -371,25 +371,25 @@ Notes on the migration Job:
 
 - **Deploys do not block by default** (`migrate.hook: false`): the migration Job
   runs as a regular async Job for both install and upgrade, so `helm` returns
-  immediately and pods roll while migrations run in the background. The trade-off
-  is that **pods can start before migrations finish**, so keep your migrations
-  _backward-compatible_ (the new code tolerates the old schema — the
-  expand/contract pattern). Set `migrate.hook: true` to make deploys block on a
-  Helm hook instead (`post-install` on install, `pre-upgrade` on upgrade); the
-  deploy then waits and new code never hits an un-migrated schema.
-- **Fresh-install caveat with `migrate.hook: false`:** on a brand-new install the
-  app pods come up against an empty (un-migrated) database and will stay unready —
-  likely `CrashLoopBackOff` — until the async Job finishes creating the schema,
-  then self-heal. The Job's own init container waits for the database first, so a
-  slow first-time cluster bootstrap may need a longer `helm upgrade --install
---timeout`. If you want a clean first install, run it once with
-  `--set migrate.hook=true` (blocks until the schema exists), then drop back to
-  the async default for routine upgrades.
-
-More on the migration Job:
-
-- `helm upgrade --wait` waits for Jobs too, so don't pass `--wait` if you want
-  the async upgrade to stay non-blocking.
+  immediately and pods roll while migrations run in the background.
+- **New pods wait for the schema migrations their code needs.** A runtime pod
+  does not start on a schema older than its code: `PostgresDatabase.connect()`
+  reads which of the code's migrations the database has not recorded, and
+  waits until the Job has applied them before the rest of its boot (see
+  [New pods and pending schema migrations](#new-pods-and-pending-schema-migrations)).
+  The pod is not ready meanwhile, so the old pods keep serving, and it carries
+  on within five seconds of the last one committing. (In 14.0.13 the new worker
+  pods started on the old schema: every monitor query selected
+  `Monitor."isArchived"` before `AddArchiveToMoreResources` had added it, and no
+  monitor was processed until it had.) Keep migrations _backward-compatible_ all
+  the same (the expand/contract pattern): the **old** pods serve on the **new**
+  schema until they are replaced.
+- **Fresh installs with `migrate.hook: false`:** the pods likewise wait for the
+  Job to create the schema, instead of crash-looping on an empty database. They
+  can still restart a few times while the database itself is starting, since
+  they connect before they wait. The Job's own init container waits for the
+  database first, so a slow first-time cluster bootstrap may need a longer
+  `helm upgrade --install --timeout`.
 - Finished async Jobs auto-clean after `migrate.ttlSecondsAfterFinished` (default
   1 day).
 - Alternatively, run migrations as a **separate step** before the deploy (e.g.
@@ -401,6 +401,81 @@ More on the migration Job:
   same path docker-compose uses.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
   session mode); the app's client-side `query_timeout` still applies.
+
+### New pods and pending schema migrations
+
+With the migrate Job owning migrations, a runtime pod (app, worker,
+telemetry-writer, nginx) waits at boot for the schema migrations its code
+needs; see the notes above for why.
+
+#### How long a new pod waits
+
+`migrate.runtimeWaitTimeoutSeconds` (default `900`, rendered as
+`DATABASE_MIGRATION_WAIT_TIMEOUT_MS`). When it runs out, the pod exits with an
+error naming the migrations still missing, is restarted, and waits again: it
+never serves on the older schema. Look at the migrate Job then
+(`kubectl logs job/<release>-migrate-<revision>`), which has failed or is still
+retrying a migration that cannot get its locks.
+
+A waiting pod has not started, so its startup probe fails until the wait ends,
+and Kubernetes runs no liveness or readiness probe before the startup probe
+passes. The startup probe kills the pod after about `startupProbe.periodSeconds
+x (startupProbe.failureThreshold - 1)`, 17 minutes by default. Keep the wait
+below that, with room for the rest of the boot, so a pod gives up by itself
+with that error instead of being killed and backed off; the install notes warn
+when it is not. With `startupProbe.enabled: false` the liveness probe kills a
+waiting pod after about two minutes. `0` turns the wait off: pods start on the
+schema as found, as they did before.
+
+#### What the wait costs during an upgrade
+
+- **Capacity.** A rolling update replaces old pods as new ones become ready,
+  but removes up to `maxUnavailable` of them (25% of the replicas, rounded
+  down) straight away. While the migrations run, that share of capacity is
+  gone. Set `deployment.updateStrategy.rollingUpdate.maxUnavailable: 0` to keep
+  every old pod until its replacement is ready.
+- **Progress deadline.** A rollout whose pods wait longer than
+  `progressDeadlineSeconds` (10 minutes) is marked `ProgressDeadlineExceeded`:
+  `kubectl rollout status` fails and Argo CD shows the application Degraded,
+  though the rollout carries on once the migrations are in.
+- **`helm upgrade --wait` / `--atomic`** wait for the new pods to be ready, so
+  they now last until the schema migrations are applied: size `--timeout` for
+  them. `--wait` does not wait for the Job itself (data migrations included)
+  unless you add `--wait-for-jobs`. An `--atomic` deploy that runs out of time
+  rolls back, and deletes the migrate Job mid-run.
+
+#### Why `migrate.hook` stays `false` by default
+
+`migrate.hook: true` runs the Job as a Helm hook (`post-install` on install,
+`pre-upgrade` on upgrade): `helm upgrade` applies every migration before it
+touches a Deployment. It complements the wait, but it is not the default:
+
+- It blocks the whole deploy on the whole Job, data migrations included (they
+  can be long backfills), within Helm's `--timeout` of 5 minutes by default.
+  One schema migration alone may retry its locks for 10 minutes, as in
+  14.0.13. A Job that outlasts the timeout fails the release, so turning it on
+  for every existing install would turn routine upgrades into failed ones.
+- It does not cover what the wait covers. A `post-install` hook runs after the
+  release's pods exist, so a fresh install is not protected. Argo CD renders the
+  chart with `helm template`, where every sync is an install, so the Job is
+  always a `post-install` hook there, which Argo CD runs as a PostSync hook,
+  after the new pods are Healthy. `helm upgrade --no-hooks`, or a rollout
+  started by anything other than Helm, skips it.
+- With the wait, the async Job gives the same guarantee (no pod serves on an
+  older schema) and the new pods are scheduled, pull their image and boot while
+  it migrates, so the rollout finishes sooner.
+
+What the hook buys: no old pod is replaced until the migrations have succeeded,
+so there is no capacity dip and no progress deadline to watch, and a failed
+migration fails the deploy before any pod rolls. Choose it, with a `--timeout`
+sized for your migrations, if that matters more to you than a non-blocking
+deploy.
+
+Because a `post-install` hook runs only after the release's pods exist (and,
+under `helm install --wait` or Argo CD, only once they are ready), pods that
+waited for it would wait for each other. So with `migrate.hook: true` the pods
+of an install do not wait (`DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0`); the pods of
+a Helm upgrade keep the wait, which finds the `pre-upgrade` hook's work done.
 
 ### Schema migrations and busy tables
 

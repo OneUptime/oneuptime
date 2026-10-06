@@ -714,10 +714,12 @@ clickhouseOperator:
 # =============================================================================
 # Database migrations (dedicated Job — enabled by default).
 #
-# Schema + data migrations run ONCE per release in a dedicated pre-upgrade /
-# post-install Job (App/Migrate.ts), connecting directly to the backend. The
-# runtime app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=
-# false). See HelmChart/Docs/Postgres.md.
+# Schema + data migrations run ONCE per release in a dedicated Job
+# (App/Migrate.ts), connecting directly to the backend: an async Job by default,
+# a pre-upgrade / post-install hook with migrate.hook. The runtime
+# app/worker/nginx pods are gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false),
+# and each waits at boot for the schema migrations its code needs before it
+# starts (migrate.runtimeWaitTimeoutSeconds). See HelmChart/Docs/Postgres.md.
 #
 # KEEP THIS ENABLED. The migration runners take no advisory lock, so this Job
 # is the only thing making one runner the single runner. Setting enabled: false
@@ -725,10 +727,11 @@ clickhouseOperator:
 # at once and unserialized — two replicas can read the same migration as "not
 # executed" and both run it.
 #
-# Behavior: deploys gate on the migration Job (cleaner, atomic, no cross-pod
-# race). An init container waits for the database first, so a fresh install does
-# not race the bundled Postgres / CNPG bootstrap; on a very slow first-time
-# cluster bootstrap you may need a longer `helm upgrade --install --timeout`.
+# Behavior: one runner, so no cross-pod race, and no new pod serves until the
+# schema migrations it needs are applied. An init container waits for the
+# database first, so a fresh install does not race the bundled Postgres / CNPG
+# bootstrap; on a very slow first-time cluster bootstrap you may need a longer
+# `helm upgrade --install --timeout`.
 # docker-compose and enabled: false installs run the boot path with no lock at
 # all, so data migrations must be written to tolerate concurrent runs.
 migrate:
@@ -736,17 +739,39 @@ migrate:
   # Whether the deploy WAITS for migrations:
   #   false (default): migrations run as an async background Job (both install and
   #     upgrade) — helm returns immediately and pods roll while migrations run.
-  #     Non-blocking deploys, BUT pods may run before migrations finish, so keep
-  #     your migrations backward-compatible (expand/contract: new code must
-  #     tolerate the old schema). On a FRESH install the app pods come up against
-  #     an un-migrated database and stay unready (likely CrashLoopBackOff) until
-  #     the Job finishes creating the schema — they self-heal once it does.
+  #     A new pod does not start on a schema older than its code: it waits at
+  #     boot, unready (the old pods keep serving), until the schema migrations
+  #     it needs are applied — see runtimeWaitTimeoutSeconds. On a FRESH install
+  #     the pods likewise wait for the Job to create the schema instead of
+  #     crash-looping. Keep migrations backward-compatible all the same
+  #     (expand/contract): the OLD pods serve on the NEW schema until replaced.
   #   true: migrations run as a BLOCKING Helm hook (post-install on install,
-  #     pre-upgrade on upgrade) — the deploy waits before rolling new pods, so new
-  #     code never hits an un-migrated schema.
-  # Note: `helm upgrade --wait` waits for the async Job too, so don't pass --wait
-  # if you want it non-blocking.
+  #     pre-upgrade on upgrade) — `helm upgrade` waits for them, data migrations
+  #     included, before rolling new pods, and fails the release if they outlast
+  #     its --timeout (5m by default). A post-install hook runs only after the
+  #     release's pods exist — after they are READY under `helm install --wait`
+  #     and Argo CD (which renders every sync as an install, so there the Job is
+  #     always a PostSync hook) — so with hook: true the pods of an install do
+  #     not wait for it (DATABASE_MIGRATION_WAIT_TIMEOUT_MS=0), as before.
+  # Note: `helm upgrade --wait` waits for the new pods to be ready, and they now
+  # wait for the schema migrations, so a --wait (or --atomic) deploy lasts until
+  # those are applied: size --timeout for them. It does not wait for the Job
+  # itself (data migrations included) unless you add --wait-for-jobs.
   hook: false
+  # How long each new runtime pod (app, worker, telemetry-writer, nginx) waits at
+  # boot for the schema migrations its code needs, in seconds (rendered as
+  # DATABASE_MIGRATION_WAIT_TIMEOUT_MS). Meanwhile it has not started: its
+  # startup probe fails, it gets no traffic, the old pods keep serving. It goes
+  # on as soon as the migrations are applied. When the time runs out it exits
+  # with an error naming the missing migrations, is restarted, and waits again —
+  # it never serves on the older schema. Keep it below the startup probe window,
+  # startupProbe.periodSeconds x (startupProbe.failureThreshold - 1) = 17
+  # minutes by default, with room for the rest of the boot, so a pod gives up by
+  # itself rather than being killed by the probe (with startupProbe.enabled:
+  # false the liveness probe kills a waiting pod after about two minutes).
+  # 0 = do not wait: start on the schema as found, as before this setting.
+  # Empty = the app's default (900).
+  runtimeWaitTimeoutSeconds: 900
   # Auto-clean finished async Jobs after this many seconds (hook: false only).
   ttlSecondsAfterFinished: 86400
   # Job retries (handles the DB not being ready yet on a fresh install).
