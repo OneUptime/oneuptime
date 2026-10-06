@@ -8,17 +8,17 @@ import Project from "Common/Models/DatabaseModels/Project";
 import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -295,11 +295,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
       ? getSettingsAction(reason?.code || "no_run_recorded", subjectType)
       : null;
   const canReviewSettings: boolean = Boolean(
-    action &&
-      PermissionHelper.doesPermissionsIntersect(
-        action.permissions,
-        PermissionUtil.getAllPermissions(),
-      ),
+    action && PermissionGate.holdsAnyOf(action.permissions),
   );
   const sourceLabel: string = translator.translateText(
     reason?.source === "recorded"

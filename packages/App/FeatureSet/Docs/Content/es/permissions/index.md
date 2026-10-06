@@ -95,7 +95,7 @@ Cada equipo tiene dos listas:
 
 Un permiso no puede llevar etiquetas de restricción en ambas listas a la vez; OneUptime rechaza la segunda con una explicación.
 
-Como el acceso de un usuario es la unión de todos sus equipos, un bloqueo en un equipo **no** cancela un permiso concedido en otro. Los bloqueos restringen al equipo en el que se definen. Si alguien tiene más acceso del que espera, revise todos los equipos a los que pertenece.
+Los permisos concedidos a un usuario se suman entre todos sus equipos, pero un bloqueo se aplica a todo lo que hace el usuario: un bloqueo sin etiquetas en un equipo retira la capacidad aunque otro equipo la conceda, y una entrada de bloqueo nunca concede nada. Si alguien tiene menos acceso del que espera, busque un bloqueo en cada uno de sus equipos; si tiene más, busque un permiso concedido en cada uno.
 
 ## Alcance: hasta dónde llega un permiso concedido
 
@@ -152,12 +152,16 @@ Para un usuario que ha iniciado sesión, en orden:
 
 1. Encontrar los equipos a los que pertenece el usuario en este proyecto, contando solo invitaciones aceptadas.
 2. Reunir todas las filas de permisos de esos equipos —permitir y bloquear—, cada una con sus etiquetas y su alcance.
-3. Comprobar primero la lista de bloqueo. Un bloqueo coincidente sin etiquetas rechaza la petición de inmediato.
-4. Comprobar la lista de permitidos. La petición necesita al menos un permiso que la tabla de destino acepte para esa operación.
+3. Comprobar primero la lista de bloqueo. Un bloqueo sin etiquetas sobre cualquier permiso que la tabla de destino acepte para esa operación rechaza la petición de inmediato, sea cual sea el equipo en que esté.
+4. Comprobar la lista de permitidos. La petición necesita al menos un permiso que la tabla de destino acepte para esa operación. En un recurso operativo —un monitor, un incidente, un panel y similares— también cuenta el permiso **All Operational Resources** correspondiente (Create, Read, Edit o Delete), salvo que esté bloqueado.
 5. Aplicar el alcance. Las concesiones con alcance Propios acotan la consulta a los recursos propios; las de etiquetas la acotan a las etiquetas que coincidan. Si cualquier otra concesión para la misma operación es más amplia, gana la más amplia.
 6. Aplicar los bloqueos por etiquetas. Un bloqueo con etiquetas rechaza la petición si el recurso de destino lleva una de ellas.
 
 Cada campo de un registro se lee con el permiso de lectura del propio registro: un permiso de otro tipo de registro nunca lo abre. Algunos campos son más restringidos a propósito. Los secretos solo los leen las personas que pueden editar o administrar el registro al que pertenecen, como las claves de solicitudes entrantes y de correo entrante de un monitor y la clave de su agente de servidor, o las claves de webhook y de correo entrante de un flujo de trabajo. Ver la grabación de una reproducción de sesión requiere **Watch Session Replays**, no solo **List Session Replays**. La telemetría se lee señal por señal: **Read Telemetry Service Log** lee los logs, **Read Telemetry Service Traces** lee las trazas y **Read Telemetry Service Metrics** lee las métricas, incluidos los gráficos de métricas.
+
+Los campos siguen la misma regla. Un bloqueo sin etiquetas sobre el permiso de un campo retira ese campo, y en un recurso operativo el permiso **All Operational Resources** correspondiente abre cada campo que puede abrir cualquiera que pueda leer o modificar el registro, pero no un campo más restringido a propósito, como una clave secreta.
+
+La misma regla decide todo lo demás que pregunta si tiene un permiso: las acciones que no son una simple lectura o escritura —añadir crédito de SMS, llamadas o IA, pagar una factura o probar una regla de notificación— y los botones que muestra OneUptime. Un botón que no puede usar aparece bloqueado y dice por qué; cuando el motivo es un bloqueo en uno de sus equipos, nombra el permiso bloqueado.
 
 Todo usuario con sesión iniciada tiene además un pequeño conjunto de permisos automáticos que cubren cosas como leer su propio perfil y sus propias reglas de notificación. No son permisos de administración y no dan acceso a los datos de nadie más.
 

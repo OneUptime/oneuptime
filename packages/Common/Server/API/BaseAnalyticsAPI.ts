@@ -29,7 +29,6 @@ import BadRequestException from "../../Types/Exception/BadRequestException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
-import { UserPermission } from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -208,29 +207,6 @@ export default class BaseAnalyticsAPI<
 
     this.router = router;
     this.service = service;
-  }
-
-  @CaptureSpan()
-  public async getPermissionsForTenant(
-    req: ExpressRequest,
-  ): Promise<Array<UserPermission>> {
-    const permissions: Array<UserPermission> = [];
-
-    const props: DatabaseCommonInteractionProps =
-      await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-    if (
-      props &&
-      props.userTenantAccessPermission &&
-      props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-    ) {
-      return (
-        props.userTenantAccessPermission[props.tenantId?.toString() || ""]
-          ?.permissions || []
-      );
-    }
-
-    return permissions;
   }
 
   public getTenantId(req: ExpressRequest): ObjectID | null {

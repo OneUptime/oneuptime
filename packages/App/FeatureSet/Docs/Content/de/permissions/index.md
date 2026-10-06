@@ -95,7 +95,7 @@ Jedes Team hat zwei Listen:
 
 Eine Berechtigung kann nicht gleichzeitig in beiden Listen Einschränkungs-Labels tragen; OneUptime lehnt den zweiten Eintrag mit einer Erklärung ab.
 
-Da der Zugriff eines Benutzers die Vereinigung über alle seine Teams ist, hebt eine Sperre in einem Team **keine** Erlaubnis in einem anderen Team auf. Sperren beschränken das Team, in dem sie gesetzt sind. Wenn jemand mehr Zugriff hat als erwartet, prüfen Sie alle Teams, denen er angehört.
+Die Erlaubt-Einträge eines Benutzers addieren sich über alle seine Teams, eine Sperre gilt aber für alles, was der Benutzer tut: Eine Sperre ohne Labels in einem Team entzieht die Fähigkeit auch dann, wenn ein anderes Team sie erlaubt, und ein Sperr-Eintrag gewährt nie etwas. Hat jemand weniger Zugriff als erwartet, prüfen Sie jedes seiner Teams auf eine Sperre; hat er mehr, prüfen Sie jedes Team auf eine Erlaubnis.
 
 ## Geltungsbereich: wie weit eine Erlaubt-Berechtigung reicht
 
@@ -152,12 +152,16 @@ Für einen angemeldeten Benutzer, der Reihe nach:
 
 1. Die Teams ermitteln, denen der Benutzer in diesem Projekt angehört — nur angenommene Einladungen zählen.
 2. Alle Berechtigungszeilen dieser Teams sammeln — erlauben und sperren, jeweils mit Labels und Geltungsbereich.
-3. Zuerst die Sperrliste prüfen. Eine passende Sperre ohne Labels weist die Anfrage sofort ab.
-4. Die Erlaubt-Liste prüfen. Die Anfrage braucht mindestens eine Berechtigung, die die Zieltabelle für diese Operation akzeptiert.
+3. Zuerst die Sperrliste prüfen. Eine Sperre ohne Labels auf irgendeiner Berechtigung, die die Zieltabelle für diese Operation akzeptiert, weist die Anfrage sofort ab – gleich, in welchem Team sie gesetzt ist.
+4. Die Erlaubt-Liste prüfen. Die Anfrage braucht mindestens eine Berechtigung, die die Zieltabelle für diese Operation akzeptiert. Bei einer operativen Ressource – einem Monitor, einem Vorfall, einem Dashboard und Ähnlichem – zählt auch die passende **All Operational Resources**-Berechtigung (Create, Read, Edit oder Delete), sofern sie nicht selbst gesperrt ist.
 5. Geltungsbereich anwenden. „Eigene" grenzt die Abfrage auf eigene Ressourcen ein, „Labels" auf passende Labels. Gibt es für dieselbe Operation eine breitere Zuweisung, gewinnt die breitere.
 6. Label-Sperren anwenden. Eine Sperre mit Labels weist die Anfrage ab, wenn die Zielressource eines davon trägt.
 
 Jedes Feld eines Datensatzes wird mit der eigenen Leseberechtigung des Datensatzes gelesen: Eine Berechtigung für eine andere Art von Datensatz öffnet es nie. Manche Felder sind bewusst enger. Geheimnisse lesen nur Personen, die den Datensatz bearbeiten oder verwalten dürfen, zu dem sie gehören – etwa die Schlüssel eines Monitors für eingehende Anfragen und eingehende E-Mails und sein Server-Agent-Schlüssel oder die Webhook- und E-Mail-Schlüssel eines Workflows. Die Aufzeichnung einer Session-Wiedergabe anzusehen braucht **Watch Session Replays**, nicht nur **List Session Replays**. Telemetrie wird Signal für Signal gelesen: **Read Telemetry Service Log** liest Logs, **Read Telemetry Service Traces** liest Traces und **Read Telemetry Service Metrics** liest Metriken, Metrikdiagramme eingeschlossen.
+
+Felder folgen derselben Regel. Eine Sperre ohne Labels auf der Berechtigung eines Feldes entzieht das Feld, und bei einer operativen Ressource öffnet die passende **All Operational Resources**-Berechtigung jedes Feld, das alle öffnen dürfen, die den Datensatz lesen oder ändern dürfen – nicht aber ein bewusst engeres Feld wie einen geheimen Schlüssel.
+
+Dieselbe Regel entscheidet über alles andere, was fragt, ob Sie eine Berechtigung halten: Aktionen, die kein einfaches Lesen oder Schreiben sind – etwa SMS-, Anruf- oder KI-Guthaben aufladen, eine Rechnung bezahlen oder eine Benachrichtigungsregel testen – und die Schaltflächen, die OneUptime anzeigt. Eine Schaltfläche, die Sie nicht verwenden dürfen, wird gesperrt angezeigt und sagt, warum; ist eine Sperre in einem Ihrer Teams der Grund, nennt sie die gesperrte Berechtigung.
 
 Jeder angemeldete Benutzer hält zusätzlich einen kleinen Satz automatischer Berechtigungen, die etwa das Lesen des eigenen Profils und der eigenen Benachrichtigungsregeln abdecken. Das sind keine Admin-Berechtigungen und sie geben keinen Zugriff auf fremde Daten.
 

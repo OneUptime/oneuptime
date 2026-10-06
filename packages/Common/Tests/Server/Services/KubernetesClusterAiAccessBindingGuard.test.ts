@@ -108,7 +108,7 @@ function hooks(): Hooks {
 
 /*
  * A signed-in user holding exactly `permissions` (as grants) in `tenantId`.
- * DatabaseCommonInteractionPropsUtil and holdsAnyPermission read only the
+ * DatabaseCommonInteractionPropsUtil and CallerPermission read only the
  * tenant bucket keyed by project id, so the key must be right or every
  * refusal below would pass for the wrong reason.
  */

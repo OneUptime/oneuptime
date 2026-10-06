@@ -8,14 +8,13 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import Permission from "Common/Types/Permission";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
+import { HeldPermissions } from "Common/Types/HeldPermissions";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -118,7 +117,8 @@ function EventNotes<TNote extends BaseModel>(
   }, [props.modelType]);
 
   const isPublic: boolean = props.visibility === "public";
-  const userPermissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  // What the viewer holds, blocks included.
+  const heldPermissions: HeldPermissions = PermissionGate.getHeldPermissions();
   const isMasterAdmin: boolean = User.isMasterAdmin();
 
   const canWrite: (column: string, action: "create" | "update") => boolean = (
@@ -131,7 +131,7 @@ function EventNotes<TNote extends BaseModel>(
         model,
         column,
         action,
-        userPermissions,
+        held: heldPermissions,
         isMasterAdmin,
       })
     );
@@ -231,7 +231,7 @@ function EventNotes<TNote extends BaseModel>(
       model,
       visibility: props.visibility,
       isAttachmentsEnabled: hasAttachments,
-      userPermissions,
+      held: heldPermissions,
       isMasterAdmin,
     });
   }, [
@@ -239,7 +239,8 @@ function EventNotes<TNote extends BaseModel>(
     props.visibility,
     hasAttachments,
     isMasterAdmin,
-    userPermissions.join(","),
+    heldPermissions.allowed.join(","),
+    heldPermissions.blocked.join(","),
   ]);
 
   const timestampField: string =

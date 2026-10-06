@@ -17,7 +17,7 @@ import ColumnPermissions from "../../../Server/Types/Database/Permissions/Column
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import { holdsAnyPermission } from "../../../Server/Utils/Runbook/RunbookExecutePermission";
+import CallerPermission from "../../../Server/Utils/Permission/CallerPermission";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
@@ -309,18 +309,18 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
      */
     it("builds props the permission helper reads", () => {
       expect(
-        holdsAnyPermission({
-          props: propsWith(Permission.ProjectAdmin),
-          projectId: PROJECT_ID,
-          allowed: [Permission.ProjectAdmin],
-        }),
+        CallerPermission.holdsAnyOf(
+          propsWith(Permission.ProjectAdmin),
+          [Permission.ProjectAdmin],
+          { projectId: PROJECT_ID },
+        ),
       ).toBe(true);
       expect(
-        holdsAnyPermission({
-          props: propsWith(Permission.SettingsMember),
-          projectId: PROJECT_ID,
-          allowed: [Permission.ProjectAdmin],
-        }),
+        CallerPermission.holdsAnyOf(
+          propsWith(Permission.SettingsMember),
+          [Permission.ProjectAdmin],
+          { projectId: PROJECT_ID },
+        ),
       ).toBe(false);
     });
 

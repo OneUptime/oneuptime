@@ -40,10 +40,6 @@ import KubernetesClusterService from "../Services/KubernetesClusterService";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import QueryHelper from "../Types/Database/QueryHelper";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../Types/Permission";
 import {
   KubernetesAiAccessGap,
   KubernetesAiAccessGapCode,
@@ -52,6 +48,7 @@ import {
   getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import {
@@ -728,9 +725,10 @@ async function getClusterIdsReadableByViewer(data: {
 
 /*
  * Whether the viewer may read Runner credentials in this project: the
- * shared rule the cluster AI page's credential picker applies. A block row
- * is a denial, never a grant — even one limited to some labels, since the
- * row cannot tell which credential the name belongs to.
+ * shared rule the cluster AI page's credential picker applies, read the way
+ * every permission check reads it (CallerPermission). A block row is a
+ * denial, never a grant — even one limited to some labels, since the row
+ * cannot tell which credential the name belongs to.
  */
 export function canViewerReadCredentialNames(
   viewerProps: DatabaseCommonInteractionProps,
@@ -740,34 +738,10 @@ export function canViewerReadCredentialNames(
     return true;
   }
 
-  const permissions: Array<UserPermission> =
-    viewerProps.userTenantAccessPermission?.[projectId.toString()]
-      ?.permissions || [];
-
-  const isBlocked: boolean = permissions.some(
-    (permission: UserPermission): boolean => {
-      return (
-        permission.isBlockPermission === true &&
-        KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS.includes(
-          permission.permission,
-        )
-      );
-    },
-  );
-
-  if (isBlocked) {
-    return false;
-  }
-
-  return PermissionHelper.doesPermissionsIntersect(
-    permissions
-      .filter((permission: UserPermission): boolean => {
-        return !permission.isBlockPermission;
-      })
-      .map((permission: UserPermission): Permission => {
-        return permission.permission;
-      }),
+  return CallerPermission.holdsAnyOf(
+    viewerProps,
     KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+    { projectId: projectId, labelledBlocksRefuse: true },
   );
 }
 

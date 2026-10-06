@@ -42,6 +42,7 @@ import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 
 /*
@@ -711,7 +712,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column: "postedAt",
         action: "create",
-        userPermissions: [],
+        held: HeldPermissionsUtil.fromPermissions([]),
         isMasterAdmin: true,
       }),
     ).toBe(true);
@@ -726,7 +727,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column,
         action,
-        userPermissions: [Permission.ProjectMember],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectMember]),
         isMasterAdmin: false,
       });
     };
@@ -749,7 +750,9 @@ describe("canWriteNoteColumn", () => {
         model,
         column,
         action,
-        userPermissions: [Permission.CreateIncidentPublicNote],
+        held: HeldPermissionsUtil.fromPermissions([
+          Permission.CreateIncidentPublicNote,
+        ]),
         isMasterAdmin: false,
       });
     };
@@ -766,7 +769,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column: "note",
         action: "create",
-        userPermissions: [Permission.Viewer],
+        held: HeldPermissionsUtil.fromPermissions([Permission.Viewer]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
@@ -778,7 +781,7 @@ describe("canWriteNoteColumn", () => {
         model,
         column: "postedFromSlackMessageId",
         action: "update",
-        userPermissions: [Permission.ProjectOwner],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
@@ -786,7 +789,7 @@ describe("canWriteNoteColumn", () => {
 });
 
 describe("canReadNoteColumn and buildNotesSelect", () => {
-  test("a column without a read rule is readable", () => {
+  test("a column that declares no read rule is closed, as the server's select check closes it", () => {
     const unguardedModel: IncidentPublicNote = new IncidentPublicNote();
     unguardedModel.getColumnAccessControlForAllColumns = () => {
       return {};
@@ -796,7 +799,17 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: unguardedModel,
         column: "note",
-        userPermissions: [],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+
+    // The columns the server never checks stay readable.
+    expect(
+      canReadNoteColumn({
+        model: unguardedModel,
+        column: "createdAt",
+        held: HeldPermissionsUtil.fromPermissions([]),
         isMasterAdmin: false,
       }),
     ).toBe(true);
@@ -807,7 +820,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: new IncidentPublicNote(),
         column: "note",
-        userPermissions: [],
+        held: HeldPermissionsUtil.fromPermissions([]),
         isMasterAdmin: true,
       }),
     ).toBe(true);
@@ -818,7 +831,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: new IncidentPublicNote(),
         column: "note",
-        userPermissions: [Permission.Viewer],
+        held: HeldPermissionsUtil.fromPermissions([Permission.Viewer]),
         isMasterAdmin: false,
       }),
     ).toBe(true);
@@ -826,7 +839,9 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       canReadNoteColumn({
         model: new IncidentPublicNote(),
         column: "note",
-        userPermissions: [Permission.ReadAlertInternalNote],
+        held: HeldPermissionsUtil.fromPermissions([
+          Permission.ReadAlertInternalNote,
+        ]),
         isMasterAdmin: false,
       }),
     ).toBe(false);
@@ -837,7 +852,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentPublicNote(),
       visibility: "public",
       isAttachmentsEnabled: true,
-      userPermissions: [Permission.ProjectOwner],
+      held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
       isMasterAdmin: false,
     });
 
@@ -873,7 +888,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentInternalNote(),
       visibility: "private",
       isAttachmentsEnabled: true,
-      userPermissions: [Permission.ProjectOwner],
+      held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
       isMasterAdmin: false,
     });
 
@@ -889,7 +904,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
         model: new IncidentInternalNote(),
         visibility: "private",
         isAttachmentsEnabled: false,
-        userPermissions: [Permission.ProjectOwner],
+        held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
         isMasterAdmin: false,
       })["attachments"],
     ).toBeUndefined();
@@ -900,7 +915,7 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentPublicNote(),
       visibility: "public",
       isAttachmentsEnabled: false,
-      userPermissions: [],
+      held: HeldPermissionsUtil.fromPermissions([]),
       isMasterAdmin: false,
     });
 
@@ -914,7 +929,9 @@ describe("canReadNoteColumn and buildNotesSelect", () => {
       model: new IncidentPublicNote(),
       visibility: "public",
       isAttachmentsEnabled: true,
-      userPermissions: [Permission.ReadAlertInternalNote],
+      held: HeldPermissionsUtil.fromPermissions([
+        Permission.ReadAlertInternalNote,
+      ]),
       isMasterAdmin: false,
     });
 

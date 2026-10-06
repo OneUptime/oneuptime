@@ -4,16 +4,10 @@ import DatabaseBaseModel, {
 import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import DatabaseCommonInteractionPropsUtil, {
-  PermissionType,
-} from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
-import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-} from "../../../../Types/Permission";
+import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
+import Permission from "../../../../Types/Permission";
 import {
   RuleRunType,
   RuleRunTypeMetadata,
@@ -21,6 +15,7 @@ import {
 } from "../../../../Types/Rules/RuleRun";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../../../Types/Database/Permissions/TablePermission";
+import CallerPermission from "../../Permission/CallerPermission";
 import RuleRunRegistry, {
   RuleRunDefinition,
   SyncRuleRunType,
@@ -58,44 +53,24 @@ const SYNC_RULE_MODEL_TYPES: Record<SyncRuleRunType, DatabaseBaseModelType> = {
     ServiceLevelObjectiveMonitorRule,
 };
 
-function unscopedGrants(
-  props: DatabaseCommonInteractionProps,
-): Array<Permission> {
-  /*
-   * Read through getUserPermissions(Allow) rather than off the raw props:
-   * those entries hold grants and denials together, so mapping them directly
-   * would count a team's explicit block as a grant.
-   */
-  return DatabaseCommonInteractionPropsUtil.getUserPermissions(
-    props,
-    PermissionType.Allow,
-  )
-    .filter((userPermission: UserPermission): boolean => {
-      /*
-       * An Owned-scoped grant reaches only what the user or their team owns -
-       * for an SLO monitor rule, the rules of SLOs they own (@OwnedThrough).
-       * A run looks the rule up as root, so counting that grant would let it
-       * run any SLO's rule. Scope-exempt roles (ProjectOwner, ProjectAdmin,
-       * ...) keep counting whatever scope is stored on them, exactly as
-       * OwnedScopePermission treats them.
-       */
-      if (
-        userPermission.scope === PermissionScope.Owned &&
-        PermissionHelper.isScopeApplicable(userPermission.permission)
-      ) {
-        return false;
-      }
-
-      return !userPermission.labelIds || userPermission.labelIds.length === 0;
-    })
-    .map((userPermission: UserPermission): Permission => {
-      return userPermission.permission;
-    });
-}
-
+/*
+ * The caller must hold one of the model's permissions for the operation by a
+ * grant that reaches the whole project - the rule every permission check
+ * follows (CallerPermission), counting only project-wide grants: an
+ * Owned-scoped grant reaches only what the user or their team owns - for an
+ * SLO monitor rule, the rules of SLOs they own (@OwnedThrough) - and a run
+ * looks the rule up as root, so counting it would let them run any SLO's
+ * rule. A grant limited to labels reaches only labelled records. Roles that
+ * cannot be scoped (ProjectOwner, ProjectAdmin, ...) count whatever scope is
+ * stored on them, exactly as OwnedScopePermission treats them. An
+ * operational resource accepts its *AllOperationalResources wildcard, granted
+ * the same way, as the CRUD path does.
+ *
+ * Then no block with no labels on the model's list, refused with the message
+ * that names it (checkTableLevelBlockPermissions), as a normal API write is.
+ */
 function requirePermission(data: {
   props: DatabaseCommonInteractionProps;
-  grants: Array<Permission>;
   modelType: DatabaseBaseModelType;
   requestType: DatabaseRequestType.Create | DatabaseRequestType.Update;
   message: string;
@@ -107,8 +82,12 @@ function requirePermission(data: {
       : model.getUpdatePermissions()) || [];
 
   if (
-    !data.grants.some((permission: Permission): boolean => {
-      return required.includes(permission);
+    !CallerPermission.isGrantedAny(data.props, required, {
+      projectWideOnly: true,
+      wildcard: HeldPermissionsUtil.getModelWildcard({
+        isOperationalResource: model.isOperationalResource,
+        operation: data.requestType,
+      }),
     })
   ) {
     throw new NotAuthorizedException(data.message);
@@ -152,11 +131,9 @@ export default class RuleRunPermission {
     const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
       data.ruleType,
     );
-    const grants: Array<Permission> = unscopedGrants(data.props);
 
     requirePermission({
       props: data.props,
-      grants: grants,
       modelType: ruleModelType,
       requestType: DatabaseRequestType.Update,
       message:
@@ -169,7 +146,6 @@ export default class RuleRunPermission {
 
     requirePermission({
       props: data.props,
-      grants: grants,
       modelType: definition.resourceModelType,
       requestType: DatabaseRequestType.Update,
       message: `You do not have permission to edit every ${meta.resourceSingular} in this project, which running this rule does.`,
@@ -178,7 +154,6 @@ export default class RuleRunPermission {
     for (const ownerModelType of definition.ownerModelTypes || []) {
       requirePermission({
         props: data.props,
-        grants: grants,
         modelType: ownerModelType,
         requestType: DatabaseRequestType.Create,
         message: `You do not have permission to add owners to ${meta.resourcePlural}, which running this rule does.`,

@@ -2232,23 +2232,28 @@ describe("related signals", () => {
   test.each([
     [[Permission.ReadTelemetryServiceTraces], []],
     /*
-     * The operational-resources wildcard is not on the list the metrics
-     * route asks for, so it does not open the tab either.
+     * Nor does the metric permission held only as a block: a block row is
+     * never a grant.
      */
+    [
+      [Permission.ReadTelemetryServiceTraces],
+      [Permission.ReadTelemetryServiceMetrics],
+    ],
+    /*
+     * A block with no labels takes the permission away, whatever another
+     * team allows - the route reads it so.
+     */
+    [
+      [Permission.ReadTelemetryServiceMetrics],
+      [Permission.ReadTelemetryServiceMetrics],
+    ],
+    // A blocked wildcard grants nothing.
     [
       [
         Permission.ReadTelemetryServiceTraces,
         Permission.ReadAllOperationalResources,
       ],
-      [],
-    ],
-    /*
-     * Nor does the metric permission held only as a block: the route counts
-     * only allow rows.
-     */
-    [
-      [Permission.ReadTelemetryServiceTraces],
-      [Permission.ReadTelemetryServiceMetrics],
+      [Permission.ReadAllOperationalResources],
     ],
   ])(
     "the metrics tab is left out for %j (blocked: %j), which reads the trace but not metrics",
@@ -2292,11 +2297,22 @@ describe("related signals", () => {
   test.each([
     [[Permission.ReadTelemetryServiceMetrics], []],
     [[Permission.TelemetryViewer], []],
-    // An allow next to a block of the same permission still counts.
+    /*
+     * Metrics are an operational resource: the metrics route accepts "Read
+     * All Operational Resources" as the CRUD API does, so the tab opens too.
+     */
     [
-      [Permission.ReadTelemetryServiceMetrics],
-      [Permission.ReadTelemetryServiceMetrics],
+      [
+        Permission.ReadTelemetryServiceTraces,
+        Permission.ReadAllOperationalResources,
+      ],
+      [],
     ],
+    /*
+     * A block on another permission the route does not ask for changes
+     * nothing.
+     */
+    [[Permission.ReadTelemetryServiceMetrics], [Permission.DeleteProject]],
     [[], []],
   ])(
     "the metrics tab is there for %j (blocked: %j; an empty snapshot is still loading)",

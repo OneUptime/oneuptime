@@ -321,28 +321,34 @@ describe("permissions", () => {
    * models, separately: a viewer may well be allowed to add a monitor to a
    * status page without being allowed to restructure it.
    */
+  /*
+   * Through each model's own gate (PermissionGate.check), which reads the
+   * permission snapshot by the rule the server follows - a team's block row
+   * is no grant, and a block with no labels takes the permission away - and
+   * lets a master admin do everything, as the server does.
+   */
   test("are read from both models the same way the tables read them", () => {
     expect(code).toContain(
-      "const permissions: Array<Permission> = PermissionUtil.getAllPermissions();",
+      "return PermissionGate.check(model, action).isAllowed;",
     );
 
     for (const check of [
-      "resourceModel.hasCreatePermissions(permissions)",
-      "resourceModel.hasUpdatePermissions(permissions)",
-      "resourceModel.hasDeletePermissions(permissions)",
-      "groupModel.hasCreatePermissions(permissions)",
-      "groupModel.hasUpdatePermissions(permissions)",
-      "groupModel.hasDeletePermissions(permissions)",
+      "canDo(resourceModel, ModelAction.Create)",
+      "canDo(resourceModel, ModelAction.Update)",
+      "canDo(resourceModel, ModelAction.Delete)",
+      "canDo(groupModel, ModelAction.Create)",
+      "canDo(groupModel, ModelAction.Update)",
+      "canDo(groupModel, ModelAction.Delete)",
     ]) {
       expect(code).toContain(check);
     }
   });
 
-  test("a master admin keeps the access they had", () => {
-    expect(code).toContain(
-      "const isMasterAdmin: boolean = User.isMasterAdmin();",
-    );
-    expect(code.split("isMasterAdmin ||").length - 1).toBeGreaterThanOrEqual(6);
+  test("nothing on the page reads the permission snapshot itself", () => {
+    expect(code).not.toContain("PermissionUtil");
+    expect(code).not.toContain("hasCreatePermissions(");
+    expect(code).not.toContain("hasUpdatePermissions(");
+    expect(code).not.toContain("hasDeletePermissions(");
   });
 
   test("the tree is told what the viewer may do to a group", () => {

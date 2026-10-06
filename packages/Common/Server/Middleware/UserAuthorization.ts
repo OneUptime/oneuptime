@@ -36,13 +36,12 @@ import GlobalSsoProjectService from "../Services/GlobalSsoProjectService";
 import GlobalOidcProjectService from "../Services/GlobalOidcProjectService";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
-  PermissionHelper,
   UserGlobalAccessPermission,
-  UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
 import UserType from "../../Types/UserType";
 import UserPermissionUtil from "../Utils/UserPermission/UserPermission";
+import CallerPermission from "../Utils/Permission/CallerPermission";
 
 /*
  * What a request's session is, as every route reads it (readRequestSession):
@@ -901,8 +900,17 @@ export default class UserMiddleware {
     return !req.userType || req.userType === UserType.Public;
   }
 
+  /*
+   * A route guard: the caller must hold one of `permissions` in the project
+   * the request is for, by the rule every permission check follows
+   * (CallerPermission): only an allow row grants, and a block with no labels
+   * on any of them refuses. Pass `wildcard` when the list is an operational
+   * resource's own list for the operation, as the model-backed API accepts
+   * the *AllOperationalResources wildcard for it too.
+   */
   public static requirePermission(data: {
     permissions: Array<Permission>;
+    wildcard?: Permission | undefined;
   }): (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -961,23 +969,17 @@ export default class UserMiddleware {
       }
 
       /*
-       * Only allow rows grant. A block row names a permission in order to
-       * deny it, so holding one never counts as holding the permission.
+       * Only allow rows grant: a block row names a permission in order to
+       * deny it, so holding one never counts as holding the permission. A
+       * block with no labels on any of these takes the route away, whatever
+       * else the caller holds, as it takes away the tables these routes
+       * stand in for.
        */
-      const userPermissions: Array<Permission> =
-        userTenantPermission.permissions
-          .filter((p: UserPermission) => {
-            return !p.isBlockPermission;
-          })
-          .map((p: UserPermission) => {
-            return p.permission;
-          });
-
       if (
-        !PermissionHelper.doesPermissionsIntersect(
-          userPermissions,
-          data.permissions,
-        )
+        !CallerPermission.holdsAnyOf(oneuptimeRequest, data.permissions, {
+          projectId: tenantId,
+          wildcard: data.wildcard,
+        })
       ) {
         return Response.sendErrorResponse(
           req,

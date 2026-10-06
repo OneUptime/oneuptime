@@ -19,16 +19,10 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Search from "Common/Types/BaseDatabase/Search";
 import IconProp from "Common/Types/Icon/IconProp";
-import Permission, {
-  PermissionHelper,
-  UserPermission,
-  UserTenantAccessPermission,
-} from "Common/Types/Permission";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { consumePressForAnchoredPopup } from "Common/UI/Types/LayeredDismissal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionUtil from "Common/UI/Utils/Permission";
 import User from "Common/UI/Utils/User";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
@@ -48,6 +42,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 
 export type AffectedResourceType =
   | "Monitor"
@@ -599,29 +594,22 @@ const filterTypesByReadPermission: (types: Array<AffectedResourceType>) => {
   if (User.isMasterAdmin()) {
     return { allowed: types, denied: [] };
   }
-  const userPerms: UserTenantAccessPermission | null =
-    PermissionUtil.getProjectPermissions();
-  if (!userPerms || !userPerms.permissions) {
+  if (!PermissionGate.hasPermissionSnapshot()) {
     /*
      * No permissions cached yet — let the API decide; the catch block
      * around each request will silence per-type 403s.
      */
     return { allowed: types, denied: [] };
   }
-  const flatUserPerms: Array<Permission> = userPerms.permissions.map(
-    (p: UserPermission): Permission => {
-      return p.permission;
-    },
-  );
   const allowed: Array<AffectedResourceType> = [];
   const denied: Array<AffectedResourceType> = [];
   for (const type of types) {
     const cfg: ResourceConfig = RESOURCE_CONFIG[type];
-    const required: Array<Permission> = new cfg.modelType()
-      .readRecordPermissions;
+    const model: BaseModel = new cfg.modelType();
+    // The model's read gate, read the way the server reads it.
     if (
-      required.length === 0 ||
-      PermissionHelper.doesPermissionsIntersect(required, flatUserPerms)
+      model.readRecordPermissions.length === 0 ||
+      PermissionGate.check(model, ModelAction.Read).isAllowed
     ) {
       allowed.push(type);
     } else {
