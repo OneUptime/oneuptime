@@ -907,7 +907,7 @@ export default class Dashboard extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Growth,
-    create: PlanType.Free,
+    create: PlanType.Growth,
   })
   public isPublicDashboard?: boolean = undefined;
 
@@ -1050,7 +1050,7 @@ export default class Dashboard extends BaseModel {
   @ColumnBillingAccessControl({
     read: PlanType.Free,
     update: PlanType.Scale,
-    create: PlanType.Free,
+    create: PlanType.Scale,
   })
   public ipWhitelist?: string = undefined;
 }

@@ -544,6 +544,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
       data.data.planName = this.getPlanType(data.data.paymentProviderPlanId);
 
+      /*
+       * The project's own settings that a plan sells (its audit logs,
+       * Require SSO) are checked against the plan it is created on, after
+       * this hook, by the create's column check (ColumnPermission) - as
+       * every record's settings are checked against its project's plan.
+       * Not against the plan of the project the request was sent from,
+       * nor against none when it was sent from no project. A new project
+       * has no subscription yet, so none that is unpaid. A copy: the
+       * request's own props are left as they are.
+       */
+      data.props = {
+        ...data.props,
+        currentPlan: data.data.planName,
+        isSubscriptionUnpaid: false,
+      };
+
       if (data.data.paymentProviderPromoCode) {
         /*
          * check if it exists in promcode table. Not all promocodes are in the table, only reseller ones are.

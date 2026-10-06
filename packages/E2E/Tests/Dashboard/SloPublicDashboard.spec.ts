@@ -9,12 +9,8 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ObjectID from "Common/Types/ObjectID";
 import Faker from "Common/Utils/Faker";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
-import {
-  createItem,
-  deleteItem,
-  JSONish,
-  toId,
-} from "./Helpers/MonitorAlerting";
+import { IS_BILLING_ENABLED } from "../../Config";
+import { createItem, JSONish, toId } from "./Helpers/MonitorAlerting";
 import { serialize } from "./Helpers/Serialize";
 import { publicPost, publicPostStatus } from "./Helpers/StatusPagePublic";
 
@@ -46,6 +42,14 @@ import { publicPost, publicPostStatus } from "./Helpers/StatusPagePublic";
  */
 
 test.describe.configure({ mode: "serial", retries: 1 });
+
+/*
+ * Sharing a dashboard publicly is sold on the Growth plan, when the dashboard
+ * is created public as when it is made public later
+ * (Dashboard.isPublicDashboard), so the billing-enabled run creates its
+ * projects on Growth rather than Free.
+ */
+const PREFERRED_PLAN_NAME: string = "Growth";
 
 /** An SLO id that exists in no project, for the forged-query assertions. */
 const FORGED_SLO_ID: string = "00000000-0000-4000-8000-000000000000";
@@ -262,6 +266,7 @@ test.describe("SLO widgets on a public dashboard", () => {
     const projectId: string = await registerAndCreateProject({
       page,
       projectNamePrefix: "SLO Public Dashboard E2E",
+      preferredPlanName: IS_BILLING_ENABLED ? PREFERRED_PLAN_NAME : undefined,
     });
 
     // The SLO the dashboard publishes.
@@ -536,6 +541,7 @@ test.describe("SLO widgets on a public dashboard", () => {
     const projectId: string = await registerAndCreateProject({
       page,
       projectNamePrefix: "SLO Private Dashboard E2E",
+      preferredPlanName: IS_BILLING_ENABLED ? PREFERRED_PLAN_NAME : undefined,
     });
 
     const sloId: string = await createSlo({
@@ -591,31 +597,16 @@ test.describe("SLO widgets on a public dashboard", () => {
     });
 
     /*
-     * The private dashboard has served its purpose: its anonymous reads are
-     * already captured above. Delete it before building the control, because
-     * on a billing-enabled (SaaS) run the project is on the Free plan, which
-     * caps a project at one dashboard — and that count excludes soft-deleted
-     * rows, so removing this one frees the slot for the control below.
-     */
-    await deleteItem({
-      page,
-      projectId,
-      path: "/api/dashboard",
-      id: dashboardId,
-    });
-
-    /*
      * A refusal only means something if the same request would have
      * SUCCEEDED against a public dashboard — otherwise a typo'd route or an
      * empty dashboard id 404s and these assertions pass while proving
      * nothing. So build the identical dashboard with isPublicDashboard set
      * and issue both requests against it.
      *
-     * A second dashboard (built after deleting the first) rather than flipping
-     * this one: `isPublicDashboard` is `create: PlanType.Free` but
-     * `update: PlanType.Growth`, so the update would be refused on a
-     * billing-enabled run for reasons that have nothing to do with what this
-     * test is about.
+     * A second dashboard, public from the start like the first test's, so
+     * both tests publish a dashboard the same way. Sharing one publicly
+     * needs Growth, which this spec's project is on when billing is
+     * enabled.
      */
     const controlWidget: SloWidget = buildSloWidget({
       sloId,
