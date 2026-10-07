@@ -3,6 +3,7 @@ import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappi
 import MonitorService from "../../../Server/Services/MonitorService";
 import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledMaintenanceFeedService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
 import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/ScheduledMaintenanceStateTimelineService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -413,6 +414,26 @@ beforeEach(() => {
   eventsAfterWrite = {};
   stateTimeline = [];
   monitorsNotFlagged = new Set<string>();
+
+  /*
+   * The project's states, in their order. Its own state ("custom") sits
+   * before Ongoing in this list, so an event moved into it straight from
+   * Scheduled has not started; once an event has been ongoing, a later
+   * state of its own still holds what Ongoing held, wherever it sits. (An
+   * event that starts straight into a state of its own placed after Ongoing
+   * is ScheduledMaintenanceStartIntoStateOfItsOwn's.)
+   */
+  jest
+    .spyOn(ScheduledMaintenanceStateService, "getAllScheduledMaintenanceStates")
+    .mockImplementation((async (): Promise<Array<ScheduledMaintenanceState>> => {
+      return (
+        ["scheduled", "custom", "ongoing", "ended", "resolved"] as Array<StateKind>
+      ).map((kind: StateKind, index: number): ScheduledMaintenanceState => {
+        const projectState: ScheduledMaintenanceState = state(kind);
+        projectState.order = index + 1;
+        return projectState;
+      });
+    }) as never);
 
   eventFindBy = jest
     .spyOn(ScheduledMaintenanceService, "findBy")
