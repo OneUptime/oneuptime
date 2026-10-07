@@ -620,4 +620,32 @@ export default class StatusPageSSO extends BaseModel {
     default: false,
   })
   public isTested?: boolean = undefined;
+
+  /*
+   * When this provider was last turned off. Turning a status page's
+   * provider off ends the sign-ins it gave on the status page: a private
+   * user's session it signed in before this time no longer counts, even
+   * once the provider is turned on again, so the person signs in again
+   * (StatusPagePrivateUserSessionService.addSignInRule). OneUptime writes
+   * it when the provider is turned off (Server/Utils/SsoSignInsEnded); no
+   * one reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Sign-ins Ended At",
+    description:
+      "Internal: when this provider was last turned off. Sign-ins it gave before then no longer count.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public signInsEndedAt?: Date = undefined;
 }

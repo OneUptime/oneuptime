@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/GlobalOidcProject";
 import Team from "../../Models/DatabaseModels/Team";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -15,7 +16,6 @@ import validateGlobalProviderProjectTeams, {
   resolveAttachmentProjectId,
 } from "../Utils/ValidateGlobalProviderProjectTeams";
 import {
-  GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
   GlobalProviderAttachments,
   GlobalProviderTrust,
   announceGlobalSignInChange,
@@ -28,6 +28,10 @@ import {
   loadAttachmentsOnce,
 } from "../Utils/GlobalSsoAuthorization";
 import DeleteBy from "../Types/Database/DeleteBy";
+import GlobalSsoProviderChanges, {
+  GlobalSsoProviderWrite,
+} from "../Utils/GlobalSsoProviderChanges";
+import SsoProviderType from "../../Types/SSO/SsoProviderType";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -79,7 +83,8 @@ export class Service extends DatabaseService<Model> {
           props: { isRoot: true },
         });
 
-        const loaded: GlobalProviderAttachments = {
+        // Cached by loadAttachmentsOnce, unless the answers were dropped while it ran.
+        return {
           hasAnyAttachmentRows: rows.length > 0,
           enabledProjectIds: rows
             .filter((row: Model) => {
@@ -89,26 +94,29 @@ export class Service extends DatabaseService<Model> {
               return row.projectId!.toString();
             }),
         };
-
-        globalSsoAttachmentsCache.set(
-          key,
-          loaded,
-          GLOBAL_SSO_AUTHORIZATION_CACHE_TTL_MS,
-        );
-
-        return loaded;
       },
     );
 
     return doAttachmentsGovernProject(attachments, data.projectId);
   }
 
+  /*
+   * Removing an attachment of a provider restricted to its attached
+   * projects is refused when it would leave a project that requires SSO
+   * with no provider to sign in with (Utils/GlobalSsoProviderChanges).
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     // Detaching a project has to take effect now, not in 60s, on this node.
     clearGlobalSsoAuthorizationCaches();
+
+    await GlobalSsoProviderChanges.beforeAttachmentDelete<Model>({
+      providerType: SsoProviderType.GlobalOIDC,
+      service: this,
+      deleteBy: deleteBy,
+    });
 
     // Their providers, read while the rows are still there.
     return {
@@ -142,6 +150,8 @@ export class Service extends DatabaseService<Model> {
       announceGlobalSignInChange();
     }
 
+    await GlobalSsoProviderChanges.afterWrite(onDelete.deleteBy);
+
     return onDelete;
   }
 
@@ -153,7 +163,7 @@ export class Service extends DatabaseService<Model> {
    */
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
     clearGlobalSsoAuthorizationCaches();
@@ -163,6 +173,10 @@ export class Service extends DatabaseService<Model> {
     ) {
       announceGlobalSignInChange();
     }
+
+    await GlobalSsoProviderChanges.release(
+      onCreate.carryForward as GlobalSsoProviderWrite | null,
+    );
 
     return createdItem;
   }
@@ -186,6 +200,8 @@ export class Service extends DatabaseService<Model> {
     ) {
       announceGlobalSignInChange();
     }
+
+    await GlobalSsoProviderChanges.afterWrite(onUpdate.updateBy);
 
     return onUpdate;
   }
@@ -271,7 +287,20 @@ export class Service extends DatabaseService<Model> {
     // A new attachment narrows (or widens) which projects the provider governs.
     clearGlobalSsoAuthorizationCaches();
 
-    return { createBy, carryForward: null };
+    /*
+     * The first attachment of a provider restricted to its attached
+     * projects narrows it from every project to this one: refused when that
+     * would leave a project that requires SSO with no provider to sign in
+     * with (Utils/GlobalSsoProviderChanges). The lock it holds is given back
+     * by onCreateSuccess.
+     */
+    return {
+      createBy,
+      carryForward: await GlobalSsoProviderChanges.beforeAttachmentCreate({
+        providerType: SsoProviderType.GlobalOIDC,
+        createBy: createBy as unknown as CreateBy<BaseModel>,
+      }),
+    };
   }
 
   @CaptureSpan()
@@ -316,6 +345,17 @@ export class Service extends DatabaseService<Model> {
     }
 
     clearGlobalSsoAuthorizationCaches();
+
+    /*
+     * Turning an attachment off, or moving it to another project or
+     * provider, is refused when it would leave a project that requires SSO
+     * with no provider to sign in with (Utils/GlobalSsoProviderChanges).
+     */
+    await GlobalSsoProviderChanges.beforeAttachmentUpdate<Model>({
+      providerType: SsoProviderType.GlobalOIDC,
+      service: this,
+      updateBy: updateBy,
+    });
 
     return { updateBy, carryForward: null };
   }

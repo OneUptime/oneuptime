@@ -2,6 +2,8 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/StatusPageOidc";
 import { fillOidcProviderDefaults } from "../../Types/SSO/OidcProviderDefaults";
 import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -26,6 +28,25 @@ export class Service extends ProjectReferencesService<Model> {
     fillOidcProviderDefaults(createBy.data);
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Turning the provider off writes when, in the same write: the sessions it
+   * signed in on the status page stop counting, and turning it on again
+   * does not bring them back (StatusPagePrivateUserSessionService.
+   * addSignInRule). Deleting it ends them too: they name a provider that is
+   * gone.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    await SsoSignInsEnded.stampWhenTurnedOff<Model>({
+      service: this,
+      updateBy: updateBy,
+    });
   }
 }
 

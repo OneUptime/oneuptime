@@ -224,13 +224,18 @@ export default class McpOAuthSso {
 
     /*
      * A Global sign-in is only as good as its provider is today: still
-     * present, still enabled, and - if the instance restricts it - still
-     * governing this project. The check reads only the two provider fields.
+     * present, still enabled, not turned off since the sign-in was copied
+     * onto the grant - it was given before then - and, if the instance
+     * restricts it, still governing this project. The check reads only the
+     * provider fields and that time.
      */
     return await UserMiddleware.isGlobalSsoTokenAuthorizedForProject({
       globalSsoTokenData: {
         ssoProviderType: evidence.ssoProviderType,
         ssoProviderId: evidence.ssoProviderId ?? undefined,
+        issuedAtMs: evidence.capturedAt
+          ? new Date(evidence.capturedAt).getTime()
+          : undefined,
       } as unknown as JSONWebTokenData,
       projectId: data.projectId,
     });

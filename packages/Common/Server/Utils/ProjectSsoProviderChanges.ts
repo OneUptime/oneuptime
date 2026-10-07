@@ -1,27 +1,12 @@
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
-import GlobalOidc from "../../Models/DatabaseModels/GlobalOidc";
-import GlobalSso from "../../Models/DatabaseModels/GlobalSso";
-import Project from "../../Models/DatabaseModels/Project";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
 } from "../Infrastructure/Semaphore";
 import DatabaseService from "../Services/DatabaseService";
-import GlobalConfigService from "../Services/GlobalConfigService";
-import GlobalOidcProjectService from "../Services/GlobalOidcProjectService";
-import GlobalOidcService from "../Services/GlobalOidcService";
-import GlobalSsoProjectService from "../Services/GlobalSsoProjectService";
-import GlobalSsoService from "../Services/GlobalSsoService";
-import ProjectOidcService from "../Services/ProjectOidcService";
-import ProjectService from "../Services/ProjectService";
-import ProjectSsoService from "../Services/ProjectSsoService";
 import Query from "../Types/Database/Query";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -35,6 +20,12 @@ import ProjectSsoProviderStanding, {
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "./Realtime/RealtimeAccessChanges";
+import SsoSignInsEnded from "./SsoSignInsEnded";
+import SsoSignInWays, {
+  StrandReason,
+  StrandedProject,
+  StrandedProjects,
+} from "./SsoSignInWays";
 
 /*
  * TURNING A PROJECT'S SSO PROVIDER OFF, OR DELETING IT, ENDS THE SIGN-INS IT
@@ -45,7 +36,7 @@ import RealtimeAccessChanges, {
  *
  *   - turning one off writes when (signInsEndedAt), in the same write: the
  *     sign-ins it gave before then stop counting, and turning it on again
- *     does not bring them back (ProjectSsoProviderStanding);
+ *     does not bring them back (ProjectSsoProviderStanding, SsoSignInsEnded);
  *   - every server forgets what it knew about the project's providers and
  *     asks the live updates open in the project again, as their joins were
  *     asked (RealtimeAccessChanges, SignInRulesChanged): a page signed in
@@ -54,12 +45,17 @@ import RealtimeAccessChanges, {
  *     too, so no server keeps answering "off" for a minute;
  *   - a project that requires SSO - itself, or because the whole server
  *     does - keeps a way in: the last provider that can sign people in to
- *     it, or the one provider it requires, cannot be turned off or deleted;
+ *     it, or the one provider it requires, cannot be turned off or deleted
+ *     (SsoSignInWays, the one check every such change asks);
  *   - a write that turns a project's provider off or on, or deletes one,
  *     holds a lock on the project from before it reads the providers until
  *     it is written, so what it read is still true when it lands: two
  *     writes at once cannot each take away what the other counted on, and
- *     none can miss a provider another turned on a moment before.
+ *     none can miss a provider another turned on a moment before. One that
+ *     may take a provider away also holds the lock on the server's sign-in
+ *     rules (lockSignInChange): its check counts the global providers and
+ *     reads the server's Require SSO for Login, which global changes write
+ *     under that lock.
  *
  * Any other change - a new certificate or client secret, other addresses,
  * other teams, a new name - leaves the sign-ins the provider gave as they
@@ -84,7 +80,8 @@ export interface ProjectSsoProviderWrite {
   // Providers that were off, and that the write turns on.
   turnedOn: Array<ProjectSsoProviderRow>;
   /*
-   * The locks held on the projects of the rows the write names, from before
+   * The locks held on the projects of the rows the write names, and on the
+   * server's sign-in rules when it may take a provider away, from before
    * they were read until the write is done (afterUpdate/afterDelete). A
    * write that fails in between leaves them to run out
    * (LOCK_TIMEOUT_IN_MS).
@@ -104,22 +101,27 @@ export const SERVER_LAST_SSO_PROVIDER_MESSAGE: string =
 export const PROVIDER_CHANGE_IN_PROGRESS_MESSAGE: string =
   "Another change to this project's SSO providers is being saved. Try again in a moment.";
 
-// How long a project's lock is held at most: a read, a check and one write.
+export const SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE: string =
+  "Another change to who can sign in with SSO is being saved. Try again in a moment.";
+
+// How long a lock is held at most: a read, a check and one write.
 const LOCK_TIMEOUT_IN_MS: number = 10_000;
 
 /*
- * How long a write waits for a project's lock: longer than a lock can be
- * held, so one a failed write never gave back runs out before a write
- * waiting for it gives up.
+ * How long a write waits for a lock: longer than a lock can be held, so one
+ * a failed write never gave back runs out before a write waiting for it
+ * gives up.
  */
 const LOCK_WAIT_IN_MS: number = 15_000;
 
 const LOCK_NAMESPACE: string = "ProjectSsoProviderChanges.keepAWayIn";
 
-interface GlobalProviderRow {
-  id: ObjectID;
-  restrictToAttachedProjects: boolean;
-}
+/*
+ * The key of the lock on the server's sign-in rules - the global providers
+ * and their attachments, and Require SSO for Login - held by every change
+ * whose check reads them. Project keys are ids, so they never meet it.
+ */
+export const SERVER_SIGN_IN_LOCK_KEY: string = "server";
 
 export default class ProjectSsoProviderChanges {
   /*
@@ -174,13 +176,12 @@ export default class ProjectSsoProviderChanges {
           string,
           unknown
         >;
-        const signInsEndedAt: unknown = record["signInsEndedAt"];
 
         return {
           isOn: record["isEnabled"] === true,
-          signInsEndedAtMs: signInsEndedAt
-            ? new Date(signInsEndedAt as Date).getTime()
-            : null,
+          signInsEndedAtMs: SsoSignInsEnded.toSignInsEndedAtMs(
+            record["signInsEndedAt"],
+          ),
         };
       },
     });
@@ -199,7 +200,7 @@ export default class ProjectSsoProviderChanges {
     service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;
   }): Promise<ProjectSsoProviderWrite | null> {
-    const isEnabled: unknown = ProjectSsoProviderChanges.getWrittenIsEnabled(
+    const isEnabled: boolean | undefined = SsoSignInsEnded.getWrittenIsEnabled(
       data.updateBy.data,
     );
 
@@ -214,6 +215,7 @@ export default class ProjectSsoProviderChanges {
         query: data.updateBy.query,
         limit: data.updateBy.limit,
         skip: data.updateBy.skip,
+        mayTakeAway: isEnabled === false,
         decide: (
           rows: Array<ProjectSsoProviderRow>,
         ): ProjectSsoProviderWrite => {
@@ -239,50 +241,24 @@ export default class ProjectSsoProviderChanges {
   /*
    * The last step before an update is written (the service's
    * onUpdatePermitted, once every permission check has passed): an update
-   * that turns a provider off writes when, in the same write, so a provider
-   * is never off without the time its sign-ins ended. An update that turns
-   * none off - every provider it names is off already - keeps the times
-   * they have. One that turns several off gives each the same time, one
-   * that was off already included: a provider that is off gives no
-   * sign-ins, so a later time ends none that an earlier one did not.
+   * that turns a provider off writes when, in the same write
+   * (SsoSignInsEnded.stampWhenTurnedOff), using what beforeUpdate found
+   * under the lock, or - for an update that did not pass it - the rows now.
    */
   public static async beforeWrite<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;
   }): Promise<void> {
-    if (
-      ProjectSsoProviderChanges.getWrittenIsEnabled(data.updateBy.data) !==
-      false
-    ) {
-      return;
-    }
-
-    // What beforeUpdate found, or - for an update that did not pass it - the rows now.
     const write: ProjectSsoProviderWrite | undefined =
       ProjectSsoProviderChanges.writesByUpdate.get(
         data.updateBy as unknown as UpdateBy<BaseModel>,
       );
 
-    const turnsOneOff: boolean = write
-      ? write.takenAway.length > 0
-      : (
-          await ProjectSsoProviderChanges.readRows({
-            service: data.service,
-            query: data.updateBy.query,
-            limit: data.updateBy.limit,
-            skip: data.updateBy.skip,
-          })
-        ).some((row: ProjectSsoProviderRow): boolean => {
-          return row.isOn;
-        });
-
-    if (!turnsOneOff) {
-      return;
-    }
-
-    (data.updateBy.data as unknown as Record<string, unknown>)[
-      "signInsEndedAt"
-    ] = OneUptimeDate.getCurrentDate();
+    await SsoSignInsEnded.stampWhenTurnedOff({
+      service: data.service,
+      updateBy: data.updateBy,
+      turnsOneOff: write ? write.takenAway.length > 0 : undefined,
+    });
   }
 
   // After an update (onUpdateSuccess): the providers' projects, announced.
@@ -321,6 +297,7 @@ export default class ProjectSsoProviderChanges {
       query: data.deleteBy.query,
       limit: data.deleteBy.limit,
       skip: data.deleteBy.skip,
+      mayTakeAway: true,
       decide: (rows: Array<ProjectSsoProviderRow>): ProjectSsoProviderWrite => {
         return {
           takenAway: rows.filter((row: ProjectSsoProviderRow): boolean => {
@@ -358,8 +335,9 @@ export default class ProjectSsoProviderChanges {
    * and the instance's global providers that sign people in to it - cannot
    * either. A project requires SSO when it says so or when the whole server
    * does (Require SSO for Login in the Admin Dashboard), as UserMiddleware
-   * enforces it. Read from the database, not a cache: the requirement may
-   * have changed on another server a moment ago.
+   * enforces it. Read from the database, not a cache, by the one check every
+   * such change asks (SsoSignInWays): the requirement may have changed on
+   * another server a moment ago.
    */
   public static async assertProjectsKeepASignIn(data: {
     providerType: ProjectSsoProviderType;
@@ -367,70 +345,123 @@ export default class ProjectSsoProviderChanges {
   }): Promise<void> {
     const takenAwayByProject: Map<
       string,
-      Set<string>
-    > = ProjectSsoProviderChanges.groupByProject(data.takenAway);
+      Array<{ providerType: ProjectSsoProviderType; id: string }>
+    > = new Map<
+      string,
+      Array<{ providerType: ProjectSsoProviderType; id: string }>
+    >();
 
-    let serverRequiresSso: boolean | null = null;
-
-    for (const [projectId, takenAwayIds] of takenAwayByProject) {
-      const project: Project | null = await ProjectService.findOneById({
-        id: new ObjectID(projectId),
-        select: {
-          _id: true,
-          requireSsoForLogin: true,
-          requireSsoWithSsoProviderId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (!project) {
-        continue;
-      }
-
-      const projectRequiresSso: boolean = Boolean(project.requireSsoForLogin);
-
-      if (!projectRequiresSso) {
-        if (serverRequiresSso === null) {
-          serverRequiresSso =
-            await ProjectSsoProviderChanges.doesServerRequireSso();
-        }
-
-        if (!serverRequiresSso) {
-          continue;
-        }
-      }
-
-      const requiredProviderId: string | null =
-        project.requireSsoWithSsoProviderId
-          ? project.requireSsoWithSsoProviderId.toString().toLowerCase()
-          : null;
-
-      if (requiredProviderId) {
-        if (takenAwayIds.has(requiredProviderId)) {
-          throw new BadDataException(REQUIRED_SSO_PROVIDER_MESSAGE);
-        }
-
-        // Only that provider lets anyone in: this one never did.
-        continue;
-      }
-
-      if (
-        await ProjectSsoProviderChanges.hasAnotherProviderOn({
-          projectId: new ObjectID(projectId),
-          providerType: data.providerType,
-          takenAwayIds: takenAwayIds,
-        })
-      ) {
-        continue;
-      }
-
-      throw new BadDataException(
-        projectRequiresSso
-          ? LAST_SSO_PROVIDER_MESSAGE
-          : SERVER_LAST_SSO_PROVIDER_MESSAGE,
+    for (const [projectId, ids] of ProjectSsoProviderChanges.groupByProject(
+      data.takenAway,
+    )) {
+      takenAwayByProject.set(
+        projectId,
+        Array.from(ids).map(
+          (id: string): { providerType: ProjectSsoProviderType; id: string } => {
+            return { providerType: data.providerType, id };
+          },
+        ),
       );
+    }
+
+    const stranded: StrandedProjects = await SsoSignInWays.findStrandedProjects(
+      {
+        projectProvidersTakenAway: takenAwayByProject,
+      },
+    );
+
+    const first: StrandedProject | undefined = stranded.firstProjects[0];
+
+    if (!first) {
+      return;
+    }
+
+    if (first.reason === StrandReason.RequiredProvider) {
+      throw new BadDataException(REQUIRED_SSO_PROVIDER_MESSAGE);
+    }
+
+    throw new BadDataException(
+      first.requiresSsoItself
+        ? LAST_SSO_PROVIDER_MESSAGE
+        : SERVER_LAST_SSO_PROVIDER_MESSAGE,
+    );
+  }
+
+  /*
+   * Locks a change to who can sign in: each project it names, one after
+   * another, always in the same order, then - when its check reads the
+   * server's sign-in rules - the lock on those (SERVER_SIGN_IN_LOCK_KEY),
+   * last. Every writer takes them in that order, and a change to the
+   * server's rules takes only that one, so no two ever wait on each other.
+   *
+   * A lock another change holds for longer than any write takes refuses
+   * this one: it is never checked unlocked while another change is under
+   * way. When Valkey cannot be reached, the change goes on unlocked, and is
+   * still checked.
+   */
+  public static async lockSignInChange(data: {
+    projectIds: Array<string>;
+    wholeServer: boolean;
+  }): Promise<Array<SemaphoreMutex>> {
+    const locks: Array<SemaphoreMutex> = [];
+
+    const keys: Array<{ key: string; busyMessage: string }> = [
+      ...Array.from(new Set<string>(data.projectIds))
+        .sort()
+        .map((projectId: string): { key: string; busyMessage: string } => {
+          return {
+            key: projectId,
+            busyMessage: PROVIDER_CHANGE_IN_PROGRESS_MESSAGE,
+          };
+        }),
+    ];
+
+    if (data.wholeServer) {
+      keys.push({
+        key: SERVER_SIGN_IN_LOCK_KEY,
+        busyMessage: SIGN_IN_CHANGE_IN_PROGRESS_MESSAGE,
+      });
+    }
+
+    for (const { key, busyMessage } of keys) {
+      try {
+        locks.push(
+          await Semaphore.lock({
+            key: key,
+            namespace: LOCK_NAMESPACE,
+            lockTimeout: LOCK_TIMEOUT_IN_MS,
+            acquireTimeout: LOCK_WAIT_IN_MS,
+            // Never re-asserted: a write that fails half way leaves it to run out.
+            refreshInterval: 0,
+          }),
+        );
+      } catch (err) {
+        if (err instanceof SemaphoreLockTimeoutError) {
+          await ProjectSsoProviderChanges.releaseSignInChange(locks);
+          throw new BadDataException(busyMessage);
+        }
+
+        logger.warn(
+          `SSO sign-in change: could not lock ${key}; checking it unlocked.`,
+        );
+        logger.warn(err);
+      }
+    }
+
+    return locks;
+  }
+
+  // Gives back the locks of a change. Never throws: a lock not given back runs out.
+  public static async releaseSignInChange(
+    locks: Array<SemaphoreMutex>,
+  ): Promise<void> {
+    for (const lock of locks) {
+      try {
+        await Semaphore.release(lock);
+      } catch (err) {
+        logger.warn("SSO sign-in change: could not give a lock back.");
+        logger.warn(err);
+      }
     }
   }
 
@@ -439,10 +470,11 @@ export default class ProjectSsoProviderChanges {
    * each of their projects: the rows are read once to learn the projects,
    * the projects are locked, and the rows are read again, so no other turn
    * off, turn on or delete of the projects' providers comes between what
-   * this write reads and what it writes. A write that takes a provider away
-   * is checked under the same lock. The lock is held until the write is
-   * done (afterUpdate, afterDelete), or given back at once when it is
-   * refused. Without Valkey the write still reads and checks, unlocked.
+   * this write reads and what it writes. A write that may take a provider
+   * away also locks the server's sign-in rules, which its check reads, and
+   * is checked under the same locks. They are held until the write is done
+   * (afterUpdate, afterDelete), or given back at once when it is refused.
+   * Without Valkey the write still reads and checks, unlocked.
    */
   private static async lockReadAndCheck<TModel extends BaseModel>(data: {
     providerType: ProjectSsoProviderType;
@@ -450,6 +482,7 @@ export default class ProjectSsoProviderChanges {
     query: Query<TModel>;
     limit: PositiveNumber | number;
     skip: PositiveNumber | number;
+    mayTakeAway: boolean;
     decide: (rows: Array<ProjectSsoProviderRow>) => ProjectSsoProviderWrite;
   }): Promise<ProjectSsoProviderWrite> {
     const rowsToLock: Array<ProjectSsoProviderRow> =
@@ -465,9 +498,12 @@ export default class ProjectSsoProviderChanges {
     }
 
     const locks: Array<SemaphoreMutex> =
-      await ProjectSsoProviderChanges.lockProjects(
-        Array.from(ProjectSsoProviderChanges.groupByProject(rowsToLock).keys()),
-      );
+      await ProjectSsoProviderChanges.lockSignInChange({
+        projectIds: Array.from(
+          ProjectSsoProviderChanges.groupByProject(rowsToLock).keys(),
+        ),
+        wholeServer: data.mayTakeAway,
+      });
 
     try {
       const write: ProjectSsoProviderWrite = data.decide(
@@ -490,49 +526,9 @@ export default class ProjectSsoProviderChanges {
 
       return write;
     } catch (err) {
-      await ProjectSsoProviderChanges.releaseLocks(locks);
+      await ProjectSsoProviderChanges.releaseSignInChange(locks);
       throw err;
     }
-  }
-
-  /*
-   * One project after another, always in the same order, so two writes
-   * never wait on each other. A lock another write holds for longer than
-   * any write takes refuses this one: it is never checked unlocked while
-   * another change is under way. When Valkey cannot be reached, the write
-   * goes on unlocked.
-   */
-  private static async lockProjects(
-    projectIds: Array<string>,
-  ): Promise<Array<SemaphoreMutex>> {
-    const locks: Array<SemaphoreMutex> = [];
-
-    for (const projectId of [...projectIds].sort()) {
-      try {
-        locks.push(
-          await Semaphore.lock({
-            key: projectId,
-            namespace: LOCK_NAMESPACE,
-            lockTimeout: LOCK_TIMEOUT_IN_MS,
-            acquireTimeout: LOCK_WAIT_IN_MS,
-            // Never re-asserted: a write that fails half way leaves it to run out.
-            refreshInterval: 0,
-          }),
-        );
-      } catch (err) {
-        if (err instanceof SemaphoreLockTimeoutError) {
-          await ProjectSsoProviderChanges.releaseLocks(locks);
-          throw new BadDataException(PROVIDER_CHANGE_IN_PROGRESS_MESSAGE);
-        }
-
-        logger.warn(
-          `SSO provider change: could not lock project ${projectId}; checking it unlocked.`,
-        );
-        logger.warn(err);
-      }
-    }
-
-    return locks;
   }
 
   // Gives back the write's locks, once.
@@ -540,36 +536,7 @@ export default class ProjectSsoProviderChanges {
     const locks: Array<SemaphoreMutex> = write.locks || [];
     write.locks = undefined;
 
-    await ProjectSsoProviderChanges.releaseLocks(locks);
-  }
-
-  // Never throws: a lock not given back runs out.
-  private static async releaseLocks(
-    locks: Array<SemaphoreMutex>,
-  ): Promise<void> {
-    for (const lock of locks) {
-      try {
-        await Semaphore.release(lock);
-      } catch (err) {
-        logger.warn("SSO provider change: could not give a project lock back.");
-        logger.warn(err);
-      }
-    }
-  }
-
-  // Whether the whole server requires SSO, read from the database.
-  private static async doesServerRequireSso(): Promise<boolean> {
-    const config: GlobalConfig | null = await GlobalConfigService.findOneBy({
-      query: {},
-      select: {
-        requireSsoForLogin: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return Boolean(config?.requireSsoForLogin);
+    await ProjectSsoProviderChanges.releaseSignInChange(locks);
   }
 
   private static groupByProject(
@@ -585,181 +552,6 @@ export default class ProjectSsoProviderChanges {
     }
 
     return byProject;
-  }
-
-  /*
-   * Whether anything but the providers a write takes away still signs
-   * people in to the project: another of its SAML or OIDC providers that is
-   * on, or a global provider that is on and signs people in to it.
-   */
-  private static async hasAnotherProviderOn(data: {
-    projectId: ObjectID;
-    providerType: ProjectSsoProviderType;
-    takenAwayIds: Set<string>;
-  }): Promise<boolean> {
-    /*
-     * Of the write's own kind, one row more than it takes away is enough:
-     * if that many are on, one of them stays. Of the other kind, one.
-     */
-    const limitFor: (providerType: ProjectSsoProviderType) => number = (
-      providerType: ProjectSsoProviderType,
-    ): number => {
-      return providerType === data.providerType
-        ? data.takenAwayIds.size + 1
-        : 1;
-    };
-
-    const [samlRows, oidcRows]: [Array<BaseModel>, Array<BaseModel>] =
-      await Promise.all([
-        ProjectSsoService.findBy({
-          query: {
-            projectId: data.projectId,
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-          },
-          limit: limitFor(SsoProviderType.ProjectSSO),
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        }),
-        ProjectOidcService.findBy({
-          query: {
-            projectId: data.projectId,
-            isEnabled: true,
-          },
-          select: {
-            _id: true,
-          },
-          limit: limitFor(SsoProviderType.ProjectOIDC),
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        }),
-      ]);
-
-    const projectProviders: Array<{
-      providerType: ProjectSsoProviderType;
-      rows: Array<BaseModel>;
-    }> = [
-      { providerType: SsoProviderType.ProjectSSO, rows: samlRows },
-      { providerType: SsoProviderType.ProjectOIDC, rows: oidcRows },
-    ];
-
-    for (const providers of projectProviders) {
-      for (const row of providers.rows) {
-        const id: string | undefined = row.id?.toString().toLowerCase();
-
-        if (!id) {
-          continue;
-        }
-
-        if (
-          providers.providerType === data.providerType &&
-          data.takenAwayIds.has(id)
-        ) {
-          continue;
-        }
-
-        return true;
-      }
-    }
-
-    return await ProjectSsoProviderChanges.hasGlobalProviderOn(data.projectId);
-  }
-
-  /*
-   * Whether a global SSO or OIDC provider that is on signs people in to the
-   * project: every project, unless the instance restricted it to the
-   * projects attached to it (UserMiddleware.isGlobalSsoTokenAuthorizedForProject).
-   */
-  private static async hasGlobalProviderOn(
-    projectId: ObjectID,
-  ): Promise<boolean> {
-    const globalSsoProviders: Array<GlobalSso> = await GlobalSsoService.findBy({
-      query: {
-        isEnabled: true,
-      },
-      select: {
-        _id: true,
-        restrictToAttachedProjects: true,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    for (const provider of ProjectSsoProviderChanges.toGlobalRows(
-      globalSsoProviders,
-    )) {
-      if (
-        !provider.restrictToAttachedProjects ||
-        (await GlobalSsoProjectService.doesProviderGovernProject({
-          globalSsoId: provider.id,
-          projectId: projectId,
-        }))
-      ) {
-        return true;
-      }
-    }
-
-    const globalOidcProviders: Array<GlobalOidc> =
-      await GlobalOidcService.findBy({
-        query: {
-          isEnabled: true,
-        },
-        select: {
-          _id: true,
-          restrictToAttachedProjects: true,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    for (const provider of ProjectSsoProviderChanges.toGlobalRows(
-      globalOidcProviders,
-    )) {
-      if (
-        !provider.restrictToAttachedProjects ||
-        (await GlobalOidcProjectService.doesProviderGovernProject({
-          globalOidcId: provider.id,
-          projectId: projectId,
-        }))
-      ) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static toGlobalRows(
-    providers: Array<GlobalSso | GlobalOidc>,
-  ): Array<GlobalProviderRow> {
-    const rows: Array<GlobalProviderRow> = [];
-
-    for (const provider of providers) {
-      if (!provider.id) {
-        continue;
-      }
-
-      rows.push({
-        id: provider.id,
-        restrictToAttachedProjects: Boolean(
-          provider.restrictToAttachedProjects,
-        ),
-      });
-    }
-
-    return rows;
   }
 
   /*
@@ -796,25 +588,6 @@ export default class ProjectSsoProviderChanges {
       .map((row: ProjectSsoProviderRow): string => {
         return row.projectId;
       });
-  }
-
-  /*
-   * The Enabled switch an update writes - true or false, as DatabaseService
-   * stores it by the time the hooks run - or undefined when it leaves it
-   * alone. Only the write's own field counts, never one it inherits.
-   */
-  private static getWrittenIsEnabled(data: unknown): boolean | undefined {
-    if (
-      !data ||
-      typeof data !== "object" ||
-      !Object.prototype.hasOwnProperty.call(data, "isEnabled")
-    ) {
-      return undefined;
-    }
-
-    const isEnabled: unknown = (data as Record<string, unknown>)["isEnabled"];
-
-    return typeof isEnabled === "boolean" ? isEnabled : undefined;
   }
 
   // The rows a write names: their ids, projects, and whether they are on.

@@ -40,6 +40,7 @@ import ProjectSsoProviderStanding, {
   ProjectSsoProviderStandingValue,
   isProjectSsoProviderType,
 } from "../Utils/ProjectSsoProviderStanding";
+import SsoSignInsEnded from "../Utils/SsoSignInsEnded";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission, {
   UserGlobalAccessPermission,
@@ -563,7 +564,11 @@ export default class UserMiddleware {
    *   1. IS THE PROVIDER STILL TRUSTED? Always checked. A Global SSO token
    *      lives for 30 days and carries no revocation, so without this an admin
    *      turning a provider off - or deleting it outright - changes nothing
-   *      for anyone already signed in, for up to a month.
+   *      for anyone already signed in, for up to a month. Nor does a sign-in
+   *      the provider gave before it was last turned off count once it is on
+   *      again (signInsEndedAt, Utils/SsoSignInsEnded): the token's issue
+   *      time comes from its verified `iat` (issuedAtMs), and a token that
+   *      does not carry one only counts for a provider never turned off.
    *
    *   2. DOES THE PROVIDER GOVERN THIS PROJECT? Only checked when the admin
    *      turned on `restrictToAttachedProjects` for that provider. The
@@ -611,6 +616,16 @@ export default class UserMiddleware {
       : await GlobalSsoService.getProviderTrust(providerId);
 
     if (!trust.isUsable) {
+      return false;
+    }
+
+    // Given before the provider was last turned off: ended with it.
+    if (
+      !SsoSignInsEnded.doesProviderVouchFor(
+        { isOn: true, signInsEndedAtMs: trust.signInsEndedAtMs },
+        globalSsoTokenData.issuedAtMs ?? null,
+      )
+    ) {
       return false;
     }
 

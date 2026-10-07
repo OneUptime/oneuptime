@@ -22,6 +22,7 @@ import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigSe
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import StatusPagePrivateUserSessionService, {
+  SIGN_IN_NO_LONGER_ACCEPTED_REASON,
   SessionMetadata as StatusPageSessionMetadata,
 } from "Common/Server/Services/StatusPagePrivateUserSessionService";
 import CookieUtil from "Common/Server/Utils/Cookie";
@@ -265,6 +266,28 @@ router.post(
         );
       }
 
+      /*
+       * The SSO provider that gave the login code was turned off or deleted
+       * since, or the page now requires SSO of a code no provider gave
+       * (StatusPagePrivateUserSessionService.addSignInRule).
+       */
+      if (
+        !(await StatusPagePrivateUserSessionService.doesSignInStillCount(
+          sessionMetadata.session.id,
+        ))
+      ) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          sessionMetadata.session.id,
+          { reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON },
+        );
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Login code is invalid or expired."),
+        );
+      }
+
       CookieUtil.setStatusPagePrivateUserCookie({
         expressResponse: res,
         user,
@@ -499,6 +522,47 @@ router.post(
           req,
           res,
           new NotAuthenticatedException("Account no longer exists."),
+        );
+      }
+
+      /*
+       * The SSO provider that signed the session in was turned off or
+       * deleted since, or the page now requires SSO of a session no
+       * provider signed in: it ends here rather than renew
+       * (StatusPagePrivateUserSessionService.addSignInRule).
+       */
+      if (
+        !(await StatusPagePrivateUserSessionService.doesSignInStillCount(
+          session.id,
+        ))
+      ) {
+        await StatusPagePrivateUserSessionService.revokeSessionById(
+          session.id,
+          {
+            reason: SIGN_IN_NO_LONGER_ACCEPTED_REASON,
+          },
+        );
+
+        CookieUtil.removeCookie(res, CookieUtil.getUserTokenKey(statusPageId));
+        CookieUtil.removeCookie(
+          res,
+          CookieUtil.getRefreshTokenKey(statusPageId),
+        );
+
+        if (
+          respondWithMasterPasswordAccess({
+            req,
+            res,
+            statusPageId,
+          })
+        ) {
+          return;
+        }
+
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException("Session expired. Please login again."),
         );
       }
 

@@ -15,6 +15,7 @@ import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
 import { clearGlobalSsoAuthorizationCaches } from "../Utils/GlobalSsoAuthorization";
+import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -471,11 +472,27 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * Turning the server's Require SSO for Login on needs an SSO provider that
+   * signs people in to every project that does not require SSO itself
+   * (Utils/SsoRequirementChanges): checked once the caller has passed every
+   * permission check, under the lock on the server's sign-in rules, held
+   * until the write is done (onUpdateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await SsoRequirementChanges.beforeServerUpdate({ updateBy });
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    await SsoRequirementChanges.afterUpdate(onUpdate.updateBy);
+
     if (
       (onUpdate.updateBy.data as { requireSsoForLogin?: unknown })
         .requireSsoForLogin !== undefined

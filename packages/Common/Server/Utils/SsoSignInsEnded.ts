@@ -1,0 +1,162 @@
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import OneUptimeDate from "../../Types/Date";
+import DatabaseService from "../Services/DatabaseService";
+import Select from "../Types/Database/Select";
+import UpdateBy from "../Types/Database/UpdateBy";
+
+/*
+ * TURNING AN SSO PROVIDER OFF ENDS THE SIGN-INS IT GAVE, WHATEVER KIND OF
+ * PROVIDER IT IS.
+ *
+ * A project's SAML and OIDC providers, the server's global ones and a status
+ * page's each keep when they were last turned off (signInsEndedAt). The
+ * write that turns one off writes it, in the same write, so a provider is
+ * never off without it. A sign-in the provider gave before then no longer
+ * counts, and turning the provider on again does not bring it back: people
+ * sign in with it again. Who asks:
+ *
+ *   - a project's provider: ProjectSsoProviderStanding, for UserMiddleware;
+ *   - a global provider: UserMiddleware.isGlobalSsoTokenAuthorizedForProject;
+ *   - a status page's provider: StatusPagePrivateUserSessionService.
+ *     addSignInRule, for the status page's sessions.
+ *
+ * Changing anything else about a provider - its certificate, client secret,
+ * addresses, name or teams - writes nothing here: the sign-ins it gave were
+ * checked when they were made, and the next sign-in uses the new settings.
+ */
+
+// What the database says about a provider, as far as its sign-ins go.
+export interface SsoProviderSignInStanding {
+  // The provider is there and turned on.
+  isOn: boolean;
+  /*
+   * When it was last turned off (milliseconds), or null when it never was:
+   * a sign-in it gave before then no longer counts.
+   */
+  signInsEndedAtMs: number | null;
+}
+
+export default class SsoSignInsEnded {
+  /*
+   * Whether a provider with this standing vouches for a sign-in it gave at
+   * `issuedAtMs`. A sign-in that does not say when it was given cannot be
+   * placed after the provider was turned off, so it only counts for a
+   * provider that never was. JWT issue times are whole seconds, rounded
+   * down, so a sign-in given in the same second the provider was turned off
+   * does not count either.
+   */
+  public static doesProviderVouchFor(
+    standing: SsoProviderSignInStanding,
+    issuedAtMs: number | null,
+  ): boolean {
+    if (!standing.isOn) {
+      return false;
+    }
+
+    if (standing.signInsEndedAtMs === null) {
+      return true;
+    }
+
+    return issuedAtMs !== null && issuedAtMs > standing.signInsEndedAtMs;
+  }
+
+  // A stored signInsEndedAt, in milliseconds, or null when it was never set.
+  public static toSignInsEndedAtMs(value: unknown): number | null {
+    if (!value) {
+      return null;
+    }
+
+    const time: number = new Date(value as Date).getTime();
+
+    return Number.isFinite(time) ? time : null;
+  }
+
+  /*
+   * The Enabled switch an update writes - true or false, as DatabaseService
+   * stores it by the time the hooks run - or undefined when it leaves it
+   * alone. Only the write's own field counts, never one it inherits.
+   */
+  public static getWrittenIsEnabled(data: unknown): boolean | undefined {
+    return SsoSignInsEnded.getWrittenBoolean(data, "isEnabled");
+  }
+
+  // A boolean column an update writes, or undefined when it leaves it alone.
+  public static getWrittenBoolean(
+    data: unknown,
+    column: string,
+  ): boolean | undefined {
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !Object.prototype.hasOwnProperty.call(data, column)
+    ) {
+      return undefined;
+    }
+
+    const value: unknown = (data as Record<string, unknown>)[column];
+
+    return typeof value === "boolean" ? value : undefined;
+  }
+
+  /*
+   * The last step before an update to a provider is written (the service's
+   * onUpdatePermitted, once every permission check has passed): an update
+   * that turns a provider off writes when, in the same write, so a provider
+   * is never off without the time its sign-ins ended. An update that turns
+   * none off - every provider it names is off already - keeps the times they
+   * have. One that turns several off gives each the same time, one that was
+   * off already included: a provider that is off gives no sign-ins, so a
+   * later time ends none that an earlier one did not.
+   *
+   * `turnsOneOff` is what the service's own hooks found before the write,
+   * from rows read under a lock; without it, the rows are read now.
+   */
+  public static async stampWhenTurnedOff<TModel extends BaseModel>(data: {
+    service: DatabaseService<TModel>;
+    updateBy: UpdateBy<TModel>;
+    turnsOneOff?: boolean | undefined;
+  }): Promise<void> {
+    if (SsoSignInsEnded.getWrittenIsEnabled(data.updateBy.data) !== false) {
+      return;
+    }
+
+    const turnsOneOff: boolean =
+      data.turnsOneOff !== undefined
+        ? data.turnsOneOff
+        : await SsoSignInsEnded.isAnyOn({
+            service: data.service,
+            updateBy: data.updateBy,
+          });
+
+    if (!turnsOneOff) {
+      return;
+    }
+
+    (data.updateBy.data as unknown as Record<string, unknown>)[
+      "signInsEndedAt"
+    ] = OneUptimeDate.getCurrentDate();
+  }
+
+  // Whether any provider the update names is on now.
+  private static async isAnyOn<TModel extends BaseModel>(data: {
+    service: DatabaseService<TModel>;
+    updateBy: UpdateBy<TModel>;
+  }): Promise<boolean> {
+    const rows: Array<TModel> = await data.service.findAllBy({
+      query: data.updateBy.query,
+      select: {
+        _id: true,
+        isEnabled: true,
+      } as unknown as Select<TModel>,
+      limit: data.updateBy.limit,
+      skip: data.updateBy.skip,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return rows.some((row: TModel): boolean => {
+      return (row as unknown as Record<string, unknown>)["isEnabled"] === true;
+    });
+  }
+}
