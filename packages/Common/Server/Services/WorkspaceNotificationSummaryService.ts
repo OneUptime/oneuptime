@@ -24,7 +24,10 @@ import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import LinkedAffectedResources from "../Utils/AffectedResources/LinkedAffectedResources";
-import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceNotificationStatus from "../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "../../Types/Workspace/WorkspaceNotificationActionType";
@@ -1162,7 +1165,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, count] of map) {
-          parts.push(`${sev}: ${Service.bold(String(count))}`);
+          parts.push(
+            `${escapeMarkdownValue(sev)}: ${Service.bold(String(count))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -1180,7 +1185,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, count] of map) {
-          parts.push(`${state}: ${Service.bold(String(count))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(count))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1337,10 +1344,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         // Meta line
         const meta: Array<string> = [];
         if (inc.incidentSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(inc.incidentSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(inc.incidentSeverity.name))}`,
+          );
         }
         if (inc.currentIncidentState?.name) {
-          meta.push(`State: ${Service.bold(inc.currentIncidentState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(inc.currentIncidentState.name))}`,
+          );
         }
         if (inc.declaredAt) {
           meta.push(
@@ -1358,12 +1369,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.ackBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.ackAt))}`,
             );
           } else if (td?.resolvedBy && td?.resolvedAt) {
             // If not explicitly acknowledged but resolved, ack time = resolve time
             ackResolve.push(
-              `Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
@@ -1372,7 +1383,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
+              `Resolved: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || inc.createdAt!, td.resolvedAt))}`,
             );
           } else if (!isResolvedIncidentState(inc.currentIncidentStateId)) {
             ackResolve.push(`_Not yet resolved_`);
@@ -1466,7 +1477,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: ${Service.bold(String(c))}`);
+          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -1483,7 +1494,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: ${Service.bold(String(c))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1530,10 +1543,14 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
         const meta: Array<string> = [];
         if (ep.incidentSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(ep.incidentSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(ep.incidentSeverity.name))}`,
+          );
         }
         if (ep.currentIncidentState?.name) {
-          meta.push(`State: ${Service.bold(ep.currentIncidentState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(ep.currentIncidentState.name))}`,
+          );
         }
         if (ep.createdAt) {
           meta.push(
@@ -1639,7 +1656,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: ${Service.bold(String(c))}`);
+          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -1656,7 +1673,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: ${Service.bold(String(c))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1792,14 +1811,19 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .toString();
         const td: TimelineData | undefined = tlMap.get(id);
 
-        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${a.title || "Untitled"}`))}`;
+        // The title inside the link's text, escaped as an incident's is.
+        let text: string = `${Service.bold(Service.link(linkUrl, `${display} — ${escapeMarkdownInline(a.title || "Untitled")}`))}`;
 
         const meta: Array<string> = [];
         if (a.alertSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(a.alertSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(a.alertSeverity.name))}`,
+          );
         }
         if (a.currentAlertState?.name) {
-          meta.push(`State: ${Service.bold(a.currentAlertState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(a.currentAlertState.name))}`,
+          );
         }
         if (a.createdAt) {
           meta.push(
@@ -1816,12 +1840,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         ) {
           if (td?.ackBy && td?.ackAt) {
             ackResolve.push(
-              `Ack: ${Service.bold(td.ackBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.ackBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.ackAt))}`,
             );
           } else if (td?.resolvedBy && td?.resolvedAt) {
             // If not explicitly acknowledged but resolved, ack time = resolve time
             ackResolve.push(
-              `Ack: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+              `Ack: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
           } else {
             ackResolve.push(`_Not yet acknowledged_`);
@@ -1830,7 +1854,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         if (Service.has(items, WorkspaceNotificationSummaryItem.WhoResolved)) {
           if (td?.resolvedBy && td?.resolvedAt) {
             ackResolve.push(
-              `Resolved: ${Service.bold(td.resolvedBy)} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
+              `Resolved: ${Service.bold(escapeMarkdownValue(td.resolvedBy))} in ${Service.formatDuration(OneUptimeDate.getMinutesBetweenTwoDates(td.declaredAt || a.createdAt!, td.resolvedAt))}`,
             );
           } else if (!isResolvedAlertState(a.currentAlertStateId)) {
             ackResolve.push(`_Not yet resolved_`);
@@ -1919,7 +1943,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [sev, c] of map) {
-          parts.push(`${sev}: ${Service.bold(String(c))}`);
+          parts.push(`${escapeMarkdownValue(sev)}: ${Service.bold(String(c))}`);
         }
         blocks.push(
           Service.md(`${Service.bold("By Severity:")}  ${parts.join("  ·  ")}`),
@@ -1936,7 +1960,9 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       if (map.size > 0) {
         const parts: Array<string> = [];
         for (const [state, c] of map) {
-          parts.push(`${state}: ${Service.bold(String(c))}`);
+          parts.push(
+            `${escapeMarkdownValue(state)}: ${Service.bold(String(c))}`,
+          );
         }
         blocks.push(
           Service.md(`${Service.bold("By State:")}  ${parts.join("  ·  ")}`),
@@ -1979,13 +2005,18 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           .addRoute(`/${projectId.toString()}/alerts/episodes/${id}`)
           .toString();
 
-        let text: string = `${Service.bold(Service.link(linkUrl, ep.title || "Untitled Episode"))}`;
+        // The title inside the link's text, escaped as an incident episode's is.
+        let text: string = `${Service.bold(Service.link(linkUrl, escapeMarkdownInline(ep.title || "Untitled Episode")))}`;
         const meta: Array<string> = [];
         if (ep.alertSeverity?.name) {
-          meta.push(`Severity: ${Service.bold(ep.alertSeverity.name)}`);
+          meta.push(
+            `Severity: ${Service.bold(escapeMarkdownValue(ep.alertSeverity.name))}`,
+          );
         }
         if (ep.currentAlertState?.name) {
-          meta.push(`State: ${Service.bold(ep.currentAlertState.name)}`);
+          meta.push(
+            `State: ${Service.bold(escapeMarkdownValue(ep.currentAlertState.name))}`,
+          );
         }
         if (ep.createdAt) {
           meta.push(

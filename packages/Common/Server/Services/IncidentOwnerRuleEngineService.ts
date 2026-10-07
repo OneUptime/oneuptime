@@ -44,6 +44,7 @@ import UserService from "./UserService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import { Indigo500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Select from "../Types/Database/Select";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -796,10 +797,10 @@ class IncidentOwnerRuleEngineServiceClass
       const userLines: Array<string> = users.map((u: User) => {
         const display: string =
           u.name?.toString() || u.email?.toString() || "Unknown User";
-        return `\n- 👤 ${display}`;
+        return `\n- 👤 ${escapeMarkdownValue(display)}`;
       });
       const teamLines: Array<string> = teams.map((t: Team) => {
-        return `\n- 👥 ${t.name?.toString() || "Unnamed Team"}`;
+        return `\n- 👥 ${escapeMarkdownValue(t.name?.toString() || "Unnamed Team")}`;
       });
 
       const ruleNames: Array<string> = matchedRules
@@ -812,10 +813,10 @@ class IncidentOwnerRuleEngineServiceClass
 
       const rulesPart: string =
         ruleNames.length === 1
-          ? `**${ruleNames[0]}**`
+          ? `**${escapeMarkdownValue(ruleNames[0])}**`
           : ruleNames
               .map((n: string) => {
-                return `**${n}**`;
+                return `**${escapeMarkdownValue(n)}**`;
               })
               .join(", ");
 

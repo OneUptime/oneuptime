@@ -64,6 +64,7 @@ import SubscriberNotificationRunLimit, {
   SubscriberNotificationProjectSlot,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import { escapeMarkdownValue } from "Common/Utils/Markdown/MarkdownEscape";
 
 // The status message of a 'created' notification that reached everyone.
 const SENT_MESSAGE: string =
@@ -766,11 +767,11 @@ RunCron(
                       ]);
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${incident.title || ""}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
 
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 
 **Description:** ${incident.description || ""}
 
@@ -817,9 +818,9 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                       ]);
                     } else {
                       // Use default hard-coded template
-                      markdownMessage = `## 🚨 Incident - ${incident.title || ""}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
+                      markdownMessage = `## 🚨 Incident - ${escapeMarkdownValue(incident.title || "")}
+**Severity:** ${escapeMarkdownValue(incident.incidentSeverity?.name || " - ")}
+**Resources Affected:** ${escapeMarkdownValue(resourcesAffectedPlainText)}
 **Description:** ${incident.description || ""}
 ${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`;
                       await incidentTemplateVariables.recordIncludedFieldsSent();

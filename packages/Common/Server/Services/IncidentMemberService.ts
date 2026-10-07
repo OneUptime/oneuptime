@@ -1,4 +1,5 @@
 import ObjectID from "../../Types/ObjectID";
+import { escapeMarkdownValue } from "../../Utils/Markdown/MarkdownEscape";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/IncidentMember";
 import IncidentFeedService from "./IncidentFeedService";
@@ -175,7 +176,7 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: projectId,
             incidentFeedEventType: IncidentFeedEventType.IncidentMemberRemoved,
             displayColor: Red500,
-            feedInfoInMarkdown: `👤 Removed **${user.name.toString()}** (${user.email?.toString()}) as **${roleName}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+            feedInfoInMarkdown: `👤 Removed **${escapeMarkdownValue(user.name.toString())}** (${escapeMarkdownValue(user.email?.toString())}) as **${escapeMarkdownValue(roleName)}** from [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -241,7 +242,7 @@ export class Service extends ProjectReferencesService<Model> {
               userId: userId,
               projectId: projectId,
             },
-          )}** as **${roleName}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
+          )}** as **${escapeMarkdownValue(roleName)}** to [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(projectId!, incidentId!)).toString()}).`,
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

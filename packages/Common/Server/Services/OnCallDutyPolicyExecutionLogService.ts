@@ -14,6 +14,10 @@ import { Blue500, Green500, Red500, Yellow500 } from "../../Types/BrandColors";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ObjectID from "../../Types/ObjectID";
+import {
+  escapeMarkdownInline,
+  escapeMarkdownValue,
+} from "../../Utils/Markdown/MarkdownEscape";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Color from "../../Types/Color";
 import AlertFeedService from "./AlertFeedService";
@@ -192,7 +196,7 @@ export class Service extends ProjectReferencesService<Model> {
           incidentOrAlertLink = `[Incident Episode ${incidentEpisodeNumberResult.numberWithPrefix || "#" + incidentEpisodeNumberResult.number}](${(await IncidentEpisodeService.getEpisodeLinkInDashboard(createdItem.projectId!, createdItem.triggeredByIncidentEpisodeId)).toString()})`;
         }
 
-        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${onCallPolicy.name}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`;
+        const feedInfoInMarkdown: string = `**📞 On Call Policy Started Executing:** On Call Policy **${escapeMarkdownValue(onCallPolicy.name)}** started executing for ${incidentOrAlertLink}. Users on call on this policy will now be notified.`;
 
         if (
           onCallPolicy &&
@@ -494,7 +498,7 @@ export class Service extends ProjectReferencesService<Model> {
 
           const feedInfoInMarkdown: string = `**${this.getEmojiByStatus(onCalldutyPolicyExecutionLog.status)} On Call Policy Status Updated for ${incidentOrAlertLink}:**
 
- On-call policy **[${onCallPolicy.name?.toString()}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
+ On-call policy **[${escapeMarkdownInline(onCallPolicy.name?.toString())}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(onCallPolicy.projectId!, onCallPolicy.id!)).toString()})** status updated to **${onCalldutyPolicyExecutionLog.status}**`;
 
           if (onCalldutyPolicyExecutionLog.triggeredByIncidentId) {
             await IncidentFeedService.createIncidentFeedItem({
