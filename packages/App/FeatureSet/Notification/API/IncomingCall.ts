@@ -23,6 +23,7 @@ import OnCallDutyPolicyScheduleService from "Common/Server/Services/OnCallDutyPo
 import UserService from "Common/Server/Services/UserService";
 import UserIncomingCallNumberService from "Common/Server/Services/UserIncomingCallNumberService";
 import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
+import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -797,11 +798,21 @@ async function getUserToCall(
     return null;
   }
 
-  // Check if the user has a verified incoming call number for this project
+  /*
+   * Check if the user has a verified incoming call number for this project.
+   * A caller is never put through to somebody who is not a member of the
+   * project now - who has left, or never accepted their invitation - even
+   * if a rule or a schedule still names them: the number is read only while
+   * they are a member, so the rule is skipped like one whose user has no
+   * verified number. The check rides on this read (ProjectMembership).
+   */
   const verifiedIncomingCallNumber: UserIncomingCallNumber | null =
     await UserIncomingCallNumberService.findOneBy({
       query: {
-        userId: userId,
+        userId: ProjectMembership.userIdWhileMember({
+          userId: userId,
+          projectId: projectId,
+        }),
         projectId: projectId,
         isVerified: true,
       },

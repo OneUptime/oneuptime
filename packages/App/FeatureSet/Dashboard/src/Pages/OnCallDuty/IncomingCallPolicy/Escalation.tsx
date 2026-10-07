@@ -14,7 +14,7 @@ import { ShowAs } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import UserElement from "../../../Components/User/User";
+import ProjectUserElement from "../../../Components/User/ProjectUserElement";
 import OnCallDutyScheduleElement from "../../../Components/OnCallDutySchedule/ScheduleElement";
 import {
   getIncomingCallEscalationRuleFormFields,
@@ -202,7 +202,8 @@ const IncomingCallPolicyEscalationPage: FunctionComponent<
               }
 
               if (item.user) {
-                return <UserElement user={item.user} />;
+                // A rule never rings somebody who has left the project.
+                return <ProjectUserElement user={item.user} />;
               }
 
               return <></>;

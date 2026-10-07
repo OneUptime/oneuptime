@@ -26028,5 +26028,7 @@
   "Connecting GitHub needs the {{planName}} plan.": "GitHub に接続するには、{{planName}} プランが必要です。",
   "OneUptime could not start the GitHub connection. Please try again.": "OneUptime は GitHub との接続を開始できませんでした。もう一度お試しください。",
   "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.": "このプロセスの CPU 使用量（ユーザー時間 + システム時間）を、ホストの全 CPU コアに対する割合で表し、範囲の直近 5 分間で平均したものです（12 時間を超える範囲や最近のデータがない場合は、通常は範囲全体）。ディスク待ちに費やした時間は含まれません。",
-  "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.": "選択した範囲の各区間における、このプロセスの CPU 使用量（ユーザー時間 + システム時間）を、ホストの総 CPU 容量に対する割合で表したものです。CPU タイルと同様に、ディスク待ちに費やした時間は含まれません。"
+  "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.": "選択した範囲の各区間における、このプロセスの CPU 使用量（ユーザー時間 + システム時間）を、ホストの総 CPU 容量に対する割合で表したものです。CPU タイルと同様に、ディスク待ちに費やした時間は含まれません。",
+  "No longer a member": "メンバーではなくなりました",
+  "Invitation not accepted yet": "招待はまだ承諾されていません"
 }

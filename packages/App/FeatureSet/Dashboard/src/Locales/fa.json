@@ -26028,5 +26028,7 @@
   "Connecting GitHub needs the {{planName}} plan.": "برای اتصال GitHub به طرح {{planName}} نیاز است.",
   "OneUptime could not start the GitHub connection. Please try again.": "OneUptime نتوانست اتصال به GitHub را آغاز کند. لطفاً دوباره تلاش کنید.",
   "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.": "CPU this process used (user plus system time) as a share of all host CPU cores, averaged over the last 5 minutes of the range (usually the whole range if over 12 hours or no recent data). Time it spent waiting on disk is left out.",
-  "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.": "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out."
+  "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.": "CPU this process used in each interval of the selected range (user plus system time), as a share of the host's total CPU capacity. As on the CPU tile, time it spent waiting on disk is left out.",
+  "No longer a member": "دیگر عضو نیست",
+  "Invitation not accepted yet": "دعوت هنوز پذیرفته نشده است"
 }
