@@ -1680,6 +1680,36 @@ export default class Project extends TenantModel {
   public aiDailySpendLimitReachedAt?: Date = undefined;
 
   /*
+   * When the project's owners were last emailed that its plan stops its API
+   * keys or limits its SCIM connections (Server/Utils/Billing/
+   * PlanDowngradeOwnerNotice): written when a plan change tells them, and
+   * claimed - one conditional UPDATE, only while it is still empty - by the
+   * one-time notice to projects that were already below those plans when
+   * the cut-off shipped (data migration NotifyOwnersOfStoppedApiKeysAndScim),
+   * so no project's owners hear it twice, however often or however many
+   * workers run it. Internal, like the owner notice flags above: no one
+   * reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Plan Cut-off Notice Sent At",
+    description:
+      "Internal: when the project's owners were last emailed that its plan stops its API keys or limits its SCIM connections.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public planCutoffNoticeSentAt?: Date = undefined;
+
+  /*
    * The per-feature AI switches below (this one down to
    * autoArchiveNonActionableExceptions) are ON for projects created from
    * now on, and their column default stays OFF on purpose. ProjectService's

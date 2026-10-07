@@ -3298,6 +3298,63 @@ These are no longer recorded against the project and have to be cancelled by han
     return Array.isArray(result) && result.length > 0;
   }
 
+  /*
+   * Claim the one-time notice to a project's owners that its plan stops its
+   * API keys or limits its SCIM connections (PlanDowngradeOwnerNotice): true
+   * only for the one call that writes planCutoffNoticeSentAt, while it is
+   * still empty - so the owners of a project already told, by a plan change
+   * or by an earlier run, are not told again, and two workers running the
+   * notice at once cannot both win. One statement, like
+   * markAiDailyLimitReached: a passive bookkeeping write, no hooks, on a
+   * column the API never reads.
+   */
+  @CaptureSpan()
+  public async claimPlanCutoffNotice(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<boolean> {
+    const sql: string = `WITH "updated" AS (UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2 AND "deletedAt" IS NULL AND "planCutoffNoticeSentAt" IS NULL RETURNING "_id") SELECT "_id" FROM "updated"`;
+
+    const result: unknown = await this.getRepository().manager.query(sql, [
+      data.now,
+      data.projectId.toString(),
+    ]);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * Give back a claim (claimPlanCutoffNotice) whose notice could not be
+   * sent, so a later run tells the owners after all. Only the claim made at
+   * `claimedAt` is given back: one written since stays.
+   */
+  @CaptureSpan()
+  public async releasePlanCutoffNotice(data: {
+    projectId: ObjectID;
+    claimedAt: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = NULL WHERE "_id" = $1 AND "planCutoffNoticeSentAt" = $2`,
+      [data.projectId.toString(), data.claimedAt],
+    );
+  }
+
+  /*
+   * Record that the project's owners were told now - a plan change stopped
+   * its API keys or limited its SCIM connections - whether or not they were
+   * told before.
+   */
+  @CaptureSpan()
+  public async markPlanCutoffNoticeSent(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<void> {
+    await this.getRepository().manager.query(
+      `UPDATE "Project" SET "planCutoffNoticeSentAt" = $1 WHERE "_id" = $2`,
+      [data.now, data.projectId.toString()],
+    );
+  }
+
   @CaptureSpan()
   public async sendEmailToProjectOwners(
     projectId: ObjectID,
